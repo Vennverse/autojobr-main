@@ -7590,6 +7590,35 @@ Host: https://autojobr.com`;
     }
   });
 
+  // Database migration endpoint for interview assignments
+  app.post('/api/db/migrate-interview-columns', async (req, res) => {
+    try {
+      console.log('Starting interview columns migration...');
+      
+      // Add missing columns to virtual_interviews table
+      await db.execute(sql`ALTER TABLE virtual_interviews ADD COLUMN IF NOT EXISTS assigned_by VARCHAR REFERENCES users(id)`);
+      await db.execute(sql`ALTER TABLE virtual_interviews ADD COLUMN IF NOT EXISTS assignment_type VARCHAR DEFAULT 'self'`);
+      await db.execute(sql`ALTER TABLE virtual_interviews ADD COLUMN IF NOT EXISTS job_posting_id INTEGER REFERENCES job_postings(id)`);
+      await db.execute(sql`ALTER TABLE virtual_interviews ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMP`);
+      await db.execute(sql`ALTER TABLE virtual_interviews ADD COLUMN IF NOT EXISTS due_date TIMESTAMP`);
+      await db.execute(sql`ALTER TABLE virtual_interviews ADD COLUMN IF NOT EXISTS email_sent BOOLEAN DEFAULT false`);
+      
+      // Add missing columns to mock_interviews table  
+      await db.execute(sql`ALTER TABLE mock_interviews ADD COLUMN IF NOT EXISTS assigned_by VARCHAR REFERENCES users(id)`);
+      await db.execute(sql`ALTER TABLE mock_interviews ADD COLUMN IF NOT EXISTS assignment_type VARCHAR DEFAULT 'self'`);
+      await db.execute(sql`ALTER TABLE mock_interviews ADD COLUMN IF NOT EXISTS job_posting_id INTEGER REFERENCES job_postings(id)`);
+      await db.execute(sql`ALTER TABLE mock_interviews ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMP`);
+      await db.execute(sql`ALTER TABLE mock_interviews ADD COLUMN IF NOT EXISTS due_date TIMESTAMP`);
+      await db.execute(sql`ALTER TABLE mock_interviews ADD COLUMN IF NOT EXISTS email_sent BOOLEAN DEFAULT false`);
+      
+      console.log('✓ Interview columns migration completed');
+      res.json({ success: true, message: 'Migration completed successfully' });
+    } catch (error: any) {
+      console.error('Migration error:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // Test endpoint to verify Groq AI functionality
   app.get('/api/test-ai', async (req, res) => {
     try {

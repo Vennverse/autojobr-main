@@ -225,15 +225,15 @@ export default function InterviewAssignments() {
           <CardTitle>Interview Assignment Features</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                  Partial Results
+                  Recruiter-Only Results
                 </Badge>
               </div>
               <p className="text-sm text-gray-600">
-                View candidate performance summaries without detailed feedback to encourage retakes
+                Detailed interview results are only visible to recruiters, candidates see limited summary
               </p>
             </div>
             
@@ -245,17 +245,6 @@ export default function InterviewAssignments() {
               </div>
               <p className="text-sm text-gray-600">
                 Automatic email notifications sent to candidates with interview details and deadlines
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-purple-50 text-purple-700">
-                  Retake System
-                </Badge>
-              </div>
-              <p className="text-sm text-gray-600">
-                Candidates can retake interviews for $5 (up to 2 retakes) with PayPal/Stripe support
               </p>
             </div>
           </div>

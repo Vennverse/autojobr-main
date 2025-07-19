@@ -62,6 +62,24 @@ export default function InterviewAssignmentModal({
         return;
       }
 
+      if (!formData.jobPostingId) {
+        toast({
+          title: "Error", 
+          description: "Please select a job posting",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!formData.jobDescription.trim()) {
+        toast({
+          title: "Error",
+          description: "Job description is required",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const endpoint = interviewType === 'virtual' 
         ? '/api/interviews/virtual/assign'
         : '/api/interviews/mock/assign';
@@ -71,7 +89,7 @@ export default function InterviewAssignmentModal({
         jobPostingId: formData.jobPostingId ? Number(formData.jobPostingId) : null,
         interviewType: formData.interviewTypeSpecific,
         role: formData.role,
-        company: formData.company || selectedJob?.company,
+        company: selectedJob?.company || formData.company,
         difficulty: formData.difficulty,
         dueDate: formData.dueDate,
         ...(interviewType === 'virtual' ? {
@@ -199,13 +217,12 @@ export default function InterviewAssignmentModal({
                 </div>
 
                 <div>
-                  <Label htmlFor="jobPostingId">Job Posting (Optional)</Label>
-                  <Select value={formData.jobPostingId} onValueChange={handleJobPostingChange}>
+                  <Label htmlFor="jobPostingId">Job Posting *</Label>
+                  <Select value={formData.jobPostingId} onValueChange={handleJobPostingChange} required>
                     <SelectTrigger>
                       <SelectValue placeholder="Select job posting" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">No job posting</SelectItem>
                       {jobPostings.map(job => (
                         <SelectItem key={job.id} value={job.id.toString()}>
                           {job.title} - {job.company}
@@ -351,18 +368,17 @@ export default function InterviewAssignmentModal({
                 </div>
               )}
 
-              {interviewType === 'virtual' && (
-                <div>
-                  <Label htmlFor="jobDescription">Job Description (Optional)</Label>
-                  <Textarea
-                    id="jobDescription"
-                    value={formData.jobDescription}
-                    onChange={(e) => setFormData(prev => ({ ...prev, jobDescription: e.target.value }))}
-                    placeholder="Provide job description for more tailored questions..."
-                    rows={3}
-                  />
-                </div>
-              )}
+              <div>
+                <Label htmlFor="jobDescription">Job Description *</Label>
+                <Textarea
+                  id="jobDescription"
+                  value={formData.jobDescription}
+                  onChange={(e) => setFormData(prev => ({ ...prev, jobDescription: e.target.value }))}
+                  placeholder="Provide job description for tailored questions..."
+                  rows={3}
+                  required
+                />
+              </div>
             </CardContent>
           </Card>
 
@@ -375,9 +391,7 @@ export default function InterviewAssignmentModal({
                   <h4 className="font-medium text-orange-800">Important Notice</h4>
                   <ul className="text-sm text-orange-700 space-y-1">
                     <li>• The candidate will receive an email notification with interview details</li>
-                    <li>• Results will be shared with you in summary form only</li>
-                    <li>• Candidates can retake the interview for $5 (up to 2 retakes)</li>
-                    <li>• Full detailed results are only visible to the candidate</li>
+                    <li>• Full detailed results are only visible to the recruiter (you)</li>
                   </ul>
                 </div>
               </div>
