@@ -51,6 +51,7 @@ const invalidateUserCache = (userId: string) => {
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
 import { groqService } from "./groqService";
+import { customNLPService } from "./customNLP";
 import { subscriptionService } from "./subscriptionService";
 import { sendEmail, generateVerificationEmail } from "./emailService";
 import { fileStorage } from "./fileStorage";
@@ -2087,8 +2088,8 @@ Additional Information:
         console.log("Could not fetch additional profile data:", error);
       }
       
-      // Analyze job match with Groq AI
-      const analysis = await groqService.analyzeJobMatch(jobData, userProfile);
+      // Analyze job match with custom NLP (no external AI dependency)
+      const analysis = customNLPService.analyzeJob(jobData.description, userProfile);
       console.log("Job analysis result:", analysis);
 
       // Store the analysis in database for persistence
@@ -2220,8 +2221,8 @@ Additional Information:
         console.log("Could not fetch additional applicant data:", error);
       }
       
-      // Analyze job compatibility with Groq AI
-      const analysis = await groqService.analyzeJobMatch(jobData, userProfile);
+      // Analyze job compatibility with custom NLP
+      const analysis = customNLPService.analyzeJob(jobData.description, userProfile);
 
       res.json({
         matchScore: analysis.matchScore,

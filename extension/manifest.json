@@ -1110,7 +1110,7 @@
         "https://careers.burtonport.com/*",
         "https://careers.arranmore.com/*"
       ],
-      "js": ["enhanced-content-script.js"],
+      "js": ["config.js", "content.js", "enhanced-content-script.js", "auto-job-analyzer.js"],
       "run_at": "document_end"
     }
   ],

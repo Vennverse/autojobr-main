@@ -95,6 +95,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     handleAutoFillTracking(request.data, sendResponse);
     return true;
   }
+  
+  if (request.action === 'storeJobAnalysis') {
+    handleStoreJobAnalysis(request.data, sendResponse);
+    return true;
+  }
+  
+  if (request.action === 'triggerAutoFill') {
+    handleTriggerAutoFill(request.data, sendResponse);
+    return true;
+  }
+  
+  if (request.action === 'fillCoverLetter') {
+    handleFillCoverLetter(request.data, sendResponse);
+    return true;
+  }
 });
 
 // Get user profile from web app API
@@ -623,3 +638,84 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     }
   }
 });
+
+// Handle job analysis storage from auto-analyzer
+async function handleStoreJobAnalysis(data, sendResponse) {
+  try {
+    const { apiUrl } = await chrome.storage.sync.get(['apiUrl']);
+    const finalApiUrl = apiUrl || 'http://localhost:5000';
+    
+    // Store analysis data locally for quick access
+    await chrome.storage.local.set({
+      [`analysis_${data.jobData.url}`]: {
+        ...data.analysis,
+        jobData: data.jobData,
+        analyzedAt: new Date().toISOString()
+      }
+    });
+    
+    // Also send to backend if connected
+    try {
+      const response = await fetch(`${finalApiUrl}/api/jobs/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data.jobData)
+      });
+      
+      if (response.ok) {
+        console.log('AutoJobr: Analysis stored on server');
+      }
+    } catch (error) {
+      console.log('AutoJobr: Server storage failed, using local only');
+    }
+    
+    sendResponse({ success: true });
+  } catch (error) {
+    console.error('Error storing job analysis:', error);
+    sendResponse({ success: false, error: error.message });
+  }
+}
+
+// Handle auto-fill trigger from analyzer
+async function handleTriggerAutoFill(data, sendResponse) {
+  try {
+    // Get current active tab
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    // Send auto-fill message to content script
+    await chrome.tabs.sendMessage(tab.id, {
+      action: 'performAutoFill',
+      data: {
+        userProfile: data.userProfile,
+        jobData: data.jobData
+      }
+    });
+    
+    sendResponse({ success: true });
+  } catch (error) {
+    console.error('Error triggering auto-fill:', error);
+    sendResponse({ success: false, error: error.message });
+  }
+}
+
+// Handle cover letter filling from analyzer
+async function handleFillCoverLetter(data, sendResponse) {
+  try {
+    // Get current active tab
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    // Send cover letter fill message to content script
+    await chrome.tabs.sendMessage(tab.id, {
+      action: 'fillCoverLetter',
+      data: { coverLetter: data.coverLetter }
+    });
+    
+    sendResponse({ success: true });
+  } catch (error) {
+    console.error('Error filling cover letter:', error);
+    sendResponse({ success: false, error: error.message });
+  }
+}
+
+console.log('AutoJobr background script loaded successfully');

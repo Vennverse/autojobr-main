@@ -535,6 +535,11 @@ function triggerEvents(element) {
 // Message listener for communication with popup and background
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   switch (request.action) {
+    case 'performAutoFill':
+      const filled = performAdvancedAutoFill(request.data.userProfile);
+      sendResponse({ success: true, filled });
+      break;
+      
     case 'getJobData':
       sendResponse({ success: true, data: currentJobData });
       break;
