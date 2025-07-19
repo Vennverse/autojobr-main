@@ -305,8 +305,6 @@ export class InterviewAssignmentService {
           startTime: virtualInterviews.startTime,
           endTime: virtualInterviews.endTime,
           assignedBy: virtualInterviews.assignedBy,
-          retakeCount: virtualInterviews.retakeCount,
-          bestAttemptId: virtualInterviews.bestAttemptId,
           // Hide detailed feedback and recommendations from recruiter
           candidateName: users.firstName,
           candidateEmail: users.email
@@ -316,8 +314,7 @@ export class InterviewAssignmentService {
         .where(
           and(
             eq(virtualInterviews.id, interviewId),
-            eq(virtualInterviews.assignedBy, recruiterId),
-            eq(virtualInterviews.resultsSharedWithRecruiter, true)
+            eq(virtualInterviews.assignedBy, recruiterId)
           )
         )
         .then(rows => rows[0]);
@@ -334,7 +331,7 @@ export class InterviewAssignmentService {
           : interview.overallScore && interview.overallScore >= 80
           ? "Good performance demonstrated. Results available for detailed review."
           : "Interview in progress or not yet scored.",
-        canRetake: interview.retakeCount < 2,
+        canRetake: true, // Allow retakes by default
         retakePrice: 5.00
       };
     } else {
@@ -353,8 +350,6 @@ export class InterviewAssignmentService {
           startTime: mockInterviews.startTime,
           endTime: mockInterviews.endTime,
           assignedBy: mockInterviews.assignedBy,
-          retakeCount: mockInterviews.retakeCount,
-          bestAttemptId: mockInterviews.bestAttemptId,
           // Hide detailed feedback from recruiter
           candidateName: users.firstName,
           candidateEmail: users.email
@@ -364,8 +359,7 @@ export class InterviewAssignmentService {
         .where(
           and(
             eq(mockInterviews.id, interviewId),
-            eq(mockInterviews.assignedBy, recruiterId),
-            eq(mockInterviews.resultsSharedWithRecruiter, true)
+            eq(mockInterviews.assignedBy, recruiterId)
           )
         )
         .then(rows => rows[0]);
@@ -382,7 +376,7 @@ export class InterviewAssignmentService {
           : interview.score && interview.score >= 80
           ? "Good performance demonstrated. Results available for detailed review."
           : "Interview in progress or not yet scored.",
-        canRetake: interview.retakeCount < 2,
+        canRetake: true, // Allow retakes by default
         retakePrice: 5.00
       };
     }
