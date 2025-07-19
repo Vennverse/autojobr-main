@@ -205,7 +205,7 @@ export default function InterviewAssignmentModal({
                       <SelectValue placeholder="Select job posting" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No job posting</SelectItem>
+                      <SelectItem value="none">No job posting</SelectItem>
                       {jobPostings.map(job => (
                         <SelectItem key={job.id} value={job.id.toString()}>
                           {job.title} - {job.company}

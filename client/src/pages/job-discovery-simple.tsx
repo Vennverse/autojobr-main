@@ -140,7 +140,7 @@ export default function JobDiscoveryPage() {
                   <SelectValue placeholder="Any" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any</SelectItem>
+                  <SelectItem value="any">Any</SelectItem>
                   <SelectItem value="Remote">Remote</SelectItem>
                   <SelectItem value="Hybrid">Hybrid</SelectItem>
                   <SelectItem value="On-site">On-site</SelectItem>
@@ -155,7 +155,7 @@ export default function JobDiscoveryPage() {
                   <SelectValue placeholder="Any" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any</SelectItem>
+                  <SelectItem value="any">Any</SelectItem>
                   <SelectItem value="Entry-level">Entry-level</SelectItem>
                   <SelectItem value="Mid-level">Mid-level</SelectItem>
                   <SelectItem value="Senior">Senior</SelectItem>
