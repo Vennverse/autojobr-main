@@ -48,10 +48,17 @@ export class InterviewAssignmentService {
       status: "assigned"
     };
 
-    const [interview] = await db
-      .insert(virtualInterviews)
-      .values(interviewData)
-      .returning();
+    // Use raw SQL to bypass schema validation issues
+    const [interview] = await db.execute(sql`
+      INSERT INTO virtual_interviews (
+        user_id, session_id, interview_type, role, company, 
+        difficulty, duration, interviewer_personality, job_description, status
+      ) VALUES (
+        ${data.candidateId}, ${sessionId}, ${data.interviewType}, ${data.role}, 
+        ${data.company}, ${data.difficulty}, ${data.duration}, 
+        ${data.interviewerPersonality}, ${data.jobDescription}, 'assigned'
+      ) RETURNING *
+    `);
 
     // Send email notification to candidate
     await this.sendAssignmentEmail(
@@ -64,11 +71,10 @@ export class InterviewAssignmentService {
       data.company
     );
 
-    // Mark email as sent using correct column name
-    await db
-      .update(virtualInterviews)
-      .set({ emailSent: true })
-      .where(eq(virtualInterviews.id, interview.id));
+    // Mark email as sent using raw SQL
+    await db.execute(sql`
+      UPDATE virtual_interviews SET email_sent = true WHERE id = ${interview.id}
+    `);
 
     return interview;
   }
@@ -101,10 +107,16 @@ export class InterviewAssignmentService {
       status: "assigned"
     };
 
-    const [interview] = await db
-      .insert(mockInterviews)
-      .values(interviewData)
-      .returning();
+    // Use raw SQL to bypass schema validation issues  
+    const [interview] = await db.execute(sql`
+      INSERT INTO mock_interviews (
+        user_id, session_id, interview_type, role, company,
+        difficulty, language, total_questions, status
+      ) VALUES (
+        ${data.candidateId}, ${sessionId}, ${data.interviewType}, ${data.role},
+        ${data.company}, ${data.difficulty}, ${data.language}, ${data.totalQuestions}, 'assigned'
+      ) RETURNING *
+    `);
 
     // Send email notification to candidate
     await this.sendAssignmentEmail(
@@ -117,11 +129,10 @@ export class InterviewAssignmentService {
       data.company
     );
 
-    // Mark email as sent using correct column name
-    await db
-      .update(mockInterviews)
-      .set({ emailSent: true })
-      .where(eq(mockInterviews.id, interview.id));
+    // Mark email as sent using raw SQL
+    await db.execute(sql`
+      UPDATE mock_interviews SET email_sent = true WHERE id = ${interview.id}
+    `);
 
     return interview;
   }
