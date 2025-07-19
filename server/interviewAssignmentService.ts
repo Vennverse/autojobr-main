@@ -4,7 +4,8 @@ import {
   mockInterviews, 
   interviewRetakePayments, 
   users, 
-  jobPostings
+  jobPostings,
+  jobPostingApplications
 } from "@shared/schema";
 import { eq, and, desc, count, sql } from "drizzle-orm";
 import { sendEmail } from "./emailService";
@@ -531,36 +532,36 @@ export class InterviewAssignmentService {
     try {
       console.log(`Fetching candidates for job posting: ${jobPostingId}`);
       
-      // Use raw SQL to avoid Drizzle ORM import issues
-      const candidatesWithApplications = await db.execute(sql`
-        SELECT 
-          u.id,
-          u.first_name as "firstName",
-          u.last_name as "lastName", 
-          u.email,
-          u.user_type as "userType",
-          u.created_at as "createdAt",
-          u.is_active as "isActive",
-          jpa.id as "applicationId",
-          jpa.status as "applicationStatus",
-          jpa.applied_at as "appliedAt",
-          jpa.match_score as "matchScore"
-        FROM job_posting_applications jpa
-        INNER JOIN users u ON jpa.applicant_id = u.id
-        WHERE jpa.job_posting_id = ${jobPostingId}
-        ORDER BY jpa.applied_at DESC
-      `);
+      // Use the same structure as the working storage service
+      const candidatesWithApplications = await db
+        .select({
+          // User info
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+          userType: users.userType,
+          createdAt: users.createdAt,
+          // Application info
+          applicationId: jobPostingApplications.id,
+          applicationStatus: jobPostingApplications.status,
+          appliedAt: jobPostingApplications.appliedAt,
+          matchScore: jobPostingApplications.matchScore
+        })
+        .from(jobPostingApplications)
+        .leftJoin(users, eq(jobPostingApplications.applicantId, users.id))
+        .where(eq(jobPostingApplications.jobPostingId, jobPostingId))
+        .orderBy(desc(jobPostingApplications.appliedAt));
 
       console.log(`Found ${candidatesWithApplications.length} candidates for job ${jobPostingId}`);
 
       // Format candidates with names and application info
-      return candidatesWithApplications.map((candidate: any) => ({
+      return candidatesWithApplications.map(candidate => ({
         id: candidate.id,
         name: `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim() || candidate.email,
         email: candidate.email,
         userType: candidate.userType,
         createdAt: candidate.createdAt,
-        isActive: candidate.isActive,
         applicationId: candidate.applicationId,
         applicationStatus: candidate.applicationStatus,
         appliedAt: candidate.appliedAt,
