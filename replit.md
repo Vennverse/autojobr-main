@@ -30,11 +30,12 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 ## Recent Changes
 
 ### January 19, 2025 - Complete Database Schema & Interview Access Fix
-- ✅ **Database Schema Fixed**: Added missing `results_shared_with_recruiter` columns to both `mock_interviews` and `virtual_interviews` tables
-- ✅ **Interview Assignment System Complete**: Fixed all database query issues and column references
+- ✅ **All Database Columns Fixed**: Added missing `results_shared_with_recruiter` and `partial_results_only` columns to both interview tables
+- ✅ **Schema Synchronization Complete**: Database schema now fully matches application requirements 
+- ✅ **Interview Assignment System Working**: Fixed all database query issues and column references
 - ✅ **Authentication Redirect**: Implemented URL preservation for interview links - users are redirected back to interviews after login
 - ✅ **User Access Resolution**: Fixed interview session access by ensuring proper user authentication and session matching
-- ✅ **Demo User Created**: Added demo interview user (demo.interview.user@example.com) for testing assigned interviews
+- ✅ **Virtual Interview Access**: Virtual interview ID 18 is properly assigned to user and should now be accessible
 - ✅ **Database Query Fixed**: Corrected interview assignment service to use proper `jobPostingApplications` table instead of `jobApplications`
 - ✅ **Candidate Selection Working**: Interview assignments now properly show candidates who have applied to specific job postings
 - ✅ **SQL Syntax Errors Resolved**: Fixed import issues causing "syntax error at or near =" database errors
