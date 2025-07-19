@@ -529,31 +529,44 @@ export class InterviewAssignmentService {
   // Get candidates who applied to a specific job posting
   async getCandidatesForJobPosting(jobPostingId: number) {
     try {
-      // Import jobApplications here to avoid circular dependency
-      const { jobApplications } = await import("@shared/schema");
+      // Use storage service to get applications for a specific job
+      const applications = await db
+        .select()
+        .from((await import("@shared/schema")).jobApplications)
+        .where(eq((await import("@shared/schema")).jobApplications.jobId, jobPostingId));
+
+      console.log(`Found ${applications.length} applications for job ${jobPostingId}`);
+
+      const candidatesWithApplications = [];
       
-      const candidatesWithApplications = await db
-        .select({
-          id: users.id,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          email: users.email,
-          userType: users.userType,
-          createdAt: users.createdAt,
-          isActive: users.isActive,
-          applicationId: jobApplications.id,
-          applicationStatus: jobApplications.status,
-          appliedAt: jobApplications.appliedAt
-        })
-        .from(users)
-        .innerJoin(jobApplications, eq(users.id, jobApplications.applicantId))
-        .where(
-          and(
-            eq(users.userType, 'jobSeeker'),
-            eq(jobApplications.jobId, jobPostingId)
-          )
-        )
-        .orderBy(desc(jobApplications.appliedAt));
+      for (const app of applications) {
+        try {
+          const candidate = await db
+            .select({
+              id: users.id,
+              firstName: users.firstName,
+              lastName: users.lastName,
+              email: users.email,
+              userType: users.userType,
+              createdAt: users.createdAt,
+              isActive: users.isActive
+            })
+            .from(users)
+            .where(eq(users.id, app.applicantId))
+            .then(rows => rows[0]);
+
+          if (candidate) {
+            candidatesWithApplications.push({
+              ...candidate,
+              applicationId: app.id,
+              applicationStatus: app.status,
+              appliedAt: app.appliedAt
+            });
+          }
+        } catch (err) {
+          console.log('Error fetching candidate details:', err);
+        }
+      }
 
       // Format candidates with names and application info
       return candidatesWithApplications.map(candidate => ({
