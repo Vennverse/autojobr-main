@@ -49,7 +49,7 @@ export class InterviewAssignmentService {
     };
 
     // Use raw SQL to bypass schema validation issues
-    const [interview] = await db.execute(sql`
+    const result = await db.execute(sql`
       INSERT INTO virtual_interviews (
         user_id, session_id, interview_type, role, company, 
         difficulty, duration, interviewer_personality, job_description, status
@@ -59,6 +59,8 @@ export class InterviewAssignmentService {
         ${data.interviewerPersonality}, ${data.jobDescription}, 'assigned'
       ) RETURNING *
     `);
+    
+    const interview = result.rows[0];
 
     // Send email notification to candidate
     await this.sendAssignmentEmail(
@@ -108,7 +110,7 @@ export class InterviewAssignmentService {
     };
 
     // Use raw SQL to bypass schema validation issues  
-    const [interview] = await db.execute(sql`
+    const result = await db.execute(sql`
       INSERT INTO mock_interviews (
         user_id, session_id, interview_type, role, company,
         difficulty, language, total_questions, status
@@ -117,6 +119,8 @@ export class InterviewAssignmentService {
         ${data.company}, ${data.difficulty}, ${data.language}, ${data.totalQuestions}, 'assigned'
       ) RETURNING *
     `);
+    
+    const interview = result.rows[0];
 
     // Send email notification to candidate
     await this.sendAssignmentEmail(
@@ -397,9 +401,7 @@ export class InterviewAssignmentService {
           vi.overall_score as "overallScore",
           u.first_name as "candidateName",
           u.email as "candidateEmail",
-          'virtual' as "interviewCategory",
-          vi.retake_count as "retakeCount",
-          vi.max_retakes as "maxRetakes"
+          'virtual' as "interviewCategory"
         FROM virtual_interviews vi
         LEFT JOIN users u ON vi.user_id = u.id
         WHERE vi.assigned_by = ${recruiterId}
@@ -419,9 +421,7 @@ export class InterviewAssignmentService {
           mi.score as "overallScore",
           u.first_name as "candidateName",
           u.email as "candidateEmail",
-          'mock' as "interviewCategory",
-          mi.retake_count as "retakeCount",
-          mi.max_retakes as "maxRetakes"
+          'mock' as "interviewCategory"
         FROM mock_interviews mi
         LEFT JOIN users u ON mi.user_id = u.id
         WHERE mi.assigned_by = ${recruiterId}
