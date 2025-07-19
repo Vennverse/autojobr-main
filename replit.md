@@ -76,6 +76,13 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 ✅ **Chrome Extension**: Fully functional with real user data integration, form auto-fill, and application tracking
 ✅ **Interview Assignments**: Enhanced recruiter interview assignment system with job-specific targeting, mandatory job descriptions, and restricted result visibility
 
+### January 19, 2025 - Enhanced Interview Assignment Workflow
+- ✅ **Job-First Selection**: Modified interview assignment to select job posting first, then show candidates who applied to that specific job
+- ✅ **Multiple Candidate Selection**: Recruiters can now select multiple candidates at once for batch interview assignments
+- ✅ **Improved UI/UX**: Better candidate selection interface with checkboxes, select all functionality, and application status display
+- ✅ **Unified Workflow**: Both virtual AI interviews and coding tests now use the same improved assignment process
+- ✅ **Database Optimization**: Fixed candidate fetching query and added job-specific candidate filtering API endpoint
+
 **Demo User for Screenshots**: 
 - Email: demo.alexandra.chen@example.com
 - Password: demo123

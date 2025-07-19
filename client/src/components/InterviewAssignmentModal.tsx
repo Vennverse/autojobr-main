@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Clock, User, Briefcase, Mail, AlertCircle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar, Clock, User, Briefcase, Mail, AlertCircle, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface InterviewAssignmentModalProps {
@@ -16,6 +17,14 @@ interface InterviewAssignmentModalProps {
   candidates: { id: string; name: string; email: string; }[];
   jobPostings: { id: number; title: string; company: string; }[];
   onAssignmentSuccess: () => void;
+}
+
+interface JobCandidate {
+  id: string;
+  name: string;
+  email: string;
+  applicationStatus?: string;
+  appliedAt?: string;
 }
 
 export default function InterviewAssignmentModal({
@@ -28,6 +37,10 @@ export default function InterviewAssignmentModal({
 }: InterviewAssignmentModalProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [jobCandidates, setJobCandidates] = useState<JobCandidate[]>([]);
+  const [selectedCandidates, setSelectedCandidates] = useState<string[]>([]);
+  const [loadingCandidates, setLoadingCandidates] = useState(false);
+  
   const [formData, setFormData] = useState({
     candidateId: '',
     jobPostingId: '',
@@ -45,20 +58,53 @@ export default function InterviewAssignmentModal({
     interviewTypeSpecific: 'technical'
   });
 
+  // Fetch candidates when job posting is selected
+  const fetchCandidatesForJob = async (jobId: number) => {
+    setLoadingCandidates(true);
+    try {
+      const response = await fetch(`/api/candidates/for-job/${jobId}`, {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const candidates = await response.json();
+        setJobCandidates(candidates);
+        setSelectedCandidates([]); // Reset selection
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to load candidates for this job",
+          variant: "destructive"
+        });
+        setJobCandidates([]);
+      }
+    } catch (error) {
+      console.error('Error fetching job candidates:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load candidates",
+        variant: "destructive"
+      });
+      setJobCandidates([]);
+    } finally {
+      setLoadingCandidates(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       const selectedJob = jobPostings.find(job => job.id === Number(formData.jobPostingId));
-      const selectedCandidate = candidates.find(c => c.id === formData.candidateId);
 
-      if (!selectedCandidate) {
+      if (selectedCandidates.length === 0) {
         toast({
           title: "Error",
-          description: "Please select a candidate",
+          description: "Please select at least one candidate",
           variant: "destructive"
         });
+        setLoading(false);
         return;
       }
 
@@ -68,6 +114,7 @@ export default function InterviewAssignmentModal({
           description: "Please select a job posting",
           variant: "destructive"
         });
+        setLoading(false);
         return;
       }
 
@@ -84,38 +131,46 @@ export default function InterviewAssignmentModal({
         ? '/api/interviews/virtual/assign'
         : '/api/interviews/mock/assign';
 
-      const payload = {
-        candidateId: formData.candidateId,
-        jobPostingId: formData.jobPostingId ? Number(formData.jobPostingId) : null,
-        interviewType: formData.interviewTypeSpecific,
-        role: formData.role,
-        company: selectedJob?.company || formData.company,
-        difficulty: formData.difficulty,
-        dueDate: formData.dueDate,
-        ...(interviewType === 'virtual' ? {
-          duration: formData.duration,
-          interviewerPersonality: formData.interviewerPersonality,
-          jobDescription: formData.jobDescription
-        } : {
-          language: formData.language,
-          totalQuestions: formData.totalQuestions
-        })
-      };
+      // Assign interviews to all selected candidates
+      const assignmentPromises = selectedCandidates.map(candidateId => {
+        const payload = {
+          candidateId,
+          jobPostingId: formData.jobPostingId ? Number(formData.jobPostingId) : null,
+          interviewType: formData.interviewTypeSpecific,
+          role: formData.role,
+          company: selectedJob?.company || formData.company,
+          difficulty: formData.difficulty,
+          dueDate: formData.dueDate,
+          jobDescription: formData.jobDescription,
+          ...(interviewType === 'virtual' ? {
+            duration: formData.duration,
+            interviewerPersonality: formData.interviewerPersonality,
+          } : {
+            language: formData.language,
+            totalQuestions: formData.totalQuestions
+          })
+        };
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
+        return fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        });
       });
 
-      const data = await response.json();
+      const responses = await Promise.all(assignmentPromises);
+      const results = await Promise.all(responses.map(r => r.json()));
+      
+      const successCount = responses.filter(r => r.ok).length;
+      const failCount = responses.length - successCount;
 
-      if (response.ok) {
+      if (successCount > 0) {
         toast({
           title: "Success",
-          description: `${interviewType === 'virtual' ? 'Virtual' : 'Mock'} interview assigned successfully`,
+          description: `${interviewType === 'virtual' ? 'Virtual' : 'Mock'} interview assigned to ${successCount} candidate${successCount > 1 ? 's' : ''}${failCount > 0 ? ` (${failCount} failed)` : ''}`,
         });
         onAssignmentSuccess();
         onClose();
@@ -123,7 +178,7 @@ export default function InterviewAssignmentModal({
       } else {
         toast({
           title: "Error",
-          description: data.message || "Failed to assign interview",
+          description: results[0]?.message || "Failed to assign interviews",
           variant: "destructive"
         });
       }
@@ -154,6 +209,8 @@ export default function InterviewAssignmentModal({
       totalQuestions: 5,
       interviewTypeSpecific: 'technical'
     });
+    setSelectedCandidates([]);
+    setJobCandidates([]);
   };
 
   const handleJobPostingChange = (jobId: string) => {
@@ -162,8 +219,32 @@ export default function InterviewAssignmentModal({
       ...prev,
       jobPostingId: jobId,
       company: selectedJob?.company || '',
-      role: selectedJob?.title || ''
+      role: selectedJob?.title || '',
+      jobDescription: selectedJob ? `Role: ${selectedJob.title} at ${selectedJob.company}` : ''
     }));
+    
+    // Fetch candidates who applied to this job
+    if (selectedJob) {
+      fetchCandidatesForJob(selectedJob.id);
+    }
+  };
+
+  const handleCandidateSelection = (candidateId: string, checked: boolean) => {
+    setSelectedCandidates(prev => {
+      if (checked) {
+        return [...prev, candidateId];
+      } else {
+        return prev.filter(id => id !== candidateId);
+      }
+    });
+  };
+
+  const handleSelectAllCandidates = (checked: boolean) => {
+    if (checked) {
+      setSelectedCandidates(jobCandidates.map(c => c.id));
+    } else {
+      setSelectedCandidates([]);
+    }
   };
 
   const tomorrow = new Date();
@@ -183,7 +264,7 @@ export default function InterviewAssignmentModal({
             ) : (
               <>
                 <Briefcase className="h-5 w-5 text-green-600" />
-                Assign Mock Interview
+                Assign Coding Test
               </>
             )}
           </DialogTitle>
@@ -196,42 +277,89 @@ export default function InterviewAssignmentModal({
               <CardTitle className="text-lg">Basic Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="candidateId">Candidate *</Label>
-                  <Select value={formData.candidateId} onValueChange={(value) => setFormData(prev => ({ ...prev, candidateId: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select candidate" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {candidates.map(candidate => (
-                        <SelectItem key={candidate.id} value={candidate.id}>
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4" />
-                            {candidate.name} ({candidate.email})
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="jobPostingId">Job Posting *</Label>
-                  <Select value={formData.jobPostingId} onValueChange={handleJobPostingChange} required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select job posting" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {jobPostings.map(job => (
-                        <SelectItem key={job.id} value={job.id.toString()}>
-                          {job.title} - {job.company}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Job Posting Selection */}
+              <div>
+                <Label htmlFor="jobPostingId">Job Posting *</Label>
+                <Select value={formData.jobPostingId} onValueChange={handleJobPostingChange} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select job posting first" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {jobPostings.map(job => (
+                      <SelectItem key={job.id} value={job.id.toString()}>
+                        {job.title} - {job.company}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+
+              {/* Candidate Selection */}
+              {formData.jobPostingId && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>
+                      <Users className="h-4 w-4 inline mr-2" />
+                      Select Candidates *
+                    </Label>
+                    {loadingCandidates && (
+                      <div className="text-sm text-muted-foreground">Loading candidates...</div>
+                    )}
+                  </div>
+                  
+                  {!loadingCandidates && (
+                    <>
+                      {jobCandidates.length > 0 ? (
+                        <>
+                          <div className="flex items-center space-x-2 border-b pb-2">
+                            <Checkbox
+                              id="select-all"
+                              checked={selectedCandidates.length === jobCandidates.length}
+                              onCheckedChange={handleSelectAllCandidates}
+                            />
+                            <Label htmlFor="select-all" className="text-sm font-medium">
+                              Select All ({jobCandidates.length})
+                            </Label>
+                          </div>
+                          
+                          <div className="max-h-32 overflow-y-auto space-y-2">
+                            {jobCandidates.map((candidate) => (
+                              <div key={candidate.id} className="flex items-center space-x-2 p-2 border rounded-md">
+                                <Checkbox
+                                  id={candidate.id}
+                                  checked={selectedCandidates.includes(candidate.id)}
+                                  onCheckedChange={(checked) => handleCandidateSelection(candidate.id, checked as boolean)}
+                                />
+                                <Label htmlFor={candidate.id} className="flex-1 cursor-pointer">
+                                  <div className="flex items-center gap-2">
+                                    <User className="h-4 w-4" />
+                                    <span className="font-medium">{candidate.name}</span>
+                                    <span className="text-sm text-muted-foreground">({candidate.email})</span>
+                                    {candidate.applicationStatus && (
+                                      <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                                        {candidate.applicationStatus}
+                                      </span>
+                                    )}
+                                  </div>
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <div className="text-sm text-muted-foreground">
+                            {selectedCandidates.length} of {jobCandidates.length} candidates selected
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center py-4 text-muted-foreground">
+                          <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p>No candidates have applied to this job posting yet.</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>

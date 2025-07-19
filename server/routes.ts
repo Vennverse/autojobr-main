@@ -7442,6 +7442,25 @@ Host: https://autojobr.com`;
     }
   });
 
+  // Get candidates who applied to a specific job posting
+  app.get('/api/candidates/for-job/:jobId', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const jobId = parseInt(req.params.jobId);
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter') {
+        return res.status(403).json({ message: 'Access denied. Recruiter account required.' });
+      }
+      
+      const candidates = await interviewAssignmentService.getCandidatesForJobPosting(jobId);
+      res.json(candidates);
+    } catch (error) {
+      console.error('Error fetching candidates for job:', error);
+      res.status(500).json({ message: 'Failed to fetch candidates for job posting' });
+    }
+  });
+
   // Get job postings for assignment
   app.get('/api/jobs/postings', isAuthenticated, async (req: any, res) => {
     try {

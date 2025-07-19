@@ -511,9 +511,64 @@ export class InterviewAssignmentService {
         .where(eq(users.userType, 'jobSeeker'))
         .orderBy(desc(users.createdAt));
 
-      return candidates;
+      // Format candidates with names
+      return candidates.map(candidate => ({
+        id: candidate.id,
+        name: `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim() || candidate.email,
+        email: candidate.email,
+        userType: candidate.userType,
+        createdAt: candidate.createdAt,
+        isActive: candidate.isActive
+      }));
     } catch (error) {
       console.error('Error fetching candidates:', error);
+      return [];
+    }
+  }
+
+  // Get candidates who applied to a specific job posting
+  async getCandidatesForJobPosting(jobPostingId: number) {
+    try {
+      // Import jobApplications here to avoid circular dependency
+      const { jobApplications } = await import("@shared/schema");
+      
+      const candidatesWithApplications = await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+          userType: users.userType,
+          createdAt: users.createdAt,
+          isActive: users.isActive,
+          applicationId: jobApplications.id,
+          applicationStatus: jobApplications.status,
+          appliedAt: jobApplications.appliedAt
+        })
+        .from(users)
+        .innerJoin(jobApplications, eq(users.id, jobApplications.applicantId))
+        .where(
+          and(
+            eq(users.userType, 'jobSeeker'),
+            eq(jobApplications.jobId, jobPostingId)
+          )
+        )
+        .orderBy(desc(jobApplications.appliedAt));
+
+      // Format candidates with names and application info
+      return candidatesWithApplications.map(candidate => ({
+        id: candidate.id,
+        name: `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim() || candidate.email,
+        email: candidate.email,
+        userType: candidate.userType,
+        createdAt: candidate.createdAt,
+        isActive: candidate.isActive,
+        applicationId: candidate.applicationId,
+        applicationStatus: candidate.applicationStatus,
+        appliedAt: candidate.appliedAt
+      }));
+    } catch (error) {
+      console.error('Error fetching candidates for job posting:', error);
       return [];
     }
   }
