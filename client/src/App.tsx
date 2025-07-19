@@ -167,12 +167,20 @@ function Router() {
           <Route path="/recruiters" component={RecruiterFeatures} />
           <Route path="/recruiter-features" component={RecruiterFeatures} />
           <Route path="/test/:id" component={TestTaking} />
-          {/* Redirect unauthenticated users trying to access interviews to login */}
+          {/* Redirect unauthenticated users trying to access interviews to login with redirect */}
           <Route path="/virtual-interview/:sessionId">
-            {() => <AuthPage />}
+            {(params) => {
+              const redirectUrl = encodeURIComponent(`/virtual-interview/${params.sessionId}`);
+              window.location.href = `/auth?redirect=${redirectUrl}`;
+              return null;
+            }}
           </Route>
           <Route path="/mock-interview/:sessionId">
-            {() => <AuthPage />}
+            {(params) => {
+              const redirectUrl = encodeURIComponent(`/mock-interview/${params.sessionId}`);
+              window.location.href = `/auth?redirect=${redirectUrl}`;
+              return null;
+            }}
           </Route>
         </>
       )}

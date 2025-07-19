@@ -13,6 +13,21 @@ import { FcGoogle } from "react-icons/fc";
 export default function AuthPage() {
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Get redirect URL from query params or current path
+  const getRedirectUrl = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirect = urlParams.get('redirect');
+    if (redirect) {
+      return decodeURIComponent(redirect);
+    }
+    // If no redirect param, check if we came from an interview URL
+    const currentPath = window.location.pathname;
+    if (currentPath.includes('/virtual-interview/') || currentPath.includes('/mock-interview/')) {
+      return currentPath;
+    }
+    return '/';
+  };
   const [availableProviders, setAvailableProviders] = useState({
     google: false,
     github: false,
@@ -98,7 +113,7 @@ export default function AuthPage() {
           title: "Login Successful",
           description: "Welcome back!",
         });
-        window.location.href = '/';
+        window.location.href = getRedirectUrl();
       } else if (response.status === 403 && data.requiresVerification) {
         // Email verification required
         setLocation(`/email-verification?email=${encodeURIComponent(formData.email)}`);
