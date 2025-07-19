@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            width: 380px;
+            min-height: 500px;
+            padding: 0;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .header {
+            padding: 20px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .tagline {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .container {
+            padding: 20px;
+        }
+        
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .section h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .status.connected {
+            color: #4ade80;
+        }
+        
+        .status.disconnected {
+            color: #f87171;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .toggle-switch.active {
+            background: #4ade80;
+        }
+        
+        .toggle-switch::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+        
+        .toggle-switch.active::before {
+            transform: translateX(26px);
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-bottom: 8px;
+        }
+        
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn.primary {
+            background: #4ade80;
+        }
+        
+        .btn.primary:hover {
+            background: #22c55e;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #4ade80;
+            transition: width 0.3s;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+        
+        .stat-number {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .analysis-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+        
+        .match-score {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .match-score.high {
+            color: #4ade80;
+        }
+        
+        .match-score.medium {
+            color: #fbbf24;
+        }
+        
+        .match-score.low {
+            color: #f87171;
+        }
+        
+        .skills-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .skill-tag {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        
+        .error-message {
+            color: #f87171;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 15px;
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        
+        .footer a {
+            color: white;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">⚡ AutoJobr</div>
+        <div class="tagline">Smart Job Application Assistant</div>
+    </div>
+    
+    <div class="container">
+        <!-- Connection Status -->
+        <div class="section">
+            <h3>🔗 Connection Status</h3>
+            <div id="connection-status" class="status disconnected">
+                <div class="status-dot"></div>
+                <span>Checking connection...</span>
+            </div>
+        </div>
+        
+        <!-- Autofill Settings -->
+        <div class="section">
+            <h3>🤖 Auto-Fill Settings</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Smart Form Filling</span>
+                <div id="autofill-toggle" class="toggle-switch"></div>
+            </div>
+        </div>
+        
+        <!-- Profile Info -->
+        <div class="section" id="profile-section">
+            <h3>👤 Profile Status</h3>
+            <div id="profile-info" class="loading">Loading profile...</div>
+        </div>
+        
+        <!-- Job Analysis -->
+        <div class="section" id="analysis-section">
+            <h3>📊 Job Analysis</h3>
+            <div id="analysis-info" class="loading">Analyzing current page...</div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="section">
+            <h3>⚡ Quick Actions</h3>
+            <button id="fill-forms" class="btn primary">Fill Job Application Forms</button>
+            <button id="refresh-analysis" class="btn">Refresh Job Analysis</button>
+            <button id="generate-cover-letter" class="btn">Generate Cover Letter</button>
+            <button id="open-dashboard" class="btn">Open Dashboard</button>
+        </div>
+        
+        <!-- Application Stats -->
+        <div class="section" id="stats-section">
+            <h3>📈 Application Stats</h3>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-applications">0</div>
+                    <div class="stat-label">Total Applied</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="response-rate">0%</div>
+                    <div class="stat-label">Response Rate</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <a href="#" id="settings-link">Settings</a> | 
+        <a href="#" id="dashboard-link">Dashboard</a> | 
+        <a href="#" id="help-link">Help</a>
+    </div>
+    
+    <script src="config.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>

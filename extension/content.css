@@ -1,0 +1,93 @@
+/* AutoJobr Chrome Extension Content Styles */
+
+/* Hide AutoJobr filled indicators from other extensions */
+[data-autojobr-filled] {
+  position: relative;
+}
+
+[data-autojobr-filled]::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Animation for successful field filling */
+@keyframes autojobr-fill {
+  0% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: rgba(16, 185, 129, 0.1);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.autojobr-filled-animation {
+  animation: autojobr-fill 1s ease-in-out;
+}
+
+/* Styles for analysis widget */
+#autojobr-analysis-widget {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+#autojobr-analysis-widget * {
+  box-sizing: border-box;
+}
+
+/* Hover effects for buttons */
+#autojobr-analysis-widget button:hover {
+  transform: translateY(-1px);
+}
+
+/* Dark mode styles for analysis widget */
+@media (prefers-color-scheme: dark) {
+  #autojobr-analysis-widget > div {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #f9fafb !important;
+  }
+  
+  #autojobr-analysis-widget .analysis-text {
+    color: #e5e7eb !important;
+  }
+  
+  #autojobr-analysis-widget .analysis-label {
+    color: #9ca3af !important;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  #autojobr-analysis-widget {
+    width: 280px !important;
+    bottom: 10px !important;
+    right: 10px !important;
+  }
+}
+
+/* Ensure widget doesn't interfere with page content */
+#autojobr-indicator,
+#autojobr-analysis-widget {
+  pointer-events: auto;
+  user-select: none;
+}
+
+/* Hide scrollbars in analysis widget */
+#autojobr-analysis-widget::-webkit-scrollbar {
+  display: none;
+}
+
+#autojobr-analysis-widget {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
