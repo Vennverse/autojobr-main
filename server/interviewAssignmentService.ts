@@ -64,7 +64,11 @@ export class InterviewAssignmentService {
       data.company
     );
 
-    // Skip email sent update for now, focus on core assignment
+    // Mark email as sent using correct column name
+    await db
+      .update(virtualInterviews)
+      .set({ emailSent: true })
+      .where(eq(virtualInterviews.id, interview.id));
 
     return interview;
   }
@@ -113,7 +117,11 @@ export class InterviewAssignmentService {
       data.company
     );
 
-    // Skip email sent update for now, focus on core assignment
+    // Mark email as sent using correct column name
+    await db
+      .update(mockInterviews)
+      .set({ emailSent: true })
+      .where(eq(mockInterviews.id, interview.id));
 
     return interview;
   }
