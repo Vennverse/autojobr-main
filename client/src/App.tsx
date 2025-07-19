@@ -127,6 +127,7 @@ function Router() {
                   </Route>
                   <Route path="/mock-interview" component={MockInterview} />
                   <Route path="/mock-interview/session/:sessionId" component={MockInterviewSession} />
+                  <Route path="/mock-interview/:sessionId" component={MockInterviewSession} />
                   <Route path="/virtual-interview/new" component={VirtualInterviewStart} />
                   <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
                   <Route path="/virtual-interview/:sessionId/feedback" component={VirtualInterviewFeedback} />
@@ -146,6 +147,12 @@ function Router() {
               <Route path="/applications" component={Applications} />
               <Route path="/jobs" component={Jobs} />
               <Route path="/jobs/:id" component={ViewJob} />
+              <Route path="/mock-interview" component={MockInterview} />
+              <Route path="/mock-interview/session/:sessionId" component={MockInterviewSession} />
+              <Route path="/mock-interview/:sessionId" component={MockInterviewSession} />
+              <Route path="/virtual-interview/new" component={VirtualInterviewStart} />
+              <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
+              <Route path="/virtual-interview/:sessionId/feedback" component={VirtualInterviewFeedback} />
               <Route path="/subscription" component={Subscription} />
               <Route path="/chat" component={MessagingPage} />
             </>
@@ -160,6 +167,13 @@ function Router() {
           <Route path="/recruiters" component={RecruiterFeatures} />
           <Route path="/recruiter-features" component={RecruiterFeatures} />
           <Route path="/test/:id" component={TestTaking} />
+          {/* Redirect unauthenticated users trying to access interviews to login */}
+          <Route path="/virtual-interview/:sessionId">
+            {() => <AuthPage />}
+          </Route>
+          <Route path="/mock-interview/:sessionId">
+            {() => <AuthPage />}
+          </Route>
         </>
       )}
       <Route component={NotFound} />
