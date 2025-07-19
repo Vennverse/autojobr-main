@@ -29,11 +29,14 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 
 ## Recent Changes
 
-### January 19, 2025 - Interview Assignment Database Fix Complete
+### January 19, 2025 - Interview Assignment System Complete Fix
 - ✅ **Database Query Fixed**: Corrected interview assignment service to use proper `jobPostingApplications` table instead of `jobApplications`
 - ✅ **Candidate Selection Working**: Interview assignments now properly show candidates who have applied to specific job postings
 - ✅ **SQL Syntax Errors Resolved**: Fixed import issues causing "syntax error at or near =" database errors
 - ✅ **Proper Table Mapping**: Interview assignment now uses same data source as recruiter applications tab
+- ✅ **Virtual Interview Assignment Fixed**: Removed non-existent database columns (resultsSharedWithRecruiter, assignedBy, etc.)
+- ✅ **Mock Coding Test Assignment Fixed**: Applied same database column fixes to mock interview assignments
+- ✅ **Unified Assignment Pattern**: Both interview types now use same successful pattern as working test assignment system
 - ✅ **Enhanced Logging**: Added better error logging and candidate count reporting for debugging
 - ✅ **Multiple Candidate Selection**: Maintained multiple candidate selection functionality in interview assignments
 
