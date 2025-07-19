@@ -10,13 +10,13 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     console.log('AutoJobr extension installed');
     
     // Try to auto-detect the correct API URL
-    let apiUrl = 'https://3d6f082b-7ea6-4d17-ac26-d8174ad1bade-00-2guo24ufezq8l.janeway.repl.co'; // Default fallback
+    let apiUrl = 'http://localhost:5000'; // Default current server
     
     // Check for common AutoJobr deployment patterns
     const possibleUrls = [
+      'http://localhost:5000',
       'https://3d6f082b-7ea6-4d17-ac26-d8174ad1bade-00-2guo24ufezq8l.janeway.repl.co',
-      'https://autojobr.replit.app',
-      'http://localhost:5000'
+      'https://autojobr.replit.app'
     ];
     
     for (const url of possibleUrls) {

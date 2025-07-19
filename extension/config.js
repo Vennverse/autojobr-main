@@ -4,9 +4,9 @@
 class ExtensionConfig {
   constructor() {
     this.possibleUrls = [
+      'http://localhost:5000',
       'https://3d6f082b-7ea6-4d17-ac26-d8174ad1bade-00-2guo24ufezq8l.janeway.repl.co',
-      'https://autojobr.replit.app',
-      'http://localhost:5000'
+      'https://autojobr.replit.app'
     ];
     this.currentApiUrl = null;
   }
