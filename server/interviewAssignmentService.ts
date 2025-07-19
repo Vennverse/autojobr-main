@@ -383,52 +383,60 @@ export class InterviewAssignmentService {
   // Get recruiter's assigned interviews
   async getRecruiterAssignedInterviews(recruiterId: string) {
     try {
-      const virtualInterviewsData = await db
-        .select({
-          id: virtualInterviews.id,
-          type: virtualInterviews.interviewType,
-          role: virtualInterviews.role,
-          company: virtualInterviews.company,
-          difficulty: virtualInterviews.difficulty,
-          status: virtualInterviews.status,
-          assignedAt: virtualInterviews.assignedAt,
-          dueDate: virtualInterviews.dueDate,
-          overallScore: virtualInterviews.overallScore,
-          candidateName: users.firstName,
-          candidateEmail: users.email,
-          interviewCategory: 'virtual' as const,
-          retakeCount: virtualInterviews.retakeCount,
-          maxRetakes: virtualInterviews.maxRetakes
-        })
-        .from(virtualInterviews)
-        .leftJoin(users, eq(virtualInterviews.userId, users.id))
-        .where(eq(virtualInterviews.assignedBy, recruiterId))
-        .orderBy(desc(virtualInterviews.assignedAt));
+      // Use raw SQL to avoid potential circular reference issues
+      const virtualInterviewsQuery = await db.execute(sql`
+        SELECT 
+          vi.id,
+          vi.interview_type as type,
+          vi.role,
+          vi.company,
+          vi.difficulty,
+          vi.status,
+          vi.assigned_at as "assignedAt",
+          vi.due_date as "dueDate",
+          vi.overall_score as "overallScore",
+          u.first_name as "candidateName",
+          u.email as "candidateEmail",
+          'virtual' as "interviewCategory",
+          vi.retake_count as "retakeCount",
+          vi.max_retakes as "maxRetakes"
+        FROM virtual_interviews vi
+        LEFT JOIN users u ON vi.user_id = u.id
+        WHERE vi.assigned_by = ${recruiterId}
+        ORDER BY vi.assigned_at DESC
+      `);
 
-      const mockInterviewsData = await db
-        .select({
-          id: mockInterviews.id,
-          type: mockInterviews.interviewType,
-          role: mockInterviews.role,
-          company: mockInterviews.company,
-          difficulty: mockInterviews.difficulty,
-          status: mockInterviews.status,
-          assignedAt: mockInterviews.assignedAt,
-          dueDate: mockInterviews.dueDate,
-          overallScore: mockInterviews.score,
-          candidateName: users.firstName,
-          candidateEmail: users.email,
-          interviewCategory: 'mock' as const,
-          retakeCount: mockInterviews.retakeCount,
-          maxRetakes: mockInterviews.maxRetakes
-        })
-        .from(mockInterviews)
-        .leftJoin(users, eq(mockInterviews.userId, users.id))
-        .where(eq(mockInterviews.assignedBy, recruiterId))
-        .orderBy(desc(mockInterviews.assignedAt));
+      const mockInterviewsQuery = await db.execute(sql`
+        SELECT 
+          mi.id,
+          mi.interview_type as type,
+          mi.role,
+          mi.company,
+          mi.difficulty,
+          mi.status,
+          mi.assigned_at as "assignedAt",
+          mi.due_date as "dueDate",
+          mi.score as "overallScore",
+          u.first_name as "candidateName",
+          u.email as "candidateEmail",
+          'mock' as "interviewCategory",
+          mi.retake_count as "retakeCount",
+          mi.max_retakes as "maxRetakes"
+        FROM mock_interviews mi
+        LEFT JOIN users u ON mi.user_id = u.id
+        WHERE mi.assigned_by = ${recruiterId}
+        ORDER BY mi.assigned_at DESC
+      `);
+
+      const virtualInterviewsData = virtualInterviewsQuery.rows || [];
+      const mockInterviewsData = mockInterviewsQuery.rows || [];
 
       return [...virtualInterviewsData, ...mockInterviewsData]
-        .sort((a, b) => new Date(b.assignedAt!).getTime() - new Date(a.assignedAt!).getTime());
+        .sort((a: any, b: any) => {
+          const dateA = a.assignedAt ? new Date(a.assignedAt).getTime() : 0;
+          const dateB = b.assignedAt ? new Date(b.assignedAt).getTime() : 0;
+          return dateB - dateA;
+        });
     } catch (error) {
       console.error('Error fetching recruiter assigned interviews:', error);
       return [];
