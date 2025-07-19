@@ -52,11 +52,13 @@ export class InterviewAssignmentService {
     const result = await db.execute(sql`
       INSERT INTO virtual_interviews (
         user_id, session_id, interview_type, role, company, 
-        difficulty, duration, interviewer_personality, job_description, status
+        difficulty, duration, interviewer_personality, job_description, status,
+        assigned_by, assigned_at, due_date
       ) VALUES (
         ${data.candidateId}, ${sessionId}, ${data.interviewType}, ${data.role}, 
         ${data.company}, ${data.difficulty}, ${data.duration}, 
-        ${data.interviewerPersonality}, ${data.jobDescription}, 'assigned'
+        ${data.interviewerPersonality}, ${data.jobDescription}, 'assigned',
+        ${data.recruiterId}, NOW(), ${data.dueDate.toISOString()}
       ) RETURNING *
     `);
     
@@ -113,10 +115,12 @@ export class InterviewAssignmentService {
     const result = await db.execute(sql`
       INSERT INTO mock_interviews (
         user_id, session_id, interview_type, role, company,
-        difficulty, language, total_questions, status
+        difficulty, language, total_questions, status,
+        assigned_by, assigned_at, due_date
       ) VALUES (
         ${data.candidateId}, ${sessionId}, ${data.interviewType}, ${data.role},
-        ${data.company}, ${data.difficulty}, ${data.language}, ${data.totalQuestions}, 'assigned'
+        ${data.company}, ${data.difficulty}, ${data.language}, ${data.totalQuestions}, 'assigned',
+        ${data.recruiterId}, NOW(), ${data.dueDate.toISOString()}
       ) RETURNING *
     `);
     
@@ -639,12 +643,11 @@ export class InterviewAssignmentService {
       </div>
     `;
 
-    await sendEmail(
-      candidate.email!,
-      `Interview Assignment: ${role} Position`,
-      emailContent,
-      emailContent // HTML content
-    );
+    await sendEmail({
+      to: candidate.email!,
+      subject: `Interview Assignment: ${role} Position`,
+      html: emailContent
+    });
   }
 }
 
