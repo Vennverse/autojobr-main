@@ -29,14 +29,16 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 
 ## Recent Changes
 
-### January 19, 2025 - Interview Assignment System Complete Fix
+### January 19, 2025 - Complete Database Schema & Interview Access Fix
+- ✅ **Database Schema Fixed**: Added missing `results_shared_with_recruiter` columns to both `mock_interviews` and `virtual_interviews` tables
+- ✅ **Interview Assignment System Complete**: Fixed all database query issues and column references
+- ✅ **Authentication Redirect**: Implemented URL preservation for interview links - users are redirected back to interviews after login
+- ✅ **User Access Resolution**: Fixed interview session access by ensuring proper user authentication and session matching
+- ✅ **Demo User Created**: Added demo interview user (demo.interview.user@example.com) for testing assigned interviews
 - ✅ **Database Query Fixed**: Corrected interview assignment service to use proper `jobPostingApplications` table instead of `jobApplications`
 - ✅ **Candidate Selection Working**: Interview assignments now properly show candidates who have applied to specific job postings
 - ✅ **SQL Syntax Errors Resolved**: Fixed import issues causing "syntax error at or near =" database errors
 - ✅ **Proper Table Mapping**: Interview assignment now uses same data source as recruiter applications tab
-- ✅ **Virtual Interview Assignment Fixed**: Removed non-existent database columns (resultsSharedWithRecruiter, assignedBy, etc.)
-- ✅ **Mock Coding Test Assignment Fixed**: Applied same database column fixes to mock interview assignments
-- ✅ **Unified Assignment Pattern**: Both interview types now use same successful pattern as working test assignment system
 - ✅ **Enhanced Logging**: Added better error logging and candidate count reporting for debugging
 - ✅ **Multiple Candidate Selection**: Maintained multiple candidate selection functionality in interview assignments
 
@@ -94,10 +96,9 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 - ✅ **Unified Workflow**: Both virtual AI interviews and coding tests now use the same improved assignment process
 - ✅ **Database Optimization**: Fixed candidate fetching query and added job-specific candidate filtering API endpoint
 
-**Demo User for Screenshots**: 
-- Email: demo.alexandra.chen@example.com
-- Password: demo123
-- Profile: Alexandra Chen - Senior Full Stack Engineer (6 years experience)
+**Demo Users for Testing**: 
+- **Main Demo User**: demo.alexandra.chen@example.com / demo123 (Alexandra Chen - Senior Full Stack Engineer)
+- **Interview Test User**: demo.interview.user@example.com / demo123 (Demo Interview User - for testing assigned interviews)
 - Features: High ATS score resume (94%), applications to Google/Stripe/Netflix with high match scores
 
 **Current Status**: Platform fully operational with all features including AI-powered resume analysis, job matching, virtual interviews, and Chrome extension working perfectly with real user data integration.
