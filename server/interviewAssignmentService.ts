@@ -599,9 +599,19 @@ export class InterviewAssignmentService {
       throw new Error('Candidate or recruiter not found');
     }
 
+    // Get the session ID for the interview to create the correct URL
+    let sessionId: string;
+    if (interviewType === 'virtual') {
+      const interview = await db.select().from(virtualInterviews).where(eq(virtualInterviews.id, interviewId)).then(rows => rows[0]);
+      sessionId = interview?.sessionId || String(interviewId);
+    } else {
+      const interview = await db.select().from(mockInterviews).where(eq(mockInterviews.id, interviewId)).then(rows => rows[0]);
+      sessionId = interview?.sessionId || String(interviewId);
+    }
+
     const interviewTypeText = interviewType === 'virtual' ? 'Virtual AI Interview' : 'Mock Interview';
     const companyText = company ? ` at ${company}` : '';
-    const interviewUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/${interviewType}-interview/${interviewId}`;
+    const interviewUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/${interviewType}-interview/${sessionId}`;
 
     const emailContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
