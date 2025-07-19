@@ -4,7 +4,8 @@ import {
   mockInterviews, 
   interviewRetakePayments, 
   users, 
-  jobPostings 
+  jobPostings,
+  jobPostingApplications 
 } from "@shared/schema";
 import { eq, and, desc, count, sql } from "drizzle-orm";
 import { sendEmail } from "./emailService";
@@ -529,44 +530,31 @@ export class InterviewAssignmentService {
   // Get candidates who applied to a specific job posting
   async getCandidatesForJobPosting(jobPostingId: number) {
     try {
-      // Use storage service to get applications for a specific job
-      const applications = await db
-        .select()
-        .from((await import("@shared/schema")).jobApplications)
-        .where(eq((await import("@shared/schema")).jobApplications.jobId, jobPostingId));
-
-      console.log(`Found ${applications.length} applications for job ${jobPostingId}`);
-
-      const candidatesWithApplications = [];
+      console.log(`Fetching candidates for job posting: ${jobPostingId}`);
       
-      for (const app of applications) {
-        try {
-          const candidate = await db
-            .select({
-              id: users.id,
-              firstName: users.firstName,
-              lastName: users.lastName,
-              email: users.email,
-              userType: users.userType,
-              createdAt: users.createdAt,
-              isActive: users.isActive
-            })
-            .from(users)
-            .where(eq(users.id, app.applicantId))
-            .then(rows => rows[0]);
+      // Get applications using the correct table: jobPostingApplications
+      const candidatesWithApplications = await db
+        .select({
+          // User info
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+          userType: users.userType,
+          createdAt: users.createdAt,
+          isActive: users.isActive,
+          // Application info
+          applicationId: jobPostingApplications.id,
+          applicationStatus: jobPostingApplications.status,
+          appliedAt: jobPostingApplications.appliedAt,
+          matchScore: jobPostingApplications.matchScore
+        })
+        .from(jobPostingApplications)
+        .innerJoin(users, eq(jobPostingApplications.applicantId, users.id))
+        .where(eq(jobPostingApplications.jobPostingId, jobPostingId))
+        .orderBy(desc(jobPostingApplications.appliedAt));
 
-          if (candidate) {
-            candidatesWithApplications.push({
-              ...candidate,
-              applicationId: app.id,
-              applicationStatus: app.status,
-              appliedAt: app.appliedAt
-            });
-          }
-        } catch (err) {
-          console.log('Error fetching candidate details:', err);
-        }
-      }
+      console.log(`Found ${candidatesWithApplications.length} candidates for job ${jobPostingId}`);
 
       // Format candidates with names and application info
       return candidatesWithApplications.map(candidate => ({
@@ -578,7 +566,8 @@ export class InterviewAssignmentService {
         isActive: candidate.isActive,
         applicationId: candidate.applicationId,
         applicationStatus: candidate.applicationStatus,
-        appliedAt: candidate.appliedAt
+        appliedAt: candidate.appliedAt,
+        matchScore: candidate.matchScore
       }));
     } catch (error) {
       console.error('Error fetching candidates for job posting:', error);

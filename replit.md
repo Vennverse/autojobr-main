@@ -29,6 +29,14 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 
 ## Recent Changes
 
+### January 19, 2025 - Interview Assignment Database Fix Complete
+- ✅ **Database Query Fixed**: Corrected interview assignment service to use proper `jobPostingApplications` table instead of `jobApplications`
+- ✅ **Candidate Selection Working**: Interview assignments now properly show candidates who have applied to specific job postings
+- ✅ **SQL Syntax Errors Resolved**: Fixed import issues causing "syntax error at or near =" database errors
+- ✅ **Proper Table Mapping**: Interview assignment now uses same data source as recruiter applications tab
+- ✅ **Enhanced Logging**: Added better error logging and candidate count reporting for debugging
+- ✅ **Multiple Candidate Selection**: Maintained multiple candidate selection functionality in interview assignments
+
 ### January 2025 - Chrome Extension Real User Data Integration Complete
 - ✅ **Real User Authentication**: Extension now authenticates with actual logged-in user sessions, no demo data fallbacks
 - ✅ **Comprehensive Data Fetching**: Extension fetches complete user profile including skills, work experience, education from database
