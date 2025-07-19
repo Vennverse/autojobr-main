@@ -84,7 +84,7 @@ async function handleDbOperation<T>(operation: () => Promise<T>, fallback?: T): 
     throw error;
   }
 }
-import { eq, desc, and, or, ne, sql, lt } from "drizzle-orm";
+import { eq, desc, and, or, ne, sql, lt, isNotNull, count, isNull, asc, like } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -1266,9 +1266,13 @@ export class DatabaseStorage implements IStorage {
     }, undefined);
   }
 
-  async getMockInterviewBySessionId(sessionId: string): Promise<MockInterview | undefined> {
+  async getMockInterviewBySessionId(sessionId: string, userId?: string): Promise<MockInterview | undefined> {
     return await handleDbOperation(async () => {
-      const [interview] = await db.select().from(mockInterviews).where(eq(mockInterviews.sessionId, sessionId));
+      const conditions = [eq(mockInterviews.sessionId, sessionId)];
+      if (userId) {
+        conditions.push(eq(mockInterviews.userId, userId));
+      }
+      const [interview] = await db.select().from(mockInterviews).where(and(...conditions));
       return interview;
     }, undefined);
   }

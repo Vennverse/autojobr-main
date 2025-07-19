@@ -64,6 +64,36 @@ router.get('/history', isAuthenticated, async (req: any, res) => {
   }
 });
 
+// Start/Activate an assigned mock interview session
+router.post('/:sessionId/start', isAuthenticated, async (req: any, res) => {
+  try {
+    const { sessionId } = req.params;
+    const userId = req.user.id;
+
+    const interview = await storage.getMockInterviewBySessionId(sessionId, userId);
+    if (!interview) {
+      return res.status(404).json({ error: 'Mock interview session not found' });
+    }
+
+    if (interview.status === 'active') {
+      return res.json({ message: 'Interview already started', interview });
+    }
+
+    // Activate the interview
+    await storage.updateMockInterview(interview.id, {
+      status: 'active',
+      startTime: new Date(),
+      updatedAt: new Date()
+    });
+
+    res.json({ success: true, message: 'Mock interview started successfully' });
+
+  } catch (error) {
+    console.error('Error starting mock interview:', error);
+    res.status(500).json({ error: 'Failed to start mock interview' });
+  }
+});
+
 // Start a new interview
 router.post('/start', isAuthenticated, async (req: any, res) => {
   try {

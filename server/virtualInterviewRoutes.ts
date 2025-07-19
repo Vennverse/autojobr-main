@@ -122,6 +122,92 @@ router.post("/start", isAuthenticated, async (req: any, res) => {
   }
 });
 
+// Start/Activate an assigned interview session
+router.post("/:sessionId/start", isAuthenticated, async (req: any, res) => {
+  try {
+    const { sessionId } = req.params;
+    const userId = req.user.id;
+
+    const interview = await db.query.virtualInterviews.findFirst({
+      where: and(
+        eq(virtualInterviews.sessionId, sessionId),
+        eq(virtualInterviews.userId, userId)
+      )
+    });
+
+    if (!interview) {
+      return res.status(404).json({ error: 'Interview session not found' });
+    }
+
+    if (interview.status === 'active') {
+      return res.json({ message: 'Interview already started', interview });
+    }
+
+    // Activate the interview
+    await db.update(virtualInterviews)
+      .set({
+        status: 'active',
+        startTime: new Date(),
+        currentStep: 'interviewing',
+        updatedAt: new Date()
+      })
+      .where(eq(virtualInterviews.id, interview.id));
+
+    // Check if initial messages exist, if not create them
+    const existingMessages = await db.query.virtualInterviewMessages.findMany({
+      where: eq(virtualInterviewMessages.interviewId, interview.id)
+    });
+
+    if (existingMessages.length === 0) {
+      // Create greeting and first question
+      const greeting = await virtualInterviewService.generateGreeting(
+        interview.interviewerPersonality,
+        interview.role,
+        interview.company
+      );
+
+      await db.insert(virtualInterviewMessages).values({
+        interviewId: interview.id,
+        sender: 'interviewer',
+        messageType: 'text',
+        content: greeting,
+        messageIndex: 1
+      });
+
+      // Generate first question
+      const question = await virtualInterviewService.generateQuestion(
+        interview.interviewType,
+        interview.difficulty,
+        interview.role,
+        1,
+        [],
+        interview.resumeContext || undefined
+      );
+
+      await db.insert(virtualInterviewMessages).values({
+        interviewId: interview.id,
+        sender: 'interviewer',
+        messageType: 'question',
+        content: question.question,
+        messageIndex: 2,
+        questionCategory: interview.interviewType,
+        difficulty: interview.difficulty
+      });
+
+      // Update questions asked
+      await db.update(virtualInterviews)
+        .set({ questionsAsked: 1 })
+        .where(eq(virtualInterviews.id, interview.id));
+    }
+
+    res.json({ success: true, message: 'Interview started successfully' });
+
+  } catch (error) {
+    console.error('Error starting interview:', error);
+    res.status(500).json({ error: 'Failed to start interview' });
+  }
+});
+
 // Get interview session details
 router.get("/:sessionId", isAuthenticated, async (req: any, res) => {
   try {
@@ -145,8 +231,32 @@ router.get("/:sessionId", isAuthenticated, async (req: any, res) => {
       orderBy: [virtualInterviewMessages.messageIndex]
     });
 
+    // Calculate actual time remaining based on start time and duration
+    let actualTimeRemaining = interview.timeRemaining;
+    if (interview.startTime && interview.status === 'active') {
+      const elapsedSeconds = Math.floor((Date.now() - new Date(interview.startTime).getTime()) / 1000);
+      actualTimeRemaining = Math.max(0, (interview.duration * 60) - elapsedSeconds);
+      
+      // Update time remaining in database
+      if (actualTimeRemaining !== interview.timeRemaining) {
+        await db.update(virtualInterviews)
+          .set({ timeRemaining: actualTimeRemaining })
+          .where(eq(virtualInterviews.id, interview.id));
+      }
+      
+      // Auto-complete if time is up
+      if (actualTimeRemaining <= 0 && interview.status === 'active') {
+        await db.update(virtualInterviews)
+          .set({ status: 'completed', endTime: new Date() })
+          .where(eq(virtualInterviews.id, interview.id));
+      }
+    }
+
     res.json({
-      interview,
+      interview: {
+        ...interview,
+        timeRemaining: actualTimeRemaining
+      },
       messages
     });
 

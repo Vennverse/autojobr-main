@@ -81,6 +81,28 @@ export default function VirtualInterview() {
   const interview: VirtualInterview = sessionData?.interview;
   const messages: VirtualInterviewMessage[] = sessionData?.messages || [];
 
+  // Start interview mutation for assigned interviews
+  const startInterviewMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', `/api/virtual-interview/${sessionId}/start`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/virtual-interview/${sessionId}`] });
+      toast({
+        title: "Interview Started!",
+        description: "Your virtual interview has begun. Good luck!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to start interview",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (data: { content: string; messageType: string }) => {
@@ -127,17 +149,35 @@ export default function VirtualInterview() {
   // Timer effect
   useEffect(() => {
     if (interview && interview.status === 'active' && !isPaused) {
+      setTimeLeft(interview.timeRemaining);
+      
       const timer = setInterval(() => {
-        setTimeLeft(interview.timeRemaining);
-        
-        if (interview.timeRemaining <= 0) {
-          completeInterviewMutation.mutate();
-        }
+        setTimeLeft(prev => {
+          const newTime = Math.max(0, prev - 1);
+          if (newTime <= 0) {
+            completeInterviewMutation.mutate();
+            return 0;
+          }
+          return newTime;
+        });
       }, 1000);
 
       return () => clearInterval(timer);
+    } else if (interview) {
+      setTimeLeft(interview.timeRemaining);
     }
   }, [interview, isPaused]);
+
+  // Refetch interview data every 30 seconds to sync time
+  useEffect(() => {
+    if (interview && interview.status === 'active') {
+      const syncTimer = setInterval(() => {
+        queryClient.invalidateQueries({ queryKey: [`/api/virtual-interview/${sessionId}`] });
+      }, 30000);
+
+      return () => clearInterval(syncTimer);
+    }
+  }, [interview, sessionId]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -318,6 +358,16 @@ export default function VirtualInterview() {
               )}
 
               <div className="pt-4">
+                {interview.status === 'assigned' && (
+                  <Button 
+                    onClick={() => startInterviewMutation.mutate()}
+                    className="w-full"
+                    disabled={startInterviewMutation.isPending}
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    Start Interview
+                  </Button>
+                )}
                 {interview.status === 'active' && (
                   <Button 
                     variant="outline" 

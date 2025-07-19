@@ -111,6 +111,29 @@ export default function MockInterviewSession() {
     },
   });
 
+  // Start interview mutation
+  const startInterviewMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', `/api/mock-interview/${sessionId}/start`);
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Interview Started!",
+        description: "Good luck! The timer is now running.",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/mock-interview/session/${sessionId}`] });
+      setIsTimerRunning(true);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to start interview. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Complete interview mutation
   const completeInterviewMutation = useMutation({
     mutationFn: async () => {
@@ -503,31 +526,48 @@ export default function MockInterviewSession() {
             {/* Navigation */}
             <Card className="bg-white dark:bg-gray-800">
               <CardContent className="pt-6">
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={handlePreviousQuestion}
-                    disabled={currentQuestionIndex === 0}
-                    className="flex-1"
-                  >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Previous
-                  </Button>
-                  <Button
-                    onClick={handleSubmitAnswer}
-                    disabled={submitAnswerMutation.isPending || completeInterviewMutation.isPending}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                  >
-                    {submitAnswerMutation.isPending || completeInterviewMutation.isPending ? (
-                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                    ) : currentQuestionIndex === session.questions.length - 1 ? (
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                    ) : (
-                      <ArrowRight className="w-4 h-4 mr-2" />
-                    )}
-                    {currentQuestionIndex === session.questions.length - 1 ? 'Complete' : 'Next'}
-                  </Button>
-                </div>
+                {session.interview.status === 'assigned' ? (
+                  <div className="text-center">
+                    <Button
+                      onClick={() => startInterviewMutation.mutate()}
+                      disabled={startInterviewMutation.isPending}
+                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                    >
+                      {startInterviewMutation.isPending ? (
+                        <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                      ) : (
+                        <Play className="w-4 h-4 mr-2" />
+                      )}
+                      Start Interview
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={handlePreviousQuestion}
+                      disabled={currentQuestionIndex === 0}
+                      className="flex-1"
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Previous
+                    </Button>
+                    <Button
+                      onClick={handleSubmitAnswer}
+                      disabled={submitAnswerMutation.isPending || completeInterviewMutation.isPending}
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                    >
+                      {submitAnswerMutation.isPending || completeInterviewMutation.isPending ? (
+                        <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                      ) : currentQuestionIndex === session.questions.length - 1 ? (
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                      ) : (
+                        <ArrowRight className="w-4 h-4 mr-2" />
+                      )}
+                      {currentQuestionIndex === session.questions.length - 1 ? 'Complete' : 'Next'}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
