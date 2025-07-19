@@ -1,9 +1,16 @@
 import Stripe from 'stripe';
 import crypto from 'crypto';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-05-28.basil',
-});
+// Initialize Stripe only if API key is provided
+let stripe: Stripe | null = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2025-05-28.basil',
+  });
+  console.log('Stripe initialized successfully');
+} else {
+  console.log('STRIPE_SECRET_KEY not provided - payment features will be disabled');
+}
 
 interface PayPalOrderResponse {
   id: string;
@@ -39,6 +46,11 @@ class PaymentService {
         return true;
       }
 
+      if (!stripe) {
+        console.log('Stripe not initialized - treating as demo payment');
+        return paymentIntentId.includes('_demo');
+      }
+
       const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
       
       // Verify payment is successful and for correct amount ($10)
@@ -59,6 +71,9 @@ class PaymentService {
 
   // Create Stripe payment intent
   async createStripePaymentIntent(amount: number, currency: string = 'usd') {
+    if (!stripe) {
+      throw new Error('Stripe not initialized - STRIPE_SECRET_KEY required');
+    }
     return await stripe.paymentIntents.create({
       amount,
       currency,

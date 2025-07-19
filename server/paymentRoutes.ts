@@ -3,9 +3,13 @@ import { subscriptionService } from './subscriptionService';
 import { isAuthenticated } from './auth';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
-});
+// Initialize Stripe only if API key is provided
+let stripe: Stripe | null = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2023-10-16',
+  });
+}
 
 export function setupPaymentRoutes(app: Express) {
   // Create payment intent for subscription
@@ -25,6 +29,9 @@ export function setupPaymentRoutes(app: Express) {
 
       switch (provider) {
         case 'stripe':
+          if (!stripe) {
+            return res.status(500).json({ error: 'Stripe not configured - STRIPE_SECRET_KEY required' });
+          }
           const paymentIntent = await stripe.paymentIntents.create({
             amount: amount * 100, // Convert to cents
             currency: 'usd',
