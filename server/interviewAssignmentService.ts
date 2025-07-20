@@ -283,101 +283,147 @@ export class InterviewAssignmentService {
     };
   }
 
-  // Get partial results for recruiter (summary only)
+  // Get comprehensive results for recruiter with detailed analysis
   async getPartialResultsForRecruiter(interviewId: number, interviewType: 'virtual' | 'mock', recruiterId: string) {
     if (interviewType === 'virtual') {
-      const interview = await db
-        .select({
-          id: virtualInterviews.id,
-          userId: virtualInterviews.userId,
-          sessionId: virtualInterviews.sessionId,
-          interviewType: virtualInterviews.interviewType,
-          role: virtualInterviews.role,
-          company: virtualInterviews.company,
-          difficulty: virtualInterviews.difficulty,
-          status: virtualInterviews.status,
-          overallScore: virtualInterviews.overallScore,
-          technicalScore: virtualInterviews.technicalScore,
-          communicationScore: virtualInterviews.communicationScore,
-          confidenceScore: virtualInterviews.confidenceScore,
-          strengths: virtualInterviews.strengths,
-          weaknesses: virtualInterviews.weaknesses,
-          startTime: virtualInterviews.startTime,
-          endTime: virtualInterviews.endTime,
-          assignedBy: virtualInterviews.assignedBy,
-          // Hide detailed feedback and recommendations from recruiter
-          candidateName: users.firstName,
-          candidateEmail: users.email
-        })
-        .from(virtualInterviews)
-        .leftJoin(users, eq(virtualInterviews.userId, users.id))
-        .where(
-          and(
-            eq(virtualInterviews.id, interviewId),
-            eq(virtualInterviews.assignedBy, recruiterId)
-          )
-        )
-        .then(rows => rows[0]);
+      // Get interview data with detailed feedback
+      const result = await db.execute(sql`
+        SELECT 
+          vi.id,
+          vi.user_id as "userId",
+          vi.session_id as "sessionId", 
+          vi.interview_type as "interviewType",
+          vi.role,
+          vi.company,
+          vi.difficulty,
+          vi.status,
+          vi.overall_score as "overallScore",
+          vi.technical_score as "technicalScore",
+          vi.communication_score as "communicationScore", 
+          vi.confidence_score as "confidenceScore",
+          vi.strengths,
+          vi.weaknesses,
+          vi.start_time as "startTime",
+          vi.end_time as "endTime",
+          vi.assigned_by as "assignedBy",
+          u.first_name as "candidateName",
+          u.email as "candidateEmail",
+          -- Detailed feedback data
+          vif.performance_summary,
+          vif.key_strengths,
+          vif.areas_for_improvement,
+          vif.technical_skills_score,
+          vif.problem_solving_score,
+          vif.response_consistency,
+          vif.adaptability_score,
+          vif.stress_handling,
+          vif.next_steps,
+          vif.role_readiness,
+          vif.ai_confidence_score
+        FROM virtual_interviews vi
+        LEFT JOIN users u ON vi.user_id = u.id
+        LEFT JOIN virtual_interview_feedback vif ON vi.id = vif.interview_id
+        WHERE vi.id = ${interviewId} AND vi.assigned_by = ${recruiterId}
+      `);
 
+      const interview = result.rows[0];
       if (!interview) {
         throw new Error('Interview not found or access denied');
       }
 
+      // Return comprehensive analysis for recruiters
       return {
         ...interview,
-        // Provide only summary-level feedback to encourage retakes
-        partialFeedback: interview.overallScore && interview.overallScore < 80 
-          ? "Performance shows room for improvement. Consider retaking for better results."
-          : interview.overallScore && interview.overallScore >= 80
-          ? "Good performance demonstrated. Results available for detailed review."
-          : "Interview in progress or not yet scored.",
-        canRetake: true, // Allow retakes by default
-        retakePrice: 5.00
+        hasDetailedAnalysis: !!interview.performance_summary,
+        analysisComplete: interview.status === 'completed' && interview.overallScore !== null,
+        canRetake: true,
+        retakePrice: 5.00,
+        // Enhanced feedback structure
+        detailedAnalysis: interview.performance_summary ? {
+          performanceSummary: interview.performance_summary,
+          keyStrengths: interview.key_strengths || [],
+          areasForImprovement: interview.areas_for_improvement || [],
+          skillScores: {
+            technical: interview.technical_skills_score || interview.technicalScore,
+            problemSolving: interview.problem_solving_score,
+            communication: interview.communication_score,
+            consistency: interview.response_consistency,
+            adaptability: interview.adaptability_score,
+            stressHandling: interview.stress_handling
+          },
+          recommendations: {
+            nextSteps: interview.next_steps || [],
+            roleReadiness: interview.role_readiness
+          },
+          aiConfidence: interview.ai_confidence_score
+        } : null
       };
     } else {
-      const interview = await db
-        .select({
-          id: mockInterviews.id,
-          userId: mockInterviews.userId,
-          sessionId: mockInterviews.sessionId,
-          interviewType: mockInterviews.interviewType,
-          role: mockInterviews.role,
-          company: mockInterviews.company,
-          difficulty: mockInterviews.difficulty,
-          language: mockInterviews.language,
-          status: mockInterviews.status,
-          score: mockInterviews.score,
-          startTime: mockInterviews.startTime,
-          endTime: mockInterviews.endTime,
-          assignedBy: mockInterviews.assignedBy,
-          // Hide detailed feedback from recruiter
-          candidateName: users.firstName,
-          candidateEmail: users.email
-        })
-        .from(mockInterviews)
-        .leftJoin(users, eq(mockInterviews.userId, users.id))
-        .where(
-          and(
-            eq(mockInterviews.id, interviewId),
-            eq(mockInterviews.assignedBy, recruiterId)
-          )
-        )
-        .then(rows => rows[0]);
+      // Get mock interview data with comprehensive feedback
+      const result = await db.execute(sql`
+        SELECT 
+          mi.id,
+          mi.user_id as "userId",
+          mi.session_id as "sessionId",
+          mi.interview_type as "interviewType",
+          mi.role,
+          mi.company,
+          mi.difficulty,
+          mi.language,
+          mi.status,
+          mi.score as "overallScore",
+          mi.start_time as "startTime",
+          mi.end_time as "endTime",
+          mi.assigned_by as "assignedBy",
+          mi.feedback as "interviewFeedback",
+          mi.questions_asked as "questionsAsked",
+          mi.answers_given as "answersGiven",
+          mi.performance_metrics as "performanceMetrics",
+          u.first_name as "candidateName",
+          u.email as "candidateEmail"
+        FROM mock_interviews mi
+        LEFT JOIN users u ON mi.user_id = u.id
+        WHERE mi.id = ${interviewId} AND mi.assigned_by = ${recruiterId}
+      `);
 
+      const interview = result.rows[0];
       if (!interview) {
         throw new Error('Interview not found or access denied');
       }
 
+      // Parse performance metrics if available
+      let performanceData = null;
+      try {
+        performanceData = interview.performanceMetrics ? JSON.parse(interview.performanceMetrics) : null;
+      } catch (e) {
+        console.log('Could not parse performance metrics:', e);
+      }
+
+      // Return comprehensive analysis for mock interviews
       return {
         ...interview,
-        // Provide only summary-level feedback to encourage retakes
-        partialFeedback: interview.score && interview.score < 80 
-          ? "Performance shows room for improvement. Consider retaking for better results."
-          : interview.score && interview.score >= 80
-          ? "Good performance demonstrated. Results available for detailed review."
-          : "Interview in progress or not yet scored.",
-        canRetake: true, // Allow retakes by default
-        retakePrice: 5.00
+        hasDetailedAnalysis: !!(interview.interviewFeedback || performanceData),
+        analysisComplete: interview.status === 'completed' && interview.overallScore !== null,
+        canRetake: true,
+        retakePrice: 5.00,
+        // Enhanced feedback structure for mock interviews
+        detailedAnalysis: (interview.interviewFeedback || performanceData) ? {
+          performanceSummary: interview.interviewFeedback || "Mock interview completed with recorded responses",
+          questionsAsked: interview.questionsAsked ? JSON.parse(interview.questionsAsked) : [],
+          answersGiven: interview.answersGiven ? JSON.parse(interview.answersGiven) : [],
+          performanceMetrics: performanceData,
+          overallScore: interview.overallScore,
+          skillScores: performanceData ? {
+            communication: performanceData.communicationScore || null,
+            technical: performanceData.technicalScore || null,
+            confidence: performanceData.confidenceScore || null,
+            clarity: performanceData.clarityScore || null
+          } : null,
+          recommendations: {
+            nextSteps: performanceData?.recommendations || ["Practice more technical questions", "Work on communication clarity"],
+            roleReadiness: performanceData?.roleReadiness || "needs_practice"
+          }
+        } : null
       };
     }
   }
