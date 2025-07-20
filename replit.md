@@ -129,11 +129,14 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 - ✅ **PayPal Button Component**: Created reusable PayPal payment component for frontend integration
 - ✅ **API Routes Complete**: Added behavioral question endpoints and AI analysis routes for comprehensive interview assessment
 
-### January 20, 2025 - Replit Migration & Routes Cleanup Complete
+### January 20, 2025 - Replit Migration & Extension URL Update Complete
 - ✅ **Migration from Replit Agent**: AutoJobr platform successfully migrated from Replit Agent to standard Replit environment
 - ✅ **Database Setup**: PostgreSQL database configured with proper environment variables (DATABASE_URL)
 - ✅ **API Keys Configured**: Essential API keys set up (GROQ_API_KEY, RESEND_API_KEY) for AI and email functionality
 - ✅ **Server Running**: Application successfully running on port 5000 with all core services operational
+- ✅ **Extension URL Updates**: Updated Chrome extension backend URL to new Replit environment (ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev)
+- ✅ **Extension Configuration**: Updated 6 extension files with new backend URL (config.js, background.js, popup-old.js, manifest.json, CONNECTION_GUIDE.md, SETUP_GUIDE.md)
+- ✅ **Host Permissions**: Updated manifest.json to grant proper access to new Replit domain
 - ✅ **Routes Cleanup**: Cleaned up server/routes.ts by removing 5+ duplicate routes and consolidating subscription endpoints
 - ✅ **Global Variables Eliminated**: Replaced in-memory global variable usage with proper database operations for data consistency
 - ✅ **Cache Optimization**: Added helper functions to reduce code duplication and improve cache invalidation
