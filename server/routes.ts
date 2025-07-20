@@ -52,6 +52,75 @@ const invalidateUserCache = (userId: string) => {
 const clearCache = (key: string) => {
   cache.delete(key);
 };
+
+// Centralized error handler
+const handleError = (res: any, error: any, defaultMessage: string, statusCode: number = 500) => {
+  console.error(`API Error: ${defaultMessage}`, error);
+  
+  // Handle specific error types
+  if (error.name === 'ZodError') {
+    return res.status(400).json({ 
+      message: "Invalid data format", 
+      details: error.errors?.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ')
+    });
+  }
+  
+  if (error.message?.includes('duplicate key')) {
+    return res.status(409).json({ message: "Resource already exists" });
+  }
+  
+  if (error.message?.includes('not found')) {
+    return res.status(404).json({ message: "Resource not found" });
+  }
+  
+  res.status(statusCode).json({ 
+    message: defaultMessage,
+    details: process.env.NODE_ENV === 'development' ? error.message : undefined
+  });
+};
+
+// Helper function for async route handlers
+const asyncHandler = (fn: Function) => (req: any, res: any, next: any) => {
+  Promise.resolve(fn(req, res, next)).catch((error: any) => {
+    handleError(res, error, "Internal server error");
+  });
+};
+
+// Helper function for user profile operations with caching
+const getUserWithCache = async (userId: number) => {
+  const cacheKey = `user_${userId}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+  
+  const user = await storage.getUser(userId);
+  if (user) setCache(cacheKey, user, 300000); // 5 min cache
+  return user;
+};
+
+// Helper function for resume operations
+const processResumeUpload = async (file: any, userId: number, resumeText: string, analysis: any) => {
+  const existingResumes = await storage.getUserResumes(userId);
+  const user = await storage.getUser(userId);
+  
+  // Check resume limits
+  if (user?.planType !== 'premium' && existingResumes.length >= 2) {
+    throw new Error('Free plan allows maximum 2 resumes. Upgrade to Premium for unlimited resumes.');
+  }
+  
+  const resumeData = {
+    name: file.originalname.replace(/\.[^/.]+$/, "") || "New Resume",
+    fileName: file.originalname,
+    isActive: existingResumes.length === 0,
+    atsScore: analysis.atsScore,
+    analysis: analysis,
+    resumeText: resumeText,
+    fileSize: file.size,
+    mimeType: file.mimetype,
+    fileData: file.buffer.toString('base64')
+  };
+  
+  return await storage.storeResume(userId, resumeData);
+};
 // Dynamic import for pdf-parse to avoid startup issues
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
@@ -270,238 +339,158 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Subscription Payment Routes - Consolidated
-  app.get("/api/subscription/tiers", async (req, res) => {
-    try {
-      const { userType } = req.query;
-      const tiers = await subscriptionPaymentService.getSubscriptionTiers(
-        userType as 'jobseeker' | 'recruiter'
-      );
-      res.json({ tiers });
-    } catch (error) {
-      console.error('Error fetching subscription tiers:', error);
-      res.status(500).json({ error: 'Failed to fetch subscription tiers' });
+  app.get("/api/subscription/tiers", asyncHandler(async (req: any, res: any) => {
+    const { userType } = req.query;
+    const tiers = await subscriptionPaymentService.getSubscriptionTiers(
+      userType as 'jobseeker' | 'recruiter'
+    );
+    res.json({ tiers });
+  }));
+
+  app.post("/api/subscription/create", isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    const { tierId, paymentMethod, userType } = req.body;
+    const userId = req.user.id;
+    const userEmail = req.user.email;
+
+    if (!tierId) {
+      return res.status(400).json({ error: 'Tier ID is required' });
     }
-  });
 
-  app.post("/api/subscription/create", isAuthenticated, async (req: any, res) => {
-    try {
-      const { tierId, paymentMethod, userType } = req.body;
-      const userId = req.user.id;
-      const userEmail = req.user.email;
-
-      if (!tierId) {
-        return res.status(400).json({ error: 'Tier ID is required' });
-      }
-
-      // Handle PayPal subscription creation
-      if (paymentMethod === 'paypal' || !paymentMethod) {
-        const { paypalSubscriptionService } = await import('./paypalSubscriptionService');
-        const planId = paypalSubscriptionService.getPlanIdForTier(userType, tierId);
-        const result = await paypalSubscriptionService.createSubscription(userId, planId, userEmail);
-        return res.json(result);
-      }
-
-      // Handle other payment methods
-      const order = await subscriptionPaymentService.createSubscriptionOrder(
-        userId,
-        tierId,
-        paymentMethod
-      );
-
-      res.json({ success: true, order });
-    } catch (error) {
-      console.error('Error creating subscription:', error);
-      res.status(500).json({ error: 'Failed to create subscription' });
-    }
-  });
-
-  app.post("/api/subscription/activate/:subscriptionId", async (req, res) => {
-    try {
-      const { subscriptionId } = req.params;
+    // Handle PayPal subscription creation
+    if (paymentMethod === 'paypal' || !paymentMethod) {
       const { paypalSubscriptionService } = await import('./paypalSubscriptionService');
-      const success = await paypalSubscriptionService.activateSubscription(subscriptionId);
-      
-      if (success) {
-        res.json({ message: 'Subscription activated successfully' });
-      } else {
-        res.status(400).json({ error: 'Failed to activate subscription' });
-      }
-    } catch (error) {
-      console.error('Subscription activation error:', error);
-      res.status(500).json({ error: 'Failed to activate subscription' });
+      const planId = paypalSubscriptionService.getPlanIdForTier(userType, tierId);
+      const result = await paypalSubscriptionService.createSubscription(userId, planId, userEmail);
+      return res.json(result);
     }
-  });
 
-  app.post("/api/subscription/success", isAuthenticated, async (req: any, res) => {
-    try {
-      const { orderId, paymentDetails } = req.body;
+    // Handle other payment methods
+    const order = await subscriptionPaymentService.createSubscriptionOrder(
+      userId,
+      tierId,
+      paymentMethod
+    );
 
-      if (!orderId) {
-        return res.status(400).json({ error: 'Order ID is required' });
-      }
+    res.json({ success: true, order });
+  }));
 
-      await subscriptionPaymentService.handlePaymentSuccess(orderId, paymentDetails);
-      
-      res.json({ success: true, message: 'Subscription activated successfully' });
-    } catch (error) {
-      console.error('Error handling payment success:', error);
-      res.status(500).json({ error: 'Failed to activate subscription' });
+  app.post("/api/subscription/activate/:subscriptionId", asyncHandler(async (req: any, res: any) => {
+    const { subscriptionId } = req.params;
+    const { paypalSubscriptionService } = await import('./paypalSubscriptionService');
+    const success = await paypalSubscriptionService.activateSubscription(subscriptionId);
+    
+    if (success) {
+      res.json({ message: 'Subscription activated successfully' });
+    } else {
+      res.status(400).json({ error: 'Failed to activate subscription' });
     }
-  });
+  }));
 
-  app.post("/api/subscription/cancel", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      
-      // Find user's active subscription
-      const userSubscription = await db.query.subscriptions.findFirst({
-        where: and(
-          eq(schema.subscriptions.userId, userId),
-          eq(schema.subscriptions.status, 'active')
-        )
-      });
+  app.post("/api/subscription/success", isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    const { orderId, paymentDetails } = req.body;
 
-      if (userSubscription?.paypalSubscriptionId) {
-        const { paypalSubscriptionService } = await import('./paypalSubscriptionService');
-        await paypalSubscriptionService.cancelSubscription(
-          userSubscription.paypalSubscriptionId,
-          'User requested cancellation'
-        );
-      } else {
-        await subscriptionPaymentService.cancelSubscription(userId);
-      }
-      
-      res.json({ success: true, message: 'Subscription cancelled successfully' });
-    } catch (error) {
-      console.error('Error cancelling subscription:', error);
-      res.status(500).json({ error: 'Failed to cancel subscription' });
+    if (!orderId) {
+      return res.status(400).json({ error: 'Order ID is required' });
     }
-  });
 
-  app.get("/api/subscription/current", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      
-      const userSubscription = await db.query.subscriptions.findFirst({
-        where: eq(schema.subscriptions.userId, userId),
-        orderBy: [desc(schema.subscriptions.createdAt)]
-      });
+    await subscriptionPaymentService.handlePaymentSuccess(orderId, paymentDetails);
+    
+    res.json({ success: true, message: 'Subscription activated successfully' });
+  }));
 
-      res.json(userSubscription || null);
-    } catch (error) {
-      console.error('Error fetching current subscription:', error);
-      res.status(500).json({ error: 'Failed to fetch subscription' });
+  app.post("/api/subscription/cancel", isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    const userId = req.user.id;
+    
+    // Find user's active subscription
+    const userSubscription = await db.query.subscriptions.findFirst({
+      where: and(
+        eq(schema.subscriptions.userId, userId),
+        eq(schema.subscriptions.status, 'active')
+      )
+    });
+
+    if (userSubscription?.paypalSubscriptionId) {
+      const { paypalSubscriptionService } = await import('./paypalSubscriptionService');
+      await paypalSubscriptionService.cancelSubscription(
+        userSubscription.paypalSubscriptionId,
+        'User requested cancellation'
+      );
+    } else {
+      await subscriptionPaymentService.cancelSubscription(userId);
     }
-  });
+    
+    res.json({ success: true, message: 'Subscription cancelled successfully' });
+  }));
+
+  app.get("/api/subscription/current", isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    const userId = req.user.id;
+    
+    const userSubscription = await db.query.subscriptions.findFirst({
+      where: eq(schema.subscriptions.userId, userId),
+      orderBy: [desc(schema.subscriptions.createdAt)]
+    });
+
+    res.json(userSubscription || null);
+  }));
 
   // Usage Monitoring Routes
-  app.get("/api/usage/report", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      
-      const report = await usageMonitoringService.generateUsageReport(userId);
-      
-      res.json(report);
-    } catch (error) {
-      console.error('Error generating usage report:', error);
-      res.status(500).json({ error: 'Failed to generate usage report' });
+  app.get("/api/usage/report", isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    const userId = req.user.id;
+    const report = await usageMonitoringService.generateUsageReport(userId);
+    res.json(report);
+  }));
+
+  app.post("/api/usage/check", isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    const userId = req.user.id;
+    const { feature } = req.body;
+
+    if (!feature) {
+      return res.status(400).json({ error: 'Feature is required' });
     }
-  });
 
-  app.post("/api/usage/check", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const { feature } = req.body;
+    const check = await usageMonitoringService.checkUsageLimit(userId, feature);
+    res.json(check);
+  }));
 
-      if (!feature) {
-        return res.status(400).json({ error: 'Feature is required' });
-      }
+  app.post("/api/usage/enforce", isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    const userId = req.user.id;
+    const { feature } = req.body;
 
-      const check = await usageMonitoringService.checkUsageLimit(userId, feature);
-      
-      res.json(check);
-    } catch (error) {
-      console.error('Error checking usage limit:', error);
-      res.status(500).json({ error: 'Failed to check usage limit' });
+    if (!feature) {
+      return res.status(400).json({ error: 'Feature is required' });
     }
-  });
 
-  app.post("/api/usage/enforce", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const { feature } = req.body;
-
-      if (!feature) {
-        return res.status(400).json({ error: 'Feature is required' });
-      }
-
-      const enforcement = await usageMonitoringService.enforceUsageLimit(userId, feature);
-      
-      res.json(enforcement);
-    } catch (error) {
-      console.error('Error enforcing usage limit:', error);
-      res.status(500).json({ error: 'Failed to enforce usage limit' });
-    }
-  });
+    const enforcement = await usageMonitoringService.enforceUsageLimit(userId, feature);
+    res.json(enforcement);
+  }));
 
   // Login redirect route (for landing page buttons)
   app.get('/api/login', (req, res) => {
     res.redirect('/auth');
   });
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      // Use the user data from the authentication middleware
-      res.json(req.user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
-
-  // User data route for authenticated users
-  // PayPal subscription routes
-  // Duplicate subscription routes removed - consolidated above
-
-  // User authentication and data routes
-
-  app.get('/api/user', isAuthenticated, async (req: any, res) => {
-    try {
-      res.json(req.user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
+  // Auth routes - consolidated (duplicate routes removed)
+  app.get('/api/user', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    res.json(req.user);
+  }));
 
   // User activity tracking for online/offline status
-  app.post('/api/user/activity', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      userActivity.set(userId, Date.now());
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error tracking user activity:", error);
-      res.status(500).json({ message: "Failed to track activity" });
-    }
-  });
+  app.post('/api/user/activity', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    const userId = req.user.id;
+    userActivity.set(userId, Date.now());
+    res.json({ success: true });
+  }));
 
   // Get user online status
-  app.get('/api/user/status/:userId', isAuthenticated, async (req: any, res) => {
-    try {
-      const { userId } = req.params;
-      const lastActivity = userActivity.get(userId);
-      const isOnline = lastActivity && (Date.now() - lastActivity) < ONLINE_THRESHOLD;
-      res.json({ 
-        isOnline,
-        lastActivity: lastActivity ? new Date(lastActivity).toISOString() : null 
-      });
-    } catch (error) {
-      console.error("Error checking user status:", error);
-      res.status(500).json({ message: "Failed to check status" });
-    }
-  });
+  app.get('/api/user/status/:userId', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    const { userId } = req.params;
+    const lastActivity = userActivity.get(userId);
+    const isOnline = lastActivity && (Date.now() - lastActivity) < ONLINE_THRESHOLD;
+    res.json({ 
+      isOnline,
+      lastActivity: lastActivity ? new Date(lastActivity).toISOString() : null 
+    });
+  }));
 
 
 
@@ -551,7 +540,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!emailSent) {
           // In development, still allow the process to continue
           if (process.env.NODE_ENV === 'development') {
-            console.log('Email simulation mode - verification link logged above');
+            // Email simulation mode
             return res.json({ 
               message: "Development mode: Verification process initiated. Check server logs for the verification link.",
               developmentMode: true,
@@ -680,7 +669,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return res.status(500).json({ message: 'Verification failed - session error' });
           }
           
-          console.log('Verification session saved successfully for user:', updatedUser.id);
+          // Verification session saved for user
           
           // Redirect based on user type
           if (updatedUser.userType === 'recruiter') {
@@ -748,7 +737,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check cache first
       const cachedRecommendations = getCached(cacheKey);
       if (cachedRecommendations) {
-        console.log("Serving cached recommendations for user:", userId);
+        // Serving cached recommendations
         return res.json(cachedRecommendations);
       }
       
@@ -758,7 +747,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json([]);
       }
       
-      console.log("Generating real job recommendations for user:", userId);
+      // Generating real job recommendations
       
       // Get all active job postings from your platform
       const allJobPostings = await storage.getJobPostings(); // Use existing method
@@ -836,7 +825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { name } = req.body;
       const file = req.file;
       
-      console.log(`[DEBUG] Resume upload for user: ${userId}, file: ${file?.originalname}`);
+      // Resume upload initiated
       
       if (!file) {
         return res.status(400).json({ message: "No file uploaded" });
@@ -878,7 +867,7 @@ Additional Information:
       try {
         userProfile = await storage.getUserProfile(userId);
       } catch (error) {
-        console.warn("Could not fetch user profile for analysis:", error);
+        // Could not fetch user profile for analysis
       }
       
       // Get user for AI tier assessment
@@ -894,7 +883,7 @@ Additional Information:
           throw new Error('Invalid analysis response');
         }
       } catch (analysisError) {
-        console.warn("Groq analysis failed, using fallback:", analysisError);
+        // Groq analysis failed, using fallback
         analysis = {
           atsScore: 75,
           recommendations: ["Upload successful - detailed analysis unavailable"],
@@ -953,81 +942,6 @@ Additional Information:
         message: "Resume uploaded and analyzed successfully",
         resume: newResume 
       });
-      
-      // Store resume in database using storage service
-      
-      // Process resume with Groq AI analysis using the resume text we extracted
-      console.log('Starting Groq analysis...');
-      let analysisReal;
-      try {
-        analysisReal = await groqService.analyzeResume(resumeText, userProfile);
-        
-        // Ensure analysis has required properties
-        if (!analysisReal || typeof analysisReal.atsScore === 'undefined') {
-          throw new Error('Invalid analysis response');
-        }
-        console.log('Groq analysis completed:', analysisReal);
-      } catch (analysisError) {
-        console.warn("Groq analysis failed, using fallback:", analysisError);
-        analysisReal = {
-          atsScore: 75,
-          recommendations: ["Upload successful - detailed analysis unavailable"],
-          keywordOptimization: {
-            missingKeywords: [],
-            overusedKeywords: [],
-            suggestions: ["Analysis will be available shortly"]
-          },
-          formatting: {
-            score: 75,
-            issues: [],
-            improvements: ["Analysis in progress"]
-          },
-          content: {
-            strengthsFound: ["Professional resume uploaded"],
-            weaknesses: [],
-            suggestions: ["Detailed analysis coming soon"]
-          }
-        };
-      }
-      
-      // Get existing resumes count from database
-      const existingResumesList = await storage.getUserResumes(userId);
-      
-      const resumeToStore = {
-        id: Date.now(),
-        name: name || file.originalname.replace(/\.[^/.]+$/, ""),
-        fileName: file.originalname,
-        isActive: existingResumesList.length === 0, // First resume is active by default
-        atsScore: analysisReal.atsScore,
-        analysis: analysisReal,
-        resumeText: resumeText,
-        uploadedAt: new Date(),
-        fileSize: file.size,
-        fileType: file.mimetype,
-        // Store file data as base64 for demo (in production, would use cloud storage)
-        fileData: file.buffer.toString('base64')
-      };
-      
-      // Store in database with compression
-      const storedResume = await storage.storeResume(userId, {
-        name: resumeToStore.name,
-        fileName: resumeToStore.fileName,
-        isActive: resumeToStore.isActive,
-        atsScore: resumeToStore.atsScore,
-        analysis: resumeToStore.analysis,
-        resumeText: resumeToStore.resumeText,
-        fileSize: resumeToStore.fileSize,
-        mimeType: resumeToStore.fileType,
-        fileData: resumeToStore.fileData
-      });
-      
-      return res.json({ 
-        success: true,
-        analysis: analysisReal,
-        fileName: file.originalname,
-        message: "Resume uploaded and analyzed successfully",
-        resume: storedResume 
-      });
     } catch (error) {
       console.error("Error uploading resume:", error);
       res.status(500).json({ message: "Failed to upload resume" });
@@ -1040,7 +954,7 @@ Additional Information:
       const userId = req.user.id;
       const resumeId = parseInt(req.params.id);
       
-      console.log(`[DEBUG] Setting active resume for user: ${userId}, resumeId: ${resumeId}`);
+      // Setting active resume
       
       // Set all user resumes to inactive in database
       await db.update(schema.resumes)
@@ -1082,7 +996,7 @@ Additional Information:
         return res.json(cachedResumes);
       }
       
-      console.log(`[DEBUG] Fetching resumes for user: ${userId}`);
+      // Fetching resumes for user
       
       // Use the database storage service to get resumes
       const resumes = await storage.getUserResumes(userId);
@@ -1090,7 +1004,7 @@ Additional Information:
       // Cache resumes for 1 minute
       setCache(cacheKey, resumes, 60000);
       
-      console.log(`[DEBUG] Returning ${resumes.length} resumes for user ${userId}`);
+      // Returning resumes for user
       res.json(resumes);
     } catch (error) {
       console.error("Error fetching resumes:", error);
@@ -1222,7 +1136,7 @@ Additional Information:
       res.setHeader('Content-Disposition', `attachment; filename="${resume.fileName}"`);
       res.setHeader('Content-Length', fileBuffer.length.toString());
       
-      console.log(`[DEBUG] Recruiter ${userId} downloading resume: ${resume.fileName}`);
+      // Recruiter downloading resume
       return res.send(fileBuffer);
     } catch (error) {
       console.error("Error downloading resume:", error);
@@ -1300,7 +1214,7 @@ Additional Information:
         return res.status(404).json({ message: "Resume text not available for preview" });
       }
       
-      console.log(`[DEBUG] Recruiter ${userId} previewing resume for application: ${applicationId}`);
+      // Recruiter previewing resume
       return res.json({ resumeText });
     } catch (error) {
       console.error("Error previewing resume:", error);
@@ -1314,7 +1228,7 @@ Additional Information:
       const userId = req.user.id;
       const resumeId = parseInt(req.params.id);
       
-      console.log(`[DEBUG] Resume download request for user: ${userId}, resumeId: ${resumeId}`);
+      // Resume download request
       
       let resume;
       
@@ -1323,11 +1237,11 @@ Additional Information:
       resume = userResumes.find((r: any) => r.id === resumeId);
       
       if (!resume) {
-        console.log(`[DEBUG] Resume not found for user ${userId}, resumeId ${resumeId}`);
+        // Resume not found
         return res.status(404).json({ message: "Resume not found" });
       }
       
-      console.log(`[DEBUG] Found resume: ${resume.filename}, fileType: ${resume.fileType}`);
+      // Resume found for download
       
       // Get full resume data from database including fileData
       const fullResume = await db.select().from(schema.resumes).where(eq(schema.resumes.id, resumeId));
@@ -1346,7 +1260,7 @@ Additional Information:
         }
         
         fileBuffer = Buffer.from(base64Data, 'base64');
-        console.log(`[DEBUG] Converted base64 to buffer, size: ${fileBuffer.length} bytes`);
+        // Converted base64 to buffer
       } catch (bufferError) {
         console.error("Error processing resume file:", bufferError);
         return res.status(500).json({ message: "Error processing resume file" });
@@ -1356,7 +1270,7 @@ Additional Information:
       res.setHeader('Content-Disposition', `attachment; filename="${resumeData.fileName}"`);
       res.setHeader('Content-Length', fileBuffer.length.toString());
       
-      console.log(`[DEBUG] Sending file: ${resumeData.fileName}, size: ${fileBuffer.length} bytes`);
+      // Sending file to user
       return res.send(fileBuffer);
     } catch (error) {
       console.error("Error downloading resume:", error);
@@ -1965,7 +1879,7 @@ Additional Information:
         return res.status(400).json({ message: "No resume file uploaded" });
       }
 
-      console.log(`[DEBUG] Resume upload for user: ${userId}, file: ${req.file.originalname}`);
+      // Resume upload initiated
 
       // Store the file using our file storage service with compression
       const storedFile = await fileStorage.storeResume(req.file, userId);
@@ -4216,7 +4130,7 @@ Additional Information:
       const { resumeId, coverLetter } = req.body;
       const user = await storage.getUser(userId);
       
-      console.log(`[DEBUG] Job application: User ${userId} applying to job ${jobId} with resume ${resumeId}`);
+      // Processing job application
       
       if (user?.userType !== 'job_seeker') {
         return res.status(403).json({ message: "Access denied. Job seeker account required." });
@@ -4251,7 +4165,7 @@ Additional Information:
             fileType: resume.fileType,
             uploadedAt: resume.uploadedAt
           };
-          console.log(`[DEBUG] Found resume data: ${resume.fileName}, ATS Score: ${resume.atsScore}`);
+          // Found resume data for application
         }
       }
 
@@ -4264,7 +4178,7 @@ Additional Information:
         status: 'pending'
       });
 
-      console.log(`[DEBUG] Application created successfully with ID: ${application.id}`);
+      // Application created successfully
       res.status(201).json(application);
     } catch (error) {
       console.error("Error applying to job:", error);
@@ -4291,7 +4205,7 @@ Additional Information:
       const applicationId = parseInt(req.params.applicationId);
       const user = await storage.getUser(userId);
       
-      console.log(`[DEBUG] Resume download from application ${applicationId} by user ${userId}`);
+      // Resume download from application
       
       if (user?.userType !== 'recruiter') {
         return res.status(403).json({ message: "Access denied. Recruiter account required." });
@@ -4318,7 +4232,7 @@ Additional Information:
         res.setHeader('Content-Disposition', `attachment; filename="${resumeData.fileName}"`);
         res.setHeader('Content-Length', fileBuffer.length.toString());
         
-        console.log(`[DEBUG] Sending resume: ${resumeData.fileName}, size: ${fileBuffer.length} bytes`);
+        // Sending resume file
         return res.send(fileBuffer);
       }
 
@@ -4342,7 +4256,7 @@ Additional Information:
       res.setHeader('Content-Disposition', `attachment; filename="${resume.fileName}"`);
       res.setHeader('Content-Length', fileBuffer.length.toString());
       
-      console.log(`[DEBUG] Sending fallback resume: ${resume.fileName}, size: ${fileBuffer.length} bytes`);
+      // Sending fallback resume
       return res.send(fileBuffer);
     } catch (error) {
       console.error("Error downloading application resume:", error);
