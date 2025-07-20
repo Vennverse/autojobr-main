@@ -49,7 +49,7 @@ export function Navbar() {
         { href: "/premium-targeting", label: "Premium Targeting", icon: Target },
         { href: "/profile", label: "Profile", icon: User },
         { href: "/chat", label: "Messages", icon: MessageCircle },
-        { href: "/subscription", label: "Subscription", icon: Crown },
+        { href: "/recruiter-premium", label: "🚀 UPGRADE TO PREMIUM", icon: Crown, premium: true },
       ];
     } else {
       return [
@@ -62,7 +62,7 @@ export function Navbar() {
         { href: "/profile", label: "Profile", icon: User },
         { href: "/jobs", label: "Jobs", icon: Briefcase },
         { href: "/chat", label: "Messages", icon: MessageCircle },
-        { href: "/subscription", label: "Subscription", icon: Crown },
+        { href: "/job-seeker-premium", label: "🚀 UPGRADE TO PREMIUM", icon: Crown, premium: true },
       ];
     }
   };
@@ -93,13 +93,15 @@ export function Navbar() {
                   <Link key={item.href} href={item.href}>
                     <button
                       className={cn(
-                        "flex items-center space-x-1 text-sm font-medium px-3 py-2 rounded-md transition-colors",
-                        isActive
+                        "flex items-center space-x-1 text-sm font-medium px-3 py-2 rounded-md transition-all",
+                        item.premium 
+                          ? "bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold animate-pulse hover:from-yellow-500 hover:to-orange-600 shadow-lg" 
+                          : isActive
                           ? "text-primary bg-primary/10"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted"
                       )}
                     >
-                      <Icon className="w-4 h-4" />
+                      <Icon className={cn("w-4 h-4", item.premium && "animate-bounce")} />
                       <span>{item.label}</span>
                     </button>
                   </Link>
