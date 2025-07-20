@@ -1,396 +1,341 @@
-// Popup script for AutoJobr Chrome Extension
-// Fixed version with correct element IDs matching popup.html
-
-class AutojobrPopup {
+// Popup script for AutoJobr Extension
+class AutoJobrPopup {
   constructor() {
-    this.isLoading = false;
+    this.isAuthenticated = false;
     this.userProfile = null;
-    this.currentAnalysis = null;
+    this.currentJobData = null;
     this.settings = {
-      autofillEnabled: true,
-      apiUrl: 'http://localhost:5000'
+      autoFill: true,
+      autoAnalyze: true,
+      showNotifications: true
     };
     
     this.init();
   }
-  
+
   async init() {
-    await this.loadSettings();
-    await this.loadUserProfile();
-    await this.loadAnalysis();
-    this.bindEvents();
-    this.updateUI();
-  }
-  
-  async loadSettings() {
     try {
-      const response = await this.sendMessage({ action: 'getSettings' });
-      if (response && response.success) {
-        this.settings = { ...this.settings, ...response.data };
-      }
+      await this.loadSettings();
+      await this.checkAuthenticationStatus();
+      this.setupEventListeners();
+      this.updateUI();
     } catch (error) {
-      console.error('Error loading settings:', error);
-    }
-  }
-  
-  async loadUserProfile() {
-    try {
-      // Test connection first using ExtensionConfig
-      const config = new (window.ExtensionConfig || globalThis.ExtensionConfig || ExtensionConfig)();
-      const apiUrl = await config.detectApiUrl();
-      
-      console.log('Testing connection to:', apiUrl);
-      
-      const response = await this.sendMessage({ action: 'getUserProfile' });
-      if (response && response.success && response.data) {
-        this.userProfile = response.data;
-        console.log('User profile loaded:', this.userProfile.email || this.userProfile.id);
-        this.updateProfileSection();
-        this.updateConnectionStatus(true, apiUrl);
-      } else {
-        console.log('Profile load failed:', response?.error || 'Unknown error');
-        this.showProfileError('Please log in to AutoJobr web app first');
-        this.updateConnectionStatus(false, apiUrl);
-      }
-    } catch (error) {
-      console.error('Error loading user profile:', error);
-      this.showProfileError('Connection failed - check if you are logged in');
-      this.updateConnectionStatus(false, null);
+      console.error('Failed to initialize popup:', error);
+      this.showErrorState();
     }
   }
 
-  updateProfileSection() {
-    const profileInfo = document.getElementById('profile-info');
-    if (!profileInfo) {
-      console.error('Profile info element not found');
-      return;
-    }
-    
-    if (this.userProfile) {
-      const initials = this.userProfile.firstName ? 
-        this.userProfile.firstName.charAt(0).toUpperCase() : 
-        (this.userProfile.email ? this.userProfile.email.charAt(0).toUpperCase() : '?');
-      
-      profileInfo.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-          <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; color: white;">
-            ${initials}
-          </div>
-          <div>
-            <div style="font-weight: bold; color: white;">${this.userProfile.firstName || 'User'} ${this.userProfile.lastName || ''}</div>
-            <div style="font-size: 12px; opacity: 0.8; color: rgba(255,255,255,0.8);">${this.userProfile.professionalTitle || 'Professional'}</div>
-          </div>
-        </div>
-        <div style="font-size: 12px; opacity: 0.8; color: rgba(255,255,255,0.8);">
-          📧 ${this.userProfile.email || 'No email'}<br>
-          📍 ${this.userProfile.location || 'No location'}<br>
-          💼 ${this.userProfile.yearsExperience || 0} years experience
-        </div>
-      `;
-    } else {
-      profileInfo.innerHTML = '<div class="error-message">Profile not loaded</div>';
+  async loadSettings() {
+    const result = await chrome.storage.local.get('autojobr_settings');
+    if (result.autojobr_settings) {
+      this.settings = { ...this.settings, ...result.autojobr_settings };
     }
   }
-  
-  async loadAnalysis() {
+
+  async saveSettings() {
+    await chrome.storage.local.set({ autojobr_settings: this.settings });
+  }
+
+  async checkAuthenticationStatus() {
     try {
-      const settings = await chrome.storage.sync.get(['lastAnalysis']);
-      this.currentAnalysis = settings.lastAnalysis;
-    } catch (error) {
-      console.error('Error loading analysis:', error);
-    }
-  }
-  
-  bindEvents() {
-    // Autofill toggle
-    const autofillToggle = document.getElementById('autofill-toggle');
-    if (autofillToggle) {
-      autofillToggle.addEventListener('click', () => this.toggleAutofill());
-    }
-    
-    // Refresh analysis button
-    const refreshBtn = document.getElementById('refresh-analysis');
-    if (refreshBtn) {
-      refreshBtn.addEventListener('click', () => this.refreshAnalysis());
-    }
-    
-    // Fill forms button
-    const fillFormsBtn = document.getElementById('fill-forms');
-    if (fillFormsBtn) {
-      fillFormsBtn.addEventListener('click', () => this.fillForms());
-    }
-    
-    // Generate cover letter button
-    const coverLetterBtn = document.getElementById('generate-cover-letter');
-    if (coverLetterBtn) {
-      coverLetterBtn.addEventListener('click', () => this.generateCoverLetter());
-    }
-    
-    // Open dashboard link
-    const dashboardLink = document.getElementById('open-dashboard');
-    if (dashboardLink) {
-      dashboardLink.addEventListener('click', () => this.openDashboard());
-    }
-  }
-  
-  updateUI() {
-    this.updateConnectionStatus();
-    this.updateAutofillToggle();
-    this.updateProfileSection();
-    this.updateAnalysisSection();
-  }
-  
-  updateConnectionStatus(connected = false, apiUrl = null) {
-    const statusEl = document.querySelector('#connection-status span');
-    const statusDot = document.querySelector('.status-dot');
-    const statusDiv = document.getElementById('connection-status');
-    
-    if (!statusEl || !statusDot || !statusDiv) {
-      console.error('Connection status elements not found');
-      return;
-    }
-    
-    if (connected && this.userProfile) {
-      statusEl.textContent = 'Connected to AutoJobr';
-      statusDot.style.background = '#10b981';
-      statusDiv.className = 'status connected';
-      if (apiUrl) {
-        try {
-          statusEl.textContent += ` (${new URL(apiUrl).hostname})`;
-        } catch (e) {
-          // Handle invalid URL
-        }
+      const response = await chrome.runtime.sendMessage({ action: 'CHECK_AUTH' });
+      
+      if (response.success && response.authenticated) {
+        this.isAuthenticated = true;
+        await this.loadUserProfile();
+      } else {
+        this.isAuthenticated = false;
       }
-    } else if (connected && !this.userProfile) {
-      statusEl.textContent = 'Connected - Please log in';
-      statusDot.style.background = '#fbbf24';
-      statusDiv.className = 'status disconnected';
-    } else {
-      statusEl.textContent = 'Connection failed';
-      statusDot.style.background = '#ef4444';
-      statusDiv.className = 'status disconnected';
+    } catch (error) {
+      console.error('Authentication check failed:', error);
+      this.isAuthenticated = false;
     }
   }
-  
-  updateAutofillToggle() {
-    const toggle = document.getElementById('autofill-toggle');
-    if (!toggle) return;
-    
-    if (this.settings.autofillEnabled) {
-      toggle.classList.add('active');
-    } else {
-      toggle.classList.remove('active');
+
+  async loadUserProfile() {
+    try {
+      const response = await chrome.runtime.sendMessage({ action: 'GET_PROFILE' });
+      if (response.success) {
+        this.userProfile = response.profile;
+      }
+    } catch (error) {
+      console.error('Failed to load user profile:', error);
     }
   }
-  
-  updateAnalysisSection() {
-    const analysisContent = document.getElementById('analysis-info');
-    if (!analysisContent) {
-      console.error('Analysis info element not found');
-      return;
-    }
-    
-    if (!this.currentAnalysis) {
-      analysisContent.innerHTML = `
-        <div class="loading">
-          Navigate to a job posting to see analysis
-        </div>
-      `;
-      return;
-    }
-    
-    const analysis = this.currentAnalysis;
-    const matchScoreClass = this.getMatchScoreClass(analysis.matchScore);
-    
-    analysisContent.innerHTML = `
-      <div class="analysis-card">
-        <div class="match-score ${matchScoreClass}">${analysis.matchScore}%</div>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: ${analysis.matchScore}%;"></div>
-        </div>
-        <div style="font-size: 12px; margin-top: 10px;">
-          <strong>${analysis.jobTitle}</strong> at ${analysis.company}<br>
-          <span style="opacity: 0.8;">${analysis.detectedSeniority} • ${analysis.workMode}</span>
-        </div>
-      </div>
-    `;
-  }
-  
-  getMatchScoreClass(score) {
-    if (score >= 70) return 'high';
-    if (score >= 40) return 'medium';
-    return 'low';
-  }
-  
-  showProfileError(message) {
-    const profileContent = document.getElementById('profile-info');
-    if (!profileContent) return;
-    
-    profileContent.innerHTML = `
-      <div class="error-message">${message}</div>
-      <button class="btn" onclick="chrome.tabs.create({url: '${this.settings.apiUrl}'})">
-        Open AutoJobr
-      </button>
-    `;
-  }
-  
-  async toggleAutofill() {
-    this.settings.autofillEnabled = !this.settings.autofillEnabled;
-    await this.sendMessage({ 
-      action: 'updateSettings', 
-      data: { autofillEnabled: this.settings.autofillEnabled } 
+
+  setupEventListeners() {
+    // Authentication actions
+    document.getElementById('open-platform')?.addEventListener('click', () => {
+      this.openAutoJobrPlatform();
     });
-    this.updateAutofillToggle();
+
+    document.getElementById('refresh-auth')?.addEventListener('click', () => {
+      this.refreshAuthentication();
+    });
+
+    document.getElementById('retry-connection')?.addEventListener('click', () => {
+      this.retryConnection();
+    });
+
+    // Main actions
+    document.getElementById('fill-forms')?.addEventListener('click', () => {
+      this.fillForms();
+    });
+
+    document.getElementById('generate-cover-letter')?.addEventListener('click', () => {
+      this.generateCoverLetter();
+    });
+
+    document.getElementById('analyze-job')?.addEventListener('click', () => {
+      this.analyzeJob();
+    });
+
+    document.getElementById('refresh-profile')?.addEventListener('click', () => {
+      this.refreshProfile();
+    });
+
+    // Settings toggles
+    document.getElementById('toggle-autofill')?.addEventListener('click', (e) => {
+      this.toggleSetting('autoFill', e.target);
+    });
+
+    document.getElementById('toggle-analyze')?.addEventListener('click', (e) => {
+      this.toggleSetting('autoAnalyze', e.target);
+    });
+
+    document.getElementById('toggle-notifications')?.addEventListener('click', (e) => {
+      this.toggleSetting('showNotifications', e.target);
+    });
+
+    // Footer links
+    document.getElementById('open-dashboard')?.addEventListener('click', () => {
+      this.openPage('/dashboard');
+    });
+
+    document.getElementById('open-help')?.addEventListener('click', () => {
+      this.openPage('/help');
+    });
+
+    document.getElementById('open-settings')?.addEventListener('click', () => {
+      this.openPage('/settings');
+    });
   }
-  
-  async refreshAnalysis() {
+
+  updateUI() {
+    this.hideAllStates();
+
+    if (this.isAuthenticated) {
+      this.showAuthenticatedState();
+    } else {
+      this.showUnauthenticatedState();
+    }
+
+    this.updateSettings();
+  }
+
+  hideAllStates() {
+    document.getElementById('loading-state')?.classList.add('hidden');
+    document.getElementById('error-state')?.classList.add('hidden');
+    document.getElementById('authenticated-state')?.classList.add('hidden');
+    document.getElementById('unauthenticated-state')?.classList.add('hidden');
+  }
+
+  showLoadingState() {
+    this.hideAllStates();
+    document.getElementById('loading-state')?.classList.remove('hidden');
+  }
+
+  showErrorState() {
+    this.hideAllStates();
+    document.getElementById('error-state')?.classList.remove('hidden');
+  }
+
+  showAuthenticatedState() {
+    document.getElementById('authenticated-state')?.classList.remove('hidden');
+    this.updateProfileInfo();
+    this.updateJobAnalysis();
+  }
+
+  showUnauthenticatedState() {
+    document.getElementById('unauthenticated-state')?.classList.remove('hidden');
+  }
+
+  updateProfileInfo() {
+    if (!this.userProfile?.profile) return;
+
+    const profile = this.userProfile.profile;
+    const avatar = profile.fullName ? profile.fullName.charAt(0).toUpperCase() : 'U';
+    
+    document.getElementById('user-avatar').textContent = avatar;
+    document.getElementById('user-name').textContent = profile.fullName || 'User';
+    document.getElementById('user-title').textContent = profile.jobTitle || 'Job Seeker';
+
+    // Update stats (placeholder for now - can be enhanced with real data)
+    document.getElementById('applications-count').textContent = '12';
+    document.getElementById('success-rate').textContent = '85%';
+  }
+
+  updateJobAnalysis() {
+    // This would be populated with actual job analysis data
+    // For now, we'll hide it unless we have real data
+    const jobAnalysisElement = document.getElementById('job-analysis');
+    if (this.currentJobData?.analysis) {
+      const analysis = this.currentJobData.analysis;
+      const score = analysis.matchScore || 0;
+      const scoreClass = score >= 80 ? 'score-high' : score >= 60 ? 'score-medium' : 'score-low';
+      
+      document.getElementById('match-score-circle').className = `score-circle ${scoreClass}`;
+      document.getElementById('match-score-circle').textContent = `${score}%`;
+      document.getElementById('analysis-summary').textContent = analysis.summary || 'Job requirements analyzed';
+      
+      jobAnalysisElement?.classList.remove('hidden');
+    } else {
+      jobAnalysisElement?.classList.add('hidden');
+    }
+  }
+
+  updateSettings() {
+    const toggles = {
+      'toggle-autofill': this.settings.autoFill,
+      'toggle-analyze': this.settings.autoAnalyze,
+      'toggle-notifications': this.settings.showNotifications
+    };
+
+    for (const [elementId, isActive] of Object.entries(toggles)) {
+      const element = document.getElementById(elementId);
+      if (element) {
+        element.classList.toggle('active', isActive);
+      }
+    }
+  }
+
+  async openAutoJobrPlatform() {
+    const url = 'https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev/login';
+    await chrome.tabs.create({ url });
+    window.close();
+  }
+
+  async openPage(path) {
+    const url = `https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev${path}`;
+    await chrome.tabs.create({ url });
+    window.close();
+  }
+
+  async refreshAuthentication() {
+    this.showLoadingState();
+    await this.checkAuthenticationStatus();
+    this.updateUI();
+  }
+
+  async retryConnection() {
+    this.showLoadingState();
+    setTimeout(() => {
+      this.checkAuthenticationStatus().then(() => {
+        this.updateUI();
+      });
+    }, 1000);
+  }
+
+  async fillForms() {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      const response = await this.sendMessageToActiveTab({ action: 'analyzeJobPage' });
       
-      if (response && response.success) {
-        this.currentAnalysis = response.analysis;
-        this.updateAnalysisSection();
-        this.showNotification('Job analysis updated!');
-      } else {
-        this.showNotification('No job posting found on this page', 'error');
-      }
-    } catch (error) {
-      console.error('Error refreshing analysis:', error);
-      this.showNotification('Failed to analyze page', 'error');
-    }
-  }
-  
-  async fillForms() {
-    if (!this.userProfile) {
-      this.showNotification('Please log in first', 'error');
-      return;
-    }
-    
-    try {
-      const response = await this.sendMessageToActiveTab({ 
-        action: 'fillJobApplicationForm',
-        data: this.userProfile 
+      await chrome.tabs.sendMessage(tab.id, {
+        action: 'FILL_FORMS',
+        userProfile: this.userProfile
       });
-      
-      if (response && response.success) {
-        this.showNotification(`Filled ${response.fieldsCount} form fields!`);
-      } else {
-        this.showNotification('No fillable forms found on this page', 'error');
-      }
+
+      this.showSuccessMessage('Form filling initiated');
+      window.close();
     } catch (error) {
-      console.error('Error filling forms:', error);
-      this.showNotification('Failed to fill forms', 'error');
+      console.error('Failed to fill forms:', error);
+      this.showErrorMessage('Failed to fill forms');
     }
   }
 
   async generateCoverLetter() {
-    if (!this.userProfile) {
-      this.showNotification('Please log in first', 'error');
-      return;
-    }
-
     try {
-      // Get current page job data
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      let jobData = await this.sendMessageToActiveTab({ action: 'getJobData' });
       
-      if (!jobData || !jobData.company || !jobData.title) {
-        // Prompt user for company and job title
-        const company = prompt('Enter the company name:');
-        const jobTitle = prompt('Enter the job title:');
-        
-        if (!company || !jobTitle) {
-          this.showNotification('Company name and job title are required', 'error');
-          return;
-        }
-        
-        jobData = {
-          company: company,
-          title: jobTitle,
-          description: jobData?.description || ''
-        };
-      }
-
-      // Generate cover letter via API
-      const config = new (window.ExtensionConfig || globalThis.ExtensionConfig || ExtensionConfig)();
-      const apiUrl = await config.getApiUrl();
-      
-      const response = await fetch(`${apiUrl}/api/cover-letter/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          companyName: jobData.company,
-          jobTitle: jobData.title,
-          jobDescription: jobData.description || ''
-        })
+      await chrome.tabs.sendMessage(tab.id, {
+        action: 'GENERATE_COVER_LETTER'
       });
 
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      // Copy to clipboard and show success
-      await navigator.clipboard.writeText(result.coverLetter);
-      this.showNotification('Cover letter generated and copied to clipboard!');
-      
+      this.showSuccessMessage('Cover letter generation started');
+      window.close();
     } catch (error) {
-      console.error('Error generating cover letter:', error);
-      this.showNotification('Failed to generate cover letter', 'error');
+      console.error('Failed to generate cover letter:', error);
+      this.showErrorMessage('Failed to generate cover letter');
     }
   }
-  
-  openDashboard() {
-    chrome.tabs.create({ url: this.settings.apiUrl });
+
+  async analyzeJob() {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      
+      await chrome.tabs.sendMessage(tab.id, {
+        action: 'ANALYZE_JOB'
+      });
+
+      this.showSuccessMessage('Job analysis started');
+      window.close();
+    } catch (error) {
+      console.error('Failed to analyze job:', error);
+      this.showErrorMessage('Failed to analyze job');
+    }
   }
-  
-  async sendMessage(message) {
-    return new Promise((resolve) => {
-      chrome.runtime.sendMessage(message, resolve);
-    });
-  }
-  
-  async sendMessageToActiveTab(message) {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    return new Promise((resolve) => {
-      chrome.tabs.sendMessage(tab.id, message, resolve);
-    });
-  }
-  
-  showNotification(message, type = 'info') {
-    // Create temporary notification in popup
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      right: 10px;
-      background: ${type === 'error' ? '#ef4444' : '#10b981'};
-      color: white;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      z-index: 1000;
-      text-align: center;
-    `;
-    notification.textContent = message;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.parentNode.removeChild(notification);
+
+  async refreshProfile() {
+    try {
+      this.showLoadingState();
+      
+      const response = await chrome.runtime.sendMessage({ action: 'REFRESH_PROFILE' });
+      
+      if (response.success) {
+        this.userProfile = response.profile;
+        this.showSuccessMessage('Profile refreshed');
+      } else {
+        this.showErrorMessage('Failed to refresh profile');
       }
-    }, 3000);
+      
+      this.updateUI();
+    } catch (error) {
+      console.error('Failed to refresh profile:', error);
+      this.showErrorMessage('Failed to refresh profile');
+      this.updateUI();
+    }
+  }
+
+  toggleSetting(settingName, element) {
+    this.settings[settingName] = !this.settings[settingName];
+    element.classList.toggle('active', this.settings[settingName]);
+    this.saveSettings();
+
+    // Also send message to content script to update settings
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, {
+          action: 'UPDATE_SETTINGS',
+          settings: this.settings
+        }).catch(() => {
+          // Content script might not be loaded, which is fine
+        });
+      }
+    });
+  }
+
+  showSuccessMessage(message) {
+    // Could implement a toast notification system here
+    console.log('Success:', message);
+  }
+
+  showErrorMessage(message) {
+    // Could implement a toast notification system here
+    console.error('Error:', message);
   }
 }
 
 // Initialize popup when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-  new AutojobrPopup();
+  new AutoJobrPopup();
 });
