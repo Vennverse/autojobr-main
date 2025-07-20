@@ -653,6 +653,45 @@ export class InterviewAssignmentService {
       html: emailContent
     });
   }
+
+  // Create retake payment for interviews
+  async createRetakePayment(
+    interviewId: number,
+    interviewType: 'virtual' | 'mock',
+    userId: string,
+    paymentData: any
+  ) {
+    try {
+      const paymentRecord = {
+        userId,
+        interviewId,
+        interviewType,
+        amount: paymentData.amount || 2500, // $25.00 default retake fee
+        currency: paymentData.currency || 'USD',
+        status: 'pending',
+        paymentProvider: paymentData.provider || 'stripe',
+        paymentIntentId: paymentData.paymentIntentId,
+        createdAt: new Date()
+      };
+
+      const result = await db.execute(sql`
+        INSERT INTO interview_retake_payments (
+          user_id, interview_id, interview_type, amount, currency, 
+          status, payment_provider, payment_intent_id, created_at
+        ) VALUES (
+          ${userId}, ${interviewId}, ${interviewType}, ${paymentRecord.amount}, 
+          ${paymentRecord.currency}, ${paymentRecord.status}, 
+          ${paymentRecord.paymentProvider}, ${paymentRecord.paymentIntentId}, 
+          ${paymentRecord.createdAt.toISOString()}
+        ) RETURNING *
+      `);
+
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error creating retake payment:', error);
+      throw new Error('Failed to create retake payment');
+    }
+  }
 }
 
 export const interviewAssignmentService = new InterviewAssignmentService();

@@ -7435,7 +7435,7 @@ Host: https://autojobr.com`;
       }
       
       const candidates = await interviewAssignmentService.getCandidates();
-      res.json(candidates);
+      res.json(candidates || []);
     } catch (error) {
       console.error('Error fetching candidates:', error);
       res.status(500).json({ message: 'Failed to fetch candidates' });
@@ -7454,7 +7454,7 @@ Host: https://autojobr.com`;
       }
       
       const candidates = await interviewAssignmentService.getCandidatesForJobPosting(jobId);
-      res.json(candidates);
+      res.json(candidates || []);
     } catch (error) {
       console.error('Error fetching candidates for job:', error);
       res.status(500).json({ message: 'Failed to fetch candidates for job posting' });
@@ -7668,6 +7668,54 @@ Host: https://autojobr.com`;
   // Mock Interview Routes
   app.use('/api/mock-interview', mockInterviewRoutes);
   app.use('/api/virtual-interview', virtualInterviewRoutes);
+  
+  // Interview assignment and results routes
+  app.get('/api/interviews/:interviewType/:id/partial-results', isAuthenticated, async (req: any, res) => {
+    try {
+      const { interviewType, id } = req.params;
+      const recruiterId = req.user.id;
+      
+      if (!['virtual', 'mock'].includes(interviewType)) {
+        return res.status(400).json({ error: 'Invalid interview type' });
+      }
+      
+      const results = await interviewAssignmentService.getPartialResultsForRecruiter(
+        parseInt(id), 
+        interviewType as 'virtual' | 'mock', 
+        recruiterId
+      );
+      
+      res.json(results);
+    } catch (error) {
+      console.error('Error fetching partial results:', error);
+      res.status(500).json({ error: 'Failed to fetch interview results' });
+    }
+  });
+
+  // Interview retake payment routes
+  app.post('/api/interviews/:interviewType/:id/retake/payment', isAuthenticated, async (req: any, res) => {
+    try {
+      const { interviewType, id } = req.params;
+      const userId = req.user.id;
+      const paymentData = req.body;
+      
+      if (!['virtual', 'mock'].includes(interviewType)) {
+        return res.status(400).json({ error: 'Invalid interview type' });
+      }
+      
+      const payment = await interviewAssignmentService.createRetakePayment(
+        parseInt(id),
+        interviewType as 'virtual' | 'mock',
+        userId,
+        paymentData
+      );
+      
+      res.json(payment);
+    } catch (error) {
+      console.error('Error creating retake payment:', error);
+      res.status(500).json({ error: 'Failed to create retake payment' });
+    }
+  });
 
   return httpServer;
 }
