@@ -17,13 +17,32 @@ interface UsageReport {
 export default function UsageMonitoringWidget() {
   const [, setLocation] = useLocation();
 
-  const { data: usageReport, isLoading } = useQuery({
+  const { data: usageReport, isLoading, error } = useQuery({
     queryKey: ['/api/usage/report'],
     refetchInterval: 60000, // Refresh every minute
+    retry: 1, // Only retry once to avoid excessive requests
   });
 
-  if (isLoading || !usageReport) {
-    return null;
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error || !usageReport) {
+    return (
+      <Card>
+        <CardContent className="p-4 text-center text-muted-foreground">
+          <p>Unable to load usage data</p>
+        </CardContent>
+      </Card>
+    );
   }
 
   const report: UsageReport = usageReport;
@@ -79,11 +98,12 @@ export default function UsageMonitoringWidget() {
           <CardContent>
             <Button 
               onClick={() => {
-                // Determine premium page based on user type
-                const isRecruiter = window.location.pathname.includes('recruiter') || 
-                                   window.location.pathname.includes('post-job') ||
-                                   window.location.pathname.includes('dashboard');
-                setLocation(isRecruiter ? '/recruiter-premium' : '/job-seeker-premium');
+                // Get user type from actual API data rather than URL guessing
+                if (report.subscription?.userType === 'recruiter') {
+                  setLocation('/recruiter-premium');
+                } else {
+                  setLocation('/job-seeker-premium');
+                }
               }}
               className="w-full"
               size="sm"
@@ -144,14 +164,26 @@ export default function UsageMonitoringWidget() {
             );
           })}
           
-          {isFreeTier && (
-            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-              <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200 mb-2">
+          {isFreeTier && Object.keys(report.usage).length === 0 && (
+            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg text-center">
+              <div className="flex items-center justify-center gap-2 text-blue-800 dark:text-blue-200 mb-2">
                 <Zap className="h-4 w-4" />
-                <span className="font-medium">Free Tier Limits</span>
+                <span className="font-medium">Start Using Features</span>
               </div>
               <p className="text-sm text-blue-700 dark:text-blue-300">
-                Upgrade to premium for unlimited job analyses, resume reviews, and advanced features.
+                Begin using AutoJobr features to see your usage statistics here.
+              </p>
+            </div>
+          )}
+          
+          {isFreeTier && Object.keys(report.usage).length > 0 && (
+            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950 rounded-lg">
+              <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200 mb-2">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="font-medium">Free Tier Active</span>
+              </div>
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                You're using the free tier. Upgrade for unlimited access to all features.
               </p>
             </div>
           )}

@@ -13,9 +13,7 @@ export function Navbar() {
   const { user } = useAuth() as { user: any };
   const { theme, setTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showQuickActions, setShowQuickActions] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -46,23 +44,18 @@ export function Navbar() {
       return [
         { href: "/", label: "Dashboard", icon: BarChart3 },
         { href: "/post-job", label: "Post Job", icon: Plus },
-        { href: "/premium-targeting", label: "Premium Targeting", icon: Target },
         { href: "/profile", label: "Profile", icon: User },
         { href: "/chat", label: "Messages", icon: MessageCircle },
-        { href: "/recruiter-premium", label: "🚀 UPGRADE TO PREMIUM", icon: Crown, premium: true },
+        { href: "/recruiter-premium", label: "🚀 Upgrade", icon: Crown, premium: true },
       ];
     } else {
       return [
         { href: "/", label: "Dashboard", icon: BarChart3 },
         { href: "/applications", label: "Applications", icon: FileText },
-        { href: "/ranking-tests", label: "Ranking Tests", icon: Trophy },
-        { href: "/career-ai-assistant", label: "Career AI Assistant", icon: Brain },
-        { href: "/mock-interview", label: "Technical Skills Practice", icon: Code },
-        { href: "/virtual-interview/new", label: "Real Interview Simulation", icon: Brain },
-        { href: "/profile", label: "Profile", icon: User },
         { href: "/jobs", label: "Jobs", icon: Briefcase },
-        { href: "/chat", label: "Messages", icon: MessageCircle },
-        { href: "/job-seeker-premium", label: "🚀 UPGRADE TO PREMIUM", icon: Crown, premium: true },
+        { href: "/mock-interview", label: "Practice", icon: Code },
+        { href: "/profile", label: "Profile", icon: User },
+        { href: "/job-seeker-premium", label: "🚀 Upgrade", icon: Crown, premium: true },
       ];
     }
   };
@@ -132,80 +125,26 @@ export function Navbar() {
               </div>
             )}
 
-            {/* Quick Actions Dropdown */}
-            {user && (
-              <DropdownMenu open={showQuickActions} onOpenChange={setShowQuickActions}>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="hidden sm:flex">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Quick Actions
-                    <ChevronDown className="h-3 w-3 ml-1" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem onClick={() => window.location.href = '/resumes'}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Resume
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => window.location.href = '/mock-interview'}>
-                    <Code className="mr-2 h-4 w-4" />
-                    Start Practice Test
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => window.location.href = '/virtual-interview/new'}>
-                    <Brain className="mr-2 h-4 w-4" />
-                    Begin Interview Simulation
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => window.location.href = '/career-ai-assistant'}>
-                    <Zap className="mr-2 h-4 w-4" />
-                    Get Career Insights
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
 
-            {/* Notifications Bell */}
-            {user && (
-              <DropdownMenu open={showNotifications} onOpenChange={setShowNotifications}>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative">
-                    <Bell className="h-4 w-4" />
-                    <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-xs flex items-center justify-center text-white">
-                      3
-                    </span>
-                    <span className="sr-only">Notifications</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80">
-                  <div className="p-3 border-b">
-                    <h3 className="font-semibold">Notifications</h3>
-                  </div>
-                  <div className="max-h-64 overflow-y-auto">
-                    <DropdownMenuItem className="flex-col items-start p-3">
-                      <div className="font-medium">New Job Match Found!</div>
-                      <div className="text-sm text-muted-foreground">Software Engineer at TechCorp - 94% match</div>
-                      <div className="text-xs text-muted-foreground mt-1">2 hours ago</div>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="flex-col items-start p-3">
-                      <div className="font-medium">Interview Request</div>
-                      <div className="text-sm text-muted-foreground">StartupCo wants to schedule an interview</div>
-                      <div className="text-xs text-muted-foreground mt-1">1 day ago</div>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="flex-col items-start p-3">
-                      <div className="font-medium">Resume Analysis Complete</div>
-                      <div className="text-sm text-muted-foreground">Your ATS score improved to 87%</div>
-                      <div className="text-xs text-muted-foreground mt-1">2 days ago</div>
-                    </DropdownMenuItem>
-                  </div>
-                  <div className="p-2 border-t">
-                    <Button variant="ghost" className="w-full text-sm">
-                      View All Notifications
-                    </Button>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
 
-            {/* Mobile menu button - show first on mobile */}
+
+
+            {/* Theme toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="hidden sm:flex"
+            >
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+              <span className="sr-only">Toggle theme</span>
+            </Button>
+
+            {/* Mobile menu button */}
             <Button
               variant="ghost"
               size="icon"

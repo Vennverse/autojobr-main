@@ -434,6 +434,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
 
   // Usage Monitoring Routes
+  // Usage report endpoint - returns real user usage data without demo content
   app.get("/api/usage/report", isAuthenticated, asyncHandler(async (req: any, res: any) => {
     const userId = req.user.id;
     const report = await usageMonitoringService.generateUsageReport(userId);
