@@ -94,6 +94,7 @@ function Router() {
               <Route path="/premium-targeting" component={PremiumTargetingPage} />
               <Route path="/premium-targeting-payment" component={PremiumTargetingPayment} />
               <Route path="/recruiter/premium" component={RecruiterPremium} />
+              <Route path="/test-assignments" component={TestAssignments} />
               <Route path="/recruiter/test-management" component={TestManagement} />
               <Route path="/recruiter/test-assignments" component={TestAssignments} />
               <Route path="/recruiter/question-builder/:templateId">
@@ -128,6 +129,7 @@ function Router() {
                   <Route path="/jobs" component={Jobs} />
 
                   <Route path="/discover" component={JobDiscoveryPage} />
+                  <Route path="/job-seeker-tests" component={JobSeekerTests} />
                   <Route path="/job-seeker/tests" component={JobSeekerTests} />
                   <Route path="/ranking-tests" component={RankingTests} />
                   <Route path="/test/:id" component={TestTaking} />

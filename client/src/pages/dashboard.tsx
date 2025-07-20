@@ -164,6 +164,22 @@ export default function Dashboard() {
     retry: false,
   });
 
+  // Fetch test-related data for job seekers
+  const { data: testAssignments } = useQuery({
+    queryKey: ["/api/jobseeker/test-assignments"],
+    retry: false,
+  });
+
+  const { data: rankingTestHistory } = useQuery({
+    queryKey: ["/api/ranking-tests/history"],
+    retry: false,
+  });
+
+  const { data: mockInterviewStats } = useQuery({
+    queryKey: ["/api/mock-interview/stats"],
+    retry: false,
+  });
+
   // Job application mutation
   const applyToJobMutation = useMutation({
     mutationFn: async (jobData: any) => {
@@ -383,7 +399,7 @@ export default function Dashboard() {
           </div>
           
           {/* Key Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 max-w-6xl mx-auto">
             <div className="text-center p-6 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20">
               <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats?.totalApplications || 0}</div>
               <div className="text-blue-700 dark:text-blue-300 text-sm font-medium">Applications Sent</div>
@@ -396,12 +412,20 @@ export default function Dashboard() {
               <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{stats?.avgMatchScore || 0}%</div>
               <div className="text-purple-700 dark:text-purple-300 text-sm font-medium">Avg Match Score</div>
             </div>
+            <div className="text-center p-6 rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20">
+              <div className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">{testAssignments?.filter((t: any) => t.status === 'completed').length || 0}</div>
+              <div className="text-indigo-700 dark:text-indigo-300 text-sm font-medium">Tests Completed</div>
+            </div>
+            <div className="text-center p-6 rounded-2xl bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20">
+              <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{rankingTestHistory?.length || 0}</div>
+              <div className="text-yellow-700 dark:text-yellow-300 text-sm font-medium">Ranking Tests</div>
+            </div>
           </div>
         </motion.div>
 
         {/* Core Action Cards */}
         <motion.div 
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"
           variants={itemVariants}
         >
           {[
@@ -411,7 +435,26 @@ export default function Dashboard() {
               icon: Code,
               color: "blue",
               action: () => setLocation('/mock-interview'),
-              gradient: "from-blue-500 to-blue-600"
+              gradient: "from-blue-500 to-blue-600",
+              badge: mockInterviewStats?.totalMockInterviews ? `${mockInterviewStats.totalMockInterviews} completed` : null
+            },
+            {
+              title: "Assigned Tests",
+              description: "Complete tests assigned by recruiters",
+              icon: FileText,
+              color: "indigo",
+              action: () => setLocation('/job-seeker-tests'),
+              gradient: "from-indigo-500 to-indigo-600",
+              badge: testAssignments?.filter((t: any) => t.status === 'assigned').length ? `${testAssignments.filter((t: any) => t.status === 'assigned').length} pending` : null
+            },
+            {
+              title: "Ranking Tests",
+              description: "Compete with other candidates",
+              icon: Trophy,
+              color: "yellow",
+              action: () => setLocation('/ranking-tests'),
+              gradient: "from-yellow-500 to-orange-500",
+              badge: rankingTestHistory?.length ? `${rankingTestHistory.length} taken` : null
             },
             {
               title: "Real Interview Simulation",
@@ -455,9 +498,16 @@ export default function Dashboard() {
                     <ArrowRight className="h-5 w-5 text-white/70" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-white mb-2">
-                      {card.title}
-                    </h3>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-lg font-bold text-white">
+                        {card.title}
+                      </h3>
+                      {card.badge && (
+                        <Badge className="bg-white/20 text-white text-xs border-white/30">
+                          {card.badge}
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-sm text-white/80">
                       {card.description}
                     </p>
@@ -824,6 +874,110 @@ export default function Dashboard() {
                     <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-500">No applications yet</p>
                     <p className="text-sm text-gray-400">Start applying to jobs to track your progress</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Test Progress Section */}
+          <div>
+            <Card className="border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Trophy className="h-5 w-5 text-yellow-500" />
+                    Test Progress & Assignments
+                  </CardTitle>
+                  <Button variant="outline" onClick={() => setLocation('/job-seeker-tests')}>
+                    View All Tests
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {testAssignments?.length > 0 ? (
+                  <div className="space-y-3">
+                    {testAssignments.slice(0, 3).map((assignment: any, index: number) => (
+                      <div
+                        key={assignment.id}
+                        className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-3 h-3 rounded-full ${
+                            assignment.status === 'completed' ? 'bg-green-500' :
+                            assignment.status === 'assigned' ? 'bg-yellow-500' :
+                            assignment.status === 'started' ? 'bg-blue-500' :
+                            'bg-red-500'
+                          }`} />
+                          <div>
+                            <p className="font-medium text-sm">{assignment.testTemplate?.title || 'Coding Assessment'}</p>
+                            <p className="text-xs text-gray-500">
+                              From {assignment.recruiter?.firstName || 'Recruiter'} at {assignment.recruiter?.companyName || 'Company'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge 
+                            variant={
+                              assignment.status === 'completed' ? 'default' :
+                              assignment.status === 'assigned' ? 'secondary' :
+                              assignment.status === 'started' ? 'outline' :
+                              'destructive'
+                            }
+                            className="text-xs"
+                          >
+                            {assignment.status}
+                          </Badge>
+                          {assignment.status === 'assigned' && (
+                            <Button 
+                              size="sm" 
+                              onClick={() => setLocation(`/test/${assignment.id}`)}
+                              className="text-xs"
+                            >
+                              Start Test
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* Ranking Tests Summary */}
+                    {rankingTestHistory?.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300">Recent Ranking Tests</h4>
+                          <Button variant="ghost" size="sm" onClick={() => setLocation('/ranking-tests')}>
+                            View Rankings
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {rankingTestHistory.slice(0, 2).map((test: any, index: number) => (
+                            <div key={index} className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-medium">{test.category || 'Tech Assessment'}</span>
+                                <Badge variant="outline" className="text-xs">
+                                  {test.score || 'N/A'}%
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Brain className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No test assignments yet</p>
+                    <p className="text-sm text-gray-400">Tests assigned by recruiters will appear here</p>
+                    <Button 
+                      variant="outline" 
+                      className="mt-3" 
+                      onClick={() => setLocation('/ranking-tests')}
+                    >
+                      Try Ranking Tests
+                    </Button>
                   </div>
                 )}
               </CardContent>

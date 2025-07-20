@@ -44,6 +44,7 @@ export function Navbar() {
       return [
         { href: "/", label: "Dashboard", icon: BarChart3 },
         { href: "/post-job", label: "Post Job", icon: Plus },
+        { href: "/test-assignments", label: "Test Assignments", icon: FileText },
         { href: "/profile", label: "Profile", icon: User },
         { href: "/chat", label: "Messages", icon: MessageCircle },
         { href: "/recruiter-premium", label: "🚀 Upgrade", icon: Crown, premium: true },
@@ -53,6 +54,8 @@ export function Navbar() {
         { href: "/", label: "Dashboard", icon: BarChart3 },
         { href: "/applications", label: "Applications", icon: FileText },
         { href: "/jobs", label: "Jobs", icon: Briefcase },
+        { href: "/job-seeker-tests", label: "Tests", icon: FileText },
+        { href: "/ranking-tests", label: "Rankings", icon: Trophy },
         { href: "/mock-interview", label: "Practice", icon: Code },
         { href: "/profile", label: "Profile", icon: User },
         { href: "/job-seeker-premium", label: "🚀 Upgrade", icon: Crown, premium: true },
