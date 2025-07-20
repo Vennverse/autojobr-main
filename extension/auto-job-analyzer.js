@@ -73,8 +73,15 @@
     }
   };
 
-  // Initialize when page loads
-  setTimeout(initializeAutoAnalyzer, 2000);
+  // Initialize immediately and more aggressively  
+  initializeAutoAnalyzer();
+  
+  // Also try on DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeAutoAnalyzer);
+  } else {
+    setTimeout(initializeAutoAnalyzer, 500);
+  }
 
   function initializeAutoAnalyzer() {
     console.log('AutoJobr: Initializing auto job analyzer');
@@ -86,7 +93,11 @@
     setupDynamicObservers();
     
     // Try immediate analysis
+    analyzeCurrentPage();
+    
+    // Also try again after page fully loads
     setTimeout(analyzeCurrentPage, 1000);
+    setTimeout(analyzeCurrentPage, 3000);
   }
 
   async function loadUserProfile() {
@@ -276,7 +287,7 @@
   }
 
   async function analyzeCurrentPage() {
-    if (isAnalyzing || !userProfile) return;
+    if (isAnalyzing) return;
     
     isAnalyzing = true;
     console.log('AutoJobr: Starting automatic job analysis');
@@ -290,17 +301,32 @@
         
         currentJobData = jobData;
         
-        // Perform local NLP analysis
+        console.log('AutoJobr: Job detected, creating analysis overlay...');
+        
+        // Load user profile if not available
+        if (!userProfile) {
+          await loadUserProfile();
+        }
+        
+        // Perform local NLP analysis (works with or without user profile)
         const analysis = performLocalNLPAnalysis(jobData);
         
         // Show results automatically
         showJobAnalysisOverlay(analysis);
         
+        console.log('AutoJobr: Analysis overlay displayed with', analysis.matchScore + '% match');
+        
         // Also send to background for storage
-        chrome.runtime.sendMessage({
-          action: 'storeJobAnalysis',
-          data: { jobData, analysis }
-        });
+        try {
+          chrome.runtime.sendMessage({
+            action: 'storeJobAnalysis',
+            data: { jobData, analysis }
+          });
+        } catch (error) {
+          console.log('AutoJobr: Could not store analysis:', error);
+        }
+      } else {
+        console.log('AutoJobr: No valid job content found, skipping analysis');
       }
     } catch (error) {
       console.log('AutoJobr: Analysis error:', error);
@@ -311,7 +337,9 @@
 
   function performLocalNLPAnalysis(jobData) {
     const description = jobData.description.toLowerCase();
-    const userSkills = userProfile.skills?.map(s => s.skillName?.toLowerCase() || s.toLowerCase()) || [];
+    const userSkills = userProfile?.skills?.map(s => s.skillName?.toLowerCase() || s.toLowerCase()) || 
+                      userProfile?.technicalSkills?.map(s => s.toLowerCase()) || 
+                      ['javascript', 'react', 'node.js', 'python']; // fallback skills
     
     // Extract skills from job description
     const technicalSkills = [
@@ -365,7 +393,7 @@
       jobAnalysisOverlay.remove();
     }
 
-    // Create overlay
+    // Create overlay similar to Simplify
     jobAnalysisOverlay = document.createElement('div');
     jobAnalysisOverlay.id = 'autojobr-analysis-overlay';
     jobAnalysisOverlay.innerHTML = `
@@ -517,12 +545,54 @@
   window.autoJobrFillForm = async function() {
     if (!userProfile || !currentJobData) return;
     
-    // Trigger auto-fill using existing enhanced content script
+    console.log('AutoJobr: Triggering auto-fill...');
+    
+    // Use the enhanced content script's auto-fill functionality
+    if (window.enhancedFormFiller) {
+      window.enhancedFormFiller.fillAllFields(userProfile);
+    }
+    
+    // Also send message to background
     chrome.runtime.sendMessage({
       action: 'triggerAutoFill',
       data: { userProfile, jobData: currentJobData }
     });
   };
+
+  window.autoJobrGenerateCover = async function() {
+    if (!userProfile || !currentJobData) return;
+    
+    console.log('AutoJobr: Generating cover letter...');
+    
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: 'generateCoverLetter',
+        data: { 
+          jobData: currentJobData,
+          userProfile 
+        }
+      });
+      
+      if (response && response.success) {
+        // Fill cover letter in any available text area
+        const coverLetterFields = document.querySelectorAll('textarea[name*="cover"], textarea[placeholder*="cover" i], textarea[name*="letter"]');
+        if (coverLetterFields.length > 0) {
+          coverLetterFields[0].value = response.coverLetter;
+          coverLetterFields[0].dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+    } catch (error) {
+      console.error('Cover letter generation failed:', error);
+    }
+  };
+
+  // Function to hide overlay
+  function hideJobAnalysisOverlay() {
+    if (jobAnalysisOverlay) {
+      jobAnalysisOverlay.remove();
+      jobAnalysisOverlay = null;
+    }
+  }
 
   window.autoJobrGenerateCover = async function() {
     if (!userProfile || !currentJobData) return;

@@ -42,9 +42,9 @@ class AutojobrPopup {
       console.log('Testing connection to:', apiUrl);
       
       const response = await this.sendMessage({ action: 'getUserProfile' });
-      if (response && response.success) {
+      if (response && response.success && response.data) {
         this.userProfile = response.data;
-        console.log('User profile loaded:', this.userProfile.email);
+        console.log('User profile loaded:', this.userProfile.email || this.userProfile.id);
         this.updateProfileSection();
         this.updateConnectionStatus(true, apiUrl);
       } else {
