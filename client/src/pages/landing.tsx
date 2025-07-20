@@ -51,16 +51,16 @@ import { Link } from "wouter";
 import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet";
 
-// Import the platform screenshots
-import dashboardImage from "@assets/image_1752591356271.png";
-import resumeImage from "@assets/image_1752591359330.png";
-import jobMatchImage from "@assets/image_1752591363466.png";
-import applicationImage from "@assets/image_1752591366598.png";
-import careerAiImage from "@assets/image_1752591370293.png";
-import testSystemImage from "@assets/image_1752591375218.png";
-import recruitingImage from "@assets/image_1752591380889.png";
-import analyticsImage from "@assets/image_1752591387481.png";
-import messagingImage from "@assets/image_1752591392801.png";
+// Platform screenshots - using placeholder images for now
+const dashboardImage = "data:image/svg+xml;base64," + btoa('<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f3f4f6"/><text x="50%" y="50%" text-anchor="middle" fill="#374151" font-family="Arial" font-size="24">Dashboard Preview</text></svg>');
+const resumeImage = "data:image/svg+xml;base64," + btoa('<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f3f4f6"/><text x="50%" y="50%" text-anchor="middle" fill="#374151" font-family="Arial" font-size="24">Resume Analysis</text></svg>');
+const jobMatchImage = "data:image/svg+xml;base64," + btoa('<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f3f4f6"/><text x="50%" y="50%" text-anchor="middle" fill="#374151" font-family="Arial" font-size="24">Job Matching</text></svg>');
+const applicationImage = "data:image/svg+xml;base64," + btoa('<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f3f4f6"/><text x="50%" y="50%" text-anchor="middle" fill="#374151" font-family="Arial" font-size="24">Applications</text></svg>');
+const careerAiImage = "data:image/svg+xml;base64," + btoa('<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f3f4f6"/><text x="50%" y="50%" text-anchor="middle" fill="#374151" font-family="Arial" font-size="24">Career AI</text></svg>');
+const testSystemImage = "data:image/svg+xml;base64," + btoa('<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f3f4f6"/><text x="50%" y="50%" text-anchor="middle" fill="#374151" font-family="Arial" font-size="24">Test System</text></svg>');
+const recruitingImage = "data:image/svg+xml;base64," + btoa('<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f3f4f6"/><text x="50%" y="50%" text-anchor="middle" fill="#374151" font-family="Arial" font-size="24">Recruiting</text></svg>');
+const analyticsImage = "data:image/svg+xml;base64," + btoa('<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f3f4f6"/><text x="50%" y="50%" text-anchor="middle" fill="#374151" font-family="Arial" font-size="24">Analytics</text></svg>');
+const messagingImage = "data:image/svg+xml;base64," + btoa('<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f3f4f6"/><text x="50%" y="50%" text-anchor="middle" fill="#374151" font-family="Arial" font-size="24">Messaging</text></svg>');
 
 // Platform Slider Component
 const PlatformSlider = () => {
