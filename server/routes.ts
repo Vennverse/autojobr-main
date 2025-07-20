@@ -264,7 +264,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await capturePaypalOrder(req, res);
   });
 
-  // Subscription Payment Routes
+  // Subscription Payment Routes - Consolidated
   app.get("/api/subscription/tiers", async (req, res) => {
     try {
       const { userType } = req.query;
@@ -280,17 +280,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/subscription/create", isAuthenticated, async (req: any, res) => {
     try {
-      const { tierId, paymentMethod } = req.body;
+      const { tierId, paymentMethod, userType } = req.body;
       const userId = req.user.id;
+      const userEmail = req.user.email;
 
-      if (!tierId || !paymentMethod) {
-        return res.status(400).json({ error: 'Tier ID and payment method are required' });
+      if (!tierId) {
+        return res.status(400).json({ error: 'Tier ID is required' });
       }
 
-      if (!['paypal', 'razorpay'].includes(paymentMethod)) {
-        return res.status(400).json({ error: 'Invalid payment method' });
+      // Handle PayPal subscription creation
+      if (paymentMethod === 'paypal' || !paymentMethod) {
+        const { paypalSubscriptionService } = await import('./paypalSubscriptionService');
+        const planId = paypalSubscriptionService.getPlanIdForTier(userType, tierId);
+        const result = await paypalSubscriptionService.createSubscription(userId, planId, userEmail);
+        return res.json(result);
       }
 
+      // Handle other payment methods
       const order = await subscriptionPaymentService.createSubscriptionOrder(
         userId,
         tierId,
@@ -299,8 +305,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ success: true, order });
     } catch (error) {
-      console.error('Error creating subscription order:', error);
-      res.status(500).json({ error: 'Failed to create subscription order' });
+      console.error('Error creating subscription:', error);
+      res.status(500).json({ error: 'Failed to create subscription' });
+    }
+  });
+
+  app.post("/api/subscription/activate/:subscriptionId", async (req, res) => {
+    try {
+      const { subscriptionId } = req.params;
+      const { paypalSubscriptionService } = await import('./paypalSubscriptionService');
+      const success = await paypalSubscriptionService.activateSubscription(subscriptionId);
+      
+      if (success) {
+        res.json({ message: 'Subscription activated successfully' });
+      } else {
+        res.status(400).json({ error: 'Failed to activate subscription' });
+      }
+    } catch (error) {
+      console.error('Subscription activation error:', error);
+      res.status(500).json({ error: 'Failed to activate subscription' });
     }
   });
 
@@ -325,7 +348,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       
-      await subscriptionPaymentService.cancelSubscription(userId);
+      // Find user's active subscription
+      const userSubscription = await db.query.subscriptions.findFirst({
+        where: and(
+          eq(schema.subscriptions.userId, userId),
+          eq(schema.subscriptions.status, 'active')
+        )
+      });
+
+      if (userSubscription?.paypalSubscriptionId) {
+        const { paypalSubscriptionService } = await import('./paypalSubscriptionService');
+        await paypalSubscriptionService.cancelSubscription(
+          userSubscription.paypalSubscriptionId,
+          'User requested cancellation'
+        );
+      } else {
+        await subscriptionPaymentService.cancelSubscription(userId);
+      }
       
       res.json({ success: true, message: 'Subscription cancelled successfully' });
     } catch (error) {
@@ -338,9 +377,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       
-      const subscription = await subscriptionPaymentService.getUserSubscription(userId);
-      
-      res.json({ subscription });
+      const userSubscription = await db.query.subscriptions.findFirst({
+        where: eq(schema.subscriptions.userId, userId),
+        orderBy: [desc(schema.subscriptions.createdAt)]
+      });
+
+      res.json(userSubscription || null);
     } catch (error) {
       console.error('Error fetching current subscription:', error);
       res.status(500).json({ error: 'Failed to fetch subscription' });
@@ -415,217 +457,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // User data route for authenticated users
   // PayPal subscription routes
-  app.post('/api/subscription/create', isAuthenticated, async (req: any, res) => {
-    try {
-      const { tierId, userType } = req.body;
-      const userId = req.user.id;
-      const userEmail = req.user.email;
+  // Duplicate subscription routes removed - consolidated above
 
-      if (!tierId || !userType) {
-        return res.status(400).json({ error: 'Missing tier ID or user type' });
-      }
-
-      // Import PayPal service
-      const { paypalSubscriptionService } = await import('./paypalSubscriptionService');
-      
-      // Get PayPal plan ID for the tier
-      const planId = paypalSubscriptionService.getPlanIdForTier(userType, tierId);
-      
-      // Create PayPal subscription
-      const result = await paypalSubscriptionService.createSubscription(userId, planId, userEmail);
-      
-      res.json(result);
-    } catch (error) {
-      console.error('Subscription creation error:', error);
-      res.status(500).json({ error: error.message || 'Failed to create subscription' });
-    }
-  });
-
-  app.post('/api/subscription/activate/:subscriptionId', async (req, res) => {
-    try {
-      const { subscriptionId } = req.params;
-      
-      const { paypalSubscriptionService } = await import('./paypalSubscriptionService');
-      const success = await paypalSubscriptionService.activateSubscription(subscriptionId);
-      
-      if (success) {
-        res.json({ message: 'Subscription activated successfully' });
-      } else {
-        res.status(400).json({ error: 'Failed to activate subscription' });
-      }
-    } catch (error) {
-      console.error('Subscription activation error:', error);
-      res.status(500).json({ error: error.message || 'Failed to activate subscription' });
-    }
-  });
-
-  app.post('/api/subscription/cancel', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      
-      // Find user's active subscription
-      const userSubscription = await db.query.subscriptions.findFirst({
-        where: and(
-          eq(subscriptions.userId, userId),
-          eq(subscriptions.status, 'active')
-        )
-      });
-
-      if (!userSubscription?.paypalSubscriptionId) {
-        return res.status(404).json({ error: 'No active subscription found' });
-      }
-
-      const { paypalSubscriptionService } = await import('./paypalSubscriptionService');
-      const success = await paypalSubscriptionService.cancelSubscription(
-        userSubscription.paypalSubscriptionId,
-        'User requested cancellation'
-      );
-      
-      if (success) {
-        res.json({ message: 'Subscription cancelled successfully' });
-      } else {
-        res.status(400).json({ error: 'Failed to cancel subscription' });
-      }
-    } catch (error) {
-      console.error('Subscription cancellation error:', error);
-      res.status(500).json({ error: error.message || 'Failed to cancel subscription' });
-    }
-  });
-
-  app.get('/api/subscription/current', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      
-      const userSubscription = await db.query.subscriptions.findFirst({
-        where: eq(subscriptions.userId, userId),
-        orderBy: [subscriptions.createdAt]
-      });
-
-      res.json(userSubscription || null);
-    } catch (error) {
-      console.error('Get current subscription error:', error);
-      res.status(500).json({ error: 'Failed to get subscription' });
-    }
-  });
-
-  app.get('/api/subscription/tiers', async (req, res) => {
-    try {
-      const { userType } = req.query;
-      
-      // Return subscription tiers based on user type
-      const tiers = userType === 'recruiter' ? [
-        {
-          id: 'recruiter-starter',
-          name: 'Starter',
-          price: 49,
-          currency: 'USD',
-          billingCycle: 'monthly',
-          userType: 'recruiter',
-          features: [
-            '10 job postings per month',
-            '50 candidate profiles',
-            'Basic interview tools',
-            'Email support'
-          ],
-          limits: {
-            jobPostings: 10,
-            interviews: 20,
-            candidates: 50
-          }
-        },
-        {
-          id: 'recruiter-professional',
-          name: 'Professional',
-          price: 99,
-          currency: 'USD',
-          billingCycle: 'monthly',
-          userType: 'recruiter',
-          features: [
-            '50 job postings per month',
-            '500 candidate profiles',
-            'Advanced interview tools',
-            'Priority support',
-            'Analytics dashboard'
-          ],
-          limits: {
-            jobPostings: 50,
-            interviews: 100,
-            candidates: 500
-          }
-        },
-        {
-          id: 'recruiter-enterprise',
-          name: 'Enterprise',
-          price: 199,
-          currency: 'USD',
-          billingCycle: 'monthly',
-          userType: 'recruiter',
-          features: [
-            'Unlimited job postings',
-            'Unlimited candidate profiles',
-            'Custom interview workflows',
-            'Dedicated support',
-            'Advanced analytics',
-            'API access'
-          ],
-          limits: {
-            jobPostings: -1, // unlimited
-            interviews: -1,
-            candidates: -1
-          }
-        }
-      ] : [
-        {
-          id: 'jobseeker-basic',
-          name: 'Basic',
-          price: 9,
-          currency: 'USD',
-          billingCycle: 'monthly',
-          userType: 'jobseeker',
-          features: [
-            '50 job analyses per month',
-            '10 resume optimizations',
-            'Basic application tracking',
-            'Email support'
-          ],
-          limits: {
-            jobAnalyses: 50,
-            resumeAnalyses: 10,
-            applications: 100,
-            autoFills: 50,
-            interviews: 5
-          }
-        },
-        {
-          id: 'jobseeker-premium',
-          name: 'Premium',
-          price: 19,
-          currency: 'USD',
-          billingCycle: 'monthly',
-          userType: 'jobseeker',
-          features: [
-            'Unlimited job analyses',
-            'Unlimited resume optimizations',
-            'Priority application processing',
-            'Advanced interview prep',
-            'Priority support'
-          ],
-          limits: {
-            jobAnalyses: -1, // unlimited
-            resumeAnalyses: -1,
-            applications: -1,
-            autoFills: -1,
-            interviews: -1
-          }
-        }
-      ];
-
-      res.json({ tiers });
-    } catch (error) {
-      console.error('Get subscription tiers error:', error);
-      res.status(500).json({ error: 'Failed to get subscription tiers' });
-    }
-  });
+  // User authentication and data routes
 
   app.get('/api/user', isAuthenticated, async (req: any, res) => {
     try {
@@ -1313,38 +1147,7 @@ Additional Information:
     }
   });
 
-  app.post('/api/resumes/:id/set-active', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const resumeId = parseInt(req.params.id);
-      
-      let userResumes;
-      if (userId === 'demo-user-id') {
-        userResumes = (global as any).demoUserResumes;
-      } else {
-        userResumes = (global as any).userResumes?.[userId];
-      }
-      
-      if (userResumes) {
-        // Set all resumes to inactive
-        userResumes.forEach((resume: any) => {
-          resume.isActive = false;
-        });
-        
-        // Set the selected resume as active
-        const targetResume = userResumes.find((resume: any) => resume.id === resumeId);
-        if (targetResume) {
-          targetResume.isActive = true;
-          return res.json({ message: "Resume set as active", resume: targetResume });
-        }
-      }
-      
-      return res.status(404).json({ message: "Resume not found" });
-    } catch (error) {
-      console.error("Error setting active resume:", error);
-      res.status(500).json({ message: "Failed to set active resume" });
-    }
-  });
+  // Duplicate resume set-active route removed - consolidated above
 
   // Resume download route for recruiters (from job applications)
   app.get('/api/recruiter/resume/download/:applicationId', isAuthenticated, async (req: any, res) => {
