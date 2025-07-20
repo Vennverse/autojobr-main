@@ -623,4 +623,85 @@ router.post("/analyze-behavioral", isAuthenticated, async (req: any, res) => {
   }
 });
 
+// Get behavioral questions for interview
+router.get("/behavioral-questions", isAuthenticated, async (req: any, res) => {
+  try {
+    const { personality = 'professional', difficulty = 'medium', count = 5 } = req.query;
+    
+    const questions = behavioralQuestionService.selectQuestionsByPersonality(
+      personality as string,
+      difficulty as string,
+      parseInt(count as string) || 5
+    );
+    
+    res.json({ questions });
+  } catch (error) {
+    console.error('Error fetching behavioral questions:', error);
+    res.status(500).json({ error: 'Failed to fetch behavioral questions' });
+  }
+});
+
+// Analyze AI usage in interview responses
+router.post("/analyze-ai/:sessionId", isAuthenticated, async (req: any, res) => {
+  try {
+    const { sessionId } = req.params;
+    const userId = req.user.id;
+    
+    // Get interview session
+    const interview = await db.query.virtualInterviews.findFirst({
+      where: and(
+        eq(virtualInterviews.sessionId, sessionId),
+        eq(virtualInterviews.userId, userId)
+      )
+    });
+    
+    if (!interview) {
+      return res.status(404).json({ error: 'Interview session not found' });
+    }
+    
+    // Get all user messages
+    const messages = await db.query.virtualInterviewMessages.findMany({
+      where: and(
+        eq(virtualInterviewMessages.interviewId, interview.id),
+        eq(virtualInterviewMessages.sender, 'candidate')
+      )
+    });
+    
+    // Analyze each response for AI usage
+    const analyses = await Promise.all(
+      messages.map(async (msg) => {
+        const detection = await aiDetectionService.detectAIUsage(msg.content, 'Interview response');
+        return {
+          messageId: msg.id,
+          content: msg.content.substring(0, 100) + '...', // Preview only
+          aiDetection: detection,
+          timestamp: msg.timestamp
+        };
+      })
+    );
+    
+    // Calculate overall AI usage statistics
+    const aiUsageCount = analyses.filter(a => a.aiDetection.isAIGenerated).length;
+    const averageConfidence = analyses.reduce((sum, a) => sum + a.aiDetection.confidence, 0) / analyses.length;
+    
+    res.json({
+      totalResponses: analyses.length,
+      aiUsageDetected: aiUsageCount,
+      aiUsagePercentage: Math.round((aiUsageCount / analyses.length) * 100),
+      averageConfidence: Math.round(averageConfidence),
+      analyses: analyses.map(a => ({
+        ...a,
+        content: undefined // Don't send full content to protect privacy
+      })),
+      summary: aiUsageCount > 0 ? 
+        `AI usage detected in ${aiUsageCount} out of ${analyses.length} responses` :
+        'No significant AI usage detected'
+    });
+    
+  } catch (error) {
+    console.error('Error analyzing AI usage:', error);
+    res.status(500).json({ error: 'Failed to analyze AI usage' });
+  }
+});
+
 export default router;
