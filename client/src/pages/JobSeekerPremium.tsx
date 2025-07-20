@@ -24,13 +24,13 @@ import PayPalButton from "@/components/PayPalButton";
 import PayPalSubscriptionButton from "@/components/PayPalSubscriptionButton";
 import UsageMonitoringWidget from "@/components/UsageMonitoringWidget";
 
-interface SubscriptionTier {
+interface JobSeekerSubscriptionTier {
   id: string;
   name: string;
   price: number;
   currency: string;
   billingCycle: 'monthly' | 'yearly';
-  userType: 'jobseeker' | 'recruiter';
+  userType: 'jobseeker';
   features: string[];
   limits: {
     jobAnalyses?: number;
@@ -48,9 +48,10 @@ export default function JobSeekerPremium() {
   const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'razorpay'>('paypal');
   const [showPayment, setShowPayment] = useState(false);
 
-  // Fetch job seeker subscription tiers
+  // Fetch only job seeker subscription tiers
   const { data: tiersData, isLoading: tiersLoading } = useQuery({
-    queryKey: ['/api/subscription/tiers', { userType: 'jobseeker' }],
+    queryKey: ['/api/subscription/tiers'],
+    queryFn: () => fetch('/api/subscription/tiers?userType=jobseeker').then(res => res.json()),
   });
 
   // Fetch current subscription
@@ -139,7 +140,8 @@ export default function JobSeekerPremium() {
     );
   }
 
-  const tiers: SubscriptionTier[] = tiersData?.tiers || [];
+  // Filter to ensure only job seeker tiers are displayed
+  const tiers: JobSeekerSubscriptionTier[] = (tiersData?.tiers || []).filter((tier: any) => tier.userType === 'jobseeker');
   const subscription = currentSubscription?.subscription;
   const isFreeTier = !subscription || !subscription.isActive;
 
@@ -262,7 +264,7 @@ export default function JobSeekerPremium() {
                   <Separator />
                   
                   <div className="space-y-2">
-                    <h4 className="font-semibold text-sm">Monthly Limits</h4>
+                    <h4 className="font-semibold text-sm">Job Seeker Features & Limits</h4>
                     {tier.limits.jobAnalyses && (
                       <div className="flex justify-between text-sm">
                         <span>Job Analyses</span>
@@ -277,13 +279,19 @@ export default function JobSeekerPremium() {
                     )}
                     {tier.limits.applications && (
                       <div className="flex justify-between text-sm">
-                        <span>Applications</span>
+                        <span>Job Applications</span>
                         <span className="font-medium">{formatLimit(tier.limits.applications)}</span>
+                      </div>
+                    )}
+                    {tier.limits.autoFills && (
+                      <div className="flex justify-between text-sm">
+                        <span>Auto-Fill Forms</span>
+                        <span className="font-medium">{formatLimit(tier.limits.autoFills)}</span>
                       </div>
                     )}
                     {tier.limits.interviews && (
                       <div className="flex justify-between text-sm">
-                        <span>Virtual Interviews</span>
+                        <span>Virtual Interview Practice</span>
                         <span className="font-medium">{formatLimit(tier.limits.interviews)}</span>
                       </div>
                     )}
@@ -357,39 +365,39 @@ export default function JobSeekerPremium() {
             </Card>
           )}
 
-          {/* Benefits Showcase */}
+          {/* Job Seeker Benefits Showcase */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-center">Why Upgrade to Premium?</CardTitle>
+              <CardTitle className="text-center">Why Job Seekers Choose Premium</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="text-center space-y-2">
                   <Brain className="h-8 w-8 mx-auto text-blue-600" />
-                  <h3 className="font-semibold">AI-Powered Features</h3>
+                  <h3 className="font-semibold">AI Resume Analysis</h3>
                   <p className="text-sm text-muted-foreground">
-                    Advanced AI resume analysis, job matching, and virtual interview practice
+                    Get instant ATS compatibility scores and personalized resume improvements
                   </p>
                 </div>
                 <div className="text-center space-y-2">
                   <Search className="h-8 w-8 mx-auto text-green-600" />
-                  <h3 className="font-semibold">Unlimited Applications</h3>
+                  <h3 className="font-semibold">Smart Job Matching</h3>
                   <p className="text-sm text-muted-foreground">
-                    Apply to unlimited jobs with auto-fill and tracking
+                    Find relevant jobs faster with AI-powered matching algorithms
                   </p>
                 </div>
                 <div className="text-center space-y-2">
-                  <Target className="h-8 w-8 mx-auto text-purple-600" />
-                  <h3 className="font-semibold">Priority Support</h3>
+                  <FileText className="h-8 w-8 mx-auto text-purple-600" />
+                  <h3 className="font-semibold">Auto-Fill Applications</h3>
                   <p className="text-sm text-muted-foreground">
-                    Get priority customer support and career guidance
+                    Chrome extension fills job applications automatically across 500+ sites
                   </p>
                 </div>
                 <div className="text-center space-y-2">
                   <TrendingUp className="h-8 w-8 mx-auto text-orange-600" />
-                  <h3 className="font-semibold">Advanced Analytics</h3>
+                  <h3 className="font-semibold">Interview Practice</h3>
                   <p className="text-sm text-muted-foreground">
-                    Track application success rates and optimize your job search
+                    Practice virtual interviews and improve your performance with AI feedback
                   </p>
                 </div>
               </div>

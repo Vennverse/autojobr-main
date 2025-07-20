@@ -25,13 +25,13 @@ import PayPalButton from "@/components/PayPalButton";
 import PayPalSubscriptionButton from "@/components/PayPalSubscriptionButton";
 import UsageMonitoringWidget from "@/components/UsageMonitoringWidget";
 
-interface SubscriptionTier {
+interface RecruiterSubscriptionTier {
   id: string;
   name: string;
   price: number;
   currency: string;
   billingCycle: 'monthly' | 'yearly';
-  userType: 'jobseeker' | 'recruiter';
+  userType: 'recruiter';
   features: string[];
   limits: {
     jobPostings?: number;
@@ -47,9 +47,10 @@ export default function RecruiterPremium() {
   const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'razorpay'>('paypal');
   const [showPayment, setShowPayment] = useState(false);
 
-  // Fetch recruiter subscription tiers
+  // Fetch only recruiter subscription tiers
   const { data: tiersData, isLoading: tiersLoading } = useQuery({
-    queryKey: ['/api/subscription/tiers', { userType: 'recruiter' }],
+    queryKey: ['/api/subscription/tiers'],
+    queryFn: () => fetch('/api/subscription/tiers?userType=recruiter').then(res => res.json()),
   });
 
   // Fetch current subscription
@@ -139,7 +140,8 @@ export default function RecruiterPremium() {
     );
   }
 
-  const tiers: SubscriptionTier[] = tiersData?.tiers || [];
+  // Filter to ensure only recruiter tiers are displayed
+  const tiers: RecruiterSubscriptionTier[] = (tiersData?.tiers || []).filter((tier: any) => tier.userType === 'recruiter');
   const subscription = currentSubscription?.subscription;
   const isFreeTier = !subscription || !subscription.isActive;
 
@@ -275,9 +277,9 @@ export default function RecruiterPremium() {
                       ))}
                     </div>
                     
-                    {/* Limits */}
+                    {/* Recruiter-specific Limits */}
                     <div className="space-y-2">
-                      <h4 className="font-semibold text-sm">Monthly Limits</h4>
+                      <h4 className="font-semibold text-sm">Recruiting Limits & Capacity</h4>
                       {tier.limits.jobPostings && (
                         <div className="flex justify-between text-sm">
                           <span>Job Postings</span>
@@ -286,13 +288,13 @@ export default function RecruiterPremium() {
                       )}
                       {tier.limits.candidates && (
                         <div className="flex justify-between text-sm">
-                          <span>Candidates</span>
+                          <span>Candidate Management</span>
                           <span className="font-medium">{formatLimit(tier.limits.candidates)}</span>
                         </div>
                       )}
                       {tier.limits.interviews && (
                         <div className="flex justify-between text-sm">
-                          <span>Interviews</span>
+                          <span>Interview Assignments</span>
                           <span className="font-medium">{formatLimit(tier.limits.interviews)}</span>
                         </div>
                       )}
@@ -352,39 +354,39 @@ export default function RecruiterPremium() {
             </Card>
           )}
 
-          {/* Benefits Showcase */}
+          {/* Recruiter Benefits Showcase */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-center">Why Upgrade to Recruiter Premium?</CardTitle>
+              <CardTitle className="text-center">Why Recruiters Choose Premium</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="text-center space-y-2">
                   <UserCheck className="h-8 w-8 mx-auto text-blue-600" />
-                  <h3 className="font-semibold">AI Interview Assignments</h3>
+                  <h3 className="font-semibold">AI Candidate Screening</h3>
                   <p className="text-sm text-muted-foreground">
-                    Automatically screen candidates with AI-powered virtual interviews
+                    Automatically screen candidates with virtual interviews and coding tests
                   </p>
                 </div>
                 <div className="text-center space-y-2">
-                  <Search className="h-8 w-8 mx-auto text-green-600" />
-                  <h3 className="font-semibold">Unlimited Job Postings</h3>
+                  <Building2 className="h-8 w-8 mx-auto text-green-600" />
+                  <h3 className="font-semibold">Scale Your Hiring</h3>
                   <p className="text-sm text-muted-foreground">
-                    Post unlimited jobs and reach the best candidates
+                    Post multiple jobs and manage hundreds of candidates efficiently
                   </p>
                 </div>
                 <div className="text-center space-y-2">
                   <BarChart3 className="h-8 w-8 mx-auto text-purple-600" />
-                  <h3 className="font-semibold">Advanced Analytics</h3>
+                  <h3 className="font-semibold">Hiring Analytics</h3>
                   <p className="text-sm text-muted-foreground">
-                    Track hiring metrics and optimize your recruitment process
+                    Track recruitment metrics and optimize your hiring funnel
                   </p>
                 </div>
                 <div className="text-center space-y-2">
                   <Headphones className="h-8 w-8 mx-auto text-orange-600" />
-                  <h3 className="font-semibold">Dedicated Support</h3>
+                  <h3 className="font-semibold">Priority Support</h3>
                   <p className="text-sm text-muted-foreground">
-                    Get priority support and dedicated account management
+                    Get dedicated account management and technical support
                   </p>
                 </div>
               </div>
