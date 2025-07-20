@@ -414,6 +414,219 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User data route for authenticated users
+  // PayPal subscription routes
+  app.post('/api/subscription/create', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tierId, userType } = req.body;
+      const userId = req.user.id;
+      const userEmail = req.user.email;
+
+      if (!tierId || !userType) {
+        return res.status(400).json({ error: 'Missing tier ID or user type' });
+      }
+
+      // Import PayPal service
+      const { paypalSubscriptionService } = await import('./paypalSubscriptionService');
+      
+      // Get PayPal plan ID for the tier
+      const planId = paypalSubscriptionService.getPlanIdForTier(userType, tierId);
+      
+      // Create PayPal subscription
+      const result = await paypalSubscriptionService.createSubscription(userId, planId, userEmail);
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Subscription creation error:', error);
+      res.status(500).json({ error: error.message || 'Failed to create subscription' });
+    }
+  });
+
+  app.post('/api/subscription/activate/:subscriptionId', async (req, res) => {
+    try {
+      const { subscriptionId } = req.params;
+      
+      const { paypalSubscriptionService } = await import('./paypalSubscriptionService');
+      const success = await paypalSubscriptionService.activateSubscription(subscriptionId);
+      
+      if (success) {
+        res.json({ message: 'Subscription activated successfully' });
+      } else {
+        res.status(400).json({ error: 'Failed to activate subscription' });
+      }
+    } catch (error) {
+      console.error('Subscription activation error:', error);
+      res.status(500).json({ error: error.message || 'Failed to activate subscription' });
+    }
+  });
+
+  app.post('/api/subscription/cancel', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      // Find user's active subscription
+      const userSubscription = await db.query.subscriptions.findFirst({
+        where: and(
+          eq(subscriptions.userId, userId),
+          eq(subscriptions.status, 'active')
+        )
+      });
+
+      if (!userSubscription?.paypalSubscriptionId) {
+        return res.status(404).json({ error: 'No active subscription found' });
+      }
+
+      const { paypalSubscriptionService } = await import('./paypalSubscriptionService');
+      const success = await paypalSubscriptionService.cancelSubscription(
+        userSubscription.paypalSubscriptionId,
+        'User requested cancellation'
+      );
+      
+      if (success) {
+        res.json({ message: 'Subscription cancelled successfully' });
+      } else {
+        res.status(400).json({ error: 'Failed to cancel subscription' });
+      }
+    } catch (error) {
+      console.error('Subscription cancellation error:', error);
+      res.status(500).json({ error: error.message || 'Failed to cancel subscription' });
+    }
+  });
+
+  app.get('/api/subscription/current', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      const userSubscription = await db.query.subscriptions.findFirst({
+        where: eq(subscriptions.userId, userId),
+        orderBy: [subscriptions.createdAt]
+      });
+
+      res.json(userSubscription || null);
+    } catch (error) {
+      console.error('Get current subscription error:', error);
+      res.status(500).json({ error: 'Failed to get subscription' });
+    }
+  });
+
+  app.get('/api/subscription/tiers', async (req, res) => {
+    try {
+      const { userType } = req.query;
+      
+      // Return subscription tiers based on user type
+      const tiers = userType === 'recruiter' ? [
+        {
+          id: 'recruiter-starter',
+          name: 'Starter',
+          price: 49,
+          currency: 'USD',
+          billingCycle: 'monthly',
+          userType: 'recruiter',
+          features: [
+            '10 job postings per month',
+            '50 candidate profiles',
+            'Basic interview tools',
+            'Email support'
+          ],
+          limits: {
+            jobPostings: 10,
+            interviews: 20,
+            candidates: 50
+          }
+        },
+        {
+          id: 'recruiter-professional',
+          name: 'Professional',
+          price: 99,
+          currency: 'USD',
+          billingCycle: 'monthly',
+          userType: 'recruiter',
+          features: [
+            '50 job postings per month',
+            '500 candidate profiles',
+            'Advanced interview tools',
+            'Priority support',
+            'Analytics dashboard'
+          ],
+          limits: {
+            jobPostings: 50,
+            interviews: 100,
+            candidates: 500
+          }
+        },
+        {
+          id: 'recruiter-enterprise',
+          name: 'Enterprise',
+          price: 199,
+          currency: 'USD',
+          billingCycle: 'monthly',
+          userType: 'recruiter',
+          features: [
+            'Unlimited job postings',
+            'Unlimited candidate profiles',
+            'Custom interview workflows',
+            'Dedicated support',
+            'Advanced analytics',
+            'API access'
+          ],
+          limits: {
+            jobPostings: -1, // unlimited
+            interviews: -1,
+            candidates: -1
+          }
+        }
+      ] : [
+        {
+          id: 'jobseeker-basic',
+          name: 'Basic',
+          price: 9,
+          currency: 'USD',
+          billingCycle: 'monthly',
+          userType: 'jobseeker',
+          features: [
+            '50 job analyses per month',
+            '10 resume optimizations',
+            'Basic application tracking',
+            'Email support'
+          ],
+          limits: {
+            jobAnalyses: 50,
+            resumeAnalyses: 10,
+            applications: 100,
+            autoFills: 50,
+            interviews: 5
+          }
+        },
+        {
+          id: 'jobseeker-premium',
+          name: 'Premium',
+          price: 19,
+          currency: 'USD',
+          billingCycle: 'monthly',
+          userType: 'jobseeker',
+          features: [
+            'Unlimited job analyses',
+            'Unlimited resume optimizations',
+            'Priority application processing',
+            'Advanced interview prep',
+            'Priority support'
+          ],
+          limits: {
+            jobAnalyses: -1, // unlimited
+            resumeAnalyses: -1,
+            applications: -1,
+            autoFills: -1,
+            interviews: -1
+          }
+        }
+      ];
+
+      res.json({ tiers });
+    } catch (error) {
+      console.error('Get subscription tiers error:', error);
+      res.status(500).json({ error: 'Failed to get subscription tiers' });
+    }
+  });
+
   app.get('/api/user', isAuthenticated, async (req: any, res) => {
     try {
       res.json(req.user);

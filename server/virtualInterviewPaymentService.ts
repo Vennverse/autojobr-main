@@ -47,7 +47,7 @@ export class VirtualInterviewPaymentService {
       // Reset monthly usage if needed
       userStats = await this.resetMonthlyUsageIfNeeded(userStats);
 
-      const isPremium = user.planType === 'premium' || user.subscriptionStatus === 'active';
+      const isPremium = user.subscriptionStatus === 'active' && user.planType === 'premium';
       
       // Check free interviews based on user type
       const freeLimit = isPremium ? this.PREMIUM_FREE_LIMIT : this.FREE_INTERVIEWS_LIMIT;
@@ -112,7 +112,7 @@ export class VirtualInterviewPaymentService {
       // Reset monthly usage if needed
       userStats = await this.resetMonthlyUsageIfNeeded(userStats);
 
-      const isPremium = user.planType === 'premium' || user.subscriptionStatus === 'active';
+      const isPremium = user.subscriptionStatus === 'active' && user.planType === 'premium';
       const freeLimit = isPremium ? this.PREMIUM_FREE_LIMIT : this.FREE_INTERVIEWS_LIMIT;
       
       let updateData: any = {

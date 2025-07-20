@@ -42,7 +42,7 @@ export class MockInterviewPaymentService {
         userStats = newStats;
       }
 
-      const isPremium = user.planType === 'premium' || user.subscriptionStatus === 'active';
+      const isPremium = user.subscriptionStatus === 'active' && user.planType === 'premium';
       
       // Check free interviews based on user type
       const freeLimit = isPremium ? this.PREMIUM_FREE_LIMIT : this.FREE_INTERVIEWS_LIMIT;
@@ -98,7 +98,7 @@ export class MockInterviewPaymentService {
         return;
       }
 
-      const isPremium = user.planType === 'premium' || user.subscriptionStatus === 'active';
+      const isPremium = user.subscriptionStatus === 'active' && user.planType === 'premium';
       const freeLimit = isPremium ? this.PREMIUM_FREE_LIMIT : this.FREE_INTERVIEWS_LIMIT;
       
       let updateData: any = {

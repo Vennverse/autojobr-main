@@ -51,6 +51,8 @@ import VirtualInterview from "@/pages/VirtualInterview";
 import VirtualInterviewFeedback from "@/pages/VirtualInterviewFeedback";
 import InterviewAssignments from "@/pages/InterviewAssignments";
 import PipelineManagement from "@/pages/PipelineManagement";
+import SubscriptionSuccess from "@/pages/subscription/Success";
+import SubscriptionCancel from "@/pages/subscription/Cancel";
 
 
 function Router() {
@@ -70,6 +72,10 @@ function Router() {
       <Route path="/verify-email" component={VerifyEmail} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password" component={ResetPasswordPage} />
+      
+      {/* Subscription success/cancel routes */}
+      <Route path="/subscription/success" component={SubscriptionSuccess} />
+      <Route path="/subscription/cancel" component={SubscriptionCancel} />
       
       {/* Post Job route - accessible to everyone, handles verification internally */}
       <Route path="/post-job" component={PostJob} />

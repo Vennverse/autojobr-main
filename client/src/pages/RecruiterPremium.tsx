@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import PayPalButton from "@/components/PayPalButton";
+import PayPalSubscriptionButton from "@/components/PayPalSubscriptionButton";
 import UsageMonitoringWidget from "@/components/UsageMonitoringWidget";
 
 interface SubscriptionTier {
@@ -244,14 +245,20 @@ export default function RecruiterPremium() {
                         </CardDescription>
                       </div>
                     </div>
-                    <Button 
-                      onClick={() => handleSubscribe(tier.id)}
+                    <PayPalSubscriptionButton 
+                      tierId={tier.id}
+                      tierName={tier.name}
+                      price={tier.price}
+                      userType="recruiter"
+                      onSuccess={(subscriptionId) => {
+                        toast({
+                          title: "Subscription Created!",
+                          description: "Redirecting to PayPal to complete payment...",
+                        });
+                        queryClient.invalidateQueries({ queryKey: ['/api/subscription/current'] });
+                      }}
                       disabled={createSubscriptionMutation.isPending || (subscription?.tier === tier.id && subscription.isActive)}
-                      variant={tier.name.includes('Professional') ? "default" : "outline"}
-                      size="lg"
-                    >
-                      {subscription?.tier === tier.id && subscription.isActive ? 'Current Plan' : 'Upgrade Now'}
-                    </Button>
+                    />
                   </div>
                 </CardHeader>
                 
