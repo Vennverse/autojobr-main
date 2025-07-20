@@ -1,127 +1,287 @@
 // Background script for AutoJobr Extension
-importScripts('config.js');
-
-class BackgroundService {
+class AutoJobrBackground {
   constructor() {
-    this.api = new AutoJobrAPI();
-    this.isInitialized = false;
+    this.apiBase = 'https://cb65fac5-c8d9-4a92-96d3-e1c1fb178ad5-00-1qemik6z1cl2m.janeway.replit.dev';
+    this.isAuthenticated = false;
     this.userProfile = null;
+    
+    this.init();
   }
 
-  async initialize() {
-    if (this.isInitialized) return;
+  init() {
+    // Listen for extension messages
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      this.handleMessage(message, sender, sendResponse);
+      return true; // Keep the message channel open for async responses
+    });
 
-    try {
-      // Check authentication status on startup
-      const user = await this.api.checkAuthStatus();
-      if (user) {
-        console.log('User authenticated:', user.email);
-        await this.loadUserProfile();
+    // Listen for tab updates to detect job pages
+    chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+      if (changeInfo.status === 'complete' && tab.url) {
+        this.checkJobPage(tab);
       }
+    });
+
+    // Initialize authentication check
+    this.checkAuthentication();
+  }
+
+  async checkAuthentication() {
+    try {
+      const response = await fetch(`${this.apiBase}/api/user`, {
+        credentials: 'include',
+        method: 'GET'
+      });
       
-      this.isInitialized = true;
-      console.log('AutoJobr background service initialized');
+      if (response.ok) {
+        const userData = await response.json();
+        this.isAuthenticated = true;
+        await this.loadUserProfile();
+        console.log('🔐 AutoJobr background: Authenticated successfully');
+      } else {
+        this.isAuthenticated = false;
+        console.log('❌ AutoJobr background: Not authenticated');
+      }
     } catch (error) {
-      console.error('Background service initialization failed:', error);
+      console.log('❌ AutoJobr background: Authentication check failed:', error);
+      this.isAuthenticated = false;
     }
   }
 
   async loadUserProfile() {
+    if (!this.isAuthenticated) return;
+
     try {
-      this.userProfile = await this.api.getUserProfile();
-      console.log('User profile loaded and cached');
+      const [profileRes, skillsRes, experienceRes, educationRes] = await Promise.all([
+        fetch(`${this.apiBase}/api/profile`, { credentials: 'include' }),
+        fetch(`${this.apiBase}/api/skills`, { credentials: 'include' }),
+        fetch(`${this.apiBase}/api/work-experience`, { credentials: 'include' }),
+        fetch(`${this.apiBase}/api/education`, { credentials: 'include' })
+      ]);
+
+      if (profileRes.ok && skillsRes.ok && experienceRes.ok && educationRes.ok) {
+        const [profile, skills, experience, education] = await Promise.all([
+          profileRes.json(),
+          skillsRes.json(),
+          experienceRes.json(),
+          educationRes.json()
+        ]);
+
+        this.userProfile = {
+          profile,
+          skills,
+          experience,
+          education,
+          lastUpdated: Date.now()
+        };
+
+        // Cache profile for offline use
+        await chrome.storage.local.set({
+          autojobr_profile: this.userProfile
+        });
+
+        console.log('✅ Background: User profile loaded and cached');
+      }
     } catch (error) {
-      console.error('Failed to load user profile:', error);
+      console.error('Background: Failed to load user profile:', error);
     }
   }
 
-  async handleMessage(request, sender, sendResponse) {
+  checkJobPage(tab) {
+    if (!tab.url) return;
+
+    const jobSites = [
+      'linkedin.com',
+      'indeed.com',
+      'glassdoor.com',
+      'workday.com',
+      'lever.co',
+      'greenhouse.io',
+      'monster.com',
+      'ziprecruiter.com',
+      'wellfound.com',
+      'angel.co',
+      'bamboohr.com',
+      'smartrecruiters.com',
+      'jobvite.com',
+      'icims.com',
+      'taleo.net',
+      'successfactors.com',
+      'ashbyhq.com'
+    ];
+
+    const isJobSite = jobSites.some(site => tab.url.includes(site));
+    
+    if (isJobSite) {
+      // Update badge to indicate job site
+      chrome.action.setBadgeText({
+        tabId: tab.id,
+        text: '●'
+      });
+      
+      chrome.action.setBadgeBackgroundColor({
+        tabId: tab.id,
+        color: '#10b981'
+      });
+    } else {
+      // Clear badge
+      chrome.action.setBadgeText({
+        tabId: tab.id,
+        text: ''
+      });
+    }
+  }
+
+  async handleMessage(message, sender, sendResponse) {
     try {
-      switch (request.action) {
+      switch (message.action) {
         case 'CHECK_AUTH':
-          const user = await this.api.checkAuthStatus();
-          return { success: true, authenticated: !!user, user };
+          await this.checkAuthentication();
+          sendResponse({
+            success: true,
+            authenticated: this.isAuthenticated
+          });
+          break;
 
         case 'GET_PROFILE':
-          const profile = await this.api.getUserProfile();
-          return { success: true, profile };
-
-        case 'GENERATE_COVER_LETTER':
-          const coverLetter = await this.api.generateCoverLetter(
-            request.jobDescription,
-            request.companyName
-          );
-          return { success: true, coverLetter };
-
-        case 'ANALYZE_JOB':
-          const analysis = await this.api.analyzeJob(request.jobData);
-          return { success: true, analysis };
-
-        case 'CLEAR_CACHE':
-          await this.api.clearStoredAuth();
-          this.userProfile = null;
-          return { success: true };
+          if (!this.userProfile) {
+            await this.loadUserProfile();
+          }
+          sendResponse({
+            success: true,
+            profile: this.userProfile
+          });
+          break;
 
         case 'REFRESH_PROFILE':
-          this.userProfile = null;
-          this.api.userProfile = null;
-          const refreshedProfile = await this.api.getUserProfile();
-          return { success: true, profile: refreshedProfile };
+          await this.loadUserProfile();
+          sendResponse({
+            success: true,
+            profile: this.userProfile
+          });
+          break;
+
+        case 'GENERATE_COVER_LETTER':
+          const coverLetterResult = await this.generateCoverLetter(message.jobData);
+          sendResponse(coverLetterResult);
+          break;
+
+        case 'SAVE_JOB':
+          const saveResult = await this.saveJob(message.jobData);
+          sendResponse(saveResult);
+          break;
+
+        case 'TRACK_APPLICATION':
+          const trackResult = await this.trackApplication(message.applicationData);
+          sendResponse(trackResult);
+          break;
 
         default:
-          throw new Error(`Unknown action: ${request.action}`);
+          sendResponse({
+            success: false,
+            error: 'Unknown action'
+          });
       }
     } catch (error) {
       console.error('Background message handler error:', error);
+      sendResponse({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  async generateCoverLetter(jobData) {
+    if (!this.isAuthenticated || !jobData) {
+      return { success: false, error: 'Not authenticated or missing job data' };
+    }
+
+    try {
+      const response = await fetch(`${this.apiBase}/api/generate-cover-letter`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          jobDescription: jobData.description,
+          companyName: jobData.company,
+          jobTitle: jobData.title,
+          useProfile: true
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return { success: true, coverLetter: result.coverLetter };
+      } else {
+        return { success: false, error: 'Failed to generate cover letter' };
+      }
+    } catch (error) {
+      console.error('Cover letter generation failed:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async saveJob(jobData) {
+    if (!this.isAuthenticated || !jobData) {
+      return { success: false, error: 'Not authenticated or missing job data' };
+    }
+
+    try {
+      const response = await fetch(`${this.apiBase}/api/saved-jobs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          ...jobData,
+          savedAt: new Date().toISOString()
+        })
+      });
+
+      if (response.ok) {
+        return { success: true };
+      } else {
+        return { success: false, error: 'Failed to save job' };
+      }
+    } catch (error) {
+      console.error('Failed to save job:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async trackApplication(applicationData) {
+    if (!this.isAuthenticated || !applicationData) {
+      return { success: false, error: 'Not authenticated or missing application data' };
+    }
+
+    try {
+      const response = await fetch(`${this.apiBase}/api/applications`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          ...applicationData,
+          source: 'extension',
+          appliedAt: new Date().toISOString()
+        })
+      });
+
+      if (response.ok) {
+        return { success: true };
+      } else {
+        return { success: false, error: 'Failed to track application' };
+      }
+    } catch (error) {
+      console.error('Failed to track application:', error);
       return { success: false, error: error.message };
     }
   }
 }
 
-// Initialize background service
-const backgroundService = new BackgroundService();
-
-// Event listeners
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('AutoJobr extension installed');
-  backgroundService.initialize();
-});
-
-chrome.runtime.onStartup.addListener(() => {
-  console.log('AutoJobr extension startup');
-  backgroundService.initialize();
-});
-
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  backgroundService.handleMessage(request, sender, sendResponse)
-    .then(response => sendResponse(response))
-    .catch(error => sendResponse({ success: false, error: error.message }));
-  
-  return true; // Indicates we will send a response asynchronously
-});
-
-// Tab update listener for job board detection
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete' && tab.url) {
-    const url = new URL(tab.url);
-    const isJobBoard = CONFIG.JOB_BOARDS.some(domain => url.hostname.includes(domain));
-    
-    if (isJobBoard) {
-      try {
-        await chrome.scripting.executeScript({
-          target: { tabId: tabId },
-          files: ['content.js']
-        });
-      } catch (error) {
-        console.error('Failed to inject content script:', error);
-      }
-    }
-  }
-});
-
-// Keep service worker alive
-chrome.runtime.onConnect.addListener((port) => {
-  port.onDisconnect.addListener(() => {
-    // Port disconnected, but service worker stays alive
-  });
-});
+// Initialize background script
+new AutoJobrBackground();

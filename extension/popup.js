@@ -1,50 +1,51 @@
-// Popup script for AutoJobr Extension
+// Modern Popup Script for AutoJobr Extension
 class AutoJobrPopup {
   constructor() {
+    this.apiBase = 'https://cb65fac5-c8d9-4a92-96d3-e1c1fb178ad5-00-1qemik6z1cl2m.janeway.replit.dev';
     this.isAuthenticated = false;
     this.userProfile = null;
     this.currentJobData = null;
-    this.settings = {
-      autoFill: true,
-      autoAnalyze: true,
-      showNotifications: true
-    };
+    this.isJobPage = false;
     
     this.init();
   }
 
   async init() {
+    console.log('🚀 Initializing AutoJobr popup...');
+    
     try {
-      await this.loadSettings();
-      await this.checkAuthenticationStatus();
+      // Show loading state
+      this.showLoadingState();
+      
+      // Check authentication and current page
+      await Promise.all([
+        this.checkAuthentication(),
+        this.checkCurrentPage()
+      ]);
+      
+      // Setup event listeners
       this.setupEventListeners();
+      
+      // Update UI based on auth status
       this.updateUI();
+      
     } catch (error) {
       console.error('Failed to initialize popup:', error);
       this.showErrorState();
     }
   }
 
-  async loadSettings() {
-    const result = await chrome.storage.local.get('autojobr_settings');
-    if (result.autojobr_settings) {
-      this.settings = { ...this.settings, ...result.autojobr_settings };
-    }
-  }
-
-  async saveSettings() {
-    await chrome.storage.local.set({ autojobr_settings: this.settings });
-  }
-
-  async checkAuthenticationStatus() {
+  async checkAuthentication() {
     try {
       const response = await chrome.runtime.sendMessage({ action: 'CHECK_AUTH' });
       
-      if (response.success && response.authenticated) {
+      if (response && response.success && response.authenticated) {
         this.isAuthenticated = true;
         await this.loadUserProfile();
+        console.log('✅ Authenticated successfully');
       } else {
         this.isAuthenticated = false;
+        console.log('❌ Not authenticated');
       }
     } catch (error) {
       console.error('Authentication check failed:', error);
@@ -53,91 +54,82 @@ class AutoJobrPopup {
   }
 
   async loadUserProfile() {
+    if (!this.isAuthenticated) return;
+
     try {
       const response = await chrome.runtime.sendMessage({ action: 'GET_PROFILE' });
-      if (response.success) {
+      
+      if (response && response.success && response.profile) {
         this.userProfile = response.profile;
+        console.log('✅ User profile loaded');
       }
     } catch (error) {
       console.error('Failed to load user profile:', error);
     }
   }
 
+  async checkCurrentPage() {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      
+      if (tab) {
+        const response = await chrome.tabs.sendMessage(tab.id, {
+          action: 'GET_JOB_DATA'
+        });
+        
+        if (response && response.success) {
+          this.isJobPage = response.isJobPage;
+          this.currentJobData = response.jobData;
+          console.log('📋 Current page job status:', this.isJobPage);
+        }
+      }
+    } catch (error) {
+      console.log('No content script available on current page');
+      this.isJobPage = false;
+    }
+  }
+
   setupEventListeners() {
-    // Authentication actions
-    document.getElementById('open-platform')?.addEventListener('click', () => {
-      this.openAutoJobrPlatform();
-    });
+    // Authentication buttons
+    this.setupButton('sign-in-btn', () => this.openSignIn());
+    this.setupButton('refresh-auth', () => this.refreshAuth());
+    this.setupButton('retry-connection', () => this.retryConnection());
+    this.setupButton('open-platform', () => this.openPlatform());
 
-    document.getElementById('refresh-auth')?.addEventListener('click', () => {
-      this.refreshAuthentication();
-    });
-
-    document.getElementById('retry-connection')?.addEventListener('click', () => {
-      this.retryConnection();
-    });
-
-    // Main actions
-    document.getElementById('fill-forms')?.addEventListener('click', () => {
-      this.fillForms();
-    });
-
-    document.getElementById('generate-cover-letter')?.addEventListener('click', () => {
-      this.generateCoverLetter();
-    });
-
-    document.getElementById('analyze-job')?.addEventListener('click', () => {
-      this.analyzeJob();
-    });
-
-    document.getElementById('refresh-profile')?.addEventListener('click', () => {
-      this.refreshProfile();
-    });
-
-    // Settings toggles
-    document.getElementById('toggle-autofill')?.addEventListener('click', (e) => {
-      this.toggleSetting('autoFill', e.target);
-    });
-
-    document.getElementById('toggle-analyze')?.addEventListener('click', (e) => {
-      this.toggleSetting('autoAnalyze', e.target);
-    });
-
-    document.getElementById('toggle-notifications')?.addEventListener('click', (e) => {
-      this.toggleSetting('showNotifications', e.target);
-    });
+    // Main action buttons
+    this.setupButton('autofill-btn', () => this.performAutofill());
+    this.setupButton('cover-letter-btn', () => this.generateCoverLetter());
+    this.setupButton('analyze-job-btn', () => this.analyzeJob());
+    this.setupButton('save-job-btn', () => this.saveJob());
+    this.setupButton('refresh-profile-btn', () => this.refreshProfile());
 
     // Footer links
-    document.getElementById('open-dashboard')?.addEventListener('click', () => {
-      this.openPage('/dashboard');
-    });
+    this.setupButton('open-dashboard', () => this.openPage('/'));
+    this.setupButton('open-settings', () => this.openPage('/profile'));
+    this.setupButton('open-help', () => this.openPage('/help'));
+  }
 
-    document.getElementById('open-help')?.addEventListener('click', () => {
-      this.openPage('/help');
-    });
-
-    document.getElementById('open-settings')?.addEventListener('click', () => {
-      this.openPage('/settings');
-    });
+  setupButton(id, handler) {
+    const button = document.getElementById(id);
+    if (button) {
+      button.addEventListener('click', handler);
+    }
   }
 
   updateUI() {
     this.hideAllStates();
-
+    
     if (this.isAuthenticated) {
       this.showAuthenticatedState();
     } else {
       this.showUnauthenticatedState();
     }
-
-    this.updateSettings();
   }
 
   hideAllStates() {
-    document.getElementById('loading-state')?.classList.add('hidden');
-    document.getElementById('error-state')?.classList.add('hidden');
-    document.getElementById('authenticated-state')?.classList.add('hidden');
-    document.getElementById('unauthenticated-state')?.classList.add('hidden');
+    ['loading-state', 'error-state', 'authenticated-state', 'unauthenticated-state'].forEach(id => {
+      document.getElementById(id)?.classList.add('hidden');
+    });
   }
 
   showLoadingState() {
@@ -152,7 +144,8 @@ class AutoJobrPopup {
 
   showAuthenticatedState() {
     document.getElementById('authenticated-state')?.classList.remove('hidden');
-    this.updateProfileInfo();
+    this.updateUserInfo();
+    this.updateJobStatus();
     this.updateJobAnalysis();
   }
 
@@ -160,178 +153,265 @@ class AutoJobrPopup {
     document.getElementById('unauthenticated-state')?.classList.remove('hidden');
   }
 
-  updateProfileInfo() {
+  updateUserInfo() {
     if (!this.userProfile?.profile) return;
 
     const profile = this.userProfile.profile;
-    const avatar = profile.fullName ? profile.fullName.charAt(0).toUpperCase() : 'U';
+    const firstName = profile.firstName || profile.fullName?.split(' ')[0] || 'User';
+    const avatar = firstName.charAt(0).toUpperCase();
     
-    document.getElementById('user-avatar').textContent = avatar;
-    document.getElementById('user-name').textContent = profile.fullName || 'User';
-    document.getElementById('user-title').textContent = profile.jobTitle || 'Job Seeker';
+    const userAvatar = document.getElementById('user-avatar');
+    const userName = document.getElementById('user-name');
+    const userTitle = document.getElementById('user-title');
+    
+    if (userAvatar) userAvatar.textContent = avatar;
+    if (userName) userName.textContent = profile.fullName || firstName;
+    if (userTitle) userTitle.textContent = profile.jobTitle || 'Job Seeker';
 
-    // Update stats (placeholder for now - can be enhanced with real data)
-    document.getElementById('applications-count').textContent = '12';
-    document.getElementById('success-rate').textContent = '85%';
+    // Update stats with real or placeholder data
+    this.updateStats();
+  }
+
+  updateStats() {
+    // You can enhance this with real data from your backend
+    const applicationsCount = document.getElementById('applications-count');
+    const successRate = document.getElementById('success-rate');
+    
+    if (applicationsCount) applicationsCount.textContent = '12'; // Replace with real data
+    if (successRate) successRate.textContent = '85%'; // Replace with real data
+  }
+
+  updateJobStatus() {
+    const jobDetected = document.getElementById('job-detected');
+    const noJobDetected = document.getElementById('no-job-detected');
+    
+    if (this.isJobPage && this.currentJobData) {
+      jobDetected?.classList.remove('hidden');
+      noJobDetected?.classList.add('hidden');
+    } else {
+      jobDetected?.classList.add('hidden');
+      noJobDetected?.classList.remove('hidden');
+    }
   }
 
   updateJobAnalysis() {
-    // This would be populated with actual job analysis data
-    // For now, we'll hide it unless we have real data
-    const jobAnalysisElement = document.getElementById('job-analysis');
+    const jobAnalysis = document.getElementById('job-analysis');
+    
     if (this.currentJobData?.analysis) {
       const analysis = this.currentJobData.analysis;
       const score = analysis.matchScore || 0;
-      const scoreClass = score >= 80 ? 'score-high' : score >= 60 ? 'score-medium' : 'score-low';
       
-      document.getElementById('match-score-circle').className = `score-circle ${scoreClass}`;
-      document.getElementById('match-score-circle').textContent = `${score}%`;
-      document.getElementById('analysis-summary').textContent = analysis.summary || 'Job requirements analyzed';
+      // Update match score
+      const matchScore = document.getElementById('match-score');
+      const analysisSummary = document.getElementById('analysis-summary');
+      const matchedSkills = document.getElementById('matched-skills');
+      const experienceYears = document.getElementById('experience-years');
       
-      jobAnalysisElement?.classList.remove('hidden');
-    } else {
-      jobAnalysisElement?.classList.add('hidden');
-    }
-  }
-
-  updateSettings() {
-    const toggles = {
-      'toggle-autofill': this.settings.autoFill,
-      'toggle-analyze': this.settings.autoAnalyze,
-      'toggle-notifications': this.settings.showNotifications
-    };
-
-    for (const [elementId, isActive] of Object.entries(toggles)) {
-      const element = document.getElementById(elementId);
-      if (element) {
-        element.classList.toggle('active', isActive);
+      if (matchScore) {
+        matchScore.textContent = `${score}%`;
+        matchScore.className = `match-score ${score >= 80 ? 'score-high' : score >= 60 ? 'score-medium' : 'score-low'}`;
       }
+      
+      if (analysisSummary) analysisSummary.textContent = analysis.recommendation || 'Job analyzed';
+      if (matchedSkills) matchedSkills.textContent = analysis.matchedSkills?.length || 0;
+      if (experienceYears) experienceYears.textContent = analysis.experienceYears || 0;
+      
+      jobAnalysis?.classList.remove('hidden');
+    } else {
+      jobAnalysis?.classList.add('hidden');
     }
   }
 
-  async openAutoJobrPlatform() {
-    const url = 'https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev/login';
+  // Action Methods
+  async openSignIn() {
+    const url = `${this.apiBase}/login`;
+    await chrome.tabs.create({ url });
+    window.close();
+  }
+
+  async openPlatform() {
+    const url = this.apiBase;
     await chrome.tabs.create({ url });
     window.close();
   }
 
   async openPage(path) {
-    const url = `https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev${path}`;
+    const url = `${this.apiBase}${path}`;
     await chrome.tabs.create({ url });
     window.close();
   }
 
-  async refreshAuthentication() {
+  async refreshAuth() {
     this.showLoadingState();
-    await this.checkAuthenticationStatus();
+    await this.checkAuthentication();
     this.updateUI();
   }
 
   async retryConnection() {
     this.showLoadingState();
-    setTimeout(() => {
-      this.checkAuthenticationStatus().then(() => {
-        this.updateUI();
-      });
+    setTimeout(async () => {
+      await this.checkAuthentication();
+      this.updateUI();
     }, 1000);
   }
 
-  async fillForms() {
+  async performAutofill() {
+    if (!this.isAuthenticated) {
+      this.showNotification('Please sign in first', 'error');
+      return;
+    }
+
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       
-      await chrome.tabs.sendMessage(tab.id, {
-        action: 'FILL_FORMS',
-        userProfile: this.userProfile
-      });
-
-      this.showSuccessMessage('Form filling initiated');
-      window.close();
+      if (tab) {
+        await chrome.tabs.sendMessage(tab.id, {
+          action: 'PERFORM_AUTOFILL',
+          userProfile: this.userProfile
+        });
+        
+        this.showNotification('Autofill started!', 'success');
+        window.close();
+      }
     } catch (error) {
-      console.error('Failed to fill forms:', error);
-      this.showErrorMessage('Failed to fill forms');
+      console.error('Autofill failed:', error);
+      this.showNotification('Autofill failed', 'error');
     }
   }
 
   async generateCoverLetter() {
+    if (!this.isAuthenticated) {
+      this.showNotification('Please sign in first', 'error');
+      return;
+    }
+
+    if (!this.currentJobData) {
+      this.showNotification('Navigate to a job posting first', 'error');
+      return;
+    }
+
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       
-      await chrome.tabs.sendMessage(tab.id, {
-        action: 'GENERATE_COVER_LETTER'
-      });
-
-      this.showSuccessMessage('Cover letter generation started');
-      window.close();
+      if (tab) {
+        await chrome.tabs.sendMessage(tab.id, {
+          action: 'GENERATE_COVER_LETTER',
+          jobData: this.currentJobData
+        });
+        
+        this.showNotification('Cover letter generated!', 'success');
+        window.close();
+      }
     } catch (error) {
-      console.error('Failed to generate cover letter:', error);
-      this.showErrorMessage('Failed to generate cover letter');
+      console.error('Cover letter generation failed:', error);
+      this.showNotification('Cover letter generation failed', 'error');
     }
   }
 
   async analyzeJob() {
+    if (!this.isAuthenticated) {
+      this.showNotification('Please sign in first', 'error');
+      return;
+    }
+
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       
-      await chrome.tabs.sendMessage(tab.id, {
-        action: 'ANALYZE_JOB'
-      });
-
-      this.showSuccessMessage('Job analysis started');
-      window.close();
+      if (tab) {
+        await chrome.tabs.sendMessage(tab.id, {
+          action: 'ANALYZE_JOB'
+        });
+        
+        // Refresh job data after analysis
+        setTimeout(async () => {
+          await this.checkCurrentPage();
+          this.updateJobAnalysis();
+        }, 2000);
+        
+        this.showNotification('Job analysis started!', 'success');
+      }
     } catch (error) {
-      console.error('Failed to analyze job:', error);
-      this.showErrorMessage('Failed to analyze job');
+      console.error('Job analysis failed:', error);
+      this.showNotification('Job analysis failed', 'error');
+    }
+  }
+
+  async saveJob() {
+    if (!this.isAuthenticated) {
+      this.showNotification('Please sign in first', 'error');
+      return;
+    }
+
+    if (!this.currentJobData) {
+      this.showNotification('No job data to save', 'error');
+      return;
+    }
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: 'SAVE_JOB',
+        jobData: this.currentJobData
+      });
+      
+      if (response && response.success) {
+        this.showNotification('Job saved successfully!', 'success');
+      } else {
+        this.showNotification('Failed to save job', 'error');
+      }
+    } catch (error) {
+      console.error('Save job failed:', error);
+      this.showNotification('Failed to save job', 'error');
     }
   }
 
   async refreshProfile() {
+    if (!this.isAuthenticated) return;
+
     try {
-      this.showLoadingState();
+      this.showNotification('Refreshing profile...', 'info');
       
       const response = await chrome.runtime.sendMessage({ action: 'REFRESH_PROFILE' });
       
-      if (response.success) {
+      if (response && response.success) {
         this.userProfile = response.profile;
-        this.showSuccessMessage('Profile refreshed');
+        this.updateUserInfo();
+        this.showNotification('Profile refreshed!', 'success');
       } else {
-        this.showErrorMessage('Failed to refresh profile');
+        this.showNotification('Failed to refresh profile', 'error');
       }
-      
-      this.updateUI();
     } catch (error) {
-      console.error('Failed to refresh profile:', error);
-      this.showErrorMessage('Failed to refresh profile');
-      this.updateUI();
+      console.error('Profile refresh failed:', error);
+      this.showNotification('Failed to refresh profile', 'error');
     }
   }
 
-  toggleSetting(settingName, element) {
-    this.settings[settingName] = !this.settings[settingName];
-    element.classList.toggle('active', this.settings[settingName]);
-    this.saveSettings();
-
-    // Also send message to content script to update settings
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) {
-        chrome.tabs.sendMessage(tabs[0].id, {
-          action: 'UPDATE_SETTINGS',
-          settings: this.settings
-        }).catch(() => {
-          // Content script might not be loaded, which is fine
-        });
+  showNotification(message, type = 'info') {
+    console.log(`${type.toUpperCase()}: ${message}`);
+    
+    // Create a simple notification element
+    const notification = document.createElement('div');
+    notification.className = `autojobr-notification autojobr-notification-${type}`;
+    notification.textContent = message;
+    notification.style.cssText = `
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 8px 16px;
+      border-radius: 4px;
+      color: white;
+      font-size: 12px;
+      z-index: 10000;
+      background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.remove();
       }
-    });
-  }
-
-  showSuccessMessage(message) {
-    // Could implement a toast notification system here
-    console.log('Success:', message);
-  }
-
-  showErrorMessage(message) {
-    // Could implement a toast notification system here
-    console.error('Error:', message);
+    }, 3000);
   }
 }
 

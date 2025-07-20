@@ -1,28 +1,63 @@
 {
   "manifest_version": 3,
   "name": "AutoJobr - Smart Job Application Assistant",
-  "version": "2.0.0",
-  "description": "Advanced job application automation with AI-powered form filling and cover letter generation",
+  "version": "3.0.0",
+  "description": "High-performance job application automation with AI-powered analysis and instant form filling",
   "permissions": [
     "storage",
     "activeTab",
     "scripting",
     "cookies",
-    "background"
+    "background",
+    "tabs"
   ],
   "host_permissions": [
     "https://*/*",
-    "http://*/*",
-    "https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev/*"
+    "http://*/*"
   ],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "css": ["content.css"],
+      "matches": [
+        "*://linkedin.com/*",
+        "*://*.linkedin.com/*",
+        "*://indeed.com/*",
+        "*://*.indeed.com/*",
+        "*://glassdoor.com/*",
+        "*://*.glassdoor.com/*",
+        "*://workday.com/*",
+        "*://*.workday.com/*",
+        "*://lever.co/*",
+        "*://*.lever.co/*",
+        "*://greenhouse.io/*",
+        "*://*.greenhouse.io/*",
+        "*://monster.com/*",
+        "*://*.monster.com/*",
+        "*://ziprecruiter.com/*",
+        "*://*.ziprecruiter.com/*",
+        "*://wellfound.com/*",
+        "*://*.wellfound.com/*",
+        "*://angel.co/*",
+        "*://*.angel.co/*",
+        "*://bamboohr.com/*",
+        "*://*.bamboohr.com/*",
+        "*://smartrecruiters.com/*",
+        "*://*.smartrecruiters.com/*",
+        "*://jobvite.com/*",
+        "*://*.jobvite.com/*",
+        "*://icims.com/*",
+        "*://*.icims.com/*",
+        "*://taleo.net/*",
+        "*://*.taleo.net/*",
+        "*://successfactors.com/*",
+        "*://*.successfactors.com/*",
+        "*://ashbyhq.com/*",
+        "*://*.ashbyhq.com/*"
+      ],
+      "js": ["smart-detector.js", "form-filler.js"],
+      "css": ["autojobr-styles.css"],
       "run_at": "document_end"
     }
   ],
@@ -37,7 +72,12 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["overlay.html", "overlay.css", "overlay.js"],
+      "resources": [
+        "autojobr-overlay.html",
+        "autojobr-styles.css",
+        "autojobr-floating-panel.js",
+        "icons/*.png"
+      ],
       "matches": ["<all_urls>"]
     }
   ]
