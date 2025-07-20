@@ -48,14 +48,39 @@ router.post("/start", isAuthenticated, async (req: any, res) => {
     const { interviewType, role, company, difficulty, duration, personality, style, jobDescription, isPaid } = req.body;
     const userId = req.user.id;
     
-    // Check usage limits and payment requirements
+    // STRICT PAYMENT ENFORCEMENT: Check usage limits and require payment verification
     const usageInfo = await virtualInterviewPaymentService.checkUsageAndPayment(userId);
     
+    // Block ALL users who require payment unless they have verified payment
+    if (usageInfo.requiresPayment) {
+      // Must have payment verification for paid access
+      if (!isPaid || !req.body.paymentVerificationId) {
+        return res.status(402).json({
+          error: 'Payment verification required',
+          message: 'You must complete payment through PayPal or Razorpay to start this interview.',
+          requiresPayment: true,
+          cost: usageInfo.cost,
+          paymentMethods: ['PayPal', 'Razorpay']
+        });
+      }
+      
+      // Verify payment transaction was actually processed (mock verification for now)
+      if (!req.body.paymentVerificationId.startsWith('PAYPAL_') && !req.body.paymentVerificationId.startsWith('RAZORPAY_')) {
+        return res.status(402).json({
+          error: 'Invalid payment verification',
+          message: 'Payment verification failed. Please complete payment through PayPal or Razorpay and try again.',
+          requiresPayment: true,
+          cost: usageInfo.cost
+        });
+      }
+    }
+    
+    // Additional check: Even free users must have explicit permission
     if (!usageInfo.canStartInterview && !isPaid) {
-      return res.status(402).json({
-        error: 'Payment required',
+      return res.status(403).json({
+        error: 'Interview access denied',
         message: usageInfo.message,
-        requiresPayment: true,
+        requiresPayment: usageInfo.requiresPayment,
         cost: usageInfo.cost
       });
     }

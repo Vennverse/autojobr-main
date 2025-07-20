@@ -34,6 +34,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import PayPalInterviewPayment from "@/components/PayPalInterviewPayment";
 
 export default function VirtualInterviewStart() {
   const [, setLocation] = useLocation();
@@ -61,7 +62,7 @@ export default function VirtualInterviewStart() {
   });
 
   const startInterviewMutation = useMutation({
-    mutationFn: async (data: typeof formData & { isPaid?: boolean }) => {
+    mutationFn: async (data: typeof formData & { isPaid?: boolean; paymentVerificationId?: string }) => {
       const response = await apiRequest('POST', '/api/virtual-interview/start', data);
       if (response.status === 402) {
         const errorData = await response.json();
@@ -95,17 +96,30 @@ export default function VirtualInterviewStart() {
   });
 
   const handleStart = () => {
-    // Check usage limits first
-    if (usageInfo && !usageInfo.canStartInterview && usageInfo.requiresPayment) {
+    // Check usage limits first - STRICT ENFORCEMENT
+    if (usageInfo && usageInfo.requiresPayment) {
       setShowPaymentDialog(true);
       return;
     }
     
-    startInterviewMutation.mutate(formData);
+    // Only allow if user has explicit permission and no payment required
+    if (usageInfo && usageInfo.canStartInterview && !usageInfo.requiresPayment) {
+      startInterviewMutation.mutate(formData);
+    } else {
+      setShowPaymentDialog(true);
+    }
   };
 
-  const handlePaidStart = () => {
-    startInterviewMutation.mutate({ ...formData, isPaid: true });
+  const handlePaymentComplete = (paymentVerificationId: string) => {
+    startInterviewMutation.mutate({ 
+      ...formData, 
+      isPaid: true, 
+      paymentVerificationId 
+    });
+    setShowPaymentDialog(false);
+  };
+
+  const handlePaymentCancel = () => {
     setShowPaymentDialog(false);
   };
 
@@ -423,64 +437,13 @@ export default function VirtualInterviewStart() {
 
       {/* Payment Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Payment Required
-            </DialogTitle>
-            <DialogDescription>
-              {usageInfo?.message || "You've reached your interview limit. Pay $2 to continue with your virtual interview session."}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Virtual Interview Session</span>
-                <span className="text-lg font-bold">${usageInfo?.cost || 2}</span>
-              </div>
-              <p className="text-sm text-gray-600 mt-1">
-                AI-powered conversational interview with detailed feedback
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <AlertCircle className="h-4 w-4" />
-              <span>Upgrade to Premium for 5 free interviews per month</span>
-            </div>
-            
-            <div className="flex gap-3">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowPaymentDialog(false)}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handlePaidStart}
-                disabled={startInterviewMutation.isPending}
-                className="flex-1"
-              >
-                {startInterviewMutation.isPending ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    Pay ${usageInfo?.cost || 2} & Start
-                  </>
-                )}
-              </Button>
-            </div>
-            
-            <p className="text-xs text-gray-500 text-center">
-              * Payment will be processed through Stripe. You'll be charged ${usageInfo?.cost || 2} for this interview session.
-            </p>
-          </div>
+        <DialogContent className="sm:max-w-lg">
+          <PayPalInterviewPayment 
+            cost={usageInfo?.cost || 5}
+            onPaymentComplete={handlePaymentComplete}
+            onCancel={handlePaymentCancel}
+            isProcessing={startInterviewMutation.isPending}
+          />
         </DialogContent>
       </Dialog>
     </div>

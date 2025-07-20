@@ -12,9 +12,9 @@ export interface VirtualInterviewUsage {
 }
 
 export class VirtualInterviewPaymentService {
-  private readonly FREE_INTERVIEWS_LIMIT = 1;
-  private readonly PREMIUM_MONTHLY_LIMIT = 5;
-  private readonly INTERVIEW_COST = 2; // $2 per interview
+  private readonly FREE_INTERVIEWS_LIMIT = 1; // 1 free interview for all users
+  private readonly PREMIUM_FREE_LIMIT = 5; // 5 free interviews for premium users
+  private readonly INTERVIEW_COST = 5; // $5 per interview after free limit
 
   async checkUsageAndPayment(userId: string): Promise<VirtualInterviewUsage> {
     try {
@@ -49,27 +49,21 @@ export class VirtualInterviewPaymentService {
 
       const isPremium = user.planType === 'premium' || user.subscriptionStatus === 'active';
       
-      // Check free interviews first (available to all users)
-      if (userStats.freeInterviewsUsed < this.FREE_INTERVIEWS_LIMIT) {
+      // Check free interviews based on user type
+      const freeLimit = isPremium ? this.PREMIUM_FREE_LIMIT : this.FREE_INTERVIEWS_LIMIT;
+      
+      if (userStats.freeInterviewsUsed < freeLimit) {
         return {
           canStartInterview: true,
           requiresPayment: false,
-          freeInterviewsRemaining: this.FREE_INTERVIEWS_LIMIT - userStats.freeInterviewsUsed,
-          monthlyInterviewsRemaining: isPremium ? this.PREMIUM_MONTHLY_LIMIT - userStats.monthlyInterviewsUsed : 0,
-          message: `You have ${this.FREE_INTERVIEWS_LIMIT - userStats.freeInterviewsUsed} free interview${this.FREE_INTERVIEWS_LIMIT - userStats.freeInterviewsUsed === 1 ? '' : 's'} remaining.`
+          freeInterviewsRemaining: freeLimit - userStats.freeInterviewsUsed,
+          monthlyInterviewsRemaining: 0,
+          message: `You have ${freeLimit - userStats.freeInterviewsUsed} free interview${freeLimit - userStats.freeInterviewsUsed === 1 ? '' : 's'} remaining.`
         };
       }
 
-      // For premium users, check monthly limit
-      if (isPremium && userStats.monthlyInterviewsUsed < this.PREMIUM_MONTHLY_LIMIT) {
-        return {
-          canStartInterview: true,
-          requiresPayment: false,
-          freeInterviewsRemaining: 0,
-          monthlyInterviewsRemaining: this.PREMIUM_MONTHLY_LIMIT - userStats.monthlyInterviewsUsed,
-          message: `You have ${this.PREMIUM_MONTHLY_LIMIT - userStats.monthlyInterviewsUsed} premium interview${this.PREMIUM_MONTHLY_LIMIT - userStats.monthlyInterviewsUsed === 1 ? '' : 's'} remaining this month.`
-        };
-      }
+      // After free limit, all users must pay per interview
+      // No additional monthly limits - just pay-per-use
 
       // User needs to pay
       return {
@@ -79,8 +73,8 @@ export class VirtualInterviewPaymentService {
         monthlyInterviewsRemaining: 0,
         cost: this.INTERVIEW_COST,
         message: isPremium 
-          ? `You've used all your monthly premium interviews. Pay $${this.INTERVIEW_COST} to continue.`
-          : `You've used your free interview. Upgrade to premium for 5 monthly interviews or pay $${this.INTERVIEW_COST} per interview.`
+          ? `You've used all ${this.PREMIUM_FREE_LIMIT} free interviews. Pay $${this.INTERVIEW_COST} via PayPal or Razorpay for additional interviews.`
+          : `You've used your ${this.FREE_INTERVIEWS_LIMIT} free interview. Upgrade to premium for ${this.PREMIUM_FREE_LIMIT} free interviews or pay $${this.INTERVIEW_COST} per interview via PayPal or Razorpay.`
       };
 
     } catch (error) {
@@ -109,7 +103,7 @@ export class VirtualInterviewPaymentService {
           userId,
           totalInterviews: 1,
           freeInterviewsUsed: isPaid ? 0 : 1,
-          monthlyInterviewsUsed: user.planType === 'premium' && !isPaid ? 1 : 0,
+          monthlyInterviewsUsed: 0, // Removed monthly tracking - all pay per use after free limit
           lastMonthlyReset: new Date()
         }).returning();
         return;
@@ -119,17 +113,16 @@ export class VirtualInterviewPaymentService {
       userStats = await this.resetMonthlyUsageIfNeeded(userStats);
 
       const isPremium = user.planType === 'premium' || user.subscriptionStatus === 'active';
+      const freeLimit = isPremium ? this.PREMIUM_FREE_LIMIT : this.FREE_INTERVIEWS_LIMIT;
       
       let updateData: any = {
         totalInterviews: userStats.totalInterviews + 1
       };
 
       if (!isPaid) {
-        // This is a free interview
-        if (userStats.freeInterviewsUsed < this.FREE_INTERVIEWS_LIMIT) {
+        // This is a free interview - update based on user type
+        if (userStats.freeInterviewsUsed < freeLimit) {
           updateData.freeInterviewsUsed = userStats.freeInterviewsUsed + 1;
-        } else if (isPremium && userStats.monthlyInterviewsUsed < this.PREMIUM_MONTHLY_LIMIT) {
-          updateData.monthlyInterviewsUsed = userStats.monthlyInterviewsUsed + 1;
         }
       }
 

@@ -4,6 +4,7 @@ import { storage } from './storage';
 import { isAuthenticated } from './auth';
 import { paymentService } from './paymentService';
 import { pistonService } from './pistonService';
+import { mockInterviewPaymentService } from './mockInterviewPaymentService';
 import { z } from 'zod';
 
 const router = Router();
@@ -35,16 +36,28 @@ const executeCodeSchema = z.object({
   })).optional()
 });
 
+// Check usage and payment requirements
+router.get("/usage", isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const usageInfo = await mockInterviewPaymentService.checkUsageAndPayment(userId);
+    res.json(usageInfo);
+  } catch (error) {
+    console.error('Error checking mock interview usage:', error);
+    res.status(500).json({ error: 'Failed to check usage limits' });
+  }
+});
+
 // Get user's interview stats
 router.get('/stats', isAuthenticated, async (req: any, res) => {
   try {
     const userId = req.user.id;
     const stats = await storage.getUserInterviewStats(userId);
-    const freeInterviewsRemaining = await mockInterviewService.checkFreeInterviewsRemaining(userId);
+    const usageInfo = await mockInterviewPaymentService.checkUsageAndPayment(userId);
     
     res.json({
       ...stats,
-      freeInterviewsRemaining
+      ...usageInfo
     });
   } catch (error) {
     console.error('Error fetching interview stats:', error);
@@ -97,32 +110,60 @@ router.post('/:sessionId/start', isAuthenticated, async (req: any, res) => {
 // Start a new interview
 router.post('/start', isAuthenticated, async (req: any, res) => {
   try {
+    const { isPaid, paymentVerificationId, ...config } = req.body;
     const userId = req.user.id;
-    const config = startInterviewSchema.parse(req.body);
+    const parsedConfig = startInterviewSchema.parse(config);
     
-    console.log('🔍 Starting interview for user:', userId, 'with config:', config);
+    console.log('🔍 Starting mock interview for user:', userId, 'with config:', parsedConfig);
     
-    // Check if user has free interviews remaining
-    const freeInterviewsRemaining = await mockInterviewService.checkFreeInterviewsRemaining(userId);
+    // STRICT PAYMENT ENFORCEMENT: Check usage limits and require payment verification
+    const usageInfo = await mockInterviewPaymentService.checkUsageAndPayment(userId);
     
-    console.log('🔍 Free interviews remaining:', freeInterviewsRemaining);
+    // Block ALL users who require payment unless they have verified payment
+    if (usageInfo.requiresPayment) {
+      // Must have payment verification for paid access
+      if (!isPaid || !paymentVerificationId) {
+        return res.status(402).json({
+          error: 'Payment verification required',
+          message: 'You must complete payment through PayPal or Razorpay to start this mock interview.',
+          requiresPayment: true,
+          cost: usageInfo.cost,
+          paymentMethods: ['PayPal', 'Razorpay']
+        });
+      }
+      
+      // Verify payment transaction was actually processed
+      if (!paymentVerificationId.startsWith('PAYPAL_') && !paymentVerificationId.startsWith('RAZORPAY_')) {
+        return res.status(402).json({
+          error: 'Invalid payment verification',
+          message: 'Payment verification failed. Please complete payment through PayPal or Razorpay and try again.',
+          requiresPayment: true,
+          cost: usageInfo.cost
+        });
+      }
+    }
     
-    if (freeInterviewsRemaining === 0) {
-      return res.status(402).json({ 
-        error: 'No free interviews remaining',
-        requiresPayment: true,
-        message: 'You have used your free interview. Please purchase additional interviews to continue.'
+    // Additional check: Even free users must have explicit permission
+    if (!usageInfo.canStartInterview && !isPaid) {
+      return res.status(403).json({
+        error: 'Interview access denied',
+        message: usageInfo.message,
+        requiresPayment: usageInfo.requiresPayment,
+        cost: usageInfo.cost
       });
     }
     
-    const interview = await mockInterviewService.startInterview(userId, config);
+    const interview = await mockInterviewService.startInterview(userId, parsedConfig);
     
-    console.log('🔍 Interview created:', interview);
+    console.log('🔍 Mock interview created:', interview);
     
     if (!interview || !interview.sessionId) {
-      console.error('❌ Interview creation failed - no sessionId returned');
+      console.error('❌ Mock interview creation failed - no sessionId returned');
       return res.status(500).json({ error: 'Interview creation failed' });
     }
+    
+    // Record the interview start in usage tracking
+    await mockInterviewPaymentService.recordInterviewStart(userId, isPaid || false);
     
     // Ensure dates are properly serialized
     const response = {

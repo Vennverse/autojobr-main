@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { MockInterviewPayment } from "@/components/mock-interview-payment";
+import PayPalMockInterviewPayment from "@/components/PayPalMockInterviewPayment";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { 
   Play, 
   Clock, 
@@ -79,6 +81,15 @@ export default function MockInterview() {
     totalQuestions: 3
   });
 
+  // Check usage limits
+  const { data: usageInfo, refetch: refetchUsage } = useQuery({
+    queryKey: ['/api/mock-interview/usage'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/mock-interview/usage');
+      return response.json();
+    },
+  });
+
   // Fetch interview stats
   const { data: stats, isLoading: statsLoading } = useQuery<InterviewStats>({
     queryKey: ['/api/mock-interview/stats'],
@@ -93,29 +104,37 @@ export default function MockInterview() {
 
   // Start interview mutation
   const startInterviewMutation = useMutation({
-    mutationFn: async (data: StartInterviewForm) => {
+    mutationFn: async (data: StartInterviewForm & { isPaid?: boolean; paymentVerificationId?: string }) => {
       const response = await apiRequest('POST', '/api/mock-interview/start', data);
+      if (response.status === 402) {
+        const errorData = await response.json();
+        throw new Error(JSON.stringify({ requiresPayment: true, ...errorData }));
+      }
       return await response.json();
     },
     onSuccess: (data) => {
-      console.log('Interview started successfully:', data);
+      console.log('Mock interview started successfully:', data);
       toast({
         title: "Interview Started!",
-        description: "Your mock interview session has begun. Good luck!",
+        description: "Your mock coding interview has begun. Good luck!",
       });
-      // The backend returns the interview object with sessionId
       navigate(`/mock-interview/session/${data.sessionId}`);
+      refetchUsage(); // Refresh usage info
     },
     onError: (error: any) => {
-      if (error.message?.includes('402') || error.message?.includes('No free interviews')) {
-        setShowPaymentRequired(true);
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to start interview. Please try again.",
-          variant: "destructive",
-        });
-      }
+      try {
+        const errorData = JSON.parse(error.message);
+        if (errorData.requiresPayment) {
+          setShowPaymentRequired(true);
+          return;
+        }
+      } catch {}
+      
+      toast({
+        title: "Error",
+        description: error.message || "Failed to start interview. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -129,7 +148,31 @@ export default function MockInterview() {
       return;
     }
 
-    startInterviewMutation.mutate(interviewForm);
+    // Check usage limits first - STRICT ENFORCEMENT
+    if (usageInfo && usageInfo.requiresPayment) {
+      setShowPaymentRequired(true);
+      return;
+    }
+    
+    // Only allow if user has explicit permission and no payment required
+    if (usageInfo && usageInfo.canStartInterview && !usageInfo.requiresPayment) {
+      startInterviewMutation.mutate(interviewForm);
+    } else {
+      setShowPaymentRequired(true);
+    }
+  };
+
+  const handlePaymentComplete = (paymentVerificationId: string) => {
+    startInterviewMutation.mutate({ 
+      ...interviewForm, 
+      isPaid: true, 
+      paymentVerificationId 
+    });
+    setShowPaymentRequired(false);
+  };
+
+  const handlePaymentCancel = () => {
+    setShowPaymentRequired(false);
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -463,17 +506,17 @@ export default function MockInterview() {
           </TabsContent>
         </Tabs>
 
-        {/* Payment Required Modal */}
-        {showPaymentRequired && (
-          <MockInterviewPayment 
-            onSuccess={() => {
-              setShowPaymentRequired(false);
-              // Refresh interview stats after payment
-              queryClient.invalidateQueries({ queryKey: ['/api/mock-interview/stats'] });
-            }}
-            onCancel={() => setShowPaymentRequired(false)}
-          />
-        )}
+        {/* Payment Required Dialog */}
+        <Dialog open={showPaymentRequired} onOpenChange={setShowPaymentRequired}>
+          <DialogContent className="sm:max-w-lg">
+            <PayPalMockInterviewPayment 
+              cost={usageInfo?.cost || 5}
+              onPaymentComplete={handlePaymentComplete}
+              onCancel={handlePaymentCancel}
+              isProcessing={startInterviewMutation.isPending}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
