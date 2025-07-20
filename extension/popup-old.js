@@ -8,7 +8,7 @@ class AutojobrPopup {
     this.currentAnalysis = null;
     this.settings = {
       autofillEnabled: true,
-      apiUrl: 'https://3d6f082b-7ea6-4d17-ac26-d8174ad1bade-00-2guo24ufezq8l.janeway.repl.co'
+      apiUrl: 'https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev'
     };
     
     this.init();

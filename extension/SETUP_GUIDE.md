@@ -22,7 +22,7 @@ The extension is currently set to connect to a specific URL that changes with ea
    - Edit `background.js` file
    - Find line 10 and replace the URL with your actual web app URL:
    ```javascript
-   const apiUrl = 'https://YOUR-ACTUAL-REPL-URL-HERE';
+   const apiUrl = 'https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev';
    ```
 
 3. **Reload the extension**:
