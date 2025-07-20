@@ -9,6 +9,7 @@ import {
   integer,
   boolean,
   date,
+  numeric,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
@@ -1348,6 +1349,30 @@ export const testRetakePaymentsRelations = relations(testRetakePayments, ({ one 
     references: [users.id],
   }),
 }));
+
+// Subscription management for premium plans
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  tier: varchar("tier").notNull(), // subscription tier ID
+  status: varchar("status").notNull(), // 'pending', 'active', 'cancelled', 'expired'
+  paymentMethod: varchar("payment_method").notNull(), // 'paypal', 'razorpay'
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency").notNull().default('USD'),
+  billingCycle: varchar("billing_cycle").notNull(), // 'monthly', 'yearly'
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  paymentId: varchar("payment_id"),
+  autoRenew: boolean("auto_renew").default(true),
+  activatedAt: timestamp("activated_at"),
+  cancelledAt: timestamp("cancelled_at"),
+  renewedAt: timestamp("renewed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("subscriptions_user_idx").on(table.userId),
+  index("subscriptions_status_idx").on(table.status),
+  index("subscriptions_tier_idx").on(table.tier),
+]);
 
 // Career AI Analysis storage for persistence
 export const careerAiAnalyses = pgTable("career_ai_analyses", {

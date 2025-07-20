@@ -75,6 +75,7 @@ import { rankingTestService } from "./rankingTestService";
 import { mockInterviewRoutes } from "./mockInterviewRoutes";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 import { aiDetectionService } from "./aiDetectionService";
+import { subscriptionPaymentService } from "./subscriptionPaymentService";
 import virtualInterviewRoutes from "./virtualInterviewRoutes";
 import { interviewAssignmentService } from "./interviewAssignmentService";
 
@@ -260,6 +261,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/paypal/order/:orderID/capture", async (req, res) => {
     await capturePaypalOrder(req, res);
+  });
+
+  // Subscription Payment Routes
+  app.get("/api/subscription/tiers", async (req, res) => {
+    try {
+      const { userType } = req.query;
+      const tiers = await subscriptionPaymentService.getSubscriptionTiers(
+        userType as 'jobseeker' | 'recruiter'
+      );
+      res.json({ tiers });
+    } catch (error) {
+      console.error('Error fetching subscription tiers:', error);
+      res.status(500).json({ error: 'Failed to fetch subscription tiers' });
+    }
+  });
+
+  app.post("/api/subscription/create", isAuthenticated, async (req: any, res) => {
+    try {
+      const { tierId, paymentMethod } = req.body;
+      const userId = req.user.id;
+
+      if (!tierId || !paymentMethod) {
+        return res.status(400).json({ error: 'Tier ID and payment method are required' });
+      }
+
+      if (!['paypal', 'razorpay'].includes(paymentMethod)) {
+        return res.status(400).json({ error: 'Invalid payment method' });
+      }
+
+      const order = await subscriptionPaymentService.createSubscriptionOrder(
+        userId,
+        tierId,
+        paymentMethod
+      );
+
+      res.json({ success: true, order });
+    } catch (error) {
+      console.error('Error creating subscription order:', error);
+      res.status(500).json({ error: 'Failed to create subscription order' });
+    }
+  });
+
+  app.post("/api/subscription/success", isAuthenticated, async (req: any, res) => {
+    try {
+      const { orderId, paymentDetails } = req.body;
+
+      if (!orderId) {
+        return res.status(400).json({ error: 'Order ID is required' });
+      }
+
+      await subscriptionPaymentService.handlePaymentSuccess(orderId, paymentDetails);
+      
+      res.json({ success: true, message: 'Subscription activated successfully' });
+    } catch (error) {
+      console.error('Error handling payment success:', error);
+      res.status(500).json({ error: 'Failed to activate subscription' });
+    }
+  });
+
+  app.post("/api/subscription/cancel", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      await subscriptionPaymentService.cancelSubscription(userId);
+      
+      res.json({ success: true, message: 'Subscription cancelled successfully' });
+    } catch (error) {
+      console.error('Error cancelling subscription:', error);
+      res.status(500).json({ error: 'Failed to cancel subscription' });
+    }
+  });
+
+  app.get("/api/subscription/current", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      const subscription = await subscriptionPaymentService.getUserSubscription(userId);
+      
+      res.json({ subscription });
+    } catch (error) {
+      console.error('Error fetching current subscription:', error);
+      res.status(500).json({ error: 'Failed to fetch subscription' });
+    }
   });
 
   // Login redirect route (for landing page buttons)
