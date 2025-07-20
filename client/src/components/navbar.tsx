@@ -103,27 +103,26 @@ export function Navbar() {
             </div>
           </div>
           
-          <div className="flex items-center space-x-2 sm:space-x-4">
-            {/* Global Search Bar - hidden on mobile */}
-            {user && (
+          <div className="flex items-center space-x-3">
+            {/* Search - only show on larger screens for job seekers */}
+            {user && user?.userType !== 'recruiter' && (
               <div className="hidden lg:flex relative">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Search jobs, companies, skills..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-4 py-2 w-72 text-sm border border-border rounded-lg bg-background/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && searchQuery.trim()) {
-                        window.location.href = `/jobs?search=${encodeURIComponent(searchQuery.trim())}`;
-                      }
-                    }}
-                  />
-                </div>
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search jobs..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-4 py-1.5 w-64 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && searchQuery.trim()) {
+                      window.location.href = `/jobs?search=${encodeURIComponent(searchQuery.trim())}`;
+                    }
+                  }}
+                />
               </div>
             )}
+
 
 
 
@@ -136,11 +135,8 @@ export function Navbar() {
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               className="hidden sm:flex"
             >
-              {theme === "dark" ? (
-                <Sun className="h-4 w-4" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )}
+              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               <span className="sr-only">Toggle theme</span>
             </Button>
 
@@ -157,17 +153,6 @@ export function Navbar() {
                 <Menu className="h-5 w-5" />
               )}
               <span className="sr-only">Toggle menu</span>
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-              className="hidden sm:flex"
-            >
-              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-              <span className="sr-only">Toggle theme</span>
             </Button>
             
             {/* Login button for non-authenticated users */}
@@ -234,10 +219,7 @@ export function Navbar() {
                   <HelpCircle className="mr-2 h-4 w-4" />
                   <span>Help & Support</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-green-600">
-                  <TrendingUp className="mr-2 h-4 w-4" />
-                  <span>Activity Summary</span>
-                </DropdownMenuItem>
+
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
