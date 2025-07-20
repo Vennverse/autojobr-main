@@ -76,6 +76,7 @@ import { mockInterviewRoutes } from "./mockInterviewRoutes";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 import { aiDetectionService } from "./aiDetectionService";
 import { subscriptionPaymentService } from "./subscriptionPaymentService";
+import { usageMonitoringService } from "./usageMonitoringService";
 import virtualInterviewRoutes from "./virtualInterviewRoutes";
 import { interviewAssignmentService } from "./interviewAssignmentService";
 
@@ -343,6 +344,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching current subscription:', error);
       res.status(500).json({ error: 'Failed to fetch subscription' });
+    }
+  });
+
+  // Usage Monitoring Routes
+  app.get("/api/usage/report", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      const report = await usageMonitoringService.generateUsageReport(userId);
+      
+      res.json(report);
+    } catch (error) {
+      console.error('Error generating usage report:', error);
+      res.status(500).json({ error: 'Failed to generate usage report' });
+    }
+  });
+
+  app.post("/api/usage/check", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { feature } = req.body;
+
+      if (!feature) {
+        return res.status(400).json({ error: 'Feature is required' });
+      }
+
+      const check = await usageMonitoringService.checkUsageLimit(userId, feature);
+      
+      res.json(check);
+    } catch (error) {
+      console.error('Error checking usage limit:', error);
+      res.status(500).json({ error: 'Failed to check usage limit' });
+    }
+  });
+
+  app.post("/api/usage/enforce", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { feature } = req.body;
+
+      if (!feature) {
+        return res.status(400).json({ error: 'Feature is required' });
+      }
+
+      const enforcement = await usageMonitoringService.enforceUsageLimit(userId, feature);
+      
+      res.json(enforcement);
+    } catch (error) {
+      console.error('Error enforcing usage limit:', error);
+      res.status(500).json({ error: 'Failed to enforce usage limit' });
     }
   });
 

@@ -12,6 +12,8 @@ import Profile from "@/pages/profile";
 import Applications from "@/pages/applications";
 import Jobs from "@/pages/jobs";
 import Subscription from "@/pages/subscription";
+import JobSeekerPremium from "@/pages/JobSeekerPremium";
+import RecruiterPremium from "@/pages/RecruiterPremium";
 import RecruiterSubscription from "@/pages/recruiter-subscription";
 import PremiumTargetingPayment from "@/pages/premium-targeting-payment";
 import Onboarding from "@/pages/onboarding";
@@ -39,7 +41,7 @@ import QuestionBuilder from "@/pages/question-builder";
 import RecruiterFeatures from "@/pages/recruiter-features";
 import QuestionBank from "@/pages/question-bank";
 import QuestionBankAdmin from "@/pages/admin/question-bank";
-import RecruiterPremium from "@/pages/recruiter/premium";
+
 import CareerAIAssistant from "@/pages/career-ai-assistant";
 import RankingTests from "@/pages/ranking-tests";
 import MockInterview from "@/pages/mock-interview";
@@ -98,6 +100,7 @@ function Router() {
               <Route path="/jobs/:id" component={ViewJob} />
               <Route path="/profile" component={Profile} />
               <Route path="/subscription" component={RecruiterSubscription} />
+              <Route path="/recruiter-premium" component={RecruiterPremium} />
               <Route path="/chat" component={MessagingPage} />
             </>
           ) : user?.userType === 'job_seeker' ? (
@@ -134,6 +137,7 @@ function Router() {
                   <Route path="/jobs/:id" component={ViewJob} />
                   <Route path="/career-ai-assistant" component={CareerAIAssistant} />
                   <Route path="/subscription" component={Subscription} />
+                  <Route path="/job-seeker-premium" component={JobSeekerPremium} />
                   <Route path="/chat" component={MessagingPage} />
                 </>
               )}

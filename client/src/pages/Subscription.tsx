@@ -165,10 +165,10 @@ export default function Subscription() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold mb-4">Choose Your Plan</h1>
+        <h1 className="text-3xl font-bold mb-4">Premium Plans</h1>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          Unlock the full potential of AutoJobr with our premium plans. 
-          Real payment processing with PayPal and Razorpay - no demo data.
+          Unlock advanced features and unlimited access with our premium plans. 
+          Upgrade now for enhanced job matching, AI interviews, and priority support.
         </p>
       </div>
 
