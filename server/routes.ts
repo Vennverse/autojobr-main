@@ -47,6 +47,11 @@ const invalidateUserCache = (userId: string) => {
   }
   keysToDelete.forEach(key => cache.delete(key));
 };
+
+// Helper function to clear specific cache key
+const clearCache = (key: string) => {
+  cache.delete(key);
+};
 // Dynamic import for pdf-parse to avoid startup issues
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
@@ -949,15 +954,7 @@ Additional Information:
         resume: newResume 
       });
       
-      // Implementation for all users (same as demo users)
-      if (!(global as any).userResumes) {
-        (global as any).userResumes = {};
-      }
-      if (!(global as any).userResumes[userId]) {
-        (global as any).userResumes[userId] = [];
-      }
-      
-      // Skip duplicate declarations since they are already handled above
+      // Store resume in database using storage service
       
       // Process resume with Groq AI analysis using the resume text we extracted
       console.log('Starting Groq analysis...');
@@ -1045,41 +1042,29 @@ Additional Information:
       
       console.log(`[DEBUG] Setting active resume for user: ${userId}, resumeId: ${resumeId}`);
       
-      // Handle demo user
-      if (userId === 'demo-user-id') {
-        const resumes = (global as any).demoUserResumes || [];
-        
-        // Set all resumes to inactive
-        resumes.forEach((resume: any) => {
-          resume.isActive = false;
-        });
-        
-        // Set the selected resume to active
-        const targetResume = resumes.find((resume: any) => resume.id === resumeId);
-        if (targetResume) {
-          targetResume.isActive = true;
-          return res.json({ message: "Active resume updated successfully" });
-        } else {
-          return res.status(404).json({ message: "Resume not found" });
-        }
-      }
-      
-      // Handle regular users
-      const userResumes = (global as any).userResumes?.[userId] || [];
-      
-      // Set all resumes to inactive
-      userResumes.forEach((resume: any) => {
-        resume.isActive = false;
-      });
-      
+      // Set all user resumes to inactive in database
+      await db.update(schema.resumes)
+        .set({ isActive: false })
+        .where(eq(schema.resumes.userId, userId));
+
       // Set the selected resume to active
-      const targetResume = userResumes.find((resume: any) => resume.id === resumeId);
-      if (targetResume) {
-        targetResume.isActive = true;
-        return res.json({ message: "Active resume updated successfully" });
-      } else {
+      const result = await db.update(schema.resumes)
+        .set({ isActive: true })
+        .where(and(
+          eq(schema.resumes.id, resumeId),
+          eq(schema.resumes.userId, userId)
+        ))
+        .returning();
+
+      if (result.length === 0) {
         return res.status(404).json({ message: "Resume not found" });
       }
+
+      // Clear cache
+      const cacheKey = `resumes_${userId}`;
+      cache.delete(cacheKey);
+
+      res.json({ message: "Active resume updated successfully" });
     } catch (error) {
       console.error("Error setting active resume:", error);
       res.status(500).json({ message: "Failed to set active resume" });
@@ -1205,28 +1190,25 @@ Additional Information:
         }
       }
 
-      // Fallback to in-memory storage for demo users
+      // Fallback to database lookup if not found in application data
       if (!resume) {
-        if (applicantId === 'demo-user-id') {
-          const demoResumes = (global as any).demoUserResumes || [];
-          const demoResume = demoResumes.find((r: any) => r.isActive) || demoResumes[0];
-          if (demoResume) {
-            resume = {
-              fileData: demoResume.fileData,
-              fileName: demoResume.fileName,
-              fileType: demoResume.fileType || 'application/pdf'
-            };
+        try {
+          const fallbackResumes = await storage.getUserResumes(applicantId);
+          const activeResume = fallbackResumes.find((r: any) => r.isActive) || fallbackResumes[0];
+          if (activeResume) {
+            const [fullResumeData] = await db.select().from(schema.resumes).where(
+              eq(schema.resumes.id, activeResume.id)
+            );
+            if (fullResumeData?.fileData) {
+              resume = {
+                fileData: fullResumeData.fileData,
+                fileName: fullResumeData.fileName,
+                fileType: fullResumeData.mimeType || 'application/pdf'
+              };
+            }
           }
-        } else {
-          const userResumes = (global as any).userResumes?.[applicantId] || [];
-          const userResume = userResumes.find((r: any) => r.isActive) || userResumes[0];
-          if (userResume) {
-            resume = {
-              fileData: userResume.fileData,
-              fileName: userResume.fileName,
-              fileType: userResume.fileType || 'application/pdf'
-            };
-          }
+        } catch (error) {
+          console.error("Error fetching fallback resume:", error);
         }
       }
       
@@ -1296,20 +1278,21 @@ Additional Information:
         }
       }
 
-      // Fallback to in-memory storage for demo users
+      // Fallback to database lookup for resume text
       if (!resumeText) {
-        if (applicantId === 'demo-user-id') {
-          const demoResumes = (global as any).demoUserResumes || [];
-          const demoResume = demoResumes.find((r: any) => r.isActive) || demoResumes[0];
-          if (demoResume && demoResume.resumeText) {
-            resumeText = demoResume.resumeText;
+        try {
+          const fallbackResumes = await storage.getUserResumes(applicantId);
+          const activeResume = fallbackResumes.find((r: any) => r.isActive) || fallbackResumes[0];
+          if (activeResume) {
+            const [fullResumeData] = await db.select().from(schema.resumes).where(
+              eq(schema.resumes.id, activeResume.id)
+            );
+            if (fullResumeData?.resumeText) {
+              resumeText = fullResumeData.resumeText;
+            }
           }
-        } else {
-          const userResumes = (global as any).userResumes?.[applicantId] || [];
-          const userResume = userResumes.find((r: any) => r.isActive) || userResumes[0];
-          if (userResume && userResume.resumeText) {
-            resumeText = userResume.resumeText;
-          }
+        } catch (error) {
+          console.error("Error fetching fallback resume text:", error);
         }
       }
       
@@ -1835,12 +1818,7 @@ Additional Information:
       const application = await storage.createApplication(applicationData);
       
       // Clear applications cache
-      const cacheKey = `applications_${userId}`;
-      clearCache(cacheKey);
-      
-      // Also clear stats cache
-      const statsCacheKey = `applications_stats_${userId}`;
-      clearCache(statsCacheKey);
+      invalidateUserCache(userId);
       
       res.json({ message: 'Application tracked successfully', application });
     } catch (error) {
