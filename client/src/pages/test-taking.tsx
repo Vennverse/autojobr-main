@@ -64,7 +64,7 @@ export default function TestTaking() {
   });
 
   const submitTestMutation = useMutation({
-    mutationFn: (data: any) => apiRequest(`/api/test-assignments/${assignmentId}/submit`, "POST", data),
+    mutationFn: (data: any) => apiRequest("POST", `/api/test-assignments/${assignmentId}/submit`, data),
     onSuccess: (response: any) => {
       exitFullscreen();
       setIsSubmitting(false);
@@ -266,7 +266,7 @@ export default function TestTaking() {
     setIsLoggingIn(true);
     
     try {
-      const response = await apiRequest("/api/auth/email/login", "POST", {
+      const response = await apiRequest("POST", "/api/auth/email/login", {
         email,
         password,
       });
@@ -600,13 +600,21 @@ export default function TestTaking() {
                   </RadioGroup>
                 )}
 
-                {['short_answer', 'long_answer', 'coding', 'scenario', 'case_study'].includes(currentQ.type) && (
+                {['short_answer', 'long_answer', 'coding', 'scenario', 'case_study', 'open_ended', 'text', 'essay', 'explanation'].includes(currentQ.type) && (
                   <Textarea
                     placeholder="Enter your answer here..."
                     value={answers[currentQ.id] || ''}
                     onChange={(e) => handleAnswerChange(currentQ.id, e.target.value)}
-                    className={`min-h-${currentQ.type === 'short_answer' ? '24' : '48'}`}
+                    className={`min-h-32 w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    rows={currentQ.type === 'short_answer' ? 3 : 8}
                   />
+                )}
+
+                {/* Debug: Show current question type */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="text-xs text-gray-500 mt-2">
+                    Debug: Question type is "{currentQ.type}"
+                  </div>
                 )}
               </div>
 

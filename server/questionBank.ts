@@ -376,3 +376,19 @@ export function getRandomQuestions(
 export function getQuestionById(id: string): InterviewQuestion | undefined {
   return QUESTION_BANK.find(q => q.id === id);
 }
+
+// Export the question bank data for external use
+export const questionBank = QUESTION_BANK;
+
+// Generate test questions helper functions
+export function generateTestQuestions(
+  type: 'coding' | 'behavioral' | 'system_design',
+  difficulty: 'easy' | 'medium' | 'hard',
+  count: number
+): InterviewQuestion[] {
+  return getRandomQuestions(type, difficulty, count);
+}
+
+export function getQuestionsByDomain(domain: string): InterviewQuestion[] {
+  return getQuestionsByCategory(domain);
+}
