@@ -73,6 +73,8 @@ import {
 import { z } from "zod";
 import { rankingTestService } from "./rankingTestService";
 import { mockInterviewRoutes } from "./mockInterviewRoutes";
+import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
+import { aiDetectionService } from "./aiDetectionService";
 import virtualInterviewRoutes from "./virtualInterviewRoutes";
 import { interviewAssignmentService } from "./interviewAssignmentService";
 
@@ -245,6 +247,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Setup payment routes
   setupPaymentRoutes(app);
+
+  // PayPal Routes
+  app.get("/paypal/setup", async (req, res) => {
+    await loadPaypalDefault(req, res);
+  });
+
+  app.post("/paypal/order", async (req, res) => {
+    // Request body should contain: { intent, amount, currency }
+    await createPaypalOrder(req, res);
+  });
+
+  app.post("/paypal/order/:orderID/capture", async (req, res) => {
+    await capturePaypalOrder(req, res);
+  });
 
   // Login redirect route (for landing page buttons)
   app.get('/api/login', (req, res) => {

@@ -1,4 +1,5 @@
 import { groqService } from './groqService';
+import { aiDetectionService } from './aiDetectionService';
 
 export interface QuestionType {
   id: string;
@@ -352,43 +353,53 @@ Answer: ${userAnswer}
     }
 
     try {
+      // First, detect if AI was used for the coding solution
+      const aiDetection = await aiDetectionService.detectAIUsage(userAnswer, question.question);
+      
       const prompt = `
-        As a senior software engineer, evaluate this coding solution:
+        Evaluate this coding solution. Be concise.
 
         Problem: ${question.question}
-        Expected Solution Pattern: ${question.correctAnswer || 'N/A'}
-        Student Code: ${userAnswer}
+        Code: ${userAnswer}
 
-        Evaluate based on:
-        1. Correctness of logic
-        2. Code quality and style
-        3. Efficiency and optimization
-        4. Error handling
-        5. Use of appropriate data structures
-
-        Return ONLY a JSON object with:
-        {
-          "score": number (0 to ${question.points}),
-          "feedback": "detailed code review with specific technical feedback",
-          "correct": boolean
-        }
+        Return JSON: {"score": 0-${question.points}, "feedback": "brief technical review", "correct": boolean}
       `;
 
       const response = await groqService.client.chat.completions.create({
         messages: [{ role: 'user', content: prompt }],
-        model: 'llama-3.1-8b-instant',
+        model: 'llama-3.1-8b-instant', // Use cheaper model
         temperature: 0.1,
-        max_tokens: 800,
+        max_tokens: 400, // Reduced tokens
       });
 
       const result = JSON.parse(response.choices[0].message.content || '{}');
       
+      // Apply AI detection analysis
+      const baseScore = Math.min(Math.max(0, result.score), question.points);
+      const responseAnalysis = aiDetectionService.analyzeResponseWithAI(
+        { overallScore: baseScore },
+        aiDetection
+      );
+
+      let feedback = result.feedback || 'Code evaluated by AI';
+      
+      // Add AI detection feedback for recruiters
+      if (aiDetection.isAIGenerated && aiDetection.confidence > 60) {
+        feedback += `\n\n[RECRUITER ONLY] ${aiDetectionService.generateRecruiterFeedback(responseAnalysis)}`;
+      }
+
+      // Add candidate feedback if AI detected
+      const candidateFeedback = aiDetectionService.generateCandidateFeedback(responseAnalysis);
+      if (candidateFeedback) {
+        feedback += `\n\n${candidateFeedback}`;
+      }
+      
       return {
         questionId: question.id,
-        score: Math.min(Math.max(0, result.score), question.points),
+        score: responseAnalysis.finalScore,
         maxScore: question.points,
-        feedback: result.feedback || 'Code evaluated by AI',
-        correct: result.correct || false
+        feedback,
+        correct: result.correct && !responseAnalysis.partialResultsOnly
       };
     } catch (error) {
       console.error('Error scoring coding question:', error);

@@ -4,6 +4,8 @@ import { virtualInterviews, virtualInterviewMessages, virtualInterviewFeedback, 
 import { isAuthenticated } from "./auth";
 import { virtualInterviewService } from "./virtualInterviewService";
 import { virtualInterviewPaymentService } from "./virtualInterviewPaymentService";
+import { aiDetectionService } from "./aiDetectionService";
+import { behavioralQuestionService } from "./behavioralQuestions";
 import { eq, desc, and } from "drizzle-orm";
 
 const router = Router();
@@ -582,6 +584,42 @@ router.get("/:sessionId/feedback", isAuthenticated, async (req: any, res) => {
   } catch (error) {
     console.error('Error fetching feedback:', error);
     res.status(500).json({ error: 'Failed to fetch feedback' });
+  }
+});
+
+// Get behavioral questions for interview
+router.get("/behavioral-questions", isAuthenticated, async (req: any, res) => {
+  try {
+    const { personality = 'professional', difficulty = 'medium', count = 5 } = req.query;
+    
+    const questions = behavioralQuestionService.selectQuestionsByPersonality(
+      personality as string,
+      difficulty as string,
+      parseInt(count as string) || 5
+    );
+    
+    res.json({ questions });
+  } catch (error) {
+    console.error('Error fetching behavioral questions:', error);
+    res.status(500).json({ error: 'Failed to fetch behavioral questions' });
+  }
+});
+
+// Analyze behavioral responses for personality insights
+router.post("/analyze-behavioral", isAuthenticated, async (req: any, res) => {
+  try {
+    const { responses } = req.body;
+    
+    if (!Array.isArray(responses) || responses.length === 0) {
+      return res.status(400).json({ error: 'Responses array is required' });
+    }
+    
+    const insights = behavioralQuestionService.generatePersonalityInsights(responses);
+    
+    res.json({ insights });
+  } catch (error) {
+    console.error('Error analyzing behavioral responses:', error);
+    res.status(500).json({ error: 'Failed to analyze behavioral responses' });
   }
 });
 

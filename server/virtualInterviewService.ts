@@ -1,7 +1,9 @@
 import Groq from 'groq-sdk';
+import { aiDetectionService } from './aiDetectionService';
+import { behavioralQuestionService, BehavioralQuestion } from './behavioralQuestions';
 
-// Using Groq AI for all virtual interview functionality
-const DEFAULT_MODEL_STR = "llama-3.3-70b-versatile";
+// Using Groq AI for all virtual interview functionality - optimized for token usage
+const DEFAULT_MODEL_STR = "llama-3.1-8b-instant"; // Faster, cheaper model
 
 interface InterviewerPersonality {
   greeting: string;
@@ -16,6 +18,7 @@ interface InterviewQuestion {
   difficulty: 'easy' | 'medium' | 'hard';
   expectedKeywords: string[];
   followUpPrompts: string[];
+  personalityTraits?: string[];
 }
 
 interface MessageAnalysis {
@@ -26,6 +29,9 @@ interface MessageAnalysis {
   keywordsMatched: string[];
   sentiment: 'positive' | 'neutral' | 'negative';
   confidence: number; // 1-100
+  aiDetection?: any; // AI detection results
+  finalScore?: number; // Score after AI penalty
+  partialResultsOnly?: boolean;
 }
 
 export class VirtualInterviewService {
@@ -152,24 +158,17 @@ export class VirtualInterviewService {
     expectedKeywords: string[],
     questionCategory: string
   ): Promise<MessageAnalysis> {
+    // First, detect if AI was used
+    const aiDetection = await aiDetectionService.detectAIUsage(userResponse, question);
+    
     const prompt = `
-Analyze this interview response:
+Analyze this interview response. Be concise.
 
 Question: "${question}"
 Category: ${questionCategory}
-Expected Keywords: ${expectedKeywords.join(', ')}
-Candidate Response: "${userResponse}"
+Response: "${userResponse}"
 
-Provide detailed analysis as JSON with:
-- responseQuality (1-10): Overall quality of the response
-- technicalAccuracy (0-100): Technical correctness for technical questions
-- clarityScore (0-100): How clear and well-structured the response is
-- depthScore (0-100): How thoroughly the topic was covered
-- keywordsMatched (array): Which expected keywords were mentioned
-- sentiment (positive/neutral/negative): Overall tone
-- confidence (1-100): How confident the candidate seems
-
-Respond with JSON only.`;
+Return JSON only: {"responseQuality": 1-10, "technicalAccuracy": 0-100, "clarityScore": 0-100, "depthScore": 0-100, "keywordsMatched": ["matched", "keywords"], "sentiment": "positive/neutral/negative", "confidence": 1-100}`;
 
     try {
       const response = await this.groq.chat.completions.create({
@@ -185,7 +184,7 @@ Respond with JSON only.`;
         ],
         model: DEFAULT_MODEL_STR,
         temperature: 0.3,
-        max_tokens: 400,
+        max_tokens: 300, // Reduced tokens
       });
 
       const content = response.choices[0]?.message?.content;
@@ -194,7 +193,8 @@ Respond with JSON only.`;
       const cleanedContent = this.cleanJsonResponse(content);
       const analysis = JSON.parse(cleanedContent);
 
-      return {
+      // Calculate base analysis
+      const baseAnalysis = {
         responseQuality: Math.min(10, Math.max(1, analysis.responseQuality || 5)),
         technicalAccuracy: Math.min(100, Math.max(0, analysis.technicalAccuracy || 50)),
         clarityScore: Math.min(100, Math.max(0, analysis.clarityScore || 50)),
@@ -203,17 +203,42 @@ Respond with JSON only.`;
         sentiment: analysis.sentiment || 'neutral',
         confidence: Math.min(100, Math.max(1, analysis.confidence || 50))
       };
+
+      // Apply AI detection analysis
+      const responseAnalysis = aiDetectionService.analyzeResponseWithAI(
+        { overallScore: baseAnalysis.responseQuality * 10 }, 
+        aiDetection
+      );
+
+      return {
+        ...baseAnalysis,
+        aiDetection: responseAnalysis.aiDetection,
+        finalScore: responseAnalysis.finalScore,
+        partialResultsOnly: responseAnalysis.partialResultsOnly
+      };
     } catch (error) {
       console.error('Error analyzing response:', error);
-      // Fallback analysis
-      return {
+      // Fallback analysis with AI detection
+      const baseAnalysis = {
         responseQuality: 5,
         technicalAccuracy: 50,
         clarityScore: 50,
         depthScore: 50,
         keywordsMatched: [],
-        sentiment: 'neutral',
+        sentiment: 'neutral' as const,
         confidence: 50
+      };
+
+      const responseAnalysis = aiDetectionService.analyzeResponseWithAI(
+        { overallScore: 50 }, 
+        aiDetection
+      );
+
+      return {
+        ...baseAnalysis,
+        aiDetection: responseAnalysis.aiDetection,
+        finalScore: responseAnalysis.finalScore,
+        partialResultsOnly: responseAnalysis.partialResultsOnly
       };
     }
   }
@@ -377,6 +402,19 @@ Return JSON with:
     }
     
     return cleaned;
+  }
+
+  // Add behavioral question generation
+  generateBehavioralQuestions(
+    personality: string,
+    difficulty: string = 'medium',
+    count: number = 3
+  ): BehavioralQuestion[] {
+    return behavioralQuestionService.selectQuestionsByPersonality(personality, difficulty, count);
+  }
+
+  analyzeBehavioralResponses(responses: Array<{question: BehavioralQuestion, response: string}>) {
+    return behavioralQuestionService.generatePersonalityInsights(responses);
   }
 
   private getFallbackQuestion(interviewType: string, difficulty: string, role: string): InterviewQuestion {
