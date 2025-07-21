@@ -1,7 +1,7 @@
 // Smart Job Detection and Analysis - AutoJobr Extension
 class SmartJobDetector {
   constructor() {
-    this.apiBase = 'https://cb65fac5-c8d9-4a92-96d3-e1c1fb178ad5-00-1qemik6z1cl2m.janeway.replit.dev';
+    this.apiBase = 'https://6d490f6a-220b-4865-9c1e-56491791d355-00-fobjhe3sa4h6.spock.replit.dev';
     this.isJobPage = false;
     this.jobData = null;
     this.userProfile = null;

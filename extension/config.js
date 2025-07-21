@@ -1,6 +1,6 @@
 // Configuration for AutoJobr Extension
 const CONFIG = {
-  API_BASE_URL: 'https://cb65fac5-c8d9-4a92-96d3-e1c1fb178ad5-00-1qemik6z1cl2m.janeway.replit.dev',
+  API_BASE_URL: 'https://6d490f6a-220b-4865-9c1e-56491791d355-00-fobjhe3sa4h6.spock.replit.dev',
   ENDPOINTS: {
     USER: '/api/user',
     PROFILE: '/api/profile',

@@ -5,7 +5,7 @@
 ### 1. **Your Backend URL**
 Your AutoJobr backend is running at:
 ```
-https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev
+https://6d490f6a-220b-4865-9c1e-56491791d355-00-fobjhe3sa4h6.spock.replit.dev
 ```
 
 ### 2. **Load Extension in Chrome**
@@ -25,7 +25,7 @@ https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev
 
 ### **Automatic Detection**
 The extension automatically tries these URLs in order:
-1. `https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev` (Your current Replit)
+1. `https://6d490f6a-220b-4865-9c1e-56491791d355-00-fobjhe3sa4h6.spock.replit.dev` (Your current Replit)
 2. `https://autojobr.replit.app` (If deployed)
 3. `http://localhost:5000` (Local development)
 
@@ -114,7 +114,7 @@ If extension can't connect:
 
 ### **Manual URL Setup**
 1. Right-click extension icon → Options
-2. Enter your backend URL: `https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev`
+2. Enter your backend URL: `https://6d490f6a-220b-4865-9c1e-56491791d355-00-fobjhe3sa4h6.spock.replit.dev`
 3. Click "Test Connection"
 4. Save settings
 
