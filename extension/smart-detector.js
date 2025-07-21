@@ -110,15 +110,26 @@ class SmartJobDetector {
   }
 
   async loadUserProfile() {
-    if (!this.isAuthenticated) return;
+    if (!this.isAuthenticated) {
+      console.log('Not authenticated, skipping profile load');
+      return;
+    }
 
     try {
+      console.log('📋 Loading user profile data...');
       const [profileRes, skillsRes, experienceRes, educationRes] = await Promise.all([
         fetch(`${this.apiBase}/api/profile`, { credentials: 'include' }),
         fetch(`${this.apiBase}/api/skills`, { credentials: 'include' }),
         fetch(`${this.apiBase}/api/work-experience`, { credentials: 'include' }),
         fetch(`${this.apiBase}/api/education`, { credentials: 'include' })
       ]);
+
+      console.log('Profile API responses:', {
+        profile: profileRes.status,
+        skills: skillsRes.status,
+        experience: experienceRes.status,
+        education: educationRes.status
+      });
 
       if (profileRes.ok && skillsRes.ok && experienceRes.ok && educationRes.ok) {
         const [profile, skills, experience, education] = await Promise.all([
@@ -137,24 +148,49 @@ class SmartJobDetector {
         };
 
         // Cache profile for offline use
-        await chrome.storage.local.set({
-          autojobr_profile: this.userProfile
-        });
+        try {
+          await chrome.storage.local.set({
+            autojobr_profile: this.userProfile
+          });
+        } catch (storageError) {
+          console.log('Failed to cache profile:', storageError);
+        }
 
-        console.log('✅ User profile loaded successfully');
+        console.log('✅ User profile loaded successfully', {
+          profileId: profile?.id,
+          skillsCount: skills?.length || 0,
+          experienceCount: experience?.length || 0,
+          educationCount: education?.length || 0
+        });
+      } else {
+        console.log('Some profile API calls failed, trying cached data');
+        // Try to load from cache
+        try {
+          const cached = await chrome.storage.local.get('autojobr_profile');
+          if (cached.autojobr_profile) {
+            this.userProfile = cached.autojobr_profile;
+            console.log('📦 Using cached user profile');
+          }
+        } catch (cacheError) {
+          console.error('Failed to load cached profile:', cacheError);
+        }
       }
     } catch (error) {
       console.error('Failed to load user profile:', error);
-      // Try to load from cache
-      const cached = await chrome.storage.local.get('autojobr_profile');
-      if (cached.autojobr_profile) {
-        this.userProfile = cached.autojobr_profile;
-        console.log('📦 Using cached user profile');
+      // Try to load from cache as fallback
+      try {
+        const cached = await chrome.storage.local.get('autojobr_profile');
+        if (cached.autojobr_profile) {
+          this.userProfile = cached.autojobr_profile;
+          console.log('📦 Using cached user profile as fallback');
+        }
+      } catch (cacheError) {
+        console.error('Failed to load cached profile:', cacheError);
       }
     }
   }
 
-  detectJobPage() {
+  async detectJobPage() {
     const hostname = window.location.hostname.toLowerCase();
     let platform = null;
 
@@ -174,6 +210,10 @@ class SmartJobDetector {
     if (platform && this.hasJobContent(platform)) {
       this.isJobPage = true;
       console.log('✅ Job page detected on', platform);
+      
+      // Re-check authentication status before showing panel
+      await this.checkAuthentication();
+      
       this.extractJobData(platform);
       
       // Always show panel, but behavior depends on auth status
@@ -420,7 +460,18 @@ class SmartJobDetector {
         </div>
         
         <div class="autojobr-info" style="padding-top: 12px; border-top: 1px solid #e5e7eb;">
-          <p style="margin: 0; color: #6b7280; font-size: 12px; text-align: center;"><strong>${jobData.title || 'Job Position'}</strong> at <strong>${jobData.company || 'Company'}</strong></p>
+          <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 12px; text-align: center;"><strong>${jobData.title || 'Job Position'}</strong> at <strong>${jobData.company || 'Company'}</strong></p>
+          ${this.userProfile ? `
+            <div style="display: flex; justify-content: center; align-items: center; gap: 4px; color: #10b981; font-size: 11px;">
+              <span style="width: 6px; height: 6px; background: #10b981; border-radius: 50%; display: inline-block;"></span>
+              Profile loaded (${this.userProfile.skills?.length || 0} skills)
+            </div>
+          ` : `
+            <div style="display: flex; justify-content: center; align-items: center; gap: 4px; color: #f59e0b; font-size: 11px;">
+              <span style="width: 6px; height: 6px; background: #f59e0b; border-radius: 50%; display: inline-block;"></span>
+              Loading profile...
+            </div>
+          `}
         </div>
       </div>
     `;
@@ -434,7 +485,7 @@ class SmartJobDetector {
 
     // Login button
     document.getElementById('autojobr-login')?.addEventListener('click', () => {
-      window.open(`${this.apiBase}/login`, '_blank');
+      window.open(`${this.apiBase}/auth`, '_blank');
     });
 
     // Autofill button
@@ -468,9 +519,20 @@ class SmartJobDetector {
   }
 
   async performAutofill() {
+    if (!this.isAuthenticated) {
+      this.showNotification('Please sign in to use autofill', 'error');
+      return;
+    }
+
     if (!this.userProfile) {
       console.error('No user profile available for autofill');
-      return;
+      this.showNotification('User profile not loaded', 'error');
+      // Try to reload profile
+      await this.loadUserProfile();
+      if (!this.userProfile) {
+        this.showNotification('Unable to load user profile', 'error');
+        return;
+      }
     }
 
     console.log('🚀 Starting autofill process...');
@@ -641,8 +703,8 @@ class SmartJobDetector {
         this.hideFloatingPanel();
         
         // Re-detect job page after a short delay
-        setTimeout(() => {
-          this.detectJobPage();
+        setTimeout(async () => {
+          await this.detectJobPage();
         }, 1000);
       }
     });
@@ -654,11 +716,22 @@ class SmartJobDetector {
 
     // Also listen for popstate events
     window.addEventListener('popstate', () => {
-      setTimeout(() => {
+      setTimeout(async () => {
         this.hideFloatingPanel();
-        this.detectJobPage();
+        await this.detectJobPage();
       }, 500);
     });
+    
+    // Check for authentication changes periodically
+    setInterval(async () => {
+      const wasAuthenticated = this.isAuthenticated;
+      await this.checkAuthentication();
+      
+      // If authentication status changed, update the panel
+      if (wasAuthenticated !== this.isAuthenticated && this.isJobPage) {
+        this.updateFloatingPanel();
+      }
+    }, 30000); // Check every 30 seconds
   }
 
   handleMessage(message, sender, sendResponse) {
