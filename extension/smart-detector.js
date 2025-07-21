@@ -306,39 +306,68 @@ class SmartJobDetector {
   showFloatingPanel() {
     if (this.floatingPanel) return; // Already shown
 
-    // Create floating panel
-    this.floatingPanel = document.createElement('div');
-    this.floatingPanel.className = 'autojobr-floating-panel';
-    this.floatingPanel.innerHTML = this.getFloatingPanelHTML();
-    
-    // Add to page
-    document.body.appendChild(this.floatingPanel);
-    
-    // Add event listeners
-    this.setupFloatingPanelEvents();
-    
-    console.log('💫 AutoJobr floating panel displayed');
+    try {
+      // Create floating panel
+      this.floatingPanel = document.createElement('div');
+      this.floatingPanel.className = 'autojobr-floating-panel';
+      
+      // Add basic styling for the panel
+      this.floatingPanel.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        width: 320px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        z-index: 10000;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        border: 1px solid #e5e7eb;
+      `;
+      
+      this.floatingPanel.innerHTML = this.getFloatingPanelHTML();
+      
+      // Add to page
+      document.body.appendChild(this.floatingPanel);
+      
+      // Add event listeners
+      this.setupFloatingPanelEvents();
+      
+      console.log('💫 AutoJobr floating panel displayed');
+    } catch (error) {
+      console.error('Failed to show floating panel:', error);
+    }
   }
 
   getFloatingPanelHTML() {
     const isAuthenticated = this.isAuthenticated;
-    const jobData = this.jobData;
-    const analysis = jobData?.analysis;
+    const jobData = this.jobData || {};
+    const analysis = jobData.analysis;
+
+    // Get icon URL safely
+    let iconUrl = '';
+    try {
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
+        iconUrl = chrome.runtime.getURL('icons/icon32.png');
+      }
+    } catch (e) {
+      console.log('Chrome runtime not available for icon');
+    }
 
     if (!isAuthenticated) {
       return `
-        <div class="autojobr-header">
-          <div class="autojobr-logo">
-            <img src="${chrome.runtime.getURL('icons/icon32.png')}" alt="AutoJobr">
-            <span>AutoJobr</span>
+        <div class="autojobr-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #4f46e5; color: white;">
+          <div class="autojobr-logo" style="display: flex; align-items: center; gap: 8px;">
+            ${iconUrl ? `<img src="${iconUrl}" alt="AutoJobr" style="width: 24px; height: 24px;">` : '🤖'}
+            <span style="font-weight: bold;">AutoJobr</span>
           </div>
-          <button class="autojobr-close" id="autojobr-close">×</button>
+          <button class="autojobr-close" id="autojobr-close" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">×</button>
         </div>
-        <div class="autojobr-content">
-          <div class="autojobr-auth-required">
-            <h3>Sign in to AutoJobr</h3>
-            <p>Access smart job analysis and auto-fill features</p>
-            <button class="autojobr-btn-primary" id="autojobr-login">Sign In</button>
+        <div class="autojobr-content" style="padding: 16px; background: white; border-radius: 0 0 8px 8px;">
+          <div class="autojobr-auth-required" style="text-align: center;">
+            <h3 style="margin: 0 0 8px 0; color: #374151;">Sign in to AutoJobr</h3>
+            <p style="margin: 0 0 16px 0; color: #6b7280;">Access smart job analysis and auto-fill features</p>
+            <button class="autojobr-btn-primary" id="autojobr-login" style="background: #4f46e5; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">Sign In</button>
           </div>
         </div>
       `;
@@ -348,50 +377,50 @@ class SmartJobDetector {
     const scoreColor = matchScore >= 80 ? '#22c55e' : matchScore >= 60 ? '#f59e0b' : '#ef4444';
 
     return `
-      <div class="autojobr-header">
-        <div class="autojobr-logo">
-          <img src="${chrome.runtime.getURL('icons/icon32.png')}" alt="AutoJobr">
-          <span>AutoJobr</span>
+      <div class="autojobr-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #4f46e5; color: white;">
+        <div class="autojobr-logo" style="display: flex; align-items: center; gap: 8px;">
+          ${iconUrl ? `<img src="${iconUrl}" alt="AutoJobr" style="width: 24px; height: 24px;">` : '🤖'}
+          <span style="font-weight: bold;">AutoJobr</span>
         </div>
-        <button class="autojobr-close" id="autojobr-close">×</button>
+        <button class="autojobr-close" id="autojobr-close" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">×</button>
       </div>
-      <div class="autojobr-content">
+      <div class="autojobr-content" style="padding: 16px; background: white; border-radius: 0 0 8px 8px;">
         ${analysis ? `
-          <div class="autojobr-analysis">
-            <div class="autojobr-score" style="border-color: ${scoreColor}">
-              <div class="score-circle" style="background: ${scoreColor}">
+          <div class="autojobr-analysis" style="margin-bottom: 16px;">
+            <div class="autojobr-score" style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding: 12px; border: 2px solid ${scoreColor}; border-radius: 6px;">
+              <div class="score-circle" style="width: 48px; height: 48px; background: ${scoreColor}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">
                 ${matchScore}%
               </div>
               <div class="score-details">
-                <h4>Job Match Score</h4>
-                <p>${analysis.recommendation}</p>
+                <h4 style="margin: 0 0 4px 0; color: #374151; font-size: 14px;">Job Match Score</h4>
+                <p style="margin: 0; color: #6b7280; font-size: 12px;">${analysis.recommendation || 'Analysis complete'}</p>
               </div>
             </div>
-            <div class="autojobr-matches">
-              <p><strong>${analysis.matchedSkills.length}</strong> of your skills match</p>
+            <div class="autojobr-matches" style="text-align: center; margin-bottom: 16px;">
+              <p style="margin: 0; color: #374151; font-size: 13px;"><strong>${analysis.matchedSkills?.length || 0}</strong> of your skills match this job</p>
             </div>
           </div>
         ` : `
-          <div class="autojobr-analyzing">
-            <div class="spinner"></div>
-            <p>Analyzing job requirements...</p>
+          <div class="autojobr-analyzing" style="text-align: center; margin-bottom: 16px; padding: 20px;">
+            <div class="spinner" style="width: 24px; height: 24px; border: 2px solid #e5e7eb; border-top: 2px solid #4f46e5; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 12px;"></div>
+            <p style="margin: 0; color: #6b7280; font-size: 13px;">Analyzing job requirements...</p>
           </div>
         `}
         
-        <div class="autojobr-actions">
-          <button class="autojobr-btn-primary" id="autojobr-autofill">
+        <div class="autojobr-actions" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+          <button class="autojobr-btn-primary" id="autojobr-autofill" style="background: #4f46e5; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 14px; width: 100%;">
             ⚡ Autofill Application
           </button>
-          <button class="autojobr-btn-secondary" id="autojobr-cover-letter">
+          <button class="autojobr-btn-secondary" id="autojobr-cover-letter" style="background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 14px; width: 100%;">
             📝 Generate Cover Letter
           </button>
-          <button class="autojobr-btn-secondary" id="autojobr-save-job">
+          <button class="autojobr-btn-secondary" id="autojobr-save-job" style="background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 14px; width: 100%;">
             💾 Save Job
           </button>
         </div>
         
-        <div class="autojobr-info">
-          <p><strong>${jobData?.title || 'Job'}</strong> at <strong>${jobData?.company || 'Company'}</strong></p>
+        <div class="autojobr-info" style="padding-top: 12px; border-top: 1px solid #e5e7eb;">
+          <p style="margin: 0; color: #6b7280; font-size: 12px; text-align: center;"><strong>${jobData.title || 'Job Position'}</strong> at <strong>${jobData.company || 'Company'}</strong></p>
         </div>
       </div>
     `;
@@ -463,13 +492,27 @@ class SmartJobDetector {
   }
 
   async generateCoverLetter() {
-    if (!this.jobData || !this.userProfile) {
-      console.error('Missing data for cover letter generation');
+    if (!this.jobData) {
+      console.error('Missing job data for cover letter generation');
+      this.showNotification('No job data available', 'error');
+      return;
+    }
+
+    if (!this.userProfile) {
+      console.error('Missing user profile for cover letter generation');
+      this.showNotification('Please sign in to generate cover letter', 'error');
+      return;
+    }
+
+    if (!this.jobData.description || !this.jobData.company) {
+      console.error('Job data incomplete for cover letter generation');
+      this.showNotification('Job information incomplete', 'error');
       return;
     }
 
     try {
       console.log('📝 Generating cover letter...');
+      this.showNotification('Generating cover letter...', 'info');
       
       const response = await fetch(`${this.apiBase}/api/generate-cover-letter`, {
         method: 'POST',
@@ -478,9 +521,9 @@ class SmartJobDetector {
         },
         credentials: 'include',
         body: JSON.stringify({
-          jobDescription: this.jobData.description,
-          companyName: this.jobData.company,
-          jobTitle: this.jobData.title,
+          jobDescription: this.jobData.description || '',
+          companyName: this.jobData.company || 'Company',
+          jobTitle: this.jobData.title || 'Position',
           useProfile: true
         })
       });
@@ -503,8 +546,13 @@ class SmartJobDetector {
           this.showNotification('Cover letter generated and inserted!', 'success');
         } else {
           // Copy to clipboard as fallback
-          navigator.clipboard.writeText(result.coverLetter);
-          this.showNotification('Cover letter copied to clipboard!', 'success');
+          try {
+            await navigator.clipboard.writeText(result.coverLetter);
+            this.showNotification('Cover letter copied to clipboard!', 'success');
+          } catch (clipboardError) {
+            console.error('Failed to copy to clipboard:', clipboardError);
+            this.showNotification('Cover letter generated but could not copy to clipboard', 'warning');
+          }
         }
       } else {
         this.showNotification('Failed to generate cover letter', 'error');
@@ -545,15 +593,40 @@ class SmartJobDetector {
   }
 
   showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `autojobr-notification autojobr-notification-${type}`;
-    notification.textContent = message;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-      notification.remove();
-    }, 3000);
+    try {
+      const notification = document.createElement('div');
+      notification.className = `autojobr-notification autojobr-notification-${type}`;
+      notification.textContent = message;
+      
+      // Add basic styling
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : type === 'warning' ? '#f59e0b' : '#3b82f6'};
+        color: white;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: Arial, sans-serif;
+        z-index: 10001;
+        max-width: 300px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transform: translateX(350px);
+        transition: transform 0.3s ease;
+        animation: slideIn 0.3s ease forwards;
+      `;
+      
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.remove();
+        }
+      }, 3000);
+    } catch (error) {
+      console.error('Failed to show notification:', error);
+    }
   }
 
   setupObservers() {
@@ -620,8 +693,36 @@ class SmartJobDetector {
       default:
         sendResponse({ success: false, error: 'Unknown action' });
     }
+    return true; // Keep message channel open for async responses
   }
 }
+
+// Add CSS animations for notifications and spinner
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  @keyframes slideIn {
+    0% { transform: translateX(350px); }
+    100% { transform: translateX(0); }
+  }
+  .autojobr-notification {
+    transition: all 0.3s ease;
+  }
+  .autojobr-floating-panel button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+  .autojobr-btn-primary:hover {
+    background: #4338ca !important;
+  }
+  .autojobr-btn-secondary:hover {
+    background: #e5e7eb !important;
+  }
+`;
+document.head.appendChild(style);
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
