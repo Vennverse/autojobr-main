@@ -21,8 +21,8 @@ import {
   Headphones
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import PayPalButton from "@/components/PayPalButton";
 import PayPalSubscriptionButton from "@/components/PayPalSubscriptionButton";
+import PaymentGatewaySelector from "@/components/PaymentGatewaySelector";
 import UsageMonitoringWidget from "@/components/UsageMonitoringWidget";
 
 interface RecruiterSubscriptionTier {
@@ -44,7 +44,7 @@ export default function RecruiterPremium() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'razorpay'>('paypal');
+  const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'cashfree' | 'razorpay'>('paypal');
   const [showPayment, setShowPayment] = useState(false);
 
   // Fetch only recruiter subscription tiers
@@ -247,19 +247,28 @@ export default function RecruiterPremium() {
                         </CardDescription>
                       </div>
                     </div>
-                    <PayPalSubscriptionButton 
+                    <PaymentGatewaySelector
                       tierId={tier.id}
                       tierName={tier.name}
-                      price={tier.price}
+                      amount={tier.price}
+                      currency="USD"
                       userType="recruiter"
-                      onSuccess={(subscriptionId) => {
+                      onPaymentSuccess={(data) => {
                         toast({
-                          title: "Subscription Created!",
-                          description: "Redirecting to PayPal to complete payment...",
+                          title: "Subscription Activated!",
+                          description: "Your premium recruiting features are now active.",
                         });
                         queryClient.invalidateQueries({ queryKey: ['/api/subscription/current'] });
                       }}
-                      disabled={createSubscriptionMutation.isPending || (subscription?.tier === tier.id && subscription.isActive)}
+                      onPaymentError={(error) => {
+                        toast({
+                          title: "Payment Error",
+                          description: error.message || "Payment failed. Please try again.",
+                          variant: "destructive",
+                        });
+                      }}
+                      description={`Monthly subscription for ${tier.name} recruiting plan`}
+                      className="mt-4"
                     />
                   </div>
                 </CardHeader>

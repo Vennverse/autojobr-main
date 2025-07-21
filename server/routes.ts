@@ -348,7 +348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
 
   app.post("/api/subscription/create", isAuthenticated, asyncHandler(async (req: any, res: any) => {
-    const { tierId, paymentMethod, userType } = req.body;
+    const { tierId, paymentMethod = 'paypal', userType } = req.body;
     const userId = req.user.id;
     const userEmail = req.user.email;
 
@@ -356,23 +356,138 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ error: 'Tier ID is required' });
     }
 
-    // Handle PayPal subscription creation
-    if (paymentMethod === 'paypal' || !paymentMethod) {
-      const { paypalSubscriptionService } = await import('./paypalSubscriptionService');
-      const planId = paypalSubscriptionService.getPlanIdForTier(userType, tierId);
-      const result = await paypalSubscriptionService.createSubscription(userId, planId, userEmail);
-      return res.json(result);
+    // Get subscription tier details
+    const tiers = await subscriptionPaymentService.getSubscriptionTiers(userType);
+    const selectedTier = tiers.find((t: any) => t.id === tierId);
+    
+    if (!selectedTier) {
+      return res.status(400).json({ error: 'Invalid tier ID' });
     }
 
-    // Handle other payment methods
-    const order = await subscriptionPaymentService.createSubscriptionOrder(
-      userId,
-      tierId,
-      paymentMethod
-    );
+    // For PayPal subscriptions, create monthly recurring subscription
+    if (paymentMethod === 'paypal') {
+      const { PayPalSubscriptionService } = await import('./paypalSubscriptionService');
+      const paypalService = new PayPalSubscriptionService();
+      
+      try {
+        const subscription = await paypalService.createSubscription(
+          userId,
+          selectedTier.name,
+          selectedTier.price,
+          userType,
+          userEmail
+        );
 
-    res.json({ success: true, order });
+        // Store subscription details in database
+        await db.insert(schema.subscriptions).values({
+          userId,
+          tierId: selectedTier.id,
+          paypalSubscriptionId: subscription.subscriptionId,
+          status: 'pending',
+          nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+          createdAt: new Date()
+        });
+
+        return res.json({
+          success: true,
+          subscriptionId: subscription.subscriptionId,
+          approvalUrl: subscription.approvalUrl
+        });
+      } catch (error: any) {
+        console.error('PayPal subscription creation error:', error);
+        return res.status(500).json({ error: 'Failed to create PayPal subscription' });
+      }
+    }
+
+    // For other payment methods (Cashfree, Razorpay) - return not available for now
+    return res.status(400).json({ 
+      error: `${paymentMethod} integration is coming soon. Please use PayPal for now.` 
+    });
   }));
+
+  // PayPal Subscription Success Handler
+  app.get("/subscription/success", async (req, res) => {
+    try {
+      const { userId, subscription_id } = req.query;
+      
+      if (subscription_id) {
+        // Update subscription status to active
+        await db.update(schema.subscriptions)
+          .set({ 
+            status: 'active',
+            activatedAt: new Date()
+          })
+          .where(eq(schema.subscriptions.paypalSubscriptionId, subscription_id as string));
+
+        // Update user subscription status
+        if (userId) {
+          const user = await storage.getUser(userId as string);
+          if (user) {
+            await storage.upsertUser({
+              ...user,
+              subscriptionStatus: 'premium'
+            });
+          }
+        }
+      }
+
+      // Redirect to appropriate dashboard
+      res.redirect('/?subscription=success&message=Subscription activated successfully!');
+    } catch (error) {
+      console.error('Subscription success handler error:', error);
+      res.redirect('/?subscription=error&message=There was an issue activating your subscription');
+    }
+  });
+
+  // PayPal Subscription Cancel Handler
+  app.get("/subscription/cancel", async (req, res) => {
+    res.redirect('/?subscription=cancelled&message=Subscription setup was cancelled');
+  });
+
+  // PayPal Webhook Handler for subscription events
+  app.post("/api/webhook/paypal-subscription", async (req, res) => {
+    try {
+      const event = req.body;
+      console.log('PayPal Subscription Webhook Event:', event.event_type);
+
+      switch (event.event_type) {
+        case 'BILLING.SUBSCRIPTION.ACTIVATED':
+          // Update subscription to active
+          await db.update(schema.subscriptions)
+            .set({ 
+              status: 'active',
+              activatedAt: new Date()
+            })
+            .where(eq(schema.subscriptions.paypalSubscriptionId, event.resource.id));
+          break;
+
+        case 'BILLING.SUBSCRIPTION.CANCELLED':
+        case 'BILLING.SUBSCRIPTION.SUSPENDED':
+          // Update subscription to cancelled/suspended
+          await db.update(schema.subscriptions)
+            .set({ 
+              status: 'cancelled',
+              cancelledAt: new Date()
+            })
+            .where(eq(schema.subscriptions.paypalSubscriptionId, event.resource.id));
+          break;
+
+        case 'BILLING.SUBSCRIPTION.PAYMENT.FAILED':
+          // Update subscription payment failed
+          await db.update(schema.subscriptions)
+            .set({ 
+              status: 'payment_failed'
+            })
+            .where(eq(schema.subscriptions.paypalSubscriptionId, event.resource.id));
+          break;
+      }
+
+      res.status(200).json({ received: true });
+    } catch (error) {
+      console.error('PayPal subscription webhook error:', error);
+      res.status(500).json({ error: 'Webhook processing failed' });
+    }
+  });
 
   app.post("/api/subscription/activate/:subscriptionId", asyncHandler(async (req: any, res: any) => {
     const { subscriptionId } = req.params;

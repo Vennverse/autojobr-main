@@ -27,17 +27,20 @@ export default function PayPalSubscriptionButton({
   const { toast } = useToast();
 
   const createSubscriptionMutation = useMutation({
-    mutationFn: async (data: { tierId: string; userType: string }) => {
-      const response = await apiRequest('POST', '/api/subscription/create', data);
-      return await response.json();
+    mutationFn: async (data: { tierId: string; userType: string; paymentMethod: string }) => {
+      const response = await apiRequest('/api/subscription/create', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      return response;
     },
     onSuccess: (data) => {
       if (data.approvalUrl) {
         toast({
           title: "Redirecting to PayPal",
-          description: "Complete your payment to activate premium features.",
+          description: "Complete your monthly subscription setup with PayPal.",
         });
-        // Redirect to PayPal approval URL
+        // Redirect to PayPal approval URL for subscription
         window.location.href = data.approvalUrl;
       } else {
         throw new Error('No approval URL received');
@@ -58,7 +61,11 @@ export default function PayPalSubscriptionButton({
     
     setIsProcessing(true);
     try {
-      createSubscriptionMutation.mutate({ tierId, userType });
+      createSubscriptionMutation.mutate({ 
+        tierId, 
+        userType, 
+        paymentMethod: 'paypal' 
+      });
     } catch (error) {
       setIsProcessing(false);
     }
