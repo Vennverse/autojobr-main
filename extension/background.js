@@ -9,12 +9,6 @@ class AutoJobrBackground {
   }
 
   init() {
-    // Listen for extension messages
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      this.handleMessage(message, sender, sendResponse);
-      return true; // Keep the message channel open for async responses
-    });
-
     // Listen for tab updates to detect job pages
     chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       if (changeInfo.status === 'complete' && tab.url) {
@@ -24,6 +18,8 @@ class AutoJobrBackground {
 
     // Initialize authentication check
     this.checkAuthentication();
+    
+    console.log('AutoJobr background script initialized');
   }
 
   async checkAuthentication() {

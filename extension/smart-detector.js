@@ -70,11 +70,13 @@ class SmartJobDetector {
       this.setupObservers();
     }, 1000);
     
-    // Listen for messages from popup
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      this.handleMessage(message, sender, sendResponse);
-      return true; // Keep the message channel open for async responses
-    });
+    // Listen for messages from popup/background
+    if (chrome.runtime && chrome.runtime.onMessage) {
+      chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        this.handleMessage(message, sender, sendResponse);
+        return true; // Keep the message channel open for async responses
+      });
+    }
   }
 
   async checkAuthentication() {
@@ -149,9 +151,11 @@ class SmartJobDetector {
 
         // Cache profile for offline use
         try {
-          await chrome.storage.local.set({
-            autojobr_profile: this.userProfile
-          });
+          if (chrome.storage && chrome.storage.local) {
+            await chrome.storage.local.set({
+              autojobr_profile: this.userProfile
+            });
+          }
         } catch (storageError) {
           console.log('Failed to cache profile:', storageError);
         }
@@ -166,10 +170,12 @@ class SmartJobDetector {
         console.log('Some profile API calls failed, trying cached data');
         // Try to load from cache
         try {
-          const cached = await chrome.storage.local.get('autojobr_profile');
-          if (cached.autojobr_profile) {
-            this.userProfile = cached.autojobr_profile;
-            console.log('📦 Using cached user profile');
+          if (chrome.storage && chrome.storage.local) {
+            const cached = await chrome.storage.local.get('autojobr_profile');
+            if (cached.autojobr_profile) {
+              this.userProfile = cached.autojobr_profile;
+              console.log('📦 Using cached user profile');
+            }
           }
         } catch (cacheError) {
           console.error('Failed to load cached profile:', cacheError);
@@ -179,10 +185,12 @@ class SmartJobDetector {
       console.error('Failed to load user profile:', error);
       // Try to load from cache as fallback
       try {
-        const cached = await chrome.storage.local.get('autojobr_profile');
-        if (cached.autojobr_profile) {
-          this.userProfile = cached.autojobr_profile;
-          console.log('📦 Using cached user profile as fallback');
+        if (chrome.storage && chrome.storage.local) {
+          const cached = await chrome.storage.local.get('autojobr_profile');
+          if (cached.autojobr_profile) {
+            this.userProfile = cached.autojobr_profile;
+            console.log('📦 Using cached user profile as fallback');
+          }
         }
       } catch (cacheError) {
         console.error('Failed to load cached profile:', cacheError);
@@ -735,36 +743,52 @@ class SmartJobDetector {
   }
 
   handleMessage(message, sender, sendResponse) {
-    switch (message.action) {
-      case 'GET_JOB_DATA':
-        sendResponse({
-          success: true,
-          isJobPage: this.isJobPage,
-          jobData: this.jobData,
-          isAuthenticated: this.isAuthenticated
-        });
-        break;
-        
-      case 'REFRESH_AUTH':
-        this.checkAuthentication().then(() => {
-          sendResponse({ success: true, isAuthenticated: this.isAuthenticated });
-        });
-        break;
-        
-      case 'PERFORM_AUTOFILL':
-        this.performAutofill().then(() => {
-          sendResponse({ success: true });
-        });
-        break;
-        
-      case 'GENERATE_COVER_LETTER':
-        this.generateCoverLetter().then(() => {
-          sendResponse({ success: true });
-        });
-        break;
-        
-      default:
-        sendResponse({ success: false, error: 'Unknown action' });
+    try {
+      switch (message.action) {
+        case 'GET_JOB_DATA':
+          sendResponse({
+            success: true,
+            isJobPage: this.isJobPage,
+            jobData: this.jobData,
+            isAuthenticated: this.isAuthenticated,
+            userProfile: this.userProfile ? true : false
+          });
+          break;
+          
+        case 'REFRESH_AUTH':
+          this.checkAuthentication().then(() => {
+            sendResponse({ 
+              success: true, 
+              isAuthenticated: this.isAuthenticated,
+              userProfile: this.userProfile ? true : false
+            });
+          }).catch(error => {
+            sendResponse({ success: false, error: error.message });
+          });
+          return true; // Async response
+          
+        case 'PERFORM_AUTOFILL':
+          this.performAutofill().then(() => {
+            sendResponse({ success: true });
+          }).catch(error => {
+            sendResponse({ success: false, error: error.message });
+          });
+          return true; // Async response
+          
+        case 'GENERATE_COVER_LETTER':
+          this.generateCoverLetter().then(() => {
+            sendResponse({ success: true });
+          }).catch(error => {
+            sendResponse({ success: false, error: error.message });
+          });
+          return true; // Async response
+          
+        default:
+          sendResponse({ success: false, error: 'Unknown action' });
+      }
+    } catch (error) {
+      console.error('Message handling error:', error);
+      sendResponse({ success: false, error: error.message });
     }
     return true; // Keep message channel open for async responses
   }
