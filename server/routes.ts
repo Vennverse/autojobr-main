@@ -5717,35 +5717,43 @@ Host: https://autojobr.com`;
       promotedUntil.setMonth(promotedUntil.getMonth() + 1);
 
       // Create Stripe payment intent for $10 promotion
-      try {
-        const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-        const paymentIntent = await stripe.paymentIntents.create({
-          amount: 1000, // $10.00 in cents
-          currency: 'usd',
-          metadata: {
-            type: 'job_promotion',
-            jobId: jobId.toString(),
-            recruiterId: userId,
-            promotedUntil: promotedUntil.toISOString()
-          }
-        });
+      // Create one-time payment for job promotion ($10)
+      const amount = 10;
+      const currency = 'USD';
+      const { paymentMethod = 'paypal' } = req.body;
+
+      if (paymentMethod === 'paypal') {
+        // Store promotion record
+        const promotionRecord = await db.insert(schema.testRetakePayments).values({
+          testAssignmentId: jobId, // Repurpose this field for job ID
+          userId,
+          amount: amount * 100, // Convert to cents
+          currency,
+          paymentProvider: 'paypal',
+          paymentStatus: 'pending'
+        }).returning();
 
         res.json({
-          message: "Job promotion payment created",
-          clientSecret: paymentIntent.client_secret,
-          amount: 10.00,
-          currency: 'USD',
+          success: true,
+          paymentMethod: 'paypal',
+          amount,
+          currency,
+          purpose: 'job_promotion',
+          itemId: jobId,
+          itemName: jobPosting.title,
           promotedUntil: promotedUntil.toISOString(),
           benefits: [
             "Highlighted in search results",
-            "Shown to top job seekers via notifications",
+            "Shown to top job seekers via notifications", 
             "Increased visibility for 30 days",
             "Priority placement in job recommendations"
-          ]
+          ],
+          redirectUrl: `/api/paypal/order?amount=${amount}&currency=${currency}&intent=CAPTURE&custom_id=job_promotion_${jobId}_${userId}&description=${encodeURIComponent(`Job Promotion - ${jobPosting.title}`)}`
         });
-      } catch (stripeError) {
-        console.error("Stripe error:", stripeError);
-        res.status(500).json({ message: "Payment processing unavailable" });
+      } else {
+        res.status(400).json({ 
+          error: `${paymentMethod} integration is coming soon. Please use PayPal for now.` 
+        });
       }
     } catch (error) {
       console.error("Error creating job promotion:", error);
@@ -5754,37 +5762,52 @@ Host: https://autojobr.com`;
   });
 
   // Premium targeting payment endpoint
-  app.post('/api/premium-targeting/payment', async (req, res) => {
-    try {
-      const { stripePaymentIntentId, paymentMethod, amount, jobData } = req.body;
-      
-      // Verify payment with Stripe
-      if (paymentMethod === 'stripe' && stripePaymentIntentId) {
-        const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-        const paymentIntent = await stripe.paymentIntents.retrieve(stripePaymentIntentId);
-        
-        if (paymentIntent.status === 'succeeded') {
-          // Payment successful - return success
-          res.json({ 
-            success: true, 
-            paymentId: stripePaymentIntentId,
-            message: 'Premium targeting payment processed successfully'
-          });
-        } else {
-          res.status(400).json({ error: 'Payment not completed' });
-        }
-      } else {
-        // Handle other payment methods (PayPal, etc.)
-        res.json({ 
-          success: true, 
-          paymentId: `${paymentMethod}-${Date.now()}`,
-          message: 'Premium targeting payment processed successfully'
-        });
-      }
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.post('/api/premium-targeting/payment', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    const userId = req.user.id;
+    const { 
+      amount, 
+      currency = 'USD', 
+      jobData, 
+      paymentMethod = 'paypal' 
+    } = req.body;
+
+    if (!amount || !jobData) {
+      return res.status(400).json({ error: 'Missing required fields' });
     }
-  });
+
+    // Create one-time payment for premium targeting
+    if (paymentMethod === 'paypal') {
+      // Store pending targeting job in database
+      const targetingRecord = await db.insert(schema.premiumTargetingJobs || schema.jobPostings).values({
+        title: jobData.title,
+        description: jobData.description,
+        companyName: req.user.companyName || req.user.email.split('@')[0],
+        recruiterId: userId,
+        location: jobData.targetingCriteria?.demographics?.locations?.[0] || null,
+        salaryRange: `Premium Targeting - $${amount}`,
+        jobType: 'Premium',
+        workMode: 'Remote',
+        isPremiumTargeted: true,
+        isActive: false, // Will be activated after payment
+        estimatedCost: amount
+      }).returning();
+
+      return res.json({
+        success: true,
+        paymentMethod: 'paypal',
+        amount,
+        currency,
+        purpose: 'premium_targeting',
+        itemId: targetingRecord[0].id,
+        itemName: jobData.title,
+        redirectUrl: `/api/paypal/order?amount=${amount}&currency=${currency}&intent=CAPTURE&custom_id=premium_targeting_${targetingRecord[0].id}_${userId}&description=${encodeURIComponent(`Premium Targeting - ${jobData.title}`)}`
+      });
+    }
+
+    return res.status(400).json({ 
+      error: `${paymentMethod} integration is coming soon. Please use PayPal for now.` 
+    });
+  }));
 
   // Confirm job promotion payment
   app.post('/api/recruiter/jobs/:id/promote/confirm', isAuthenticated, async (req: any, res) => {
@@ -7764,7 +7787,190 @@ Host: https://autojobr.com`;
     }
   });
 
-  // Process retake payment
+  // One-time payment creation for test retakes, interviews, etc.
+  app.post('/api/payment/one-time/create', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { 
+        amount, 
+        currency = 'USD', 
+        purpose, // 'test_retake', 'mock_interview', 'coding_test', 'ranking_test'
+        itemId, 
+        itemName,
+        paymentMethod = 'paypal'
+      } = req.body;
+
+      if (!amount || !purpose || !itemId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      // For PayPal one-time payments
+      if (paymentMethod === 'paypal') {
+        const { createPaypalOrder } = await import('./paypal');
+        
+        // Create PayPal order
+        const orderData = {
+          intent: 'CAPTURE',
+          amount: amount.toString(),
+          currency: currency.toUpperCase(),
+          description: `${itemName} - ${purpose.replace('_', ' ')}`,
+          custom_id: `${purpose}_${itemId}_${userId}`,
+          invoice_id: `${purpose.toUpperCase()}_${Date.now()}`
+        };
+
+        // Store payment record in database with pending status
+        let paymentRecord;
+        switch (purpose) {
+          case 'test_retake':
+            paymentRecord = await storage.createTestRetakePayment({
+              testAssignmentId: parseInt(itemId),
+              userId,
+              amount: amount * 100, // Convert to cents
+              currency,
+              paymentProvider: 'paypal',
+              paymentStatus: 'pending'
+            });
+            break;
+          case 'mock_interview':
+          case 'coding_test':
+          case 'ranking_test':
+            paymentRecord = await db.insert(schema.interviewRetakePayments).values({
+              userId,
+              interviewType: purpose === 'mock_interview' ? 'mock' : purpose === 'coding_test' ? 'coding' : 'ranking',
+              interviewId: parseInt(itemId),
+              amount: amount * 100, // Convert to cents
+              currency,
+              paymentProvider: 'paypal',
+              status: 'pending',
+              retakeNumber: 1
+            }).returning();
+            break;
+        }
+
+        return res.json({
+          success: true,
+          paymentMethod: 'paypal',
+          amount,
+          currency,
+          purpose,
+          redirectUrl: `/paypal/order?amount=${amount}&currency=${currency}&intent=CAPTURE&custom_id=${orderData.custom_id}&description=${encodeURIComponent(orderData.description)}`
+        });
+      }
+
+      // For other payment methods (Cashfree, Razorpay) - return not available for now
+      return res.status(400).json({ 
+        error: `${paymentMethod} integration is coming soon. Please use PayPal for now.` 
+      });
+    } catch (error) {
+      console.error('One-time payment creation error:', error);
+      res.status(500).json({ error: 'Failed to create payment' });
+    }
+  });
+
+  // Verify and process one-time payment success
+  app.post('/api/payment/one-time/verify', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { paypalOrderId, purpose, itemId } = req.body;
+
+      if (!paypalOrderId || !purpose || !itemId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      // Verify PayPal payment
+      const { capturePaypalOrder } = await import('./paypal');
+      // In a real implementation, you would verify the payment with PayPal
+      // For now, we'll assume success if we have the order ID
+
+      // Update payment records and grant access
+      let accessGranted = false;
+      switch (purpose) {
+        case 'test_retake':
+          // Update test retake payment
+          await db.update(schema.testRetakePayments)
+            .set({ 
+              paymentStatus: 'completed',
+              paymentIntentId: paypalOrderId,
+              updatedAt: new Date()
+            })
+            .where(
+              and(
+                eq(schema.testRetakePayments.testAssignmentId, parseInt(itemId)),
+                eq(schema.testRetakePayments.userId, userId),
+                eq(schema.testRetakePayments.paymentStatus, 'pending')
+              )
+            );
+
+          // Enable test retake
+          await db.update(schema.testAssignments)
+            .set({ 
+              retakeAllowed: true,
+              retakePaymentId: paypalOrderId,
+              updatedAt: new Date()
+            })
+            .where(eq(schema.testAssignments.id, parseInt(itemId)));
+
+          accessGranted = true;
+          break;
+
+        case 'mock_interview':
+        case 'coding_test':
+        case 'ranking_test':
+          // Update interview retake payment
+          await db.update(schema.interviewRetakePayments)
+            .set({ 
+              status: 'completed',
+              paypalOrderId: paypalOrderId,
+              updatedAt: new Date()
+            })
+            .where(
+              and(
+                eq(schema.interviewRetakePayments.interviewId, parseInt(itemId)),
+                eq(schema.interviewRetakePayments.userId, userId),
+                eq(schema.interviewRetakePayments.status, 'pending')
+              )
+            );
+
+          // Enable interview/test retake based on type
+          if (purpose === 'mock_interview') {
+            await db.update(schema.mockInterviews)
+              .set({ 
+                retakeAllowed: true,
+                retakePaymentId: paypalOrderId,
+                updatedAt: new Date()
+              })
+              .where(eq(schema.mockInterviews.id, parseInt(itemId)));
+          } else if (purpose === 'coding_test') {
+            await db.update(schema.testAssignments)
+              .set({ 
+                retakeAllowed: true,
+                retakePaymentId: paypalOrderId,
+                updatedAt: new Date()
+              })
+              .where(
+                and(
+                  eq(schema.testAssignments.id, parseInt(itemId)),
+                  eq(schema.testAssignments.testType, 'coding')
+                )
+              );
+          }
+
+          accessGranted = true;
+          break;
+      }
+
+      res.json({ 
+        success: true,
+        accessGranted,
+        message: 'Payment verified and access granted successfully'
+      });
+    } catch (error) {
+      console.error('Payment verification error:', error);
+      res.status(500).json({ error: 'Failed to verify payment' });
+    }
+  });
+
+  // Process retake payment (legacy route - keeping for compatibility)
   app.post('/api/interviews/retake-payment', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;

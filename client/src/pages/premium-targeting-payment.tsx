@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Target, CreditCard, Shield, Users, Star, CheckCircle } from "lucide-react";
+import OneTimePaymentGateway from "@/components/OneTimePaymentGateway";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -29,7 +30,7 @@ export default function PremiumTargetingPayment() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [targetingJob, setTargetingJob] = useState<TargetingJob | null>(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'stripe' | 'paypal'>('stripe');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'paypal' | 'cashfree' | 'razorpay'>('paypal');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   useEffect(() => {
@@ -281,128 +282,31 @@ export default function PremiumTargetingPayment() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Pricing */}
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-6 rounded-lg">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm font-medium">Premium Targeting Cost</span>
-                    <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                      Premium Feature
-                    </Badge>
-                  </div>
-                  
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold">${targetingJob.estimatedCost}</span>
-                    <span className="text-sm text-muted-foreground">one-time</span>
-                  </div>
-                  
-                  <div className="mt-4 space-y-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      <span>Precision candidate targeting</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      <span>Priority job placement</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      <span>Enhanced candidate matching</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Payment Method Selection */}
-                <div className="space-y-4">
-                  <h4 className="font-medium">Payment Method</h4>
-                  
-                  <div className="space-y-3">
-                    <div 
-                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                        selectedPaymentMethod === 'stripe' 
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20' 
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => setSelectedPaymentMethod('stripe')}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <CreditCard className="h-5 w-5 text-blue-600" />
-                          <div>
-                            <div className="font-medium">Stripe</div>
-                            <div className="text-sm text-muted-foreground">Credit/Debit Card</div>
-                          </div>
-                        </div>
-                        <div className={`w-4 h-4 rounded-full border-2 ${
-                          selectedPaymentMethod === 'stripe' 
-                            ? 'border-blue-500 bg-blue-500' 
-                            : 'border-gray-300'
-                        }`}>
-                          {selectedPaymentMethod === 'stripe' && (
-                            <div className="w-full h-full rounded-full bg-white scale-50"></div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div 
-                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                        selectedPaymentMethod === 'paypal' 
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20' 
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => setSelectedPaymentMethod('paypal')}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center">
-                            <span className="text-white text-xs font-bold">P</span>
-                          </div>
-                          <div>
-                            <div className="font-medium">PayPal</div>
-                            <div className="text-sm text-muted-foreground">PayPal Account</div>
-                          </div>
-                        </div>
-                        <div className={`w-4 h-4 rounded-full border-2 ${
-                          selectedPaymentMethod === 'paypal' 
-                            ? 'border-blue-500 bg-blue-500' 
-                            : 'border-gray-300'
-                        }`}>
-                          {selectedPaymentMethod === 'paypal' && (
-                            <div className="w-full h-full rounded-full bg-white scale-50"></div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Payment Button */}
-                <div className="pt-4">
-                  <Button 
-                    onClick={handlePayment}
-                    disabled={isProcessingPayment || paymentMutation.isPending}
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                    size="lg"
-                  >
-                    {isProcessingPayment || paymentMutation.isPending ? (
-                      <div className="flex items-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Processing Payment...
-                      </div>
-                    ) : (
-                      `Pay $${targetingJob.estimatedCost} with ${selectedPaymentMethod === 'stripe' ? 'Stripe' : 'PayPal'}`
-                    )}
-                  </Button>
-                </div>
-
-                {/* Security Notice */}
-                <div className="text-center text-sm text-muted-foreground">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Shield className="h-4 w-4" />
-                    <span>Secure Payment</span>
-                  </div>
-                  <p>Your payment information is encrypted and secure</p>
-                </div>
+                {/* One-Time Payment Gateway */}
+                <OneTimePaymentGateway
+                  amount={targetingJob.estimatedCost}
+                  currency="USD"
+                  purpose="premium_targeting"
+                  itemId="pending"
+                  itemName={targetingJob.title}
+                  description="Complete payment to activate precision candidate targeting"
+                  onPaymentSuccess={(data) => {
+                    localStorage.removeItem('pendingTargetingJob');
+                    toast({
+                      title: "Premium Targeting Activated!",
+                      description: `Your job "${targetingJob.title}" is now live with premium targeting.`,
+                    });
+                    window.location.href = '/dashboard';
+                  }}
+                  onPaymentError={(error) => {
+                    toast({
+                      title: "Payment Failed",
+                      description: error.message || "Payment could not be processed. Please try again.",
+                      variant: "destructive",
+                    });
+                  }}
+                  disabled={isProcessingPayment}
+                />
               </CardContent>
             </Card>
           </div>

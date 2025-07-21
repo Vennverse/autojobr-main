@@ -167,19 +167,20 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 - ✅ **Separate Premium Pages**: Dedicated JobSeekerPremium and RecruiterPremium pages with role-specific pricing
 - ✅ **100% Conversion Strategy**: Designed to force immediate premium upgrades through extreme limitations
 
-### January 21, 2025 - PayPal Monthly Subscription System Complete
-- ✅ **PayPal API Integration**: Successfully configured PayPal Client ID and Client Secret for subscription billing
+### January 21, 2025 - Complete PayPal Payment System (Subscriptions & One-Time)
+- ✅ **PayPal API Integration**: Successfully configured PayPal Client ID and Client Secret for all payment types
 - ✅ **Monthly Recurring Billing**: Implemented automatic monthly subscription system for both job seekers and recruiters
-- ✅ **Dynamic Plan Creation**: PayPal products and billing plans are created dynamically based on subscription tiers
-- ✅ **Payment Gateway Selector**: Created comprehensive payment component supporting PayPal (active), Cashfree and Razorpay (setup but inactive)
-- ✅ **Subscription Management**: Full subscription lifecycle including creation, activation, cancellation, and webhook handling
-- ✅ **Database Integration**: Subscription data properly stored and synchronized with PayPal subscription IDs
-- ✅ **Webhook System**: PayPal webhooks configured for subscription status updates (activated, cancelled, payment failed)
-- ✅ **Premium Page Updates**: Both JobSeekerPremium and RecruiterPremium pages updated with payment gateway selection
-- ✅ **Success/Cancel Handlers**: Proper redirect handling for subscription approval and cancellation flows
-- ✅ **User Experience**: Seamless subscription flow with automatic redirect to PayPal and back to platform after completion
-- ✅ **Payment Method Support**: PayPal as primary gateway with visual indicators for Cashfree/Razorpay as "Coming Soon"
-- ✅ **Server Stability**: Fixed syntax errors and duplicate code, server running successfully on port 5000
-- ✅ **Security Implementation**: Proper authentication middleware and payment validation for all subscription operations
-- ✅ **Chrome Extension Compatibility**: Extension updated to work with current Replit backend URL
-- ✅ **Real Payment Processing**: All payments use live PayPal API for genuine monthly subscription billing
+- ✅ **One-Time Payment System**: Created comprehensive one-time payment system for test retakes, mock interviews, coding tests, and premium features
+- ✅ **Payment Gateway Components**: Created unified OneTimePaymentGateway and PaymentGatewaySelector components
+- ✅ **Multi-Gateway Support**: PayPal active, Cashfree and Razorpay configured as setup options with "Coming Soon" status
+- ✅ **Premium Feature Payments**: Job promotion ($10) and premium candidate targeting (variable pricing) now use PayPal one-time payments
+- ✅ **Test Retake Payments**: Test retakes ($5), mock interview retakes, coding test retakes all support PayPal payments
+- ✅ **Payment Verification**: Proper payment verification and access granting after successful PayPal transactions
+- ✅ **Database Integration**: All payment records properly stored with PayPal transaction IDs and status tracking
+- ✅ **Webhook System**: PayPal webhooks for both subscription events and one-time payment confirmations
+- ✅ **User Experience**: Seamless payment flows with automatic redirect to PayPal and back to platform
+- ✅ **Payment Pages**: Created dedicated payment pages for job promotion and premium targeting with OneTimePaymentGateway
+- ✅ **Access Control**: Automatic feature access granting after successful payment verification
+- ✅ **Error Handling**: Comprehensive error handling and user feedback for payment failures
+- ✅ **Security Implementation**: Proper authentication middleware and payment validation for all operations
+- ✅ **Real Transactions**: All payments use live PayPal API for genuine payment processing

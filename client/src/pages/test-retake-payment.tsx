@@ -23,6 +23,7 @@ import {
   Target,
   Brain
 } from "lucide-react";
+import OneTimePaymentGateway from "@/components/OneTimePaymentGateway";
 
 export default function TestRetakePayment() {
   const params = useParams<{ id: string }>();

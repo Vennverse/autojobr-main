@@ -2197,14 +2197,15 @@ export default function RecruiterDashboard() {
               <Button
                 onClick={() => {
                   if (selectedJobForPromote) {
-                    promoteJobMutation.mutate(selectedJobForPromote.id);
+                    setShowPromoteDialog(false);
+                    window.location.href = `/job-promotion-payment/${selectedJobForPromote.id}`;
                   }
                 }}
                 disabled={promoteJobMutation.isPending}
                 className="bg-green-600 hover:bg-green-700"
               >
                 <Zap className="w-4 h-4 mr-2" />
-                {promoteJobMutation.isPending ? "Processing..." : "Promote Job"}
+                Promote Job - $10
               </Button>
             </div>
           </div>
