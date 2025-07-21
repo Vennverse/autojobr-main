@@ -47,6 +47,7 @@ export function Navbar() {
         { href: "/test-assignments", label: "Test Assignments", icon: FileText },
         { href: "/profile", label: "Profile", icon: User },
         { href: "/chat", label: "Messages", icon: MessageCircle },
+        { href: "/job-seeker-view", label: "View as Job Seeker", icon: Users },
         { href: "/recruiter-premium", label: "🚀 Upgrade", icon: Crown, premium: true },
       ];
     } else {

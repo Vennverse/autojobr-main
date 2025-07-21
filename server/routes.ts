@@ -762,41 +762,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Delete used token
       await storage.deleteEmailVerificationToken(token as string);
 
-      // Get the updated user data
-      const updatedUser = await storage.getUser(updatedUserId);
-      
-      if (updatedUser) {
-        // Create session for the verified user
-        (req as any).session.user = {
-          id: updatedUser.id,
-          email: updatedUser.email,
-          name: updatedUser.userType === 'recruiter' 
-            ? (updatedUser.companyName || 'Recruiter')
-            : `${updatedUser.firstName || ''} ${updatedUser.lastName || ''}`.trim(),
-          firstName: updatedUser.firstName,
-          lastName: updatedUser.lastName,
-          userType: updatedUser.userType
-        };
-
-        // Force session save before redirecting
-        (req as any).session.save((err: any) => {
-          if (err) {
-            console.error('Session save error during verification:', err);
-            return res.status(500).json({ message: 'Verification failed - session error' });
-          }
-          
-          // Verification session saved for user
-          
-          // Redirect based on user type
-          if (updatedUser.userType === 'recruiter') {
-            res.redirect('/post-job?verified=true');
-          } else {
-            res.redirect('/onboarding?verified=true');
-          }
-        });
-      } else {
-        res.redirect('/post-job?verified=true');
-      }
+      // Redirect to sign in page after successful verification
+      // Don't auto-login, let user sign in manually
+      res.redirect('/auth?verified=true&message=Email verified successfully. Please sign in to continue.');
     } catch (error) {
       console.error("Error verifying email:", error);
       res.status(500).json({ message: "Failed to verify email" });

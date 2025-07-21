@@ -111,6 +111,7 @@ function Router() {
               <Route path="/subscription" component={RecruiterSubscription} />
               <Route path="/recruiter-premium" component={RecruiterPremium} />
               <Route path="/chat" component={MessagingPage} />
+              <Route path="/job-seeker-view" component={Dashboard} />
             </>
           ) : user?.userType === 'job_seeker' ? (
             <>
