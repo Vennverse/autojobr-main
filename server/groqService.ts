@@ -42,7 +42,8 @@ interface JobMatchAnalysis {
 }
 
 class GroqService {
-  public client: Groq;
+  public client: Groq | null;
+  private developmentMode: boolean;
   
   // AI Model Tiers - Using optimized model with higher rate limits and better context
   private readonly models = {
@@ -53,7 +54,10 @@ class GroqService {
   constructor() {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
-      throw new Error("GROQ_API_KEY environment variable is required");
+      console.warn("GROQ_API_KEY not set - AI analysis will be simulated in development mode");
+      this.developmentMode = true;
+      this.client = null;
+      return;
     }
     
     // Validate API key format
@@ -65,6 +69,7 @@ class GroqService {
     this.client = new Groq({
       apiKey: apiKey,
     });
+    this.developmentMode = false;
     console.log("Groq client initialized successfully");
   }
 
