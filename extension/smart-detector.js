@@ -405,9 +405,7 @@ class SmartJobDetector {
 
     // Login button
     document.getElementById('autojobr-login')?.addEventListener('click', () => {
-      chrome.tabs.create({ 
-        url: `${this.apiBase}/login` 
-      });
+      window.open(`${this.apiBase}/login`, '_blank');
     });
 
     // Autofill button
@@ -448,12 +446,20 @@ class SmartJobDetector {
 
     console.log('🚀 Starting autofill process...');
     
-    // Load and execute form filler
-    const formFiller = new FormFiller(this.userProfile);
-    await formFiller.fillJobApplicationForm();
-    
-    // Show success notification
-    this.showNotification('Form filled successfully!', 'success');
+    try {
+      // Load and execute form filler
+      if (typeof FormFiller !== 'undefined') {
+        const formFiller = new FormFiller(this.userProfile);
+        await formFiller.fillJobApplicationForm();
+        this.showNotification('Form filled successfully!', 'success');
+      } else {
+        console.error('FormFiller class not available');
+        this.showNotification('Autofill feature loading...', 'info');
+      }
+    } catch (error) {
+      console.error('Autofill failed:', error);
+      this.showNotification('Autofill failed', 'error');
+    }
   }
 
   async generateCoverLetter() {
@@ -620,8 +626,16 @@ class SmartJobDetector {
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    new SmartJobDetector();
+    try {
+      new SmartJobDetector();
+    } catch (error) {
+      console.error('AutoJobr SmartJobDetector initialization failed:', error);
+    }
   });
 } else {
-  new SmartJobDetector();
+  try {
+    new SmartJobDetector();
+  } catch (error) {
+    console.error('AutoJobr SmartJobDetector initialization failed:', error);
+  }
 }
