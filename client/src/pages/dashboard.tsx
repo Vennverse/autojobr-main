@@ -479,6 +479,14 @@ export default function Dashboard() {
               color: "orange",
               action: () => setLocation('/jobs'),
               gradient: "from-orange-500 to-red-500"
+            },
+            {
+              title: "Post a Job",
+              description: "Switch to recruiter mode and post jobs",
+              icon: Plus,
+              color: "teal",
+              action: () => setLocation('/post-job'),
+              gradient: "from-teal-500 to-cyan-600"
             }
           ].map((card, index) => (
             <motion.div
