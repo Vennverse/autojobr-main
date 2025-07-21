@@ -187,6 +187,56 @@ export async function setupAuth(app: Express) {
     }
   });
 
+  // Session refresh endpoint
+  app.post('/api/auth/refresh-session', async (req: any, res) => {
+    try {
+      const sessionUser = req.session?.user;
+      
+      if (!sessionUser) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      // Fetch fresh user data from database
+      const { storage } = await import("./storage");
+      const fullUser = await storage.getUser(sessionUser.id);
+      
+      if (fullUser) {
+        // Update session with fresh database data
+        req.session.user = {
+          id: fullUser.id,
+          email: fullUser.email,
+          name: `${fullUser.firstName || ''} ${fullUser.lastName || ''}`.trim(),
+          firstName: fullUser.firstName,
+          lastName: fullUser.lastName,
+          userType: fullUser.userType
+        };
+
+        // Save session
+        req.session.save((err: any) => {
+          if (err) {
+            console.error('Session refresh save error:', err);
+            return res.status(500).json({ message: 'Session refresh failed' });
+          }
+          
+          res.json({ 
+            message: 'Session refreshed successfully',
+            user: {
+              id: fullUser.id,
+              email: fullUser.email,
+              name: `${fullUser.firstName || ''} ${fullUser.lastName || ''}`.trim(),
+              userType: fullUser.userType
+            }
+          });
+        });
+      } else {
+        return res.status(404).json({ message: "User not found" });
+      }
+    } catch (error) {
+      console.error("Session refresh error:", error);
+      res.status(500).json({ message: "Failed to refresh session" });
+    }
+  });
+
   // Logout
   app.post('/api/auth/signout', (req: any, res) => {
     req.session.destroy((err: any) => {

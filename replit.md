@@ -192,7 +192,10 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 - ✅ **Email Verification Redirect**: Modified email verification flow to redirect users to sign-in page instead of auto-login
 - ✅ **Recruiter Job Seeker View**: Added "View as Job Seeker" navigation option in recruiter navbar
 - ✅ **Cross-Platform Dashboard Access**: Recruiters can now view the job seeker dashboard experience via `/job-seeker-view` route
-- ✅ **Security Enhancement**: Users must manually sign in after email verification for better security and user control verification
+- ✅ **Security Enhancement**: Users must manually sign in after email verification for better security and user control
+- ✅ **Company Verification Fix**: Fixed user type update issue where company verification didn't properly upgrade user from job_seeker to recruiter
+- ✅ **Session Refresh Endpoint**: Added `/api/auth/refresh-session` endpoint to update session data without requiring logout/login
+- ✅ **Database Consistency**: Fixed user type routing discrepancy by ensuring company verification properly updates user_type field verification
 - ✅ **Error Handling**: Comprehensive error handling and user feedback for payment failures
 - ✅ **Security Implementation**: Proper authentication middleware and payment validation for all operations
 - ✅ **Real Transactions**: All payments use live PayPal API for genuine payment processing

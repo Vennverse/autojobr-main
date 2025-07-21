@@ -794,6 +794,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Complete company verification - upgrade job_seeker to recruiter
+  app.post('/api/auth/complete-company-verification', isAuthenticated, async (req: any, res) => {
+    try {
+      const { companyName, companyWebsite } = req.body;
+      const userId = req.user.id;
+
+      if (!companyName) {
+        return res.status(400).json({ message: "Company name is required" });
+      }
+
+      // Get current user
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Update user to recruiter type with company info
+      await storage.upsertUser({
+        ...currentUser,
+        userType: 'recruiter',
+        companyName: companyName,
+        companyWebsite: companyWebsite || null,
+        availableRoles: "job_seeker,recruiter", // Allow both roles
+        currentRole: "recruiter" // Set active role to recruiter
+      });
+
+      // Record company verification
+      await db.insert(companyEmailVerifications).values({
+        userId: userId,
+        email: currentUser.email,
+        companyName: companyName,
+        companyWebsite: companyWebsite,
+        verificationToken: `manual-verification-${Date.now()}`,
+        isVerified: true,
+        verifiedAt: new Date(),
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+      });
+
+      // Update session to reflect new user type
+      req.session.user = {
+        ...req.session.user,
+        userType: 'recruiter'
+      };
+
+      // Save session
+      req.session.save((err: any) => {
+        if (err) {
+          console.error('Session save error after company verification:', err);
+          return res.status(500).json({ message: 'Verification completed but session update failed' });
+        }
+        
+        res.json({ 
+          message: 'Company verification completed successfully',
+          user: {
+            ...req.session.user,
+            userType: 'recruiter',
+            companyName: companyName
+          }
+        });
+      });
+
+    } catch (error) {
+      console.error("Error completing company verification:", error);
+      res.status(500).json({ message: "Failed to complete company verification" });
+    }
+  });
+
   // Complete onboarding
   app.post('/api/user/complete-onboarding', isAuthenticated, async (req: any, res) => {
     try {
