@@ -57,14 +57,18 @@ class SmartJobDetector {
   async init() {
     console.log('🚀 AutoJobr Smart Detector initialized');
     
-    // Check authentication status
-    await this.checkAuthentication();
+    // Check authentication status and wait for it to complete
+    const isAuth = await this.checkAuthentication();
+    console.log('Auth status after init:', isAuth);
     
-    // Detect if current page is a job posting
-    this.detectJobPage();
-    
-    // Set up observers for dynamic content
-    this.setupObservers();
+    // Small delay to ensure DOM is ready
+    setTimeout(() => {
+      // Detect if current page is a job posting
+      this.detectJobPage();
+      
+      // Set up observers for dynamic content
+      this.setupObservers();
+    }, 1000);
     
     // Listen for messages from popup
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -75,23 +79,33 @@ class SmartJobDetector {
 
   async checkAuthentication() {
     try {
+      console.log('🔍 Checking AutoJobr authentication...');
       const response = await fetch(`${this.apiBase}/api/user`, {
         credentials: 'include',
-        method: 'GET'
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
       });
+      
+      console.log('Auth response status:', response.status);
       
       if (response.ok) {
         const userData = await response.json();
         this.isAuthenticated = true;
+        console.log('✅ AutoJobr authenticated successfully', userData.email);
         await this.loadUserProfile();
-        console.log('✅ AutoJobr authenticated successfully');
+        return true;
       } else {
         this.isAuthenticated = false;
-        console.log('❌ AutoJobr not authenticated');
+        console.log('❌ AutoJobr not authenticated, status:', response.status);
+        return false;
       }
     } catch (error) {
       console.log('❌ AutoJobr authentication check failed:', error);
       this.isAuthenticated = false;
+      return false;
     }
   }
 
@@ -155,10 +169,23 @@ class SmartJobDetector {
     else if (hostname.includes('ziprecruiter.com')) platform = 'ziprecruiter';
     else if (hostname.includes('wellfound.com') || hostname.includes('angel.co')) platform = 'wellfound';
 
+    console.log('🔍 Detected platform:', platform);
+
     if (platform && this.hasJobContent(platform)) {
       this.isJobPage = true;
+      console.log('✅ Job page detected on', platform);
       this.extractJobData(platform);
+      
+      // Always show panel, but behavior depends on auth status
       this.showFloatingPanel();
+      
+      // If authenticated, automatically analyze
+      if (this.isAuthenticated && this.userProfile) {
+        console.log('🔍 Auto-analyzing job with user profile...');
+        this.analyzeJobMatch();
+      }
+    } else {
+      console.log('❌ No job content detected');
     }
   }
 

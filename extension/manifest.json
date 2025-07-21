@@ -13,7 +13,8 @@
   ],
   "host_permissions": [
     "https://*/*",
-    "http://*/*"
+    "http://*/*",
+    "https://6d490f6a-220b-4865-9c1e-56491791d355-00-fobjhe3sa4h6.spock.replit.dev/*"
   ],
   "background": {
     "service_worker": "background.js"
