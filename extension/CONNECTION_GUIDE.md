@@ -5,7 +5,7 @@
 ### 1. **Your Backend URL**
 Your AutoJobr backend is running at:
 ```
-https://6d490f6a-220b-4865-9c1e-56491791d355-00-fobjhe3sa4h6.spock.replit.dev
+https://workspace--5000.spock.replit.dev
 ```
 
 ### 2. **Load Extension in Chrome**
@@ -25,7 +25,7 @@ https://6d490f6a-220b-4865-9c1e-56491791d355-00-fobjhe3sa4h6.spock.replit.dev
 
 ### **Automatic Detection**
 The extension automatically tries these URLs in order:
-1. `https://6d490f6a-220b-4865-9c1e-56491791d355-00-fobjhe3sa4h6.spock.replit.dev` (Your current Replit)
+1. `https://workspace--5000.spock.replit.dev` (Your current Replit)
 2. `https://autojobr.replit.app` (If deployed)
 3. `http://localhost:5000` (Local development)
 
