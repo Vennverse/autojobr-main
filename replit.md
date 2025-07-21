@@ -177,7 +177,7 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 - ✅ **TypeScript Compilation**: Fixed compression module type errors and parameter type issues
 - ✅ **Client/Server Separation**: Proper security architecture maintained with authenticated API endpoints
 - ✅ **Payment Services**: Stripe integration disabled when key not provided, graceful fallback implemented
-- ✅ **Chrome Extension URL Update Complete**: Updated all 8 extension files with new Replit URL (workspace--5000.spock.replit.dev)
+- ✅ **Chrome Extension URL Update Complete**: Updated all 8 extension files with new Replit URL (0117fbd0-73a8-4b8b-932f-6621c1591b33-00-1jotg3lwkj0py.picard.replit.dev)
 - ✅ **Extension Files Updated**: config.js, background.js, popup.js, popup-old.js, smart-detector.js, manifest.json, CONNECTION_GUIDE.md, SETUP_GUIDE.md all updated
 - ✅ **Host Permissions**: Updated manifest.json with correct Replit domain permissions for extension functionality with current backend URL
 - ✅ **Chrome Extension Error Fixes**: Fixed chrome.tabs.create error by using window.open, enhanced error handling for cover letter generation
