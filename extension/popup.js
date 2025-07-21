@@ -263,7 +263,7 @@ class AutoJobrPopup {
 
   // Action Methods
   async openSignIn() {
-    const url = `${this.apiBase}/login`;
+    const url = `${this.apiBase}/auth`;
     await chrome.tabs.create({ url });
     window.close();
   }
@@ -288,10 +288,36 @@ class AutoJobrPopup {
 
   async retryConnection() {
     this.showLoadingState();
-    setTimeout(async () => {
-      await this.checkAuthentication();
-      this.updateUI();
-    }, 1000);
+    
+    // Clear any cached authentication state
+    this.isAuthenticated = false;
+    this.userProfile = null;
+    
+    // Try multiple times to establish connection
+    let attempts = 0;
+    let connected = false;
+    
+    while (attempts < 3 && !connected) {
+      attempts++;
+      try {
+        await Promise.all([
+          this.checkAuthentication(),
+          this.checkCurrentPage()
+        ]);
+        connected = this.isAuthenticated;
+        if (!connected && attempts < 3) {
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      } catch (error) {
+        console.log(`Connection attempt ${attempts} failed:`, error);
+        if (attempts < 3) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    }
+    
+    this.updateUI();
   }
 
   async performAutofill() {

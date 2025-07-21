@@ -90,26 +90,54 @@ class SmartJobDetector {
   async checkAuthentication() {
     try {
       console.log('🔍 Checking AutoJobr authentication...');
-      const response = await fetch(`${this.apiBase}/api/user`, {
-        credentials: 'include',
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
+      
+      // First try direct API call
+      try {
+        const response = await fetch(`${this.apiBase}/api/user`, {
+          credentials: 'include',
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log('Auth response status:', response.status);
+        
+        if (response.ok) {
+          const userData = await response.json();
+          this.isAuthenticated = true;
+          console.log('✅ AutoJobr authenticated successfully', userData.email);
+          await this.loadUserProfile();
+          return true;
+        } else {
+          this.isAuthenticated = false;
+          console.log('❌ AutoJobr not authenticated, status:', response.status);
+          return false;
         }
-      });
-      
-      console.log('Auth response status:', response.status);
-      
-      if (response.ok) {
-        const userData = await response.json();
-        this.isAuthenticated = true;
-        console.log('✅ AutoJobr authenticated successfully', userData.email);
-        await this.loadUserProfile();
-        return true;
-      } else {
+      } catch (fetchError) {
+        console.log('Direct API call failed (likely CORS), trying background script...');
+        
+        // Fallback: try through background script if available
+        if (chrome.runtime && chrome.runtime.sendMessage) {
+          try {
+            const response = await chrome.runtime.sendMessage({ action: 'CHECK_AUTH' });
+            if (response && response.success && response.authenticated) {
+              this.isAuthenticated = true;
+              console.log('✅ Authentication confirmed via background script');
+              // Load profile through background script
+              const profileResponse = await chrome.runtime.sendMessage({ action: 'GET_PROFILE' });
+              if (profileResponse && profileResponse.success) {
+                this.userProfile = profileResponse.profile;
+              }
+              return true;
+            }
+          } catch (bgError) {
+            console.log('Background script auth check also failed:', bgError);
+          }
+        }
+        
         this.isAuthenticated = false;
-        console.log('❌ AutoJobr not authenticated, status:', response.status);
         return false;
       }
     } catch (error) {
@@ -631,15 +659,20 @@ class SmartJobDetector {
         <div class="autojobr-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #4f46e5; color: white;">
           <div class="autojobr-logo" style="display: flex; align-items: center; gap: 8px;">
             ${iconUrl ? `<img src="${iconUrl}" alt="AutoJobr" style="width: 24px; height: 24px;">` : '🤖'}
-            <span style="font-weight: bold;">AutoJobr</span>
+            <span style="font-weight: bold;">AutoJobr Assistant</span>
           </div>
           <button class="autojobr-close" id="autojobr-close" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">×</button>
         </div>
         <div class="autojobr-content" style="padding: 16px; background: white; border-radius: 0 0 8px 8px;">
           <div class="autojobr-auth-required" style="text-align: center;">
-            <h3 style="margin: 0 0 8px 0; color: #374151;">Sign in to AutoJobr</h3>
-            <p style="margin: 0 0 16px 0; color: #6b7280;">Enhanced AI-powered job analysis and smart auto-fill</p>
-            <button class="autojobr-btn-primary" id="autojobr-login" style="background: #4f46e5; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">Sign In</button>
+            <div style="background: #fef3c7; border: 1px solid #fde68a; color: #92400e; padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 13px;">
+              ⚠️ Please Sign In
+            </div>
+            <h3 style="margin: 0 0 8px 0; color: #374151;">Enhanced AI-powered job analysis</h3>
+            <p style="margin: 0 0 16px 0; color: #6b7280; font-size: 13px;">✨ AI Job Analysis<br>⚡ Smart Auto-fill<br>📝 Generate Cover Letter</p>
+            <div style="display: flex; gap: 8px; justify-content: center;">
+              <button class="autojobr-btn-primary" id="autojobr-login" style="background: #4f46e5; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 14px;">Sign In to AutoJobr</button>
+            </div>
           </div>
         </div>
       `;

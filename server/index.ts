@@ -24,7 +24,7 @@ app.use(compression({
   }
 }));
 
-// CORS configuration for Chrome extension
+// CORS configuration for Chrome extension and external sites
 app.use(cors({
   origin: [
     'chrome-extension://*',
@@ -35,11 +35,30 @@ app.use(cors({
     /^https?:\/\/.*\.vercel\.app$/,
     /^https?:\/\/.*\.railway\.app$/,
     /^https?:\/\/.*\.netlify\.app$/,
+    // Job sites where the extension operates
+    'https://www.linkedin.com',
+    'https://linkedin.com',
+    'https://www.indeed.com',
+    'https://indeed.com',
+    'https://www.glassdoor.com',
+    'https://glassdoor.com',
+    'https://www.monster.com',
+    'https://monster.com',
+    'https://www.ziprecruiter.com',
+    'https://ziprecruiter.com',
+    'https://stackoverflow.com',
+    'https://www.stackoverflow.com',
+    'https://angel.co',
+    'https://www.angel.co',
+    'https://wellfound.com',
+    'https://www.wellfound.com',
     ...(process.env.PRODUCTION_DOMAIN ? [process.env.PRODUCTION_DOMAIN] : [])
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept', 'X-Requested-With'],
+  optionsSuccessStatus: 200, // Some legacy browsers choke on 204
+  preflightContinue: false
 }));
 
 app.use(express.json({ limit: '10mb' }));
