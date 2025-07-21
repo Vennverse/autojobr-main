@@ -72,21 +72,60 @@ class AutoJobrPopup {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       
-      if (tab) {
-        const response = await chrome.tabs.sendMessage(tab.id, {
-          action: 'GET_JOB_DATA'
-        });
+      if (tab && tab.url) {
+        // Check if current page is a supported job board
+        const isJobBoard = this.isJobBoardUrl(tab.url);
         
-        if (response && response.success) {
-          this.isJobPage = response.isJobPage;
-          this.currentJobData = response.jobData;
-          console.log('📋 Current page job status:', this.isJobPage);
+        if (isJobBoard) {
+          try {
+            // Add a timeout to the message
+            const response = await this.sendMessageWithTimeout(tab.id, {
+              action: 'GET_JOB_DATA'
+            }, 3000);
+            
+            if (response && response.success) {
+              this.isJobPage = response.isJobPage;
+              this.currentJobData = response.jobData;
+              console.log('📋 Current page job status:', this.isJobPage);
+            }
+          } catch (messageError) {
+            console.log('Content script not available, might be loading...');
+            this.isJobPage = false;
+          }
+        } else {
+          this.isJobPage = false;
         }
       }
     } catch (error) {
-      console.log('No content script available on current page');
+      console.log('Error checking current page:', error);
       this.isJobPage = false;
     }
+  }
+
+  isJobBoardUrl(url) {
+    const jobBoards = [
+      'linkedin.com', 'indeed.com', 'glassdoor.com', 'workday.com',
+      'lever.co', 'greenhouse.io', 'monster.com', 'ziprecruiter.com',
+      'wellfound.com', 'angel.co'
+    ];
+    return jobBoards.some(board => url.includes(board));
+  }
+
+  async sendMessageWithTimeout(tabId, message, timeout = 5000) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error('Message timeout'));
+      }, timeout);
+
+      chrome.tabs.sendMessage(tabId, message, (response) => {
+        clearTimeout(timer);
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          resolve(response);
+        }
+      });
+    });
   }
 
   setupEventListeners() {
@@ -318,21 +357,51 @@ class AutoJobrPopup {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       
       if (tab) {
-        await chrome.tabs.sendMessage(tab.id, {
-          action: 'ANALYZE_JOB'
-        });
+        // Show analyzing state
+        this.showAnalyzingState();
         
-        // Refresh job data after analysis
-        setTimeout(async () => {
-          await this.checkCurrentPage();
-          this.updateJobAnalysis();
-        }, 2000);
-        
-        this.showNotification('Job analysis started!', 'success');
+        try {
+          const response = await this.sendMessageWithTimeout(tab.id, {
+            action: 'ANALYZE_JOB'
+          }, 5000);
+          
+          if (response && response.success) {
+            // Refresh job data after analysis
+            setTimeout(async () => {
+              await this.checkCurrentPage();
+              this.updateJobAnalysis();
+            }, 1000);
+            
+            this.showNotification('Job analysis completed!', 'success');
+          } else {
+            this.showNotification('Analysis failed: ' + (response?.error || 'Unknown error'), 'error');
+          }
+        } catch (messageError) {
+          this.showNotification('Could not connect to page. Please refresh and try again.', 'error');
+        } finally {
+          this.resetAnalyzeButton();
+        }
       }
     } catch (error) {
       console.error('Job analysis failed:', error);
-      this.showNotification('Job analysis failed', 'error');
+      this.showNotification('Job analysis failed: ' + error.message, 'error');
+      this.resetAnalyzeButton();
+    }
+  }
+
+  showAnalyzingState() {
+    const analyzeBtn = document.getElementById('analyze-job-btn');
+    if (analyzeBtn) {
+      analyzeBtn.disabled = true;
+      analyzeBtn.textContent = '📊 Analyzing...';
+    }
+  }
+
+  resetAnalyzeButton() {
+    const analyzeBtn = document.getElementById('analyze-job-btn');
+    if (analyzeBtn) {
+      analyzeBtn.disabled = false;
+      analyzeBtn.textContent = '📊 Analyze Job Match';
     }
   }
 

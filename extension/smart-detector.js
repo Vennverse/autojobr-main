@@ -57,9 +57,17 @@ class SmartJobDetector {
   async init() {
     console.log('🚀 AutoJobr Smart Detector initialized');
     
+    // Set up message listener first
+    this.setupMessageListener();
+    
     // Check authentication status and wait for it to complete
     const isAuth = await this.checkAuthentication();
     console.log('Auth status after init:', isAuth);
+    
+    // If authenticated, load user profile
+    if (isAuth) {
+      await this.loadUserProfile();
+    }
     
     // Small delay to ensure DOM is ready
     setTimeout(() => {
@@ -114,11 +122,29 @@ class SmartJobDetector {
   async loadUserProfile() {
     if (!this.isAuthenticated) {
       console.log('Not authenticated, skipping profile load');
-      return;
+      return false;
     }
 
     try {
       console.log('📋 Loading user profile data...');
+      
+      // First try to load from cache if it's recent
+      try {
+        if (chrome.storage && chrome.storage.local) {
+          const cached = await chrome.storage.local.get('autojobr_profile');
+          if (cached.autojobr_profile && cached.autojobr_profile.lastUpdated) {
+            const cacheAge = Date.now() - cached.autojobr_profile.lastUpdated;
+            if (cacheAge < 30 * 60 * 1000) { // 30 minutes
+              this.userProfile = cached.autojobr_profile;
+              console.log('📦 Using recent cached user profile');
+              return true;
+            }
+          }
+        }
+      } catch (cacheError) {
+        console.log('Cache check failed:', cacheError);
+      }
+
       const [profileRes, skillsRes, experienceRes, educationRes] = await Promise.all([
         fetch(`${this.apiBase}/api/profile`, { credentials: 'include' }),
         fetch(`${this.apiBase}/api/skills`, { credentials: 'include' }),
@@ -166,6 +192,7 @@ class SmartJobDetector {
           experienceCount: experience?.length || 0,
           educationCount: education?.length || 0
         });
+        return true;
       } else {
         console.log('Some profile API calls failed, trying cached data');
         // Try to load from cache
@@ -175,11 +202,13 @@ class SmartJobDetector {
             if (cached.autojobr_profile) {
               this.userProfile = cached.autojobr_profile;
               console.log('📦 Using cached user profile');
+              return true;
             }
           }
         } catch (cacheError) {
           console.error('Failed to load cached profile:', cacheError);
         }
+        return false;
       }
     } catch (error) {
       console.error('Failed to load user profile:', error);
@@ -190,11 +219,13 @@ class SmartJobDetector {
           if (cached.autojobr_profile) {
             this.userProfile = cached.autojobr_profile;
             console.log('📦 Using cached user profile as fallback');
+            return true;
           }
         }
       } catch (cacheError) {
         console.error('Failed to load cached profile:', cacheError);
       }
+      return false;
     }
   }
 
@@ -284,11 +315,26 @@ class SmartJobDetector {
   }
 
   async analyzeJobMatch() {
-    if (!this.userProfile || !this.jobData) return;
+    // Check if we need to load user profile
+    if (!this.userProfile && this.isAuthenticated) {
+      console.log('Loading user profile for analysis...');
+      const profileLoaded = await this.loadUserProfile();
+      if (!profileLoaded) {
+        this.showNotification('Please complete your profile to enable job analysis', 'warning');
+        return;
+      }
+    }
+
+    if (!this.userProfile || !this.jobData) {
+      this.showNotification('Missing profile or job data for analysis', 'error');
+      return;
+    }
 
     try {
-      // Simple client-side matching algorithm
-      const analysis = this.performClientSideAnalysis();
+      this.showNotification('Analyzing job match...', 'info');
+      
+      // Enhanced NLP-style analysis
+      const analysis = this.performEnhancedAnalysis();
       
       // Store analysis results
       this.jobData.analysis = analysis;
@@ -297,33 +343,132 @@ class SmartJobDetector {
       this.updateFloatingPanel();
       
       console.log('📊 Job analysis completed:', analysis);
+      this.showNotification(`Analysis complete! ${analysis.matchScore}% match`, 'success');
     } catch (error) {
       console.error('Failed to analyze job:', error);
+      this.showNotification('Analysis failed. Please try again.', 'error');
     }
   }
 
-  performClientSideAnalysis() {
-    const { skills } = this.userProfile;
-    const { title, description, company } = this.jobData;
+  performEnhancedAnalysis() {
+    const { skills, experience, education, profile } = this.userProfile;
+    const { title, description, company, location, salary } = this.jobData;
     
-    if (!skills || !description) return { matchScore: 0, matches: [], missing: [] };
+    if (!description || !title) {
+      return { 
+        matchScore: 0, 
+        matchedSkills: [], 
+        missingSkills: [],
+        totalSkills: 0,
+        experienceYears: 0,
+        recommendation: 'Insufficient job data for analysis'
+      };
+    }
 
-    const descriptionLower = (title + ' ' + description).toLowerCase();
-    const userSkills = skills.map(s => s.skill?.toLowerCase() || s.toLowerCase());
+    const jobText = (title + ' ' + description + ' ' + (company || '')).toLowerCase();
+    const userSkills = (skills || []).map(s => s.skill?.toLowerCase() || s.toLowerCase());
     
-    let matchedSkills = [];
-    let matchScore = 0;
+    // Enhanced skill matching with NLP-like features
+    const skillAnalysis = this.performSkillMatching(jobText, userSkills);
+    
+    // Experience analysis
+    const experienceAnalysis = this.performExperienceAnalysis(jobText, experience || []);
+    
+    // Education analysis
+    const educationAnalysis = this.performEducationAnalysis(jobText, education || []);
+    
+    // Seniority level analysis
+    const seniorityAnalysis = this.analyzeSeniorityMatch(jobText, experienceAnalysis.totalYears);
+    
+    // Calculate weighted score
+    let totalScore = 0;
+    totalScore += skillAnalysis.score * 0.5; // 50% weight for skills
+    totalScore += experienceAnalysis.score * 0.3; // 30% weight for experience
+    totalScore += educationAnalysis.score * 0.1; // 10% weight for education
+    totalScore += seniorityAnalysis.score * 0.1; // 10% weight for seniority
+    
+    const matchScore = Math.min(Math.round(totalScore), 100);
+    
+    return {
+      matchScore,
+      matchedSkills: skillAnalysis.matched,
+      missingSkills: skillAnalysis.missing,
+      totalSkills: userSkills.length,
+      experienceYears: Math.round(experienceAnalysis.totalYears),
+      recommendation: this.generateRecommendation(matchScore, skillAnalysis, experienceAnalysis),
+      details: {
+        skillsScore: Math.round(skillAnalysis.score),
+        experienceScore: Math.round(experienceAnalysis.score),
+        educationScore: Math.round(educationAnalysis.score),
+        seniorityScore: Math.round(seniorityAnalysis.score)
+      }
+    };
+  }
 
-    // Check skill matches
+  performSkillMatching(jobText, userSkills) {
+    const matched = [];
+    const missing = [];
+    let score = 0;
+    
+    // Enhanced skill matching with synonyms and related terms
+    const skillSynonyms = {
+      'javascript': ['js', 'node.js', 'nodejs', 'react', 'vue', 'angular'],
+      'python': ['django', 'flask', 'fastapi', 'pandas', 'numpy'],
+      'java': ['spring', 'hibernate', 'maven', 'gradle'],
+      'sql': ['mysql', 'postgresql', 'database', 'rdbms'],
+      'aws': ['amazon web services', 'ec2', 's3', 'lambda'],
+      'docker': ['containerization', 'kubernetes', 'k8s'],
+      'git': ['version control', 'github', 'gitlab', 'bitbucket']
+    };
+    
     userSkills.forEach(skill => {
-      if (descriptionLower.includes(skill)) {
-        matchedSkills.push(skill);
-        matchScore += 10; // 10 points per matched skill
+      let skillFound = false;
+      
+      // Direct match
+      if (jobText.includes(skill)) {
+        matched.push(skill);
+        score += 15;
+        skillFound = true;
+      } else {
+        // Check synonyms
+        const synonyms = skillSynonyms[skill] || [];
+        for (const synonym of synonyms) {
+          if (jobText.includes(synonym)) {
+            matched.push(skill);
+            score += 10; // Slightly lower score for synonym match
+            skillFound = true;
+            break;
+          }
+        }
+      }
+      
+      if (!skillFound) {
+        missing.push(skill);
       }
     });
+    
+    // Extract required skills from job description
+    const requiredSkillPatterns = [
+      /required?\s*skills?:?\s*([^.]+)/gi,
+      /must\s+have:?\s*([^.]+)/gi,
+      /experience\s+with:?\s*([^.]+)/gi
+    ];
+    
+    const requiredSkills = [];
+    requiredSkillPatterns.forEach(pattern => {
+      const matches = jobText.match(pattern);
+      if (matches) {
+        matches.forEach(match => {
+          const skills = match.split(/[,;]/).map(s => s.trim().toLowerCase());
+          requiredSkills.push(...skills);
+        });
+      }
+    });
+    
+    return { matched, missing, score, requiredSkills };
+  }
 
-    // Bonus points for experience level match
-    const experience = this.userProfile.experience || [];
+  performExperienceAnalysis(jobText, experience) {
     const totalYears = experience.reduce((total, exp) => {
       if (exp.startDate && exp.endDate) {
         const start = new Date(exp.startDate);
@@ -332,23 +477,102 @@ class SmartJobDetector {
       }
       return total;
     }, 0);
+    
+    let score = 0;
+    
+    // Experience level scoring
+    if (totalYears >= 10) score = 100;
+    else if (totalYears >= 7) score = 90;
+    else if (totalYears >= 5) score = 80;
+    else if (totalYears >= 3) score = 70;
+    else if (totalYears >= 2) score = 60;
+    else if (totalYears >= 1) score = 50;
+    else score = 30;
+    
+    // Check for relevant experience titles
+    const relevantTitles = experience.filter(exp => {
+      const title = (exp.title || '').toLowerCase();
+      return jobText.includes(title) || 
+             title.split(' ').some(word => jobText.includes(word));
+    });
+    
+    if (relevantTitles.length > 0) {
+      score += 20; // Bonus for relevant titles
+    }
+    
+    return { totalYears, score, relevantExperience: relevantTitles.length };
+  }
 
-    if (totalYears >= 5) matchScore += 20;
-    else if (totalYears >= 3) matchScore += 15;
-    else if (totalYears >= 1) matchScore += 10;
+  performEducationAnalysis(jobText, education) {
+    let score = 50; // Base score
+    
+    if (!education || education.length === 0) return { score: 30 };
+    
+    education.forEach(edu => {
+      const degree = (edu.degree || '').toLowerCase();
+      const field = (edu.fieldOfStudy || '').toLowerCase();
+      
+      // Check if degree is mentioned in job
+      if (jobText.includes(degree) || jobText.includes(field)) {
+        score += 20;
+      }
+      
+      // Bonus for higher education
+      if (degree.includes('master') || degree.includes('mba')) {
+        score += 15;
+      } else if (degree.includes('bachelor')) {
+        score += 10;
+      } else if (degree.includes('phd') || degree.includes('doctorate')) {
+        score += 25;
+      }
+    });
+    
+    return { score: Math.min(score, 100) };
+  }
 
-    // Cap at 100%
-    matchScore = Math.min(matchScore, 100);
+  analyzeSeniorityMatch(jobText, experienceYears) {
+    let requiredSeniority = 'mid'; // default
+    let score = 50;
+    
+    // Detect seniority level from job text
+    if (jobText.includes('senior') || jobText.includes('lead') || jobText.includes('principal')) {
+      requiredSeniority = 'senior';
+    } else if (jobText.includes('junior') || jobText.includes('entry') || jobText.includes('graduate')) {
+      requiredSeniority = 'junior';
+    } else if (jobText.includes('director') || jobText.includes('manager') || jobText.includes('head of')) {
+      requiredSeniority = 'executive';
+    }
+    
+    // Match user experience to required seniority
+    const userSeniority = experienceYears >= 8 ? 'senior' : 
+                         experienceYears >= 3 ? 'mid' : 'junior';
+    
+    if (userSeniority === requiredSeniority) {
+      score = 100;
+    } else if (
+      (userSeniority === 'senior' && requiredSeniority === 'mid') ||
+      (userSeniority === 'mid' && requiredSeniority === 'junior')
+    ) {
+      score = 80; // Overqualified but good match
+    } else {
+      score = 40; // Underqualified or mismatched
+    }
+    
+    return { score, requiredSeniority, userSeniority };
+  }
 
-    return {
-      matchScore: Math.round(matchScore),
-      matchedSkills,
-      totalSkills: userSkills.length,
-      experienceYears: Math.round(totalYears),
-      recommendation: matchScore >= 80 ? 'Excellent match!' : 
-                    matchScore >= 60 ? 'Good match' : 
-                    matchScore >= 40 ? 'Fair match' : 'Consider other opportunities'
-    };
+  generateRecommendation(matchScore, skillAnalysis, experienceAnalysis) {
+    if (matchScore >= 85) {
+      return 'Excellent match! You should definitely apply.';
+    } else if (matchScore >= 70) {
+      return 'Strong match! This could be a great opportunity.';
+    } else if (matchScore >= 55) {
+      return 'Good match. Consider applying if interested.';
+    } else if (matchScore >= 40) {
+      return 'Fair match. You may want to improve some skills first.';
+    } else {
+      return 'Low match. Consider developing more relevant skills.';
+    }
   }
 
   showFloatingPanel() {
@@ -414,7 +638,7 @@ class SmartJobDetector {
         <div class="autojobr-content" style="padding: 16px; background: white; border-radius: 0 0 8px 8px;">
           <div class="autojobr-auth-required" style="text-align: center;">
             <h3 style="margin: 0 0 8px 0; color: #374151;">Sign in to AutoJobr</h3>
-            <p style="margin: 0 0 16px 0; color: #6b7280;">Access smart job analysis and auto-fill features</p>
+            <p style="margin: 0 0 16px 0; color: #6b7280;">Enhanced AI-powered job analysis and smart auto-fill</p>
             <button class="autojobr-btn-primary" id="autojobr-login" style="background: #4f46e5; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">Sign In</button>
           </div>
         </div>
@@ -519,6 +743,96 @@ class SmartJobDetector {
     }
   }
 
+  getFloatingPanelHTML() {
+    let analysisSection = '';
+    if (this.jobData?.analysis) {
+      const analysis = this.jobData.analysis;
+      const scoreColor = analysis.matchScore >= 80 ? '#10b981' : 
+                        analysis.matchScore >= 60 ? '#f59e0b' : '#ef4444';
+      
+      const details = analysis.details || {};
+      analysisSection = `
+        <div style="background: #f8fafc; border-radius: 8px; padding: 16px; margin: 16px 0; border-left: 4px solid ${scoreColor};">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <div style="width: 50px; height: 50px; border-radius: 50%; background: ${scoreColor}; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px;">
+              ${analysis.matchScore}%
+            </div>
+            <div>
+              <div style="font-weight: 600; color: #1f2937; margin-bottom: 2px;">AI Job Match Analysis</div>
+              <div style="font-size: 12px; color: #6b7280;">${analysis.recommendation}</div>
+            </div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; margin-bottom: 12px;">
+            <div style="text-align: center; padding: 8px; background: white; border-radius: 4px;">
+              <div style="font-weight: bold; color: #1f2937;">${analysis.matchedSkills?.length || 0}/${analysis.totalSkills || 0}</div>
+              <div style="color: #6b7280;">Skills Match</div>
+            </div>
+            <div style="text-align: center; padding: 8px; background: white; border-radius: 4px;">
+              <div style="font-weight: bold; color: #1f2937;">${analysis.experienceYears || 0}y</div>
+              <div style="color: #6b7280;">Experience</div>
+            </div>
+          </div>
+
+          ${details.skillsScore ? `
+            <div style="font-size: 11px; color: #6b7280; line-height: 1.4;">
+              <div style="margin-bottom: 4px;">
+                <span style="color: #1f2937; font-weight: 500;">Skills:</span> ${details.skillsScore}% • 
+                <span style="color: #1f2937; font-weight: 500;">Experience:</span> ${details.experienceScore}% • 
+                <span style="color: #1f2937; font-weight: 500;">Education:</span> ${details.educationScore}%
+              </div>
+              ${analysis.matchedSkills?.length > 0 ? `
+                <div style="margin-top: 8px;">
+                  <span style="color: #10b981; font-weight: 500;">✓ Matched:</span> ${analysis.matchedSkills.slice(0, 3).join(', ')}${analysis.matchedSkills.length > 3 ? '...' : ''}
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    return `
+      <div style="position: fixed; top: 20px; right: 20px; width: 320px; background: white; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); z-index: 10000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; border: 1px solid #e5e7eb;">
+        <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; padding: 16px; border-radius: 8px 8px 0 0; text-align: center;">
+          <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 700;">AutoJobr Assistant</h3>
+          <p style="margin: 0; font-size: 13px; opacity: 0.9;">Enhanced AI-powered job analysis</p>
+        </div>
+        
+        <div style="padding: 16px;">
+          ${this.isAuthenticated ? 
+            `<div style="display: flex; align-items: center; justify-content: center; gap: 8px; color: #10b981; font-size: 14px; margin-bottom: 16px;">
+              <div style="width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></div>
+              Connected & Ready
+            </div>` :
+            `<div style="display: flex; align-items: center; justify-content: center; gap: 8px; color: #ef4444; font-size: 14px; margin-bottom: 16px;">
+              <div style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%;"></div>
+              Please Sign In
+            </div>`
+          }
+
+          ${analysisSection}
+
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="autojobr-btn autojobr-btn-primary" id="autojobr-analyze" style="display: flex; align-items: center; justify-content: center; gap: 8px; background: #4f46e5; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.2s;">
+              <span>🧠</span> AI Job Analysis
+            </button>
+            
+            <button class="autojobr-btn autojobr-btn-primary" id="autojobr-autofill" style="display: flex; align-items: center; justify-content: center; gap: 8px; background: #059669; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.2s;">
+              <span>⚡</span> Smart Auto-fill
+            </button>
+            
+            <button class="autojobr-btn autojobr-btn-secondary" id="autojobr-cover-letter" style="display: flex; align-items: center; justify-content: center; gap: 8px; background: #f8fafc; color: #374151; border: 1px solid #e5e7eb; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.2s;">
+              <span>📝</span> Generate Cover Letter
+            </button>
+          </div>
+          
+          <button id="autojobr-close" style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.2); border: none; color: white; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 14px; line-height: 1;">×</button>
+        </div>
+      </div>
+    `;
+  }
+
   hideFloatingPanel() {
     if (this.floatingPanel) {
       this.floatingPanel.remove();
@@ -568,10 +882,23 @@ class SmartJobDetector {
       return;
     }
 
-    if (!this.userProfile) {
-      console.error('Missing user profile for cover letter generation');
+    if (!this.isAuthenticated) {
+      console.error('User not authenticated for cover letter generation');
       this.showNotification('Please sign in to generate cover letter', 'error');
       return;
+    }
+
+    if (!this.userProfile) {
+      console.error('Missing user profile for cover letter generation');
+      this.showNotification('Loading your profile...', 'info');
+      
+      // Try to reload the profile
+      await this.loadUserProfile();
+      
+      if (!this.userProfile) {
+        this.showNotification('Unable to load profile. Please try refreshing the page.', 'error');
+        return;
+      }
     }
 
     if (!this.jobData.description || !this.jobData.company) {
@@ -782,6 +1109,17 @@ class SmartJobDetector {
             sendResponse({ success: false, error: error.message });
           });
           return true; // Async response
+
+        case 'ANALYZE_JOB':
+          this.analyzeJobMatch().then(() => {
+            sendResponse({ 
+              success: true, 
+              analysis: this.jobData?.analysis || null 
+            });
+          }).catch(error => {
+            sendResponse({ success: false, error: error.message });
+          });
+          return true; // Async response
           
         default:
           sendResponse({ success: false, error: 'Unknown action' });
@@ -791,6 +1129,13 @@ class SmartJobDetector {
       sendResponse({ success: false, error: error.message });
     }
     return true; // Keep message channel open for async responses
+  }
+
+  setupMessageListener() {
+    // Set up message listener for popup communication
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      return this.handleMessage(message, sender, sendResponse);
+    });
   }
 }
 

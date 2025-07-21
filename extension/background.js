@@ -16,10 +16,70 @@ class AutoJobrBackground {
       }
     });
 
+    // Listen for messages from popup and content scripts
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      this.handleMessage(message, sender, sendResponse);
+      return true; // Keep message channel open for async responses
+    });
+
     // Initialize authentication check
     this.checkAuthentication();
     
     console.log('AutoJobr background script initialized');
+  }
+
+  async handleMessage(message, sender, sendResponse) {
+    try {
+      switch (message.action) {
+        case 'CHECK_AUTH':
+          await this.checkAuthentication();
+          sendResponse({
+            success: true,
+            authenticated: this.isAuthenticated,
+            profile: this.userProfile
+          });
+          break;
+
+        case 'GET_PROFILE':
+          if (this.isAuthenticated) {
+            if (!this.userProfile) {
+              await this.loadUserProfile();
+            }
+            sendResponse({
+              success: true,
+              profile: this.userProfile
+            });
+          } else {
+            sendResponse({
+              success: false,
+              error: 'Not authenticated'
+            });
+          }
+          break;
+
+        case 'SAVE_JOB':
+          const saveResult = await this.saveJob(message.jobData);
+          sendResponse(saveResult);
+          break;
+
+        case 'TRACK_APPLICATION':
+          const trackResult = await this.trackApplication(message.applicationData);
+          sendResponse(trackResult);
+          break;
+
+        default:
+          sendResponse({
+            success: false,
+            error: 'Unknown action: ' + message.action
+          });
+      }
+    } catch (error) {
+      console.error('Background message handling error:', error);
+      sendResponse({
+        success: false,
+        error: error.message
+      });
+    }
   }
 
   async checkAuthentication() {
