@@ -39,6 +39,7 @@ const authConfig = {
 
 export async function setupAuth(app: Express) {
   // Setup session middleware with memory store for development
+  console.log('🔑 Setting up session middleware...');
   app.use(session({
     secret: authConfig.session.secret,
     resave: false,
@@ -49,7 +50,9 @@ export async function setupAuth(app: Express) {
       maxAge: authConfig.session.maxAge,
       sameSite: 'lax',
     },
+    name: 'autojobr.sid' // Custom session name
   }));
+  console.log('✅ Session middleware configured successfully');
 
   // Auth status endpoint with caching
   const providersCache = {
@@ -971,17 +974,21 @@ export async function setupAuth(app: Express) {
 // Middleware to check authentication
 export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
   try {
-    console.log('Session check:', req.session?.user ? 'User found' : 'No user in session');
+    console.log('=== Authentication Check ===');
     console.log('Session ID:', req.sessionID);
+    console.log('Session data:', req.session);
+    console.log('Session user:', req.session?.user);
+    console.log('Has session?', !!req.session);
+    console.log('Has session.user?', !!req.session?.user);
     
     const sessionUser = req.session?.user;
     
     if (!sessionUser) {
-      console.log('No authenticated user in session');
+      console.log('❌ No authenticated user in session');
       return res.status(401).json({ message: "Not authenticated" });
     }
 
-    console.log('Authenticated user:', sessionUser.id);
+    console.log('✅ Authenticated user:', sessionUser.id, sessionUser.email);
     
     // For real users, use session data
     req.user = {
