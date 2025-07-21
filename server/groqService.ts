@@ -79,6 +79,35 @@ class GroqService {
     return { tier: 'premium' };
   }
 
+  private generateFallbackResumeAnalysis(accessInfo: { tier: 'premium' | 'basic', message?: string }): ResumeAnalysis & { aiTier?: string, upgradeMessage?: string } {
+    return {
+      atsScore: 75,
+      recommendations: [
+        "Resume analysis will be available when AI service is configured",
+        "Add specific metrics and numbers to quantify your achievements",
+        "Include more relevant technical skills for your target industry",
+        "Use stronger action verbs to describe your accomplishments"
+      ],
+      keywordOptimization: {
+        missingKeywords: ["technical skills", "industry-specific tools"],
+        overusedKeywords: [],
+        suggestions: ["Add role-specific technical terms", "Include metrics and percentages", "Use action-oriented language"]
+      },
+      formatting: {
+        score: 70,
+        issues: [],
+        improvements: ["Use consistent bullet points", "Include clear section headers", "Ensure proper spacing and alignment"]
+      },
+      content: {
+        strengthsFound: ["Well-structured content"],
+        weaknesses: ["Could benefit from more specific details"],
+        suggestions: ["Add specific numbers and percentages to achievements", "Include more detailed work experience descriptions", "Highlight measurable impact and results"]
+      },
+      aiTier: accessInfo.tier,
+      upgradeMessage: accessInfo.message
+    };
+  }
+
   private generateFallbackJobAnalysis(accessInfo: { tier: 'premium' | 'basic', message?: string }): JobMatchAnalysis & { aiTier?: string, upgradeMessage?: string } {
     return {
       matchScore: 45,
@@ -156,6 +185,12 @@ ${resumeText}
 
     try {
       const accessInfo = this.hasAIAccess(user);
+      
+      if (this.developmentMode || !this.client) {
+        console.log("Running in development mode - using fallback resume analysis");
+        return this.generateFallbackResumeAnalysis(accessInfo);
+      }
+
       const completion = await this.client.chat.completions.create({
         messages: [
           {
@@ -465,6 +500,12 @@ Return detailed JSON:
 
     try {
       const accessInfo = this.hasAIAccess(user);
+      
+      if (this.developmentMode || !this.client) {
+        console.log("Running in development mode - using fallback job analysis");
+        return this.generateFallbackJobAnalysis(accessInfo);
+      }
+
       console.log(`Making Groq API call for job analysis with model: ${this.getModel(user)}`);
       
       const completion = await this.client.chat.completions.create({
@@ -603,6 +644,21 @@ Be precise and only extract information that is explicitly stated in the job pos
 `;
 
     try {
+      if (this.developmentMode || !this.client) {
+        console.log("Running in development mode - using fallback job extraction");
+        return {
+          title: "Sample Job Title",
+          company: "Sample Company",
+          location: "Remote",
+          workMode: "remote",
+          jobType: "full-time",
+          salaryRange: "not_specified",
+          requiredSkills: ["Sample skill"],
+          qualifications: ["Sample qualification"],
+          benefits: ["Sample benefit"]
+        };
+      }
+
       const completion = await this.client.chat.completions.create({
         messages: [
           {
@@ -643,6 +699,11 @@ Skills: ${userSkills.map((s: any) => s.skillName).join(', ').substring(0, 100)}.
 
 Return JSON array:
 [{"id":"ai-1","title":"Job Title","company":"Company","location":"City","description":"Brief desc","requirements":["req1"],"matchScore":85,"salaryRange":"$80k-120k","workMode":"Remote","postedDate":"2024-01-15T10:00:00Z","applicationUrl":"https://company.com/jobs","benefits":["benefit1"],"isBookmarked":false}]`;
+
+      if (this.developmentMode || !this.client) {
+        console.log("Running in development mode - using fallback job recommendations");
+        return [];
+      }
 
       const completion = await this.client.chat.completions.create({
         model: "llama-3.1-8b-instant",
