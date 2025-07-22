@@ -1,13 +1,5 @@
 import { Resend } from 'resend';
-
-// Make Resend optional for development
-let resend: Resend | null = null;
-
-if (process.env.RESEND_API_KEY) {
-  resend = new Resend(process.env.RESEND_API_KEY);
-} else {
-  console.log('RESEND_API_KEY not set - email sending will be simulated in development mode');
-}
+import { apiKeyRotationService } from './apiKeyRotationService.js';
 
 interface EmailParams {
   to: string;
@@ -17,9 +9,11 @@ interface EmailParams {
 
 export async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
-    // Always try to send real emails if Resend is configured
-    if (!resend) {
-      console.log('=== EMAIL SIMULATION (No Resend API Key) ===');
+    const status = apiKeyRotationService.getStatus();
+    
+    // Check if any Resend keys are available
+    if (status.resend.totalKeys === 0) {
+      console.log('=== EMAIL SIMULATION (No Resend API Keys) ===');
       console.log('To:', params.to);
       console.log('Subject:', params.subject);
       console.log('HTML Content (truncated):', params.html.substring(0, 200) + '...');
@@ -27,35 +21,42 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
       return true; // Pretend email was sent successfully
     }
 
-    // This check should not be needed since we already checked above
-    // if (!resend) {
-    //   console.error('Resend not configured - cannot send email');
-    //   return false;
-    // }
+    // Use rotation service to send email
+    const result = await apiKeyRotationService.executeWithResendRotation(async (resend) => {
+      const { data, error } = await resend.emails.send({
+        from: 'AutoJobr <noreply@vennverse.com>',
+        to: params.to,
+        subject: params.subject,
+        html: params.html,
+      });
 
-    const { data, error } = await resend.emails.send({
-      from: 'AutoJobr <noreply@vennverse.com>',
-      to: params.to,
-      subject: params.subject,
-      html: params.html,
+      if (error) {
+        // In case of email service failure, log the verification URL for manual testing
+        if (params.html.includes('verify-email?token=')) {
+          const tokenMatch = params.html.match(/verify-email\?token=([^"]+)/);
+          if (tokenMatch) {
+            console.log('MANUAL VERIFICATION URL:', `http://localhost:5000/verify-email?token=${tokenMatch[1]}`);
+          }
+        }
+        throw new Error(`Resend API error: ${JSON.stringify(error)}`);
+      }
+
+      console.log('Email sent successfully:', data?.id);
+      return data;
     });
 
-    if (error) {
-      console.error('Resend error:', error);
-      // In case of email service failure, log the verification URL for manual testing
-      if (params.html.includes('verify-email?token=')) {
-        const tokenMatch = params.html.match(/verify-email\?token=([^"]+)/);
-        if (tokenMatch) {
-          console.log('MANUAL VERIFICATION URL:', `http://localhost:5000/verify-email?token=${tokenMatch[1]}`);
-        }
-      }
-      return false;
-    }
-
-    console.log('Email sent successfully:', data?.id);
     return true;
   } catch (error) {
     console.error('Email sending error:', error);
+    
+    // Fallback simulation for complete failures
+    if (params.html.includes('verify-email?token=')) {
+      const tokenMatch = params.html.match(/verify-email\?token=([^"]+)/);
+      if (tokenMatch) {
+        console.log('FALLBACK VERIFICATION URL:', `http://localhost:5000/verify-email?token=${tokenMatch[1]}`);
+      }
+    }
+    
     return false;
   }
 }

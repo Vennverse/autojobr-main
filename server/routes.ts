@@ -8,6 +8,7 @@ import { db } from "./db";
 import { eq, desc, and, or, like, isNotNull, count, asc, isNull, sql } from "drizzle-orm";
 import * as schema from "@shared/schema";
 import { resumes } from "@shared/schema";
+import { apiKeyRotationService } from "./apiKeyRotationService.js";
 
 // Enhanced in-memory cache with better performance
 const cache = new Map();
@@ -8130,6 +8131,59 @@ Host: https://autojobr.com`;
     } catch (error) {
       console.error('Error creating retake payment:', error);
       res.status(500).json({ error: 'Failed to create retake payment' });
+    }
+  });
+
+  // ========================================
+  // API Key Rotation Management (Admin)
+  // ========================================
+  
+  // Get API key rotation status
+  app.get('/api/admin/api-keys/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      // Simple admin check - you can enhance this with proper admin roles
+      if (!user?.email?.includes('admin') && user?.userType !== 'recruiter') {
+        return res.status(403).json({ message: 'Access denied. Admin access required.' });
+      }
+
+      const status = apiKeyRotationService.getStatus();
+      res.json({
+        success: true,
+        apiKeyStatus: status,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error fetching API key status:', error);
+      res.status(500).json({ message: 'Failed to fetch API key status' });
+    }
+  });
+  
+  // Reset failed API keys (Admin)
+  app.post('/api/admin/api-keys/reset', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      // Simple admin check - you can enhance this with proper admin roles  
+      if (!user?.email?.includes('admin') && user?.userType !== 'recruiter') {
+        return res.status(403).json({ message: 'Access denied. Admin access required.' });
+      }
+
+      const { service } = req.body; // 'groq', 'resend', or undefined for both
+      
+      apiKeyRotationService.resetFailedKeys(service);
+      
+      res.json({
+        success: true,
+        message: `${service ? service.toUpperCase() : 'All'} failed API keys have been reset`,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error resetting API keys:', error);
+      res.status(500).json({ message: 'Failed to reset API keys' });
     }
   });
 

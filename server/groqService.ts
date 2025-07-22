@@ -1,4 +1,5 @@
 import Groq from "groq-sdk";
+import { apiKeyRotationService } from "./apiKeyRotationService.js";
 
 interface ResumeAnalysis {
   atsScore: number;
@@ -52,25 +53,17 @@ class GroqService {
   };
 
   constructor() {
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) {
-      console.warn("GROQ_API_KEY not set - AI analysis will be simulated in development mode");
+    const status = apiKeyRotationService.getStatus();
+    if (status.groq.totalKeys === 0) {
+      console.warn("No GROQ API keys configured - AI analysis will be simulated in development mode");
       this.developmentMode = true;
       this.client = null;
       return;
     }
     
-    // Validate API key format
-    if (!apiKey.startsWith('gsk_') || apiKey.length < 50) {
-      console.warn(`Invalid GROQ API key format. Expected gsk_... with 50+ chars, got: ${apiKey.substring(0, 10)}... (${apiKey.length} chars)`);
-    }
-    
-    console.log(`Initializing Groq with API key: ${apiKey.substring(0, 20)}... (${apiKey.length} chars)`);
-    this.client = new Groq({
-      apiKey: apiKey,
-    });
+    console.log(`Groq Service initialized with ${status.groq.totalKeys} API keys (${status.groq.availableKeys} available)`);
     this.developmentMode = false;
-    console.log("Groq client initialized successfully");
+    this.client = null; // Will use rotation service instead
   }
 
   // All users get the same fast, cost-effective model
@@ -186,25 +179,27 @@ ${resumeText}
     try {
       const accessInfo = this.hasAIAccess(user);
       
-      if (this.developmentMode || !this.client) {
+      if (this.developmentMode) {
         console.log("Running in development mode - using fallback resume analysis");
         return this.generateFallbackResumeAnalysis(accessInfo);
       }
 
-      const completion = await this.client.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert ATS resume analyzer. Analyze resumes and return valid JSON only. No code, no explanations, just the requested JSON structure."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        model: this.getModel(user),
-        temperature: 0.2,
-        max_tokens: 1000,
+      const completion = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
+        return await client.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert ATS resume analyzer. Analyze resumes and return valid JSON only. No code, no explanations, just the requested JSON structure."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          model: this.getModel(user),
+          temperature: 0.2,
+          max_tokens: 1000,
+        });
       });
 
       const content = completion.choices[0]?.message?.content;
@@ -501,27 +496,29 @@ Return detailed JSON:
     try {
       const accessInfo = this.hasAIAccess(user);
       
-      if (this.developmentMode || !this.client) {
+      if (this.developmentMode) {
         console.log("Running in development mode - using fallback job analysis");
         return this.generateFallbackJobAnalysis(accessInfo);
       }
 
       console.log(`Making Groq API call for job analysis with model: ${this.getModel(user)}`);
       
-      const completion = await this.client.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert career coach. Analyze job matches and return valid JSON only. No code, no explanations, just the requested JSON structure."
-          },
-          {
-            role: "user", 
-            content: prompt
-          }
-        ],
-        model: this.getModel(user),
-        temperature: 0.1,
-        max_tokens: 800,
+      const completion = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
+        return await client.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert career coach. Analyze job matches and return valid JSON only. No code, no explanations, just the requested JSON structure."
+            },
+            {
+              role: "user", 
+              content: prompt
+            }
+          ],
+          model: this.getModel(user),
+          temperature: 0.1,
+          max_tokens: 800,
+        });
       });
       
       console.log("Groq API call successful for job analysis");
@@ -644,7 +641,7 @@ Be precise and only extract information that is explicitly stated in the job pos
 `;
 
     try {
-      if (this.developmentMode || !this.client) {
+      if (this.developmentMode) {
         console.log("Running in development mode - using fallback job extraction");
         return {
           title: "Sample Job Title",
@@ -659,20 +656,22 @@ Be precise and only extract information that is explicitly stated in the job pos
         };
       }
 
-      const completion = await this.client.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert at extracting structured information from job postings. Return valid JSON only."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        model: "llama-3.1-8b-instant",
-        temperature: 0.1,
-        max_tokens: 1000,
+      const completion = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
+        return await client.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert at extracting structured information from job postings. Return valid JSON only."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          model: "llama-3.1-8b-instant",
+          temperature: 0.1,
+          max_tokens: 1000,
+        });
       });
 
       const content = completion.choices[0]?.message?.content;
@@ -700,16 +699,18 @@ Skills: ${userSkills.map((s: any) => s.skillName).join(', ').substring(0, 100)}.
 Return JSON array:
 [{"id":"ai-1","title":"Job Title","company":"Company","location":"City","description":"Brief desc","requirements":["req1"],"matchScore":85,"salaryRange":"$80k-120k","workMode":"Remote","postedDate":"2024-01-15T10:00:00Z","applicationUrl":"https://company.com/jobs","benefits":["benefit1"],"isBookmarked":false}]`;
 
-      if (this.developmentMode || !this.client) {
+      if (this.developmentMode) {
         console.log("Running in development mode - using fallback job recommendations");
         return [];
       }
 
-      const completion = await this.client.chat.completions.create({
-        model: "llama-3.1-8b-instant",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.3,
-        max_tokens: 1500,
+      const completion = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
+        return await client.chat.completions.create({
+          model: "llama-3.1-8b-instant",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.3,
+          max_tokens: 1500,
+        });
       });
 
       const content = completion.choices[0]?.message?.content;
