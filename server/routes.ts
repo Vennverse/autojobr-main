@@ -1,9 +1,14 @@
-import type { Express } from "express";
+import express, { type Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import path from "path";
 import fs from "fs";
 import multer from "multer";
+import { fileURLToPath } from "url";
+
+// Fix for __dirname in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import { db } from "./db";
 import { eq, desc, and, or, like, isNotNull, count, asc, isNull, sql } from "drizzle-orm";
 import * as schema from "@shared/schema";
@@ -218,6 +223,19 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Serve static files from uploads directory
+  app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+  
+  // Ensure uploads directory exists
+  const uploadsDir = path.join(__dirname, '../uploads');
+  const profilesDir = path.join(uploadsDir, 'profiles');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  if (!fs.existsSync(profilesDir)) {
+    fs.mkdirSync(profilesDir, { recursive: true });
+  }
+
   // Health check endpoint for deployment verification
   app.get('/api/health', (req, res) => {
     res.status(200).json({ 
@@ -2789,6 +2807,161 @@ Additional Information:
     } catch (error) {
       console.error("Error adding manual application:", error);
       res.status(500).json({ message: "Failed to add application" });
+    }
+  });
+
+  // Profile Image Management Routes
+  const profileUpload = multer({
+    storage: multer.diskStorage({
+      destination: function (req, file, cb) {
+        const uploadPath = path.join(__dirname, '../uploads/profiles');
+        if (!fs.existsSync(uploadPath)) {
+          fs.mkdirSync(uploadPath, { recursive: true });
+        }
+        cb(null, uploadPath);
+      },
+      filename: function (req, file, cb) {
+        const userId = req.body.userId;
+        const fileExtension = path.extname(file.originalname);
+        cb(null, `profile-${userId}-${Date.now()}${fileExtension}`);
+      }
+    }),
+    limits: {
+      fileSize: 5 * 1024 * 1024 // 5MB limit
+    },
+    fileFilter: function (req, file, cb) {
+      // Accept only image files
+      if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only image files are allowed'), false);
+      }
+    }
+  });
+
+  // Upload profile image
+  app.post('/api/upload-profile-image', isAuthenticated, profileUpload.single('profileImage'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+
+      // Generate URL for the uploaded file
+      const imageUrl = `/uploads/profiles/${req.file.filename}`;
+
+      // Update user's profile image URL in database
+      await db.update(schema.users)
+        .set({ 
+          profileImageUrl: imageUrl,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.users.id, userId));
+
+      // Update session data
+      if (req.session && req.session.user) {
+        req.session.user.profileImageUrl = imageUrl;
+      }
+
+      // Clear user cache
+      invalidateUserCache(userId);
+
+      res.json({ 
+        imageUrl,
+        message: 'Profile image uploaded successfully' 
+      });
+    } catch (error) {
+      console.error('Profile image upload error:', error);
+      // Clean up uploaded file on error
+      if (req.file) {
+        fs.unlink(req.file.path, () => {});
+      }
+      res.status(500).json({ message: 'Failed to upload profile image' });
+    }
+  });
+
+  // Update profile image URL
+  app.post('/api/update-profile-image-url', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { imageUrl } = req.body;
+
+      if (!imageUrl || typeof imageUrl !== 'string') {
+        return res.status(400).json({ message: 'Valid image URL is required' });
+      }
+
+      // Basic URL validation
+      try {
+        new URL(imageUrl);
+      } catch {
+        return res.status(400).json({ message: 'Invalid URL format' });
+      }
+
+      // Update user's profile image URL in database
+      await db.update(schema.users)
+        .set({ 
+          profileImageUrl: imageUrl,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.users.id, userId));
+
+      // Update session data
+      if (req.session && req.session.user) {
+        req.session.user.profileImageUrl = imageUrl;
+      }
+
+      // Clear user cache
+      invalidateUserCache(userId);
+
+      res.json({ 
+        imageUrl,
+        message: 'Profile image URL updated successfully' 
+      });
+    } catch (error) {
+      console.error('Profile image URL update error:', error);
+      res.status(500).json({ message: 'Failed to update profile image URL' });
+    }
+  });
+
+  // Remove profile image
+  app.post('/api/remove-profile-image', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+
+      // Get current profile image to delete file if it's a local upload
+      const [user] = await db.select()
+        .from(schema.users)
+        .where(eq(schema.users.id, userId));
+
+      // Remove profile image URL from database
+      await db.update(schema.users)
+        .set({ 
+          profileImageUrl: null,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.users.id, userId));
+
+      // Delete local file if it exists
+      if (user?.profileImageUrl?.startsWith('/uploads/profiles/')) {
+        const filePath = path.join(__dirname, '../', user.profileImageUrl);
+        fs.unlink(filePath, (err) => {
+          if (err) console.error('Error deleting profile image file:', err);
+        });
+      }
+
+      // Update session data
+      if (req.session && req.session.user) {
+        req.session.user.profileImageUrl = null;
+      }
+
+      // Clear user cache
+      invalidateUserCache(userId);
+
+      res.json({ message: 'Profile image removed successfully' });
+    } catch (error) {
+      console.error('Profile image removal error:', error);
+      res.status(500).json({ message: 'Failed to remove profile image' });
     }
   });
 

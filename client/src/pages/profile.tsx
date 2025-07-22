@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import { Navbar } from "@/components/navbar";
+import { ProfileAvatar } from "@/components/profile-avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -402,16 +403,23 @@ export default function Profile() {
                 {/* Profile Overview */}
                 <div className="lg:col-span-1">
                   <div className="text-center">
-                    <div className="w-32 h-32 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                      {user?.profileImageUrl ? (
-                        <img
-                          src={user.profileImageUrl}
-                          alt="Profile"
-                          className="w-32 h-32 rounded-full object-cover"
-                        />
-                      ) : (
-                        <User className="w-16 h-16 text-primary" />
-                      )}
+                    <div className="mb-4">
+                      <ProfileAvatar 
+                        user={{
+                          id: user?.id || '',
+                          email: user?.email || '',
+                          firstName: user?.firstName,
+                          lastName: user?.lastName,
+                          profileImageUrl: user?.profileImageUrl
+                        }} 
+                        size="xl" 
+                        editable={true}
+                        showUploadButton={true}
+                        onImageUpdate={(imageUrl) => {
+                          // Update user session data
+                          queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+                        }}
+                      />
                     </div>
                     <h3 className="text-lg font-semibold text-foreground mb-2">
                       {user?.firstName} {user?.lastName}

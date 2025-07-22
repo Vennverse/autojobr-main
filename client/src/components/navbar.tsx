@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/profile-avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Rocket, Moon, Sun, User, Settings, LogOut, BarChart3, FileText, Briefcase, Crown, Menu, X, Plus, MessageCircle, Search, Target, Brain, Users, Trophy, Code, Bell, Upload, Zap, HelpCircle, ChevronDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -175,18 +176,16 @@ export function Navbar() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild className="hidden md:flex">
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage 
-                        src={user?.profileImageUrl || ""} 
-                        alt={`${user?.firstName} ${user?.lastName}`} 
-                      />
-                      <AvatarFallback>
-                        {user?.firstName?.[0] && user?.lastName?.[0] 
-                          ? `${user.firstName[0]}${user.lastName[0]}` 
-                          : user?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'
-                        }
-                      </AvatarFallback>
-                    </Avatar>
+                    <UserAvatar 
+                      user={{
+                        id: user?.id || '',
+                        email: user?.email || '',
+                        firstName: user?.firstName,
+                        lastName: user?.lastName,
+                        profileImageUrl: user?.profileImageUrl
+                      }} 
+                      size="sm" 
+                    />
                   </Button>
                 </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
@@ -291,18 +290,17 @@ export function Navbar() {
                 <>
                   <div className="border-t border-border pt-4 mt-4">
                     <div className="flex items-center px-3 py-2">
-                      <Avatar className="h-8 w-8 mr-3">
-                        <AvatarImage 
-                          src={user?.profileImageUrl || ""} 
-                          alt={`${user?.firstName} ${user?.lastName}`} 
-                        />
-                        <AvatarFallback>
-                          {user?.firstName?.[0] && user?.lastName?.[0] 
-                            ? `${user.firstName[0]}${user.lastName[0]}` 
-                            : user?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'
-                          }
-                        </AvatarFallback>
-                      </Avatar>
+                      <UserAvatar 
+                        user={{
+                          id: user?.id || '',
+                          email: user?.email || '',
+                          firstName: user?.firstName,
+                          lastName: user?.lastName,
+                          profileImageUrl: user?.profileImageUrl
+                        }} 
+                        size="sm" 
+                        className="mr-3"
+                      />
                       <div>
                         <p className="text-sm font-medium">
                           {user?.firstName && user?.lastName 
