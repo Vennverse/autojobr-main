@@ -4135,7 +4135,7 @@ Additional Information:
     }
   });
 
-  // Cover letter generation endpoint
+  // Cover letter generation endpoint (for dashboard)
   app.post("/api/cover-letter/generate", isAuthenticated, async (req, res) => {
     try {
       const { companyName, jobTitle, jobDescription } = req.body;
@@ -4154,46 +4154,49 @@ Additional Information:
         return res.status(404).json({ message: "Please complete your profile first" });
       }
 
-      // Generate cover letter using Groq
-      const prompt = `
-        Generate a professional cover letter for the following:
-        
-        Job Details:
-        - Company: ${company}
-        - Position: ${title}
-        ${jobDescription ? `- Job Description: ${jobDescription}` : ''}
-        
-        Candidate Profile:
-        - Name: ${profile.fullName || 'Professional'}
-        - Title: ${profile.professionalTitle || 'Experienced Professional'}
-        - Experience: ${profile.yearsExperience || 0} years
-        - Summary: ${profile.summary || 'Dedicated professional with relevant experience'}
-        - Location: ${profile.location || ''}
-        
-        Create a compelling, personalized cover letter that:
-        1. Addresses the hiring manager professionally
-        2. Shows enthusiasm for the role and company
-        3. Highlights relevant experience and skills
-        4. Demonstrates knowledge of the company/role
-        5. Includes a strong closing with call to action
-        6. Keeps professional tone and formatting
-        7. Length: 3-4 paragraphs, under 400 words
-        
-        Return only the cover letter text, properly formatted.
-      `;
-
-      const response = await groqService.client.chat.completions.create({
-        model: "llama-3.1-8b-instant",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 1000,
-        temperature: 0.7
-      });
-
-      const coverLetter = response.choices[0].message.content;
+      // Use groqService method instead of direct client call
+      const coverLetter = await groqService.generateCoverLetter(
+        { title, company, description: jobDescription },
+        profile,
+        req.user
+      );
 
       res.json({ coverLetter });
     } catch (error) {
       console.error("Cover letter generation error:", error);
+      res.status(500).json({ message: "Failed to generate cover letter" });
+    }
+  });
+
+  // Cover letter generation endpoint (for extension)
+  app.post("/api/generate-cover-letter", isAuthenticated, async (req, res) => {
+    try {
+      const { jobDescription, companyName, jobTitle } = req.body;
+      const userId = req.user?.id;
+
+      // Make company name and job title optional with defaults
+      const company = companyName || "The Company";
+      const title = jobTitle || "The Position";
+      
+      console.log("Extension cover letter request:", { company, title, hasJobDescription: !!jobDescription });
+
+      // Get user profile
+      const profile = await storage.getUserProfile(userId);
+      
+      if (!profile) {
+        return res.status(404).json({ message: "Please complete your profile first" });
+      }
+
+      // Use groqService method for consistent behavior
+      const coverLetter = await groqService.generateCoverLetter(
+        { title, company, description: jobDescription },
+        profile,
+        req.user
+      );
+
+      res.json({ coverLetter });
+    } catch (error) {
+      console.error("Extension cover letter generation error:", error);
       res.status(500).json({ message: "Failed to generate cover letter" });
     }
   });
