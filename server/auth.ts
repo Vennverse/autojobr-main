@@ -510,7 +510,7 @@ export async function setupAuth(app: Express) {
           if (user.userType === 'recruiter') {
             res.redirect('/post-job?verified=true');
           } else {
-            res.redirect('/onboarding?verified=true');
+            res.redirect('/signin?verified=true');
           }
         });
       } else {
