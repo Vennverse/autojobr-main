@@ -3511,6 +3511,60 @@ Additional Information:
   });
 
   // ========================================
+  // API Key Rotation Management
+  // ========================================
+
+  // Get API key rotation status (admin endpoint)
+  app.get('/api/admin/api-keys/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      // Only allow admin users or specific users to access this
+      if (user?.email !== 'admin@autojobr.com' && user?.userType !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+      
+      const status = apiKeyRotationService.getStatus();
+      res.json({
+        timestamp: new Date().toISOString(),
+        services: status,
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV
+      });
+    } catch (error) {
+      console.error('Error getting API key status:', error);
+      res.status(500).json({ message: 'Failed to get API key status' });
+    }
+  });
+
+  // Reset failed API keys (admin endpoint)
+  app.post('/api/admin/api-keys/reset', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      // Only allow admin users to reset keys
+      if (user?.email !== 'admin@autojobr.com' && user?.userType !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+      
+      const { service } = req.body; // 'groq', 'resend', or undefined for all
+      
+      apiKeyRotationService.resetFailedKeys(service);
+      
+      res.json({ 
+        success: true, 
+        message: service ? `${service} keys reset` : 'All failed keys reset',
+        status: apiKeyRotationService.getStatus()
+      });
+    } catch (error) {
+      console.error('Error resetting API keys:', error);
+      res.status(500).json({ message: 'Failed to reset API keys' });
+    }
+  });
+
+  // ========================================
   // Pipeline Management Routes
   // ========================================
 
