@@ -5,7 +5,7 @@
 ### 1. **Your Backend URL**
 Your AutoJobr backend is running at:
 ```
-https://0117fbd0-73a8-4b8b-932f-6621c1591b33-00-1jotg3lwkj0py.picard.replit.dev
+https://0e44431a-708c-4df3-916b-4c2aa6aa0fdf-00-2xw51bgbvt8cp.spock.replit.dev
 ```
 
 ### 2. **Load Extension in Chrome**
@@ -25,7 +25,7 @@ https://0117fbd0-73a8-4b8b-932f-6621c1591b33-00-1jotg3lwkj0py.picard.replit.dev
 
 ### **Automatic Detection**
 The extension automatically tries these URLs in order:
-1. `https://0117fbd0-73a8-4b8b-932f-6621c1591b33-00-1jotg3lwkj0py.picard.replit.dev` (Your current Replit)
+1. `https://0e44431a-708c-4df3-916b-4c2aa6aa0fdf-00-2xw51bgbvt8cp.spock.replit.dev` (Your current Replit)
 2. `https://autojobr.replit.app` (If deployed)
 3. `http://localhost:5000` (Local development)
 

@@ -1,7 +1,7 @@
 // Modern Popup Script for AutoJobr Extension
 class AutoJobrPopup {
   constructor() {
-    this.apiBase = 'https://0117fbd0-73a8-4b8b-932f-6621c1591b33-00-1jotg3lwkj0py.picard.replit.dev';
+    this.apiBase = 'https://0e44431a-708c-4df3-916b-4c2aa6aa0fdf-00-2xw51bgbvt8cp.spock.replit.dev';
     this.isAuthenticated = false;
     this.userProfile = null;
     this.currentJobData = null;

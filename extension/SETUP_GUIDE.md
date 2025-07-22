@@ -22,7 +22,7 @@ The extension is currently set to connect to a specific URL that changes with ea
    - Edit `background.js` file
    - Find line 10 and replace the URL with your actual web app URL:
    ```javascript
-   const apiUrl = 'https://0117fbd0-73a8-4b8b-932f-6621c1591b33-00-1jotg3lwkj0py.picard.replit.dev';
+   const apiUrl = 'https://0e44431a-708c-4df3-916b-4c2aa6aa0fdf-00-2xw51bgbvt8cp.spock.replit.dev';
    ```
 
 3. **Reload the extension**:
