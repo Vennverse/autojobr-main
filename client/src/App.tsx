@@ -19,6 +19,7 @@ import Onboarding from "@/pages/onboarding";
 import Landing from "@/pages/landing";
 import UserTypeSelection from "@/pages/user-type-selection";
 import UnifiedRecruiterDashboard from "@/pages/unified-recruiter-dashboard";
+import RecruiterAutoLogin from "@/pages/recruiter-auto-login";
 import PostJob from "@/pages/post-job";
 import VerifyEmail from "@/pages/verify-email";
 import EmailVerificationPage from "@/pages/email-verification";
@@ -70,6 +71,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
+      <Route path="/recruiter-login" component={RecruiterAutoLogin} />
       <Route path="/verify-email" component={VerifyEmail} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password" component={ResetPasswordPage} />

@@ -10,6 +10,8 @@ import * as schema from "@shared/schema";
 import { resumes } from "@shared/schema";
 import { apiKeyRotationService } from "./apiKeyRotationService.js";
 import { companyVerificationService } from "./companyVerificationService.js";
+import { adminFixService } from "./adminFixService.js";
+import { recruiterDashboardFix } from "./recruiterDashboardFix.js";
 
 // Enhanced in-memory cache with better performance
 const cache = new Map();
@@ -764,8 +766,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .where(eq(companyEmailVerifications.id, verification.id));
       }
 
-      // Redirect to sign in page
-      res.redirect('/auth?verified=true&type=company&message=Company email verified successfully. You are now a recruiter. Please sign in to continue.');
+      // Redirect to sign in page with company verification success
+      res.redirect('/auth?verified=true&type=company&upgraded=recruiter&message=🎉 Company email verified! You are now a recruiter. Please sign in to access your recruiter dashboard.');
     } catch (error) {
       console.error("Error verifying company email:", error);
       res.status(500).json({ message: "Failed to verify company email" });
@@ -3718,6 +3720,122 @@ Additional Information:
     } catch (error) {
       console.error('Error fixing user type:', error);
       res.status(500).json({ message: 'Failed to fix user type' });
+    }
+  });
+
+  // Auto-login verified recruiter endpoint (emergency use for verified company emails)
+  app.post('/api/auto-login-recruiter', async (req: any, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: 'Email required' });
+      }
+
+      // Get user and verify they are a verified recruiter
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Only allow verified recruiters with company emails to auto-login
+      if (user.userType !== 'recruiter' || !user.emailVerified) {
+        return res.status(403).json({ message: 'Access denied. Must be verified recruiter.' });
+      }
+
+      // Check if they have company verification
+      const companyVerification = await db.select()
+        .from(companyEmailVerifications)
+        .where(eq(companyEmailVerifications.email, email))
+        .limit(1);
+
+      if (!companyVerification.length || !companyVerification[0].isVerified) {
+        return res.status(403).json({ message: 'Company email verification required' });
+      }
+
+      // Create session for verified recruiter
+      req.session.user = {
+        id: user.id,
+        email: user.email,
+        userType: 'recruiter',
+        firstName: user.firstName || 'Recruiter',
+        lastName: user.lastName || '',
+        companyName: user.companyName || 'Company'
+      };
+
+      req.session.save(async (err: any) => {
+        if (err) {
+          console.error('Session save error:', err);
+          return res.status(500).json({ message: 'Login failed - session error' });
+        }
+        
+        // Ensure recruiter has basic data for dashboard
+        try {
+          await recruiterDashboardFix.ensureRecruiterHasBasicData(user.id);
+          
+          // Create a sample job posting for the new recruiter if they have none
+          const existingJobs = await storage.getJobPostings(user.id);
+          if (existingJobs.length === 0) {
+            console.log('Creating sample job posting for new recruiter');
+            await recruiterDashboardFix.createSampleJobPosting(user.id);
+          }
+        } catch (error) {
+          console.error('Error ensuring recruiter data:', error);
+        }
+        
+        res.json({ 
+          success: true, 
+          message: 'Successfully logged in as recruiter!',
+          user: req.session.user,
+          redirectTo: '/recruiter/dashboard'
+        });
+      });
+
+    } catch (error) {
+      console.error('Error in auto-login-recruiter:', error);
+      res.status(500).json({ message: 'Auto-login failed' });
+    }
+  });
+
+  // Emergency session refresh for current user  
+  app.post('/api/refresh-my-session', async (req: any, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: 'Email required' });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user || user.userType !== 'recruiter') {
+        return res.status(403).json({ message: 'Must be a recruiter to refresh session' });
+      }
+
+      // Refresh session with latest user data
+      req.session.user = {
+        id: user.id,
+        email: user.email,
+        userType: user.userType,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        companyName: user.companyName
+      };
+
+      req.session.save((err: any) => {
+        if (err) {
+          return res.status(500).json({ message: 'Session refresh failed' });
+        }
+        
+        res.json({ 
+          success: true, 
+          message: 'Session refreshed successfully!',
+          user: req.session.user
+        });
+      });
+
+    } catch (error) {
+      console.error('Error refreshing session:', error);
+      res.status(500).json({ message: 'Session refresh failed' });
     }
   });
 
