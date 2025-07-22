@@ -98,6 +98,17 @@ PRODUCTION_DOMAIN=https://$DOMAIN
 GROQ_API_KEY=your_groq_api_key_here
 RESEND_API_KEY=your_resend_api_key_here
 
+# OAuth Authentication (Social Login)
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+LINKEDIN_CLIENT_ID=your_linkedin_client_id
+LINKEDIN_CLIENT_SECRET=your_linkedin_client_secret
+
+# NextAuth Configuration
+NEXTAUTH_SECRET=your_nextauth_secret_key
+
 # Optional: Payment Integration
 # STRIPE_SECRET_KEY=your_stripe_key_here
 # PAYPAL_CLIENT_ID=your_paypal_client_id_here
@@ -240,7 +251,14 @@ echo "1. Update API keys in $APP_DIR/.env"
 echo "   - GROQ_API_KEY (get from https://console.groq.com/)"
 echo "   - RESEND_API_KEY (get from https://resend.com/)"
 echo ""
-echo "2. Restart the application after updating keys:"
+echo "2. Configure OAuth for social login (optional):"
+echo "   - GOOGLE_CLIENT_ID & GOOGLE_CLIENT_SECRET (Google Cloud Console)"
+echo "   - GITHUB_CLIENT_ID & GITHUB_CLIENT_SECRET (GitHub Developer Settings)"
+echo "   - LINKEDIN_CLIENT_ID & LINKEDIN_CLIENT_SECRET (LinkedIn Developer Portal)"
+echo "   - NEXTAUTH_SECRET (generate with: openssl rand -base64 32)"
+echo "   See OAUTH_SETUP_GUIDE.md for detailed instructions"
+echo ""
+echo "3. Restart the application after updating keys:"
 echo "   pm2 restart autojobr"
 echo ""
 echo "3. Your application should be accessible at:"

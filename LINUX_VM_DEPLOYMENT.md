@@ -123,6 +123,17 @@ PORT=5000
 GROQ_API_KEY=your_groq_api_key
 RESEND_API_KEY=your_resend_api_key
 
+# OAuth Authentication (Social Login)
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+LINKEDIN_CLIENT_ID=your_linkedin_client_id
+LINKEDIN_CLIENT_SECRET=your_linkedin_client_secret
+
+# NextAuth Configuration
+NEXTAUTH_SECRET=your_nextauth_secret_key
+
 # Optional: Payment Integration
 STRIPE_SECRET_KEY=your_stripe_key
 PAYPAL_CLIENT_ID=your_paypal_client_id
