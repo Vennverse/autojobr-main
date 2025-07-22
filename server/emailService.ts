@@ -121,7 +121,7 @@ export function generatePasswordResetEmail(token: string, userEmail: string): st
   `;
 }
 
-export function generateVerificationEmail(token: string, nameOrCompany: string, userType: string = 'recruiter'): string {
+export function generateVerificationEmail(token: string, nameOrCompany: string, userType: string = 'job_seeker'): string {
   const verificationUrl = `${process.env.NODE_ENV === 'production' ? 'https://' : 'http://'}${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}/verify-email?token=${token}`;
   
   if (userType === 'recruiter') {

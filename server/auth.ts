@@ -304,7 +304,7 @@ export async function setupAuth(app: Express) {
       // Send verification email
       try {
         const { sendEmail, generateVerificationEmail } = await import('./emailService');
-        const emailHtml = generateVerificationEmail(verificationToken, 'AutoJobr');
+        const emailHtml = generateVerificationEmail(verificationToken, `${firstName} ${lastName}`, 'job_seeker');
         
         await sendEmail({
           to: email,
@@ -902,7 +902,7 @@ export async function setupAuth(app: Express) {
       // Send verification email
       try {
         const { sendEmail, generateVerificationEmail } = await import('./emailService');
-        const emailHtml = generateVerificationEmail(verificationToken, 'AutoJobr');
+        const emailHtml = generateVerificationEmail(verificationToken, `${user.firstName} ${user.lastName}`, user.userType || 'job_seeker');
         
         await sendEmail({
           to: email,
