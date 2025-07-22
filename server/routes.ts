@@ -9,6 +9,7 @@ import { eq, desc, and, or, like, isNotNull, count, asc, isNull, sql } from "dri
 import * as schema from "@shared/schema";
 import { resumes } from "@shared/schema";
 import { apiKeyRotationService } from "./apiKeyRotationService.js";
+import { companyVerificationService } from "./companyVerificationService.js";
 
 // Enhanced in-memory cache with better performance
 const cache = new Map();
@@ -682,6 +683,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Regular email verification (for job seekers and basic email confirmation)
   app.get('/api/auth/verify-email', async (req, res) => {
     try {
       const { token } = req.query;
@@ -697,78 +699,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid or expired verification token" });
       }
 
-      // Find existing user by email and update them to recruiter status
+      // Find existing user by email and mark email as verified (keep as job_seeker)
       const existingUser = await storage.getUserByEmail(tokenRecord.email);
-      let updatedUserId = '';
       
       if (existingUser) {
-        // Update existing user to recruiter with complete data
+        // Just verify email, don't change user type
         await storage.upsertUser({
-          id: existingUser.id,
-          email: tokenRecord.email,
-          userType: "recruiter", 
-          emailVerified: true,
-          companyName: tokenRecord.companyName,
-          companyWebsite: tokenRecord.companyWebsite,
-          firstName: existingUser.firstName,
-          lastName: existingUser.lastName,
-          profileImageUrl: existingUser.profileImageUrl,
-          password: existingUser.password, // Preserve existing password
-          availableRoles: "job_seeker,recruiter", // Allow both roles
-          currentRole: "recruiter" // Set active role to recruiter
+          ...existingUser,
+          emailVerified: true
         });
-        updatedUserId = existingUser.id;
-
-        // Record company email verification
-        await db.insert(companyEmailVerifications).values({
-          userId: existingUser.id,
-          email: tokenRecord.email,
-          companyName: tokenRecord.companyName || "Company",
-          companyWebsite: tokenRecord.companyWebsite,
-          verificationToken: token as string,
-          isVerified: true,
-          verifiedAt: new Date(),
-          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
-        });
-      } else {
-        // Create new recruiter user if no existing user found
-        const userId = `recruiter-${Date.now()}`;
-        await storage.upsertUser({
-          id: userId,
-          email: tokenRecord.email,
-          userType: "recruiter",
-          emailVerified: true,
-          companyName: tokenRecord.companyName,
-          companyWebsite: tokenRecord.companyWebsite,
-          firstName: tokenRecord.companyName || 'Recruiter',
-          lastName: '',
-          availableRoles: "recruiter",
-          currentRole: "recruiter"
-        });
-
-        // Record company email verification
-        await db.insert(companyEmailVerifications).values({
-          userId: userId,
-          email: tokenRecord.email,
-          companyName: tokenRecord.companyName || "Company",
-          companyWebsite: tokenRecord.companyWebsite,
-          verificationToken: token as string,
-          isVerified: true,
-          verifiedAt: new Date(),
-          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
-        });
-        updatedUserId = userId;
       }
 
       // Delete used token
       await storage.deleteEmailVerificationToken(token as string);
 
       // Redirect to sign in page after successful verification
-      // Don't auto-login, let user sign in manually
       res.redirect('/auth?verified=true&message=Email verified successfully. Please sign in to continue.');
     } catch (error) {
       console.error("Error verifying email:", error);
       res.status(500).json({ message: "Failed to verify email" });
+    }
+  });
+
+  // Company email verification (separate endpoint for recruiters)
+  app.get('/api/auth/verify-company-email', async (req, res) => {
+    try {
+      const { token } = req.query;
+      
+      if (!token) {
+        return res.status(400).json({ message: "Company verification token is required" });
+      }
+
+      // Check company verification token in separate table
+      const companyVerification = await db.select().from(companyEmailVerifications)
+        .where(eq(companyEmailVerifications.verificationToken, token as string))
+        .limit(1);
+      
+      if (!companyVerification.length || companyVerification[0].expiresAt < new Date()) {
+        return res.status(400).json({ message: "Invalid or expired company verification token" });
+      }
+
+      const verification = companyVerification[0];
+      
+      // Update user to recruiter status
+      const existingUser = await storage.getUserByEmail(verification.email);
+      
+      if (existingUser) {
+        await storage.upsertUser({
+          ...existingUser,
+          userType: "recruiter",
+          emailVerified: true,
+          companyName: verification.companyName,
+          companyWebsite: verification.companyWebsite,
+          availableRoles: "job_seeker,recruiter",
+          currentRole: "recruiter"
+        });
+
+        // Mark verification as completed
+        await db.update(companyEmailVerifications)
+          .set({ 
+            isVerified: true, 
+            verifiedAt: new Date() 
+          })
+          .where(eq(companyEmailVerifications.id, verification.id));
+      }
+
+      // Redirect to sign in page
+      res.redirect('/auth?verified=true&type=company&message=Company email verified successfully. You are now a recruiter. Please sign in to continue.');
+    } catch (error) {
+      console.error("Error verifying company email:", error);
+      res.status(500).json({ message: "Failed to verify company email" });
     }
   });
 
@@ -777,8 +777,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { userId } = req.params;
       
-      // Fallback to checking user table emailVerified field
+      // Get user and check if they should be upgraded to recruiter
       const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.json({ isVerified: false });
+      }
+      
+      // Auto-upgrade verified users with company domains to recruiter status
+      if (user.emailVerified && user.userType === 'job_seeker' && user.email) {
+        const emailDomain = user.email.split('@')[1];
+        const companyDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com'];
+        
+        // If it's not a common personal email domain, consider it a company email
+        if (!companyDomains.includes(emailDomain.toLowerCase())) {
+          // Auto-upgrade to recruiter
+          const companyName = emailDomain.split('.')[0].charAt(0).toUpperCase() + emailDomain.split('.')[0].slice(1);
+          
+          await storage.upsertUser({
+            ...user,
+            userType: 'recruiter',
+            companyName: `${companyName} Company`,
+            availableRoles: "job_seeker,recruiter",
+            currentRole: "recruiter"
+          });
+          
+          // Create company verification record
+          try {
+            await db.insert(companyEmailVerifications).values({
+              userId: user.id,
+              email: user.email,
+              companyName: `${companyName} Company`,
+              companyWebsite: `https://${emailDomain}`,
+              verificationToken: `auto-upgrade-${Date.now()}`,
+              isVerified: true,
+              verifiedAt: new Date(),
+              expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+            });
+          } catch (insertError) {
+            // Company verification record might already exist, that's okay
+            console.log('Company verification record creation skipped - may already exist');
+          }
+          
+          // Update user object for response
+          user.userType = 'recruiter';
+          user.companyName = `${companyName} Company`;
+        }
+      }
+      
       const verification = user?.emailVerified && user?.userType === 'recruiter' ? {
         company_name: user.companyName,
         verified_at: new Date()
@@ -795,7 +841,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Complete company verification - upgrade job_seeker to recruiter
+  // Send company verification email (for recruiters wanting to upgrade)
+  app.post('/api/auth/request-company-verification', isAuthenticated, async (req: any, res) => {
+    try {
+      const { companyName, companyWebsite } = req.body;
+      const userId = req.user.id;
+
+      if (!companyName) {
+        return res.status(400).json({ message: "Company name is required" });
+      }
+
+      // Get current user
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Send company verification email
+      const result = await companyVerificationService.sendCompanyVerificationEmail(
+        currentUser.email,
+        companyName,
+        companyWebsite
+      );
+
+      if (result.success) {
+        res.json({ 
+          message: 'Company verification email sent successfully. Please check your email and click the verification link to upgrade to recruiter status.',
+          emailSent: true
+        });
+      } else {
+        res.status(500).json({ message: 'Failed to send company verification email' });
+      }
+
+    } catch (error) {
+      console.error("Error requesting company verification:", error);
+      res.status(500).json({ message: "Failed to request company verification" });
+    }
+  });
+
+  // Complete company verification - upgrade job_seeker to recruiter (manual/immediate)
   app.post('/api/auth/complete-company-verification', isAuthenticated, async (req: any, res) => {
     try {
       const { companyName, companyWebsite } = req.body;
@@ -3561,6 +3645,79 @@ Additional Information:
     } catch (error) {
       console.error('Error resetting API keys:', error);
       res.status(500).json({ message: 'Failed to reset API keys' });
+    }
+  });
+
+  // Emergency user type fix endpoint (admin)
+  app.post('/api/admin/fix-user-type', isAuthenticated, async (req: any, res) => {
+    try {
+      const { userEmail, newUserType, companyName } = req.body;
+      const currentUserId = req.user.id;
+      const currentUser = await storage.getUser(currentUserId);
+      
+      // Allow current user to fix themselves or admin users to fix others
+      if (currentUser?.email !== userEmail && currentUser?.email !== 'admin@autojobr.com') {
+        return res.status(403).json({ message: 'Can only fix your own user type or admin access required' });
+      }
+      
+      const targetUser = await storage.getUserByEmail(userEmail);
+      if (!targetUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Update user type
+      await storage.upsertUser({
+        ...targetUser,
+        userType: newUserType,
+        companyName: companyName || targetUser.companyName,
+        availableRoles: "job_seeker,recruiter",
+        currentRole: newUserType
+      });
+      
+      // If upgrading to recruiter and no company verification exists, create one
+      if (newUserType === 'recruiter' && companyName) {
+        try {
+          await db.insert(companyEmailVerifications).values({
+            userId: targetUser.id,
+            email: targetUser.email,
+            companyName: companyName,
+            companyWebsite: `https://${targetUser.email.split('@')[1]}`,
+            verificationToken: `admin-fix-${Date.now()}`,
+            isVerified: true,
+            verifiedAt: new Date(),
+            expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          });
+        } catch (insertError) {
+          // Record might exist, that's okay
+          console.log('Company verification record creation skipped');
+        }
+      }
+      
+      // Update session if fixing current user
+      if (currentUser?.email === userEmail) {
+        req.session.user = {
+          ...req.session.user,
+          userType: newUserType
+        };
+        
+        req.session.save(() => {
+          res.json({ 
+            success: true, 
+            message: `User type updated to ${newUserType}`,
+            user: { userType: newUserType, companyName }
+          });
+        });
+      } else {
+        res.json({ 
+          success: true, 
+          message: `User ${userEmail} updated to ${newUserType}`,
+          user: { userType: newUserType, companyName }
+        });
+      }
+      
+    } catch (error) {
+      console.error('Error fixing user type:', error);
+      res.status(500).json({ message: 'Failed to fix user type' });
     }
   });
 
