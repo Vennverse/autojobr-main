@@ -1,254 +1,259 @@
 #!/bin/bash
 
-# AutoJobr Deployment Script
-# This script handles deployment to different environments
+# AutoJobr Linux VM Deployment Script
+# Usage: ./deploy.sh [domain]
 
 set -e
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+DOMAIN=${1:-"yourdomain.com"}
+APP_DIR="/var/www/autojobr"
+NGINX_SITE="/etc/nginx/sites-available/autojobr"
+DB_NAME="autojobr"
+DB_USER="autojobr_user"
 
-# Default values
-ENVIRONMENT="production"
-DOMAIN=""
-EMAIL=""
-SKIP_SSL=false
-BUILD_ONLY=false
+echo "🚀 Starting AutoJobr deployment for domain: $DOMAIN"
 
-# Function to print colored output
-print_status() {
-    echo -e "${GREEN}[INFO]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# Function to show usage
-show_usage() {
-    echo "Usage: $0 [OPTIONS]"
-    echo "Options:"
-    echo "  -e, --environment ENV    Deployment environment (production, staging, development)"
-    echo "  -d, --domain DOMAIN      Domain name for the application"
-    echo "  -m, --email EMAIL        Email for Let's Encrypt certificates"
-    echo "  -s, --skip-ssl           Skip SSL certificate generation"
-    echo "  -b, --build-only         Only build the application, don't deploy"
-    echo "  -h, --help               Show this help message"
-    echo ""
-    echo "Examples:"
-    echo "  $0 -e production -d example.com -m admin@example.com"
-    echo "  $0 -e staging -d staging.example.com -m admin@example.com -s"
-    echo "  $0 -b"
-}
-
-# Parse command line arguments
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        -e|--environment)
-            ENVIRONMENT="$2"
-            shift 2
-            ;;
-        -d|--domain)
-            DOMAIN="$2"
-            shift 2
-            ;;
-        -m|--email)
-            EMAIL="$2"
-            shift 2
-            ;;
-        -s|--skip-ssl)
-            SKIP_SSL=true
-            shift
-            ;;
-        -b|--build-only)
-            BUILD_ONLY=true
-            shift
-            ;;
-        -h|--help)
-            show_usage
-            exit 0
-            ;;
-        *)
-            print_error "Unknown option: $1"
-            show_usage
-            exit 1
-            ;;
-    esac
-done
-
-# Validate environment
-if [[ ! "$ENVIRONMENT" =~ ^(production|staging|development)$ ]]; then
-    print_error "Invalid environment. Must be one of: production, staging, development"
-    exit 1
+# Check if running as root
+if [[ $EUID -eq 0 ]]; then
+   echo "❌ This script should not be run as root for security reasons"
+   exit 1
 fi
 
-# Check if Docker is installed
-if ! command -v docker &> /dev/null; then
-    print_error "Docker is not installed. Please install Docker first."
-    exit 1
+# Function to check if command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Update system
+echo "📦 Updating system packages..."
+sudo apt update && sudo apt upgrade -y
+
+# Install Node.js 20
+if ! command_exists node || [[ $(node -v | cut -d'v' -f2 | cut -d'.' -f1) -lt 20 ]]; then
+    echo "📦 Installing Node.js 20..."
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    sudo apt-get install -y nodejs
 fi
 
-# Check if Docker Compose is installed
-if ! command -v docker-compose &> /dev/null; then
-    print_error "Docker Compose is not installed. Please install Docker Compose first."
-    exit 1
+# Install PostgreSQL
+if ! command_exists psql; then
+    echo "📦 Installing PostgreSQL..."
+    sudo apt install postgresql postgresql-contrib -y
+    sudo systemctl start postgresql
+    sudo systemctl enable postgresql
 fi
 
-print_status "Starting AutoJobr deployment for $ENVIRONMENT environment"
+# Install Nginx
+if ! command_exists nginx; then
+    echo "📦 Installing Nginx..."
+    sudo apt install nginx -y
+    sudo systemctl start nginx
+    sudo systemctl enable nginx
+fi
 
-# Create necessary directories
-print_status "Creating deployment directories..."
-mkdir -p logs uploads ssl letsencrypt monitoring/grafana/provisioning
+# Install PM2
+if ! command_exists pm2; then
+    echo "📦 Installing PM2..."
+    sudo npm install -g pm2
+fi
 
-# Check if environment file exists
-ENV_FILE=".env.$ENVIRONMENT"
-if [[ ! -f "$ENV_FILE" ]]; then
-    print_warning "Environment file $ENV_FILE not found. Creating from template..."
-    if [[ -f ".env.docker" ]]; then
-        cp .env.docker "$ENV_FILE"
-        print_warning "Please edit $ENV_FILE and fill in your configuration values"
-        read -p "Press Enter to continue after editing the file..."
-    else
-        print_error "Template file .env.docker not found. Please create $ENV_FILE manually."
-        exit 1
+# Create app directory
+echo "📁 Creating application directory..."
+sudo mkdir -p $APP_DIR/logs
+sudo chown -R $USER:$USER $APP_DIR
+
+# Database setup
+echo "🗄️  Setting up database..."
+DB_PASSWORD=$(openssl rand -base64 32)
+
+# Create database and user (only if they don't exist)
+sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'" | grep -q 1 || \
+sudo -u postgres createdb $DB_NAME
+
+sudo -u postgres psql -tc "SELECT 1 FROM pg_user WHERE usename = '$DB_USER'" | grep -q 1 || \
+sudo -u postgres psql -c "CREATE USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASSWORD';"
+
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
+sudo -u postgres psql -c "ALTER USER $DB_USER CREATEDB;"
+
+# Create environment file
+echo "⚙️  Creating environment configuration..."
+cat > $APP_DIR/.env << EOF
+# Database Configuration
+DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME
+PGHOST=localhost
+PGPORT=5432
+PGDATABASE=$DB_NAME
+PGUSER=$DB_USER
+PGPASSWORD=$DB_PASSWORD
+
+# Application Configuration
+NODE_ENV=production
+PORT=5000
+
+# Domain Configuration
+PRODUCTION_DOMAIN=https://$DOMAIN
+
+# API Keys (you need to add these manually)
+GROQ_API_KEY=your_groq_api_key_here
+RESEND_API_KEY=your_resend_api_key_here
+
+# Optional: Payment Integration
+# STRIPE_SECRET_KEY=your_stripe_key_here
+# PAYPAL_CLIENT_ID=your_paypal_client_id_here
+# PAYPAL_CLIENT_SECRET=your_paypal_secret_here
+EOF
+
+chmod 600 $APP_DIR/.env
+
+# Install dependencies and build
+echo "📦 Installing application dependencies..."
+cd $APP_DIR
+npm install
+
+echo "🔨 Building application..."
+npm run build
+
+# Push database schema
+echo "🗄️  Migrating database schema..."
+npm run db:push
+
+# Start with PM2
+echo "🚀 Starting application with PM2..."
+pm2 start ecosystem.config.js --env production
+pm2 save
+pm2 startup
+
+# Create Nginx configuration
+echo "🌐 Configuring Nginx..."
+sudo tee $NGINX_SITE > /dev/null << EOF
+server {
+    listen 80;
+    server_name $DOMAIN www.$DOMAIN;
+
+    # Security headers
+    add_header X-Frame-Options DENY;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json;
+
+    # Rate limiting
+    limit_req_zone \$binary_remote_addr zone=api:10m rate=10r/s;
+
+    # Main application
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_read_timeout 86400;
+    }
+
+    # API rate limiting
+    location /api/ {
+        limit_req zone=api burst=20 nodelay;
+        proxy_pass http://127.0.0.1:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    # Static files caching
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        proxy_pass http://127.0.0.1:5000;
+    }
+}
+EOF
+
+# Enable site and test configuration
+sudo ln -sf $NGINX_SITE /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl reload nginx
+
+# Configure firewall
+echo "🔥 Configuring firewall..."
+sudo ufw allow ssh
+sudo ufw allow 'Nginx Full'
+sudo ufw --force enable
+
+# Create backup script
+echo "💾 Setting up backup script..."
+cat > /home/$USER/backup_autojobr.sh << 'EOF'
+#!/bin/bash
+DATE=$(date +%Y%m%d_%H%M%S)
+BACKUP_DIR="/home/$USER/backups"
+mkdir -p $BACKUP_DIR
+
+# Database backup
+export PGPASSWORD="$PGPASSWORD"
+pg_dump -h localhost -U $PGUSER -d $PGDATABASE > $BACKUP_DIR/autojobr_$DATE.sql
+
+# Keep only last 7 days of backups
+find $BACKUP_DIR -name "autojobr_*.sql" -mtime +7 -delete
+
+echo "Backup completed: autojobr_$DATE.sql"
+EOF
+
+chmod +x /home/$USER/backup_autojobr.sh
+
+# Add backup to cron (if not already added)
+if ! crontab -l 2>/dev/null | grep -q "backup_autojobr.sh"; then
+    (crontab -l 2>/dev/null; echo "0 2 * * * /home/$USER/backup_autojobr.sh") | crontab -
+fi
+
+# Install SSL certificate if domain is not localhost
+if [[ "$DOMAIN" != "localhost" && "$DOMAIN" != "yourdomain.com" ]]; then
+    echo "🔒 Installing SSL certificate..."
+    sudo snap install core; sudo snap refresh core
+    sudo snap install --classic certbot
+    sudo ln -sf /snap/bin/certbot /usr/bin/certbot
+    
+    echo "Running Certbot for SSL certificate..."
+    sudo certbot --nginx -d $DOMAIN -d www.$DOMAIN --non-interactive --agree-tos --email admin@$DOMAIN
+    
+    # Add auto-renewal to cron
+    if ! sudo crontab -l 2>/dev/null | grep -q "certbot renew"; then
+        (sudo crontab -l 2>/dev/null; echo "0 12 * * * /usr/bin/certbot renew --quiet") | sudo crontab -
     fi
 fi
 
-# Validate required environment variables
-print_status "Validating environment configuration..."
-source "$ENV_FILE"
-
-required_vars=(
-    "POSTGRES_PASSWORD"
-    "GROQ_API_KEY"
-    "STRIPE_SECRET_KEY"
-    "RESEND_API_KEY"
-    "NEXTAUTH_SECRET"
-)
-
-for var in "${required_vars[@]}"; do
-    if [[ -z "${!var}" ]]; then
-        print_error "Required environment variable $var is not set in $ENV_FILE"
-        exit 1
-    fi
-done
-
-# Build the application
-print_status "Building Docker image..."
-docker build -t autojobr:latest . || {
-    print_error "Failed to build Docker image"
-    exit 1
-}
-
-if [[ "$BUILD_ONLY" == true ]]; then
-    print_status "Build completed successfully!"
-    exit 0
-fi
-
-# Choose the appropriate Docker Compose file
-COMPOSE_FILE="docker-compose.yml"
-if [[ "$ENVIRONMENT" == "production" ]]; then
-    COMPOSE_FILE="docker-compose.prod.yml"
-fi
-
-print_status "Using Docker Compose file: $COMPOSE_FILE"
-
-# Stop existing containers
-print_status "Stopping existing containers..."
-docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down || true
-
-# Start the application
-print_status "Starting AutoJobr application..."
-docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d
-
-# Wait for application to be ready
-print_status "Waiting for application to be ready..."
-timeout=60
-counter=0
-while [[ $counter -lt $timeout ]]; do
-    if curl -f http://localhost:5000/api/health &> /dev/null; then
-        print_status "Application is ready!"
-        break
-    fi
-    sleep 2
-    counter=$((counter + 2))
-done
-
-if [[ $counter -ge $timeout ]]; then
-    print_error "Application failed to start within $timeout seconds"
-    print_error "Check logs with: docker-compose -f $COMPOSE_FILE logs"
-    exit 1
-fi
-
-# SSL Certificate setup for production
-if [[ "$ENVIRONMENT" == "production" ]] && [[ "$SKIP_SSL" == false ]]; then
-    if [[ -z "$DOMAIN" ]] || [[ -z "$EMAIL" ]]; then
-        print_warning "Domain and email are required for SSL certificate generation"
-        print_warning "Skipping SSL setup. You can set it up later with:"
-        print_warning "certbot --nginx -d your-domain.com"
-    else
-        print_status "Setting up SSL certificate for $DOMAIN..."
-        
-        # Install certbot if not present
-        if ! command -v certbot &> /dev/null; then
-            print_status "Installing certbot..."
-            if command -v apt-get &> /dev/null; then
-                sudo apt-get update
-                sudo apt-get install -y certbot python3-certbot-nginx
-            elif command -v yum &> /dev/null; then
-                sudo yum install -y certbot python3-certbot-nginx
-            else
-                print_warning "Could not install certbot automatically. Please install it manually."
-            fi
-        fi
-        
-        # Generate SSL certificate
-        if command -v certbot &> /dev/null; then
-            sudo certbot --nginx -d "$DOMAIN" --email "$EMAIL" --agree-tos --non-interactive || {
-                print_warning "SSL certificate generation failed. You can set it up later manually."
-            }
-        fi
-    fi
-fi
-
-# Show deployment information
-print_status "Deployment completed successfully!"
 echo ""
-echo "Application Information:"
-echo "  Environment: $ENVIRONMENT"
-echo "  Local URL: http://localhost:5000"
-if [[ -n "$DOMAIN" ]]; then
-    echo "  Domain URL: http://$DOMAIN"
+echo "🎉 Deployment completed successfully!"
+echo ""
+echo "📋 Next Steps:"
+echo "1. Update API keys in $APP_DIR/.env"
+echo "   - GROQ_API_KEY (get from https://console.groq.com/)"
+echo "   - RESEND_API_KEY (get from https://resend.com/)"
+echo ""
+echo "2. Restart the application after updating keys:"
+echo "   pm2 restart autojobr"
+echo ""
+echo "3. Your application should be accessible at:"
+if [[ "$DOMAIN" != "localhost" && "$DOMAIN" != "yourdomain.com" ]]; then
+    echo "   https://$DOMAIN"
+else
+    echo "   http://$DOMAIN (configure SSL manually for production)"
 fi
 echo ""
-echo "Useful commands:"
-echo "  View logs: docker-compose -f $COMPOSE_FILE logs -f"
-echo "  Stop application: docker-compose -f $COMPOSE_FILE down"
-echo "  Restart application: docker-compose -f $COMPOSE_FILE restart"
-echo "  View running containers: docker-compose -f $COMPOSE_FILE ps"
+echo "📊 Monitoring commands:"
+echo "   pm2 status       # Check application status"
+echo "   pm2 logs autojobr # View application logs"
+echo "   pm2 monit        # Real-time monitoring"
 echo ""
-
-# Show monitoring URLs if enabled
-if [[ "$ENVIRONMENT" == "production" ]]; then
-    echo "Monitoring URLs:"
-    echo "  Grafana: http://localhost:3000 (admin / check GRAFANA_PASSWORD in $ENV_FILE)"
-    echo "  Prometheus: http://localhost:9090"
-    echo ""
-fi
-
-# Show next steps
-echo "Next steps:"
-echo "1. Configure your DNS to point to this server"
-echo "2. Test the application functionality"
-echo "3. Set up regular backups"
-echo "4. Configure monitoring alerts"
-echo "5. Review security settings"
-
-print_status "AutoJobr deployment completed successfully!"
+echo "Database credentials saved to: $APP_DIR/.env"
+echo "Backup script created at: /home/$USER/backup_autojobr.sh"
