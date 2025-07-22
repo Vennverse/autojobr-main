@@ -7346,8 +7346,9 @@ Host: https://autojobr.com`;
         return res.status(403).json({ message: 'Access denied' });
       }
 
-      // Allow access to questions if test is assigned or started
-      if (assignment.status !== 'assigned' && assignment.status !== 'started') {
+      // Allow access to questions if test is assigned, started, or retake is explicitly allowed after payment
+      if (assignment.status !== 'assigned' && assignment.status !== 'started' && 
+          !(assignment.status === 'completed' && assignment.retakeAllowed)) {
         return res.status(400).json({ message: 'Test is not available' });
       }
 
@@ -7455,9 +7456,9 @@ Host: https://autojobr.com`;
         return res.status(403).json({ message: 'Access denied' });
       }
 
-      // Check if test is already completed
-      if (assignment.status === 'completed') {
-        return res.status(400).json({ message: 'Test has already been completed' });
+      // Check if test is already completed (unless retake is allowed after payment)
+      if (assignment.status === 'completed' && !assignment.retakeAllowed) {
+        return res.status(400).json({ message: 'Test has already been completed. Payment required for retake.' });
       }
 
       // Check if test has expired
@@ -7504,9 +7505,9 @@ Host: https://autojobr.com`;
         return res.status(403).json({ message: 'Access denied' });
       }
 
-      // Check if test is already completed
-      if (assignment.status === 'completed') {
-        return res.status(400).json({ message: 'Test has already been completed' });
+      // Check if test is already completed (unless retake is allowed after payment)
+      if (assignment.status === 'completed' && !assignment.retakeAllowed) {
+        return res.status(400).json({ message: 'Test has already been completed. Payment required for retake.' });
       }
 
       // Get test template to calculate score
@@ -7596,9 +7597,20 @@ Host: https://autojobr.com`;
         return res.status(403).json({ message: 'Access denied' });
       }
 
-      // Check if test was completed
+      // Check if test was completed and failed (retake only allowed for failed tests)
       if (assignment.status !== 'completed') {
         return res.status(400).json({ message: 'Test must be completed before requesting retake' });
+      }
+      
+      // Get test template to check passing score
+      const template = await storage.getTestTemplate(assignment.testTemplateId);
+      if (!template) {
+        return res.status(404).json({ message: 'Test template not found' });
+      }
+      
+      const passingScore = template.passingScore || 70;
+      if (assignment.score >= passingScore) {
+        return res.status(400).json({ message: 'Cannot retake a test that you have already passed' });
       }
 
       // Check if already has retake allowed

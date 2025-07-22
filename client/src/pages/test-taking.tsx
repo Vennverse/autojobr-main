@@ -43,6 +43,9 @@ export default function TestTaking() {
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const testContainerRef = useRef<HTMLDivElement>(null);
   const startTimeRef = useRef<Date | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   
   // Authentication state
   const [email, setEmail] = useState("");
@@ -52,6 +55,38 @@ export default function TestTaking() {
   // Results modal state
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [testResults, setTestResults] = useState<any>(null);
+
+  // Camera monitoring functions
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { width: 320, height: 240 }, 
+        audio: false 
+      });
+      setCameraStream(stream);
+      setCameraPermission('granted');
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+    } catch (error) {
+      console.error('Camera access denied:', error);
+      setCameraPermission('denied');
+      toast({
+        title: "Camera Access Required",
+        description: "Please enable camera access for test monitoring. This is required for test integrity.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+  };
 
   const { data: assignment, isLoading } = useQuery({
     queryKey: [`/api/test-assignments/${assignmentId}`],
@@ -208,6 +243,13 @@ export default function TestTaking() {
     }
   }, [warningCount, isSubmitting, showResultsModal, testStarted]);
 
+  // Cleanup camera on component unmount
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
+
   const enterFullscreen = () => {
     if (testContainerRef.current?.requestFullscreen) {
       testContainerRef.current.requestFullscreen();
@@ -222,13 +264,23 @@ export default function TestTaking() {
     }
   };
 
-  const startTest = () => {
+  const startTest = async () => {
     if (assignment?.testTemplate?.timeLimit) {
       setTimeLeft(assignment.testTemplate.timeLimit * 60);
     }
+    
+    // Start camera monitoring
+    await startCamera();
+    
     setTestStarted(true);
     startTimeRef.current = new Date();
     enterFullscreen();
+    
+    toast({
+      title: "Test Started",
+      description: "Camera monitoring is active. Good luck!",
+      duration: 3000
+    });
   };
 
   const handleAnswerChange = (questionId: string, answer: any) => {
@@ -243,6 +295,8 @@ export default function TestTaking() {
     
     setIsSubmitting(true);
     setTestStarted(false); // Stop anti-cheating monitoring
+    stopCamera(); // Stop camera monitoring
+    
     const timeSpent = startTimeRef.current ? Math.round((new Date().getTime() - startTimeRef.current.getTime()) / 1000) : 0;
     
     submitTestMutation.mutate({
@@ -476,10 +530,32 @@ export default function TestTaking() {
                   <li>• Copy/paste is disabled</li>
                   <li>• Tab switching is monitored</li>
                   <li>• Right-click is disabled</li>
+                  <li>• Camera monitoring will be active</li>
                   <li>• 5 violations will auto-submit the test</li>
                 </ul>
               </AlertDescription>
             </Alert>
+
+            {/* Camera Permission Notice */}
+            {cameraPermission === 'prompt' && (
+              <Alert className="bg-yellow-50 border-yellow-200">
+                <Eye className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Camera Access Required:</strong> This test requires camera monitoring for integrity purposes. 
+                  You'll be prompted to allow camera access when you start the test.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {cameraPermission === 'denied' && (
+              <Alert variant="destructive">
+                <EyeOff className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Camera Access Denied:</strong> Please enable camera access to take this test. 
+                  Camera monitoring is required for test integrity.
+                </AlertDescription>
+              </Alert>
+            )}
 
             <div className="text-center">
               <Button onClick={startTest} size="lg" className="px-8">
@@ -508,6 +584,14 @@ export default function TestTaking() {
               </Badge>
             </div>
             <div className="flex items-center gap-4">
+              {/* Camera Status */}
+              {cameraPermission === 'granted' && cameraStream && (
+                <Badge variant="outline" className="text-green-600 border-green-200">
+                  <Eye className="w-4 h-4 mr-1" />
+                  Camera Active
+                </Badge>
+              )}
+              
               {warningCount > 0 && (
                 <Badge variant="destructive">
                   <AlertTriangle className="w-4 h-4 mr-1" />
@@ -525,6 +609,24 @@ export default function TestTaking() {
           <Progress value={progress} className="mt-2" />
         </div>
       </div>
+
+      {/* Camera Monitoring (Small, Non-intrusive) */}
+      {cameraPermission === 'granted' && cameraStream && (
+        <div className="fixed bottom-4 right-4 z-20">
+          <div className="relative">
+            <video
+              ref={videoRef}
+              className="w-20 h-16 rounded-lg border-2 border-green-500 object-cover"
+              autoPlay
+              muted
+              style={{ transform: 'scaleX(-1)' }} // Mirror effect
+            />
+            <div className="absolute -top-2 -right-2">
+              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Question Content */}
       <div className="max-w-4xl mx-auto p-6">

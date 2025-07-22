@@ -102,45 +102,45 @@ export class TestService {
   private getJavaScriptQuestions(): TestQuestion[] {
     return [
       {
-        id: "js1",
+        id: "js1", 
         type: "multiple_choice",
-        question: "What is the output of: console.log(typeof NaN)?",
-        options: ["number", "NaN", "undefined", "object"],
+        question: "What will be the output of this complex closure and hoisting scenario?\n\n```javascript\nvar a = 1;\nfunction outer() {\n  console.log(a);\n  var a = 2;\n  function inner() {\n    var a = 3;\n    console.log(a);\n    return function() {\n      a = 4;\n      console.log(a);\n    };\n  }\n  inner()();\n  console.log(a);\n}\nouter();\nconsole.log(a);\n```",
+        options: ["undefined, 3, 4, 2, 1", "1, 3, 4, 2, 1", "undefined, 3, 4, 4, 1", "1, 2, 3, 4, 1"],
         correctAnswer: 0,
-        points: 5,
-        explanation: "NaN is of type 'number' in JavaScript, even though it represents 'Not a Number'."
+        points: 10,
+        explanation: "Due to hoisting, the var a declaration inside outer() is hoisted, creating a local variable that shadows the global one, initially undefined. The inner function creates its own scope with a=3, and the returned function modifies that same variable to 4."
       },
       {
         id: "js2",
         type: "multiple_choice",
-        question: "Which method is used to add elements to the end of an array?",
-        options: ["append()", "push()", "add()", "insert()"],
-        correctAnswer: 1,
-        points: 5,
-        explanation: "The push() method adds one or more elements to the end of an array."
+        question: "What is the result of this complex async/await pattern with error handling?\n\n```javascript\nasync function complexAsync() {\n  try {\n    const result = await Promise.all([\n      Promise.resolve(1).then(x => { throw x + 1; }),\n      Promise.resolve(2).then(x => Promise.reject(x + 2)),\n      Promise.resolve(3).then(x => x + 3)\n    ]);\n    return result;\n  } catch (error) {\n    return await Promise.resolve(error * 10);\n  }\n}\ncomplexAsync().then(console.log).catch(console.error);\n```",
+        options: ["20", "40", "Error thrown", "[2, 4, 6]"],
+        correctAnswer: 0,
+        points: 15,
+        explanation: "Promise.all fails fast on first rejection. The first promise throws 2, which gets caught and multiplied by 10 to return 20."
       },
       {
         id: "js3",
         type: "coding",
-        question: "Write a function that takes an array of numbers and returns the sum of all even numbers.",
-        points: 15,
-        explanation: "Solution should use filter/reduce or a loop to identify even numbers and sum them."
+        question: "Implement a debounce function that delays execution until after wait milliseconds have elapsed since the last time it was invoked. Include immediate execution option and cancellation.\n\nRequirements:\n- Function signature: debounce(func, wait, immediate = false)\n- Support for immediate execution on first call\n- Return a function that can be cancelled\n- Handle 'this' context correctly\n- Support arguments passing",
+        points: 25,
+        explanation: "Advanced implementation should handle timing, context binding, immediate execution flag, and provide cancellation mechanism."
       },
       {
         id: "js4",
         type: "multiple_choice",
-        question: "What does 'this' refer to in an arrow function?",
-        options: ["The global object", "The calling object", "The lexical scope", "undefined"],
-        correctAnswer: 2,
-        points: 10,
-        explanation: "Arrow functions inherit 'this' from their lexical scope, not the calling object."
+        question: "What will this advanced prototype chain manipulation output?\n\n```javascript\nfunction Parent() {\n  this.a = 1;\n}\nParent.prototype.method = function() { return this.a; };\n\nfunction Child() {\n  Parent.call(this);\n  this.a = 2;\n}\n\nChild.prototype = Object.create(Parent.prototype);\nChild.prototype.constructor = Child;\n\nconst obj = new Child();\nconst method = obj.method;\nconst boundMethod = obj.method.bind(obj);\n\nconsole.log(method.call({a: 3}));\nconsole.log(boundMethod.call({a: 4}));\nconsole.log(obj.method());\n```",
+        options: ["3, 4, 2", "3, 2, 2", "1, 1, 2", "undefined, 2, 2"],
+        correctAnswer: 1,
+        points: 15,
+        explanation: "method.call({a: 3}) uses explicit binding to {a: 3}, boundMethod ignores the call context due to bind, obj.method() uses normal method invocation."
       },
       {
         id: "js5",
-        type: "essay",
-        question: "Explain the difference between let, const, and var in JavaScript. Provide examples.",
-        points: 15,
-        explanation: "Should cover scope differences, hoisting, and reassignment rules."
+        type: "coding",
+        question: "Implement a comprehensive memoization decorator for JavaScript that:\n\n1. Works with both sync and async functions\n2. Supports custom cache key generation\n3. Includes cache expiration (TTL)\n4. Has a maximum cache size with LRU eviction\n5. Supports cache clearing\n\nExample usage:\n```javascript\nconst memoized = memoize(expensiveFunction, {\n  keyGen: (...args) => JSON.stringify(args),\n  ttl: 60000, // 1 minute\n  maxSize: 100\n});\n```\n\nProvide the complete implementation with all error handling.",
+        points: 30,
+        explanation: "Advanced implementation should handle async functions, TTL expiration, LRU cache management, custom key generation, and proper error handling."
       }
     ];
   }
@@ -159,9 +159,9 @@ export class TestService {
       {
         id: "react2",
         type: "coding",
-        question: "Create a custom hook called useCounter that manages a counter with increment, decrement, and reset functions.",
-        points: 20,
-        explanation: "Should return an object with count value and three functions."
+        question: "Implement a comprehensive useAsync custom hook that:\n\n1. Handles loading, success, and error states\n2. Supports request cancellation (AbortController)\n3. Includes retry logic with exponential backoff\n4. Supports race condition prevention\n5. Has built-in caching with TTL\n6. Supports optimistic updates\n\nExample usage:\n```javascript\nconst { data, loading, error, execute, reset } = useAsync(fetchData, {\n  immediate: true,\n  retryCount: 3,\n  cacheTime: 300000,\n  optimistic: true\n});\n```\n\nProvide complete implementation with TypeScript types.",
+        points: 35,
+        explanation: "Advanced implementation should handle cancellation, retry logic, race conditions, caching, and optimistic updates with proper TypeScript typing."
       },
       {
         id: "react3",
@@ -196,9 +196,9 @@ export class TestService {
       {
         id: "py2",
         type: "coding",
-        question: "Write a function that finds the second largest number in a list.",
-        points: 15,
-        explanation: "Should handle edge cases and return the second largest unique value."
+        question: "Implement a thread-safe LRU Cache in Python with the following requirements:\n\n1. Generic type support for keys and values\n2. Thread-safe operations using locks\n3. O(1) get and put operations\n4. Support for custom capacity\n5. TTL (time-to-live) for cache entries\n6. Statistics tracking (hit/miss ratio)\n7. Async/await compatible methods\n\nImplement both sync and async versions with comprehensive error handling and unit tests.",
+        points: 40,
+        explanation: "Advanced implementation should use doubly-linked list, hash map, threading locks, TTL management, and async compatibility."
       },
       {
         id: "py3",

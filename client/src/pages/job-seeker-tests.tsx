@@ -92,6 +92,7 @@ export default function JobSeekerTests() {
     const isExpired = isOverdue(assignment.dueDate, assignment.status);
     const passingScore = assignment.testTemplate?.passingScore || 70;
     const hasFailed = assignment.status === 'completed' && assignment.score < passingScore;
+    const hasPassed = assignment.status === 'completed' && assignment.score >= passingScore;
     
     if (assignment.status === 'completed') {
       return (
@@ -99,13 +100,13 @@ export default function JobSeekerTests() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setLocation(`/test/${assignment.id}`)}
+            onClick={() => setLocation(`/test/${assignment.id}/results`)}
           >
             <FileText className="w-4 h-4 mr-2" />
             View Results
           </Button>
           
-          {/* Show retake option for failed tests */}
+          {/* Show retake option ONLY for failed tests and only if payment made or retake allowed */}
           {hasFailed && !assignment.retakeAllowed && (
             <Button
               size="sm"
@@ -117,7 +118,8 @@ export default function JobSeekerTests() {
             </Button>
           )}
           
-          {assignment.retakeAllowed && (
+          {/* Only allow retake if explicitly allowed (after payment) and failed */}
+          {hasFailed && assignment.retakeAllowed && (
             <Button
               size="sm"
               onClick={() => setLocation(`/test/${assignment.id}`)}
@@ -126,6 +128,14 @@ export default function JobSeekerTests() {
               <RefreshCw className="w-4 h-4 mr-2" />
               Start Retake
             </Button>
+          )}
+          
+          {/* No retake option for passed tests */}
+          {hasPassed && (
+            <Badge variant="outline" className="text-green-600 border-green-200">
+              <CheckCircle className="w-3 h-3 mr-1" />
+              Test Passed
+            </Badge>
           )}
         </div>
       );
