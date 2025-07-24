@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { useAuth } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
-import Dashboard from "@/pages/dashboard";
+import EnhancedDashboard from "@/pages/enhanced-dashboard";
 import Profile from "@/pages/profile";
 import Applications from "@/pages/applications";
 import Jobs from "@/pages/jobs";
@@ -126,7 +126,7 @@ function Router() {
               ) : (
                 <>
                   {/* Main dashboard routes for completed job seekers */}
-                  <Route path="/" component={Dashboard} />
+                  <Route path="/" component={EnhancedDashboard} />
                   <Route path="/onboarding" component={Onboarding} />
                   <Route path="/profile" component={Profile} />
                   <Route path="/resumes" component={ResumesPage} />
@@ -158,7 +158,7 @@ function Router() {
           ) : (
             <>
               {/* Default routes for users without explicit type (treat as job seekers) */}
-              <Route path="/" component={Dashboard} />
+              <Route path="/" component={EnhancedDashboard} />
               <Route path="/onboarding" component={Onboarding} />
               <Route path="/profile" component={Profile} />
               <Route path="/applications" component={Applications} />
