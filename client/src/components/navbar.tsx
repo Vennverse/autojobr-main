@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserAvatar } from "@/components/profile-avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Rocket, Moon, Sun, User, Settings, LogOut, BarChart3, FileText, Briefcase, Crown, Menu, X, Plus, MessageCircle, Search, Target, Brain, Users, Trophy, Code, Bell, Upload, Zap, HelpCircle, ChevronDown, TrendingUp } from "lucide-react";
+import { Rocket, Moon, Sun, User, Settings, LogOut, BarChart3, FileText, Briefcase, Crown, Menu, X, Plus, MessageCircle, Target, Brain, Users, Trophy, Code, Bell, Upload, Zap, HelpCircle, ChevronDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
@@ -14,7 +14,6 @@ export function Navbar() {
   const { user } = useAuth() as { user: any };
   const { theme, setTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const handleLogout = async () => {
     try {
@@ -69,7 +68,7 @@ export function Navbar() {
   const navItems = getNavItems();
 
   return (
-    <nav className="bg-background/95 backdrop-blur-sm border-b border-border sticky top-0 z-50 w-full">
+    <nav className="bg-background/95 backdrop-blur-md border-b border-border/50 sticky top-0 z-50 w-full shadow-sm">
       <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-2 sm:space-x-4">
@@ -84,7 +83,7 @@ export function Navbar() {
                 <Crown className="w-4 h-4 text-yellow-500" />
               )}
             </Link>
-            <div className="hidden md:flex space-x-4 lg:space-x-6">
+            <div className="hidden md:flex space-x-2 lg:space-x-4">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location === item.href;
@@ -92,16 +91,16 @@ export function Navbar() {
                   <Link key={item.href} href={item.href}>
                     <button
                       className={cn(
-                        "flex items-center space-x-1 text-sm font-medium px-3 py-2 rounded-md transition-all",
+                        "flex items-center space-x-2 text-sm font-medium px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105",
                         item.premium 
-                          ? "bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold animate-pulse hover:from-yellow-500 hover:to-orange-600 shadow-lg" 
+                          ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold hover:from-purple-600 hover:to-pink-600 shadow-lg hover:shadow-xl" 
                           : isActive
-                          ? "text-primary bg-primary/10"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                          ? "text-primary bg-primary/15 shadow-sm border border-primary/20"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                       )}
                     >
-                      <Icon className={cn("w-4 h-4", item.premium && "animate-bounce")} />
-                      <span>{item.label}</span>
+                      <Icon className={cn("w-4 h-4", item.premium && "text-yellow-200")} />
+                      <span className="hidden lg:inline">{item.label}</span>
                     </button>
                   </Link>
                 );
@@ -110,36 +109,27 @@ export function Navbar() {
           </div>
           
           <div className="flex items-center space-x-3">
-            {/* Search - only show on larger screens for job seekers */}
-            {user && user?.userType !== 'recruiter' && (
-              <div className="hidden lg:flex relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Search jobs..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-1.5 w-64 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && searchQuery.trim()) {
-                      window.location.href = `/jobs?search=${encodeURIComponent(searchQuery.trim())}`;
-                    }
-                  }}
-                />
-              </div>
+            {/* Notifications Bell - only for authenticated users */}
+            {user && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hidden sm:flex h-9 w-9 rounded-full hover:bg-muted/80 transition-all duration-200 relative"
+              >
+                <Bell className="h-4 w-4" />
+                <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
+                  3
+                </span>
+                <span className="sr-only">Notifications</span>
+              </Button>
             )}
 
-
-
-
-
-
-            {/* Theme toggle */}
+            {/* Theme toggle with improved styling */}
             <Button
               variant="ghost"
-              size="icon"
+              size="sm"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="hidden sm:flex"
+              className="hidden sm:flex h-9 w-9 rounded-full hover:bg-muted/80 transition-all duration-200"
             >
               <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -175,7 +165,7 @@ export function Navbar() {
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild className="hidden md:flex">
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-muted/80 transition-all duration-200 ring-2 ring-transparent hover:ring-primary/20">
                     <UserAvatar 
                       user={{
                         id: user?.id || '',
@@ -237,8 +227,8 @@ export function Navbar() {
         
         {/* Mobile Navigation Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-border bg-background/95 backdrop-blur-sm">
-            <div className="px-2 pt-2 pb-3 space-y-1 max-h-screen overflow-y-auto">
+          <div className="md:hidden border-t border-border/50 bg-background/98 backdrop-blur-md shadow-lg">
+            <div className="px-4 pt-4 pb-6 space-y-2 max-h-screen overflow-y-auto">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location === item.href;
@@ -247,10 +237,12 @@ export function Navbar() {
                     <button
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={cn(
-                        "flex items-center space-x-3 w-full text-left px-3 py-2 rounded-md text-base font-medium transition-colors",
-                        isActive
-                          ? "text-primary bg-primary/10"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        "flex items-center space-x-3 w-full text-left px-4 py-3 rounded-lg text-base font-medium transition-all duration-200",
+                        item.premium
+                          ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold shadow-md"
+                          : isActive
+                          ? "text-primary bg-primary/15 shadow-sm border border-primary/20"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                       )}
                     >
                       <Icon className="w-5 h-5" />
