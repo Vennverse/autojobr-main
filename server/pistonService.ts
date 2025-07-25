@@ -283,11 +283,6 @@ auto ${functionName}(auto input) {
     return input;
 }`;
 
-      case 'python':
-        return `def ${functionName}(input):
-    # Your code here
-    return input`;
-
       default:
         return `// ${language} boilerplate not available
 function ${functionName}(input) {

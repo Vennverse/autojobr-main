@@ -1,0 +1,63 @@
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 4.87s
+▲ [WARNING] Duplicate member "cancelSubscription" in class body [duplicate-class-member]
+
+    server/paypalSubscriptionService.ts:335:8:
+      335 │   async cancelSubscription(subscriptionId: string, reason: string = 'User requested cancellation'): Promise<boolean> {
+          ╵         ~~~~~~~~~~~~~~~~~~
+
+  The original member "cancelSubscription" is here:
+
+    server/paypalSubscriptionService.ts:242:8:
+      242 │   async cancelSubscription(subscriptionId: string, reason: string): Promise<boolean> {
+          ╵         ~~~~~~~~~~~~~~~~~~
+
+▲ [WARNING] Duplicate member "createRazorpayOrder" in class body [duplicate-class-member]
+
+    server/paymentService.ts:299:8:
+      299 │   async createRazorpayOrder(amount: number = 1000): Promise<any> {
+          ╵         ~~~~~~~~~~~~~~~~~~~
+
+  The original member "createRazorpayOrder" is here:
+
+    server/paymentService.ts:125:8:
+      125 │   async createRazorpayOrder(amount: number, currency: string = 'USD') {
+          ╵         ~~~~~~~~~~~~~~~~~~~
+
+▲ [WARNING] This case clause will never be evaluated because it duplicates an earlier case clause [duplicate-case]
+
+    server/pistonService.ts:286:11:
+      286 │       case 'python':
+          ╵            ~~~~~~~~
+
+  The earlier case clause is here:
+
+    server/pistonService.ts:263:11:
+      263 │       case 'python':
+          ╵            ~~~~~~~~
+
+▲ [WARNING] Using direct eval with a bundler is not recommended and may cause problems [direct-eval]
+
+    server/mockInterviewService.ts:213:27:
+      213 │             const result = eval(`(${code})(${JSON.stringify(testCase.input)})`);
+          ╵                            ~~~~
+
+  You can read more about direct eval and bundling here: https://esbuild.github.io/link/direct-eval
+
+▲ [WARNING] Import "skills" will always be undefined because there is no matching export in "shared/schema.ts" [import-is-undefined]
+
+    server/routes.ts:6875:89:
+      6875 │       const candidatesWithSkills = await db.select({ count: sql`count(*)` }).from(schema.skills);
+           ╵                                                                                          ~~~~~~
+
+5 warnings
+
+  dist/index.js  769.6kb
+
+⚡ Done in 26ms
+[INFO] Creating PM2 configuration...
+sed: -e expression #1, char 82: unterminated `s' command

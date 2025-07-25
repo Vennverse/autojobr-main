@@ -296,7 +296,7 @@ class PaymentService {
     }
   }
 
-  async createRazorpayOrder(amount: number = 1000): Promise<any> {
+  async createRazorpayOrderV2(amount: number = 1000): Promise<any> {
     try {
       const auth = Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`).toString('base64');
       

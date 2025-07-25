@@ -332,7 +332,8 @@ export class PayPalSubscriptionService {
     }
   }
 
-  async cancelSubscription(subscriptionId: string, reason: string = 'User requested cancellation'): Promise<boolean> {
+  // Enhanced cancel subscription with better error handling
+  async cancelSubscriptionEnhanced(subscriptionId: string, reason: string = 'User requested cancellation'): Promise<boolean> {
     const token = await this.getAccessToken();
 
     try {
@@ -351,7 +352,7 @@ export class PayPalSubscriptionService {
       await db.update(subscriptions)
         .set({ 
           status: 'cancelled',
-          canceledAt: new Date(),
+          cancelledAt: new Date(),
           updatedAt: new Date()
         })
         .where(eq(subscriptions.paypalSubscriptionId, subscriptionId));
