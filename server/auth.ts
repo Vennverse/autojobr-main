@@ -506,11 +506,11 @@ export async function setupAuth(app: Express) {
           
           console.log('Verification session saved successfully for user:', user.id);
           
-          // Redirect based on user type
+          // Redirect based on user type - always redirect to /auth after verification
           if (user.userType === 'recruiter') {
-            res.redirect('/post-job?verified=true');
+            res.redirect('/auth?verified=true&type=recruiter&message=Email verified successfully! Welcome to AutoJobr.');
           } else {
-            res.redirect('/signin?verified=true');
+            res.redirect('/auth?verified=true&message=Email verified successfully! Please sign in to continue.');
           }
         });
       } else {
