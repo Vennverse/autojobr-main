@@ -2051,3 +2051,25 @@ export type VirtualInterviewFeedback = typeof virtualInterviewFeedback.$inferSel
 export type InsertVirtualInterviewFeedback = z.infer<typeof insertVirtualInterviewFeedbackSchema>;
 export type VirtualInterviewStats = typeof virtualInterviewStats.$inferSelect;
 export type InsertVirtualInterviewStats = z.infer<typeof insertVirtualInterviewStatsSchema>;
+
+// Premium targeting jobs table for B2B features
+export const premiumTargetingJobs = pgTable("premium_targeting_jobs", {
+  id: serial("id").primaryKey(),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  companyName: varchar("company_name"),
+  recruiterId: varchar("recruiter_id").references(() => users.id).notNull(),
+  location: varchar("location"),
+  salaryRange: varchar("salary_range"),
+  jobType: varchar("job_type"),
+  workMode: varchar("work_mode"),
+  isPremiumTargeted: boolean("is_premium_targeted").default(true),
+  isActive: boolean("is_active").default(false),
+  estimatedCost: integer("estimated_cost"),
+  targetingCriteria: jsonb("targeting_criteria"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Create aliases for missing exports to fix import errors
+export const educations = education;
