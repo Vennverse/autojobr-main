@@ -1,0 +1,87 @@
+# Build and start the application
+npm run build
+source .env
+pm2 start ecosystem.config.cjs
+pm2 save
+ALTER ROLE
+GRANT
+GRANT
+GRANT
+
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/home/ubuntu/autojobr-main/drizzle.config.ts'
+Using 'pg' driver for database querying
+[✓] Pulling schema from database...
+error: permission denied for schema public
+    at /home/ubuntu/autojobr-main/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Object.query (/home/ubuntu/autojobr-main/node_modules/drizzle-kit/bin.cjs:66575:26)
+    at async pgPush (/home/ubuntu/autojobr-main/node_modules/drizzle-kit/bin.cjs:70117:13)
+    at async Object.handler (/home/ubuntu/autojobr-main/node_modules/drizzle-kit/bin.cjs:79124:9)
+    at async run (/home/ubuntu/autojobr-main/node_modules/drizzle-kit/bin.cjs:78381:7) {
+  length: 99,
+  severity: 'ERROR',
+  code: '42501',
+  detail: undefined,
+  hint: undefined,
+  position: '14',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'aclchk.c',
+  line: '2843',
+  routine: 'aclcheck_error'
+}
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+vite v5.4.19 building for production...
+transforming (3) src/main.tsxBrowserslist: browsers data (caniuse-lite) is 9 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 2494 modules transformed.
+../dist/public/index.html                    40.15 kB │ gzip:   8.92 kB
+../dist/public/assets/index-BN1V1kpL.css    147.83 kB │ gzip:  21.51 kB
+../dist/public/assets/index-CIChVV6c.js   1,354.70 kB │ gzip: 345.08 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 4.79s
+▲ [WARNING] Using direct eval with a bundler is not recommended and may cause problems [direct-eval]
+
+    server/mockInterviewService.ts:213:27:
+      213 │             const result = eval(`(${code})(${JSON.stringify(testCase.input)})`);
+          ╵                            ~~~~
+
+  You can read more about direct eval and bundling here: https://esbuild.github.io/link/direct-eval
+
+▲ [WARNING] Import "skills" will always be undefined because there is no matching export in "shared/schema.ts" [import-is-undefined]
+
+    server/routes.ts:6875:89:
+      6875 │       const candidatesWithSkills = await db.select({ count: sql`count(*)` }).from(schema.skills);
+           ╵                                                                                          ~~~~~~
+
+2 warnings
+
+  dist/index.js  769.5kb
+
+⚡ Done in 26ms
+[PM2][WARN] Applications autojobr not running, starting...
+[PM2] App [autojobr] launched (1 instances)
+┌────┬─────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name        │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼─────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ autojobr    │ default     │ 1.0.0   │ cluster │ 15698    │ 0s     │ 0    │ online    │ 0%       │ 43.4mb   │ ubuntu   │ disabled │
+└────┴─────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2] Saving current process list...
