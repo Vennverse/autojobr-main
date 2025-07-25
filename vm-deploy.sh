@@ -111,9 +111,21 @@ EOF
 
 print_status "Database created successfully"
 
+# Clone the repository if not already present
+if [ ! -d "autojobr-main" ]; then
+    print_status "Cloning AutoJobr repository..."
+    git clone https://github.com/Vennverse/autojobr-main.git
+fi
+
+# Navigate to application directory
+cd autojobr-main
+
 # Install application dependencies
 print_status "Installing application dependencies..."
 npm install
+
+# Ensure we're in the right directory
+cd autojobr-main
 
 # Create .env file
 print_status "Creating environment configuration..."
