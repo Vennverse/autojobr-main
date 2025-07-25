@@ -146,6 +146,9 @@ export const userProfiles = pgTable("user_profiles", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Export alias for compatibility with server routes
+export const profiles = userProfiles;
+
 // User skills
 export const userSkills = pgTable("user_skills", {
   id: serial("id").primaryKey(),
