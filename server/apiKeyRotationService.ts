@@ -89,12 +89,6 @@ class ApiKeyRotationService {
   }
 
   private initializeResendClients(): void {
-    // Skip Resend client initialization in production to avoid WebSocket issues
-    if (process.env.NODE_ENV === 'production') {
-      console.log('Skipping Resend client initialization in production mode');
-      return;
-    }
-    
     this.resendPool.keys.forEach(key => {
       try {
         const client = new Resend(key);

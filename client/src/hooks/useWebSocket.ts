@@ -45,9 +45,19 @@ export const useWebSocket = ({
     }
 
     try {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      // Fix WebSocket URL for VM deployment - always use ws:// for HTTP and correct port
+      let wsUrl: string;
+      const isHTTPS = window.location.protocol === "https:";
       
+      if (isHTTPS) {
+        wsUrl = `wss://${window.location.host}/ws`;
+      } else {
+        // For HTTP connections, use ws:// and ensure correct port
+        const port = window.location.port || '80';
+        wsUrl = `ws://${window.location.hostname}:${port}/ws`;
+      }
+      
+      console.log('Connecting to WebSocket:', wsUrl);
       ws.current = new WebSocket(wsUrl);
       setConnectionState('connecting');
 
