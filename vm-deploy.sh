@@ -124,9 +124,6 @@ cd autojobr-main
 print_status "Installing application dependencies..."
 npm install
 
-# Ensure we're in the right directory
-cd autojobr-main
-
 # Create .env file
 print_status "Creating environment configuration..."
 cat > .env << EOF
@@ -163,16 +160,19 @@ npm run build
 
 # Create PM2 ecosystem file
 print_status "Creating PM2 configuration..."
-cat > ecosystem.config.js << EOF
+cat > ecosystem.config.cjs << EOF
 module.exports = {
   apps: [{
     name: 'autojobr',
     script: './dist/index.js',
-    instances: 'max',
-    exec_mode: 'cluster',
+    instances: 1,
     env: {
       NODE_ENV: 'production',
-      PORT: 5000
+      PORT: 5000,
+      DATABASE_URL: '$DB_CONNECTION_STRING',
+      SESSION_SECRET: '$SESSION_SECRET',
+      GROQ_API_KEY: 'your_groq_api_key_here',
+      RESEND_API_KEY: 'your_resend_api_key_here'
     },
     error_file: './logs/err.log',
     out_file: './logs/out.log',
@@ -186,9 +186,16 @@ EOF
 # Create logs directory
 mkdir -p logs
 
-# Start application with PM2
+# Replace placeholders in PM2 config with actual values
+DB_CONNECTION_STRING="postgresql://autojobr_user:$DB_PASSWORD@localhost:5432/autojobr"
+sed -i "s|\$DB_CONNECTION_STRING|$DB_CONNECTION_STRING|g" ecosystem.config.cjs
+sed -i "s|\$SESSION_SECRET|$SESSION_SECRET|g" ecosystem.config.cjs
+
+# Start application with PM2 using environment variables
 print_status "Starting application with PM2..."
-pm2 start ecosystem.config.js
+source .env
+export $(cat .env | grep -v '^#' | xargs)
+pm2 start ecosystem.config.cjs
 pm2 save
 
 # Setup PM2 to start on boot
@@ -289,7 +296,9 @@ echo "View database: sudo -u postgres psql autojobr"
 echo "=============================================="
 echo ""
 print_warning "Remember to:"
-print_warning "1. Add your API keys to .env file"
+print_warning "1. Add your API keys to .env file:"
+print_warning "   cd autojobr-main && nano .env"
+print_warning "   Then run: source .env && export \$(cat .env | grep -v '^#' | xargs) && pm2 restart autojobr"
 print_warning "2. Configure your domain name in Nginx"
 print_warning "3. Set up SSL certificate (Let's Encrypt)"
 print_warning "4. Set up regular backups"
