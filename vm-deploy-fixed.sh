@@ -81,9 +81,9 @@ fi
 sudo systemctl start postgresql
 sudo systemctl enable postgresql
 
-# Generate secure passwords
-DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/")
-SESSION_SECRET=$(openssl rand -base64 64 | tr -d "=+/")
+# Generate secure passwords with alphanumeric characters only
+DB_PASSWORD=$(openssl rand -hex 16)
+SESSION_SECRET=$(openssl rand -hex 32)
 
 print_status "Generated secure database password and session secret"
 
@@ -128,23 +128,23 @@ npm install
 print_status "Creating environment configuration..."
 cat > .env << EOF
 # Database Configuration
-DATABASE_URL=postgresql://autojobr_user:$DB_PASSWORD@localhost:5432/autojobr
+DATABASE_URL="postgresql://autojobr_user:$DB_PASSWORD@localhost:5432/autojobr"
 
-# Session Configuration
-SESSION_SECRET=$SESSION_SECRET
+# Session Configuration  
+SESSION_SECRET="$SESSION_SECRET"
 
 # Server Configuration
-NODE_ENV=production
-PORT=5000
+NODE_ENV="production"
+PORT="5000"
 
 # API Keys (replace with your actual keys)
-GROQ_API_KEY=your_groq_api_key_here
-RESEND_API_KEY=your_resend_api_key_here
+GROQ_API_KEY="your_groq_api_key_here"
+RESEND_API_KEY="your_resend_api_key_here"
 
 # Optional Payment Keys
-STRIPE_SECRET_KEY=your_stripe_key_here
-PAYPAL_CLIENT_ID=your_paypal_client_id_here
-PAYPAL_CLIENT_SECRET=your_paypal_client_secret_here
+STRIPE_SECRET_KEY="your_stripe_key_here"
+PAYPAL_CLIENT_ID="your_paypal_client_id_here"
+PAYPAL_CLIENT_SECRET="your_paypal_client_secret_here"
 EOF
 
 # Build the application
