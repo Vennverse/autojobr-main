@@ -5,13 +5,13 @@
 ### Fresh Ubuntu/CentOS VM
 ```bash
 # Download and run the automated deployment script
-curl -fsSL https://raw.githubusercontent.com/yourusername/autojobr/main/vm-deploy.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Vennverse/autojobr-main/main/vm-deploy.sh | bash
 ```
 
 ### Or Clone and Deploy
 ```bash
-git clone https://github.com/yourusername/autojobr.git
-cd autojobr
+git clone https://github.com/Vennverse/autojobr-main.git
+cd autojobr-main
 chmod +x vm-deploy.sh
 sudo ./vm-deploy.sh
 ```
@@ -90,8 +90,8 @@ For Docker deployment:
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/autojobr.git
-cd autojobr
+git clone https://github.com/Vennverse/autojobr-main.git
+cd autojobr-main
 
 # Create environment file
 cp .env.example .env

@@ -6,8 +6,8 @@
 
 ```bash
 # Download the repository and run automated setup
-git clone https://github.com/yourusername/autojobr.git
-cd autojobr
+git clone https://github.com/Vennverse/autojobr-main.git
+cd autojobr-main
 chmod +x vm-deploy.sh
 sudo ./vm-deploy.sh
 ```
@@ -60,8 +60,8 @@ EOF
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/autojobr.git
-cd autojobr
+git clone https://github.com/Vennverse/autojobr-main.git
+cd autojobr-main
 
 # Install dependencies
 npm install
