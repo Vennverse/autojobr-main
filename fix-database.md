@@ -1,65 +1,65 @@
-# Fix Database Connection Error
+# Database Authentication Fix Guide
 
-You're seeing the error because Replit's database is having issues. Here's how to fix it:
+## Issue Identified
+The signup failure is due to PostgreSQL authentication error: `password authentication failed for user "autojobr_user"`
 
-## Quick Fix (5 minutes)
+## Root Cause
+The database user password doesn't match what's configured in the .env file during deployment.
 
-### Step 1: Get a Free Database
+## Solution Steps
 
-**Option A: Neon (Recommended)**
-1. Go to https://neon.tech
-2. Sign up (free)
-3. Create a new project
-4. Copy the connection string (looks like: `postgresql://username:password@host/database`)
-
-**Option B: Supabase**
-1. Go to https://supabase.com
-2. Create account and new project
-3. Go to Settings > Database
-4. Copy the connection string
-
-### Step 2: Update Your Environment
-
-Create/edit `.env` file in your project root:
-
-```env
-# Replace this with your actual database connection string
-DATABASE_URL=postgresql://username:password@your-host:5432/your-database
-
-# Add a session secret (any random string)
-SESSION_SECRET=your-random-secret-key-32-characters-long
-
-# Optional: Add Groq API key for AI features
-GROQ_API_KEY=your-groq-api-key
-```
-
-### Step 3: Restart the Application
-
+### 1. Run the Database Fix Script
 ```bash
-# Install dependencies (if not done)
-npm install
-
-# Setup database tables
-npm run db:push
-
-# Start the app
-npm run dev
+cd ~/autojobr-main
+./fix-database.sh
 ```
 
-## Why This Happened
+### 2. Manual Fix (if script fails)
+```bash
+# 1. Reset PostgreSQL user
+sudo -u postgres psql
+DROP USER IF EXISTS autojobr_user;
+CREATE USER autojobr_user WITH PASSWORD 'your_secure_password_here';
+GRANT ALL PRIVILEGES ON DATABASE autojobr TO autojobr_user;
+\c autojobr
+GRANT ALL ON SCHEMA public TO autojobr_user;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO autojobr_user;
+\q
 
-Replit's database service is experiencing issues ("endpoint is disabled"). Using external databases like Neon or Supabase is more reliable and gives you:
+# 2. Update .env file
+nano .env
+# Update: DATABASE_URL="postgresql://autojobr_user:your_secure_password_here@localhost:5432/autojobr"
 
-- Better performance
-- No connection limits
-- Free tier available
-- Works anywhere (not just Replit)
+# 3. Test connection
+PGPASSWORD="your_secure_password_here" psql -h localhost -U autojobr_user -d autojobr -c "SELECT 1;"
 
-## Test It's Working
+# 4. Push schema and restart
+npm run db:push
+source .env
+export $(cat .env | grep -v '^#' | xargs)
+pm2 restart autojobr
+```
 
-After setup, you should see:
-- ✅ Database connected successfully
-- ✅ Using PostgreSQL session store
-- No more "Control plane request failed" errors
+### 3. Verify Fix
+```bash
+# Check application logs
+pm2 logs autojobr --lines 10
 
-The app will then work properly at http://localhost:5000
+# Test signup endpoint
+curl -X POST http://localhost:5000/api/auth/email/signup \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"password123","user_type":"job_seeker"}'
+```
+
+## Expected Results
+- Database connection should work without authentication errors
+- Signup should complete successfully
+- User should receive email verification (or see simulation in logs)
+- Application should be accessible at http://40.160.50.128
+
+## Troubleshooting
+If issues persist:
+1. Check PostgreSQL service: `sudo systemctl status postgresql`
+2. Check database exists: `sudo -u postgres psql -l | grep autojobr`
+3. Check user permissions: `sudo -u postgres psql -c "\du"`
+4. Review application logs: `pm2 logs autojobr --lines 20`
