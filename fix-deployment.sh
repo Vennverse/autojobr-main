@@ -95,4 +95,8 @@ echo "   nano .env"
 echo ""
 echo "Then restart: pm2 restart autojobr"
 echo ""
+<<<<<<< HEAD
 echo "✅ Deployment fixed successfully!"
+=======
+echo "✅ Deployment fixed successfully!"
+>>>>>>> 9b451080218eb6c1ea971dd3eb9e67c2d5de1b40
