@@ -1836,9 +1836,9 @@ export const virtualInterviews = pgTable("virtual_interviews", {
   confidenceScore: integer("confidence_score"), // 0-100
   
   // AI feedback
-  strengths: text("strengths").array().default("[]"),
-  weaknesses: text("weaknesses").array().default("[]"),
-  recommendations: text("recommendations").array().default("[]"),
+  strengths: text("strengths").array(),
+  weaknesses: text("weaknesses").array(),
+  recommendations: text("recommendations").array(),
   detailedFeedback: text("detailed_feedback"),
   
   // Interview context
@@ -1894,7 +1894,7 @@ export const virtualInterviewMessages = pgTable("virtual_interview_messages", {
   // Response analysis
   responseTime: integer("response_time"), // time taken to respond in seconds
   responseQuality: integer("response_quality"), // 1-10 AI assessment
-  keywordsMatched: text("keywords_matched").array().default("[]"),
+  keywordsMatched: text("keywords_matched").array(),
   sentiment: varchar("sentiment"), // positive, neutral, negative
   confidence: integer("confidence"), // 1-100 AI confidence in assessment
   
@@ -1938,10 +1938,10 @@ export const virtualInterviewFeedback = pgTable("virtual_interview_feedback", {
   stressHandling: integer("stress_handling").notNull(), // 0-100
   
   // Personalized recommendations
-  skillGaps: text("skill_gaps").array().default("[]"),
-  recommendedResources: jsonb("recommended_resources").default("[]"), // Learning resources
-  practiceAreas: text("practice_areas").array().default("[]"),
-  nextSteps: text("next_steps").array().default("[]"),
+  skillGaps: text("skill_gaps").array(),
+  recommendedResources: jsonb("recommended_resources"), // Learning resources
+  practiceAreas: text("practice_areas").array(),
+  nextSteps: text("next_steps").array(),
   
   // Market insights
   marketComparison: text("market_comparison"), // How they compare to others
@@ -1985,9 +1985,9 @@ export const virtualInterviewStats = pgTable("virtual_interview_stats", {
   systemDesignAvg: integer("system_design_avg").default(0),
   
   // Skill development
-  strongestSkills: text("strongest_skills").array().default("[]"),
-  improvingSkills: text("improving_skills").array().default("[]"),
-  needsWorkSkills: text("needs_work_skills").array().default("[]"),
+  strongestSkills: text("strongest_skills").array(),
+  improvingSkills: text("improving_skills").array(),
+  needsWorkSkills: text("needs_work_skills").array(),
   
   // Engagement metrics
   totalTimeSpent: integer("total_time_spent").default(0), // in minutes
@@ -1995,7 +1995,7 @@ export const virtualInterviewStats = pgTable("virtual_interview_stats", {
   lastInterviewDate: timestamp("last_interview_date"),
   
   // Milestone tracking
-  milestonesAchieved: text("milestones_achieved").array().default("[]"),
+  milestonesAchieved: text("milestones_achieved").array(),
   nextMilestone: varchar("next_milestone"),
   
   createdAt: timestamp("created_at").defaultNow(),
