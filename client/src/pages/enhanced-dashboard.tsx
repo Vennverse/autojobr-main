@@ -93,6 +93,8 @@ export default function EnhancedDashboard() {
   const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
   const [isUploadingResume, setIsUploadingResume] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [coverLetterResult, setCoverLetterResult] = useState("");
 
   // Show loading while checking authentication
   if (isLoading) {
@@ -282,6 +284,41 @@ export default function EnhancedDashboard() {
     }
   };
 
+  // Cover letter generation handler
+  const generateCoverLetter = async (jobDescription: string) => {
+    setIsGenerating(true);
+    
+    try {
+      const response = await apiRequest('/api/generate-cover-letter', {
+        method: 'POST',
+        body: JSON.stringify({
+          jobDescription,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setCoverLetterResult(result.coverLetter);
+        
+        toast({
+          title: "Cover Letter Generated",
+          description: "Your personalized cover letter is ready",
+        });
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Generation failed");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Generation Failed",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
       <Navbar />
@@ -294,15 +331,15 @@ export default function EnhancedDashboard() {
           className="space-y-8"
         >
           {/* Welcome Header */}
-          <motion.div variants={itemVariants} className="text-center space-y-4">
+          <motion.div variants={itemVariants} className="text-center space-y-2">
             <div className="flex items-center justify-center gap-2">
-              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
                 Welcome back, {userName}!
               </h1>
-              {isPremium && <Crown className="w-8 h-8 text-yellow-500 animate-pulse" />}
+              {isPremium && <Crown className="w-6 h-6 text-yellow-500 animate-pulse" />}
             </div>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Your AI-powered job search command center
+            <p className="text-md text-muted-foreground max-w-xl mx-auto">
+              Your AI-powered career platform
             </p>
             
             {!isPremium && (
@@ -545,6 +582,52 @@ export default function EnhancedDashboard() {
             </motion.div>
           </div>
 
+          {/* Advanced Features */}
+          <motion.div variants={itemVariants}>
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <Sparkles className="w-6 h-6 text-purple-500" />
+              Advanced Features
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {featureCards.map((feature, index) => (
+                <motion.div
+                  key={feature.title}
+                  variants={cardHoverVariants}
+                  initial="rest"
+                  whileHover="hover"
+                  className="cursor-pointer"
+                  onClick={() => setLocation(feature.route)}
+                >
+                  <Card className="h-full border-0 overflow-hidden relative">
+                    <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-5`} />
+                    <CardContent className="p-6 relative">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className={`p-3 rounded-xl bg-gradient-to-br ${feature.gradient}`}>
+                          <feature.icon className="w-6 h-6 text-white" />
+                        </div>
+                      </div>
+                      
+                      <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
+                      <p className="text-sm text-muted-foreground mb-3">{feature.description}</p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mb-4 italic">{feature.helpText}</p>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-primary">{feature.stats}</span>
+                        <Button 
+                          size="sm" 
+                          className="group"
+                        >
+                          {feature.action}
+                          <ChevronRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
           {/* Recent Jobs Section */}
           <motion.div variants={itemVariants}>
             <Card className="border-0 overflow-hidden relative bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950">
@@ -611,55 +694,9 @@ export default function EnhancedDashboard() {
             </Card>
           </motion.div>
 
-          {/* Platform Features */}
-          <motion.div variants={itemVariants}>
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <Sparkles className="w-6 h-6 text-purple-500" />
-              Advanced Features
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {featureCards.map((feature, index) => (
-                <motion.div
-                  key={feature.title}
-                  variants={cardHoverVariants}
-                  initial="rest"
-                  whileHover="hover"
-                  className="cursor-pointer"
-                  onClick={() => setLocation(feature.route)}
-                >
-                  <Card className="h-full border-0 overflow-hidden relative">
-                    <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-5`} />
-                    <CardContent className="p-6 relative">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className={`p-3 rounded-xl bg-gradient-to-br ${feature.gradient}`}>
-                          <feature.icon className="w-6 h-6 text-white" />
-                        </div>
-                      </div>
-                      
-                      <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-                      <p className="text-sm text-muted-foreground mb-3">{feature.description}</p>
-                      <p className="text-xs text-blue-600 dark:text-blue-400 mb-4 italic">{feature.helpText}</p>
-                      
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-primary">{feature.stats}</span>
-                        <Button 
-                          size="sm" 
-                          className="group"
-                        >
-                          {feature.action}
-                          <ChevronRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Quick Tools Section */}
+          {/* Resume Analysis & AI Tools */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Resume Upload & Analysis */}
+            {/* Resume Analysis Tab */}
             <motion.div variants={itemVariants}>
               <Card className="border-0 shadow-lg bg-gradient-to-br from-green-500 to-teal-600 text-white">
                 <CardHeader>
@@ -777,49 +814,78 @@ export default function EnhancedDashboard() {
               </Card>
             </motion.div>
 
-            {/* Recent Applications */}
+            {/* Cover Letter Generator */}
             <motion.div variants={itemVariants}>
-              <Card>
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-blue-500" />
-                    Recent Applications
+                    <FileText className="h-5 w-5" />
+                    Cover Letter Generator
                   </CardTitle>
+                  <p className="text-sm text-blue-100">
+                    Generate personalized cover letters with AI
+                  </p>
                 </CardHeader>
-                <CardContent>
-                  {recentApplications.length > 0 ? (
-                    <div className="space-y-4">
-                      {recentApplications.map((app: any) => (
-                        <div key={app.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <Building className="w-8 h-8 text-muted-foreground" />
-                            <div>
-                              <p className="font-medium">{app.jobTitle}</p>
-                              <p className="text-sm text-muted-foreground">{app.companyName}</p>
-                            </div>
-                          </div>
-                          <Badge variant={app.status === 'applied' ? 'default' : 'secondary'}>
-                            {app.status}
-                          </Badge>
-                        </div>
-                      ))}
-                      
-                      <Button 
-                        variant="outline" 
-                        className="w-full mt-4"
-                        onClick={() => setLocation("/applications")}
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <textarea
+                      placeholder="Paste the job description here..."
+                      className="w-full p-3 rounded bg-white/20 border border-white/30 text-white placeholder:text-white/70 min-h-[100px] resize-none"
+                      id="job-description-input"
+                    />
+                    <Button
+                      variant="secondary"
+                      className="w-full bg-white/20 hover:bg-white/30 text-white border-0"
+                      onClick={() => {
+                        const jobDesc = (document.getElementById('job-description-input') as HTMLTextAreaElement)?.value;
+                        if (jobDesc.trim()) {
+                          generateCoverLetter(jobDesc);
+                        } else {
+                          toast({
+                            title: "Job Description Required",
+                            description: "Please paste a job description first",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                      disabled={isGenerating}
+                    >
+                      {isGenerating ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white mr-2"></div>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Generate Cover Letter
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {coverLetterResult && (
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">Generated Cover Letter:</div>
+                      <div className="bg-white/20 rounded-lg p-3 max-h-32 overflow-y-auto">
+                        <pre className="text-xs text-white/90 whitespace-pre-wrap font-sans">
+                          {coverLetterResult}
+                        </pre>
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="w-full bg-white/20 hover:bg-white/30 text-white border-0"
+                        onClick={() => {
+                          navigator.clipboard.writeText(coverLetterResult);
+                          toast({
+                            title: "Copied to Clipboard",
+                            description: "Cover letter copied successfully",
+                          });
+                        }}
                       >
-                        View All Applications
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground mb-4">No applications yet</p>
-                      <Button onClick={() => setLocation("/jobs")}>
-                        Browse Jobs
-                        <ArrowRight className="w-4 h-4 ml-2" />
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy to Clipboard
                       </Button>
                     </div>
                   )}
