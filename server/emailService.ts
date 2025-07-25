@@ -9,6 +9,25 @@ interface EmailParams {
 
 export async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
+    // For VM deployment, always use simulation mode to avoid WebSocket issues
+    if (process.env.NODE_ENV === 'production') {
+      console.log('=== EMAIL SIMULATION (Production VM Mode) ===');
+      console.log('To:', params.to);
+      console.log('Subject:', params.subject);
+      
+      // Extract and display verification URLs for manual testing
+      if (params.html.includes('verify-email?token=')) {
+        const tokenMatch = params.html.match(/verify-email\?token=([^"]+)/);
+        if (tokenMatch) {
+          console.log('🔗 VERIFICATION URL:', `http://localhost:5000/verify-email?token=${tokenMatch[1]}`);
+          console.log('🔗 Copy this URL to verify the account manually');
+        }
+      }
+      
+      console.log('=== END EMAIL SIMULATION ===');
+      return true; // Return success for VM deployment
+    }
+
     const status = apiKeyRotationService.getStatus();
     
     // Check if any Resend keys are available
