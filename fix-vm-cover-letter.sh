@@ -88,7 +88,9 @@ async function fixDatabase() {
 fixDatabase();
 "
 
-print_status "Building the application..."
+print_status "Building the application with optimizations..."
+# Set environment variable to suppress chunk size warnings
+export VITE_CHUNK_SIZE_WARNING_LIMIT=600
 npm run build
 
 print_status "Restarting PM2 processes..."

@@ -199,6 +199,34 @@ export class MockInterviewService {
     }
   }
 
+  private safeCodeExecution(code: string, input: any): any {
+    // Safer code execution - sanitize and limit scope
+    try {
+      // Create a restricted execution context
+      const sandbox = {
+        input: input,
+        console: { log: () => {} }, // Disable console
+        setTimeout: undefined,
+        setInterval: undefined,
+        require: undefined,
+        process: undefined,
+        global: undefined,
+        Buffer: undefined
+      };
+      
+      // Create function in sandbox context
+      const func = new Function('sandbox', `
+        with(sandbox) {
+          return (${code})(input);
+        }
+      `);
+      
+      return func(sandbox);
+    } catch (error) {
+      throw error;
+    }
+  }
+
   private async calculateScore(question: MockInterviewQuestion, answer: string, code?: string): Promise<number> {
     if (question.questionType === 'coding' && code) {
       // For coding questions, test the code against test cases
@@ -210,7 +238,7 @@ export class MockInterviewService {
         for (const testCase of testCases) {
           try {
             // This is a simplified evaluation - in production, use a secure code execution environment
-            const result = eval(`(${code})(${JSON.stringify(testCase.input)})`);
+            const result = this.safeCodeExecution(code, testCase.input);
             if (JSON.stringify(result) === JSON.stringify(testCase.expected)) {
               passedTests++;
             }

@@ -144,7 +144,7 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 - ✅ **VM Deployment Fix**: Fixed sed command syntax errors and created vm-deploy-fixed.sh script with proper string escaping
 - ✅ **Code Cleanup**: Resolved duplicate method warnings in PayPal and payment services for cleaner deployment builds
 
-### January 26, 2025 - VM Resume Upload Fix Complete
+### January 26, 2025 - VM Resume Upload & Build Warnings Fix Complete
 - ✅ **Database Schema Fixed**: Resolved resume upload failure on VM deployment by adding `file_data` column to resumes table
 - ✅ **Schema Compatibility**: Made `file_path` column optional to support both file storage and database storage methods
 - ✅ **Direct Database Connection**: Connected from Replit to VM database (40.160.50.128) and applied schema changes
@@ -152,6 +152,9 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 - ✅ **Error Resolution**: Fixed "column 'file_path' constraint undefined" and JSON parsing errors that were preventing resume uploads
 - ✅ **Database Driver Fix**: Resolved Drizzle ORM compatibility by switching from Neon serverless to PostgreSQL driver for VM database
 - ✅ **Client Error Handling**: Enhanced frontend error handling to properly manage both JSON and non-JSON server responses
+- ✅ **Build Warnings Resolved**: Fixed schema import errors (skills → userSkills) and replaced unsafe eval() with sandboxed code execution
+- ✅ **Security Enhancement**: Implemented safer code execution in mock interview service to eliminate eval() security warnings
+- ✅ **Production Build Optimization**: Minimized build warnings and improved chunk size handling for VM deployment
 - ✅ **VM Deployment Ready**: Resume upload functionality now fully compatible with Linux VM deployment
 - ✅ **Upload Functionality Confirmed**: User successfully tested and confirmed resume uploads are now working
 

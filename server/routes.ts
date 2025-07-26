@@ -6909,7 +6909,7 @@ Host: https://autojobr.com`;
       // Calculate real candidate pool statistics
       const totalCandidates = await db.select({ count: sql`count(*)` }).from(schema.profiles);
       const candidatesWithEducation = await db.select({ count: sql`count(*)` }).from(schema.educations);
-      const candidatesWithSkills = await db.select({ count: sql`count(*)` }).from(schema.skills);
+      const candidatesWithSkills = await db.select({ count: sql`count(*)` }).from(schema.userSkills);
 
       res.json({
         totalCandidates: totalCandidates[0]?.count || 1000,
