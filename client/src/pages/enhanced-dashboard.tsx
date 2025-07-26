@@ -49,7 +49,8 @@ import {
   PenTool,
   Globe,
   Flame,
-  TrendingDown
+  TrendingDown,
+  Copy
 } from "lucide-react";
 
 const containerVariants = {
@@ -293,23 +294,30 @@ export default function EnhancedDashboard() {
 
   // Cover letter generation handler
   const generateCoverLetter = async (jobDescription: string, companyName?: string, jobTitle?: string) => {
+    console.log('🚀 Starting cover letter generation...');
     setIsGenerating(true);
+    setCoverLetterResult(null); // Clear previous results
     
     try {
+      console.log('📝 Sending API request with:', { jobDescription: jobDescription.substring(0, 100) + '...', companyName, jobTitle });
+      
       const response = await fetch('/api/generate-cover-letter', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          jobDescription,
-          companyName: companyName || "The Company",
-          jobTitle: jobTitle || "The Position",
+          jobDescription: jobDescription.trim(),
+          companyName: companyName?.trim() || "The Company",
+          jobTitle: jobTitle?.trim() || "The Position",
         }),
       });
 
+      console.log('📨 Response status:', response.status);
+      
       if (response.ok) {
         const result = await response.json();
+        console.log('✅ Cover letter generated successfully, length:', result.coverLetter?.length);
         setCoverLetterResult(result.coverLetter);
         
         toast({
@@ -317,10 +325,12 @@ export default function EnhancedDashboard() {
           description: "Your personalized cover letter is ready",
         });
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Generation failed");
+        const errorText = await response.text();
+        console.error('❌ API Error:', response.status, errorText);
+        throw new Error(`Generation failed: ${response.status}`);
       }
     } catch (error: any) {
+      console.error('💥 Cover letter generation error:', error);
       toast({
         title: "Generation Failed",
         description: error.message || "Please try again",
@@ -328,6 +338,7 @@ export default function EnhancedDashboard() {
       });
     } finally {
       setIsGenerating(false);
+      console.log('🔚 Cover letter generation completed');
     }
   };
 
