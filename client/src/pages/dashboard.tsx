@@ -267,10 +267,16 @@ export default function Dashboard() {
 
     setIsGenerating(true);
     try {
-      const response = await apiRequest("POST", "/api/cover-letter/generate", {
-        jobDescription: coverJobDescription,
-        jobTitle,
-        company: companyName,
+      const response = await fetch("/api/generate-cover-letter", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          jobDescription: coverJobDescription,
+          jobTitle,
+          companyName: companyName,
+        }),
       });
 
       if (response.ok) {
