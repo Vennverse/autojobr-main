@@ -189,6 +189,15 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 - ✅ **Future-Proof System**: Three-layer protection system (database trigger + middleware + storage layer) ensures no future role consistency issues
 - ✅ **Zero Manual Intervention**: System automatically detects and fixes role mismatches without requiring manual database updates
 
+### January 26, 2025 - Chrome Extension Backend URL Update to VM Server
+- ✅ **VM Server Configuration**: Updated all Chrome extension configuration files to use VM server at http://40.160.50.128:5000
+- ✅ **API Base URL Updates**: Modified config.js, background.js, popup.js, popup-old.js, and smart-detector.js with new backend URL
+- ✅ **Manifest Permissions**: Updated manifest.json host permissions to allow access to VM server
+- ✅ **Documentation Updates**: Updated CONNECTION_GUIDE.md and SETUP_GUIDE.md with correct VM server URL
+- ✅ **Test Files Updates**: Updated connection-test.html and QUICK_TEST.html to use VM server for testing
+- ✅ **Cover Letter Generation Fixed**: Added missing generateCoverLetter method to GroqService for Chrome extension compatibility
+- ✅ **Extension Ready**: Chrome extension now fully configured to work with VM deployment at 40.160.50.128:5000
+
 ### January 25, 2025 - Complete Migration to Standard Replit Environment & Linux VM Deployment
 - ✅ **GitHub Repository**: Published complete codebase to https://github.com/Vennverse/autojobr-main
 - ✅ **Linux VM Deployment**: Created comprehensive deployment solution with automated setup script (vm-deploy.sh)

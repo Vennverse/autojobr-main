@@ -14,7 +14,7 @@
   "host_permissions": [
     "https://*/*",
     "http://*/*",
-    "https://0e44431a-708c-4df3-916b-4c2aa6aa0fdf-00-2xw51bgbvt8cp.spock.replit.dev/*"
+    "http://40.160.50.128:5000/*"
   ],
   "background": {
     "service_worker": "background.js"
