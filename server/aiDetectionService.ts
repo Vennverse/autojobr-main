@@ -16,13 +16,15 @@ interface ResponseAnalysis {
 }
 
 export class AIDetectionService {
-  private groq: Groq;
+  private groq: Groq | null;
 
   constructor() {
     if (!process.env.GROQ_API_KEY) {
-      throw new Error("GROQ_API_KEY environment variable is required for AI detection");
+      console.log("GROQ_API_KEY not provided - AI detection will use fallback mode");
+      this.groq = null;
+    } else {
+      this.groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     }
-    this.groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
   }
 
   async detectAIUsage(userResponse: string, questionContext?: string): Promise<AIDetectionResult> {
@@ -39,7 +41,12 @@ export class AIDetectionService {
       };
     }
 
-    // Use Groq for detailed analysis with minimal tokens
+    // Use Groq for detailed analysis with minimal tokens (if available)
+    if (!this.groq) {
+      // Fallback to pattern-based detection when GROQ API is not available
+      return this.fallbackDetection(userResponse);
+    }
+
     try {
       const prompt = `Analyze if this response was AI-generated. Be concise.
 

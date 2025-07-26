@@ -35,7 +35,7 @@ interface MessageAnalysis {
 }
 
 export class VirtualInterviewService {
-  private groq: Groq;
+  private groq: Groq | null;
   
   private personalities: Record<string, InterviewerPersonality> = {
     friendly: {
@@ -84,13 +84,14 @@ export class VirtualInterviewService {
 
   constructor() {
     if (!process.env.GROQ_API_KEY) {
-      throw new Error("GROQ_API_KEY environment variable is required for virtual interviews");
+      console.log("GROQ_API_KEY not provided - virtual interviews will use fallback mode");
+      this.groq = null;
+    } else {
+      this.groq = new Groq({
+        apiKey: process.env.GROQ_API_KEY,
+      });
+      console.log("Virtual Interview Groq client initialized successfully");
     }
-    
-    this.groq = new Groq({
-      apiKey: process.env.GROQ_API_KEY,
-    });
-    console.log("Virtual Interview Groq client initialized successfully");
   }
 
   async generateGreeting(
