@@ -1076,14 +1076,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Resume management routes - Working upload without PDF parsing
   app.post('/api/resumes/upload', isAuthenticated, upload.single('resume'), async (req: any, res) => {
+    console.log('=== RESUME UPLOAD DEBUG START ===');
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('Request headers:', JSON.stringify(req.headers, null, 2));
+    
     try {
       const userId = req.user.id;
       const { name } = req.body;
       const file = req.file;
       
-      // Resume upload initiated
+      console.log('User ID:', userId);
+      console.log('Request body:', JSON.stringify(req.body, null, 2));
+      console.log('File received:', file ? 'YES' : 'NO');
+      
+      if (file) {
+        console.log('File details:', {
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+          size: file.size,
+          encoding: file.encoding,
+          fieldname: file.fieldname,
+          buffer: file.buffer ? `Buffer of ${file.buffer.length} bytes` : 'NO BUFFER'
+        });
+      }
       
       if (!file) {
+        console.log('ERROR: No file in request');
         return res.status(400).json({ message: "No file uploaded" });
       }
       
