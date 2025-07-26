@@ -252,15 +252,19 @@ export class DatabaseStorage implements IStorage {
 
   async upsertUser(userData: UpsertUser): Promise<User> {
     return await handleDbOperation(async () => {
+      // Ensure currentRole matches userType when userType is provided
+      const normalizedUserData = {
+        ...userData,
+        currentRole: userData.userType || userData.currentRole,
+        updatedAt: new Date(),
+      };
+
       const [user] = await db
         .insert(users)
-        .values(userData)
+        .values(normalizedUserData)
         .onConflictDoUpdate({
           target: users.id,
-          set: {
-            ...userData,
-            updatedAt: new Date(),
-          },
+          set: normalizedUserData,
         })
         .returning();
       return user;

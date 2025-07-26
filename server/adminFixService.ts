@@ -22,7 +22,7 @@ export class AdminFixService {
         emailVerified: true,
         companyName: existingUser.companyName || "Cyclelove Company",
         availableRoles: "job_seeker,recruiter",
-        currentRole: "recruiter"
+        // currentRole will be automatically set to match userType
       });
 
       // Create company verification record if not exists

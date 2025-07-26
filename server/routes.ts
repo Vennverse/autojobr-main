@@ -819,7 +819,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userType: 'recruiter',
             companyName: `${companyName} Company`,
             availableRoles: "job_seeker,recruiter",
-            currentRole: "recruiter"
+            // currentRole will be automatically set to match userType
           });
           
           // Create company verification record
@@ -3883,7 +3883,7 @@ Additional Information:
         userType: newUserType,
         companyName: companyName || targetUser.companyName,
         availableRoles: "job_seeker,recruiter",
-        currentRole: newUserType
+        // currentRole will be automatically set to match userType
       });
       
       // If upgrading to recruiter and no company verification exists, create one
