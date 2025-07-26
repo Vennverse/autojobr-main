@@ -43,6 +43,9 @@ import QuestionBuilder from "@/pages/question-builder";
 import RecruiterFeatures from "@/pages/recruiter-features";
 import QuestionBank from "@/pages/question-bank";
 import QuestionBankAdmin from "@/pages/admin/question-bank";
+// Import Dashboard for the missing reference
+import Dashboard from "@/pages/dashboard";
+import QuickLogin from "@/pages/quick-login";
 
 import CareerAIAssistant from "@/pages/career-ai-assistant";
 import RankingTests from "@/pages/ranking-tests";
@@ -71,6 +74,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
+      <Route path="/quick-login" component={QuickLogin} />
       <Route path="/recruiter-login" component={RecruiterAutoLogin} />
       <Route path="/verify-email" component={VerifyEmail} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
@@ -86,10 +90,11 @@ function Router() {
       {isAuthenticated ? (
         <>
           {/* Handle different user types */}
-          {user?.userType === 'recruiter' ? (
+          {user?.userType === 'recruiter' || user?.currentRole === 'recruiter' ? (
             <>
               <Route path="/" component={UnifiedRecruiterDashboard} />
               <Route path="/recruiter-dashboard" component={UnifiedRecruiterDashboard} />
+              <Route path="/recruiter/dashboard" component={UnifiedRecruiterDashboard} />
               <Route path="/enhanced-dashboard" component={UnifiedRecruiterDashboard} />
               <Route path="/advanced-dashboard" component={UnifiedRecruiterDashboard} />
               <Route path="/recruiter/post-job" component={PostJob} />

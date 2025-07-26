@@ -640,9 +640,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.redirect('/auth');
   });
 
+  // Quick login endpoint for testing (temporary)
+  app.post('/api/auth/quick-login', asyncHandler(async (req: any, res: any) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: 'Email required' });
+      }
+
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Store session
+      req.session.user = {
+        id: user.id,
+        email: user.email,
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        firstName: user.firstName,
+        lastName: user.lastName,
+        userType: user.userType,
+        currentRole: user.currentRole || user.userType
+      };
+
+      // Force session save
+      req.session.save((err: any) => {
+        if (err) {
+          console.error('Session save error:', err);
+          return res.status(500).json({ message: 'Login failed - session error' });
+        }
+        
+        console.log('Quick login session saved for user:', user.id);
+        res.json({ 
+          message: 'Quick login successful', 
+          user: {
+            id: user.id,
+            email: user.email,
+            name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+            userType: user.userType,
+            currentRole: user.currentRole || user.userType
+          }
+        });
+      });
+    } catch (error) {
+      console.error('Quick login error:', error);
+      res.status(500).json({ message: 'Quick login failed' });
+    }
+  }));
+
   // Auth routes - consolidated (duplicate routes removed)
   app.get('/api/user', isAuthenticated, asyncHandler(async (req: any, res: any) => {
-    res.json(req.user);
+    // Get fresh user data from database for accurate role information
+    try {
+      const freshUser = await storage.getUser(req.user.id);
+      if (freshUser) {
+        const userResponse = {
+          id: freshUser.id,
+          email: freshUser.email,
+          firstName: freshUser.firstName,
+          lastName: freshUser.lastName,
+          name: `${freshUser.firstName || ''} ${freshUser.lastName || ''}`.trim(),
+          userType: freshUser.userType,
+          currentRole: freshUser.currentRole,
+          emailVerified: freshUser.emailVerified,
+          onboardingCompleted: true, // Assume completed for existing users
+          companyName: freshUser.companyName
+        };
+        res.json(userResponse);
+      } else {
+        res.json(req.user);
+      }
+    } catch (error) {
+      console.error('Error fetching fresh user data:', error);
+      res.json(req.user);
+    }
   }));
 
   // User activity tracking for online/offline status
