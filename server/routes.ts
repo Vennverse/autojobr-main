@@ -4498,17 +4498,37 @@ Additional Information:
       
       console.log("Extension cover letter request:", { company, title, hasJobDescription: !!jobDescription });
 
-      // Get user profile
-      const profile = await storage.getUserProfile(userId);
+      // Get comprehensive user data including profile, skills, work experience, and education
+      const [profile, skills, workExperience, education] = await Promise.all([
+        storage.getUserProfile(userId),
+        storage.getUserSkills(userId),
+        storage.getUserWorkExperience(userId),
+        storage.getUserEducation(userId)
+      ]);
       
-      if (!profile) {
-        return res.status(404).json({ message: "Please complete your profile first" });
-      }
+      // Create comprehensive profile object for cover letter generation
+      const fullProfile = {
+        ...profile,
+        skills: skills || [],
+        workExperience: workExperience || [],
+        education: education || [],
+        fullName: profile?.fullName || req.user?.name || 'Applicant',
+        professionalTitle: profile?.professionalTitle || 'Professional',
+        yearsExperience: profile?.yearsExperience || 0,
+        summary: profile?.summary || 'Experienced professional'
+      };
+
+      console.log("Profile data for cover letter:", {
+        hasProfile: !!profile,
+        skillsCount: skills?.length || 0,
+        workExpCount: workExperience?.length || 0,
+        educationCount: education?.length || 0
+      });
 
       // Use groqService method for consistent behavior
       const coverLetter = await groqService.generateCoverLetter(
         { title, company, description: jobDescription },
-        profile,
+        fullProfile,
         req.user
       );
 

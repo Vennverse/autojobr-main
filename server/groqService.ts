@@ -758,24 +758,29 @@ Return JSON array:
       company: string;
       description?: string;
     },
-    userProfile: {
-      skills: Array<{ skillName: string; proficiencyLevel?: string; yearsExperience?: number }>;
-      workExperience: Array<{ position: string; company: string; description?: string }>;
-      education: Array<{ degree: string; fieldOfStudy?: string; institution: string }>;
-      yearsExperience?: number;
-      professionalTitle?: string;
-      summary?: string;
-      fullName?: string;
-    },
+    userProfile: any,
     user?: any
   ): Promise<string> {
-    const userSkills = userProfile.skills.map(s => s.skillName).join(', ');
-    const userExperience = userProfile.workExperience.map(w => 
-      `${w.position} at ${w.company}${w.description ? ': ' + w.description.substring(0, 200) : ''}`
-    ).join('\n');
-    const userEducation = userProfile.education.map(e => 
-      `${e.degree} in ${e.fieldOfStudy || 'N/A'} from ${e.institution}`
-    ).join('\n');
+    // Safely extract data with fallbacks
+    const skills = userProfile?.skills || [];
+    const workExperience = userProfile?.workExperience || [];
+    const education = userProfile?.education || [];
+    
+    const userSkills = skills.length > 0 
+      ? skills.map((s: any) => s.skillName || s.name || 'Skill').join(', ')
+      : 'Professional skills';
+      
+    const userExperience = workExperience.length > 0
+      ? workExperience.map((w: any) => 
+          `${w.position || w.title || 'Position'} at ${w.company || 'Company'}${w.description ? ': ' + w.description.substring(0, 200) : ''}`
+        ).join('\n')
+      : 'Professional experience in various roles';
+      
+    const userEducation = education.length > 0
+      ? education.map((e: any) => 
+          `${e.degree || 'Degree'} in ${e.fieldOfStudy || e.field || 'Field of Study'} from ${e.institution || e.school || 'Institution'}`
+        ).join('\n')
+      : 'Educational background';
 
     const prompt = `Write a professional cover letter for this job application:
 
