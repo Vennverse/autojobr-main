@@ -88,8 +88,15 @@ export default function ResumesPage() {
           description: `ATS Score: ${result.resume?.atsScore || 'Analyzing...'}% - Your resume has been analyzed and optimized.`,
         });
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to upload resume");
+        let errorMessage = "Failed to upload resume";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (parseError) {
+          // If response is not JSON (e.g., HTML error page), use status text
+          errorMessage = `Server error: ${response.status} ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
     } catch (error: any) {
       if (isUnauthorizedError(error)) {

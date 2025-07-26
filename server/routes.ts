@@ -1076,6 +1076,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Resume management routes - Working upload without PDF parsing
   app.post('/api/resumes/upload', isAuthenticated, upload.single('resume'), async (req: any, res) => {
+    // Ensure we always return JSON, even on errors
+    res.setHeader('Content-Type', 'application/json');
     console.log('=== RESUME UPLOAD DEBUG START ===');
     console.log('Timestamp:', new Date().toISOString());
     console.log('Environment:', process.env.NODE_ENV);
@@ -1210,6 +1212,7 @@ Additional Information:
       // Invalidate user cache after resume upload
       invalidateUserCache(userId);
       
+      console.log('Resume upload successful for user:', userId);
       return res.json({ 
         success: true,
         analysis: analysis,
@@ -1218,8 +1221,23 @@ Additional Information:
         resume: newResume 
       });
     } catch (error) {
-      console.error("Error uploading resume:", error);
-      res.status(500).json({ message: "Failed to upload resume" });
+      console.error("=== RESUME UPLOAD ERROR ===");
+      console.error("Error details:", error);
+      console.error("Error stack:", error.stack);
+      console.error("User ID:", req.user?.id);
+      console.error("File info:", req.file ? {
+        name: req.file.originalname,
+        size: req.file.size,
+        type: req.file.mimetype
+      } : 'No file');
+      console.error("=== END ERROR LOG ===");
+      
+      res.status(500).json({ 
+        message: "Failed to upload resume",
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+        success: false
+      });
+      return;
     }
   });
 
