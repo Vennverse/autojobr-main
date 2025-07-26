@@ -13,7 +13,7 @@ const { Pool } = pkg;
 console.log('=== AutoJobr VM Database Schema Fix ===');
 console.log('Timestamp:', new Date().toISOString());
 
-const DATABASE_URL = process.env.DATABASE_URL;
+const DATABASE_URL = "postgresql://autojobr_user:autojobr123@40.160.50.128:5432/autojobr";
 
 if (!DATABASE_URL) {
   console.error('❌ DATABASE_URL environment variable not found');

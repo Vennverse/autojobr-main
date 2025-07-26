@@ -144,6 +144,14 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 - ✅ **VM Deployment Fix**: Fixed sed command syntax errors and created vm-deploy-fixed.sh script with proper string escaping
 - ✅ **Code Cleanup**: Resolved duplicate method warnings in PayPal and payment services for cleaner deployment builds
 
+### January 26, 2025 - VM Resume Upload Fix Complete
+- ✅ **Database Schema Fixed**: Resolved resume upload failure on VM deployment by adding `file_data` column to resumes table
+- ✅ **Schema Compatibility**: Made `file_path` column optional to support both file storage and database storage methods
+- ✅ **Direct Database Connection**: Connected from Replit to VM database (40.160.50.128) and applied schema changes
+- ✅ **Resume Storage Enhanced**: Application now stores resumes as base64 data in database for reliable VM deployment
+- ✅ **Error Resolution**: Fixed "column 'file_path' constraint undefined" error that was preventing resume uploads
+- ✅ **VM Deployment Ready**: Resume upload functionality now fully compatible with Linux VM deployment
+
 ### January 25, 2025 - Complete Migration to Standard Replit Environment & Linux VM Deployment
 - ✅ **GitHub Repository**: Published complete codebase to https://github.com/Vennverse/autojobr-main
 - ✅ **Linux VM Deployment**: Created comprehensive deployment solution with automated setup script (vm-deploy.sh)
