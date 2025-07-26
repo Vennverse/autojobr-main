@@ -252,12 +252,21 @@ export class DatabaseStorage implements IStorage {
 
   async upsertUser(userData: UpsertUser): Promise<User> {
     return await handleDbOperation(async () => {
-      // Ensure currentRole matches userType when userType is provided
+      // COMPREHENSIVE ROLE SYNCHRONIZATION FIX
+      // Always ensure currentRole matches userType to prevent future role consistency issues
       const normalizedUserData = {
         ...userData,
-        currentRole: userData.userType || userData.currentRole,
+        // Force currentRole to match userType whenever userType is provided
+        currentRole: userData.userType || userData.currentRole || 'job_seeker',
+        // Update availableRoles if userType changes
+        availableRoles: userData.userType === 'recruiter' ? 'job_seeker,recruiter' : (userData.availableRoles || 'job_seeker'),
         updatedAt: new Date(),
       };
+
+      // Log role synchronization for debugging
+      if (userData.userType && userData.currentRole && userData.userType !== userData.currentRole) {
+        console.log(`🔄 Auto-fixing role mismatch for user: ${userData.id || userData.email} - ${userData.currentRole} -> ${userData.userType}`);
+      }
 
       const [user] = await db
         .insert(users)
@@ -273,15 +282,19 @@ export class DatabaseStorage implements IStorage {
 
   async updateUserRole(userId: string, role: string): Promise<User> {
     return await handleDbOperation(async () => {
+      // COMPREHENSIVE ROLE UPDATE - Always sync both fields
       const [user] = await db
         .update(users)
         .set({ 
           currentRole: role,
-          userType: role,
+          userType: role, // Keep both in sync
+          availableRoles: role === 'recruiter' ? 'job_seeker,recruiter' : 'job_seeker',
           updatedAt: new Date() 
         })
         .where(eq(users.id, userId))
         .returning();
+      
+      console.log(`✅ Role updated for user ${userId}: Both userType and currentRole set to ${role}`);
       return user;
     });
   }

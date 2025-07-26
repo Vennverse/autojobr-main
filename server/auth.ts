@@ -1038,6 +1038,33 @@ export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
       return res.status(401).json({ message: "Not authenticated" });
     }
 
+    // COMPREHENSIVE ROLE CONSISTENCY CHECK
+    // Auto-fix any user type/role mismatches to prevent future issues
+    try {
+      const currentUser = await storage.getUser(sessionUser.id);
+      if (currentUser && currentUser.userType && currentUser.currentRole !== currentUser.userType) {
+        console.log(`🔧 ROLE MISMATCH DETECTED: User ${currentUser.id} has userType(${currentUser.userType}) != currentRole(${currentUser.currentRole})`);
+        
+        // Auto-fix the mismatch using database trigger
+        await storage.upsertUser({
+          ...currentUser,
+          currentRole: currentUser.userType // This will trigger our database sync function
+        });
+        
+        // Update session to match fixed database state
+        req.session.user = {
+          ...req.session.user,
+          userType: currentUser.userType,
+          currentRole: currentUser.userType
+        };
+        
+        console.log(`✅ ROLE CONSISTENCY FIXED: User ${currentUser.id} now has consistent userType and currentRole: ${currentUser.userType}`);
+      }
+    } catch (roleCheckError) {
+      console.error('Role consistency check failed (non-blocking):', roleCheckError);
+      // Don't block authentication for role check failures
+    }
+
     console.log('✅ Authenticated user:', sessionUser.id, sessionUser.email);
     
     // For real users, use session data

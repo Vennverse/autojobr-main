@@ -200,6 +200,39 @@ const trackUsage = async (req: any) => {
   }
 };
 
+// COMPREHENSIVE ROLE CONSISTENCY MIDDLEWARE 
+// This prevents future user type/role mismatch issues
+const ensureRoleConsistency = async (req: any, res: any, next: any) => {
+  try {
+    if (req.session?.user?.id) {
+      const user = await storage.getUser(req.session.user.id);
+      
+      if (user && user.userType && user.currentRole !== user.userType) {
+        console.log(`🔧 Auto-fixing role mismatch for user ${user.id}: currentRole(${user.currentRole}) -> userType(${user.userType})`);
+        
+        // Fix the mismatch in database
+        await storage.upsertUser({
+          ...user,
+          currentRole: user.userType // Force sync currentRole to match userType
+        });
+        
+        // Update session to reflect the fix
+        req.session.user = {
+          ...req.session.user,
+          userType: user.userType,
+          currentRole: user.userType
+        };
+        
+        console.log(`✅ Role consistency fixed for user ${user.id}`);
+      }
+    }
+  } catch (error) {
+    console.error('Role consistency check failed:', error);
+    // Don't block the request, just log the error
+  }
+  next();
+};
+
 // Configure multer for file uploads
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -916,13 +949,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Update user to recruiter type with company info
+      // The database trigger will automatically sync currentRole to match userType
       await storage.upsertUser({
         ...currentUser,
-        userType: 'recruiter',
+        userType: 'recruiter', // Database trigger will automatically set currentRole: 'recruiter'
         companyName: companyName,
         companyWebsite: companyWebsite || null,
-        availableRoles: "job_seeker,recruiter", // Allow both roles
-        currentRole: "recruiter" // Set active role to recruiter
+        availableRoles: "job_seeker,recruiter" // Allow both roles
       });
 
       // Record company verification
@@ -937,10 +970,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
       });
 
-      // Update session to reflect new user type
+      // Update session to reflect new user type and role
       req.session.user = {
         ...req.session.user,
-        userType: 'recruiter'
+        userType: 'recruiter',
+        currentRole: 'recruiter' // Ensure session is consistent
       };
 
       // Save session
