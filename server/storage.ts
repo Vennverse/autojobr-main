@@ -619,16 +619,14 @@ export class DatabaseStorage implements IStorage {
 
   async storeResume(userId: string, resumeData: any): Promise<any> {
     return await handleDbOperation(async () => {
-      // Store the original file data without compression
-      let fileData = resumeData.fileData;
-      
       console.log(`[DEBUG] Storing resume for user: ${userId}, file: ${resumeData.fileName}`);
       
       const [newResume] = await db.insert(resumes).values({
         userId,
         name: resumeData.name,
         fileName: resumeData.fileName,
-        fileData: fileData, // Store original file data
+        filePath: resumeData.filePath || null, // File path for file storage (optional)
+        fileData: resumeData.fileData || null, // Base64 data for database storage (optional)
         resumeText: resumeData.resumeText,
         atsScore: resumeData.atsScore,
         analysisData: resumeData.analysis,

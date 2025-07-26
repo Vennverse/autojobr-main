@@ -194,7 +194,8 @@ export const resumes = pgTable("resumes", {
   userId: varchar("user_id").references(() => users.id).notNull(),
   name: varchar("name").notNull(), // User-given name like "Software Engineer Resume"
   fileName: varchar("file_name").notNull(), // Original file name
-  filePath: varchar("file_path").notNull(), // Local file system path
+  filePath: varchar("file_path"), // Local file system path (optional for file storage)
+  fileData: text("file_data"), // Base64 encoded file data (optional for database storage)
   resumeText: text("resume_text"), // Extracted text content for analysis
   isActive: boolean("is_active").default(false), // Which resume to use for applications
   
