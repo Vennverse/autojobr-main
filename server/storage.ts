@@ -620,25 +620,49 @@ export class DatabaseStorage implements IStorage {
   async storeResume(userId: string, resumeData: any): Promise<any> {
     return await handleDbOperation(async () => {
       console.log(`[DEBUG] Storing resume for user: ${userId}, file: ${resumeData.fileName}`);
-      
-      const [newResume] = await db.insert(resumes).values({
-        userId,
+      console.log(`[DEBUG] Resume data fields:`, {
+        userId: userId,
         name: resumeData.name,
         fileName: resumeData.fileName,
-        filePath: resumeData.filePath || null, // File path for file storage (optional)
-        fileData: resumeData.fileData || null, // Base64 data for database storage (optional)
-        resumeText: resumeData.resumeText,
+        hasFilePath: !!resumeData.filePath,
+        hasFileData: !!resumeData.fileData,
+        fileDataLength: resumeData.fileData ? resumeData.fileData.length : 0,
         atsScore: resumeData.atsScore,
-        analysisData: resumeData.analysis,
-        recommendations: resumeData.recommendations,
         fileSize: resumeData.fileSize,
         mimeType: resumeData.mimeType,
-        isActive: resumeData.isActive || false,
-        lastAnalyzed: new Date(),
-      }).returning();
+        isActive: resumeData.isActive
+      });
       
-      console.log(`[DEBUG] Resume stored in database for user: ${userId}, resume ID: ${newResume.id}`);
-      return newResume;
+      try {
+        const insertData = {
+          userId,
+          name: resumeData.name,
+          fileName: resumeData.fileName,
+          filePath: resumeData.filePath || null,
+          fileData: resumeData.fileData || null,
+          resumeText: resumeData.resumeText || null,
+          atsScore: resumeData.atsScore || null,
+          analysisData: resumeData.analysis || null,
+          recommendations: resumeData.recommendations || null,
+          fileSize: resumeData.fileSize || null,
+          mimeType: resumeData.mimeType || null,
+          isActive: resumeData.isActive || false,
+          lastAnalyzed: new Date(),
+        };
+        
+        console.log(`[DEBUG] Inserting data:`, insertData);
+        
+        const [newResume] = await db.insert(resumes).values(insertData).returning();
+        
+        console.log(`[DEBUG] Resume stored successfully - ID: ${newResume.id}`);
+        return newResume;
+      } catch (dbError) {
+        console.error(`[ERROR] Database insert failed:`, dbError);
+        console.error(`[ERROR] Error code:`, dbError.code);
+        console.error(`[ERROR] Error detail:`, dbError.detail);
+        console.error(`[ERROR] Error constraint:`, dbError.constraint);
+        throw dbError;
+      }
     });
   }
 

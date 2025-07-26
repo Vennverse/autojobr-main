@@ -25,9 +25,18 @@ if (!DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is required');
 }
 
-// Use Neon serverless with WebSocket support
-neonConfig.webSocketConstructor = ws;
-const pool = new Pool({ connectionString: DATABASE_URL });
-db = drizzle({ client: pool, schema });
+// Detect database type and use appropriate driver
+if (DATABASE_URL.includes('neon') || DATABASE_URL.includes('@db.')) {
+  // Use Neon serverless for Neon databases
+  neonConfig.webSocketConstructor = ws;
+  const pool = new Pool({ connectionString: DATABASE_URL });
+  db = drizzle({ client: pool, schema });
+  console.log('Using Neon serverless driver');
+} else {
+  // Use regular PostgreSQL driver for VM and other databases
+  const pgPool = new PgPool({ connectionString: DATABASE_URL });
+  db = drizzlePg(pgPool, { schema });
+  console.log('Using PostgreSQL driver');
+}
 
 export { db };
