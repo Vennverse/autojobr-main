@@ -19,6 +19,14 @@ export function getRedisClient(): Redis {
       connectTimeout: 10000,
       commandTimeout: 5000,
       retryDelayOnFailover: 100,
+      maxRetriesPerRequest: 3,
+      retryConnect: (times) => {
+        if (times > 3) {
+          console.log('🛑 Redis: Maximum retry attempts reached, stopping reconnection');
+          return null; // Stop retrying
+        }
+        return Math.min(times * 50, 2000);
+      },
     });
 
     redis.on('connect', () => {

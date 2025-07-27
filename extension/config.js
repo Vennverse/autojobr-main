@@ -1,6 +1,6 @@
 // Configuration for AutoJobr Extension
 const CONFIG = {
-  API_BASE_URL: 'http://40.160.50.128:5000',
+  API_BASE_URL: `https://${window.location.hostname.includes('replit') ? window.location.hostname : 'localhost'}:5000`,
   ENDPOINTS: {
     USER: '/api/user',
     PROFILE: '/api/profile',
@@ -8,7 +8,9 @@ const CONFIG = {
     WORK_EXPERIENCE: '/api/work-experience',
     EDUCATION: '/api/education',
     GENERATE_COVER_LETTER: '/api/generate-cover-letter',
-    JOB_ANALYSIS: '/api/analyze-job'
+    JOB_ANALYSIS: '/api/analyze-job',
+    HEALTH_CHECK: '/api/health',
+    HEALTH_CHECK_SIMPLE: '/api/health/simple'
   },
   STORAGE_KEYS: {
     USER_DATA: 'autojobr_user_data',
@@ -48,9 +50,23 @@ const CONFIG = {
 // Enhanced API client with persistent authentication
 class AutoJobrAPI {
   constructor() {
-    this.baseURL = CONFIG.API_BASE_URL;
+    this.baseURL = this.detectBackendURL();
     this.isAuthenticated = false;
     this.userProfile = null;
+    this.healthCheckInterval = null;
+    this.connectionStatus = 'unknown';
+  }
+
+  detectBackendURL() {
+    // Auto-detect Replit environment
+    if (typeof window !== 'undefined' && window.location) {
+      const hostname = window.location.hostname;
+      if (hostname.includes('replit.dev') || hostname.includes('replit.app')) {
+        return `https://${hostname}`;
+      }
+    }
+    // Fallback to configured URL
+    return CONFIG.API_BASE_URL;
   }
 
   async makeRequest(endpoint, options = {}) {
@@ -181,6 +197,44 @@ class AutoJobrAPI {
   async clearStoredAuth() {
     await chrome.storage.local.clear();
     this.userProfile = null;
+  }
+
+  async checkBackendHealth() {
+    try {
+      const response = await fetch(`${this.baseURL}${CONFIG.ENDPOINTS.HEALTH_CHECK_SIMPLE}`, {
+        method: 'GET',
+        credentials: 'include',
+        timeout: 5000
+      });
+      
+      this.connectionStatus = response.ok ? 'connected' : 'error';
+      return response.ok;
+    } catch (error) {
+      console.warn('Backend health check failed:', error);
+      this.connectionStatus = 'disconnected';
+      return false;
+    }
+  }
+
+  async startHealthMonitoring() {
+    // Check health every 30 seconds
+    this.healthCheckInterval = setInterval(async () => {
+      await this.checkBackendHealth();
+    }, 30000);
+    
+    // Initial health check
+    await this.checkBackendHealth();
+  }
+
+  stopHealthMonitoring() {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
+  }
+
+  getConnectionStatus() {
+    return this.connectionStatus;
   }
 }
 
