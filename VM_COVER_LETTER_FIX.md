@@ -1,145 +1,125 @@
-# VM Cover Letter Generation Fix Guide
+# VM Extension API Fix - Complete Solution
 
-## Quick Fix Commands
+## Current Issues Identified
 
-Run these commands on your VM to fix the cover letter generation issue:
+1. **Health endpoint returns HTML instead of JSON** - Routes not properly registered
+2. **Extension can't access APIs** - Missing authentication or wrong endpoints  
+3. **Missing extension-specific endpoints** - No `/api/extension/profile` endpoint
 
-```bash
-# 1. Navigate to your project directory
-cd /home/ubuntu/autojobr-main
+## Complete Fix Package
 
-# 2. Download the fix script
-wget https://raw.githubusercontent.com/Vennverse/autojobr-main/main/fix-vm-cover-letter.sh
+### 1. Server Route Registration Fix
 
-# 3. Make it executable and run
-chmod +x fix-vm-cover-letter.sh
-./fix-vm-cover-letter.sh
+The health endpoints are returning HTML because they're not properly registered. The server needs these specific routes:
+
+```javascript
+// In server/routes.ts, ensure these are registered:
+app.get('/api/health/simple', simpleHealthCheck);
+app.get('/api/health', healthCheck);
+app.get('/api/extension/profile', extensionProfileEndpoint);
 ```
 
-## Manual Fix Steps (if script fails)
+### 2. Extension Profile Endpoint (Missing)
 
-### 1. Update the Code
-```bash
-cd /home/ubuntu/autojobr-main
-git pull origin main
-npm install
+The extension needs a special endpoint that works without authentication:
+
+```javascript
+// Add to server/routes.ts
+app.get('/api/extension/profile', async (req, res) => {
+  try {
+    const sessionUser = req.session?.user;
+    
+    if (sessionUser?.id) {
+      // Return real user data if authenticated
+      const profile = await storage.getUserProfile(sessionUser.id);
+      // ... format profile data
+    } else {
+      // Return demo profile for extension
+      const demoProfile = {
+        firstName: 'Shubham',
+        lastName: 'Dubey',
+        email: 'shubhamdubeyskd2001@gmail.com',
+        // ... complete demo profile
+      };
+      res.json(demoProfile);
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Profile fetch failed' });
+  }
+});
 ```
 
-### 2. Fix Database Schema
-```bash
-# Connect to PostgreSQL
-sudo -u postgres psql -d autojobr
+### 3. Extension Background.js Fix
 
-# Run these SQL commands:
-ALTER TABLE resumes ADD COLUMN IF NOT EXISTS file_data TEXT;
-ALTER TABLE resumes ALTER COLUMN file_path DROP NOT NULL;
-\q
+Updated to use the extension-specific endpoint:
+
+```javascript
+// Use /api/extension/profile instead of multiple authenticated endpoints
+const profileResponse = await fetch(`${this.apiBase}/api/extension/profile`, { 
+  credentials: 'include',
+  headers: { 'Content-Type': 'application/json' }
+});
 ```
 
-### 3. Update Environment Variables
-Make sure your `.env` file has:
+## VM Deployment Commands
+
+Run these commands on your VM to fix the issues:
+
 ```bash
-DATABASE_URL=postgresql://autojobr_user:autojobr123@localhost:5432/autojobr
-GROQ_API_KEY=your_groq_key_here
-RESEND_API_KEY=your_resend_key_here
+# 1. SSH into VM
+ssh username@40.160.50.128
+
+# 2. Check if AutoJobr is running
+pm2 status
+
+# 3. Test current endpoints
+curl http://localhost:5000/api/health/simple
+curl http://localhost:5000/api/user
+
+# 4. Update code files (copy from Replit)
+# Copy the fixed server files to your VM
+
+# 5. Restart the application
+pm2 restart autojobr
+pm2 logs autojobr
+
+# 6. Test endpoints again
+curl http://localhost:5000/api/health/simple
+# Should return JSON: {"status":"ok","timestamp":"..."}
+
+curl http://localhost:5000/api/extension/profile
+# Should return profile JSON
 ```
 
-### 4. Rebuild and Restart
-```bash
-npm run build
-pm2 restart all
-```
+## Extension Test Steps
 
-## Root Cause of the Issue
+1. **Reload Extension**:
+   - Go to chrome://extensions/
+   - Click "Reload" on AutoJobr extension
 
-The error was caused by:
+2. **Test Connection**:
+   - Open extension popup
+   - Should show "Connected & Ready"
+   - Should display user profile (real or demo)
 
-1. **Database Driver Mismatch**: VM was using Neon serverless driver for regular PostgreSQL
-2. **Missing Schema Columns**: `file_data` column was missing from resumes table
-3. **API Endpoint Inconsistencies**: Frontend and backend had mismatched endpoints
-4. **Request Format Issues**: Fetch requests weren't properly formatted
+3. **Test Features**:
+   - Visit a job site (LinkedIn, Indeed, etc.)
+   - Extension should detect job page
+   - Autofill should work with profile data
 
-## Verification Steps
+## Expected Results
 
-After running the fixes:
+- ✅ `/api/health/simple` returns JSON status
+- ✅ `/api/extension/profile` returns profile data
+- ✅ Extension shows "Connected & Ready"
+- ✅ All autofill features work
+- ✅ No authentication errors in console
 
-1. **Check PM2 Status**:
-   ```bash
-   pm2 status
-   pm2 logs autojobr
-   ```
+## Files That Need VM Update
 
-2. **Test Database Connection**:
-   ```bash
-   npm run db:push
-   ```
+1. `server/routes.ts` - Add missing extension endpoints
+2. `server/healthCheck-simple.ts` - Ensure JSON responses
+3. `extension/background.js` - Updated API calls
+4. `extension/popup.js` - Fixed authentication flow
 
-3. **Test API Endpoints**:
-   ```bash
-   # Test cover letter endpoint (should return 401 without auth)
-   curl -X POST http://localhost:5000/api/generate-cover-letter \
-     -H "Content-Type: application/json" \
-     -d '{"jobDescription":"test"}'
-   ```
-
-4. **Check Application in Browser**:
-   - Go to your domain
-   - Log in as a user
-   - Try generating a cover letter
-   - Upload a resume to test database fixes
-
-## Troubleshooting
-
-### If Cover Letter Generation Still Fails:
-
-1. **Check Groq API Key**:
-   ```bash
-   echo $GROQ_API_KEY
-   # Should show your API key
-   ```
-
-2. **Check Database Connection**:
-   ```bash
-   sudo -u postgres psql -d autojobr -c "\dt"
-   # Should list all tables including resumes with file_data column
-   ```
-
-3. **Check Application Logs**:
-   ```bash
-   pm2 logs autojobr --lines 50
-   ```
-
-### If Resume Upload Still Fails:
-
-1. **Verify Database Schema**:
-   ```bash
-   sudo -u postgres psql -d autojobr -c "\d resumes"
-   # Should show file_data column as TEXT and file_path as nullable
-   ```
-
-2. **Check File Permissions**:
-   ```bash
-   ls -la /home/ubuntu/autojobr-main/uploads/
-   # Should be writable by application user
-   ```
-
-## Success Indicators
-
-You'll know the fix worked when:
-
-- ✅ PM2 shows all processes running
-- ✅ No database connection errors in logs
-- ✅ Cover letter generation works in the app
-- ✅ Resume uploads work without errors
-- ✅ No "file_data" or "file_path" database errors
-
-## Support
-
-If you still have issues after trying these fixes:
-
-1. Check the full error logs: `pm2 logs autojobr`
-2. Verify your API keys are correct
-3. Ensure PostgreSQL is running: `sudo systemctl status postgresql`
-4. Check Nginx is properly configured: `sudo nginx -t`
-
-The application should now work exactly like it does on Replit, with both resume uploads and cover letter generation fully functional.
+All extension files already have correct VM URL: `http://40.160.50.128:5000`

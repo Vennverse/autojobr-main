@@ -4,6 +4,7 @@ const CONFIG = {
   ENDPOINTS: {
     USER: '/api/user',
     PROFILE: '/api/profile',
+    EXTENSION_PROFILE: '/api/extension/profile',
     SKILLS: '/api/skills',
     WORK_EXPERIENCE: '/api/work-experience',
     EDUCATION: '/api/education',
