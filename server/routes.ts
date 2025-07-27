@@ -17,7 +17,7 @@ import { apiKeyRotationService } from "./apiKeyRotationService.js";
 import { companyVerificationService } from "./companyVerificationService.js";
 import { adminFixService } from "./adminFixService.js";
 import { recruiterDashboardFix } from "./recruiterDashboardFix.js";
-import { healthCheck, simpleHealthCheck } from "./healthCheck";
+import { healthCheck, simpleHealthCheck } from "./healthCheck-simple";
 
 // Enhanced in-memory cache with better performance
 const cache = new Map();
