@@ -8,6 +8,7 @@ import { eq } from "drizzle-orm";
 import type { Express, RequestHandler } from "express";
 import { sendEmail, generatePasswordResetEmail, generateVerificationEmail } from "./emailService";
 import crypto from "crypto";
+import { createSessionConfig } from "./sessionStore";
 
 // Simple auth configuration
 const authConfig = {
@@ -38,20 +39,12 @@ const authConfig = {
 };
 
 export async function setupAuth(app: Express) {
-  // Setup session middleware with memory store for development
+  // Setup session middleware with Redis or memory store fallback
   console.log('🔑 Setting up session middleware...');
-  app.use(session({
-    secret: authConfig.session.secret,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: false, // Set to false for development
-      httpOnly: true,
-      maxAge: authConfig.session.maxAge,
-      sameSite: 'lax',
-    },
-    name: 'autojobr.sid' // Custom session name
-  }));
+  
+  const sessionConfig = await createSessionConfig(authConfig.session.secret);
+  app.use(session(sessionConfig));
+  
   console.log('✅ Session middleware configured successfully');
 
   // Auth status endpoint with caching

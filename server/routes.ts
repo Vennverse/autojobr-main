@@ -17,6 +17,7 @@ import { apiKeyRotationService } from "./apiKeyRotationService.js";
 import { companyVerificationService } from "./companyVerificationService.js";
 import { adminFixService } from "./adminFixService.js";
 import { recruiterDashboardFix } from "./recruiterDashboardFix.js";
+import { healthCheck, simpleHealthCheck } from "./healthCheck";
 
 // Enhanced in-memory cache with better performance
 const cache = new Map();
@@ -269,14 +270,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     fs.mkdirSync(profilesDir, { recursive: true });
   }
 
-  // Health check endpoint for deployment verification
-  app.get('/api/health', (req, res) => {
-    res.status(200).json({ 
-      status: 'ok', 
-      timestamp: new Date().toISOString(),
-      service: 'autojobr-api'
-    });
-  });
+  // Health check endpoints for deployment verification and monitoring
+  app.get('/api/health', healthCheck);
+  app.get('/api/health/simple', simpleHealthCheck);
 
   // Setup session middleware early for extension support
   // Note: Session setup is handled in setupAuth(), removing duplicate setup
