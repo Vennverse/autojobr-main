@@ -24,7 +24,7 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     // Use rotation service to send email
     const result = await apiKeyRotationService.executeWithResendRotation(async (resend) => {
       const { data, error } = await resend.emails.send({
-        from: 'AutoJobr <noreply@upes.ac.in>',
+        from: 'AutoJobr <noreply@vennverse.com>',
         to: params.to,
         subject: params.subject,
         html: params.html,
