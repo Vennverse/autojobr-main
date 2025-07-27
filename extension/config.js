@@ -1,6 +1,6 @@
 // Configuration for AutoJobr Extension
 const CONFIG = {
-  API_BASE_URL: `https://${window.location.hostname.includes('replit') ? window.location.hostname : 'localhost'}:5000`,
+  API_BASE_URL: 'http://40.160.50.128:5000',
   ENDPOINTS: {
     USER: '/api/user',
     PROFILE: '/api/profile',
@@ -58,15 +58,8 @@ class AutoJobrAPI {
   }
 
   detectBackendURL() {
-    // Auto-detect Replit environment
-    if (typeof window !== 'undefined' && window.location) {
-      const hostname = window.location.hostname;
-      if (hostname.includes('replit.dev') || hostname.includes('replit.app')) {
-        return `https://${hostname}`;
-      }
-    }
-    // Fallback to configured URL
-    return CONFIG.API_BASE_URL;
+    // Use VM server
+    return 'http://40.160.50.128:5000';
   }
 
   async makeRequest(endpoint, options = {}) {
