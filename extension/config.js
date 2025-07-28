@@ -1,6 +1,6 @@
 // Configuration for AutoJobr Extension
 const CONFIG = {
-  API_BASE_URL: 'http://40.160.50.128:5000',
+  API_BASE_URL: 'https://7f6e19b3-7c52-40cd-a936-d850c0a12fb1-00-19k7ygzf7q5kk.riker.replit.dev',
   ENDPOINTS: {
     USER: '/api/user',
     PROFILE: '/api/profile',
