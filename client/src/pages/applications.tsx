@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Navbar } from "@/components/navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import PremiumGate from "@/components/PremiumGate";
+// import PremiumGate from "@/components/PremiumGate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -114,8 +114,7 @@ export default function Applications() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
       <Navbar />
       
-      <PremiumGate feature="job_applications" blockOnLimit={true}>
-        <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8">
           {/* Header */}
           <motion.div 
             className="flex items-center justify-between mb-8"
@@ -385,8 +384,7 @@ export default function Applications() {
               </CardContent>
             </Card>
           )}
-        </div>
-      </PremiumGate>
+      </div>
     </div>
   );
 }
