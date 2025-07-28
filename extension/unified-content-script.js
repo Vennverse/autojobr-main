@@ -4,7 +4,7 @@
 
   class AutoJobrUnified {
     constructor() {
-      this.apiBase = 'http://40.160.50.128:5000';
+      this.apiBase = this.detectBackendURL();
       this.isAuthenticated = false;
       this.userProfile = null;
       this.jobData = null;
@@ -65,6 +65,11 @@
       this.init();
     }
 
+    detectBackendURL() {
+      // Use the current Replit environment
+      return 'https://7f6e19b3-7c52-40cd-a936-d850c0a12fb1-00-19k7ygzf7q5kk.riker.replit.dev';
+    }
+
     async init() {
       console.log('🚀 AutoJobr Unified initialized');
       
@@ -97,6 +102,8 @@
 
     async checkAuthentication() {
       try {
+        console.log('🔍 Checking authentication with:', `${this.apiBase}/api/user`);
+        
         const response = await fetch(`${this.apiBase}/api/user`, {
           credentials: 'include',
           method: 'GET',
@@ -106,12 +113,15 @@
           }
         });
 
+        console.log('Auth response status:', response.status);
+
         if (response.ok) {
           const userData = await response.json();
           this.isAuthenticated = true;
           console.log('✅ AutoJobr authenticated:', userData.email);
           return true;
         } else {
+          console.log('❌ Authentication failed, status:', response.status);
           this.isAuthenticated = false;
           return false;
         }
@@ -187,9 +197,28 @@
     }
 
     createOverlay() {
-      // Remove existing overlay
-      const existing = document.getElementById('autojobr-unified-overlay');
-      if (existing) existing.remove();
+      // Remove ALL existing AutoJobr overlays/widgets
+      const existingElements = [
+        'autojobr-unified-overlay',
+        'autojobr-widget',
+        'autojobr-floating-widget',
+        'autojobr-overlay'
+      ];
+      
+      existingElements.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+          element.remove();
+          console.log('🗑️ Removed old overlay:', id);
+        }
+      });
+
+      // Also remove by class names
+      const existingByClass = document.querySelectorAll('.autojobr-floating-widget, .autojobr-widget, .smart-job-detector-overlay');
+      existingByClass.forEach(element => {
+        element.remove();
+        console.log('🗑️ Removed old overlay by class');
+      });
 
       this.overlay = document.createElement('div');
       this.overlay.id = 'autojobr-unified-overlay';
@@ -198,6 +227,8 @@
       document.body.appendChild(this.overlay);
       this.attachEventListeners();
       this.updateOverlayContent();
+      
+      console.log('✅ Created unified overlay');
     }
 
     getOverlayHTML() {

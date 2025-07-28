@@ -17,12 +17,13 @@
     "https://*.replit.dev/*",
     "https://*.replit.app/*", 
     "https://*.replit.co/*",
+    "https://7f6e19b3-7c52-40cd-a936-d850c0a12fb1-00-19k7ygzf7q5kk.riker.replit.dev/*",
     "http://localhost:5000/*",
     "http://127.0.0.1:5000/*",
     "http://40.160.50.128:5000/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background-simple.js"
   },
   "content_scripts": [
     {
@@ -80,9 +81,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "autojobr-overlay.html",
-        "autojobr-styles.css",
-        "autojobr-floating-panel.js",
+        "unified-styles.css",
         "icons/*.png"
       ],
       "matches": ["<all_urls>"]

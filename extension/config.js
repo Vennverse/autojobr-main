@@ -59,8 +59,8 @@ class AutoJobrAPI {
   }
 
   detectBackendURL() {
-    // Use VM server
-    return 'http://40.160.50.128:5000';
+    // Use current Replit environment
+    return 'https://7f6e19b3-7c52-40cd-a936-d850c0a12fb1-00-19k7ygzf7q5kk.riker.replit.dev';
   }
 
   async makeRequest(endpoint, options = {}) {
