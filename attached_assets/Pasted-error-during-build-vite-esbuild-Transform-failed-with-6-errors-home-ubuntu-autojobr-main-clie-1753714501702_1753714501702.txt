@@ -1,0 +1,68 @@
+error during build:
+[vite:esbuild] Transform failed with 6 errors:
+/home/ubuntu/autojobr-main/client/src/pages/applications.tsx:869:14: ERROR: Unex                                                                                                             pected closing "motion.div" tag does not match opening "TabsContent" tag
+/home/ubuntu/autojobr-main/client/src/pages/applications.tsx:870:12: ERROR: Unex                                                                                                             pected closing "TabsContent" tag does not match opening "Tabs" tag
+/home/ubuntu/autojobr-main/client/src/pages/applications.tsx:1463:10: ERROR: Une                                                                                                             xpected closing "Tabs" tag does not match opening "motion.div" tag
+/home/ubuntu/autojobr-main/client/src/pages/applications.tsx:1464:10: ERROR: Une                                                                                                             xpected closing "motion.div" tag does not match opening "PremiumGate" tag
+/home/ubuntu/autojobr-main/client/src/pages/applications.tsx:1465:8: ERROR: Unex                                                                                                             pected closing "PremiumGate" tag does not match opening "div" tag
+...
+file: /home/ubuntu/autojobr-main/client/src/pages/applications.tsx:869:14
+
+Unexpected closing "motion.div" tag does not match opening "TabsContent" tag
+867|                  </Card>
+868|                </motion.div>
+869|              </motion.div>
+   |                ^
+870|            </TabsContent>
+871|
+
+Unexpected closing "TabsContent" tag does not match opening "Tabs" tag
+868|                </motion.div>
+869|              </motion.div>
+870|            </TabsContent>
+   |              ^
+871|
+872|            <TabsContent value="applied" className="space-y-6">
+
+Unexpected closing "Tabs" tag does not match opening "motion.div" tag
+1461|              </motion.div>
+1462|            </TabsContent>
+1463|          </Tabs>
+   |            ^
+1464|          </motion.div>
+1465|        </PremiumGate>
+
+Unexpected closing "motion.div" tag does not match opening "PremiumGate" tag
+1462|            </TabsContent>
+1463|          </Tabs>
+1464|          </motion.div>
+   |            ^
+1465|        </PremiumGate>
+1466|
+
+Unexpected closing "PremiumGate" tag does not match opening "div" tag
+1463|          </Tabs>
+1464|          </motion.div>
+1465|        </PremiumGate>
+   |          ^
+1466|
+1467|        {/* Add Application Dialog */}
+
+Expected ")" but found "{"
+1465|        </PremiumGate>
+1466|
+1467|        {/* Add Application Dialog */}
+   |        ^
+1468|        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+1469|          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto"                                                                                                             >
+
+    at failureErrorWithLog (/home/ubuntu/autojobr-main/node_modules/vite/node_mo                                                                                                             dules/esbuild/lib/main.js:1472:15)
+    at /home/ubuntu/autojobr-main/node_modules/vite/node_modules/esbuild/lib/mai                                                                                                             n.js:755:50
+    at responseCallbacks.<computed> (/home/ubuntu/autojobr-main/node_modules/vit                                                                                                             e/node_modules/esbuild/lib/main.js:622:9)
+    at handleIncomingPacket (/home/ubuntu/autojobr-main/node_modules/vite/node_m                                                                                                             odules/esbuild/lib/main.js:677:12)
+    at Socket.readFromStdout (/home/ubuntu/autojobr-main/node_modules/vite/node_                                                                                                             modules/esbuild/lib/main.js:600:7)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:191:23)
