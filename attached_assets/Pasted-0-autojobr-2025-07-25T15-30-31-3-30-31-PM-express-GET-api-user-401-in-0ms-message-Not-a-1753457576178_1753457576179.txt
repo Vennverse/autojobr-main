@@ -1,0 +1,47 @@
+0|autojobr | 2025-07-25T15:30:31: 3:30:31 PM [express] GET /api/user 401 in 0ms :: {"message":"Not authenticated"}
+
+0|autojobr  | 2025-07-25T15:31:17: 3:31:17 PM [express] GET /api/user 401 in 0ms :: {"message":"Not authenticated"}
+0|autojobr  | 2025-07-25T15:31:31: Email signup error: ErrorEvent {
+0|autojobr  |   [Symbol(kTarget)]: WebSocket {
+0|autojobr  |     _events: [Object: null prototype] {
+0|autojobr  |       error: [Function],
+0|autojobr  |       message: [Function],
+0|autojobr  |       close: [Function],
+0|autojobr  |       open: [Function]
+0|autojobr  |     },
+0|autojobr  |     _eventsCount: 4,
+0|autojobr  |     _maxListeners: undefined,
+0|autojobr  |     _binaryType: 'arraybuffer',
+0|autojobr  |     _closeCode: 1006,
+0|autojobr  |     _closeFrameReceived: false,
+0|autojobr  |     _closeFrameSent: false,
+0|autojobr  |     _closeMessage: <Buffer >,
+0|autojobr  |     _closeTimer: null,
+0|autojobr  |     _errorEmitted: true,
+0|autojobr  |     _extensions: {},
+0|autojobr  |     _paused: false,
+0|autojobr  |     _protocol: '',
+0|autojobr  |     _readyState: 3,
+0|autojobr  |     _receiver: null,
+0|autojobr  |     _sender: null,
+0|autojobr  |     _socket: null,
+0|autojobr  |     _bufferedAmount: 0,
+0|autojobr  |     _isServer: false,
+0|autojobr  |     _redirects: 0,
+0|autojobr  |     _autoPong: true,
+0|autojobr  |     _url: 'wss://localhost/v2',
+0|autojobr  |     _req: null,
+0|autojobr  |     [Symbol(shapeMode)]: false,
+0|autojobr  |     [Symbol(kCapture)]: false
+0|autojobr  |   },
+0|autojobr  |   [Symbol(kType)]: 'error',
+0|autojobr  |   [Symbol(kError)]: Error: connect ECONNREFUSED 127.0.0.1:443
+0|autojobr  |       at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16) {
+0|autojobr  |     errno: -111,
+0|autojobr  |     code: 'ECONNREFUSED',
+0|autojobr  |     syscall: 'connect',
+0|autojobr  |     address: '127.0.0.1',
+0|autojobr  |     port: 443
+0|autojobr  |   },
+0|autojobr  |   [Symbol(kMessage)]: 'connect ECONNREFUSED 127.0.0.1:443'
+0|autojobr  | }
