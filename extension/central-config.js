@@ -3,7 +3,7 @@
 
 const AUTOJOBR_CONFIG = {
   // Main API Base URL - UPDATE THIS WHEN BACKEND CHANGES
-  API_BASE_URL: 'https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev',
+  API_BASE_URL: 'https://2850a2fc-4859-4c6a-8bf3-95d0268c34db-00-m8wfd8rzorjq.worf.replit.dev',
   
   // Alternative URLs for fallback (optional)
   FALLBACK_URLS: [
