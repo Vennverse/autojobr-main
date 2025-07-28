@@ -113,6 +113,7 @@
       }
     }
 
+<<<<<<< HEAD
     async checkAuthentication() {
       try {
         console.log('🔍 Checking authentication...');
@@ -142,6 +143,45 @@
             console.log('🔄 Existing token invalid, removing...');
             localStorage.removeItem('autojobr_extension_token');
           }
+=======
+async checkAuthentication() {
+  try {
+    console.log('🔍 Checking authentication with:', `${this.apiBase}/api/user`);
+    
+    // First, test with debug endpoint
+    console.log('🔍 Testing debug endpoint...');
+    const debugResponse = await fetch(`${this.apiBase}/api/debug/extension-auth`, {
+      method: 'GET',
+      credentials: 'include',
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (debugResponse.ok) {
+      const debugData = await debugResponse.json();
+      console.log('🔍 Debug data:', debugData);
+      
+      // Check if debug shows authentication
+      if (debugData.isAuthenticated) {
+        // Try to get user data
+        const response = await fetch(`${this.apiBase}/api/user`, {
+          method: 'GET',
+          credentials: 'include',
+          mode: 'cors',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+<<<<<<< HEAD
+        
+        if (debugResponse.ok) {
+          const debugData = await debugResponse.json();
+          console.log('🔍 Debug data:', debugData);
+>>>>>>> 4f6e4c7b36cca9986756e7a5d3a44721e7244137
         }
 
         // Try to get new token from authenticated session
@@ -193,32 +233,77 @@
             const errorText = await tokenResponse.text();
             console.log('Token response error:', errorText);
           }
+<<<<<<< HEAD
         } catch (fetchError) {
           console.error('Extension token fetch error:', fetchError);
+=======
+=======
+
+        console.log('Auth response:', response.status, response.statusText);
+
+        if (response.ok) {
+          const userData = await response.json();
+          this.isAuthenticated = true;
+          console.log('✅ AutoJobr authenticated:', userData.email);
+          return true;
+        } else {
+          console.log('❌ Authentication API failed, status:', response.status);
+          const errorText = await response.text();
+          console.log('Error response:', errorText);
+>>>>>>> 80128410164e37f6ee682124ad153f4273cd37be
+>>>>>>> 4f6e4c7b36cca9986756e7a5d3a44721e7244137
         }
-        
-        this.isAuthenticated = false;
-        return false;
-      } catch (error) {
-        console.error('Direct authentication check failed:', error);
-        
-        // Fallback: try through background script
-        try {
-          console.log('🔄 Trying authentication via background script...');
-          const response = await chrome.runtime.sendMessage({ action: 'CHECK_AUTH' });
-          if (response && response.success && response.authenticated) {
-            this.isAuthenticated = true;
-            console.log('✅ Background authentication successful');
-            return true;
-          }
-        } catch (bgError) {
-          console.error('Background authentication failed:', bgError);
+      } else {
+        console.log('❌ Debug shows not authenticated');
+      }
+    } else {
+      // Try direct fetch with proper credentials if debug endpoint fails
+      const response = await fetch(`${this.apiBase}/api/user`, {
+        method: 'GET',
+        credentials: 'include',
+        mode: 'cors',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
         }
-        
-        this.isAuthenticated = false;
-        return false;
+      });
+
+      console.log('Auth response:', response.status, response.statusText);
+
+      if (response.ok) {
+        const userData = await response.json();
+        this.isAuthenticated = true;
+        console.log('✅ AutoJobr authenticated:', userData.email);
+        return true;
+      } else {
+        console.log('❌ Authentication failed, status:', response.status);
+        const errorText = await response.text();
+        console.log('Error response:', errorText);
       }
     }
+    
+    this.isAuthenticated = false;
+    return false;
+  } catch (error) {
+    console.error('Direct authentication check failed:', error);
+    
+    // Fallback: try through background script
+    try {
+      console.log('🔄 Trying authentication via background script...');
+      const response = await chrome.runtime.sendMessage({ action: 'CHECK_AUTH' });
+      if (response && response.success && response.authenticated) {
+        this.isAuthenticated = true;
+        console.log('✅ Background authentication successful');
+        return true;
+      }
+    } catch (bgError) {
+      console.error('Background authentication failed:', bgError);
+    }
+    
+    this.isAuthenticated = false;
+    return false;
+  }
+}
 
     async loadUserProfile() {
       if (!this.isAuthenticated) return null;
