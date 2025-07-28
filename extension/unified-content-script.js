@@ -102,12 +102,39 @@
 
     async checkAuthentication() {
       try {
-        console.log('🔍 Checking authentication with:', `${this.apiBase}/api/user`);
+        console.log('🔍 Checking authentication...');
         
-        // First, test with debug endpoint
-        console.log('🔍 Testing debug endpoint...');
-        const debugResponse = await fetch(`${this.apiBase}/api/debug/extension-auth`, {
-          method: 'GET',
+        // Try with existing token first
+        let token = localStorage.getItem('autojobr_extension_token');
+        if (token) {
+          console.log('🔑 Found existing token, testing...');
+          const response = await fetch(`${this.apiBase}/api/extension/user?token=${token}`, {
+            method: 'GET',
+            credentials: 'include',
+            mode: 'cors',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'X-Extension-Token': token
+            }
+          });
+
+          if (response.ok) {
+            const userData = await response.json();
+            this.isAuthenticated = true;
+            this.userProfile = { profile: userData };
+            console.log('✅ Extension authenticated with existing token:', userData.email);
+            return true;
+          } else {
+            console.log('🔄 Existing token invalid, removing...');
+            localStorage.removeItem('autojobr_extension_token');
+          }
+        }
+
+        // Try to get new token from authenticated session
+        console.log('🔑 Requesting new extension token...');
+        const tokenResponse = await fetch(`${this.apiBase}/api/auth/extension-token`, {
+          method: 'POST',
           credentials: 'include',
           mode: 'cors',
           headers: {
@@ -115,44 +142,36 @@
             'Content-Type': 'application/json'
           }
         });
-        
-        if (debugResponse.ok) {
-          const debugData = await debugResponse.json();
-          console.log('🔍 Debug data:', debugData);
-        }
-        
-        // Check if debug shows authentication
-        if (debugResponse.ok) {
-          const debugData = await debugResponse.json();
-          if (debugData.isAuthenticated) {
-            // Try to get user data using extension-specific endpoint with token
-            const token = localStorage.getItem('autojobr_extension_token');
-            const response = await fetch(`${this.apiBase}/api/extension/user${token ? `?token=${token}` : ''}`, {
-              method: 'GET',
-              credentials: 'include',
-              mode: 'cors',
-              headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                ...(token && { 'X-Extension-Token': token })
-              }
-            });
 
-            console.log('Extension auth response:', response.status, response.statusText);
+        if (tokenResponse.ok) {
+          const tokenData = await tokenResponse.json();
+          token = tokenData.token;
+          localStorage.setItem('autojobr_extension_token', token);
+          console.log('✅ New extension token obtained');
 
-            if (response.ok) {
-              const userData = await response.json();
-              this.isAuthenticated = true;
-              console.log('✅ AutoJobr authenticated via extension endpoint:', userData.email);
-              return true;
-            } else {
-              console.log('❌ Extension authentication failed, status:', response.status);
-              const errorText = await response.text();
-              console.log('Error response:', errorText);
+          // Now try with new token
+          const userResponse = await fetch(`${this.apiBase}/api/extension/user?token=${token}`, {
+            method: 'GET',
+            credentials: 'include',
+            mode: 'cors',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'X-Extension-Token': token
             }
+          });
+
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            this.isAuthenticated = true;
+            this.userProfile = { profile: userData };
+            console.log('✅ Extension authenticated with new token:', userData.email);
+            return true;
           } else {
-            console.log('❌ Debug shows not authenticated');
+            console.log('❌ Failed to authenticate with new token');
           }
+        } else {
+          console.log('❌ Failed to get extension token, status:', tokenResponse.status);
         }
         
         this.isAuthenticated = false;

@@ -44,20 +44,37 @@ async function checkVMAuthentication() {
       console.log('🔍 Background Debug:', debugData);
       
       if (debugData.isAuthenticated) {
-        // Try to get user data using extension-specific endpoint
-        const userResponse = await fetch(`${VM_API_BASE}/api/extension/user`, {
+        // Try to get extension token first
+        const tokenResponse = await fetch(`${VM_API_BASE}/api/auth/extension-token`, {
+          method: 'POST',
           credentials: 'include',
-          method: 'GET',
           mode: 'cors',
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
           }
         });
-        
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          return { success: true, authenticated: true, profile: userData };
+
+        if (tokenResponse.ok) {
+          const tokenData = await tokenResponse.json();
+          const token = tokenData.token;
+          
+          // Try to get user data using token
+          const userResponse = await fetch(`${VM_API_BASE}/api/extension/user?token=${token}`, {
+            credentials: 'include',
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'X-Extension-Token': token
+            }
+          });
+          
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            return { success: true, authenticated: true, profile: userData };
+          }
         }
       }
     }
