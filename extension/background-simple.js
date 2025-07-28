@@ -44,8 +44,8 @@ async function checkVMAuthentication() {
       console.log('🔍 Background Debug:', debugData);
       
       if (debugData.isAuthenticated) {
-        // Try to get user data
-        const userResponse = await fetch(`${VM_API_BASE}/api/user`, {
+        // Try to get user data using extension-specific endpoint
+        const userResponse = await fetch(`${VM_API_BASE}/api/extension/user`, {
           credentials: 'include',
           method: 'GET',
           mode: 'cors',

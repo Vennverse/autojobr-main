@@ -53,12 +53,12 @@ export async function createSessionConfig(secret: string) {
     saveUninitialized: false,
     rolling: true, // Reset expiration on activity
     cookie: {
-      secure: false, // Allow HTTP for VM server
-      httpOnly: false, // Allow JavaScript access for Chrome extension
+      secure: false, // Allow HTTP for development
+      httpOnly: true, // Standard security for web requests
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: 'lax', // Changed from 'none' to 'lax' for better compatibility
-      path: '/', // Ensure cookie path is set
-      domain: undefined, // Don't restrict domain for Chrome extension
+      sameSite: 'lax', // Standard for same-site requests
+      path: '/',
+      domain: undefined,
     },
     name: 'autojobr.sid'
   };

@@ -125,8 +125,8 @@
         if (debugResponse.ok) {
           const debugData = await debugResponse.json();
           if (debugData.isAuthenticated) {
-            // Try to get user data
-            const response = await fetch(`${this.apiBase}/api/user`, {
+            // Try to get user data using extension-specific endpoint
+            const response = await fetch(`${this.apiBase}/api/extension/user`, {
               method: 'GET',
               credentials: 'include',
               mode: 'cors',
@@ -136,15 +136,15 @@
               }
             });
 
-            console.log('Auth response:', response.status, response.statusText);
+            console.log('Extension auth response:', response.status, response.statusText);
 
             if (response.ok) {
               const userData = await response.json();
               this.isAuthenticated = true;
-              console.log('✅ AutoJobr authenticated:', userData.email);
+              console.log('✅ AutoJobr authenticated via extension endpoint:', userData.email);
               return true;
             } else {
-              console.log('❌ Authentication API failed, status:', response.status);
+              console.log('❌ Extension authentication failed, status:', response.status);
               const errorText = await response.text();
               console.log('Error response:', errorText);
             }

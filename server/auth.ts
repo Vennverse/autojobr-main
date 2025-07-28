@@ -50,12 +50,12 @@ export async function setupAuth(app: Express) {
     saveUninitialized: false,
     rolling: true,
     cookie: {
-      secure: false, // Allow HTTP for VM server
-      httpOnly: false, // Allow JavaScript access for Chrome extension
+      secure: false, // Allow HTTP for development
+      httpOnly: true, // Standard security for web requests
       maxAge: authConfig.session.maxAge,
-      sameSite: 'lax', // Changed from 'none' to 'lax' for better compatibility
-      path: '/', // Ensure cookie path is set
-      domain: undefined, // Don't restrict domain
+      sameSite: 'lax', // Standard for same-site requests
+      path: '/',
+      domain: undefined,
     },
     name: 'autojobr.sid'
   };

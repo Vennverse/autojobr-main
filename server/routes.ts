@@ -305,6 +305,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware early for extension support
   // Note: Session setup is handled in setupAuth(), removing duplicate setup
 
+  // Special Chrome extension user endpoint with proper authentication
+  app.get('/api/extension/user', async (req: any, res) => {
+    try {
+      const origin = req.get('Origin');
+      
+      // Only allow this endpoint for Chrome extensions
+      if (!origin || (!origin.startsWith('chrome-extension://') && !origin.startsWith('moz-extension://'))) {
+        return res.status(403).json({ message: 'This endpoint is only for browser extensions' });
+      }
+
+      // Check session authentication using the same pattern as other authenticated routes
+      const sessionUser = req.session?.user;
+      if (!sessionUser || !sessionUser.id) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+
+      // Get user data from storage
+      const user = await storage.getUser(sessionUser.id);
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+
+      // Return user data for extension
+      res.json({
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        userType: user.userType,
+        phone: user.phone,
+        address: user.address,
+        city: user.city,
+        state: user.state,
+        zipCode: user.zipCode
+      });
+    } catch (error) {
+      console.error('Extension user endpoint error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   // Extension API for Chrome extension - provides profile data for form filling (no auth required)
   app.get('/api/extension/profile', async (req: any, res) => {
     try {
