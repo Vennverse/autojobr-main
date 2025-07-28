@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoJobr Extension - Form Filler Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .form-section {
+            margin-bottom: 25px;
+        }
+        .form-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 15px;
+        }
+        .form-group.full-width {
+            flex-direction: column;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+            min-width: 120px;
+        }
+        input, textarea, select {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #5a67d8;
+        }
+        .test-result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .field-mapping {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .instructions {
+            background: #e7f3ff;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 AutoJobr Extension Form Filler Test</h1>
+        <div class="instructions">
+            <h3>Test Instructions:</h3>
+            <ol>
+                <li>Make sure AutoJobr extension is installed and you're logged in</li>
+                <li>Click "Test Extension Authentication" to verify connection</li>
+                <li>Click "Fill Form with Profile Data" to test auto-fill functionality</li>
+                <li>Check that all fields are filled correctly with your profile data</li>
+                <li>Try the "Generate Cover Letter" feature with job description</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🔐 Extension Authentication Test</h2>
+        <button onclick="testExtensionAuth()">Test Extension Authentication</button>
+        <button onclick="loadProfileData()">Load Profile Data</button>
+        <div id="authResult" class="test-result"></div>
+        <div id="profileData" class="field-mapping"></div>
+    </div>
+
+    <div class="container">
+        <h2>📝 Job Application Form (Test Form Filling)</h2>
+        <form id="testForm">
+            <!-- Personal Information -->
+            <div class="form-section">
+                <h3>Personal Information</h3>
+                <div class="form-group">
+                    <label for="firstName">First Name:</label>
+                    <input type="text" id="firstName" name="firstName" placeholder="Enter first name">
+                    <label for="lastName">Last Name:</label>
+                    <input type="text" id="lastName" name="lastName" placeholder="Enter last name">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address:</label>
+                    <input type="email" id="email" name="email" placeholder="Enter email">
+                    <label for="phone">Phone Number:</label>
+                    <input type="tel" id="phone" name="phone" placeholder="Enter phone number">
+                </div>
+                <div class="form-group full-width">
+                    <label for="address">Address:</label>
+                    <input type="text" id="address" name="address" placeholder="Enter full address">
+                </div>
+                <div class="form-group">
+                    <label for="city">City:</label>
+                    <input type="text" id="city" name="city" placeholder="Enter city">
+                    <label for="state">State:</label>
+                    <input type="text" id="state" name="state" placeholder="Enter state">
+                    <label for="zipCode">Zip Code:</label>
+                    <input type="text" id="zipCode" name="zipCode" placeholder="Enter zip code">
+                </div>
+            </div>
+
+            <!-- Professional Information -->
+            <div class="form-section">
+                <h3>Professional Information</h3>
+                <div class="form-group">
+                    <label for="currentTitle">Current Job Title:</label>
+                    <input type="text" id="currentTitle" name="currentTitle" placeholder="Enter current job title">
+                    <label for="currentCompany">Current Company:</label>
+                    <input type="text" id="currentCompany" name="currentCompany" placeholder="Enter current company">
+                </div>
+                <div class="form-group full-width">
+                    <label for="skills">Skills (comma separated):</label>
+                    <input type="text" id="skills" name="skills" placeholder="Enter skills separated by commas">
+                </div>
+                <div class="form-group">
+                    <label for="experience">Years of Experience:</label>
+                    <select id="experience" name="experience">
+                        <option value="">Select experience level</option>
+                        <option value="0-1">0-1 years</option>
+                        <option value="2-3">2-3 years</option>
+                        <option value="4-5">4-5 years</option>
+                        <option value="6-10">6-10 years</option>
+                        <option value="10+">10+ years</option>
+                    </select>
+                    <label for="salaryExpectation">Salary Expectation:</label>
+                    <input type="text" id="salaryExpectation" name="salaryExpectation" placeholder="Enter salary expectation">
+                </div>
+            </div>
+
+            <!-- Education -->
+            <div class="form-section">
+                <h3>Education</h3>
+                <div class="form-group">
+                    <label for="degree">Highest Degree:</label>
+                    <input type="text" id="degree" name="degree" placeholder="Enter degree">
+                    <label for="university">University/Institution:</label>
+                    <input type="text" id="university" name="university" placeholder="Enter university">
+                </div>
+                <div class="form-group">
+                    <label for="graduationYear">Graduation Year:</label>
+                    <input type="number" id="graduationYear" name="graduationYear" placeholder="Enter graduation year">
+                    <label for="gpa">GPA (optional):</label>
+                    <input type="text" id="gpa" name="gpa" placeholder="Enter GPA">
+                </div>
+            </div>
+
+            <!-- URLs and Social Media -->
+            <div class="form-section">
+                <h3>Professional URLs</h3>
+                <div class="form-group full-width">
+                    <label for="linkedinUrl">LinkedIn URL:</label>
+                    <input type="url" id="linkedinUrl" name="linkedinUrl" placeholder="Enter LinkedIn URL">
+                </div>
+                <div class="form-group full-width">
+                    <label for="portfolioUrl">Portfolio/Website URL:</label>
+                    <input type="url" id="portfolioUrl" name="portfolioUrl" placeholder="Enter portfolio URL">
+                </div>
+                <div class="form-group full-width">
+                    <label for="githubUrl">GitHub URL:</label>
+                    <input type="url" id="githubUrl" name="githubUrl" placeholder="Enter GitHub URL">
+                </div>
+            </div>
+
+            <!-- Work Authorization -->
+            <div class="form-section">
+                <h3>Work Authorization</h3>
+                <div class="form-group">
+                    <label for="workAuthorization">Work Authorization Status:</label>
+                    <select id="workAuthorization" name="workAuthorization">
+                        <option value="">Select work authorization</option>
+                        <option value="citizen">US Citizen</option>
+                        <option value="permanent_resident">Permanent Resident</option>
+                        <option value="h1b">H1B Visa</option>
+                        <option value="opt">OPT</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <label for="availableStartDate">Available Start Date:</label>
+                    <input type="date" id="availableStartDate" name="availableStartDate">
+                </div>
+            </div>
+        </form>
+
+        <div style="margin-top: 20px;">
+            <button onclick="fillFormWithProfileData()">Fill Form with Profile Data</button>
+            <button onclick="clearForm()">Clear Form</button>
+            <button onclick="validateFormCompletion()">Check Form Completion</button>
+        </div>
+
+        <div id="formResult" class="test-result"></div>
+    </div>
+
+    <div class="container">
+        <h2>📄 Cover Letter Generation Test</h2>
+        <div class="form-group full-width">
+            <label for="jobDescription">Job Description:</label>
+            <textarea id="jobDescription" name="jobDescription" placeholder="Paste job description here for testing cover letter generation">We are seeking a Senior Software Engineer with 5+ years of experience in JavaScript, React, Node.js, and Python. The ideal candidate will have experience with cloud platforms like AWS and be familiar with agile development methodologies. You will work on building scalable web applications and collaborate with cross-functional teams.</textarea>
+        </div>
+        <div class="form-group">
+            <label for="companyName">Company Name:</label>
+            <input type="text" id="companyName" name="companyName" value="TechCorp Solutions" placeholder="Enter company name">
+        </div>
+        <div class="form-group full-width">
+            <label for="generatedCoverLetter">Generated Cover Letter:</label>
+            <textarea id="generatedCoverLetter" name="generatedCoverLetter" placeholder="Cover letter will appear here..." readonly></textarea>
+        </div>
+        
+        <button onclick="generateCoverLetter()">Generate AI Cover Letter</button>
+        <div id="coverLetterResult" class="test-result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://0e44431a-708c-4df3-916b-4c2aa6aa0fdf-00-2xw51bgbvt8cp.spock.replit.dev';
+        let userProfileData = null;
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `test-result ${type}`;
+            element.style.display = 'block';
+        }
+
+        async function testExtensionAuth() {
+            try {
+                showResult('authResult', 'Testing authentication...', 'info');
+                
+                const response = await fetch(`${API_BASE}/api/user`, {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const user = await response.json();
+                    showResult('authResult', `✅ Authentication successful! Logged in as: ${user.firstName} ${user.lastName} (${user.email})`, 'success');
+                    return user;
+                } else {
+                    showResult('authResult', '❌ Not authenticated. Please log into AutoJobr web app first.', 'error');
+                    return null;
+                }
+            } catch (error) {
+                showResult('authResult', `❌ Connection error: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        async function loadProfileData() {
+            try {
+                showResult('authResult', 'Loading profile data...', 'info');
+
+                const endpoints = [
+                    { name: 'profile', url: '/api/profile' },
+                    { name: 'skills', url: '/api/skills' },
+                    { name: 'workExperience', url: '/api/work-experience' },
+                    { name: 'education', url: '/api/education' }
+                ];
+
+                const profileData = {};
+                let loadedEndpoints = 0;
+
+                for (const endpoint of endpoints) {
+                    try {
+                        const response = await fetch(`${API_BASE}${endpoint.url}`, {
+                            credentials: 'include'
+                        });
+
+                        if (response.ok) {
+                            profileData[endpoint.name] = await response.json();
+                            loadedEndpoints++;
+                        }
+                    } catch (error) {
+                        console.error(`Failed to load ${endpoint.name}:`, error);
+                    }
+                }
+
+                if (loadedEndpoints > 0) {
+                    userProfileData = profileData;
+                    displayProfileData();
+                    showResult('authResult', `✅ Profile data loaded successfully! (${loadedEndpoints}/4 endpoints)`, 'success');
+                } else {
+                    showResult('authResult', '❌ Failed to load profile data', 'error');
+                }
+
+            } catch (error) {
+                showResult('authResult', `❌ Profile loading error: ${error.message}`, 'error');
+            }
+        }
+
+        function displayProfileData() {
+            const profileDiv = document.getElementById('profileData');
+            if (!userProfileData) {
+                profileDiv.style.display = 'none';
+                return;
+            }
+
+            let html = '<h4>Loaded Profile Data:</h4>';
+            
+            if (userProfileData.profile) {
+                html += `<strong>Personal:</strong> ${userProfileData.profile.firstName} ${userProfileData.profile.lastName} - ${userProfileData.profile.email}<br>`;
+            }
+            
+            if (userProfileData.skills && userProfileData.skills.length > 0) {
+                html += `<strong>Skills:</strong> ${userProfileData.skills.slice(0, 5).map(s => s.name || s.skill).join(', ')} (${userProfileData.skills.length} total)<br>`;
+            }
+            
+            if (userProfileData.workExperience && userProfileData.workExperience.length > 0) {
+                const exp = userProfileData.workExperience[0];
+                html += `<strong>Latest Job:</strong> ${exp.jobTitle} at ${exp.company}<br>`;
+            }
+            
+            if (userProfileData.education && userProfileData.education.length > 0) {
+                const edu = userProfileData.education[0];
+                html += `<strong>Education:</strong> ${edu.degree} from ${edu.institution}<br>`;
+            }
+
+            profileDiv.innerHTML = html;
+            profileDiv.style.display = 'block';
+        }
+
+        async function fillFormWithProfileData() {
+            if (!userProfileData) {
+                showResult('formResult', '❌ No profile data loaded. Click "Load Profile Data" first.', 'error');
+                return;
+            }
+
+            try {
+                const profile = userProfileData.profile || {};
+                const skills = userProfileData.skills || [];
+                const experience = userProfileData.workExperience || [];
+                const education = userProfileData.education || [];
+
+                // Personal Information
+                document.getElementById('firstName').value = profile.firstName || '';
+                document.getElementById('lastName').value = profile.lastName || '';
+                document.getElementById('email').value = profile.email || '';
+                document.getElementById('phone').value = profile.phone || '';
+                document.getElementById('address').value = profile.address || '';
+                document.getElementById('city').value = profile.city || '';
+                document.getElementById('state').value = profile.state || '';
+                document.getElementById('zipCode').value = profile.zipCode || '';
+
+                // Professional Information
+                if (experience.length > 0) {
+                    document.getElementById('currentTitle').value = experience[0].jobTitle || '';
+                    document.getElementById('currentCompany').value = experience[0].company || '';
+                }
+
+                document.getElementById('skills').value = skills.slice(0, 10).map(s => s.name || s.skill).join(', ');
+                document.getElementById('salaryExpectation').value = profile.salaryExpectation || '';
+
+                // Education
+                if (education.length > 0) {
+                    document.getElementById('degree').value = education[0].degree || '';
+                    document.getElementById('university').value = education[0].institution || '';
+                    document.getElementById('graduationYear').value = education[0].graduationYear || '';
+                    document.getElementById('gpa').value = education[0].gpa || '';
+                }
+
+                // URLs
+                document.getElementById('linkedinUrl').value = profile.linkedinUrl || '';
+                document.getElementById('portfolioUrl').value = profile.portfolioUrl || '';
+                document.getElementById('githubUrl').value = profile.githubUrl || '';
+
+                // Work Authorization
+                document.getElementById('workAuthorization').value = profile.workAuthorization || '';
+                document.getElementById('availableStartDate').value = profile.availableStartDate || '';
+
+                // Count filled fields
+                const filledFields = countFilledFields();
+                showResult('formResult', `✅ Form auto-filled successfully! ${filledFields.filled}/${filledFields.total} fields completed.`, 'success');
+
+            } catch (error) {
+                showResult('formResult', `❌ Form filling error: ${error.message}`, 'error');
+            }
+        }
+
+        function clearForm() {
+            document.getElementById('testForm').reset();
+            showResult('formResult', '✅ Form cleared', 'info');
+        }
+
+        function countFilledFields() {
+            const form = document.getElementById('testForm');
+            const inputs = form.querySelectorAll('input, textarea, select');
+            let filled = 0;
+            let total = inputs.length;
+
+            inputs.forEach(input => {
+                if (input.value && input.value.trim().length > 0) {
+                    filled++;
+                }
+            });
+
+            return { filled, total };
+        }
+
+        function validateFormCompletion() {
+            const counts = countFilledFields();
+            const completionRate = Math.round((counts.filled / counts.total) * 100);
+            
+            if (completionRate >= 80) {
+                showResult('formResult', `✅ Form is ${completionRate}% complete (${counts.filled}/${counts.total} fields)`, 'success');
+            } else if (completionRate >= 50) {
+                showResult('formResult', `⚠️ Form is ${completionRate}% complete (${counts.filled}/${counts.total} fields)`, 'info');
+            } else {
+                showResult('formResult', `❌ Form is only ${completionRate}% complete (${counts.filled}/${counts.total} fields)`, 'error');
+            }
+        }
+
+        async function generateCoverLetter() {
+            const jobDescription = document.getElementById('jobDescription').value;
+            const companyName = document.getElementById('companyName').value;
+
+            if (!jobDescription || !companyName) {
+                showResult('coverLetterResult', '❌ Please enter both job description and company name', 'error');
+                return;
+            }
+
+            try {
+                showResult('coverLetterResult', 'Generating cover letter...', 'info');
+
+                const response = await fetch(`${API_BASE}/api/generate-cover-letter`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        jobDescription,
+                        companyName,
+                        useProfile: true
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    document.getElementById('generatedCoverLetter').value = result.coverLetter;
+                    showResult('coverLetterResult', `✅ Cover letter generated successfully! (${result.coverLetter.length} characters)`, 'success');
+                } else {
+                    showResult('coverLetterResult', `❌ Cover letter generation failed: ${response.status}`, 'error');
+                }
+
+            } catch (error) {
+                showResult('coverLetterResult', `❌ Cover letter generation error: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-load profile data on page load
+        window.onload = function() {
+            testExtensionAuth().then(user => {
+                if (user) {
+                    loadProfileData();
+                }
+            });
+        };
+    </script>
+</body>
+</html>
