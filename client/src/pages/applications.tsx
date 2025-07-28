@@ -121,8 +121,14 @@ export default function Applications() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
+  
+  // Add saved jobs query
+  const { data: savedJobs, isLoading: savedJobsLoading } = useQuery({
+    queryKey: ["/api/saved-jobs"],
+    enabled: isAuthenticated,
+  });
   const [sortBy, setSortBy] = useState("date");
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("all");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingApplication, setEditingApplication] = useState(null);
@@ -264,8 +270,14 @@ export default function Applications() {
     }
   });
 
+  // Combine applications and saved jobs
+  const allJobs = [
+    ...(applications || []),
+    ...(savedJobs || []).map((job: any) => ({ ...job, source: 'extension' }))
+  ];
+
   // Filter and sort applications
-  const filteredApplications = applications?.filter((app: any) => {
+  const filteredApplications = allJobs?.filter((app: any) => {
     const matchesSearch = 
       app.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
       app.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -273,6 +285,13 @@ export default function Applications() {
     
     const matchesStatus = statusFilter === "all" || app.status === statusFilter;
     const matchesSource = sourceFilter === "all" || app.source === sourceFilter;
+    
+    // Tab filtering
+    if (activeTab === "applied") {
+      return app.status !== "saved" && matchesSearch && matchesStatus && matchesSource;
+    } else if (activeTab === "saved") {
+      return app.status === "saved" && matchesSearch && matchesStatus && matchesSource;
+    }
     
     return matchesSearch && matchesStatus && matchesSource;
   })?.sort((a: any, b: any) => {
@@ -365,6 +384,7 @@ export default function Applications() {
               onClick={() => {
                 queryClient.invalidateQueries({ queryKey: ["/api/applications"] });
                 queryClient.invalidateQueries({ queryKey: ["/api/applications/stats"] });
+                queryClient.invalidateQueries({ queryKey: ["/api/saved-jobs"] });
                 toast({
                   title: "Synced",
                   description: "Application data refreshed from both platform and extension.",
@@ -462,22 +482,22 @@ export default function Applications() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <motion.div variants={itemVariants}>
             <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:grid-cols-3">
-              <TabsTrigger value="overview" className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Overview
+              <TabsTrigger value="all" className="flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                All ({allJobs?.length || 0})
               </TabsTrigger>
-              <TabsTrigger value="applications" className="flex items-center gap-2">
+              <TabsTrigger value="applied" className="flex items-center gap-2">
                 <Briefcase className="h-4 w-4" />
-                Applications
+                Applied ({allJobs?.filter(app => app.status !== 'saved').length || 0})
               </TabsTrigger>
-              <TabsTrigger value="analytics" className="flex items-center gap-2">
-                <PieChart className="h-4 w-4" />
-                Analytics
+              <TabsTrigger value="saved" className="flex items-center gap-2">
+                <Star className="h-4 w-4" />
+                Saved ({savedJobs?.length || 0})
               </TabsTrigger>
             </TabsList>
           </motion.div>
 
-          <TabsContent value="overview" className="space-y-6">
+          <TabsContent value="all" className="space-y-6">
             {/* Quick Overview */}
             <motion.div 
               className="grid grid-cols-1 lg:grid-cols-3 gap-6"
@@ -654,7 +674,17 @@ export default function Applications() {
             </motion.div>
           </TabsContent>
 
-          <TabsContent value="applications" className="space-y-6">
+          <TabsContent value="applied" className="space-y-6">
+            <ApplicationsTable 
+              applications={filteredApplications} 
+              isLoading={applicationsLoading || savedJobsLoading}
+              onEdit={setEditingApplication}
+              onDelete={(id) => deleteApplicationMutation.mutate(id)}
+              viewMode={viewMode}
+            />
+          </TabsContent>
+
+          <TabsContent value="saved" className="space-y-6">
             {/* Filters and Controls */}
             <motion.div 
               className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between"

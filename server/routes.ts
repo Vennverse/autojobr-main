@@ -2034,6 +2034,100 @@ Additional Information:
     }
   });
 
+  // Saved Jobs API - Extension saves jobs for later application
+  app.post('/api/saved-jobs', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { title, company, description, location, salary, url, platform, extractedAt } = req.body;
+      
+      if (!title || !company) {
+        return res.status(400).json({ message: "Job title and company are required" });
+      }
+      
+      // Check if job already saved
+      const existingJob = await db
+        .select()
+        .from(schema.jobApplications)
+        .where(and(
+          eq(schema.jobApplications.userId, userId),
+          eq(schema.jobApplications.jobUrl, url || ''),
+          eq(schema.jobApplications.status, 'saved')
+        ))
+        .limit(1);
+        
+      if (existingJob.length > 0) {
+        return res.status(409).json({ message: "Job already saved" });
+      }
+      
+      // Save job as application with 'saved' status
+      const savedJob = await storage.addJobApplication({
+        userId,
+        jobTitle: title,
+        company,
+        jobDescription: description,
+        location: location || '',
+        salaryRange: salary || '',
+        jobUrl: url || '',
+        source: platform || 'extension',
+        status: 'saved',
+        appliedDate: new Date(),
+        lastUpdated: new Date(),
+        createdAt: new Date()
+      });
+      
+      // Clear cache
+      clearCache(`applications_${userId}`);
+      
+      res.json({ success: true, savedJob });
+    } catch (error) {
+      console.error('Error saving job:', error);
+      res.status(500).json({ message: "Failed to save job" });
+    }
+  });
+
+  app.get('/api/saved-jobs', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      const savedJobs = await db
+        .select()
+        .from(schema.jobApplications)
+        .where(and(
+          eq(schema.jobApplications.userId, userId),
+          eq(schema.jobApplications.status, 'saved')
+        ))
+        .orderBy(desc(schema.jobApplications.createdAt));
+      
+      res.json(savedJobs);
+    } catch (error) {
+      console.error('Error fetching saved jobs:', error);
+      res.status(500).json({ message: "Failed to fetch saved jobs" });
+    }
+  });
+
+  app.delete('/api/saved-jobs/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const jobId = parseInt(req.params.id);
+      
+      await db
+        .delete(schema.jobApplications)
+        .where(and(
+          eq(schema.jobApplications.id, jobId),
+          eq(schema.jobApplications.userId, userId),
+          eq(schema.jobApplications.status, 'saved')
+        ));
+      
+      // Clear cache
+      clearCache(`applications_${userId}`);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting saved job:', error);
+      res.status(500).json({ message: "Failed to delete saved job" });
+    }
+  });
+
   // Job applications routes - Combined view (Web app + Extension)
   app.get('/api/applications', isAuthenticated, async (req: any, res) => {
     try {
@@ -2049,7 +2143,7 @@ Additional Information:
       // Get applications from job postings (recruiter-posted jobs)
       const jobPostingApplications = await storage.getApplicationsForJobSeeker(userId);
       
-      // Get applications from extension (external job sites)
+      // Get applications from extension (external job sites) - all statuses including saved
       const extensionApplications = await storage.getUserApplications(userId);
       
       // Transform job posting applications

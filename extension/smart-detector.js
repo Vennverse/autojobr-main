@@ -1068,6 +1068,10 @@ class SmartJobDetector {
             <button class="autojobr-btn autojobr-btn-secondary" id="autojobr-cover-letter" style="display: flex; align-items: center; justify-content: center; gap: 8px; background: #f8fafc; color: #374151; border: 1px solid #e5e7eb; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.2s;">
               <span>📝</span> Generate Cover Letter
             </button>
+            
+            <button class="autojobr-btn autojobr-btn-secondary" id="autojobr-save-job" style="display: flex; align-items: center; justify-content: center; gap: 8px; background: #f8fafc; color: #374151; border: 1px solid #e5e7eb; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.2s;">
+              <span>💾</span> Save Job
+            </button>
           </div>
           
           <button id="autojobr-close" style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.2); border: none; color: white; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 14px; line-height: 1;">×</button>
@@ -1204,10 +1208,18 @@ class SmartJobDetector {
   }
 
   async saveJob() {
-    if (!this.jobData) return;
+    if (!this.jobData) {
+      this.showNotification('No job data to save', 'error');
+      return;
+    }
+
+    if (!this.isAuthenticated) {
+      this.showNotification('Please sign in to save jobs', 'error');
+      return;
+    }
 
     try {
-      console.log('💾 Saving job...');
+      console.log('💾 Saving job...', this.jobData);
       
       const response = await fetch(`${this.apiBase}/api/saved-jobs`, {
         method: 'POST',
@@ -1216,15 +1228,26 @@ class SmartJobDetector {
         },
         credentials: 'include',
         body: JSON.stringify({
-          ...this.jobData,
-          savedAt: new Date().toISOString()
+          title: this.jobData.title,
+          company: this.jobData.company,
+          description: this.jobData.description,
+          location: this.jobData.location,
+          salary: this.jobData.salary,
+          url: this.jobData.url || window.location.href,
+          platform: this.jobData.platform || this.detectPlatform(),
+          extractedAt: this.jobData.extractedAt || Date.now()
         })
       });
 
+      const result = await response.json();
+      
       if (response.ok) {
         this.showNotification('Job saved successfully!', 'success');
+        console.log('✅ Job saved:', result);
+      } else if (response.status === 409) {
+        this.showNotification('Job already saved', 'warning');
       } else {
-        this.showNotification('Failed to save job', 'error');
+        this.showNotification(result.message || 'Failed to save job', 'error');
       }
     } catch (error) {
       console.error('Failed to save job:', error);
