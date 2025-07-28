@@ -361,6 +361,13 @@ class SmartJobDetector {
     try {
       this.showNotification('Analyzing job match...', 'info');
       
+      // Debug user profile data
+      console.log('🔍 Analyzing with user data:', {
+        skills: this.userProfile.skills?.length || 0,
+        experience: this.userProfile.experience?.length || 0,
+        profileComplete: !!this.userProfile.profile
+      });
+      
       // Enhanced NLP-style analysis
       const analysis = this.performEnhancedAnalysis();
       
@@ -382,6 +389,15 @@ class SmartJobDetector {
     const { skills, experience, education, profile } = this.userProfile;
     const { title, description, company, location, salary } = this.jobData;
     
+    console.log('🔍 Analysis Debug:', {
+      hasTitle: !!title,
+      hasDescription: !!description,
+      descriptionLength: description?.length || 0,
+      skillsArray: skills,
+      skillsCount: skills?.length || 0,
+      experienceCount: experience?.length || 0
+    });
+    
     if (!description || !title) {
       return { 
         matchScore: 0, 
@@ -396,18 +412,55 @@ class SmartJobDetector {
     const jobText = (title + ' ' + description + ' ' + (company || '')).toLowerCase();
     const userSkills = (skills || []).map(s => s.skill?.toLowerCase() || s.toLowerCase());
     
-    // Enhanced skill matching
-    const skillAnalysis = this.performBasicSkillMatching(jobText, userSkills);
+    console.log('🎯 Processing:', {
+      jobTextLength: jobText.length,
+      userSkills: userSkills,
+      userSkillsCount: userSkills.length,
+      jobTextPreview: jobText.substring(0, 200) + '...'
+    });
+    
+    // Early exit if no skills data
+    if (!userSkills || userSkills.length === 0) {
+      console.warn('⚠️ No user skills found - analysis will be limited');
+      return {
+        matchScore: 25, // Base score for having a profile
+        matchedSkills: [],
+        missingSkills: [],
+        totalSkills: 0,
+        experienceYears: 0,
+        recommendation: 'Complete your skills profile for better analysis',
+        details: {
+          skillsScore: 0,
+          experienceScore: 25,
+          resumeScore: 25
+        }
+      };
+    }
+    
+    // Enhanced skill matching using the improved method
+    const skillAnalysis = this.performAdvancedSkillMatching(jobText, userSkills);
     
     // Experience analysis
     const experienceAnalysis = this.performBasicExperienceAnalysis(experience || []);
     
+    // Resume text analysis if available
+    const resumeAnalysis = this.analyzeResumeMatch(jobText, profile);
+    
     // Calculate weighted score
     let totalScore = 0;
-    totalScore += skillAnalysis.score * 0.7; // 70% weight for skills
+    totalScore += skillAnalysis.score * 0.5; // 50% weight for skills
     totalScore += experienceAnalysis.score * 0.3; // 30% weight for experience
+    totalScore += resumeAnalysis.score * 0.2; // 20% weight for resume match
     
     const matchScore = Math.min(Math.round(totalScore), 100);
+    
+    console.log('📊 Analysis Results:', {
+      skillScore: skillAnalysis.score,
+      experienceScore: experienceAnalysis.score,
+      resumeScore: resumeAnalysis.score,
+      finalScore: matchScore,
+      matchedSkills: skillAnalysis.matched
+    });
     
     return {
       matchScore,
@@ -418,45 +471,176 @@ class SmartJobDetector {
       recommendation: `${matchScore}% match - ${matchScore >= 75 ? 'Strong' : matchScore >= 50 ? 'Good' : 'Poor'} fit`,
       details: {
         skillsScore: Math.round(skillAnalysis.score),
-        experienceScore: Math.round(experienceAnalysis.score)
+        experienceScore: Math.round(experienceAnalysis.score),
+        resumeScore: Math.round(resumeAnalysis.score)
       }
     };
   }
 
-  performBasicSkillMatching(jobText, userSkills) {
+  performAdvancedSkillMatching(jobText, userSkills) {
     const matched = [];
     const missing = [];
+    let totalSkillWeight = 0;
+    let matchedSkillWeight = 0;
+    
+    // Skill synonyms and variations for better matching
+    const skillSynonyms = {
+      'javascript': ['js', 'node.js', 'nodejs', 'react', 'vue', 'angular', 'typescript'],
+      'python': ['django', 'flask', 'fastapi', 'pandas', 'numpy', 'pytorch'],
+      'java': ['spring', 'hibernate', 'maven', 'gradle', 'springboot'],
+      'sql': ['mysql', 'postgresql', 'database', 'rdbms', 'mongodb', 'nosql'],
+      'aws': ['amazon web services', 'ec2', 's3', 'lambda', 'cloud'],
+      'docker': ['containerization', 'kubernetes', 'k8s', 'container'],
+      'git': ['version control', 'github', 'gitlab', 'bitbucket'],
+      'react': ['reactjs', 'jsx', 'redux', 'next.js', 'nextjs'],
+      'node': ['nodejs', 'node.js', 'express', 'npm'],
+      'css': ['html', 'sass', 'scss', 'tailwind', 'bootstrap'],
+      'api': ['rest', 'restful', 'graphql', 'microservices'],
+      'testing': ['jest', 'mocha', 'cypress', 'selenium', 'unit test']
+    };
     
     userSkills.forEach(skill => {
-      if (jobText.includes(skill.toLowerCase())) {
+      if (!skill || skill.trim() === '') return;
+      
+      const cleanSkill = skill.toLowerCase().trim();
+      totalSkillWeight += 1;
+      let skillFound = false;
+      let skillWeight = 1;
+      
+      // Direct match
+      if (jobText.includes(cleanSkill)) {
         matched.push(skill);
+        matchedSkillWeight += skillWeight;
+        skillFound = true;
+      } else {
+        // Check synonyms and variations
+        const synonyms = skillSynonyms[cleanSkill] || [];
+        for (const synonym of synonyms) {
+          if (jobText.includes(synonym.toLowerCase())) {
+            matched.push(skill);
+            matchedSkillWeight += skillWeight * 0.8; // Slightly lower weight for synonym match
+            skillFound = true;
+            break;
+          }
+        }
+        
+        // Partial matching for compound skills
+        if (!skillFound && cleanSkill.includes(' ')) {
+          const skillParts = cleanSkill.split(' ');
+          let partialMatches = 0;
+          skillParts.forEach(part => {
+            if (jobText.includes(part)) {
+              partialMatches++;
+            }
+          });
+          
+          if (partialMatches >= skillParts.length / 2) {
+            matched.push(skill);
+            matchedSkillWeight += skillWeight * 0.6; // Lower weight for partial match
+            skillFound = true;
+          }
+        }
+      }
+      
+      if (!skillFound) {
+        missing.push(skill);
       }
     });
     
-    // Calculate score based on matched skills
-    const score = userSkills.length > 0 ? (matched.length / userSkills.length) * 100 : 0;
+    // Calculate score based on weighted matches
+    const score = totalSkillWeight > 0 ? (matchedSkillWeight / totalSkillWeight) * 100 : 0;
+    
+    console.log('🎯 Skill Analysis:', {
+      userSkills: userSkills,
+      matched: matched,
+      missing: missing,
+      score: score,
+      matchedWeight: matchedSkillWeight,
+      totalWeight: totalSkillWeight
+    });
     
     return {
       matched,
       missing,
-      score
+      score: Math.min(score, 100)
     };
   }
 
   performBasicExperienceAnalysis(experience) {
+    if (!experience || experience.length === 0) {
+      console.log('⚠️ No experience data found');
+      return { totalYears: 0, score: 20 }; // Minimum score for having a profile
+    }
+    
     const totalYears = experience.reduce((sum, exp) => {
       const startYear = exp.startDate ? new Date(exp.startDate).getFullYear() : 0;
       const endYear = exp.endDate ? new Date(exp.endDate).getFullYear() : new Date().getFullYear();
-      return sum + Math.max(0, endYear - startYear);
+      const years = Math.max(0, endYear - startYear);
+      console.log(`Experience: ${exp.jobTitle || 'Unknown'} - ${years} years`);
+      return sum + years;
     }, 0);
     
-    // Basic score based on years of experience
-    const score = Math.min(totalYears * 10, 100); // 10 points per year, max 100
+    // Enhanced scoring based on years of experience
+    let score = 20; // Base score
+    if (totalYears >= 10) score = 100;
+    else if (totalYears >= 7) score = 90;
+    else if (totalYears >= 5) score = 80;
+    else if (totalYears >= 3) score = 70;
+    else if (totalYears >= 2) score = 60;
+    else if (totalYears >= 1) score = 50;
+    else score = 30;
+    
+    console.log(`📈 Experience Analysis: ${totalYears} years = ${score}% score`);
     
     return {
       totalYears,
       score
     };
+  }
+
+  analyzeResumeMatch(jobText, profile) {
+    if (!profile) {
+      return { score: 0, matches: [] };
+    }
+    
+    const resumeText = [
+      profile.firstName || '',
+      profile.lastName || '',
+      profile.jobTitle || '',
+      profile.summary || '',
+      profile.objective || ''
+    ].join(' ').toLowerCase();
+    
+    // Look for common keywords and phrases
+    const jobKeywords = this.extractKeywords(jobText);
+    const resumeKeywords = this.extractKeywords(resumeText);
+    
+    const matches = jobKeywords.filter(keyword => 
+      resumeKeywords.includes(keyword)
+    );
+    
+    const score = jobKeywords.length > 0 ? 
+      (matches.length / jobKeywords.length) * 100 : 0;
+    
+    return {
+      score: Math.min(score, 100),
+      matches: matches
+    };
+  }
+
+  extractKeywords(text) {
+    if (!text) return [];
+    
+    // Common job-related keywords to look for
+    const keywords = [
+      'manager', 'senior', 'junior', 'lead', 'architect', 'engineer',
+      'developer', 'analyst', 'consultant', 'specialist', 'coordinator',
+      'agile', 'scrum', 'leadership', 'team', 'project', 'management',
+      'communication', 'problem solving', 'analytical', 'creative',
+      'bachelor', 'master', 'degree', 'certification', 'training'
+    ];
+    
+    return keywords.filter(keyword => text.includes(keyword));
   }
 
   performSkillMatching(jobText, userSkills) {
