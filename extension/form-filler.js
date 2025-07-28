@@ -198,6 +198,9 @@ class FormFiller {
       await this.setFieldValue(field, value, fieldInfo.type);
       this.filledFields.push(field);
       console.log(`✓ Filled field: ${fieldInfo.identifier} = ${value.substring(0, 50)}...`);
+      
+      // Increased delay for better compatibility with Workday and other dynamic forms
+      await this.delay(400);
     }
   }
 
@@ -407,7 +410,8 @@ class FormFiller {
       for (let i = 0; i < value.length; i++) {
         field.value += value[i];
         field.dispatchEvent(new Event('input', { bubbles: true }));
-        await this.delay(10); // Small delay between characters
+        field.dispatchEvent(new Event('keyup', { bubbles: true }));
+        await this.delay(15); // Slightly increased delay for better compatibility
       }
       
       // Trigger additional events

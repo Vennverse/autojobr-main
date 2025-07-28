@@ -26,12 +26,12 @@ class SmartJobDetector {
         applyButton: '.jobsearch-IndeedApplyButton, .indeed-apply-button'
       },
       workday: {
-        title: '[data-automation-id="jobPostingHeader"], h1[data-automation-id="jobPostingHeader"]',
-        company: '[data-automation-id="jobPostingCompany"]',
-        description: '[data-automation-id="jobPostingDescription"]',
-        location: '[data-automation-id="locations"]',
-        salary: '.css-1eaq0u6, .wd-u-color-text-primary-medium',
-        applyButton: '[data-automation-id="applyToJobButton"]'
+        title: '[data-automation-id="jobPostingHeader"], h1[data-automation-id="jobPostingHeader"], .css-1id67r3, .css-1x9zq2f, h1[title]',
+        company: '[data-automation-id="jobPostingCompany"], .css-1t92pv, .css-1qd0w3l, [data-automation-id="company"] span',
+        description: '[data-automation-id="jobPostingDescription"], .css-1w9q2ls, .css-16wd19p, [data-automation-id="description"]',
+        location: '[data-automation-id="locations"], .css-129m7dg, .css-kyg8or, [data-automation-id="location"]',
+        salary: '.css-1eaq0u6, .wd-u-color-text-primary-medium, .css-1cvhr2f, [data-automation-id="compensation"]',
+        applyButton: '[data-automation-id="applyToJobButton"], .css-ccxm6z, .css-1hwfws3, button[title*="Apply"]'
       },
       greenhouse: {
         title: '.app-title, h1.app-title',
@@ -396,24 +396,16 @@ class SmartJobDetector {
     const jobText = (title + ' ' + description + ' ' + (company || '')).toLowerCase();
     const userSkills = (skills || []).map(s => s.skill?.toLowerCase() || s.toLowerCase());
     
-    // Enhanced skill matching with NLP-like features
-    const skillAnalysis = this.performSkillMatching(jobText, userSkills);
+    // Enhanced skill matching
+    const skillAnalysis = this.performBasicSkillMatching(jobText, userSkills);
     
     // Experience analysis
-    const experienceAnalysis = this.performExperienceAnalysis(jobText, experience || []);
-    
-    // Education analysis
-    const educationAnalysis = this.performEducationAnalysis(jobText, education || []);
-    
-    // Seniority level analysis
-    const seniorityAnalysis = this.analyzeSeniorityMatch(jobText, experienceAnalysis.totalYears);
+    const experienceAnalysis = this.performBasicExperienceAnalysis(experience || []);
     
     // Calculate weighted score
     let totalScore = 0;
-    totalScore += skillAnalysis.score * 0.5; // 50% weight for skills
+    totalScore += skillAnalysis.score * 0.7; // 70% weight for skills
     totalScore += experienceAnalysis.score * 0.3; // 30% weight for experience
-    totalScore += educationAnalysis.score * 0.1; // 10% weight for education
-    totalScore += seniorityAnalysis.score * 0.1; // 10% weight for seniority
     
     const matchScore = Math.min(Math.round(totalScore), 100);
     
@@ -423,13 +415,47 @@ class SmartJobDetector {
       missingSkills: skillAnalysis.missing,
       totalSkills: userSkills.length,
       experienceYears: Math.round(experienceAnalysis.totalYears),
-      recommendation: this.generateRecommendation(matchScore, skillAnalysis, experienceAnalysis),
+      recommendation: `${matchScore}% match - ${matchScore >= 75 ? 'Strong' : matchScore >= 50 ? 'Good' : 'Poor'} fit`,
       details: {
         skillsScore: Math.round(skillAnalysis.score),
-        experienceScore: Math.round(experienceAnalysis.score),
-        educationScore: Math.round(educationAnalysis.score),
-        seniorityScore: Math.round(seniorityAnalysis.score)
+        experienceScore: Math.round(experienceAnalysis.score)
       }
+    };
+  }
+
+  performBasicSkillMatching(jobText, userSkills) {
+    const matched = [];
+    const missing = [];
+    
+    userSkills.forEach(skill => {
+      if (jobText.includes(skill.toLowerCase())) {
+        matched.push(skill);
+      }
+    });
+    
+    // Calculate score based on matched skills
+    const score = userSkills.length > 0 ? (matched.length / userSkills.length) * 100 : 0;
+    
+    return {
+      matched,
+      missing,
+      score
+    };
+  }
+
+  performBasicExperienceAnalysis(experience) {
+    const totalYears = experience.reduce((sum, exp) => {
+      const startYear = exp.startDate ? new Date(exp.startDate).getFullYear() : 0;
+      const endYear = exp.endDate ? new Date(exp.endDate).getFullYear() : new Date().getFullYear();
+      return sum + Math.max(0, endYear - startYear);
+    }, 0);
+    
+    // Basic score based on years of experience
+    const score = Math.min(totalYears * 10, 100); // 10 points per year, max 100
+    
+    return {
+      totalYears,
+      score
     };
   }
 

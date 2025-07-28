@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "AutoJobr - Smart Job Application Assistant",
-  "version": "3.0.0",
-  "description": "High-performance job application automation with AI-powered analysis and instant form filling",
+  "name": "AutoJobr",
+  "version": "3.1.0",
+  "description": "Smart Job Application Assistant",
   "permissions": [
     "storage",
     "activeTab",

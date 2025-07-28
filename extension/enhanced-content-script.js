@@ -90,11 +90,13 @@ const FIELD_MAPPINGS = {
     '[data-automation-id*="salary"]', '[data-testid*="salary"]'
   ],
   
-  // Work Authorization
+  // Work Authorization - Enhanced for Workday
   workAuthorization: [
     'work-authorization', 'visa-status', 'authorization',
     'select[name*="authorization"]', 'select[name*="visa"]',
-    '[data-automation-id*="authorization"]', '[data-testid*="authorization"]'
+    '[data-automation-id*="authorization"]', '[data-testid*="authorization"]',
+    '[data-automation-id*="workAuth"]', '[data-automation-id*="eligibility"]',
+    'select[data-automation-id*="eligible"]', 'input[data-automation-id*="citizen"]'
   ],
   requiresSponsorship: [
     'sponsorship', 'visa-sponsorship', 'requires-sponsorship',
