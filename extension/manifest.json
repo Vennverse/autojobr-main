@@ -35,6 +35,7 @@
         "*://*.glassdoor.com/*",
         "*://workday.com/*",
         "*://*.workday.com/*",
+        "*://*.myworkdayjobs.com/*",
         "*://lever.co/*",
         "*://*.lever.co/*",
         "*://greenhouse.io/*",
@@ -62,8 +63,8 @@
         "*://ashbyhq.com/*",
         "*://*.ashbyhq.com/*"
       ],
-      "js": ["smart-detector.js", "form-filler.js"],
-      "css": ["autojobr-styles.css"],
+      "js": ["unified-content-script.js"],
+      "css": ["unified-styles.css"],
       "run_at": "document_end"
     }
   ],
