@@ -20,11 +20,42 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Plus, RefreshCw, Search, Filter, Grid3X3, List, Calendar, 
-  Building, MapPin, Clock, Award, TrendingUp, Users, Target, 
-  Edit, Trash2, ExternalLink, Star, Briefcase, Activity,
-  CheckCircle, AlertCircle, Timer, XCircle, Send, Download,
-  SortAsc, SortDesc, Eye, Layers, DollarSign
+  Search, 
+  Filter, 
+  Plus, 
+  TrendingUp, 
+  Calendar, 
+  MapPin, 
+  DollarSign,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  BarChart3,
+  Target,
+  Briefcase,
+  ExternalLink,
+  RefreshCw,
+  Eye,
+  Edit,
+  Trash2,
+  Download,
+  Upload,
+  Star,
+  Building,
+  Users,
+  Timer,
+  Send,
+  Award,
+  Activity,
+  Grid3X3,
+  List,
+  Layers,
+  SortAsc,
+  SortDesc,
+  MousePointer,
+  Sparkles,
+  TrendingDownIcon
 } from "lucide-react";
 
 const containerVariants = {
