@@ -53,7 +53,8 @@ export async function setupAuth(app: Express) {
       secure: false, // Allow HTTP for VM server
       httpOnly: false, // Allow JavaScript access for Chrome extension
       maxAge: authConfig.session.maxAge,
-      sameSite: 'none', // Required for cross-origin Chrome extension requests
+      sameSite: 'lax', // Changed from 'none' to 'lax' for better compatibility
+      path: '/', // Ensure cookie path is set
       domain: undefined, // Don't restrict domain
     },
     name: 'autojobr.sid'

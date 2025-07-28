@@ -121,31 +121,40 @@
           console.log('🔍 Debug data:', debugData);
         }
         
-        // Try direct fetch with proper credentials
-        const response = await fetch(`${this.apiBase}/api/user`, {
-          method: 'GET',
-          credentials: 'include',
-          mode: 'cors',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
+        // Check if debug shows authentication
+        if (debugResponse.ok) {
+          const debugData = await debugResponse.json();
+          if (debugData.isAuthenticated) {
+            // Try to get user data
+            const response = await fetch(`${this.apiBase}/api/user`, {
+              method: 'GET',
+              credentials: 'include',
+              mode: 'cors',
+              headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+              }
+            });
+
+            console.log('Auth response:', response.status, response.statusText);
+
+            if (response.ok) {
+              const userData = await response.json();
+              this.isAuthenticated = true;
+              console.log('✅ AutoJobr authenticated:', userData.email);
+              return true;
+            } else {
+              console.log('❌ Authentication API failed, status:', response.status);
+              const errorText = await response.text();
+              console.log('Error response:', errorText);
+            }
+          } else {
+            console.log('❌ Debug shows not authenticated');
           }
-        });
-
-        console.log('Auth response:', response.status, response.statusText);
-
-        if (response.ok) {
-          const userData = await response.json();
-          this.isAuthenticated = true;
-          console.log('✅ AutoJobr authenticated:', userData.email);
-          return true;
-        } else {
-          console.log('❌ Authentication failed, status:', response.status);
-          const errorText = await response.text();
-          console.log('Error response:', errorText);
-          this.isAuthenticated = false;
-          return false;
         }
+        
+        this.isAuthenticated = false;
+        return false;
       } catch (error) {
         console.error('Direct authentication check failed:', error);
         
@@ -638,7 +647,26 @@
     }
 
     openSignIn() {
-      window.open(`${this.apiBase}/auth`, '_blank');
+      const authWindow = window.open(`${this.apiBase}/auth`, '_blank');
+      
+      // Check if user signed in every 2 seconds
+      const checkAuth = setInterval(async () => {
+        try {
+          if (authWindow.closed) {
+            clearInterval(checkAuth);
+            // Wait a moment then check authentication
+            setTimeout(async () => {
+              const isAuth = await this.checkAuthentication();
+              if (isAuth) {
+                console.log('✅ Authentication successful, reloading extension...');
+                this.createOverlay(); // Reload the overlay with authenticated state
+              }
+            }, 1000);
+          }
+        } catch (error) {
+          console.log('Auth window check error:', error);
+        }
+      }, 2000);
     }
 
     updateOverlayContent() {

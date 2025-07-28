@@ -28,21 +28,41 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 async function checkVMAuthentication() {
   try {
-    const response = await fetch(`${VM_API_BASE}/api/user`, {
+    // First check debug endpoint
+    const debugResponse = await fetch(`${VM_API_BASE}/api/debug/extension-auth`, {
       credentials: 'include',
       method: 'GET',
+      mode: 'cors',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       }
     });
-    
-    if (response.ok) {
-      const userData = await response.json();
-      return { success: true, authenticated: true, profile: userData };
-    } else {
-      return { success: true, authenticated: false, profile: null };
+
+    if (debugResponse.ok) {
+      const debugData = await debugResponse.json();
+      console.log('🔍 Background Debug:', debugData);
+      
+      if (debugData.isAuthenticated) {
+        // Try to get user data
+        const userResponse = await fetch(`${VM_API_BASE}/api/user`, {
+          credentials: 'include',
+          method: 'GET',
+          mode: 'cors',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          return { success: true, authenticated: true, profile: userData };
+        }
+      }
     }
+    
+    return { success: true, authenticated: false, profile: null };
   } catch (error) {
     console.error('VM authentication check failed:', error);
     return { success: false, authenticated: false, profile: null };

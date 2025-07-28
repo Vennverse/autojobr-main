@@ -34,6 +34,9 @@ app.use(cors({
       /^chrome-extension:\/\/.*$/,
       /^moz-extension:\/\/.*$/,
       /^https?:\/\/localhost:\d+$/,
+      /^https?:\/\/127\.0\.0\.1:\d+$/,
+      /^https?:\/\/40\.160\.50\.128:\d+$/,
+      /^http:\/\/40\.160\.50\.128$/,
       /^https?:\/\/.*\.replit\.app$/,
       /^https?:\/\/.*\.replit\.dev$/,
       /^https?:\/\/.*\.vercel\.app$/,
@@ -86,16 +89,24 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
-// Additional CORS headers for Chrome extension
+// Additional CORS headers for Chrome extension and VM server
 app.use((req, res, next) => {
   const origin = req.get('Origin');
   
-  // Allow Chrome extension origins
-  if (origin && (origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://'))) {
+  // Allow Chrome extension origins and VM server origins
+  if (origin && (
+    origin.startsWith('chrome-extension://') || 
+    origin.startsWith('moz-extension://') ||
+    origin === 'http://40.160.50.128' ||
+    origin === 'http://40.160.50.128:5000' ||
+    origin === 'http://127.0.0.1:5000' ||
+    origin === 'http://localhost:5000'
+  )) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS,POST,PUT,DELETE,PATCH');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie, Set-Cookie');
+    res.header('Access-Control-Expose-Headers', 'Set-Cookie');
   }
   
   // Handle preflight requests
