@@ -274,6 +274,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/health', healthCheck);
   app.get('/api/health/simple', simpleHealthCheck);
 
+  // Debug endpoint for Chrome extension authentication
+  app.get('/api/debug/extension-auth', (req: any, res) => {
+    const headers = req.headers;
+    const origin = req.get('Origin');
+    const userAgent = req.get('User-Agent');
+    const cookies = req.get('Cookie');
+    const session = req.session;
+    
+    console.log('🔍 Extension Debug Info:', {
+      origin,
+      userAgent,
+      cookies: cookies ? 'Present' : 'Missing',
+      sessionID: session?.id,
+      sessionUser: session?.user ? 'Present' : 'Missing',
+      sessionData: session
+    });
+    
+    res.json({
+      origin,
+      userAgent,
+      cookies: cookies ? 'Present' : 'Missing',
+      sessionID: session?.id,
+      sessionUser: session?.user ? 'Present' : 'Missing',
+      isAuthenticated: !!session?.user,
+      timestamp: new Date().toISOString()
+    });
+  });
+
   // Setup session middleware early for extension support
   // Note: Session setup is handled in setupAuth(), removing duplicate setup
 

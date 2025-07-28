@@ -104,16 +104,35 @@
       try {
         console.log('🔍 Checking authentication with:', `${this.apiBase}/api/user`);
         
-        const response = await fetch(`${this.apiBase}/api/user`, {
-          credentials: 'include',
+        // First, test with debug endpoint
+        console.log('🔍 Testing debug endpoint...');
+        const debugResponse = await fetch(`${this.apiBase}/api/debug/extension-auth`, {
           method: 'GET',
+          credentials: 'include',
+          mode: 'cors',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (debugResponse.ok) {
+          const debugData = await debugResponse.json();
+          console.log('🔍 Debug data:', debugData);
+        }
+        
+        // Try direct fetch with proper credentials
+        const response = await fetch(`${this.apiBase}/api/user`, {
+          method: 'GET',
+          credentials: 'include',
+          mode: 'cors',
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
           }
         });
 
-        console.log('Auth response status:', response.status);
+        console.log('Auth response:', response.status, response.statusText);
 
         if (response.ok) {
           const userData = await response.json();
@@ -122,11 +141,27 @@
           return true;
         } else {
           console.log('❌ Authentication failed, status:', response.status);
+          const errorText = await response.text();
+          console.log('Error response:', errorText);
           this.isAuthenticated = false;
           return false;
         }
       } catch (error) {
-        console.error('Authentication check failed:', error);
+        console.error('Direct authentication check failed:', error);
+        
+        // Fallback: try through background script
+        try {
+          console.log('🔄 Trying authentication via background script...');
+          const response = await chrome.runtime.sendMessage({ action: 'CHECK_AUTH' });
+          if (response && response.success && response.authenticated) {
+            this.isAuthenticated = true;
+            console.log('✅ Background authentication successful');
+            return true;
+          }
+        } catch (bgError) {
+          console.error('Background authentication failed:', bgError);
+        }
+        
         this.isAuthenticated = false;
         return false;
       }
