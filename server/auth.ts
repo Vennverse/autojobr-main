@@ -50,10 +50,11 @@ export async function setupAuth(app: Express) {
     saveUninitialized: false,
     rolling: true,
     cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
+      secure: false, // Allow HTTP for VM server
+      httpOnly: false, // Allow JavaScript access for Chrome extension
       maxAge: authConfig.session.maxAge,
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      sameSite: 'none', // Required for cross-origin Chrome extension requests
+      domain: undefined, // Don't restrict domain
     },
     name: 'autojobr.sid'
   };

@@ -53,10 +53,11 @@ export async function createSessionConfig(secret: string) {
     saveUninitialized: false,
     rolling: true, // Reset expiration on activity
     cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
+      secure: false, // Allow HTTP for VM server
+      httpOnly: false, // Allow JavaScript access for Chrome extension
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      sameSite: 'none', // Required for cross-origin Chrome extension requests
+      domain: undefined, // Don't restrict domain for Chrome extension
     },
     name: 'autojobr.sid'
   };
