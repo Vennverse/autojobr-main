@@ -71,6 +71,19 @@ class AutoJobrBackground {
           sendResponse(trackResult);
           break;
 
+        case 'workdayJobDetected':
+          console.log('Workday job detected:', message.jobData);
+          // Store the job data for potential analysis
+          await this.storeWorkdayJob(message.jobData);
+          sendResponse({ success: true });
+          break;
+
+        case 'openExtensionPopup':
+          // Try to open extension popup (may not be possible due to browser restrictions)
+          console.log('Request to open popup with job data:', message.jobData);
+          sendResponse({ success: true });
+          break;
+
         default:
           sendResponse({
             success: false,
@@ -264,6 +277,24 @@ class AutoJobrBackground {
       }
     } catch (error) {
       return { success: false, error: error.message };
+    }
+  }
+
+  async storeWorkdayJob(jobData) {
+    try {
+      // Store in Chrome storage for popup access
+      await chrome.storage.local.set({
+        latestWorkdayJob: {
+          ...jobData,
+          timestamp: Date.now()
+        }
+      });
+      
+      console.log('Workday job data stored successfully');
+      return true;
+    } catch (error) {
+      console.error('Failed to store Workday job data:', error);
+      return false;
     }
   }
 }

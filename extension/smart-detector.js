@@ -26,12 +26,12 @@ class SmartJobDetector {
         applyButton: '.jobsearch-IndeedApplyButton, .indeed-apply-button'
       },
       workday: {
-        title: '[data-automation-id="jobPostingHeader"], h1[data-automation-id="jobPostingHeader"], .css-1id67r3, .css-1x9zq2f, h1[title]',
-        company: '[data-automation-id="jobPostingCompany"], .css-1t92pv, .css-1qd0w3l, [data-automation-id="company"] span',
-        description: '[data-automation-id="jobPostingDescription"], .css-1w9q2ls, .css-16wd19p, [data-automation-id="description"]',
-        location: '[data-automation-id="locations"], .css-129m7dg, .css-kyg8or, [data-automation-id="location"]',
-        salary: '.css-1eaq0u6, .wd-u-color-text-primary-medium, .css-1cvhr2f, [data-automation-id="compensation"]',
-        applyButton: '[data-automation-id="applyToJobButton"], .css-ccxm6z, .css-1hwfws3, button[title*="Apply"]'
+        title: '[data-automation-id="jobPostingHeader"], h1[data-automation-id="jobPostingHeader"], .css-1id67r3, .css-1x9zq2f, h1[title], [data-automation-id="jobTitle"], .WDKN_PositionTitle, .css-cygeeu h1, .css-cygeeu [data-automation-id*="title"]',
+        company: '[data-automation-id="jobPostingCompany"], .css-1t92pv, .css-1qd0w3l, [data-automation-id="company"] span, .WDKN_CompanyName, .css-dfvbm8, [data-automation-id*="company"]',
+        description: '[data-automation-id="jobPostingDescription"], .css-1w9q2ls, .css-16wd19p, [data-automation-id="description"], .WDKN_JobDescription, .css-t3xrds, [data-automation-id*="description"], .css-1qnmsir',
+        location: '[data-automation-id="locations"], .css-129m7dg, .css-kyg8or, [data-automation-id="location"], .WDKN_Location, .css-k008qs, [data-automation-id*="location"]',
+        salary: '.css-1eaq0u6, .wd-u-color-text-primary-medium, .css-1cvhr2f, [data-automation-id="compensation"], .WDKN_Salary, .css-1hbf1c5',
+        applyButton: '[data-automation-id="applyToJobButton"], .css-ccxm6z, .css-1hwfws3, button[title*="Apply"], .WDKN_ApplyButton, .css-4rvv7a, [data-automation-id*="apply"]'
       },
       greenhouse: {
         title: '.app-title, h1.app-title',
@@ -264,7 +264,7 @@ class SmartJobDetector {
     // Detect platform
     if (hostname.includes('linkedin.com')) platform = 'linkedin';
     else if (hostname.includes('indeed.com')) platform = 'indeed';
-    else if (hostname.includes('workday.com')) platform = 'workday';
+    else if (hostname.includes('workday.com') || hostname.includes('myworkdayjobs.com')) platform = 'workday';
     else if (hostname.includes('greenhouse.io')) platform = 'greenhouse';
     else if (hostname.includes('lever.co')) platform = 'lever';
     else if (hostname.includes('glassdoor.com')) platform = 'glassdoor';

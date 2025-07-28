@@ -30,10 +30,10 @@
       location: '.jobLocation, .job-location'
     },
     workday: {
-      title: '[data-automation-id="jobPostingHeader"] h1, .job-title',
-      company: '.company-logo img[alt], .company-name',
-      description: '[data-automation-id="jobPostingDescription"], .job-description',
-      location: '[data-automation-id="locations"], .location'
+      title: '[data-automation-id="jobPostingHeader"], h1[data-automation-id="jobPostingHeader"], .css-1id67r3, .css-1x9zq2f, h1[title], [data-automation-id="jobTitle"], .WDKN_PositionTitle, .css-cygeeu h1, .css-cygeeu [data-automation-id*="title"]',
+      company: '[data-automation-id="jobPostingCompany"], .css-1t92pv, .css-1qd0w3l, [data-automation-id="company"] span, .WDKN_CompanyName, .css-dfvbm8, [data-automation-id*="company"]',
+      description: '[data-automation-id="jobPostingDescription"], .css-1w9q2ls, .css-16wd19p, [data-automation-id="description"], .WDKN_JobDescription, .css-t3xrds, [data-automation-id*="description"], .css-1qnmsir',
+      location: '[data-automation-id="locations"], .css-129m7dg, .css-kyg8or, [data-automation-id="location"], .WDKN_Location, .css-k008qs, [data-automation-id*="location"]'
     },
     lever: {
       title: '.posting-headline h2, .job-title',

@@ -65,6 +65,24 @@
       "js": ["smart-detector.js", "form-filler.js"],
       "css": ["autojobr-styles.css"],
       "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "*://*.myworkdayjobs.com/*",
+        "*://*.wd1.myworkdayjobs.com/*",
+        "*://*.wd2.myworkdayjobs.com/*",
+        "*://*.wd3.myworkdayjobs.com/*",
+        "*://*.wd4.myworkdayjobs.com/*",
+        "*://*.wd5.myworkdayjobs.com/*",
+        "*://*.wd6.myworkdayjobs.com/*",
+        "*://*.wd7.myworkdayjobs.com/*",
+        "*://*.wd8.myworkdayjobs.com/*",
+        "*://*.wd9.myworkdayjobs.com/*",
+        "*://*.wd10.myworkdayjobs.com/*"
+      ],
+      "js": ["workday-content-script.js", "smart-detector.js", "form-filler.js"],
+      "css": ["autojobr-styles.css"],
+      "run_at": "document_end"
     }
   ],
   "action": {
