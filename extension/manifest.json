@@ -15,12 +15,19 @@
     "https://*/*",
     "http://*/*",
     "http://40.160.50.128:5000/*",
-    "*://40.160.50.128:5000/*"
+    "*://40.160.50.128:5000/*",
+    "https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev/*",
+    "*://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev/*"
   ],
   "background": {
     "service_worker": "background-simple.js"
   },
   "content_scripts": [
+    {
+      "js": ["central-config.js"],
+      "matches": ["<all_urls>"],
+      "run_at": "document_start"
+    },
     {
       "matches": [
         "*://linkedin.com/*",
@@ -59,7 +66,7 @@
         "*://ashbyhq.com/*",
         "*://*.ashbyhq.com/*"
       ],
-      "js": ["unified-content-script.js"],
+      "js": ["central-config.js", "unified-content-script.js"],
       "css": ["unified-styles.css"],
       "run_at": "document_end"
     }

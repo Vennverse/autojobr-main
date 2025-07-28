@@ -66,8 +66,12 @@
     }
 
     detectBackendURL() {
-      // Auto-detect VM server (try with and without port)
-      return 'http://40.160.50.128';
+      // Use central config if available
+      if (typeof AUTOJOBR_CONFIG !== 'undefined') {
+        return AUTOJOBR_CONFIG.API_BASE_URL;
+      }
+      // Fallback
+      return 'https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev';
     }
 
     async init() {
