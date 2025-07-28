@@ -305,27 +305,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware early for extension support
   // Note: Session setup is handled in setupAuth(), removing duplicate setup
 
-  // Special Chrome extension user endpoint with proper authentication
+  // Generate extension token for authenticated users
+  app.post('/api/auth/extension-token', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const token = crypto.randomBytes(32).toString('hex');
+      
+      // Store token in session for validation
+      if (!req.session.extensionTokens) {
+        req.session.extensionTokens = {};
+      }
+      req.session.extensionTokens[token] = {
+        userId,
+        createdAt: Date.now(),
+        expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+      };
+      
+      console.log('🔑 Generated extension token for user:', userId);
+      res.json({ token });
+    } catch (error) {
+      console.error('Extension token generation error:', error);
+      res.status(500).json({ message: 'Failed to generate token' });
+    }
+  });
+
+  // Chrome extension user endpoint using token authentication
   app.get('/api/extension/user', async (req: any, res) => {
     try {
-      const origin = req.get('Origin');
+      const token = req.query.token || req.headers['x-extension-token'];
       
-      // Only allow this endpoint for Chrome extensions
-      if (!origin || (!origin.startsWith('chrome-extension://') && !origin.startsWith('moz-extension://'))) {
-        return res.status(403).json({ message: 'This endpoint is only for browser extensions' });
+      if (!token) {
+        return res.status(401).json({ message: 'Extension token required' });
       }
 
-      // Check session authentication using the same pattern as other authenticated routes
-      const sessionUser = req.session?.user;
-      if (!sessionUser || !sessionUser.id) {
-        return res.status(401).json({ message: 'Not authenticated' });
+      // Find session with this token
+      // Note: In production, this should use a proper token store
+      let userId = null;
+      const sessions = (req.sessionStore as any).sessions || {};
+      
+      for (const sessionId in sessions) {
+        try {
+          const sessionData = JSON.parse(sessions[sessionId]);
+          if (sessionData.extensionTokens && sessionData.extensionTokens[token]) {
+            const tokenData = sessionData.extensionTokens[token];
+            if (tokenData.expiresAt > Date.now()) {
+              userId = tokenData.userId;
+              break;
+            }
+          }
+        } catch (e) {
+          // Skip invalid session data
+        }
+      }
+
+      if (!userId) {
+        return res.status(401).json({ message: 'Invalid or expired token' });
       }
 
       // Get user data from storage
-      const user = await storage.getUser(sessionUser.id);
+      const user = await storage.getUser(userId);
       if (!user) {
         return res.status(401).json({ message: 'User not found' });
       }
+
+      console.log('✅ Extension authenticated with token:', user.email);
 
       // Return user data for extension
       res.json({

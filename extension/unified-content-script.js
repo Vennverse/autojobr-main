@@ -125,14 +125,16 @@
         if (debugResponse.ok) {
           const debugData = await debugResponse.json();
           if (debugData.isAuthenticated) {
-            // Try to get user data using extension-specific endpoint
-            const response = await fetch(`${this.apiBase}/api/extension/user`, {
+            // Try to get user data using extension-specific endpoint with token
+            const token = localStorage.getItem('autojobr_extension_token');
+            const response = await fetch(`${this.apiBase}/api/extension/user${token ? `?token=${token}` : ''}`, {
               method: 'GET',
               credentials: 'include',
               mode: 'cors',
               headers: {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                ...(token && { 'X-Extension-Token': token })
               }
             });
 
@@ -654,8 +656,9 @@
         try {
           if (authWindow.closed) {
             clearInterval(checkAuth);
-            // Wait a moment then check authentication
+            // Wait a moment then get extension token and check authentication
             setTimeout(async () => {
+              await this.getExtensionToken();
               const isAuth = await this.checkAuthentication();
               if (isAuth) {
                 console.log('✅ Authentication successful, reloading extension...');
@@ -667,6 +670,32 @@
           console.log('Auth window check error:', error);
         }
       }, 2000);
+    }
+
+    async getExtensionToken() {
+      try {
+        const response = await fetch(`${this.apiBase}/api/auth/extension-token`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          localStorage.setItem('autojobr_extension_token', data.token);
+          console.log('✅ Extension token obtained');
+          return data.token;
+        } else {
+          console.log('❌ Failed to get extension token:', response.status);
+          return null;
+        }
+      } catch (error) {
+        console.error('Extension token request failed:', error);
+        return null;
+      }
     }
 
     updateOverlayContent() {
