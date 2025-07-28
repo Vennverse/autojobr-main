@@ -55,6 +55,7 @@ export async function setupAuth(app: Express) {
       maxAge: authConfig.session.maxAge,
       sameSite: 'lax', // Changed from 'none' to 'lax' for better compatibility
       path: '/', // Ensure cookie path is set
+      sameSite: 'none', // Required for cross-origin Chrome extension requests
       domain: undefined, // Don't restrict domain
     },
     name: 'autojobr.sid'

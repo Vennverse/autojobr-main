@@ -58,6 +58,7 @@ export async function createSessionConfig(secret: string) {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       sameSite: 'lax', // Changed from 'none' to 'lax' for better compatibility
       path: '/', // Ensure cookie path is set
+      sameSite: 'none', // Required for cross-origin Chrome extension requests
       domain: undefined, // Don't restrict domain for Chrome extension
     },
     name: 'autojobr.sid'
