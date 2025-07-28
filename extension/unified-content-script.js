@@ -66,8 +66,8 @@
     }
 
     detectBackendURL() {
-      // Use VM server only
-      return 'http://40.160.50.128:5000';
+      // Auto-detect VM server (try with and without port)
+      return 'http://40.160.50.128';
     }
 
     async init() {

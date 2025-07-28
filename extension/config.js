@@ -1,6 +1,6 @@
 // Configuration for AutoJobr Extension
 const CONFIG = {
-  API_BASE_URL: 'http://40.160.50.128:5000',
+  API_BASE_URL: 'http://40.160.50.128',
   ENDPOINTS: {
     USER: '/api/user',
     PROFILE: '/api/profile',
@@ -60,7 +60,7 @@ class AutoJobrAPI {
 
   detectBackendURL() {
     // Use VM server only
-    return 'http://40.160.50.128:5000';
+    return 'http://40.160.50.128';
   }
 
   async makeRequest(endpoint, options = {}) {

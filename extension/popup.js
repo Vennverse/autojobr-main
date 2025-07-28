@@ -1,7 +1,7 @@
 // Fixed Popup Script for AutoJobr Extension
 class AutoJobrPopup {
   constructor() {
-    this.apiBase = 'http://40.160.50.128:5000';
+    this.apiBase = 'http://40.160.50.128';
     this.isAuthenticated = false;
     this.userProfile = null;
     this.currentJobData = null;

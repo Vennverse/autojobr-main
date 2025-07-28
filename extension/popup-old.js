@@ -8,7 +8,7 @@ class AutojobrPopup {
     this.currentAnalysis = null;
     this.settings = {
       autofillEnabled: true,
-      apiUrl: 'http://40.160.50.128:5000'
+      apiUrl: 'http://40.160.50.128'
     };
     
     this.init();

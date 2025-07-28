@@ -1,5 +1,5 @@
 // Simple Background Script for AutoJobr Extension - VM Server Only
-const VM_API_BASE = 'http://40.160.50.128:5000';
+const VM_API_BASE = 'http://40.160.50.128';
 
 chrome.runtime.onInstalled.addListener(() => {
   console.log('AutoJobr Extension installed - VM Server Mode');

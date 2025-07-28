@@ -1,7 +1,7 @@
 // VM Server Configuration for AutoJobr Extension
 const VM_CONFIG = {
   // VM Server URL only
-  API_BASE_URL: 'http://40.160.50.128:5000',
+  API_BASE_URL: 'http://40.160.50.128',
   
   // VM connection options
   getConnectionOptions: () => ({
@@ -23,7 +23,7 @@ const VM_CONFIG = {
   
   // VM server origin
   allowedOrigins: [
-    'http://40.160.50.128:5000'
+    'http://40.160.50.128'
   ],
   
   // Feature flags for VM environment
