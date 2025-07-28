@@ -53,16 +53,9 @@ export async function setupAuth(app: Express) {
       secure: false, // Allow HTTP for development
       httpOnly: true, // Standard security for web requests
       maxAge: authConfig.session.maxAge,
-<<<<<<< HEAD
       sameSite: 'lax', // Standard for same-site requests
       path: '/',
       domain: undefined,
-=======
-      sameSite: 'lax', // Changed from 'none' to 'lax' for better compatibility
-      path: '/', // Ensure cookie path is set
-      sameSite: 'none', // Required for cross-origin Chrome extension requests
-      domain: undefined, // Don't restrict domain
->>>>>>> 80128410164e37f6ee682124ad153f4273cd37be
     },
     name: 'autojobr.sid'
   };
