@@ -53,7 +53,7 @@ export async function setupAuth(app: Express) {
       secure: false, // Allow HTTP for development
       httpOnly: true, // Standard security for web requests
       maxAge: authConfig.session.maxAge,
-      sameSite: 'lax', // Standard for same-site requests
+      sameSite: 'lax' as const, // Standard for same-site requests
       path: '/',
       domain: undefined,
     },

@@ -97,10 +97,12 @@ export default function AuthPage() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/auth/email/login', {
+      const response = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
+          provider: 'credentials',
           email: formData.email,
           password: formData.password,
         }),
@@ -168,6 +170,7 @@ export default function AuthPage() {
       const response = await fetch('/api/auth/email/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
