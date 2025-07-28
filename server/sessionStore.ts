@@ -56,9 +56,16 @@ export async function createSessionConfig(secret: string) {
       secure: false, // Allow HTTP for development
       httpOnly: true, // Standard security for web requests
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+<<<<<<< HEAD
       sameSite: 'lax', // Standard for same-site requests
       path: '/',
       domain: undefined,
+=======
+      sameSite: 'lax', // Changed from 'none' to 'lax' for better compatibility
+      path: '/', // Ensure cookie path is set
+      sameSite: 'none', // Required for cross-origin Chrome extension requests
+      domain: undefined, // Don't restrict domain for Chrome extension
+>>>>>>> 80128410164e37f6ee682124ad153f4273cd37be
     },
     name: 'autojobr.sid'
   };
