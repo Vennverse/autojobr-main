@@ -7,12 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { Github, Mail, Linkedin, Eye, EyeOff } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   
   // Get redirect URL from query params or current path
   const getRedirectUrl = () => {
@@ -45,6 +47,14 @@ export default function AuthPage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Redirect authenticated users to their dashboard
+    if (!authLoading && isAuthenticated && user) {
+      // Determine redirect path based on user type
+      const redirectPath = user.userType === 'recruiter' ? '/recruiter-dashboard' : '/';
+      setLocation(redirectPath);
+      return;
+    }
+
     // Check which OAuth providers are configured
     const checkProviders = async () => {
       try {
@@ -58,7 +68,7 @@ export default function AuthPage() {
     };
     
     checkProviders();
-  }, []);
+  }, [authLoading, isAuthenticated, user, setLocation]);
 
   const handleSocialLogin = async (provider: string) => {
     setIsLoading(true);
@@ -208,6 +218,15 @@ export default function AuthPage() {
       [field]: value
     }));
   };
+
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
