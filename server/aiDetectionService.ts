@@ -16,13 +16,18 @@ interface ResponseAnalysis {
 }
 
 export class AIDetectionService {
-  private groq: Groq;
+  private groq: Groq | null;
+  private isDevelopmentMode: boolean;
 
   constructor() {
-    if (!process.env.GROQ_API_KEY) {
-      throw new Error("GROQ_API_KEY environment variable is required for AI detection");
+    this.isDevelopmentMode = !process.env.GROQ_API_KEY;
+    
+    if (this.isDevelopmentMode) {
+      console.log("⚠️  GROQ_API_KEY not found - AI detection will use fallback mode");
+      this.groq = null;
+    } else {
+      this.groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     }
-    this.groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
   }
 
   async detectAIUsage(userResponse: string, questionContext?: string): Promise<AIDetectionResult> {

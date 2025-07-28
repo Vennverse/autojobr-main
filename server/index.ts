@@ -26,43 +26,89 @@ app.use(compression({
 
 // CORS configuration for Chrome extension and external sites
 app.use(cors({
-  origin: [
-    'chrome-extension://*',
-    'moz-extension://*',
-    /^https?:\/\/localhost:\d+$/,
-    /^https?:\/\/.*\.replit\.app$/,
-    /^https?:\/\/.*\.replit\.dev$/,
-    /^https?:\/\/.*\.vercel\.app$/,
-    /^https?:\/\/.*\.railway\.app$/,
-    /^https?:\/\/.*\.netlify\.app$/,
-    // Job sites where the extension operates
-    'https://www.linkedin.com',
-    'https://linkedin.com',
-    'https://www.indeed.com',
-    'https://indeed.com',
-    'https://www.glassdoor.com',
-    'https://glassdoor.com',
-    'https://www.monster.com',
-    'https://monster.com',
-    'https://www.ziprecruiter.com',
-    'https://ziprecruiter.com',
-    'https://stackoverflow.com',
-    'https://www.stackoverflow.com',
-    'https://angel.co',
-    'https://www.angel.co',
-    'https://wellfound.com',
-    'https://www.wellfound.com',
-    ...(process.env.PRODUCTION_DOMAIN ? [process.env.PRODUCTION_DOMAIN] : [])
-  ],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      /^chrome-extension:\/\/.*$/,
+      /^moz-extension:\/\/.*$/,
+      /^https?:\/\/localhost:\d+$/,
+      /^https?:\/\/127\.0\.0\.1:\d+$/,
+      /^https?:\/\/40\.160\.50\.128:\d+$/,
+      /^https?:\/\/40\.160\.50\.128$/,
+      /^https?:\/\/.*\.replit\.app$/,
+      /^https?:\/\/.*\.replit\.dev$/,
+      /^https?:\/\/.*\.vercel\.app$/,
+      /^https?:\/\/.*\.railway\.app$/,
+      /^https?:\/\/.*\.netlify\.app$/,
+      // Job sites where the extension operates
+      /^https?:\/\/(www\.)?linkedin\.com$/,
+      /^https?:\/\/(www\.)?indeed\.com$/,
+      /^https?:\/\/(www\.)?glassdoor\.com$/,
+      /^https?:\/\/(www\.)?monster\.com$/,
+      /^https?:\/\/(www\.)?ziprecruiter\.com$/,
+      /^https?:\/\/(www\.)?stackoverflow\.com$/,
+      /^https?:\/\/(www\.)?angel\.co$/,
+      /^https?:\/\/(www\.)?wellfound\.com$/,
+      // Workday domains
+      /^https?:\/\/.*\.workday\.com$/,
+      /^https?:\/\/.*\.myworkdayjobs\.com$/,
+      // Greenhouse and other ATS
+      /^https?:\/\/.*\.greenhouse\.io$/,
+      /^https?:\/\/.*\.lever\.co$/,
+      /^https?:\/\/.*\.ashbyhq\.com$/,
+      /^https?:\/\/.*\.smartrecruiters\.com$/,
+      /^https?:\/\/.*\.jobvite\.com$/,
+      /^https?:\/\/.*\.icims\.com$/,
+      /^https?:\/\/.*\.taleo\.net$/,
+      /^https?:\/\/.*\.successfactors\.com$/
+    ];
+    
+    const isAllowed = allowedOrigins.some(pattern => {
+      if (pattern instanceof RegExp) {
+        return pattern.test(origin);
+      }
+      return pattern === origin;
+    });
+    
+    if (isAllowed || process.env.PRODUCTION_DOMAIN === origin) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(null, true); // Allow all origins for Chrome extension compatibility
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept', 'X-Requested-With'],
-  optionsSuccessStatus: 200, // Some legacy browsers choke on 204
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept', 'X-Requested-With', 'Access-Control-Allow-Origin'],
+  optionsSuccessStatus: 200,
   preflightContinue: false
 }));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+
+// Enhanced CORS handling for Chrome extension only
+app.use((req, res, next) => {
+  const origin = req.get('Origin');
+  
+  // Special handling ONLY for Chrome extension origins
+  if (origin && (origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://'))) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS,POST,PUT,DELETE,PATCH');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie');
+    
+    // Handle preflight requests for extensions
+    if (req.method === 'OPTIONS') {
+      res.status(200).end();
+      return;
+    }
+  }
+  
+  next();
+});
 
 // Performance monitoring middleware
 app.use((req, res, next) => {

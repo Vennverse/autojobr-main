@@ -751,6 +751,134 @@ Return JSON array:
       return [];
     }
   }
+
+  async generateCoverLetter(
+    jobData: {
+      title: string;
+      company: string;
+      description?: string;
+    },
+    userProfile: any,
+    user?: any
+  ): Promise<string> {
+    // Safely extract data with fallbacks
+    const skills = userProfile?.skills || [];
+    const workExperience = userProfile?.workExperience || [];
+    const education = userProfile?.education || [];
+    
+    const userSkills = skills.length > 0 
+      ? skills.map((s: any) => s.skillName || s.name || 'Skill').join(', ')
+      : 'Professional skills';
+      
+    const userExperience = workExperience.length > 0
+      ? workExperience.map((w: any) => 
+          `${w.position || w.title || 'Position'} at ${w.company || 'Company'}${w.description ? ': ' + w.description.substring(0, 200) : ''}`
+        ).join('\n')
+      : 'Professional experience in various roles';
+      
+    const userEducation = education.length > 0
+      ? education.map((e: any) => 
+          `${e.degree || 'Degree'} in ${e.fieldOfStudy || e.field || 'Field of Study'} from ${e.institution || e.school || 'Institution'}`
+        ).join('\n')
+      : 'Educational background';
+
+    const prompt = `Write a professional cover letter for this job application:
+
+=== JOB DETAILS ===
+Position: ${jobData.title}
+Company: ${jobData.company}
+${jobData.description ? `Job Description: ${jobData.description}` : ''}
+
+=== CANDIDATE PROFILE ===
+Name: ${userProfile.fullName || 'Applicant'}
+Title: ${userProfile.professionalTitle || 'Professional'}
+Experience: ${userProfile.yearsExperience || 0} years
+Summary: ${userProfile.summary || 'Experienced professional'}
+
+Skills: ${userSkills}
+
+Work Experience:
+${userExperience}
+
+Education:
+${userEducation}
+
+=== REQUIREMENTS ===
+1. Write a compelling, personalized cover letter
+2. Highlight relevant skills and experience that match the job requirements
+3. Show enthusiasm for the specific role and company
+4. Keep it professional but engaging
+5. Make it 3-4 paragraphs, approximately 250-300 words
+6. Include specific examples from candidate's background
+7. Address how candidate can contribute to the company
+8. Use the candidate's actual name and professional title
+
+Return only the cover letter text, no additional formatting or explanations.`;
+
+    try {
+      const accessInfo = this.hasAIAccess(user);
+      
+      if (this.developmentMode) {
+        console.log("Running in development mode - using fallback cover letter");
+        return this.generateFallbackCoverLetter(jobData, userProfile);
+      }
+
+      console.log(`Making Groq API call for cover letter generation with model: ${this.getModel(user)}`);
+      
+      const completion = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
+        return await client.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert career coach and professional writer. Write compelling, personalized cover letters that highlight candidate strengths and show genuine interest in the role."
+            },
+            {
+              role: "user", 
+              content: prompt
+            }
+          ],
+          model: this.getModel(user),
+          temperature: 0.7,
+          max_tokens: 500,
+        });
+      });
+      
+      console.log("Groq API call successful for cover letter generation");
+      
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error("No cover letter content received");
+      }
+
+      return content.trim();
+    } catch (error) {
+      console.error("Cover letter generation failed:", error);
+      return this.generateFallbackCoverLetter(jobData, userProfile);
+    }
+  }
+
+  private generateFallbackCoverLetter(
+    jobData: { title: string; company: string; description?: string },
+    userProfile: { fullName?: string; professionalTitle?: string; yearsExperience?: number; skills: Array<{ skillName: string }> }
+  ): string {
+    const name = userProfile.fullName || 'Applicant';
+    const title = userProfile.professionalTitle || 'Professional';
+    const experience = userProfile.yearsExperience || 0;
+    const topSkills = userProfile.skills.slice(0, 3).map(s => s.skillName).join(', ');
+
+    return `Dear Hiring Manager,
+
+I am writing to express my strong interest in the ${jobData.title} position at ${jobData.company}. As a ${title} with ${experience} years of experience, I am excited about the opportunity to contribute to your team.
+
+My expertise in ${topSkills} and proven track record in delivering successful projects align well with the requirements for this role. I am particularly drawn to ${jobData.company}'s innovative approach and commitment to excellence.
+
+I am confident that my technical skills and professional experience make me a strong candidate for this position. I would welcome the opportunity to discuss how I can contribute to ${jobData.company}'s continued success.
+
+Thank you for considering my application. I look forward to hearing from you.
+
+Best regards,
+${name}`;
+  }
 }
 
 export const groqService = new GroqService();

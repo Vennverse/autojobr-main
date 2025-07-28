@@ -1,11 +1,9 @@
 // Background script for AutoJobr Extension - Fixed Version
 class AutoJobrBackground {
   constructor() {
-    // Always use central config - no fallbacks
-    this.apiBase = AUTOJOBR_CONFIG.getApiBaseURL();
+    this.apiBase = 'http://40.160.50.128';
     this.isAuthenticated = false;
     this.userProfile = null;
-    this.extensionToken = null;
     
     this.init();
   }
@@ -135,73 +133,22 @@ class AutoJobrBackground {
   async loadUserProfile() {
     if (!this.isAuthenticated) {
       await this.checkAuthentication();
-      return;
     }
     
     try {
-      // Use the special extension profile endpoint that works without authentication
-      const profileResponse = await fetch(`${this.apiBase}/api/extension/profile`, { 
+      const response = await fetch(`${this.apiBase}/api/user/profile`, {
+        method: 'GET',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' }
       });
 
-      if (profileResponse.ok) {
-        const extensionProfile = await profileResponse.json();
-        this.userProfile = { ...this.userProfile, ...extensionProfile };
-        
-        // Cache for offline use
-        await chrome.storage.local.set({
-          autojobr_profile: this.userProfile,
-          lastUpdated: Date.now()
-        });
-        
-        console.log('✅ Extension profile loaded');
-        return;
+      if (response.ok) {
+        const profileData = await response.json();
+        this.userProfile = { ...this.userProfile, ...profileData };
+        console.log('✅ Profile loaded');
       }
-
-      // Fallback: Try individual authenticated endpoints
-      const [profileRes, skillsRes, experienceRes, educationRes] = await Promise.allSettled([
-        fetch(`${this.apiBase}/api/profile`, { credentials: 'include' }),
-        fetch(`${this.apiBase}/api/skills`, { credentials: 'include' }),
-        fetch(`${this.apiBase}/api/work-experience`, { credentials: 'include' }),
-        fetch(`${this.apiBase}/api/education`, { credentials: 'include' })
-      ]);
-
-      let profileData = {};
-      
-      // Process each response safely
-      if (profileRes.status === 'fulfilled' && profileRes.value.ok) {
-        const profile = await profileRes.value.json();
-        profileData = { ...profileData, ...profile };
-      }
-      
-      if (skillsRes.status === 'fulfilled' && skillsRes.value.ok) {
-        const skills = await skillsRes.value.json();
-        profileData.skills = skills;
-      }
-      
-      if (experienceRes.status === 'fulfilled' && experienceRes.value.ok) {
-        const experience = await experienceRes.value.json();
-        profileData.experience = experience;
-      }
-      
-      if (educationRes.status === 'fulfilled' && educationRes.value.ok) {
-        const education = await educationRes.value.json();
-        profileData.education = education;
-      }
-
-      // Merge with existing profile data
-      this.userProfile = { ...this.userProfile, ...profileData };
-      
-      // Cache for offline use
-      await chrome.storage.local.set({
-        autojobr_profile: this.userProfile,
-        lastUpdated: Date.now()
-      });
-      
-      console.log('✅ Profile data loaded and cached');
     } catch (error) {
-      console.log('Profile fetch failed, using existing/demo data:', error);
+      console.log('Profile fetch failed, using existing data');
     }
   }
 

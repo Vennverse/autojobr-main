@@ -49,7 +49,8 @@ import {
   PenTool,
   Globe,
   Flame,
-  TrendingDown
+  TrendingDown,
+  Copy
 } from "lucide-react";
 
 const containerVariants = {
@@ -292,22 +293,31 @@ export default function EnhancedDashboard() {
   };
 
   // Cover letter generation handler
-  const generateCoverLetter = async (jobDescription: string) => {
+  const generateCoverLetter = async (jobDescription: string, companyName?: string, jobTitle?: string) => {
+    console.log('🚀 Starting cover letter generation...');
     setIsGenerating(true);
+    setCoverLetterResult(null); // Clear previous results
     
     try {
+      console.log('📝 Sending API request with:', { jobDescription: jobDescription.substring(0, 100) + '...', companyName, jobTitle });
+      
       const response = await fetch('/api/generate-cover-letter', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          jobDescription,
+          jobDescription: jobDescription.trim(),
+          companyName: companyName?.trim() || "The Company",
+          jobTitle: jobTitle?.trim() || "The Position",
         }),
       });
 
+      console.log('📨 Response status:', response.status);
+      
       if (response.ok) {
         const result = await response.json();
+        console.log('✅ Cover letter generated successfully, length:', result.coverLetter?.length);
         setCoverLetterResult(result.coverLetter);
         
         toast({
@@ -315,10 +325,12 @@ export default function EnhancedDashboard() {
           description: "Your personalized cover letter is ready",
         });
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Generation failed");
+        const errorText = await response.text();
+        console.error('❌ API Error:', response.status, errorText);
+        throw new Error(`Generation failed: ${response.status}`);
       }
     } catch (error: any) {
+      console.error('💥 Cover letter generation error:', error);
       toast({
         title: "Generation Failed",
         description: error.message || "Please try again",
@@ -326,6 +338,7 @@ export default function EnhancedDashboard() {
       });
     } finally {
       setIsGenerating(false);
+      console.log('🔚 Cover letter generation completed');
     }
   };
 
@@ -833,11 +846,23 @@ export default function EnhancedDashboard() {
                     Cover Letter Generator
                   </CardTitle>
                   <p className="text-sm text-blue-100">
-                    Generate personalized cover letters with AI
+                    Generate personalized cover letters with AI - Include company name and job title for better results
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <Input
+                        placeholder="Company Name (e.g., Google, Microsoft)"
+                        className="bg-white/20 border-white/30 text-white placeholder:text-white/70"
+                        id="company-name-input"
+                      />
+                      <Input
+                        placeholder="Job Title (e.g., Software Engineer)"
+                        className="bg-white/20 border-white/30 text-white placeholder:text-white/70"
+                        id="job-title-input"
+                      />
+                    </div>
                     <textarea
                       placeholder="Paste the job description here..."
                       className="w-full p-3 rounded bg-white/20 border border-white/30 text-white placeholder:text-white/70 min-h-[100px] resize-none"
@@ -848,8 +873,11 @@ export default function EnhancedDashboard() {
                       className="w-full bg-white/20 hover:bg-white/30 text-white border-0"
                       onClick={() => {
                         const jobDesc = (document.getElementById('job-description-input') as HTMLTextAreaElement)?.value;
+                        const companyName = (document.getElementById('company-name-input') as HTMLInputElement)?.value;
+                        const jobTitle = (document.getElementById('job-title-input') as HTMLInputElement)?.value;
+                        
                         if (jobDesc.trim()) {
-                          generateCoverLetter(jobDesc);
+                          generateCoverLetter(jobDesc, companyName, jobTitle);
                         } else {
                           toast({
                             title: "Job Description Required",

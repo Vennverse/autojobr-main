@@ -14,12 +14,20 @@
   "host_permissions": [
     "https://*/*",
     "http://*/*",
-    "https://0e44431a-708c-4df3-916b-4c2aa6aa0fdf-00-2xw51bgbvt8cp.spock.replit.dev/*"
+    "http://40.160.50.128/*",
+    "http://40.160.50.128:5000/*",
+    "https://2850a2fc-4859-4c6a-8bf3-95d0268c34db-00-m8wfd8rzorjq.worf.replit.dev/*",
+    "*://2850a2fc-4859-4c6a-8bf3-95d0268c34db-00-m8wfd8rzorjq.worf.replit.dev/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background-simple.js"
   },
   "content_scripts": [
+    {
+      "js": ["central-config.js"],
+      "matches": ["<all_urls>"],
+      "run_at": "document_start"
+    },
     {
       "matches": [
         "*://linkedin.com/*",
@@ -30,6 +38,7 @@
         "*://*.glassdoor.com/*",
         "*://workday.com/*",
         "*://*.workday.com/*",
+        "*://*.myworkdayjobs.com/*",
         "*://lever.co/*",
         "*://*.lever.co/*",
         "*://greenhouse.io/*",
@@ -57,8 +66,8 @@
         "*://ashbyhq.com/*",
         "*://*.ashbyhq.com/*"
       ],
-      "js": ["smart-detector.js", "form-filler.js"],
-      "css": ["autojobr-styles.css"],
+      "js": ["central-config.js", "unified-content-script.js"],
+      "css": ["unified-styles.css"],
       "run_at": "document_end"
     }
   ],
@@ -74,9 +83,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "autojobr-overlay.html",
-        "autojobr-styles.css",
-        "autojobr-floating-panel.js",
+        "unified-styles.css",
         "icons/*.png"
       ],
       "matches": ["<all_urls>"]

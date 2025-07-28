@@ -1,0 +1,58 @@
+0|autojobr  | 2025-07-28T09:57:56: Session ID: kW5Zdk2hLNsADAYsW6DRuXzGoD4tmpny
+0|autojobr  | 2025-07-28T09:57:56: Session data: Session {
+0|autojobr  |   cookie: {
+0|autojobr  |     path: '/',
+0|autojobr  |     _expires: 2025-08-04T09:57:56.836Z,
+0|autojobr  |     originalMaxAge: 604800000,
+0|autojobr  |     httpOnly: true,
+0|autojobr  |     secure: false,
+0|autojobr  |     sameSite: 'lax'
+0|autojobr  |   },
+0|autojobr  |   user: {
+0|autojobr  |     id: 'user-1753460148141-dt5ohkonn',
+0|autojobr  |     email: 'shubhamdubeyskd2001@gmail.com',
+0|autojobr  |     name: 'Shubham Dubey',
+0|autojobr  |     firstName: 'Shubham',
+0|autojobr  |     lastName: 'Dubey',
+0|autojobr  |     userType: 'job_seeker'
+0|autojobr  |   }
+0|autojobr  | }
+0|autojobr  | 2025-07-28T09:57:56: Session user: {
+0|autojobr  |   id: 'user-1753460148141-dt5ohkonn',
+0|autojobr  |   email: 'shubhamdubeyskd2001@gmail.com',
+0|autojobr  |   name: 'Shubham Dubey',
+0|autojobr  |   firstName: 'Shubham',
+0|autojobr  |   lastName: 'Dubey',
+0|autojobr  |   userType: 'job_seeker'
+0|autojobr  | }
+0|autojobr  | 2025-07-28T09:57:56: Has session? true
+0|autojobr  | 2025-07-28T09:57:56: Has session.user? true
+0|autojobr  | 2025-07-28T09:57:56: ✅ Authenticated user: user-1753460148141-dt5ohkonn shubhamdubeyskd2001@gmail.com
+0|autojobr  | 2025-07-28T09:57:56: 9:57:56 AM [express] GET /api/ranking-tests/history 304 in 3ms :: [{"id":1,"userId":"user-1753460148…
+0|autojobr  | 2025-07-28T09:57:56: 9:57:56 AM [express] GET /api/mock-interview/stats 304 in 6ms :: {"id":1,"userId":"user-175346014814…
+0|autojobr  | 2025-07-28T09:58:00: 🔍 Extension Debug Info: {
+0|autojobr  |   origin: undefined,
+0|autojobr  |   userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+0|autojobr  |   cookies: 'Present',
+0|autojobr  |   sessionID: undefined,
+0|autojobr  |   sessionUser: 'Missing',
+0|autojobr  |   sessionData: undefined
+0|autojobr  | }
+0|autojobr  | 2025-07-28T09:58:00: 9:58:00 AM [express] GET /api/debug/extension-auth 200 in 1ms :: {"userAgent":"Mozilla/5.0 (Windows …
+0|autojobr  | 2025-07-28T09:58:03: 🔍 Extension Debug Info: {
+0|autojobr  |   origin: undefined,
+0|autojobr  |   userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+0|autojobr  |   cookies: 'Present',
+0|autojobr  |   sessionID: undefined,
+0|autojobr  |   sessionUser: 'Missing',
+0|autojobr  |   sessionData: undefined
+0|autojobr  | }
+0|autojobr  | 2025-07-28T09:58:03: 9:58:03 AM [express] GET /api/debug/extension-auth 200 in 1ms :: {"userAgent":"Mozilla/5.0 (Windows …
+0|autojobr  | 2025-07-28T09:58:04: 🔍 Extension Debug Info: {
+0|autojobr  |   origin: undefined,
+0|autojobr  |   userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+0|autojobr  |   cookies: 'Present',
+0|autojobr  |   sessionID: undefined,
+0|autojobr  |   sessionUser: 'Missing',
+0|autojobr  |   sessionData: undefined
+0|autojobr  | }

@@ -17,6 +17,7 @@ import { apiKeyRotationService } from "./apiKeyRotationService.js";
 import { companyVerificationService } from "./companyVerificationService.js";
 import { adminFixService } from "./adminFixService.js";
 import { recruiterDashboardFix } from "./recruiterDashboardFix.js";
+import { healthCheck, simpleHealthCheck } from "./healthCheck-simple";
 
 // Enhanced in-memory cache with better performance
 const cache = new Map();
@@ -269,17 +270,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
     fs.mkdirSync(profilesDir, { recursive: true });
   }
 
-  // Health check endpoint for deployment verification
-  app.get('/api/health', (req, res) => {
-    res.status(200).json({ 
-      status: 'ok', 
-      timestamp: new Date().toISOString(),
-      service: 'autojobr-api'
+  // Health check endpoints for deployment verification and monitoring
+  app.get('/api/health', healthCheck);
+  app.get('/api/health/simple', simpleHealthCheck);
+
+  // Debug endpoint for Chrome extension authentication
+  app.get('/api/debug/extension-auth', (req: any, res) => {
+    const headers = req.headers;
+    const origin = req.get('Origin');
+    const userAgent = req.get('User-Agent');
+    const cookies = req.get('Cookie');
+    const session = req.session;
+    
+    console.log('🔍 Extension Debug Info:', {
+      origin,
+      userAgent,
+      cookies: cookies ? 'Present' : 'Missing',
+      sessionID: session?.id,
+      sessionUser: session?.user ? 'Present' : 'Missing',
+      sessionData: session
+    });
+    
+    res.json({
+      origin,
+      userAgent,
+      cookies: cookies ? 'Present' : 'Missing',
+      sessionID: session?.id,
+      sessionUser: session?.user ? 'Present' : 'Missing',
+      isAuthenticated: !!session?.user,
+      timestamp: new Date().toISOString()
     });
   });
 
   // Setup session middleware early for extension support
   // Note: Session setup is handled in setupAuth(), removing duplicate setup
+
+  // Generate extension token for authenticated users
+  app.post('/api/auth/extension-token', async (req: any, res) => {
+    try {
+      // Check session authentication directly
+      const sessionUser = req.session?.user;
+      if (!sessionUser || !sessionUser.id) {
+        console.log('❌ Extension token request - no session user found');
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+
+      const userId = sessionUser.id;
+      const token = crypto.randomBytes(32).toString('hex');
+      
+      // Store token in session for validation
+      if (!req.session.extensionTokens) {
+        req.session.extensionTokens = {};
+      }
+      req.session.extensionTokens[token] = {
+        userId,
+        createdAt: Date.now(),
+        expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+      };
+      
+      console.log('🔑 Generated extension token for user:', userId);
+      res.json({ token });
+    } catch (error) {
+      console.error('Extension token generation error:', error);
+      res.status(500).json({ message: 'Failed to generate token' });
+    }
+  });
+
+  // Chrome extension user endpoint using token authentication
+  app.get('/api/extension/user', async (req: any, res) => {
+    try {
+      const token = req.query.token || req.headers['x-extension-token'];
+      
+      if (!token) {
+        return res.status(401).json({ message: 'Extension token required' });
+      }
+
+      // Find session with this token
+      // Note: In production, this should use a proper token store
+      let userId = null;
+      const sessions = (req.sessionStore as any).sessions || {};
+      
+      for (const sessionId in sessions) {
+        try {
+          const sessionData = JSON.parse(sessions[sessionId]);
+          if (sessionData.extensionTokens && sessionData.extensionTokens[token]) {
+            const tokenData = sessionData.extensionTokens[token];
+            if (tokenData.expiresAt > Date.now()) {
+              userId = tokenData.userId;
+              break;
+            }
+          }
+        } catch (e) {
+          // Skip invalid session data
+        }
+      }
+
+      if (!userId) {
+        return res.status(401).json({ message: 'Invalid or expired token' });
+      }
+
+      // Get user data from storage
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+
+      console.log('✅ Extension authenticated with token:', user.email);
+
+      // Return user data for extension
+      res.json({
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        userType: user.userType,
+        phone: user.phone,
+        address: user.address,
+        city: user.city,
+        state: user.state,
+        zipCode: user.zipCode
+      });
+    } catch (error) {
+      console.error('Extension user endpoint error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
 
   // Extension API for Chrome extension - provides profile data for form filling (no auth required)
   app.get('/api/extension/profile', async (req: any, res) => {
@@ -4498,17 +4612,37 @@ Additional Information:
       
       console.log("Extension cover letter request:", { company, title, hasJobDescription: !!jobDescription });
 
-      // Get user profile
-      const profile = await storage.getUserProfile(userId);
+      // Get comprehensive user data including profile, skills, work experience, and education
+      const [profile, skills, workExperience, education] = await Promise.all([
+        storage.getUserProfile(userId),
+        storage.getUserSkills(userId),
+        storage.getUserWorkExperience(userId),
+        storage.getUserEducation(userId)
+      ]);
       
-      if (!profile) {
-        return res.status(404).json({ message: "Please complete your profile first" });
-      }
+      // Create comprehensive profile object for cover letter generation
+      const fullProfile = {
+        ...profile,
+        skills: skills || [],
+        workExperience: workExperience || [],
+        education: education || [],
+        fullName: profile?.fullName || req.user?.name || 'Applicant',
+        professionalTitle: profile?.professionalTitle || 'Professional',
+        yearsExperience: profile?.yearsExperience || 0,
+        summary: profile?.summary || 'Experienced professional'
+      };
+
+      console.log("Profile data for cover letter:", {
+        hasProfile: !!profile,
+        skillsCount: skills?.length || 0,
+        workExpCount: workExperience?.length || 0,
+        educationCount: education?.length || 0
+      });
 
       // Use groqService method for consistent behavior
       const coverLetter = await groqService.generateCoverLetter(
         { title, company, description: jobDescription },
-        profile,
+        fullProfile,
         req.user
       );
 

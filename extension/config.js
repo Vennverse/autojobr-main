@@ -1,15 +1,6 @@
-// Configuration for AutoJobr Extension
-const CONFIG = {
-  API_BASE_URL: 'https://0e44431a-708c-4df3-916b-4c2aa6aa0fdf-00-2xw51bgbvt8cp.spock.replit.dev',
-  ENDPOINTS: {
-    USER: '/api/user',
-    PROFILE: '/api/profile',
-    SKILLS: '/api/skills',
-    WORK_EXPERIENCE: '/api/work-experience',
-    EDUCATION: '/api/education',
-    GENERATE_COVER_LETTER: '/api/generate-cover-letter',
-    JOB_ANALYSIS: '/api/analyze-job'
-  },
+// Configuration for AutoJobr Extension - Uses Central Config
+// Always use central configuration - no fallbacks
+const CONFIG = AUTOJOBR_CONFIG;
   STORAGE_KEYS: {
     USER_DATA: 'autojobr_user_data',
     AUTH_TOKEN: 'autojobr_auth_token',
@@ -48,9 +39,15 @@ const CONFIG = {
 // Enhanced API client with persistent authentication
 class AutoJobrAPI {
   constructor() {
-    this.baseURL = CONFIG.API_BASE_URL;
+    this.baseURL = CONFIG.getApiBaseURL();
     this.isAuthenticated = false;
     this.userProfile = null;
+    this.healthCheckInterval = null;
+    this.connectionStatus = 'unknown';
+  }
+
+  detectBackendURL() {
+    return CONFIG.detectBackendURL();
   }
 
   async makeRequest(endpoint, options = {}) {
@@ -85,14 +82,64 @@ class AutoJobrAPI {
 
   async checkAuthStatus() {
     try {
-      const user = await this.makeRequest(CONFIG.ENDPOINTS.USER);
-      this.isAuthenticated = true;
-      await this.cacheUserData(user);
-      return user;
+      // First try to get extension token if we don't have one
+      let token = await this.getStoredToken();
+      
+      if (!token) {
+        // Try to generate a new token from active session
+        token = await this.generateExtensionToken();
+      }
+
+      if (token) {
+        // Use extension-specific endpoint with token
+        const user = await this.makeRequest(`${CONFIG.ENDPOINTS.EXTENSION_USER}?token=${token}`);
+        this.isAuthenticated = true;
+        await this.cacheUserData(user);
+        await this.storeToken(token);
+        return user;
+      } else {
+        // Fallback to regular session-based auth
+        const user = await this.makeRequest(CONFIG.ENDPOINTS.USER);
+        this.isAuthenticated = true;
+        await this.cacheUserData(user);
+        return user;
+      }
     } catch (error) {
       this.isAuthenticated = false;
+      await this.clearStoredAuth();
       return null;
     }
+  }
+
+  async generateExtensionToken() {
+    try {
+      const response = await this.makeRequest(CONFIG.ENDPOINTS.EXTENSION_TOKEN, {
+        method: 'POST'
+      });
+      return response.token;
+    } catch (error) {
+      console.log('Token generation failed:', error);
+      return null;
+    }
+  }
+
+  async getStoredToken() {
+    const result = await chrome.storage.local.get(CONFIG.STORAGE_KEYS.AUTH_TOKEN);
+    const tokenData = result[CONFIG.STORAGE_KEYS.AUTH_TOKEN];
+    
+    if (tokenData && tokenData.expiresAt > Date.now()) {
+      return tokenData.token;
+    }
+    return null;
+  }
+
+  async storeToken(token) {
+    await chrome.storage.local.set({
+      [CONFIG.STORAGE_KEYS.AUTH_TOKEN]: {
+        token,
+        expiresAt: Date.now() + (23 * 60 * 60 * 1000) // 23 hours (slightly less than server expiry)
+      }
+    });
   }
 
   async getUserProfile() {
@@ -181,6 +228,44 @@ class AutoJobrAPI {
   async clearStoredAuth() {
     await chrome.storage.local.clear();
     this.userProfile = null;
+  }
+
+  async checkBackendHealth() {
+    try {
+      const response = await fetch(`${this.baseURL}${CONFIG.ENDPOINTS.HEALTH_CHECK_SIMPLE}`, {
+        method: 'GET',
+        credentials: 'include',
+        timeout: 5000
+      });
+      
+      this.connectionStatus = response.ok ? 'connected' : 'error';
+      return response.ok;
+    } catch (error) {
+      console.warn('Backend health check failed:', error);
+      this.connectionStatus = 'disconnected';
+      return false;
+    }
+  }
+
+  async startHealthMonitoring() {
+    // Check health every 30 seconds
+    this.healthCheckInterval = setInterval(async () => {
+      await this.checkBackendHealth();
+    }, 30000);
+    
+    // Initial health check
+    await this.checkBackendHealth();
+  }
+
+  stopHealthMonitoring() {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
+  }
+
+  getConnectionStatus() {
+    return this.connectionStatus;
   }
 }
 

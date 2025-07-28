@@ -6,9 +6,10 @@ class AutojobrPopup {
     this.isLoading = false;
     this.userProfile = null;
     this.currentAnalysis = null;
+    // Always use central config - no fallbacks
     this.settings = {
       autofillEnabled: true,
-      apiUrl: 'https://0e44431a-708c-4df3-916b-4c2aa6aa0fdf-00-2xw51bgbvt8cp.spock.replit.dev'
+      apiUrl: window.AUTOJOBR_CONFIG.getApiBaseURL()
     };
     
     this.init();
