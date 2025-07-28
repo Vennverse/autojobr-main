@@ -83,13 +83,22 @@
 
     async start() {
       try {
-        await this.checkAuthentication();
+        console.log('🚀 AutoJobr Extension Starting...');
+        
+        // Check authentication first
+        const isAuth = await this.checkAuthentication();
+        console.log('Authentication result:', isAuth);
+        
         if (this.isAuthenticated) {
+          console.log('✅ Authenticated, loading user profile...');
           await this.loadUserProfile();
+        } else {
+          console.log('❌ Not authenticated');
         }
         
-        // Detect job page and create overlay
+        // Always create overlay regardless of auth status
         setTimeout(() => {
+          console.log('Creating overlay and detecting job page...');
           this.detectJobPage();
           this.createOverlay();
           this.setupObservers();
@@ -97,6 +106,10 @@
 
       } catch (error) {
         console.error('AutoJobr initialization failed:', error);
+        // Still create overlay even if initialization fails
+        setTimeout(() => {
+          this.createOverlay();
+        }, 2000);
       }
     }
 
@@ -133,45 +146,55 @@
 
         // Try to get new token from authenticated session
         console.log('🔑 Requesting new extension token...');
-        const tokenResponse = await fetch(`${this.apiBase}/api/auth/extension-token`, {
-          method: 'POST',
-          credentials: 'include',
-          mode: 'cors',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (tokenResponse.ok) {
-          const tokenData = await tokenResponse.json();
-          token = tokenData.token;
-          localStorage.setItem('autojobr_extension_token', token);
-          console.log('✅ New extension token obtained');
-
-          // Now try with new token
-          const userResponse = await fetch(`${this.apiBase}/api/extension/user?token=${token}`, {
-            method: 'GET',
+        try {
+          const tokenResponse = await fetch(`${this.apiBase}/api/auth/extension-token`, {
+            method: 'POST',
             credentials: 'include',
             mode: 'cors',
             headers: {
               'Accept': 'application/json',
-              'Content-Type': 'application/json',
-              'X-Extension-Token': token
+              'Content-Type': 'application/json'
             }
           });
 
-          if (userResponse.ok) {
-            const userData = await userResponse.json();
-            this.isAuthenticated = true;
-            this.userProfile = { profile: userData };
-            console.log('✅ Extension authenticated with new token:', userData.email);
-            return true;
+          console.log('Token response status:', tokenResponse.status);
+
+          if (tokenResponse.ok) {
+            const tokenData = await tokenResponse.json();
+            token = tokenData.token;
+            localStorage.setItem('autojobr_extension_token', token);
+            console.log('✅ New extension token obtained');
+
+            // Now try with new token
+            const userResponse = await fetch(`${this.apiBase}/api/extension/user?token=${token}`, {
+              method: 'GET',
+              credentials: 'include',
+              mode: 'cors',
+              headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Extension-Token': token
+              }
+            });
+
+            if (userResponse.ok) {
+              const userData = await userResponse.json();
+              this.isAuthenticated = true;
+              this.userProfile = { profile: userData };
+              console.log('✅ Extension authenticated with new token:', userData.email);
+              return true;
+            } else {
+              console.log('❌ Failed to authenticate with new token, status:', userResponse.status);
+              const errorText = await userResponse.text();
+              console.log('User response error:', errorText);
+            }
           } else {
-            console.log('❌ Failed to authenticate with new token');
+            console.log('❌ Failed to get extension token, status:', tokenResponse.status);
+            const errorText = await tokenResponse.text();
+            console.log('Token response error:', errorText);
           }
-        } else {
-          console.log('❌ Failed to get extension token, status:', tokenResponse.status);
+        } catch (fetchError) {
+          console.error('Extension token fetch error:', fetchError);
         }
         
         this.isAuthenticated = false;

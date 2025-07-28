@@ -306,9 +306,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Note: Session setup is handled in setupAuth(), removing duplicate setup
 
   // Generate extension token for authenticated users
-  app.post('/api/auth/extension-token', isAuthenticated, async (req: any, res) => {
+  app.post('/api/auth/extension-token', async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      // Check session authentication directly
+      const sessionUser = req.session?.user;
+      if (!sessionUser || !sessionUser.id) {
+        console.log('❌ Extension token request - no session user found');
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+
+      const userId = sessionUser.id;
       const token = crypto.randomBytes(32).toString('hex');
       
       // Store token in session for validation
