@@ -36,6 +36,7 @@ app.use(cors({
       /^https?:\/\/localhost:\d+$/,
       /^https?:\/\/127\.0\.0\.1:\d+$/,
       /^https?:\/\/40\.160\.50\.128:\d+$/,
+      /^https?:\/\/40\.160\.50\.128$/,
       /^https?:\/\/.*\.replit\.app$/,
       /^https?:\/\/.*\.replit\.dev$/,
       /^https?:\/\/.*\.vercel\.app$/,
