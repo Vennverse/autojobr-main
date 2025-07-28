@@ -1,40 +1,16 @@
-// Replit-specific configuration for AutoJobr Extension
-const REPLIT_CONFIG = {
-  // Auto-detect current Replit environment
-  getBackendURL: () => {
-    // Check if we're in a Replit webview
-    if (typeof window !== 'undefined' && window.location) {
-      const hostname = window.location.hostname;
-      
-      // Handle Replit development environment
-      if (hostname.includes('replit.dev')) {
-        return `https://${hostname}`;
-      }
-      
-      // Handle Replit production environment  
-      if (hostname.includes('replit.app')) {
-        return `https://${hostname}`;
-      }
-      
-      // Handle custom Replit domains
-      if (hostname.includes('.replit.')) {
-        return `https://${hostname}`;
-      }
-    }
-    
-    // Fallback to localhost for development
-    return 'http://localhost:5000';
-  },
+// VM Server Configuration for AutoJobr Extension
+const VM_CONFIG = {
+  // VM Server URL only
+  API_BASE_URL: 'http://40.160.50.128:5000',
   
-  // Enhanced connection options for Replit
+  // VM connection options
   getConnectionOptions: () => ({
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     },
-    // Longer timeout for Replit environments
-    timeout: 15000,
+    timeout: 10000,
   }),
   
   // Health check configuration
@@ -45,30 +21,26 @@ const REPLIT_CONFIG = {
     retryDelay: 2000, // 2 seconds
   },
   
-  // Replit-specific CORS origins
+  // VM server origin
   allowedOrigins: [
-    'https://*.replit.dev',
-    'https://*.replit.app', 
-    'https://*.replit.co',
-    'http://localhost:5000',
-    'http://127.0.0.1:5000'
+    'http://40.160.50.128:5000'
   ],
   
-  // Feature flags for Replit environment
+  // Feature flags for VM environment
   features: {
     enableHealthMonitoring: true,
     enableAutoReconnect: true,
-    enableConnectionFallback: true,
+    enableConnectionFallback: false,
     enableCaching: true,
-    enableOfflineMode: false, // Redis handles this on backend
+    enableOfflineMode: false,
   }
 };
 
-// Enhanced connection manager for Replit
-class ReplitConnectionManager {
+// VM connection manager
+class VMConnectionManager {
   constructor() {
-    this.backendURL = REPLIT_CONFIG.getBackendURL();
-    this.connectionOptions = REPLIT_CONFIG.getConnectionOptions();
+    this.backendURL = VM_CONFIG.API_BASE_URL;
+    this.connectionOptions = VM_CONFIG.getConnectionOptions();
     this.healthStatus = 'unknown';
     this.lastHealthCheck = null;
     this.reconnectAttempts = 0;
@@ -78,7 +50,7 @@ class ReplitConnectionManager {
   async testConnection() {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), REPLIT_CONFIG.healthCheck.timeout);
+      const timeoutId = setTimeout(() => controller.abort(), VM_CONFIG.healthCheck.timeout);
       
       const response = await fetch(`${this.backendURL}/api/health/simple`, {
         ...this.connectionOptions,
@@ -99,7 +71,7 @@ class ReplitConnectionManager {
       }
     } catch (error) {
       this.healthStatus = 'disconnected';
-      console.warn('Replit connection test failed:', error.message);
+      console.warn('VM connection test failed:', error.message);
       return false;
     }
   }
@@ -127,23 +99,9 @@ class ReplitConnectionManager {
       
       return await response.json();
     } catch (error) {
-      console.error('Replit API request failed:', error);
+      console.error('VM API request failed:', error);
       throw error;
     }
-  }
-  
-  async startHealthMonitoring() {
-    if (!REPLIT_CONFIG.features.enableHealthMonitoring) return;
-    
-    // Initial connection test
-    await this.testConnection();
-    
-    // Set up periodic health checks
-    setInterval(async () => {
-      await this.testConnection();
-    }, REPLIT_CONFIG.healthCheck.interval);
-    
-    console.log('🔄 Replit health monitoring started');
   }
   
   getHealthStatus() {
@@ -158,16 +116,15 @@ class ReplitConnectionManager {
 
 // Export for use in other extension files
 if (typeof window !== 'undefined') {
-  window.REPLIT_CONFIG = REPLIT_CONFIG;
-  window.ReplitConnectionManager = ReplitConnectionManager;
+  window.VM_CONFIG = VM_CONFIG;
+  window.VMConnectionManager = VMConnectionManager;
 }
 
 // For Chrome extension environment
 if (typeof chrome !== 'undefined' && chrome.storage) {
-  // Store Replit configuration in extension storage
   chrome.storage.local.set({
-    'replit_config': REPLIT_CONFIG,
-    'backend_url': REPLIT_CONFIG.getBackendURL(),
+    'vm_config': VM_CONFIG,
+    'backend_url': VM_CONFIG.API_BASE_URL,
     'last_updated': new Date().toISOString()
   });
 }

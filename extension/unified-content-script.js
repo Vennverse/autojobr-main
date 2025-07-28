@@ -66,8 +66,8 @@
     }
 
     detectBackendURL() {
-      // Use the current Replit environment - updated to match current session
-      return 'https://7f6e19b3-7c52-40cd-a936-d850c0a12fb1-00-19k7ygzf7q5kk.riker.replit.dev';
+      // Use VM server only
+      return 'http://40.160.50.128:5000';
     }
 
     async init() {
