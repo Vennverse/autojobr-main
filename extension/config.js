@@ -1,6 +1,6 @@
 // Configuration for AutoJobr Extension - Uses Central Config
-// Import central configuration
-const CONFIG = window.AUTOJOBR_CONFIG || AUTOJOBR_CONFIG;
+// Always use central configuration - no fallbacks
+const CONFIG = AUTOJOBR_CONFIG;
   STORAGE_KEYS: {
     USER_DATA: 'autojobr_user_data',
     AUTH_TOKEN: 'autojobr_auth_token',
@@ -39,7 +39,7 @@ const CONFIG = window.AUTOJOBR_CONFIG || AUTOJOBR_CONFIG;
 // Enhanced API client with persistent authentication
 class AutoJobrAPI {
   constructor() {
-    this.baseURL = this.detectBackendURL();
+    this.baseURL = CONFIG.getApiBaseURL();
     this.isAuthenticated = false;
     this.userProfile = null;
     this.healthCheckInterval = null;

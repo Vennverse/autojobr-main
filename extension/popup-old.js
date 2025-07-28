@@ -6,11 +6,10 @@ class AutojobrPopup {
     this.isLoading = false;
     this.userProfile = null;
     this.currentAnalysis = null;
-    // Load central config if available
-    this.config = window.AUTOJOBR_CONFIG || (typeof AUTOJOBR_CONFIG !== 'undefined' ? AUTOJOBR_CONFIG : null);
+    // Always use central config - no fallbacks
     this.settings = {
       autofillEnabled: true,
-      apiUrl: this.config ? this.config.API_BASE_URL : 'https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev'
+      apiUrl: window.AUTOJOBR_CONFIG.getApiBaseURL()
     };
     
     this.init();

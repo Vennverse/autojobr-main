@@ -1,9 +1,8 @@
 // Fixed Popup Script for AutoJobr Extension
 class AutoJobrPopup {
   constructor() {
-    // Load central config if available
-    this.config = window.AUTOJOBR_CONFIG || (typeof AUTOJOBR_CONFIG !== 'undefined' ? AUTOJOBR_CONFIG : null);
-    this.apiBase = this.config ? this.config.API_BASE_URL : 'https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev';
+    // Always use central config - no fallbacks
+    this.apiBase = window.AUTOJOBR_CONFIG.getApiBaseURL();
     this.isAuthenticated = false;
     this.userProfile = null;
     this.currentJobData = null;

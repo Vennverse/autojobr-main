@@ -143,6 +143,7 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 - ✅ **Auto-Redirect Implementation**: Added automatic dashboard redirect for authenticated users visiting /auth page
 - ✅ **VM CORS Support**: Updated CORS configuration to support VM deployment at 40.160.50.128
 - ✅ **Centralized Extension Config**: Created central-config.js system - now only need to update URL in one place for Chrome extension
+- ✅ **Single Source of Truth**: Eliminated ALL fallback URLs - extension now uses only central config with zero hardcoded URLs
 
 ### January 20, 2025 - Premium Subscription System & Usage Enforcement Complete
 - ✅ **AI Detection System**: Implemented comprehensive AI usage detection for interview responses with confidence scoring

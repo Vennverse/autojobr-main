@@ -3,12 +3,12 @@
 
 const AUTOJOBR_CONFIG = {
   // Main API Base URL - UPDATE THIS WHEN BACKEND CHANGES
-  API_BASE_URL: 'https://2850a2fc-4859-4c6a-8bf3-95d0268c34db-00-m8wfd8rzorjq.worf.replit.dev',
+  API_BASE_URL: 'http://40.160.50.128:5000',
   
   // Alternative URLs for fallback (optional)
   FALLBACK_URLS: [
-    'http://40.160.50.128:5000',
-    'http://localhost:5000'
+    'http://40.160.50.128',
+    'https://2850a2fc-4859-4c6a-8bf3-95d0268c34db-00-m8wfd8rzorjq.worf.replit.dev'
   ],
   
   // API Endpoints (relative to base URL)
@@ -39,8 +39,13 @@ const AUTOJOBR_CONFIG = {
   CACHE_DURATION: 24 * 60 * 60 * 1000, // 24 hours
   TOKEN_DURATION: 23 * 60 * 60 * 1000, // 23 hours (slightly less than server expiry)
   
-  // Auto-detection function
+  // Auto-detection function - ALWAYS returns the main URL
   detectBackendURL() {
+    return this.API_BASE_URL;
+  },
+  
+  // Get API base URL - centralized function
+  getApiBaseURL() {
     return this.API_BASE_URL;
   },
   

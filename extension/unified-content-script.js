@@ -66,12 +66,8 @@
     }
 
     detectBackendURL() {
-      // Use central config if available
-      if (typeof AUTOJOBR_CONFIG !== 'undefined') {
-        return AUTOJOBR_CONFIG.API_BASE_URL;
-      }
-      // Fallback
-      return 'https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev';
+      // Always use central config - no fallbacks
+      return AUTOJOBR_CONFIG.getApiBaseURL();
     }
 
     async init() {

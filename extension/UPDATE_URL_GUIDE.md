@@ -2,7 +2,7 @@
 
 ## Quick Update (30 seconds)
 
-When your AutoJobr backend URL changes, you only need to update **ONE FILE**:
+When your AutoJobr backend URL changes, you only need to update **ONE LINE in ONE FILE**:
 
 ### Step 1: Open `central-config.js`
 - Navigate to your extension folder
@@ -11,7 +11,7 @@ When your AutoJobr backend URL changes, you only need to update **ONE FILE**:
 ### Step 2: Update the URL
 Find this line (around line 5):
 ```javascript
-API_BASE_URL: 'https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev',
+API_BASE_URL: 'https://2850a2fc-4859-4c6a-8bf3-95d0268c34db-00-m8wfd8rzorjq.worf.replit.dev',
 ```
 
 Replace with your new URL:
@@ -31,11 +31,12 @@ API_BASE_URL: 'https://your-new-url-here.replit.dev',
 - **Local Development**: `http://localhost:5000`
 
 ## That's It!
-All extension files now automatically use the URL from `central-config.js`. No need to update multiple files anymore.
+All extension files now automatically use the URL from `central-config.js`. **ZERO hardcoded fallback URLs anywhere**.
 
 ## Old vs New System
-- **Before**: Had to update 6+ files individually
-- **Now**: Update only 1 file (`central-config.js`)
+- **Before**: Had to update 6+ files individually with scattered fallback URLs
+- **Now**: Update only 1 line in 1 file (`central-config.js` line 9)
+- **Guarantee**: No fallback URLs exist anywhere - everything uses central config
 
 ## Troubleshooting
 If the extension still shows connection errors after updating:
