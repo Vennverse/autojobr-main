@@ -558,6 +558,15 @@ if (typeof window.CONFIG === 'undefined') {
         return { success: false, error: 'No user profile' };
       }
 
+      // Track fill success rate
+      let attemptedFields = 0;
+      let successfulFields = 0;
+      const failedFields = new Map();
+      
+      // Add retry logic for failed fields
+      const maxRetries = 3;
+      let currentRetry = 0;
+
       if (this.settings.confirmBeforeFill) {
         if (!confirm('Auto-fill the application form with your profile data?')) {
           return { success: false, error: 'User cancelled' };
@@ -893,12 +902,26 @@ if (typeof window.CONFIG === 'undefined') {
 
 
     getUniversalFieldMappings() {
-      return window.CONFIG?.FIELD_MAPPINGS || {};
+      const defaultMappings = {
+        firstName: ['input[name*="first"]', 'input[id*="first"]', 'input[placeholder*="first"]', 'input[aria-label*="first"]'],
+        lastName: ['input[name*="last"]', 'input[id*="last"]', 'input[placeholder*="last"]', 'input[aria-label*="last"]'],
+        email: ['input[type="email"]', 'input[name*="email"]', 'input[id*="email"]'],
+        phone: ['input[type="tel"]', 'input[name*="phone"]', 'input[id*="phone"]'],
+        linkedin: ['input[name*="linkedin"]', 'input[id*="linkedin"]', 'input[placeholder*="linkedin"]'],
+        github: ['input[name*="github"]', 'input[id*="github"]', 'input[placeholder*="github"]'],
+        portfolio: ['input[name*="portfolio"]', 'input[id*="portfolio"]', 'input[placeholder*="portfolio"]'],
+        address: ['input[name*="address"]', 'textarea[name*="address"]'],
+        city: ['input[name*="city"]', 'input[id*="city"]'],
+        state: ['input[name*="state"]', 'select[name*="state"]'],
+        country: ['input[name*="country"]', 'select[name*="country"]'],
+        zip: ['input[name*="zip"]', 'input[name*="postal"]']
+      };
+      return { ...defaultMappings, ...(window.CONFIG?.FIELD_MAPPINGS || {}) };
     }
 
     shouldFillField(element) {
       // Don't fill if already has content
-      if (element.value && element.value.trim()) return false;
+      if (element.value && element.value.trim() && !this.settings.overwriteExisting) return false;
       
       // Don't fill hidden fields
       if (!element.offsetParent) return false;
@@ -911,12 +934,46 @@ if (typeof window.CONFIG === 'undefined') {
 
     async fillField(element, value) {
       try {
-        // Focus the field
-        element.focus();
-        await this.delay(100);
+        // Advanced field detection and validation
+        if (!this.isFieldFillable(element)) {
+          console.log('Field not fillable:', element);
+          return false;
+        }
+
+        // Smart value formatting based on field type
+        const formattedValue = this.formatValueForField(element, value);
+        if (!formattedValue) {
+          console.log('Could not format value for field:', element);
+          return false;
+        }
+
+        // Handle special input types
+        if (this.isSpecialInput(element)) {
+          return await this.handleSpecialInput(element, formattedValue);
+        }
+
+        // Smooth scroll to element
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        await this.delay(200);
         
-        // Clear existing value
-        element.value = '';
+        // Focus the field with retry
+        let focused = false;
+        for (let i = 0; i < 3; i++) {
+          try {
+            element.focus();
+            focused = document.activeElement === element;
+            if (focused) break;
+            await this.delay(100);
+          } catch (e) {
+            console.warn('Focus attempt failed:', e);
+          }
+        }
+        
+        // Clear existing value if needed
+        if (element.value && this.settings.overwriteExisting) {
+          element.value = '';
+          this.triggerEvents(element, ['input', 'change']);
+        }
         
         // For select elements, try to find matching option
         if (element.tagName === 'SELECT') {
@@ -952,6 +1009,124 @@ if (typeof window.CONFIG === 'undefined') {
         const event = new Event(eventType, { bubbles: true, cancelable: true });
         element.dispatchEvent(event);
       });
+    }
+
+    async handleSelect(element, value) {
+      const options = Array.from(element.options);
+      const bestMatch = this.findBestMatch(value, options.map(opt => opt.text));
+      if (bestMatch !== -1) {
+        element.selectedIndex = bestMatch;
+        this.triggerEvents(element, ['change', 'input']);
+        return true;
+      }
+      return false;
+    }
+
+    async handleRadio(element, value) {
+      const name = element.name;
+      const radioGroup = document.querySelectorAll(`input[type="radio"][name="${name}"]`);
+      for (const radio of radioGroup) {
+        if (this.isValueMatch(radio.value, value)) {
+          radio.checked = true;
+          this.triggerEvents(radio, ['change', 'input']);
+          return true;
+        }
+      }
+      return false;
+    }
+
+    async handleCheckbox(element, value) {
+      const shouldCheck = this.parseBoolean(value);
+      if (element.checked !== shouldCheck) {
+        element.checked = shouldCheck;
+        this.triggerEvents(element, ['change', 'input']);
+      }
+      return true;
+    }
+
+    async handleDateInput(element, value) {
+      const date = this.formatDate(value);
+      if (date) {
+        element.value = date;
+        this.triggerEvents(element, ['change', 'input']);
+        return true;
+      }
+      return false;
+    }
+
+    async handleCombobox(element, value) {
+      // Focus and click to open dropdown
+      element.focus();
+      element.click();
+      await this.delay(100);
+
+      // Type the value
+      element.value = value;
+      this.triggerEvents(element, ['input', 'change']);
+      await this.delay(300);
+
+      // Look for dropdown items
+      const listbox = document.querySelector('[role="listbox"]');
+      if (listbox) {
+        const options = Array.from(listbox.querySelectorAll('[role="option"]'));
+        const bestMatch = this.findBestMatch(value, options.map(opt => opt.textContent));
+        if (bestMatch !== -1) {
+          options[bestMatch].click();
+          return true;
+        }
+      }
+      return false;
+    }
+
+    async handleContentEditable(element, value) {
+      element.textContent = value;
+      this.triggerEvents(element, ['input']);
+      return true;
+    }
+
+    findBestMatch(value, options) {
+      value = value.toLowerCase();
+      // First try exact match
+      const exactMatch = options.findIndex(opt => 
+        opt.toLowerCase() === value
+      );
+      if (exactMatch !== -1) return exactMatch;
+
+      // Then try contains
+      const containsMatch = options.findIndex(opt => 
+        opt.toLowerCase().includes(value) || value.includes(opt.toLowerCase())
+      );
+      if (containsMatch !== -1) return containsMatch;
+
+      // Finally try partial word match
+      const words = value.split(/\s+/);
+      return options.findIndex(opt => 
+        words.some(word => opt.toLowerCase().includes(word))
+      );
+    }
+
+    isValueMatch(option, value) {
+      option = option.toLowerCase();
+      value = value.toLowerCase();
+      
+      // Handle yes/no variations
+      if (this.isYesNoValue(option) && this.isYesNoValue(value)) {
+        return this.parseBoolean(option) === this.parseBoolean(value);
+      }
+      
+      return option === value || 
+             option.includes(value) || 
+             value.includes(option);
+    }
+
+    isYesNoValue(value) {
+      value = value.toLowerCase();
+      return ['yes', 'no', 'true', 'false', '1', '0', 'y', 'n'].includes(value);
+    }
+
+    parseBoolean(value) {
+      value = value.toLowerCase();
+      return ['yes', 'true', '1', 'y'].includes(value);
     }
 
     async setupFormWatchers() {
@@ -1141,6 +1316,121 @@ if (typeof window.CONFIG === 'undefined') {
         }
       `;
       document.head.appendChild(styles);
+    }
+
+    isFieldVisible(element) {
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return rect.width > 0 && 
+             rect.height > 0 && 
+             style.visibility !== 'hidden' && 
+             style.display !== 'none' &&
+             element.offsetParent !== null;
+    }
+
+    isFieldInteractive(element) {
+      return !element.disabled && 
+             !element.readOnly && 
+             !element.getAttribute('aria-disabled') === 'true' &&
+             !element.closest('[aria-disabled="true"]');
+    }
+
+    isFieldFillable(element) {
+      return this.isFieldVisible(element) && 
+             this.isFieldInteractive(element) &&
+             !this.isHiddenInput(element) &&
+             !this.isSecurityField(element);
+    }
+
+    isHiddenInput(element) {
+      const style = window.getComputedStyle(element);
+      return style.display === 'none' || 
+             style.visibility === 'hidden' || 
+             element.type === 'hidden' ||
+             element.getAttribute('aria-hidden') === 'true';
+    }
+
+    isSecurityField(element) {
+      const indicators = ['captcha', 'security', 'verification', 'token'];
+      const attrs = [element.name, element.id, element.className, element.placeholder];
+      return indicators.some(indicator => 
+        attrs.some(attr => attr && attr.toLowerCase().includes(indicator))
+      );
+    }
+
+    isSpecialInput(element) {
+      return element.tagName === 'SELECT' || 
+             element.type === 'radio' || 
+             element.type === 'checkbox' ||
+             element.type === 'date' ||
+             element.getAttribute('role') === 'combobox' ||
+             element.getAttribute('contenteditable') === 'true';
+    }
+
+    async handleSpecialInput(element, value) {
+      switch(true) {
+        case element.tagName === 'SELECT':
+          return await this.handleSelect(element, value);
+        case element.type === 'radio':
+          return await this.handleRadio(element, value);
+        case element.type === 'checkbox':
+          return await this.handleCheckbox(element, value);
+        case element.type === 'date':
+          return await this.handleDateInput(element, value);
+        case element.getAttribute('role') === 'combobox':
+          return await this.handleCombobox(element, value);
+        case element.getAttribute('contenteditable') === 'true':
+          return await this.handleContentEditable(element, value);
+        default:
+          return false;
+      }
+    }
+
+    formatValueForField(element, value) {
+      if (!value) return '';
+
+      switch(element.type) {
+        case 'email':
+          return value.trim().toLowerCase();
+        case 'tel':
+          return this.formatPhoneNumber(value);
+        case 'number':
+          return this.formatNumber(value);
+        case 'date':
+          return this.formatDate(value);
+        case 'url':
+          return this.formatURL(value);
+        default:
+          return value.trim();
+      }
+    }
+
+    formatPhoneNumber(phone) {
+      // Remove all non-numeric characters
+      const cleaned = phone.replace(/\D/g, '');
+      // Format as (XXX) XXX-XXXX
+      return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
+    }
+
+    formatNumber(value) {
+      const num = parseFloat(value);
+      return isNaN(num) ? '' : num.toString();
+    }
+
+    formatDate(date) {
+      try {
+        return new Date(date).toISOString().split('T')[0];
+      } catch {
+        return '';
+      }
+    }
+
+    formatURL(url) {
+      try {
+        return new URL(url).toString();
+      } catch {
+        return url;
+      }
     }
 
     showNotification(message, type = 'success') {

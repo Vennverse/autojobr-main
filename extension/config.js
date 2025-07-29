@@ -1,5 +1,5 @@
 // Configuration for AutoJobr Extension
-const CONFIG = {
+const CONFIG = Object.freeze({
   API_BASE_URL: 'https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev',
   ENDPOINTS: {
     USER: '/api/user',
@@ -20,15 +20,13 @@ const CONFIG = {
     SETTINGS: 'autojobr_settings'
   },
   CACHE_DURATION: 24 * 60 * 60 * 1000, // 24 hours
-  JOB_BOARDS: [
+  // Job board configurations
+  SUPPORTED_JOB_BOARDS: [
     'linkedin.com',
     'indeed.com',
     'glassdoor.com',
     'monster.com',
     'ziprecruiter.com',
-    'careerbuilder.com',
-    'simplyhired.com',
-    'dice.com',
     'stackoverflow.com',
     'angel.co',
     'wellfound.com',
@@ -36,26 +34,131 @@ const CONFIG = {
     'lever.co',
     'workday.com',
     'myworkdayjobs.com',
-    'bamboohr.com',
-    'smartrecruiters.com',
-    'jobvite.com',
-    'icims.com',
-    'taleo.net',
-    'successfactors.com',
-    'naukri.com',
-    'shine.com',
-    'timesjobs.com',
-    'foundit.in'
+    'bamboohr.com'
   ],
-  FIELD_MAPPINGS: {
+  JOB_BOARD_CONFIGS: {
+    'linkedin.com': {
+      name: 'LinkedIn',
+      selectors: {
+        applyButton: '.jobs-apply-button',
+        easyApply: '.jobs-easy-apply-button'
+      }
+    },
+    'indeed.com': {
+      name: 'Indeed',
+      selectors: {
+        applyButton: '.indeed-apply-button',
+        indeedApply: '.indeed-apply-widget'
+      }
+    },
+    'glassdoor.com': {
+      name: 'Glassdoor',
+      selectors: {
+        applyButton: '.applyButton'
+      }
+    },
+    'monster.com': {
+      name: 'Monster',
+      selectors: {
+        applyButton: '.applyButtonLink'
+      }
+    },
+    'ziprecruiter.com': {
+      name: 'ZipRecruiter',
+      selectors: {
+        applyButton: '.job_apply',
+        oneClickApply: '.one-click-apply'
+      }
+    },
+    'smartrecruiters.com': {
+      name: 'SmartRecruiters',
+      selectors: {
+        applyButton: '.apply-button'
+      }
+    },
+    'jobvite.com': {
+      name: 'Jobvite',
+      selectors: {
+        applyButton: '.jv-button-apply'
+      }
+    },
+    'icims.com': {
+      name: 'iCIMS',
+      selectors: {
+        applyButton: '.iCIMS_ApplyButton'
+      }
+    },
+    'taleo.net': {
+      name: 'Taleo',
+      selectors: {
+        applyButton: '.requisitionApplyButton'
+      }
+    },
+    'successfactors.com': {
+      name: 'SuccessFactors',
+      selectors: {
+        applyButton: '.sf-apply-button'
+      }
+    },
+    'naukri.com': {
+      name: 'Naukri',
+      selectors: {
+        applyButton: '.apply-button'
+      }
+    },
+    'shine.com': {
+      name: 'Shine',
+      selectors: {
+        applyButton: '.apply-btn'
+      }
+    },
+    'timesjobs.com': {
+      name: 'TimesJobs',
+      selectors: {
+        applyButton: '.apply-job-btn'
+      }
+    },
+    'foundit.in': {
+      name: 'Foundit',
+      selectors: {
+        applyButton: '.apply-button'
+      }
+    }
+  },
+  FIELD_MAPPINGS: Object.freeze({
+    // Personal Information with enhanced patterns
     firstName: [
+      // Standard HTML attributes
       'input[name*="first" i]',
-      'input[placeholder*="first" i]',
+      'input[name*="given" i]',
       'input[id*="first" i]',
+      'input[id*="given" i]',
+      // Placeholder and labels
+      'input[placeholder*="first" i]',
+      'input[placeholder*="given" i]',
+      'input[aria-label*="first" i]',
+      'input[aria-label*="given" i]',
+      // Data attributes
       '[data-automation-id*="first"]',
-      '[data-testid*="first"]',
       '[data-automation-id*="firstName"]',
-      'input[aria-label*="first" i]'
+      '[data-automation-id*="given"]',
+      '[data-testid*="first"]',
+      '[data-testid*="firstName"]',
+      '[data-field*="first" i]',
+      // React/Angular patterns
+      '[formcontrolname*="first" i]',
+      '[ng-model*="first" i]',
+      // Common class patterns
+      '.first-name-input',
+      '.given-name-input',
+      // Form group patterns
+      'div[class*="first-name"] input',
+      'div[class*="given-name"] input',
+      'label[for*="first"] + input',
+      // Specific platform patterns
+      'input[name="applicant.firstName"]',
+      'input[name="candidate.firstName"]',
+      'input[name$=".first_name"]'
     ],
     lastName: [
       'input[name*="last" i]',
@@ -74,16 +177,71 @@ const CONFIG = {
       'input[placeholder*="country" i]'
     ],
     email: [
+      // Standard HTML5
       'input[type="email"]',
+      // Name attributes
       'input[name*="email" i]',
+      'input[name*="e-mail" i]',
+      'input[name$=".email"]',
+      'input[name="applicant.emailAddress"]',
+      // Placeholders and labels
       'input[placeholder*="email" i]',
-      '[data-automation-id*="email"]'
+      'input[placeholder*="e-mail" i]',
+      'input[aria-label*="email" i]',
+      // Data attributes
+      '[data-automation-id*="email"]',
+      '[data-testid*="email"]',
+      '[data-field="email"]',
+      // Form control patterns
+      '[formcontrolname="email"]',
+      '[ng-model*="email"]',
+      // Class patterns
+      '.email-input',
+      '.e-mail-input',
+      // Form group patterns
+      'div[class*="email-field"] input',
+      'label[for*="email"] + input',
+      // Specific platforms
+      'input[name="candidate.email"]',
+      'input[name="contact.email"]',
+      'input[name*="primary"][name*="email"]'
     ],
     phone: [
+      // Standard HTML5
       'input[type="tel"]',
+      // Name attributes
       'input[name*="phone" i]',
+      'input[name*="mobile" i]',
+      'input[name*="cell" i]',
+      'input[name$=".phoneNumber"]',
+      'input[name="applicant.phone"]',
+      // Placeholders and labels
       'input[placeholder*="phone" i]',
-      '[data-automation-id*="phone"]'
+      'input[placeholder*="mobile" i]',
+      'input[aria-label*="phone" i]',
+      'input[aria-label*="telephone" i]',
+      // Data attributes
+      '[data-automation-id*="phone"]',
+      '[data-automation-id*="mobile"]',
+      '[data-testid*="phone"]',
+      '[data-field*="phone"]',
+      // Form control patterns
+      '[formcontrolname*="phone"]',
+      '[ng-model*="phone"]',
+      // Class patterns
+      '.phone-input',
+      '.mobile-input',
+      '.telephone-input',
+      // Form group patterns
+      'div[class*="phone-field"] input',
+      'div[class*="mobile-field"] input',
+      'label[for*="phone"] + input',
+      // International variations
+      'input[name*="contact"][name*="number"]',
+      'input[name*="primary"][name*="phone"]',
+      // Platform specific
+      'input[name="phoneNumber.number"]',
+      'input[name="candidate.phone"]'
     ],
     address: [
       'input[name*="address" i]',
@@ -121,17 +279,66 @@ const CONFIG = {
       'input[name*="experience" i]'
     ],
     university: [
+      // Standard fields
       'input[name*="university" i]',
       'input[name*="college" i]',
-      'input[name*="school" i]'
+      'input[name*="school" i]',
+      'input[name*="institution" i]',
+      // Autocomplete fields
+      'input[role="combobox"][name*="university" i]',
+      'input[role="combobox"][name*="school" i]',
+      // Data attributes
+      '[data-automation-id*="education"][data-automation-id*="school"]',
+      '[data-testid*="university"]',
+      '[data-field*="university"]',
+      // Form patterns
+      'div[class*="education"] input[name*="school"]',
+      'div[class*="education"] input[name*="university"]',
+      // Select elements for predefined lists
+      'select[name*="university" i]',
+      'select[name*="school" i]',
+      // Specific patterns
+      'input[name="education.schoolName"]',
+      'input[name$=".institution_name"]'
     ],
     degree: [
+      // Standard fields
       'select[name*="degree" i]',
-      'input[name*="degree" i]'
+      'input[name*="degree" i]',
+      'select[name*="qualification" i]',
+      // Data attributes
+      '[data-automation-id*="degree"]',
+      '[data-testid*="degree"]',
+      '[data-field*="degree"]',
+      // Common variations
+      'select[name*="education"][name*="type"]',
+      'select[name*="degree"][name*="level"]',
+      // Specific patterns
+      'select[name="education.degreeType"]',
+      'select[name$=".degree_level"]',
+      // Form group patterns
+      'div[class*="degree-type"] select',
+      'div[class*="qualification"] select'
     ],
     major: [
+      // Standard fields
       'input[name*="major" i]',
-      'input[name*="field" i]'
+      'input[name*="field" i]',
+      'input[name*="course" i]',
+      'select[name*="major" i]',
+      // Data attributes
+      '[data-automation-id*="major"]',
+      '[data-testid*="major"]',
+      '[data-field*="major"]',
+      // Study field variations
+      'input[name*="study"][name*="field"]',
+      'select[name*="study"][name*="field"]',
+      // Specific patterns
+      'input[name="education.fieldOfStudy"]',
+      'input[name$=".study_field"]',
+      // Form group patterns
+      'div[class*="field-of-study"] input',
+      'div[class*="study-field"] input'
     ],
     // Work Authorization and Legal Status
     workAuthorization: [
@@ -171,20 +378,61 @@ const CONFIG = {
     ],
     // Professional Experience
     currentCompany: [
+      // Standard fields
       'input[name*="company" i]',
       'input[name*="employer" i]',
+      'input[name*="organization" i]',
+      // Current/Present company
+      'input[name*="current"][name*="company" i]',
+      'input[name*="present"][name*="employer" i]',
+      // Data attributes
       '[data-automation-id*="company"]',
+      '[data-automation-id*="employer"]',
+      '[data-testid*="company"]',
+      '[data-field*="company"]',
+      // Placeholders and labels
       'input[placeholder*="company" i]',
+      'input[placeholder*="employer" i]',
       'input[aria-label*="company" i]',
-      'input[name*="current" i][name*="employer" i]'
+      'input[aria-label*="employer" i]',
+      // Form control patterns
+      '[formcontrolname*="company"]',
+      '[ng-model*="company"]',
+      // Specific patterns
+      'input[name="experience.companyName"]',
+      'input[name$=".employer_name"]',
+      // Common variations
+      'input[name*="work"][name*="company"]',
+      'input[name*="employment"][name*="company"]'
     ],
     currentTitle: [
+      // Standard fields
       'input[name*="title" i]',
       'input[name*="position" i]',
       'input[name*="role" i]',
+      'input[name*="designation" i]',
+      // Current position indicators
+      'input[name*="current"][name*="title" i]',
+      'input[name*="present"][name*="position" i]',
+      // Data attributes
       '[data-automation-id*="jobTitle"]',
+      '[data-automation-id*="position"]',
+      '[data-testid*="title"]',
+      '[data-field*="title"]',
+      // Placeholders and labels
       'input[placeholder*="title" i]',
-      'input[name*="current" i][name*="job" i]'
+      'input[placeholder*="position" i]',
+      'input[aria-label*="title" i]',
+      'input[aria-label*="position" i]',
+      // Form control patterns
+      '[formcontrolname*="title"]',
+      '[ng-model*="title"]',
+      // Specific patterns
+      'input[name="experience.jobTitle"]',
+      'input[name$=".position_title"]',
+      // Common variations
+      'input[name*="work"][name*="title"]',
+      'input[name*="employment"][name*="role"]'
     ],
     // Salary and Benefits
     expectedSalary: [
@@ -227,17 +475,64 @@ const CONFIG = {
     ],
     // Skills and Certifications
     programmingLanguages: [
+      // Standard fields
       'textarea[name*="programming" i]',
       'textarea[name*="languages" i]',
       'input[name*="skills" i]',
       'textarea[name*="technical" i]',
-      '[data-automation-id*="skills"]'
+      // Multi-select inputs
+      'select[multiple][name*="skills"]',
+      'select[multiple][name*="technologies"]',
+      // Data attributes
+      '[data-automation-id*="skills"]',
+      '[data-testid*="skills"]',
+      '[data-field*="technical-skills"]',
+      // Common variations
+      'div[class*="skills-input"] input',
+      'div[class*="technologies"] input',
+      // Specific platform patterns
+      'input[name="technical.programmingLanguages"]',
+      'input[name*="skills"][type="text"]',
+      // Tag inputs
+      'div[class*="tags"] input[type="text"]',
+      'div[role="combobox"][aria-label*="skills"]',
+      // Skill chips/tokens
+      'div[class*="skill-chips"] input',
+      'div[class*="token-input"] input'
+    ],
+    technicalSkills: [
+      // Frameworks and tools
+      'textarea[name*="framework" i]',
+      'input[name*="tools" i]',
+      'select[multiple][name*="technologies"]',
+      // Data attributes
+      '[data-automation-id*="technicalSkills"]',
+      '[data-testid*="technologies"]',
+      // Common variations
+      'div[class*="tech-stack"] input',
+      'div[class*="frameworks"] input',
+      // Specific patterns
+      'input[name="technical.frameworks"]',
+      'input[name*="tech"][name*="stack"]'
     ],
     certifications: [
+      // Standard fields
       'textarea[name*="certification" i]',
       'input[name*="certified" i]',
       'textarea[name*="license" i]',
-      'input[placeholder*="certification" i]'
+      // Placeholders and labels
+      'input[placeholder*="certification" i]',
+      'input[aria-label*="certifications" i]',
+      // Data attributes
+      '[data-automation-id*="certifications"]',
+      '[data-testid*="certificates"]',
+      '[data-field*="certifications"]',
+      // Common variations
+      'div[class*="certifications"] input',
+      'div[class*="credentials"] input',
+      // Specific patterns
+      'input[name="professional.certifications"]',
+      'input[name*="technical"][name*="certs"]'
     ],
     // Additional Information
     coverLetter: [
@@ -380,13 +675,25 @@ const CONFIG = {
       'select[aria-label*="country" i]'
     ]
   },
-  JOB_SELECTORS: {
+  // Job search selectors
+  jobSelectors: {
     title: [
-      'h1', 
+      // Generic selectors
+      'h1:not(.logo)', 
       '[data-automation-id*="jobTitle"]',
       '.job-title',
       '.position-title',
-      '[class*="title"]'
+      // Platform specific selectors
+      '.jobs-unified-top-card__job-title', // LinkedIn
+      '.jobsearch-JobInfoHeader-title', // Indeed
+      '[data-automation-id="jobPostingHeader"]', // Workday
+      '.posting-headline h2', // Greenhouse
+      '.posting-headline', // Lever
+      // Common patterns
+      '[class*="job"][class*="title"]',
+      '[class*="position"][class*="title"]',
+      'h1[class*="title"]',
+      'h2[class*="title"]'
     ],
     company: [
       '[data-automation-id*="company"]',
@@ -406,7 +713,8 @@ const CONFIG = {
       '[role="main"]'
     ]
   },
-  SUBMISSION_SELECTORS: [
+
+  submissionSelectors: [
     'button[type="submit"]',
     'input[type="submit"]',
     'button[data-automation-id*="submit"]',
@@ -414,8 +722,10 @@ const CONFIG = {
     'button:contains("Submit")',
     'button:contains("Apply")',
     'a[href*="apply"]'
-  ]
-};
+  ],
+
+  version: '1.0.0'
+});
 
 // Enhanced API client with persistent authentication
 class AutoJobrAPI {

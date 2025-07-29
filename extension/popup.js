@@ -1,4 +1,3 @@
-// Popup script for AutoJobr Universal Extension
 class AutoJobrPopup {
   constructor() {
     this.isAuthenticated = false;
@@ -6,7 +5,8 @@ class AutoJobrPopup {
     this.settings = {
       autoFill: true,
       trackApplications: true,
-      showNotifications: true
+      showNotifications: true,
+      autoProgress: true // Enable auto-progression by default for multi-step forms
     };
     
     this.init();
@@ -18,6 +18,7 @@ class AutoJobrPopup {
     await this.getCurrentTab();
     this.setupEventListeners();
     this.updateUI();
+    this.checkFormStatus(); // Check for multi-step forms on initialization
   }
 
   async loadSettings() {
@@ -81,7 +82,7 @@ class AutoJobrPopup {
     this.updateToggle('notificationToggle', this.settings.showNotifications);
 
     // Enable/disable buttons based on authentication
-    const buttons = ['analyzeJobBtn', 'saveJobBtn', 'fillFormBtn'];
+    const buttons = ['analyzeJobBtn', 'saveJobBtn', 'fillFormBtn', 'viewApplicationsBtn'];
     buttons.forEach(buttonId => {
       const button = document.getElementById(buttonId);
       button.disabled = !this.isAuthenticated;
@@ -109,7 +110,21 @@ class AutoJobrPopup {
         settings: this.settings
       });
     } catch (error) {
-      // Content script might not be loaded
+      console.error('Failed to update content script settings:', error);
+    }
+  }
+
+  async checkFormStatus() {
+    try {
+      const response = await chrome.tabs.sendMessage(this.currentTab.id, {
+        action: 'DETECT_FORM_STEPS'
+      });
+
+      if (response && response.success && response.steps > 1) {
+        this.showFormNavigationUI(response.currentStep, response.steps);
+      }
+    } catch (error) {
+      console.error('Form status check failed:', error);
     }
   }
 
@@ -174,8 +189,7 @@ class AutoJobrPopup {
     try {
       this.setButtonLoading('fillFormBtn', true);
       
-      // Check if auto-progression is enabled (could add a checkbox to popup later)
-      const autoProgress = this.settings.autoProgress || false;
+      const autoProgress = this.settings.autoProgress;
       
       // Add timeout to prevent hanging
       const response = await Promise.race([
@@ -184,15 +198,18 @@ class AutoJobrPopup {
           autoProgress: autoProgress 
         }),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout: No response from content script')), 10000)
+          setTimeout(() => reject(new Error('Timeout: No response from content script')), 15000)
         )
       ]);
 
       if (response && response.success) {
         const message = response.type === 'multi-step' ? 
-          `Multi-step form completed in ${response.steps || 1} steps!` : 
+          `Multi-step form filled in ${response.result?.steps || 1} steps!` : 
           'Form filled successfully!';
         this.showNotification(message);
+        
+        // Refresh form status after filling
+        setTimeout(() => this.checkFormStatus(), 2000);
       } else {
         this.showNotification(response?.error || 'Failed to fill form', 'error');
       }
@@ -222,7 +239,7 @@ class AutoJobrPopup {
 
   setButtonLoading(buttonId, isLoading) {
     const button = document.getElementById(buttonId);
-    const originalText = button.textContent;
+    const originalText = button.dataset.originalText || button.textContent;
     
     if (isLoading) {
       button.disabled = true;
@@ -230,19 +247,18 @@ class AutoJobrPopup {
       button.dataset.originalText = originalText;
     } else {
       button.disabled = !this.isAuthenticated;
-      button.textContent = button.dataset.originalText || originalText;
+      button.textContent = originalText;
     }
   }
 
   showNotification(message, type = 'success') {
-    // Create and show a temporary notification
     const notification = document.createElement('div');
     notification.style.cssText = `
       position: fixed;
       top: 10px;
       left: 50%;
       transform: translateX(-50%);
-      background: ${type === 'error' ? '#ef4444' : '#10b981'};
+      background: ${type === 'error' ? '#ef4444' : type === 'warning' ? '#f59e0b' : '#10b981'};
       color: white;
       padding: 8px 16px;
       border-radius: 6px;
@@ -260,15 +276,23 @@ class AutoJobrPopup {
     }, 3000);
   }
 
-  // Enhanced form navigation helpers
   async navigateForm(direction) {
     try {
-      await chrome.tabs.sendMessage(this.currentTab.id, {
+      const response = await chrome.tabs.sendMessage(this.currentTab.id, {
         action: 'NAVIGATE_FORM',
         direction: direction
       });
+
+      if (response && response.success) {
+        this.showNotification(`Navigated to ${direction} step`);
+        // Refresh form status after navigation
+        setTimeout(() => this.checkFormStatus(), 2000);
+      } else {
+        this.showNotification(`No ${direction} step available`, 'error');
+      }
     } catch (error) {
       console.error('Form navigation failed:', error);
+      this.showNotification('Navigation failed', 'error');
     }
   }
 
@@ -276,29 +300,21 @@ class AutoJobrPopup {
     const userInput = prompt(`Please provide ${fieldType}:`);
     if (userInput) {
       try {
-        await chrome.tabs.sendMessage(this.currentTab.id, {
+        const response = await chrome.tabs.sendMessage(this.currentTab.id, {
           action: 'FILL_FIELD_DATA',
           fieldType: fieldType,
           data: userInput
         });
+
+        if (response.success) {
+          this.showNotification(`${fieldType} filled successfully`);
+        } else {
+          this.showNotification(`Failed to fill ${fieldType}`, 'error');
+        }
       } catch (error) {
         console.error('Failed to fill field:', error);
+        this.showNotification('Field fill failed', 'error');
       }
-    }
-  }
-
-  // Multi-step form handling
-  async handleMultiStepForm() {
-    try {
-      const response = await chrome.tabs.sendMessage(this.currentTab.id, {
-        action: 'DETECT_FORM_STEPS'
-      });
-
-      if (response && response.steps > 1) {
-        this.showFormNavigationUI(response.currentStep, response.steps);
-      }
-    } catch (error) {
-      console.error('Multi-step form detection failed:', error);
     }
   }
 
@@ -311,8 +327,8 @@ class AutoJobrPopup {
           Step ${currentStep} of ${totalSteps}
         </div>
         <div style="display: flex; gap: 8px;">
-          <button id="prevStepBtn" class="btn btn-secondary" style="flex: 1;">← Previous</button>
-          <button id="nextStepBtn" class="btn btn-primary" style="flex: 1;">Next →</button>
+          <button id="prevStepBtn" class="btn btn-secondary" style="flex: 1;" ${currentStep === 1 ? 'disabled' : ''}>← Previous</button>
+          <button id="nextStepBtn" class="btn btn-primary" style="flex: 1;" ${currentStep === totalSteps ? 'disabled' : ''}>Next →</button>
         </div>
       </div>
     `;
@@ -324,14 +340,21 @@ class AutoJobrPopup {
     document.querySelector('.content').appendChild(navigationDiv);
 
     // Add event listeners
-    document.getElementById('prevStepBtn').addEventListener('click', () => this.navigateForm('previous'));
-    document.getElementById('nextStepBtn').addEventListener('click', () => this.navigateForm('next'));
+    const prevBtn = document.getElementById('prevStepBtn');
+    const nextBtn = document.getElementById('nextStepBtn');
+    
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => this.navigateForm('previous'));
+    }
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => this.navigateForm('next'));
+    }
   }
 }
 
 // Initialize popup when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  new AutoJobrPopup();
+  window.autojobrPopup = new AutoJobrPopup();
 });
 
 // Listen for messages from content script
