@@ -24,7 +24,7 @@ if (typeof window.CONFIG === 'undefined') {
       this.savedJobs = new Set();
       this.applications = new Map();
       this.autoFillEnabled = true;
-      this.api = new window.AutoJobrAPI();
+      this.api = null; // Will use chrome.runtime.sendMessage instead
       this.settings = {
         autoDetect: true,
         autoFill: true,
@@ -1378,7 +1378,7 @@ if (typeof window.CONFIG === 'undefined') {
 
     isSecurityField(element) {
       const indicators = ['captcha', 'security', 'verification', 'token'];
-      const attrs = [element.name, element.id, element.className, element.placeholder];
+      const attrs = [element.name, element.id, (element.className || ''), element.placeholder];
       return indicators.some(indicator => 
         attrs.some(attr => attr && attr.toLowerCase().includes(indicator))
       );
@@ -1909,7 +1909,7 @@ ${profile.fullName || 'Your Name'}`;
       
       const text = button.textContent?.toLowerCase() || '';
       const ariaLabel = button.getAttribute('aria-label')?.toLowerCase() || '';
-      const className = button.className?.toLowerCase() || '';
+      const className = (button.className && typeof button.className === 'string') ? button.className.toLowerCase() : '';
       const id = button.id?.toLowerCase() || '';
       
       if (direction === 'next') {
@@ -2287,7 +2287,7 @@ ${profile.fullName || 'Your Name'}`;
         const button = event.target;
         const buttonText = button.textContent?.toLowerCase() || '';
         const buttonId = button.id?.toLowerCase() || '';
-        const buttonClass = button.className?.toLowerCase() || '';
+        const buttonClass = (button.className && typeof button.className === 'string') ? button.className.toLowerCase() : '';
         
         // More restrictive submit button detection - only final submission actions
         const isSubmitButton = (
