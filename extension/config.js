@@ -1,6 +1,6 @@
 // Configuration for AutoJobr Extension
 const CONFIG = {
-  API_BASE_URL: 'https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev',
+  API_BASE_URL: 'https://66646205-4b19-45d4-bdc7-369245bfe5c6-00-19yxqnspsb6o2.spock.replit.dev',
   ENDPOINTS: {
     USER: '/api/user',
     PROFILE: '/api/profile',
@@ -429,7 +429,7 @@ class AutoJobrAPI {
 
   detectBackendURL() {
     // Use Replit app URL
-    return 'https://2c294fad-7817-4711-a460-7808eeccb047-00-3bi7bnnz6rhfb.picard.replit.dev';
+    return 'https://66646205-4b19-45d4-bdc7-369245bfe5c6-00-19yxqnspsb6o2.spock.replit.dev/';
   }
 
   async makeRequest(endpoint, options = {}) {
