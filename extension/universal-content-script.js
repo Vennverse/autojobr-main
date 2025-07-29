@@ -1372,8 +1372,6 @@ ${profile.fullName || 'Your Name'}`;
       return { success: false, error: 'Field not found' };
     }
 
-    }
-
     // Enhanced multi-step form detection and auto-progression
     detectFormSteps() {
       console.log('🔍 Detecting form steps and structure...');
@@ -1589,24 +1587,43 @@ ${profile.fullName || 'Your Name'}`;
       const hasCompletionUrl = completionUrls.some(pattern => url.includes(pattern));
       
       return hasCompletionText || finalStepIndicators.length > 0 || hasCompletionUrl;
+    }
 
-      if (stepIndicators.length > 0) {
-        totalSteps = stepIndicators.length;
-        const activeStep = document.querySelector('.step.active, .step.current, [class*="step"][class*="active"]');
-        if (activeStep) {
-          currentStep = Array.from(stepIndicators).indexOf(activeStep) + 1;
-        }
-      } else if (progressBars.length > 0) {
-        const progressBar = progressBars[0];
-        const ariaValueNow = progressBar.getAttribute('aria-valuenow');
-        const ariaValueMax = progressBar.getAttribute('aria-valuemax');
-        if (ariaValueNow && ariaValueMax) {
-          currentStep = parseInt(ariaValueNow);
-          totalSteps = parseInt(ariaValueMax);
+    // Navigate form steps (next/previous)
+    async navigateFormStep(direction = 'next') {
+      console.log(`🧭 Attempting to navigate form ${direction}`);
+      
+      // Look for navigation buttons
+      const buttonSelectors = [
+        `button[type="submit"]`,
+        `input[type="submit"]`,
+        `button:contains("${direction}")`,
+        `.btn-${direction}`,
+        `[class*="${direction}"]`,
+        `[data-step="${direction}"]`,
+        `[aria-label*="${direction}"]`
+      ];
+      
+      const buttons = document.querySelectorAll(buttonSelectors.join(', '));
+      let bestButton = null;
+      
+      for (const button of buttons) {
+        if (this.isValidNavigationButton(button, direction)) {
+          bestButton = button;
+          break;
         }
       }
-
-      return { total: totalSteps, current: currentStep };
+      
+      if (bestButton) {
+        try {
+          await this.clickButtonSafely(bestButton);
+          return { success: true, action: `clicked ${direction} button` };
+        } catch (error) {
+          return { success: false, error: error.message };
+        }
+      }
+      
+      return { success: false, error: `No ${direction} button found` };
     }
 
     // Enhanced submission detection that works across all platforms
