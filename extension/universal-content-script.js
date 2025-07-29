@@ -163,32 +163,53 @@ if (typeof window.CONFIG === 'undefined') {
     async detectJobPage() {
       const hostname = window.location.hostname;
       const url = window.location.href;
-      const pageText = document.body?.textContent || '';
       
-      // Use CONFIG.JOB_BOARDS for detection
-      const isJobSite = window.CONFIG?.JOB_BOARDS?.some(board => 
-        hostname.includes(board) || url.includes(board)
-      ) || false;
+      // Strict job board detection - only activate on actual job boards
+      const jobBoards = [
+        'linkedin.com', 'indeed.com', 'glassdoor.com', 'workday.com', 
+        'myworkdayjobs.com', 'greenhouse.io', 'lever.co', 'monster.com',
+        'ziprecruiter.com', 'wellfound.com', 'angel.co', 'bamboohr.com',
+        'smartrecruiters.com', 'jobvite.com', 'icims.com', 'taleo.net',
+        'successfactors.com', 'ashbyhq.com', 'naukri.com'
+      ];
       
-      if (isJobSite || this.detectJobContent(pageText)) {
-        await this.analyzeJobPage();
-        await this.createJobWidget();
+      const isJobBoard = jobBoards.some(board => hostname.includes(board));
+      
+      // Additional check for job page indicators in URL
+      const hasJobIndicators = url.includes('/job') || url.includes('/career') || 
+                              url.includes('/posting') || url.includes('/position') ||
+                              url.includes('/opening') || url.includes('/vacancy');
+      
+      // Only show widget on actual job boards with job content
+      if (isJobBoard && hasJobIndicators) {
+        console.log('Job page detected on supported platform:', hostname);
+        const pageText = document.body?.textContent || '';
+        const hasJobContent = this.detectJobContent(pageText);
+        
+        if (hasJobContent) {
+          await this.analyzeJobPage();
+          await this.createJobWidget();
+        }
+      } else {
+        console.log('Not a job board or job page, skipping AutoJobr activation');
       }
     }
 
     detectJobContent(pageText) {
+      // More specific job content detection
       const jobKeywords = [
         'apply now', 'submit application', 'job description',
         'requirements', 'qualifications', 'responsibilities',
-        'salary', 'benefits', 'employment type', 'location',
-        'experience required', 'skills required'
+        'salary', 'benefits', 'employment type', 'years of experience',
+        'skills required', 'apply for this job', 'job details'
       ];
       
       const keywordCount = jobKeywords.filter(keyword => 
         pageText.toLowerCase().includes(keyword)
       ).length;
       
-      return keywordCount >= 3;
+      // Require at least 4 job-specific keywords to avoid false positives
+      return keywordCount >= 4;
     }
 
     async analyzeJobPage() {
