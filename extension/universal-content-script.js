@@ -82,7 +82,7 @@ if (typeof window.CONFIG === 'undefined') {
         
         // Create a simple fetch function that includes credentials
         const apiRequest = async (endpoint) => {
-          const response = await fetch(`${window.CONFIG?.API_BASE_URL || 'https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev'}${endpoint}`, {
+          const response = await fetch(`${window.CONFIG?.API_BASE_URL || 'http://40.160.50.128'}${endpoint}`, {
             credentials: 'include',
             headers: {
               'Content-Type': 'application/json'

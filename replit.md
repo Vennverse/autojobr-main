@@ -29,6 +29,14 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 
 ## Recent Changes
 
+### January 29, 2025 - Chrome Extension VM Backend URL Migration Complete
+- ✅ **Backend URL Updates**: Updated all Chrome extension files to use VM backend URL (http://40.160.50.128) instead of Replit URLs
+- ✅ **Extension Files Updated**: Modified config.js, background.js, popup.js, universal-content-script.js with new backend endpoints
+- ✅ **JavaScript Syntax Fixes**: Fixed missing parentheses in Object.freeze() calls and class structure issues in background.js
+- ✅ **Form Filling Restored**: Extension form auto-fill functionality now working with VM backend integration
+- ✅ **Service Worker Fix**: Resolved service worker registration issues by fixing JavaScript syntax errors
+- ✅ **API Communication**: Extension now properly communicates with VM backend for all user profile and job analysis features
+
 ### January 29, 2025 - Chrome Extension Migration & Messaging Fix Complete
 - ✅ **Extension Migration Complete**: Successfully migrated Chrome extension to new Replit environment
 - ✅ **URL Updates**: Updated all extension files with current Replit URL (https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev)

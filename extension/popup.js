@@ -301,12 +301,12 @@ class AutoJobrPopup {
   }
 
   viewApplications() {
-    const url = 'https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev/applications';
+    const url = 'http://40.160.50.128/applications';
     chrome.tabs.create({ url: url });
   }
 
   showLoginPrompt() {
-    const url = 'https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev/auth';
+    const url = 'http://40.160.50.128/auth';
     chrome.tabs.create({ url: url });
   }
 

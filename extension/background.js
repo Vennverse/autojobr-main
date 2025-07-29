@@ -1,7 +1,7 @@
 // Background script for AutoJobr Extension - Fixed Version
 class AutoJobrBackground {
   constructor() {
-    this.apiBase = window.CONFIG?.API_BASE_URL || 'https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev';
+    this.apiBase = window.CONFIG?.API_BASE_URL || 'http://40.160.50.128';
     this.isAuthenticated = false;
     this.userProfile = null;
     this.initRetries = 0;
@@ -693,7 +693,6 @@ class AutoJobrBackground {
       console.error('Error handling application submission:', error);
     }
   }
-}
 
   async initializeFeatures() {
     // Initialize authentication

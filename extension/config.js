@@ -1,6 +1,6 @@
 // Configuration for AutoJobr Extension
 const CONFIG = Object.freeze({
-  API_BASE_URL: 'https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev',
+  API_BASE_URL: 'http://40.160.50.128',
   ENDPOINTS: {
     USER: '/api/user',
     PROFILE: '/api/profile',
@@ -674,7 +674,7 @@ const CONFIG = Object.freeze({
       '[data-automation-id*="country"]',
       'select[aria-label*="country" i]'
     ]
-  },
+  }),
   // Job search selectors
   jobSelectors: {
     title: [
@@ -738,8 +738,8 @@ class AutoJobrAPI {
   }
 
   detectBackendURL() {
-    // Use Replit app URL
-    return 'https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev';
+    // Use VM URL
+    return 'http://40.160.50.128';
   }
 
   async makeRequest(endpoint, options = {}) {
