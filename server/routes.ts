@@ -8943,5 +8943,182 @@ Host: https://autojobr.com`;
     }
   });
 
+  // Essential Chrome Extension API Endpoints
+  
+  // Health check endpoint for extension connection
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  // Job analysis endpoint for extension
+  app.post('/api/analyze-job-match', async (req: any, res) => {
+    try {
+      const { jobData, userProfile } = req.body;
+      
+      if (!jobData || !jobData.title) {
+        return res.status(400).json({ message: 'Job data is required' });
+      }
+
+      // Simple scoring algorithm for extension compatibility
+      let matchScore = 0;
+      const factors = [];
+
+      // Basic scoring based on job title and user profile
+      if (userProfile?.professionalTitle && jobData.title) {
+        const titleMatch = userProfile.professionalTitle.toLowerCase().includes(jobData.title.toLowerCase()) ||
+                          jobData.title.toLowerCase().includes(userProfile.professionalTitle.toLowerCase());
+        if (titleMatch) {
+          matchScore += 30;
+          factors.push('Title match');
+        }
+      }
+
+      // Skills matching
+      if (userProfile?.skills && jobData.description) {
+        const skillMatches = userProfile.skills.filter((skill: string) => 
+          jobData.description.toLowerCase().includes(skill.toLowerCase())
+        );
+        matchScore += Math.min(skillMatches.length * 10, 40);
+        if (skillMatches.length > 0) {
+          factors.push(`${skillMatches.length} skill matches`);
+        }
+      }
+
+      // Experience level matching
+      if (userProfile?.yearsExperience && jobData.description) {
+        const expRequired = jobData.description.match(/(\d+)\+?\s*years?\s*(of\s*)?experience/i);
+        if (expRequired) {
+          const requiredYears = parseInt(expRequired[1]);
+          if (userProfile.yearsExperience >= requiredYears) {
+            matchScore += 20;
+            factors.push('Experience requirement met');
+          }
+        }
+      }
+
+      // Location matching (basic)
+      if (userProfile?.location && jobData.location) {
+        const locationMatch = userProfile.location.toLowerCase().includes(jobData.location.toLowerCase()) ||
+                             jobData.location.toLowerCase().includes(userProfile.location.toLowerCase());
+        if (locationMatch) {
+          matchScore += 10;
+          factors.push('Location match');
+        }
+      }
+
+      // Cap at 100%
+      matchScore = Math.min(matchScore, 100);
+
+      res.json({
+        matchScore,
+        factors,
+        recommendation: matchScore >= 70 ? 'Strong match - apply now!' : 
+                      matchScore >= 50 ? 'Good match - consider applying' : 
+                      'Consider tailoring your application',
+        jobTitle: jobData.title,
+        company: jobData.company
+      });
+
+    } catch (error) {
+      console.error('Job analysis error:', error);
+      res.status(500).json({ message: 'Failed to analyze job match' });
+    }
+  });
+
+  // Cover letter generation endpoint for extension
+  app.post('/api/generate-cover-letter', async (req: any, res) => {
+    try {
+      const { jobData, userProfile } = req.body;
+      
+      if (!jobData || !jobData.title || !jobData.company) {
+        return res.status(400).json({ message: 'Job title and company are required' });
+      }
+
+      // Generate a basic cover letter template
+      const coverLetter = `Dear Hiring Manager,
+
+I am writing to express my interest in the ${jobData.title} position at ${jobData.company}. ${userProfile?.professionalTitle ? `As a ${userProfile.professionalTitle}` : 'As a professional'} with ${userProfile?.yearsExperience || 'several'} years of experience, I am excited about the opportunity to contribute to your team.
+
+${userProfile?.summary ? userProfile.summary : 'I have developed strong skills and experience that align well with this role.'} I am particularly drawn to this position because it allows me to leverage my expertise while contributing to ${jobData.company}'s continued success.
+
+${userProfile?.skills?.length > 0 ? `My key skills include ${userProfile.skills.slice(0, 3).join(', ')}, which I believe would be valuable for this role.` : ''}
+
+I would welcome the opportunity to discuss how my background and enthusiasm can contribute to your team. Thank you for considering my application.
+
+Sincerely,
+${userProfile?.fullName || (userProfile?.firstName && userProfile?.lastName ? userProfile.firstName + ' ' + userProfile.lastName : 'Your Name')}`;
+
+      res.json({ coverLetter });
+
+    } catch (error) {
+      console.error('Cover letter generation error:', error);
+      res.status(500).json({ message: 'Failed to generate cover letter' });
+    }
+  });
+
+  // Extension application tracking endpoint
+  app.post('/api/extension/applications', async (req: any, res) => {
+    try {
+      const userId = req.session?.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
+      const {
+        jobTitle,
+        company,
+        location,
+        jobUrl,
+        source = 'extension',
+        status = 'applied'
+      } = req.body;
+
+      if (!jobTitle || !company) {
+        return res.status(400).json({ message: 'Job title and company are required' });
+      }
+
+      // Check if application already exists
+      const existing = await db
+        .select()
+        .from(schema.jobApplications)
+        .where(and(
+          eq(schema.jobApplications.userId, userId),
+          eq(schema.jobApplications.jobTitle, jobTitle),
+          eq(schema.jobApplications.company, company)
+        ))
+        .limit(1);
+
+      if (existing.length > 0) {
+        return res.status(409).json({ message: 'Application already tracked' });
+      }
+
+      // Add new application
+      const application = await db
+        .insert(schema.jobApplications)
+        .values({
+          userId,
+          jobTitle,
+          company,
+          location: location || '',
+          jobUrl: jobUrl || '',
+          source,
+          status,
+          createdAt: new Date(),
+          lastUpdated: new Date()
+        })
+        .returning();
+
+      // Clear cache
+      invalidateUserCache(userId);
+
+      res.json({ success: true, application: application[0] });
+
+    } catch (error) {
+      console.error('Extension application tracking error:', error);
+      res.status(500).json({ message: 'Failed to track application' });
+    }
+  });
+
   return httpServer;
 }
