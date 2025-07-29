@@ -177,14 +177,20 @@ class AutoJobrPopup {
       // Check if auto-progression is enabled (could add a checkbox to popup later)
       const autoProgress = this.settings.autoProgress || false;
       
-      const response = await chrome.tabs.sendMessage(this.currentTab.id, { 
-        action: 'AUTO_FILL_FORM',
-        autoProgress: autoProgress 
-      });
+      // Add timeout to prevent hanging
+      const response = await Promise.race([
+        chrome.tabs.sendMessage(this.currentTab.id, { 
+          action: 'AUTO_FILL_FORM',
+          autoProgress: autoProgress 
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout: No response from content script')), 10000)
+        )
+      ]);
 
       if (response && response.success) {
         const message = response.type === 'multi-step' ? 
-          `Multi-step form completed in ${response.steps} steps!` : 
+          `Multi-step form completed in ${response.steps || 1} steps!` : 
           'Form filled successfully!';
         this.showNotification(message);
       } else {
@@ -192,7 +198,13 @@ class AutoJobrPopup {
       }
     } catch (error) {
       console.error('Fill form failed:', error);
-      this.showNotification('Fill failed', 'error');
+      if (error.message.includes('Timeout')) {
+        this.showNotification('Content script not responding - try refreshing the page', 'error');
+      } else if (error.message.includes('message channel closed')) {
+        this.showNotification('Extension not loaded on this page - try refreshing', 'error');
+      } else {
+        this.showNotification('Fill failed: ' + error.message, 'error');
+      }
     } finally {
       this.setButtonLoading('fillFormBtn', false);
     }

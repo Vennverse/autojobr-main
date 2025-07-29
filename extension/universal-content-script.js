@@ -1887,7 +1887,10 @@ ${profile.fullName || 'Your Name'}`;
 
   // Message listener for popup communication
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (!assistantInstance) return;
+    if (!assistantInstance) {
+      sendResponse({ success: false, error: 'Assistant not initialized' });
+      return false;
+    }
 
     switch (message.action) {
       case 'ANALYZE_CURRENT_JOB':
@@ -1907,11 +1910,20 @@ ${profile.fullName || 'Your Name'}`;
         break;
 
       case 'FILL_FORM':
-        assistantInstance.autoFillForm().then(result => {
-          sendResponse({ success: true, result });
-        }).catch(error => {
-          sendResponse({ success: false, error: error.message });
-        });
+      case 'AUTO_FILL_FORM':
+        (async () => {
+          try {
+            let result;
+            if (message.autoProgress) {
+              result = await assistantInstance.autoProgressForm();
+            } else {
+              result = await assistantInstance.autoFillCurrentStep();
+            }
+            sendResponse({ success: true, result, type: message.autoProgress ? 'multi-step' : 'single-step' });
+          } catch (error) {
+            sendResponse({ success: false, error: error.message });
+          }
+        })();
         break;
 
       case 'UPDATE_SETTINGS':
