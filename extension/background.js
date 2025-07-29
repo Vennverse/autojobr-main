@@ -1,7 +1,7 @@
 // Background script for AutoJobr Extension - Fixed Version
 class AutoJobrBackground {
   constructor() {
-    this.apiBase = 'http://40.160.50.128';
+    this.apiBase = 'https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev';
     this.isAuthenticated = false;
     this.userProfile = null;
     
@@ -94,13 +94,17 @@ class AutoJobrBackground {
 
   async analyzeJob(jobData) {
     try {
-      const response = await fetch(`${this.apiBase}/api/analyze-job`, {
+      const response = await fetch(`${this.apiBase}/api/jobs/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify(jobData)
+        body: JSON.stringify({
+          jobDescription: jobData.description || '',
+          jobTitle: jobData.title || '',
+          company: jobData.company || ''
+        })
       });
 
       // Check if response is successful

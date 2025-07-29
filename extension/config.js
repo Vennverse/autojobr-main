@@ -1,6 +1,6 @@
 // Configuration for AutoJobr Extension
 const CONFIG = {
-  API_BASE_URL: 'http://40.160.50.128',
+  API_BASE_URL: 'https://ab8b7c11-4933-4f20-96ce-3083dfb2112d-00-3bpxputy7khv2.riker.replit.dev',
   ENDPOINTS: {
     USER: '/api/user',
     PROFILE: '/api/profile',
@@ -9,7 +9,7 @@ const CONFIG = {
     WORK_EXPERIENCE: '/api/work-experience',
     EDUCATION: '/api/education',
     GENERATE_COVER_LETTER: '/api/generate-cover-letter',
-    JOB_ANALYSIS: '/api/analyze-job',
+    JOB_ANALYSIS: '/api/jobs/analyze',
     HEALTH_CHECK: '/api/health',
     HEALTH_CHECK_SIMPLE: '/api/health/simple'
   },
@@ -53,14 +53,25 @@ const CONFIG = {
       'input[placeholder*="first" i]',
       'input[id*="first" i]',
       '[data-automation-id*="first"]',
-      '[data-testid*="first"]'
+      '[data-testid*="first"]',
+      '[data-automation-id*="firstName"]',
+      'input[aria-label*="first" i]'
     ],
     lastName: [
       'input[name*="last" i]',
       'input[placeholder*="last" i]',
       'input[id*="last" i]',
       '[data-automation-id*="last"]',
-      '[data-testid*="last"]'
+      '[data-testid*="last"]',
+      '[data-automation-id*="lastName"]',
+      'input[aria-label*="last" i]'
+    ],
+    country: [
+      'select[name*="country" i]',
+      'input[name*="country" i]',
+      '[data-automation-id*="country"]',
+      'select[aria-label*="country" i]',
+      'input[placeholder*="country" i]'
     ],
     email: [
       'input[type="email"]',
@@ -121,6 +132,171 @@ const CONFIG = {
     major: [
       'input[name*="major" i]',
       'input[name*="field" i]'
+    ],
+    // Work Authorization and Legal Status
+    workAuthorization: [
+      'select[name*="work" i][name*="authorization" i]',
+      'select[name*="visa" i]',
+      'select[name*="sponsorship" i]',
+      'input[name*="authorized" i]',
+      '[data-automation-id*="legallyAuthorizedToWork"]',
+      '[data-automation-id*="workAuthorization"]',
+      'select[aria-label*="work authorization" i]',
+      'select[aria-label*="sponsorship" i]',
+      'input[type="radio"][name*="work" i][name*="auth" i]'
+    ],
+    requireSponsorship: [
+      'select[name*="sponsorship" i]',
+      'input[name*="sponsorship" i]',
+      '[data-automation-id*="sponsorship"]',
+      'select[aria-label*="sponsorship" i]',
+      'input[type="radio"][name*="sponsor" i]',
+      'select[name*="visa" i][name*="support" i]'
+    ],
+    // Additional Education Fields
+    gpa: [
+      'input[name*="gpa" i]',
+      'input[name*="grade" i]',
+      '[data-automation-id*="gpa"]',
+      'input[placeholder*="gpa" i]',
+      'select[name*="gpa" i]'
+    ],
+    graduationYear: [
+      'select[name*="graduation" i]',
+      'input[name*="graduation" i]',
+      'select[name*="year" i]',
+      '[data-automation-id*="graduationYear"]',
+      'select[aria-label*="graduation" i]',
+      'input[type="number"][name*="year" i]'
+    ],
+    // Professional Experience
+    currentCompany: [
+      'input[name*="company" i]',
+      'input[name*="employer" i]',
+      '[data-automation-id*="company"]',
+      'input[placeholder*="company" i]',
+      'input[aria-label*="company" i]',
+      'input[name*="current" i][name*="employer" i]'
+    ],
+    currentTitle: [
+      'input[name*="title" i]',
+      'input[name*="position" i]',
+      'input[name*="role" i]',
+      '[data-automation-id*="jobTitle"]',
+      'input[placeholder*="title" i]',
+      'input[name*="current" i][name*="job" i]'
+    ],
+    // Salary and Benefits
+    expectedSalary: [
+      'input[name*="salary" i]',
+      'input[name*="compensation" i]',
+      'input[name*="pay" i]',
+      '[data-automation-id*="salary"]',
+      'input[placeholder*="salary" i]',
+      'select[name*="salary" i]',
+      'input[type="number"][name*="wage" i]'
+    ],
+    salaryRange: [
+      'select[name*="salary" i][name*="range" i]',
+      'input[name*="min" i][name*="salary" i]',
+      'input[name*="max" i][name*="salary" i]',
+      'select[aria-label*="salary range" i]'
+    ],
+    // Availability and Preferences
+    availableStartDate: [
+      'input[name*="start" i]',
+      'input[name*="available" i]',
+      'input[type="date"]',
+      '[data-automation-id*="startDate"]',
+      'input[placeholder*="start date" i]',
+      'select[name*="notice" i]'
+    ],
+    willingToRelocate: [
+      'select[name*="relocate" i]',
+      'input[name*="relocate" i]',
+      '[data-automation-id*="relocate"]',
+      'select[aria-label*="relocate" i]',
+      'input[type="radio"][name*="relocate" i]',
+      'input[type="checkbox"][name*="relocate" i]'
+    ],
+    preferredWorkLocation: [
+      'select[name*="work" i][name*="location" i]',
+      'input[name*="preferred" i][name*="location" i]',
+      'select[name*="remote" i]',
+      'input[type="radio"][name*="work" i][name*="pref" i]'
+    ],
+    // Skills and Certifications
+    programmingLanguages: [
+      'textarea[name*="programming" i]',
+      'textarea[name*="languages" i]',
+      'input[name*="skills" i]',
+      'textarea[name*="technical" i]',
+      '[data-automation-id*="skills"]'
+    ],
+    certifications: [
+      'textarea[name*="certification" i]',
+      'input[name*="certified" i]',
+      'textarea[name*="license" i]',
+      'input[placeholder*="certification" i]'
+    ],
+    // Additional Information
+    coverLetter: [
+      'textarea[name*="cover" i]',
+      'textarea[name*="letter" i]',
+      'textarea[name*="message" i]',
+      '[data-automation-id*="coverLetter"]',
+      'textarea[placeholder*="cover letter" i]',
+      'textarea[name*="intro" i]'
+    ],
+    whyInterested: [
+      'textarea[name*="why" i]',
+      'textarea[name*="interest" i]',
+      'textarea[name*="motivation" i]',
+      'textarea[placeholder*="why are you interested" i]'
+    ],
+    additionalInfo: [
+      'textarea[name*="additional" i]',
+      'textarea[name*="comments" i]',
+      'textarea[name*="notes" i]',
+      'textarea[placeholder*="additional" i]',
+      'textarea[name*="other" i]'
+    ],
+    // References
+    referenceName: [
+      'input[name*="reference" i][name*="name" i]',
+      'input[name*="ref" i][name*="name" i]',
+      'input[placeholder*="reference name" i]'
+    ],
+    referenceEmail: [
+      'input[name*="reference" i][name*="email" i]',
+      'input[name*="ref" i][name*="email" i]',
+      'input[placeholder*="reference email" i]'
+    ],
+    referencePhone: [
+      'input[name*="reference" i][name*="phone" i]',
+      'input[name*="ref" i][name*="phone" i]',
+      'input[placeholder*="reference phone" i]'
+    ],
+    // Demographics (Optional)
+    gender: [
+      'select[name*="gender" i]',
+      'input[type="radio"][name*="gender" i]',
+      '[data-automation-id*="gender"]'
+    ],
+    ethnicity: [
+      'select[name*="ethnicity" i]',
+      'select[name*="race" i]',
+      'input[type="checkbox"][name*="ethnicity" i]'
+    ],
+    veteranStatus: [
+      'select[name*="veteran" i]',
+      'input[type="radio"][name*="veteran" i]',
+      '[data-automation-id*="veteran"]'
+    ],
+    disability: [
+      'select[name*="disability" i]',
+      'input[type="radio"][name*="disability" i]',
+      '[data-automation-id*="disability"]'
     ]
   },
   JOB_SELECTORS: {

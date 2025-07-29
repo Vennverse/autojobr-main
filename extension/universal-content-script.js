@@ -185,7 +185,7 @@ if (typeof window.CONFIG === 'undefined') {
             <div class="autojobr-analysis-result" id="autojobr-analysis-result" style="display: none;">
               <div class="autojobr-match-header">
                 <span class="autojobr-match-label">AI Job Match Analysis</span>
-                <div class="autojobr-match-score" id="autojobr-match-score">25%</div>
+                <div class="autojobr-match-score" id="autojobr-match-score">--</div>
               </div>
               <div class="autojobr-match-details">
                 <div class="autojobr-profile-note">Complete your skills profile for better analysis</div>
@@ -490,8 +490,13 @@ if (typeof window.CONFIG === 'undefined') {
       const profile = this.userProfile.profile;
       const fieldMappings = this.getUniversalFieldMappings();
       
-      // Create mapping of profile data to form fields
+      // Create comprehensive mapping of profile data to form fields
+      const latestEducation = this.getLatestEducation();
+      const latestWork = this.getLatestWorkExperience();
+      const skillsList = this.getSkillsList();
+      
       const dataMapping = {
+        // Basic Information
         firstName: profile.fullName?.split(' ')[0] || '',
         lastName: profile.fullName?.split(' ').slice(1).join(' ') || '',
         email: profile.email || '',
@@ -500,13 +505,55 @@ if (typeof window.CONFIG === 'undefined') {
         city: profile.city || '',
         state: profile.state || '',
         zipCode: profile.zipCode || '',
+        country: profile.country || 'United States',
+        
+        // Professional Links
         linkedinUrl: profile.linkedinUrl || '',
         githubUrl: profile.githubUrl || '',
-        portfolioUrl: profile.portfolioUrl || '',
-        yearsExperience: this.calculateExperience(),
-        university: this.getLatestEducation()?.institution || '',
-        degree: this.getLatestEducation()?.degree || '',
-        major: this.getLatestEducation()?.fieldOfStudy || ''
+        portfolioUrl: profile.portfolioUrl || profile.website || '',
+        
+        // Work Authorization (Default values for US candidates)
+        workAuthorization: 'Yes',
+        requireSponsorship: 'No',
+        
+        // Education Information
+        university: latestEducation?.institution || '',
+        degree: latestEducation?.degree || '',
+        major: latestEducation?.fieldOfStudy || '',
+        gpa: latestEducation?.gpa || '',
+        graduationYear: latestEducation?.endDate ? new Date(latestEducation.endDate).getFullYear().toString() : '',
+        
+        // Professional Experience
+        yearsExperience: this.calculateExperience().toString(),
+        currentCompany: latestWork?.company || '',
+        currentTitle: latestWork?.position || profile.professionalTitle || '',
+        
+        // Skills and Technical Information
+        programmingLanguages: skillsList.technical.join(', '),
+        certifications: skillsList.certifications.join(', '),
+        
+        // Salary and Preferences
+        expectedSalary: profile.expectedSalary || '',
+        salaryRange: profile.salaryRange || '',
+        availableStartDate: this.getAvailableStartDate(),
+        willingToRelocate: profile.willingToRelocate || 'Open to discuss',
+        preferredWorkLocation: profile.preferredWorkLocation || 'Remote/Hybrid',
+        
+        // Additional Information
+        coverLetter: this.generateQuickCoverLetter(),
+        whyInterested: this.generateInterestStatement(),
+        additionalInfo: profile.summary || '',
+        
+        // References (if available)
+        referenceName: profile.referenceName || '',
+        referenceEmail: profile.referenceEmail || '',
+        referencePhone: profile.referencePhone || '',
+        
+        // Demographics (Optional - leave empty by default)
+        gender: '',
+        ethnicity: '',
+        veteranStatus: '',
+        disability: ''
       };
 
       // Fill fields with enhanced timing and event handling
@@ -818,6 +865,56 @@ if (typeof window.CONFIG === 'undefined') {
       return this.userProfile.education.sort((a, b) => 
         new Date(b.endDate || '2099') - new Date(a.endDate || '2099')
       )[0];
+    }
+
+    getLatestWorkExperience() {
+      if (!this.userProfile?.workExperience?.length) return null;
+      return this.userProfile.workExperience.sort((a, b) => 
+        new Date(b.endDate || '2030') - new Date(a.endDate || '2030')
+      )[0];
+    }
+
+    getSkillsList() {
+      const skills = this.userProfile?.skills || [];
+      const technical = skills.filter(s => 
+        ['JavaScript', 'Python', 'Java', 'React', 'Node.js', 'SQL', 'AWS', 'Docker', 'Git']
+        .some(tech => s.skillName?.toLowerCase().includes(tech.toLowerCase()))
+      ).map(s => s.skillName);
+      
+      const certifications = skills.filter(s => 
+        s.skillName?.toLowerCase().includes('certified') || 
+        s.skillName?.toLowerCase().includes('certification')
+      ).map(s => s.skillName);
+      
+      return { technical, certifications };
+    }
+
+    getAvailableStartDate() {
+      const date = new Date();
+      date.setDate(date.getDate() + 14); // 2 weeks notice
+      return date.toISOString().split('T')[0];
+    }
+
+    generateQuickCoverLetter() {
+      const profile = this.userProfile?.profile;
+      if (!profile || !this.currentJobData) return '';
+      
+      return `Dear Hiring Manager,
+
+I am excited to apply for the ${this.currentJobData.title || 'position'} at ${this.currentJobData.company || 'your company'}. With ${this.calculateExperience()} years of experience in ${profile.professionalTitle || 'my field'}, I am confident I would be a valuable addition to your team.
+
+${profile.summary || 'I have a strong background in technology and am passionate about delivering excellent results.'}
+
+I look forward to discussing how my skills and experience can contribute to your team's success.
+
+Best regards,
+${profile.fullName || 'Your Name'}`;
+    }
+
+    generateInterestStatement() {
+      if (!this.currentJobData) return '';
+      
+      return `I am particularly interested in this ${this.currentJobData.title || 'position'} because it aligns perfectly with my career goals and technical expertise. The opportunity to work with ${this.currentJobData.company || 'your team'} would allow me to contribute my skills while continuing to grow professionally in an innovative environment.`;
     }
 
     async delay(ms) {
