@@ -626,9 +626,9 @@ if (typeof window.CONFIG === 'undefined') {
       const skillsList = this.getSkillsList();
       
       const dataMapping = {
-        // Basic Information
-        firstName: profile.fullName?.split(' ')[0] || '',
-        lastName: profile.fullName?.split(' ').slice(1).join(' ') || '',
+        // Basic Information - Fixed to use correct profile fields
+        firstName: profile.firstName || profile.fullName?.split(' ')[0] || '',
+        lastName: profile.lastName || profile.fullName?.split(' ').slice(1).join(' ') || '',
         email: profile.email || '',
         phone: profile.phone || '',
         address: profile.address || '',
@@ -646,25 +646,25 @@ if (typeof window.CONFIG === 'undefined') {
         workAuthorization: profile.workAuthorization || 'Yes',
         requireSponsorship: profile.requiresSponsorship || 'No',
         
-        // Education Information
-        university: latestEducation?.institution || '',
-        degree: latestEducation?.degree || '',
-        major: latestEducation?.fieldOfStudy || '',
+        // Education Information - Fixed to match server schema
+        university: latestEducation?.institution || latestEducation?.school || '',
+        degree: latestEducation?.degree || latestEducation?.qualification || '',
+        major: latestEducation?.fieldOfStudy || latestEducation?.major || '',
         gpa: latestEducation?.gpa || '',
-        graduationYear: latestEducation?.endDate ? new Date(latestEducation.endDate).getFullYear().toString() : '',
+        graduationYear: latestEducation?.graduationYear || (latestEducation?.endDate ? new Date(latestEducation.endDate).getFullYear().toString() : ''),
         
-        // Professional Experience
-        yearsExperience: this.calculateExperience().toString(),
-        currentCompany: latestWork?.company || '',
-        currentTitle: latestWork?.position || profile.professionalTitle || '',
+        // Professional Experience - Fixed to match server schema
+        yearsExperience: profile.yearsExperience?.toString() || this.calculateExperience().toString(),
+        currentCompany: latestWork?.company || latestWork?.employer || '',
+        currentTitle: latestWork?.position || latestWork?.jobTitle || profile.professionalTitle || '',
         
-        // Skills and Technical Information
-        programmingLanguages: skillsList.technical.join(', '),
+        // Skills and Technical Information - Fixed to handle both array and string formats
+        programmingLanguages: Array.isArray(profile.skills) ? profile.skills.join(', ') : (skillsList.technical.join(', ') || profile.skills || ''),
         certifications: skillsList.certifications.join(', '),
         
-        // Salary and Preferences (From onboarding)
-        expectedSalary: profile.expectedSalary || profile.currentSalary || '',
-        salaryRange: profile.salaryRange || this.formatSalaryRange(profile.expectedSalary),
+        // Salary and Preferences - Fixed to use correct field names
+        expectedSalary: profile.desiredSalaryMin || profile.expectedSalary || profile.currentSalary || '',
+        salaryRange: profile.salaryRange || this.formatSalaryRange(profile.desiredSalaryMin, profile.desiredSalaryMax),
         availableStartDate: profile.availableStartDate || this.getAvailableStartDate(),
         willingToRelocate: profile.willingToRelocate || profile.relocateWillingness || 'Open to discuss',
         preferredWorkLocation: profile.preferredWorkLocation || profile.workLocationPreference || 'Remote/Hybrid',
