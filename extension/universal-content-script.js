@@ -512,9 +512,9 @@ if (typeof window.CONFIG === 'undefined') {
         githubUrl: profile.githubUrl || '',
         portfolioUrl: profile.portfolioUrl || profile.website || '',
         
-        // Work Authorization (Default values for US candidates)
-        workAuthorization: 'Yes',
-        requireSponsorship: 'No',
+        // Work Authorization (Use onboarding data)
+        workAuthorization: profile.workAuthorization || 'Yes',
+        requireSponsorship: profile.requiresSponsorship || 'No',
         
         // Education Information
         university: latestEducation?.institution || '',
@@ -532,28 +532,47 @@ if (typeof window.CONFIG === 'undefined') {
         programmingLanguages: skillsList.technical.join(', '),
         certifications: skillsList.certifications.join(', '),
         
-        // Salary and Preferences
-        expectedSalary: profile.expectedSalary || '',
-        salaryRange: profile.salaryRange || '',
-        availableStartDate: this.getAvailableStartDate(),
-        willingToRelocate: profile.willingToRelocate || 'Open to discuss',
-        preferredWorkLocation: profile.preferredWorkLocation || 'Remote/Hybrid',
+        // Salary and Preferences (From onboarding)
+        expectedSalary: profile.expectedSalary || profile.currentSalary || '',
+        salaryRange: profile.salaryRange || this.formatSalaryRange(profile.expectedSalary),
+        availableStartDate: profile.availableStartDate || this.getAvailableStartDate(),
+        willingToRelocate: profile.willingToRelocate || profile.relocateWillingness || 'Open to discuss',
+        preferredWorkLocation: profile.preferredWorkLocation || profile.workLocationPreference || 'Remote/Hybrid',
         
-        // Additional Information
-        coverLetter: this.generateQuickCoverLetter(),
-        whyInterested: this.generateInterestStatement(),
-        additionalInfo: profile.summary || '',
+        // Additional Information (From onboarding & resume analysis)
+        coverLetter: profile.preferredCoverLetter || this.generateQuickCoverLetter(),
+        whyInterested: profile.careerObjective || this.generateInterestStatement(),
+        additionalInfo: profile.summary || profile.professionalSummary || profile.resumeSummary || '',
         
-        // References (if available)
-        referenceName: profile.referenceName || '',
-        referenceEmail: profile.referenceEmail || '',
-        referencePhone: profile.referencePhone || '',
+        // References (From onboarding)
+        referenceName: profile.referenceName || this.getReference('name'),
+        referenceEmail: profile.referenceEmail || this.getReference('email'),
+        referencePhone: profile.referencePhone || this.getReference('phone'),
         
-        // Demographics (Optional - leave empty by default)
-        gender: '',
-        ethnicity: '',
-        veteranStatus: '',
-        disability: ''
+        // Demographics (From onboarding responses if provided)
+        gender: profile.gender || '',
+        ethnicity: profile.ethnicity || '',
+        veteranStatus: profile.veteranStatus || profile.militaryService || '',
+        disability: profile.disabilityStatus || '',
+        
+        // Additional fields from resume analysis
+        achievements: this.getAchievements(),
+        projectExperience: this.getProjectExperience(),
+        languages: profile.spokenLanguages || this.getLanguages(),
+        industries: this.getIndustryExperience(),
+        managementExperience: profile.managementExperience || this.hasManagementExperience(),
+        teamSize: profile.teamSize || this.getTeamSizeExperience(),
+        
+        // Workday-specific mappings (use same data but different selectors)
+        workdayFirstName: profile.fullName?.split(' ')[0] || '',
+        workdayLastName: profile.fullName?.split(' ').slice(1).join(' ') || '',
+        workdayEmail: profile.email || '',
+        workdayPhone: profile.phone || '',
+        workdayAddress: profile.address || '',
+        workdayCity: profile.city || '',
+        workdayState: profile.state || '',
+        workdayZip: profile.zipCode || '',
+        workdayCountry: profile.country || 'United States'
       };
 
       // Fill fields with enhanced timing and event handling
@@ -915,6 +934,109 @@ ${profile.fullName || 'Your Name'}`;
       if (!this.currentJobData) return '';
       
       return `I am particularly interested in this ${this.currentJobData.title || 'position'} because it aligns perfectly with my career goals and technical expertise. The opportunity to work with ${this.currentJobData.company || 'your team'} would allow me to contribute my skills while continuing to grow professionally in an innovative environment.`;
+    }
+
+    // Helper methods to extract onboarding and resume analysis data
+    formatSalaryRange(expectedSalary) {
+      if (!expectedSalary) return '';
+      const salary = parseInt(expectedSalary.replace(/[^0-9]/g, ''));
+      if (salary) {
+        const min = Math.floor(salary * 0.9);
+        const max = Math.floor(salary * 1.1);
+        return `$${min.toLocaleString()} - $${max.toLocaleString()}`;
+      }
+      return '';
+    }
+
+    getReference(type) {
+      const references = this.userProfile?.references || [];
+      if (references.length === 0) return '';
+      
+      const firstRef = references[0];
+      switch(type) {
+        case 'name': return firstRef.name || '';
+        case 'email': return firstRef.email || '';
+        case 'phone': return firstRef.phone || '';
+        default: return '';
+      }
+    }
+
+    getAchievements() {
+      const profile = this.userProfile?.profile;
+      const achievements = [];
+      
+      // From resume analysis
+      if (profile?.achievements) achievements.push(...profile.achievements);
+      if (profile?.awards) achievements.push(...profile.awards);
+      
+      // From work experience
+      this.userProfile?.workExperience?.forEach(exp => {
+        if (exp.achievements) achievements.push(...exp.achievements);
+      });
+      
+      return achievements.join('; ').substring(0, 500); // Limit length
+    }
+
+    getProjectExperience() {
+      const projects = this.userProfile?.projects || [];
+      if (projects.length === 0) return '';
+      
+      return projects.map(p => `${p.name}: ${p.description || ''}`).join('; ').substring(0, 300);
+    }
+
+    getLanguages() {
+      const profile = this.userProfile?.profile;
+      const languages = [];
+      
+      if (profile?.languages) languages.push(...profile.languages);
+      if (profile?.spokenLanguages) languages.push(...profile.spokenLanguages);
+      
+      return languages.join(', ');
+    }
+
+    getIndustryExperience() {
+      const industries = new Set();
+      
+      this.userProfile?.workExperience?.forEach(exp => {
+        if (exp.industry) industries.add(exp.industry);
+        if (exp.company) {
+          // Infer industry from company name patterns
+          const company = exp.company.toLowerCase();
+          if (company.includes('tech') || company.includes('software')) industries.add('Technology');
+          if (company.includes('bank') || company.includes('financial')) industries.add('Financial Services');
+          if (company.includes('health') || company.includes('medical')) industries.add('Healthcare');
+        }
+      });
+      
+      return Array.from(industries).join(', ');
+    }
+
+    hasManagementExperience() {
+      const profile = this.userProfile?.profile;
+      const workExp = this.userProfile?.workExperience || [];
+      
+      // Check if title suggests management
+      const managementTitles = ['manager', 'director', 'lead', 'supervisor', 'head', 'chief', 'vp', 'president'];
+      const hasManagementTitle = workExp.some(exp => 
+        managementTitles.some(title => 
+          exp.position?.toLowerCase().includes(title)
+        )
+      );
+      
+      if (hasManagementTitle) return 'Yes';
+      if (profile?.managementExperience) return profile.managementExperience;
+      
+      return 'No';
+    }
+
+    getTeamSizeExperience() {
+      const profile = this.userProfile?.profile;
+      
+      if (profile?.teamSize) return profile.teamSize;
+      if (profile?.managementExperience === 'Yes') return '5-10 people';
+      if (this.hasManagementExperience() === 'Yes') return '3-8 people';
+      
+      return '';
     }
 
     async delay(ms) {

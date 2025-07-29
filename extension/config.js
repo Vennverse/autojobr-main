@@ -297,6 +297,87 @@ const CONFIG = {
       'select[name*="disability" i]',
       'input[type="radio"][name*="disability" i]',
       '[data-automation-id*="disability"]'
+    ],
+    // Additional fields from resume analysis and onboarding
+    achievements: [
+      'textarea[name*="achievement" i]',
+      'textarea[name*="accomplishment" i]',
+      'textarea[name*="award" i]',
+      'input[placeholder*="achievement" i]'
+    ],
+    projectExperience: [
+      'textarea[name*="project" i]',
+      'textarea[name*="portfolio" i]',
+      'input[name*="project" i]',
+      'textarea[placeholder*="project" i]'
+    ],
+    languages: [
+      'input[name*="language" i]',
+      'select[name*="language" i]',
+      'textarea[name*="language" i]',
+      '[data-automation-id*="language"]'
+    ],
+    industries: [
+      'select[name*="industry" i]',
+      'input[name*="industry" i]',
+      'select[name*="sector" i]',
+      '[data-automation-id*="industry"]'
+    ],
+    managementExperience: [
+      'select[name*="management" i]',
+      'input[type="radio"][name*="management" i]',
+      'select[name*="leadership" i]',
+      'input[name*="manager" i]'
+    ],
+    teamSize: [
+      'select[name*="team" i][name*="size" i]',
+      'input[name*="team" i][name*="size" i]',
+      'select[name*="people" i][name*="managed" i]',
+      'input[placeholder*="team size" i]'
+    ],
+    // Workday-specific field mappings
+    workdayFirstName: [
+      '[data-automation-id*="firstName"]',
+      '[data-automation-id*="legalNameSection_firstName"]',
+      'input[aria-label*="first name" i]'
+    ],
+    workdayLastName: [
+      '[data-automation-id*="lastName"]',
+      '[data-automation-id*="legalNameSection_lastName"]',
+      'input[aria-label*="last name" i]'
+    ],
+    workdayEmail: [
+      '[data-automation-id*="email"]',
+      '[data-automation-id*="emailAddress"]',
+      'input[aria-label*="email" i]'
+    ],
+    workdayPhone: [
+      '[data-automation-id*="phone"]',
+      '[data-automation-id*="phoneNumber"]',
+      'input[aria-label*="phone" i]'
+    ],
+    workdayAddress: [
+      '[data-automation-id*="address"]',
+      '[data-automation-id*="addressLine"]',
+      'input[aria-label*="address" i]'
+    ],
+    workdayCity: [
+      '[data-automation-id*="city"]',
+      'input[aria-label*="city" i]'
+    ],
+    workdayState: [
+      '[data-automation-id*="state"]',
+      '[data-automation-id*="region"]',
+      'select[aria-label*="state" i]'
+    ],
+    workdayZip: [
+      '[data-automation-id*="postalCode"]',
+      '[data-automation-id*="zipCode"]',
+      'input[aria-label*="zip" i]'
+    ],
+    workdayCountry: [
+      '[data-automation-id*="country"]',
+      'select[aria-label*="country" i]'
     ]
   },
   JOB_SELECTORS: {
