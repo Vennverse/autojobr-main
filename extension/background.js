@@ -80,21 +80,27 @@ class AutoJobrBackground {
         },
         credentials: 'include',
         body: JSON.stringify({
-          title: jobData.title,
+          title: jobData.title || jobData.jobTitle,
           company: jobData.company,
-          location: jobData.location,
-          description: jobData.description,
-          url: jobData.url,
-          platform: jobData.platform,
-          savedDate: new Date().toISOString()
+          location: jobData.location || '',
+          description: jobData.description || jobData.jobDescription || '',
+          url: jobData.url || jobData.jobUrl || window.location.href,
+          platform: jobData.platform || new URL(jobData.url || window.location.href).hostname,
+          salary: jobData.salary || jobData.salaryRange || '',
+          jobType: jobData.jobType || '',
+          workMode: jobData.workMode || '',
+          extractedAt: new Date().toISOString()
         })
       });
 
       if (response.ok) {
         const result = await response.json();
+        console.log('✅ Job saved successfully:', result);
         return { success: true, data: result };
       } else {
-        return { success: false, error: 'Failed to save job' };
+        const errorText = await response.text();
+        console.error('❌ Failed to save job:', response.status, errorText);
+        return { success: false, error: `Server error: ${response.status}` };
       }
     } catch (error) {
       console.error('Error saving job:', error);
@@ -104,7 +110,7 @@ class AutoJobrBackground {
 
   async trackApplication(applicationData) {
     try {
-      const response = await fetch(`${this.apiBase}/api/applications`, {
+      const response = await fetch(`${this.apiBase}/api/extension/applications`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -114,20 +120,27 @@ class AutoJobrBackground {
           jobTitle: applicationData.jobData?.title || 'Unknown Position',
           company: applicationData.jobData?.company || 'Unknown Company',
           location: applicationData.jobData?.location || '',
-          jobUrl: applicationData.jobData?.url || window.location.href,
-          platform: applicationData.platform || 'Extension',
+          jobUrl: applicationData.jobData?.url || applicationData.url || '',
+          platform: applicationData.platform || new URL(applicationData.url || '').hostname,
           source: 'extension',
           status: 'applied',
           appliedDate: new Date().toISOString(),
-          notes: `Applied via ${applicationData.method} on ${applicationData.platform}`
+          notes: `Applied via ${applicationData.method} on ${applicationData.platform}`,
+          matchScore: applicationData.matchScore || 0,
+          jobType: applicationData.jobData?.jobType || '',
+          workMode: applicationData.jobData?.workMode || '',
+          salaryRange: applicationData.jobData?.salary || ''
         })
       });
 
       if (response.ok) {
         const result = await response.json();
+        console.log('✅ Application tracked successfully:', result);
         return { success: true, data: result };
       } else {
-        return { success: false, error: 'Failed to track application' };
+        const errorText = await response.text();
+        console.error('❌ Failed to track application:', response.status, errorText);
+        return { success: false, error: `Server error: ${response.status}` };
       }
     } catch (error) {
       console.error('Error tracking application:', error);
@@ -219,6 +232,44 @@ class AutoJobrBackground {
     }
   }
 
+  async getResumeFile() {
+    try {
+      const response = await fetch(`${this.apiBase}/api/resumes`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        console.error('Resume fetch API error:', response.status);
+        return { 
+          success: false, 
+          error: `Failed to fetch resume: ${response.status}` 
+        };
+      }
+
+      const resumes = await response.json();
+      if (resumes && resumes.length > 0) {
+        const latestResume = resumes[0]; // Get the most recent resume
+        return { 
+          success: true, 
+          resumeData: latestResume.fileData,
+          fileName: latestResume.fileName || 'resume.pdf'
+        };
+      } else {
+        return { 
+          success: false, 
+          error: 'No resume found. Please upload a resume in your AutoJobr profile.' 
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching resume:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   async handleMessage(message, sender, sendResponse) {
     try {
       switch (message.action) {
@@ -270,6 +321,11 @@ class AutoJobrBackground {
         case 'GENERATE_COVER_LETTER':
           const coverLetterResult = await this.generateCoverLetter(message.jobData);
           sendResponse(coverLetterResult);
+          break;
+
+        case 'GET_RESUME_FILE':
+          const resumeResult = await this.getResumeFile();
+          sendResponse(resumeResult);
           break;
 
         case 'FILL_FORM':

@@ -530,7 +530,12 @@ if (typeof window.CONFIG === 'undefined') {
     }
 
     async saveCurrentJob() {
-      if (!this.currentJobData) return;
+      if (!this.currentJobData) {
+        await this.detectJobPage(); // Try to detect job data first
+        if (!this.currentJobData) {
+          return { success: false, error: 'No job data found on this page' };
+        }
+      }
       
       try {
         const response = await chrome.runtime.sendMessage({
@@ -538,15 +543,18 @@ if (typeof window.CONFIG === 'undefined') {
           jobData: this.currentJobData
         });
         
-        if (response.success) {
+        if (response && response.success) {
           this.showNotification('Job saved successfully!');
-          this.savedJobs.add(this.currentJobData.url);
+          this.savedJobs.add(this.currentJobData.url || window.location.href);
+          return { success: true, message: 'Job saved successfully' };
         } else {
           this.showNotification('Failed to save job', 'error');
+          return { success: false, error: response?.error || 'Failed to save job' };
         }
       } catch (error) {
         console.error('Failed to save job:', error);
         this.showNotification('Error saving job', 'error');
+        return { success: false, error: error.message };
       }
     }
 
@@ -934,6 +942,11 @@ if (typeof window.CONFIG === 'undefined') {
 
     async fillField(element, value) {
       try {
+        // Check if this is a file upload field for resume
+        if (element.type === 'file') {
+          return await this.handleResumeUpload(element);
+        }
+
         // Advanced field detection and validation
         if (!this.isFieldFillable(element)) {
           console.log('Field not fillable:', element);
@@ -1662,8 +1675,12 @@ ${profile.fullName || 'Your Name'}`;
 
     async analyzeCurrentJob() {
       if (!this.currentJobData) {
-        this.showNotification('No job data available', 'warning');
-        return;
+        console.log('❌ No job data available - attempting to detect...');
+        await this.detectJobPage(); // Try to detect job data first
+        if (!this.currentJobData) {
+          this.showNotification('No job data found on this page', 'warning');
+          return { success: false, error: 'No job data found' };
+        }
       }
 
       try {
@@ -1672,15 +1689,19 @@ ${profile.fullName || 'Your Name'}`;
           jobData: this.currentJobData
         });
 
-        if (response.success) {
+        if (response && response.success) {
           this.showJobAnalysis(response.analysis);
           this.updateAnalysisDisplay(response.analysis);
+          this.showNotification('Job analysis completed!');
+          return { success: true, analysis: response.analysis };
         } else {
-          this.showNotification('Analysis failed', 'error');
+          this.showNotification('Analysis failed: ' + (response?.error || 'Unknown error'), 'error');
+          return { success: false, error: response?.error || 'Analysis failed' };
         }
       } catch (error) {
         console.error('Job analysis failed:', error);
-        this.showNotification('Analysis error', 'error');
+        this.showNotification('Analysis error: ' + error.message, 'error');
+        return { success: false, error: error.message };
       }
     }
 
@@ -2483,7 +2504,7 @@ ${profile.fullName || 'Your Name'}`;
     switch (message.action) {
       case 'ANALYZE_CURRENT_JOB':
         assistantInstance.analyzeCurrentJob().then(result => {
-          sendResponse({ success: true, result });
+          sendResponse(result || { success: false, error: 'Analysis failed' });
         }).catch(error => {
           sendResponse({ success: false, error: error.message });
         });
@@ -2491,7 +2512,7 @@ ${profile.fullName || 'Your Name'}`;
 
       case 'SAVE_CURRENT_JOB':
         assistantInstance.saveCurrentJob().then(result => {
-          sendResponse({ success: true, result });
+          sendResponse(result || { success: false, error: 'Save failed' });
         }).catch(error => {
           sendResponse({ success: false, error: error.message });
         });
@@ -2544,6 +2565,94 @@ ${profile.fullName || 'Your Name'}`;
 
     return true; // Keep message channel open for async responses
   });
+
+  // Add resume upload and cover letter methods to UniversalJobAssistant
+  UniversalJobAssistant.prototype.handleResumeUpload = async function(fileInput) {
+    console.log('📎 Handling resume upload for:', fileInput);
+    
+    try {
+      // Get user's resume from the backend
+      const response = await chrome.runtime.sendMessage({
+        action: 'GET_RESUME_FILE'
+      });
+      
+      if (response && response.success && response.resumeData) {
+        // Create a file from base64 data
+        const byteCharacters = atob(response.resumeData);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const file = new File([byteArray], response.fileName || 'resume.pdf', { 
+          type: 'application/pdf' 
+        });
+        
+        // Create a DataTransfer object to simulate file selection
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        fileInput.files = dataTransfer.files;
+        
+        // Dispatch change event
+        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+        
+        console.log('✅ Resume uploaded successfully');
+        this.showNotification('Resume uploaded automatically!');
+        return true;
+      } else {
+        console.log('❌ No resume data available');
+        this.showNotification('Please upload a resume in your AutoJobr profile first', 'warning');
+        return false;
+      }
+    } catch (error) {
+      console.error('Resume upload failed:', error);
+      this.showNotification('Resume upload failed', 'error');
+      return false;
+    }
+  };
+
+  UniversalJobAssistant.prototype.generateCoverLetter = async function() {
+    if (!this.currentJobData) {
+      await this.detectJobPage();
+      if (!this.currentJobData) {
+        this.showNotification('No job data found for cover letter generation', 'warning');
+        return;
+      }
+    }
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: 'GENERATE_COVER_LETTER',
+        jobData: this.currentJobData
+      });
+
+      if (response && response.success) {
+        // Try to find and fill cover letter fields
+        const coverLetterFields = document.querySelectorAll(
+          'textarea[name*="cover"], textarea[id*="cover"], textarea[placeholder*="cover"], ' +
+          'textarea[name*="letter"], textarea[id*="letter"], ' +
+          'textarea[name*="why"], textarea[placeholder*="why"]'
+        );
+
+        if (coverLetterFields.length > 0) {
+          const field = coverLetterFields[0];
+          field.value = response.coverLetter;
+          field.dispatchEvent(new Event('input', { bubbles: true }));
+          field.dispatchEvent(new Event('change', { bubbles: true }));
+          this.showNotification('Cover letter generated and filled!');
+        } else {
+          // Copy to clipboard as fallback
+          navigator.clipboard.writeText(response.coverLetter);
+          this.showNotification('Cover letter generated and copied to clipboard!');
+        }
+      } else {
+        this.showNotification('Cover letter generation failed', 'error');
+      }
+    } catch (error) {
+      console.error('Cover letter generation failed:', error);
+      this.showNotification('Cover letter generation error', 'error');
+    }
+  };
 
   // Initialize when DOM is ready
   if (document.readyState === 'loading') {
