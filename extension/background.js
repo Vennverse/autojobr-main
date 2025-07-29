@@ -133,6 +133,21 @@ class AutoJobrBackground {
           sendResponse(trackResult);
           break;
 
+        case 'GENERATE_COVER_LETTER':
+          const coverLetterResult = await this.generateCoverLetter(message.jobData);
+          sendResponse(coverLetterResult);
+          break;
+
+        case 'SAVE_JOB':
+          const saveResult = await this.saveJob(message.jobData);
+          sendResponse(saveResult);
+          break;
+
+        case 'TRACK_APPLICATION':
+          const trackResult = await this.trackApplication(message.applicationData);
+          sendResponse(trackResult);
+          break;
+
         case 'ANALYZE_JOB':
           const analysisResult = await this.analyzeJob(message.jobData);
           sendResponse(analysisResult);

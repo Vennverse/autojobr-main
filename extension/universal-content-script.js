@@ -2523,6 +2523,14 @@ ${profile.fullName || 'Your Name'}`;
     }
 
     switch (message.action) {
+      case 'EXTRACT_JOB_DATA':
+        assistantInstance.extractJobData().then(jobData => {
+          sendResponse({ success: true, jobData });
+        }).catch(error => {
+          sendResponse({ success: false, error: error.message });
+        });
+        break;
+
       case 'ANALYZE_CURRENT_JOB':
         assistantInstance.analyzeCurrentJob().then(result => {
           sendResponse(result || { success: false, error: 'Analysis failed' });
