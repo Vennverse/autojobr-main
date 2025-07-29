@@ -1,14 +1,54 @@
 // Background script for AutoJobr Extension - Fixed Version
 class AutoJobrBackground {
   constructor() {
-    this.apiBase = 'https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev';
+    this.apiBase = window.CONFIG?.API_BASE_URL || 'https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev';
     this.isAuthenticated = false;
     this.userProfile = null;
+    this.initRetries = 0;
+    this.maxRetries = 3;
+    this.features = window.CONFIG?.FEATURES || {
+      AUTO_FILL: true,
+      AUTO_TRACKING: true,
+      COVER_LETTER: true,
+      JOB_ANALYSIS: true
+    };
     
-    this.init();
+    this.init().catch(this.handleInitError.bind(this));
   }
 
-  init() {
+  async init() {
+    try {
+      // Load configuration
+      await this.loadConfiguration();
+
+      // Setup event listeners
+      this.setupEventListeners();
+      
+      // Initialize features
+      await this.initializeFeatures();
+      
+      // Setup auto-submission tracking
+      if (this.features.AUTO_TRACKING) {
+        await this.setupAutoSubmissionTracking();
+      }
+
+      console.log('AutoJobr Universal background script initialized successfully');
+    } catch (error) {
+      throw new Error(`Initialization failed: ${error.message}`);
+    }
+  }
+
+  async loadConfiguration() {
+    // Load stored configuration
+    const stored = await chrome.storage.local.get('autojobr_config');
+    if (stored.autojobr_config) {
+      this.config = { ...window.CONFIG, ...stored.autojobr_config };
+    } else {
+      this.config = window.CONFIG;
+    }
+  }
+
+  setupEventListeners() {
     // Listen for tab updates to detect job pages
     chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       if (changeInfo.status === 'complete' && tab.url) {
@@ -381,15 +421,45 @@ class AutoJobrBackground {
   async checkJobPage(tab) {
     if (!tab.url) return;
 
-    const jobBoardDomains = [
-      'linkedin.com', 'indeed.com', 'glassdoor.com', 'monster.com',
-      'ziprecruiter.com', 'wellfound.com', 'angel.co', 'workday.com',
-      'lever.co', 'greenhouse.io', 'bamboohr.com'
-    ];
+    // Enhanced job board detection with categorized platforms
+    const jobBoards = {
+      major: [
+        'linkedin.com/jobs', 'indeed.com', 'glassdoor.com/job',
+        'monster.com/jobs', 'ziprecruiter.com', 'dice.com/jobs'
+      ],
+      enterprise: [
+        { domain: 'workday.com', patterns: ['/careers', '/jobs', '/positions'] },
+        { domain: 'myworkdayjobs.com', patterns: ['/careers'] },
+        'lever.co', 'greenhouse.io', 'bamboohr.com', 'smartrecruiters.com',
+        'jobvite.com', 'icims.com', 'taleo.net', 'successfactors.com',
+        'ashbyhq.com'
+      ],
+      tech: [
+        'stackoverflow.com/jobs', 'wellfound.com', 'angel.co/jobs',
+        'hired.com', 'stackoverflowbusiness.com/talent'
+      ],
+      regional: [
+        'naukri.com', 'seek.com.au', 'reed.co.uk', 'totaljobs.com'
+      ]
+    };
 
-    const isJobBoard = jobBoardDomains.some(domain => tab.url.includes(domain));
+    // Check if URL matches any job board pattern
+    const isJobBoard = Object.values(jobBoards).some(category => 
+      category.some(board => {
+        if (typeof board === 'string') {
+          return tab.url.includes(board);
+        } else {
+          // Handle complex patterns for platforms like Workday
+          return tab.url.includes(board.domain) && 
+                 board.patterns.some(pattern => tab.url.includes(pattern));
+        }
+      })
+    );
+
+    // Enhanced job page detection
+    const isJobPage = await this.detectJobPage(tab);
     
-    if (isJobBoard) {
+    if (isJobBoard || isJobPage) {
       console.log('Job board detected:', tab.url);
       
       // Inject content script if not already present
@@ -459,7 +529,275 @@ class AutoJobrBackground {
       return false;
     }
   }
+
+  async detectJobPage(tab) {
+    try {
+      // Execute content script to analyze page content
+      const [result] = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          const jobIndicators = {
+            // URL patterns
+            urlPatterns: ['/job/', '/career', '/position', '/opening', '/apply'],
+            
+            // Common job page elements
+            selectors: [
+              'input[type="file"][accept*=".pdf"]', // Resume upload
+              'input[type="file"][accept*=".doc"]',
+              '[class*="apply-button"]',
+              '[id*="apply-button"]',
+              'button:contains("Apply")',
+              'a:contains("Apply Now")'
+            ],
+            
+            // Text content indicators
+            textContent: [
+              'job description',
+              'responsibilities',
+              'qualifications',
+              'requirements',
+              'what you\'ll do',
+              'about the role',
+              'about this position',
+              'we\'re looking for',
+              'apply now',
+              'submit application'
+            ]
+          };
+
+          // Check URL patterns
+          const urlMatch = jobIndicators.urlPatterns.some(pattern => 
+            window.location.pathname.toLowerCase().includes(pattern)
+          );
+
+          // Check for job-related form elements
+          const hasJobElements = jobIndicators.selectors.some(selector => 
+            document.querySelector(selector) !== null
+          );
+
+          // Check page content
+          const pageText = document.body.textContent.toLowerCase();
+          const hasJobContent = jobIndicators.textContent.some(indicator => 
+            pageText.includes(indicator.toLowerCase())
+          );
+
+          // Check for structured data
+          const hasJobSchema = document.querySelector('script[type="application/ld+json"]')?.textContent.includes('"@type":"JobPosting"');
+
+          // Check meta tags
+          const hasJobMeta = Array.from(document.getElementsByTagName('meta')).some(meta => 
+            (meta.getAttribute('property') || '').includes('job') || 
+            (meta.getAttribute('name') || '').includes('job')
+          );
+
+          return urlMatch || hasJobElements || hasJobContent || hasJobSchema || hasJobMeta;
+        }
+      });
+
+      return result?.result || false;
+    } catch (error) {
+      console.error('Error detecting job page:', error);
+      return false;
+    }
+  }
+
+  async cacheJobData(jobData) {
+    try {
+      // Get existing cache
+      const { cachedJobs = [] } = await chrome.storage.local.get('cachedJobs');
+      
+      // Add new job with timestamp
+      const newJob = {
+        ...jobData,
+        cacheTimestamp: Date.now(),
+        status: 'new'
+      };
+
+      // Update cache with new job, maintain last 50 jobs
+      const updatedCache = [newJob, ...cachedJobs].slice(0, 50);
+      
+      await chrome.storage.local.set({ cachedJobs: updatedCache });
+      
+      return true;
+    } catch (error) {
+      console.error('Error caching job data:', error);
+      return false;
+    }
+  }
+
+  async setupAutoSubmissionTracking() {
+    chrome.webNavigation.onCompleted.addListener(async (details) => {
+      if (details.frameId === 0) { // Main frame only
+        const tab = await chrome.tabs.get(details.tabId);
+        
+        // Check if this is a job application confirmation page
+        const isConfirmation = await this.detectApplicationConfirmation(tab);
+        
+        if (isConfirmation) {
+          await this.handleApplicationSubmission(tab);
+        }
+      }
+    });
+  }
+
+  async detectApplicationConfirmation(tab) {
+    try {
+      const [result] = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          const confirmationIndicators = [
+            'application submitted',
+            'thank you for applying',
+            'application received',
+            'application complete',
+            'successfully applied'
+          ];
+
+          const pageText = document.body.textContent.toLowerCase();
+          return confirmationIndicators.some(indicator => 
+            pageText.includes(indicator.toLowerCase())
+          );
+        }
+      });
+
+      return result?.result || false;
+    } catch (error) {
+      console.error('Error detecting application confirmation:', error);
+      return false;
+    }
+  }
+
+  async handleApplicationSubmission(tab) {
+    try {
+      // Get cached job data
+      const { cachedJobs = [] } = await chrome.storage.local.get('cachedJobs');
+      const latestJob = cachedJobs[0];
+
+      if (latestJob) {
+        await this.trackApplication({
+          jobData: latestJob,
+          method: 'auto-detected',
+          platform: new URL(tab.url).hostname,
+          timestamp: Date.now()
+        });
+
+        // Show confirmation notification
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'icons/icon128.png',
+          title: 'Application Tracked',
+          message: `Your application to ${latestJob.company || 'the position'} has been automatically tracked.`
+        });
+      }
+    } catch (error) {
+      console.error('Error handling application submission:', error);
+    }
+  }
 }
 
-// Initialize the background script
-new AutoJobrBackground();
+  async initializeFeatures() {
+    // Initialize authentication
+    await this.checkAuthentication();
+
+    // Load user profile if authenticated
+    if (this.isAuthenticated) {
+      await this.loadUserProfile();
+    }
+
+    // Setup offline support if enabled
+    if (this.features.OFFLINE_SUPPORT) {
+      await this.setupOfflineSupport();
+    }
+  }
+
+  async handleInitError(error) {
+    console.error('Initialization error:', error);
+    this.initRetries++;
+
+    if (this.initRetries < this.maxRetries) {
+      console.log(`Retrying initialization (attempt ${this.initRetries + 1}/${this.maxRetries})...`);
+      await new Promise(resolve => setTimeout(resolve, 1000 * this.initRetries));
+      await this.init().catch(this.handleInitError.bind(this));
+    } else {
+      console.error('Failed to initialize after', this.maxRetries, 'attempts');
+      this.notifyInitializationFailure();
+    }
+  }
+
+  async setupOfflineSupport() {
+    // Cache necessary resources
+    const resourcesToCache = [
+      'popup.html',
+      'popup.js',
+      'config.js',
+      'styles.css',
+      'icons/icon128.png'
+    ];
+
+    try {
+      const cache = await caches.open('autojobr-v1');
+      await cache.addAll(resourcesToCache);
+      
+      // Cache job board patterns
+      await chrome.storage.local.set({
+        jobBoardPatterns: this.config.JOB_BOARDS,
+        fieldMappings: this.config.FIELD_MAPPINGS,
+        lastCacheUpdate: Date.now()
+      });
+    } catch (error) {
+      console.error('Failed to setup offline support:', error);
+    }
+  }
+
+  notifyInitializationFailure() {
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icons/icon128.png',
+      title: 'AutoJobr Initialization Failed',
+      message: 'The extension failed to initialize. Please try reloading your browser.',
+      buttons: [{ title: 'Retry' }]
+    });
+  }
+
+  async updateExtensionData() {
+    try {
+      // Update configuration from server
+      const configResponse = await fetch(`${this.apiBase}/api/extension/config`);
+      if (configResponse.ok) {
+        const serverConfig = await configResponse.json();
+        await chrome.storage.local.set({
+          autojobr_config: {
+            ...this.config,
+            ...serverConfig,
+            lastUpdate: Date.now()
+          }
+        });
+      }
+
+      // Update job board patterns
+      const patternsResponse = await fetch(`${this.apiBase}/api/extension/patterns`);
+      if (patternsResponse.ok) {
+        const patterns = await patternsResponse.json();
+        await chrome.storage.local.set({
+          jobBoardPatterns: patterns,
+          lastPatternsUpdate: Date.now()
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update extension data:', error);
+    }
+  }
+}
+
+// Initialize the background script with error handling
+try {
+  new AutoJobrBackground();
+} catch (error) {
+  console.error('Critical initialization error:', error);
+  chrome.notifications.create({
+    type: 'basic',
+    iconUrl: 'icons/icon128.png',
+    title: 'AutoJobr Error',
+    message: 'Failed to initialize the extension. Please contact support.'
+  });
+}

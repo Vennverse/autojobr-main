@@ -744,10 +744,16 @@ class AutoJobrAPI {
 
   async makeRequest(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
+    const token = await this.getStoredToken();
+    
     const defaultOptions = {
       credentials: 'include',
+      mode: 'cors',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Origin': chrome.runtime.getURL(''),
+        'Authorization': token ? `Bearer ${token}` : '',
         ...options.headers
       }
     };
@@ -761,8 +767,13 @@ class AutoJobrAPI {
         throw new Error('Authentication required');
       }
 
+      if (response.status === 403) {
+        throw new Error('Access forbidden - CORS or permission error');
+      }
+
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || `HTTP ${response.status}: ${response.statusText}`);
       }
 
       return await response.json();
@@ -898,6 +909,17 @@ class AutoJobrAPI {
   async clearStoredAuth() {
     await chrome.storage.local.clear();
     this.userProfile = null;
+  }
+
+  async getStoredToken() {
+    const result = await chrome.storage.local.get(CONFIG.STORAGE_KEYS.AUTH_TOKEN);
+    return result[CONFIG.STORAGE_KEYS.AUTH_TOKEN];
+  }
+
+  async storeToken(token) {
+    await chrome.storage.local.set({
+      [CONFIG.STORAGE_KEYS.AUTH_TOKEN]: token
+    });
   }
 
   async checkBackendHealth() {

@@ -940,10 +940,23 @@ if (typeof window.CONFIG === 'undefined') {
           return false;
         }
 
-        // Smart value formatting based on field type
-        const formattedValue = this.formatValueForField(element, value);
+        // Enhanced field analysis
+        const fieldContext = this.analyzeField(element);
+        console.log('Field analysis:', fieldContext);
+
+        // Smart value formatting based on field context
+        const formattedValue = this.formatValueForField(element, value, fieldContext);
         if (!formattedValue) {
           console.log('Could not format value for field:', element);
+          return false;
+        }
+
+        // Check for custom input handlers (React, Angular, etc.)
+        const hasCustomHandlers = this.detectCustomHandlers(element);
+        
+        // Enhanced validation for field state
+        if (element.readOnly || element.disabled || element.getAttribute('aria-readonly') === 'true') {
+          console.log('Field is readonly or disabled:', element);
           return false;
         }
 

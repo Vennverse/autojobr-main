@@ -47,6 +47,46 @@ class AutoJobrPopup {
   async getCurrentTab() {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     this.currentTab = tabs[0];
+    await this.checkIfJobBoard();
+  }
+
+  isJobBoardUrl(url) {
+    // Standard job boards
+    const standardJobBoards = [
+      'linkedin.com/jobs',
+      'indeed.com',
+      'glassdoor.com/job',
+      'careers.google.com',
+      'jobs.lever.co',
+      'boards.greenhouse.io',
+      'smartrecruiters.com',
+      'monster.com/jobs',
+      'ziprecruiter.com'
+    ];
+
+    // Check standard job boards
+    if (standardJobBoards.some(board => url.includes(board))) {
+      return true;
+    }
+
+    // Special handling for Workday
+    const workdayPatterns = [
+      /\.workday\.com\/[^\/]+\/careers/i,         // Standard client subdomain pattern
+      /\.myworkday\.com\/[^\/]+\/d\/careers/i,    // Alternate client subdomain pattern
+      /careers\..*\.workday\.com/i,               // Careers subdomain pattern
+      /wd5\.myworkday\.com\/[^\/]+\/d\/inst/i     // Institution-specific pattern
+    ];
+
+    return workdayPatterns.some(pattern => pattern.test(url));
+  }
+
+  async checkIfJobBoard() {
+    if (!this.currentTab || !this.currentTab.url) {
+      this.isJobBoard = false;
+      return;
+    }
+    this.isJobBoard = this.isJobBoardUrl(this.currentTab.url);
+    this.updateUI();
   }
 
   updateConnectionStatus() {
@@ -81,12 +121,33 @@ class AutoJobrPopup {
     this.updateToggle('trackToggle', this.settings.trackApplications);
     this.updateToggle('notificationToggle', this.settings.showNotifications);
 
-    // Enable/disable buttons based on authentication
-    const buttons = ['analyzeJobBtn', 'saveJobBtn', 'fillFormBtn', 'viewApplicationsBtn'];
+    // Show message if not on a job board
+    const notJobBoardMessage = document.getElementById('notJobBoardMessage');
+    if (notJobBoardMessage) {
+      notJobBoardMessage.style.display = this.isJobBoard ? 'none' : 'block';
+    }
+
+    // Enable/disable buttons based on authentication and job board status
+    const buttons = ['analyzeJobBtn', 'saveJobBtn', 'fillFormBtn'];
     buttons.forEach(buttonId => {
       const button = document.getElementById(buttonId);
-      button.disabled = !this.isAuthenticated;
+      button.disabled = !this.isAuthenticated || !this.isJobBoard;
+      
+      // Update button tooltip
+      if (!this.isJobBoard) {
+        button.title = 'Only available on supported job boards';
+      } else if (!this.isAuthenticated) {
+        button.title = 'Please login first';
+      } else {
+        button.title = '';
+      }
     });
+
+    // View applications button is always enabled when authenticated
+    const viewApplicationsBtn = document.getElementById('viewApplicationsBtn');
+    if (viewApplicationsBtn) {
+      viewApplicationsBtn.disabled = !this.isAuthenticated;
+    }
   }
 
   updateToggle(toggleId, isActive) {
@@ -129,8 +190,12 @@ class AutoJobrPopup {
   }
 
   async analyzeJob() {
-    if (!this.isAuthenticated) {
-      this.showLoginPrompt();
+    if (!this.isAuthenticated || !this.isJobBoard) {
+      if (!this.isAuthenticated) {
+        this.showLoginPrompt();
+      } else {
+        this.showNotification('This feature is only available on supported job boards', 'warning');
+      }
       return;
     }
 
@@ -155,8 +220,12 @@ class AutoJobrPopup {
   }
 
   async saveJob() {
-    if (!this.isAuthenticated) {
-      this.showLoginPrompt();
+    if (!this.isAuthenticated || !this.isJobBoard) {
+      if (!this.isAuthenticated) {
+        this.showLoginPrompt();
+      } else {
+        this.showNotification('This feature is only available on supported job boards', 'warning');
+      }
       return;
     }
 
@@ -181,8 +250,12 @@ class AutoJobrPopup {
   }
 
   async fillForm() {
-    if (!this.isAuthenticated) {
-      this.showLoginPrompt();
+    if (!this.isAuthenticated || !this.isJobBoard) {
+      if (!this.isAuthenticated) {
+        this.showLoginPrompt();
+      } else {
+        this.showNotification('This feature is only available on supported job boards', 'warning');
+      }
       return;
     }
 

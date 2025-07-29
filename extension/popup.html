@@ -38,14 +38,41 @@
       border-radius: 8px;
       border: 1px solid #e2e8f0;
     }
+    .status-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
     .status-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
       background: #ef4444;
+      flex-shrink: 0;
     }
     .status-dot.connected {
       background: #10b981;
+    }
+    .status-label {
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .unsupported-site {
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .unsupported-site.visible {
+      display: block;
     }
     .actions {
       display: grid;
@@ -122,11 +149,116 @@
       background: white;
       border-top: 1px solid #e2e8f0;
       text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
     .footer a {
       color: #4f46e5;
       text-decoration: none;
       font-size: 12px;
+    }
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+    }
+    .tooltip {
+      position: relative;
+      display: inline-block;
+    }
+    .tooltip .tooltip-text {
+      visibility: hidden;
+      width: 200px;
+      background-color: #374151;
+      color: white;
+      text-align: center;
+      padding: 8px;
+      border-radius: 6px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.2s;
+      font-size: 12px;
+    }
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+    .form-progress {
+      margin: 16px 0;
+      padding: 12px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+    }
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: #374151;
+    }
+    .progress-bar {
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #4f46e5;
+      transition: width 0.3s ease;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-left: 8px;
+    }
+    .status-badge.success {
+      background: #ecfdf5;
+      color: #059669;
+    }
+    .status-badge.pending {
+      background: #fef3c7;
+      color: #d97706;
+    }
+    .support-info {
+      margin-top: 12px;
+      padding: 12px;
+      background: #f3f4f6;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .quick-tips {
+      margin-top: 16px;
+      padding: 12px;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 8px;
+      font-size: 12px;
+    }
+    .quick-tips h3 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      color: #0369a1;
+    }
+    .tips-list {
+      margin: 0;
+      padding-left: 16px;
+      color: #374151;
+    }
+    .tips-list li {
+      margin-bottom: 4px;
     }
   </style>
 </head>
@@ -138,12 +270,24 @@
 
   <div class="content">
     <div class="status">
-      <div class="status-dot" id="connectionStatus"></div>
-      <span id="statusText">Checking connection...</span>
+      <div class="status-wrapper">
+        <div class="status-row">
+          <div class="status-dot" id="connectionStatus"></div>
+          <span id="statusText">Checking connection...</span>
+        </div>
+        <div class="status-row">
+          <div class="status-dot" id="jobBoardStatus"></div>
+          <span id="jobBoardText">Checking page type...</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="unsupportedMessage" class="unsupported-site">
+      This page is not a supported job board. AutoJobr works with LinkedIn Jobs, Indeed, Glassdoor, Workday career portals, and other major job sites.
     </div>
 
     <div class="actions">
-      <button class="btn btn-primary" id="analyzeJobBtn">
+      <button class="btn btn-primary" id="analyzeJobBtn" title="">
         📊 Analyze Current Job
       </button>
       <button class="btn btn-secondary" id="saveJobBtn">
@@ -155,6 +299,16 @@
       <button class="btn btn-secondary" id="viewApplicationsBtn">
         📋 View Applications
       </button>
+    </div>
+
+    <div id="formProgress" class="form-progress" style="display: none;">
+      <div class="progress-header">
+        <span>Application Progress</span>
+        <span class="step-count"></span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill"></div>
+      </div>
     </div>
 
     <div class="settings">
@@ -170,13 +324,45 @@
         <span>Show notifications</span>
         <div class="toggle active" id="notificationToggle"></div>
       </div>
+      </div>
+    </div>
+
+    <div class="quick-tips">
+      <h3>📝 Quick Tips</h3>
+      <ul class="tips-list">
+        <li>AutoJobr activates automatically on supported job sites</li>
+        <li>Forms with multiple steps will show navigation controls</li>
+        <li>Your applications are tracked automatically</li>
+        <li>Use analyze to check job match score</li>
+      </ul>
+    </div>
+
+    <div class="support-info">
+      Supporting 50+ job boards including LinkedIn, Indeed, Glassdoor, and all Workday portals. See "Supported Sites" for the full list.
     </div>
   </div>
 
   <div class="footer">
-    <a href="https://2c294fad-7817-4711-a460-7808eeccb047-00-3bi7bnnz6rhfb.picard.replit.dev" target="_blank">
-      Open AutoJobr Dashboard
-    </a>
+    <div class="footer-links">
+      <a href="https://2c294fad-7817-4711-a460-7808eeccb047-00-3bi7bnnz6rhfb.picard.replit.dev/dashboard" target="_blank">
+        Dashboard
+      </a>
+      <a href="https://2c294fad-7817-4711-a460-7808eeccb047-00-3bi7bnnz6rhfb.picard.replit.dev/support" target="_blank">
+        Support
+      </a>
+      <div class="tooltip">
+        <a href="#" id="supportedSites">Supported Sites</a>
+        <span class="tooltip-text">
+          Major Job Boards: LinkedIn, Indeed, Glassdoor, Monster, ZipRecruiter<br>
+          Enterprise Systems: Workday, Greenhouse, Lever, BambooHR, SmartRecruiters<br>
+          Company Portals: Jobvite, iCIMS, Taleo, SuccessFactors, AshbyHQ<br>
+          Tech Jobs: Stack Overflow, Dice, and more
+        </span>
+      </div>
+    </div>
+    <div style="font-size: 11px; color: #6b7280;">
+      Version 1.0.0
+    </div>
   </div>
 
   <script src="config.js"></script>
