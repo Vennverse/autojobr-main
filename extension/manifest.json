@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "AutoJobr",
-  "version": "3.1.0",
-  "description": "Smart Job Application Assistant",
+  "version": "4.0.0",
+  "description": "Universal Job Application Assistant - Works across all job sites",
   "permissions": [
     "storage",
     "activeTab",
@@ -16,10 +16,7 @@
     "http://*/*",
     "https://*.replit.dev/*",
     "https://*.replit.app/*", 
-    "https://*.replit.co/*",
-    "http://localhost:5000/*",
-    "http://127.0.0.1:5000/*",
-    "http://40.160.50.128:5000/*"
+    "https://*.replit.co/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -35,10 +32,23 @@
         "*://*.glassdoor.com/*",
         "*://workday.com/*",
         "*://*.workday.com/*",
+        "*://*.myworkdayjobs.com/*",
+        "*://*.wd1.myworkdayjobs.com/*",
+        "*://*.wd2.myworkdayjobs.com/*",
+        "*://*.wd3.myworkdayjobs.com/*",
+        "*://*.wd4.myworkdayjobs.com/*",
+        "*://*.wd5.myworkdayjobs.com/*",
+        "*://*.wd6.myworkdayjobs.com/*",
+        "*://*.wd7.myworkdayjobs.com/*",
+        "*://*.wd8.myworkdayjobs.com/*",
+        "*://*.wd9.myworkdayjobs.com/*",
+        "*://*.wd10.myworkdayjobs.com/*",
         "*://lever.co/*",
         "*://*.lever.co/*",
+        "*://jobs.lever.co/*",
         "*://greenhouse.io/*",
         "*://*.greenhouse.io/*",
+        "*://boards.greenhouse.io/*",
         "*://monster.com/*",
         "*://*.monster.com/*",
         "*://ziprecruiter.com/*",
@@ -60,34 +70,30 @@
         "*://successfactors.com/*",
         "*://*.successfactors.com/*",
         "*://ashbyhq.com/*",
-        "*://*.ashbyhq.com/*"
+        "*://*.ashbyhq.com/*",
+        "*://naukri.com/*",
+        "*://*.naukri.com/*",
+        "*://careerbuilder.com/*",
+        "*://*.careerbuilder.com/*",
+        "*://dice.com/*",
+        "*://*.dice.com/*",
+        "*://stackoverflow.com/*",
+        "*://*.stackoverflow.com/*",
+        "https://*/*"
       ],
-      "js": ["smart-detector.js", "form-filler.js"],
-      "css": ["autojobr-styles.css"],
-      "run_at": "document_end"
-    },
-    {
-      "matches": [
-        "*://*.myworkdayjobs.com/*",
-        "*://*.wd1.myworkdayjobs.com/*",
-        "*://*.wd2.myworkdayjobs.com/*",
-        "*://*.wd3.myworkdayjobs.com/*",
-        "*://*.wd4.myworkdayjobs.com/*",
-        "*://*.wd5.myworkdayjobs.com/*",
-        "*://*.wd6.myworkdayjobs.com/*",
-        "*://*.wd7.myworkdayjobs.com/*",
-        "*://*.wd8.myworkdayjobs.com/*",
-        "*://*.wd9.myworkdayjobs.com/*",
-        "*://*.wd10.myworkdayjobs.com/*"
+      "js": [
+        "config.js",
+        "universal-content-script.js"
       ],
-      "js": ["workday-content-script.js", "smart-detector.js", "form-filler.js"],
-      "css": ["autojobr-styles.css"],
+      "css": [
+        "content.css"
+      ],
       "run_at": "document_end"
     }
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "AutoJobr Assistant"
+    "default_title": "AutoJobr - Universal Job Assistant"
   },
   "icons": {
     "16": "icons/icon16.png",
@@ -97,9 +103,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "autojobr-overlay.html",
-        "autojobr-styles.css",
-        "autojobr-floating-panel.js",
+        "config.js",
+        "content.css",
         "icons/*.png"
       ],
       "matches": ["<all_urls>"]

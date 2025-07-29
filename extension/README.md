@@ -1,164 +1,80 @@
-# AutoJobr Chrome Extension v3.0
+# AutoJobr Universal Extension
 
-## Overview
-High-performance Chrome extension that provides intelligent job application automation with real-time analysis and form filling capabilities, seamlessly integrated with the AutoJobr platform.
+A comprehensive Chrome extension that works across all job sites to streamline the job application process.
 
-## Key Features
+## Features
 
-### 🎯 Smart Job Detection
-- **Auto-Detection**: Automatically identifies job postings on 30+ major job boards
-- **Real-Time Analysis**: Instant job-profile matching with AI-powered scoring
-- **Platform Support**: LinkedIn, Indeed, Workday, Greenhouse, Lever, and more
+### Universal Job Site Support
+- Works on 50+ job boards including LinkedIn, Workday, Indeed, Glassdoor, Greenhouse, Lever, and more
+- Automatically detects job pages across all supported platforms
+- Enhanced support for Workday variations (myworkdayjobs.com domains)
 
-### ⚡ Intelligent Form Filling
-- **Advanced Mapping**: 200+ field mappings for comprehensive form coverage
-- **Smart Recognition**: AI-powered field identification and value matching
-- **Multi-Platform**: Works across different job board architectures
+### Smart Application Assistance
+- **Auto-fill forms** with user confirmation using real profile data
+- **Multi-step form navigation** with automatic step detection
+- **Smart field mapping** for all common application fields
+- **Unknown data prompts** when information is missing
 
-### 📊 Real-Time Job Analysis
-- **Match Scoring**: Instant compatibility analysis based on your profile
-- **Skills Matching**: Identifies matched and missing skills
-- **Experience Assessment**: Years of experience evaluation
-- **Salary Analysis**: Automatic salary range detection
+### Application Tracking
+- **Automatic submission detection** - tracks applications even without manual autofill
+- **Real-time confirmation** with popup showing application was tracked
+- **Direct link** to view all applications in AutoJobr dashboard
+- **Multiple detection methods** - form submission, button clicks, URL changes
 
-### 🚀 Seamless Integration
-- **Authenticated Access**: Full integration with AutoJobr user accounts
-- **Real User Data**: Uses actual profile, skills, and experience data
-- **Background Sync**: Automatic profile updates and caching
+### Job Management
+- **Save jobs** directly from any job page
+- **Job analysis** with match scoring based on user profile
+- **Real-time job data extraction** from all supported platforms
 
-## Technical Architecture
+## Installation
 
-### Content Scripts
-- **smart-detector.js**: Main job detection and analysis engine
-- **form-filler.js**: Advanced form filling with 200+ field mappings
-- **autojobr-styles.css**: Modern UI styling for floating panels
+1. Download the extension folder
+2. Open Chrome -> More tools -> Extensions
+3. Enable "Developer mode"
+4. Click "Load unpacked" and select the extension folder
+5. Pin the AutoJobr extension to your toolbar
 
-### Background Service
-- **background.js**: Handles authentication, profile management, and API communication
-- **Persistent Sessions**: Maintains user authentication across browser sessions
-- **Profile Caching**: Offline profile access for form filling
+## Usage
 
-### Popup Interface
-- **popup.html/js**: Modern, responsive interface matching Simplify.jobs quality
-- **Real-Time Status**: Live job detection and analysis results
-- **Action Controls**: One-click autofill, cover letter generation, and job saving
+### Automatic Features
+- Extension automatically activates on job sites
+- Shows floating widget with available actions
+- Automatically tracks application submissions
+- Displays confirmation popup when applications are detected
+
+### Manual Controls
+- Click extension icon for popup controls
+- Use "Auto-Fill Form" for form completion with confirmation
+- "Save Job" to bookmark interesting positions
+- "Analyze Job" for match scoring
+- Toggle settings for auto-fill, tracking, and notifications
+
+### Multi-Step Forms
+- Extension detects form steps automatically
+- Popup shows navigation controls for multi-step applications
+- Handles complex Workday and enterprise application flows
+
+## Configuration
+
+Extension automatically connects to:
+`https://2c294fad-7817-4711-a460-7808eeccb047-00-3bi7bnnz6rhfb.picard.replit.dev`
+
+## Files Structure
+
+- `manifest.json` - Extension configuration
+- `config.js` - API endpoints and field mappings
+- `background.js` - Service worker for API communication
+- `universal-content-script.js` - Main functionality across all sites
+- `popup.html` - Extension popup interface
+- `popup.js` - Popup controls and settings
 
 ## Supported Job Boards
 
-### Major Platforms
-- LinkedIn Jobs
-- Indeed
-- Glassdoor
-- Monster
-- ZipRecruiter
-- Wellfound (AngelList)
+LinkedIn, Indeed, Glassdoor, Monster, ZipRecruiter, Workday (all variants), Greenhouse, Lever, Bamboo HR, SmartRecruiters, Jobvite, iCIMS, Taleo, SuccessFactors, AshbyHQ, Naukri, CareerBuilder, Dice, Stack Overflow, and many more.
 
-### ATS Systems
-- Workday
-- Greenhouse
-- Lever
-- BambooHR
-- SmartRecruiters
-- Jobvite
-- iCIMS
-- Taleo
-- SuccessFactors
-- AshbyHQ
+## Privacy
 
-## Installation & Setup
-
-1. **Load Extension**:
-   - Open Chrome → Extensions → Developer mode → Load unpacked
-   - Select the `extension` folder
-
-2. **Authentication**:
-   - Click extension icon → Sign In to AutoJobr
-   - Complete authentication on the platform
-   - Extension will automatically sync your profile data
-
-3. **Usage**:
-   - Navigate to any supported job board
-   - Extension automatically detects job postings
-   - Use floating panel or popup for actions
-
-## Features Comparison with Simplify.jobs
-
-| Feature | AutoJobr | Simplify |
-|---------|----------|-----------|
-| Job Detection | ✅ Auto-detect | ✅ Auto-detect |
-| Form Autofill | ✅ 200+ fields | ✅ Basic fields |
-| Real-time Analysis | ✅ AI-powered | ❌ Limited |
-| Cover Letter Gen | ✅ AI-generated | ✅ Templates |
-| Profile Integration | ✅ Full platform | ❌ Extension only |
-| Skill Matching | ✅ Advanced | ❌ Basic |
-| Application Tracking | ✅ Full tracking | ✅ Basic tracking |
-
-## Development Notes
-
-### Performance Optimizations
-- Lazy loading of profile data
-- Efficient DOM querying with cached selectors
-- Minimal API calls with smart caching
-- Non-blocking UI updates
-
-### Security Features
-- Secure authentication with session cookies
-- No sensitive data stored locally
-- HTTPS-only API communication
-- Content Security Policy compliance
-
-### Browser Compatibility
-- Chrome 88+
-- Edge 88+
-- Manifest V3 compliant
-- Modern JavaScript features
-
-## Version History
-
-### v3.0.0 (Current)
-- Complete rebuild with modern architecture
-- Real user data integration
-- Advanced form filling engine
-- Simplify.jobs-quality UI/UX
-- 30+ job board support
-
-### v2.0.0 (Previous)
-- Basic job detection
-- Simple form filling
-- Limited platform support
-
-## API Integration
-
-### Backend Endpoints
-- `/api/user` - User authentication check
-- `/api/profile` - User profile data
-- `/api/skills` - Skills list
-- `/api/work-experience` - Work history
-- `/api/education` - Education background
-- `/api/generate-cover-letter` - AI cover letter generation
-- `/api/saved-jobs` - Job saving functionality
-
-### Data Flow
-1. Extension checks authentication status
-2. Loads and caches user profile data
-3. Detects job postings on supported sites
-4. Performs real-time job analysis
-5. Provides one-click actions for application automation
-
-## Troubleshooting
-
-### Common Issues
-1. **Not detecting jobs**: Ensure you're on a supported job board
-2. **Authentication failed**: Clear extension storage and re-authenticate
-3. **Form filling issues**: Check field mapping compatibility
-4. **Analysis not working**: Verify profile data is complete
-
-### Debug Mode
-Enable debug logging by setting `localStorage.autojobrDebug = true` in browser console.
-
-## Future Enhancements
-- More job board integrations
-- Enhanced field mapping
-- Advanced analytics
-- Team collaboration features
-- Mobile app integration
+- Only processes data when user is authenticated
+- Requires user confirmation before auto-filling forms
+- All data synced with AutoJobr platform account
+- No data collected without explicit user action

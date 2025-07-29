@@ -1,7 +1,7 @@
 // Background script for AutoJobr Extension - Fixed Version
 class AutoJobrBackground {
   constructor() {
-    this.apiBase = 'http://40.160.50.128:5000';
+    this.apiBase = 'https://2c294fad-7817-4711-a460-7808eeccb047-00-3bi7bnnz6rhfb.picard.replit.dev';
     this.isAuthenticated = false;
     this.userProfile = null;
     
@@ -25,7 +25,94 @@ class AutoJobrBackground {
     // Initialize authentication check
     this.checkAuthentication();
     
-    console.log('AutoJobr background script initialized');
+    console.log('AutoJobr Universal background script initialized');
+  }
+
+  async saveJob(jobData) {
+    try {
+      const response = await fetch(`${this.apiBase}/api/saved-jobs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: jobData.title,
+          company: jobData.company,
+          location: jobData.location,
+          description: jobData.description,
+          url: jobData.url,
+          platform: jobData.platform,
+          savedDate: new Date().toISOString()
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return { success: true, data: result };
+      } else {
+        return { success: false, error: 'Failed to save job' };
+      }
+    } catch (error) {
+      console.error('Error saving job:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async trackApplication(applicationData) {
+    try {
+      const response = await fetch(`${this.apiBase}/api/applications`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          jobTitle: applicationData.jobData?.title || 'Unknown Position',
+          company: applicationData.jobData?.company || 'Unknown Company',
+          location: applicationData.jobData?.location || '',
+          jobUrl: applicationData.jobData?.url || window.location.href,
+          platform: applicationData.platform || 'Extension',
+          source: 'extension',
+          status: 'applied',
+          appliedDate: new Date().toISOString(),
+          notes: `Applied via ${applicationData.method} on ${applicationData.platform}`
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return { success: true, data: result };
+      } else {
+        return { success: false, error: 'Failed to track application' };
+      }
+    } catch (error) {
+      console.error('Error tracking application:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async analyzeJob(jobData) {
+    try {
+      const response = await fetch(`${this.apiBase}/api/analyze-job`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(jobData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return { success: true, analysis: result };
+      } else {
+        return { success: false, error: 'Failed to analyze job' };
+      }
+    } catch (error) {
+      console.error('Error analyzing job:', error);
+      return { success: false, error: error.message };
+    }
   }
 
   async handleMessage(message, sender, sendResponse) {
@@ -69,6 +156,15 @@ class AutoJobrBackground {
         case 'TRACK_APPLICATION':
           const trackResult = await this.trackApplication(message.applicationData);
           sendResponse(trackResult);
+          break;
+
+        case 'ANALYZE_JOB':
+          const analysisResult = await this.analyzeJob(message.jobData);
+          sendResponse(analysisResult);
+          break;
+
+        case 'FILL_FORM':
+          sendResponse({ success: true, message: 'Form filling initiated' });
           break;
 
         case 'workdayJobDetected':

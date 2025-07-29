@@ -1,305 +1,326 @@
-// Fixed Popup Script for AutoJobr Extension
+// Popup script for AutoJobr Universal Extension
 class AutoJobrPopup {
   constructor() {
-    this.apiBase = 'http://40.160.50.128:5000';
     this.isAuthenticated = false;
-    this.userProfile = null;
-    this.currentJobData = null;
-    this.isJobPage = false;
+    this.currentTab = null;
+    this.settings = {
+      autoFill: true,
+      trackApplications: true,
+      showNotifications: true
+    };
     
     this.init();
   }
 
   async init() {
-    console.log('🚀 Initializing AutoJobr popup...');
-    
-    try {
-      // Show loading state
-      this.showLoadingState();
-      
-      // Check authentication status
-      await this.checkAuthentication();
-      
-      // Check current page for job detection
-      await this.checkCurrentPage();
-      
-      // Setup event listeners
-      this.setupEventListeners();
-      
-      // Update UI based on connection status
-      this.updateUI();
-      
-    } catch (error) {
-      console.error('Failed to initialize popup:', error);
-      this.showErrorState();
-    }
-  }
-
-  async checkAuthentication() {
-    try {
-      const response = await chrome.runtime.sendMessage({ action: 'CHECK_AUTH' });
-      
-      if (response && response.success && response.authenticated) {
-        this.isAuthenticated = true;
-        this.userProfile = response.profile;
-        console.log('✅ Connected to VM successfully');
-      } else {
-        this.isAuthenticated = false;
-        console.log('❌ VM connection failed');
-      }
-    } catch (error) {
-      console.error('Authentication check failed:', error);
-      this.isAuthenticated = false;
-    }
-  }
-
-  async checkCurrentPage() {
-    try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      
-      if (tab && tab.url) {
-        const isJobBoard = this.isJobBoardUrl(tab.url);
-        
-        if (isJobBoard) {
-          try {
-            const response = await chrome.tabs.sendMessage(tab.id, {
-              action: 'GET_JOB_DATA'
-            });
-            
-            if (response && response.success) {
-              this.isJobPage = response.isJobPage;
-              this.currentJobData = response.jobData;
-            }
-          } catch (messageError) {
-            console.log('Content script not ready');
-            this.isJobPage = false;
-          }
-        } else {
-          this.isJobPage = false;
-        }
-      }
-    } catch (error) {
-      console.log('Error checking current page:', error);
-      this.isJobPage = false;
-    }
-  }
-
-  isJobBoardUrl(url) {
-    const jobBoardDomains = [
-      'linkedin.com', 'indeed.com', 'glassdoor.com', 'monster.com',
-      'ziprecruiter.com', 'wellfound.com', 'angel.co', 'workday.com',
-      'lever.co', 'greenhouse.io', 'bamboohr.com', 'smartrecruiters.com'
-    ];
-    
-    return jobBoardDomains.some(domain => url.includes(domain));
-  }
-
-  setupEventListeners() {
-    // Sign in button
-    const signInBtn = document.getElementById('sign-in-btn');
-    if (signInBtn) {
-      signInBtn.addEventListener('click', () => this.openSignIn());
-    }
-
-    // Refresh auth button
-    const refreshAuthBtn = document.getElementById('refresh-auth');
-    if (refreshAuthBtn) {
-      refreshAuthBtn.addEventListener('click', () => this.refreshAuth());
-    }
-
-    // Retry connection button
-    const retryBtn = document.getElementById('retry-connection');
-    if (retryBtn) {
-      retryBtn.addEventListener('click', () => this.retryConnection());
-    }
-
-    // Main action buttons
-    const autofillBtn = document.getElementById('autofill-btn');
-    if (autofillBtn) {
-      autofillBtn.addEventListener('click', () => this.autofillApplication());
-    }
-
-    const coverLetterBtn = document.getElementById('cover-letter-btn');
-    if (coverLetterBtn) {
-      coverLetterBtn.addEventListener('click', () => this.generateCoverLetter());
-    }
-
-    const analyzeJobBtn = document.getElementById('analyze-job-btn');
-    if (analyzeJobBtn) {
-      analyzeJobBtn.addEventListener('click', () => this.analyzeJobMatch());
-    }
-
-    const saveJobBtn = document.getElementById('save-job-btn');
-    if (saveJobBtn) {
-      saveJobBtn.addEventListener('click', () => this.saveJob());
-    }
-
-    // Dashboard link
-    const dashboardLink = document.getElementById('open-dashboard');
-    if (dashboardLink) {
-      dashboardLink.addEventListener('click', () => this.openDashboard());
-    }
-  }
-
-  updateUI() {
-    if (this.isAuthenticated && this.userProfile) {
-      this.showAuthenticatedState();
-    } else {
-      this.showUnauthenticatedState();
-    }
-  }
-
-  showLoadingState() {
-    this.hideAllStates();
-    document.getElementById('loading-state').classList.remove('hidden');
-  }
-
-  showErrorState() {
-    this.hideAllStates();
-    document.getElementById('error-state').classList.remove('hidden');
-  }
-
-  showAuthenticatedState() {
-    this.hideAllStates();
-    document.getElementById('authenticated-state').classList.remove('hidden');
-    
-    // Update user info
-    if (this.userProfile) {
-      const userAvatar = document.getElementById('user-avatar');
-      const userName = document.getElementById('user-name');
-      const userTitle = document.getElementById('user-title');
-      
-      if (userAvatar) {
-        userAvatar.textContent = this.userProfile.firstName ? this.userProfile.firstName.charAt(0) : 'U';
-      }
-      
-      if (userName) {
-        userName.textContent = `${this.userProfile.firstName || 'User'} ${this.userProfile.lastName || ''}`.trim();
-      }
-      
-      if (userTitle) {
-        userTitle.textContent = this.userProfile.professionalTitle || 'Job Seeker';
-      }
-    }
-
-    // Update job detection status
-    if (this.isJobPage) {
-      document.getElementById('job-detected').classList.remove('hidden');
-      document.getElementById('no-job-detected').classList.add('hidden');
-    } else {
-      document.getElementById('job-detected').classList.add('hidden');
-      document.getElementById('no-job-detected').classList.remove('hidden');
-    }
-  }
-
-  showUnauthenticatedState() {
-    this.hideAllStates();
-    document.getElementById('unauthenticated-state').classList.remove('hidden');
-  }
-
-  hideAllStates() {
-    const states = ['loading-state', 'error-state', 'unauthenticated-state', 'authenticated-state'];
-    states.forEach(stateId => {
-      const element = document.getElementById(stateId);
-      if (element) {
-        element.classList.add('hidden');
-      }
-    });
-  }
-
-  async refreshAuth() {
-    this.showLoadingState();
-    await this.checkAuthentication();
+    await this.loadSettings();
+    await this.checkConnection();
+    await this.getCurrentTab();
+    this.setupEventListeners();
     this.updateUI();
   }
 
-  async retryConnection() {
-    this.showLoadingState();
-    await this.init();
-  }
-
-  openSignIn() {
-    chrome.tabs.create({
-      url: `${this.apiBase}/auth`
-    });
-  }
-
-  openDashboard() {
-    chrome.tabs.create({
-      url: `${this.apiBase}/dashboard`
-    });
-  }
-
-  async autofillApplication() {
-    try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      
-      if (tab) {
-        await chrome.tabs.sendMessage(tab.id, {
-          action: 'AUTOFILL_APPLICATION',
-          profile: this.userProfile
-        });
-        
-        console.log('✅ Autofill triggered');
-      }
-    } catch (error) {
-      console.error('Autofill failed:', error);
+  async loadSettings() {
+    const result = await chrome.storage.local.get('autojobr_settings');
+    if (result.autojobr_settings) {
+      this.settings = { ...this.settings, ...result.autojobr_settings };
     }
   }
 
-  async generateCoverLetter() {
+  async saveSettings() {
+    await chrome.storage.local.set({ autojobr_settings: this.settings });
+  }
+
+  async checkConnection() {
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      
-      if (tab) {
-        await chrome.tabs.sendMessage(tab.id, {
-          action: 'GENERATE_COVER_LETTER'
-        });
-        
-        console.log('✅ Cover letter generation triggered');
-      }
+      const response = await chrome.runtime.sendMessage({ action: 'CHECK_AUTH' });
+      this.isAuthenticated = response.success && response.authenticated;
+      this.updateConnectionStatus();
     } catch (error) {
-      console.error('Cover letter generation failed:', error);
+      console.error('Connection check failed:', error);
+      this.isAuthenticated = false;
+      this.updateConnectionStatus();
     }
   }
 
-  async analyzeJobMatch() {
+  async getCurrentTab() {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    this.currentTab = tabs[0];
+  }
+
+  updateConnectionStatus() {
+    const statusDot = document.getElementById('connectionStatus');
+    const statusText = document.getElementById('statusText');
+    
+    if (this.isAuthenticated) {
+      statusDot.classList.add('connected');
+      statusText.textContent = 'Connected to AutoJobr';
+    } else {
+      statusDot.classList.remove('connected');
+      statusText.textContent = 'Not connected - Please login';
+    }
+  }
+
+  setupEventListeners() {
+    // Action buttons
+    document.getElementById('analyzeJobBtn').addEventListener('click', () => this.analyzeJob());
+    document.getElementById('saveJobBtn').addEventListener('click', () => this.saveJob());
+    document.getElementById('fillFormBtn').addEventListener('click', () => this.fillForm());
+    document.getElementById('viewApplicationsBtn').addEventListener('click', () => this.viewApplications());
+
+    // Settings toggles
+    document.getElementById('autoFillToggle').addEventListener('click', () => this.toggleSetting('autoFill'));
+    document.getElementById('trackToggle').addEventListener('click', () => this.toggleSetting('trackApplications'));
+    document.getElementById('notificationToggle').addEventListener('click', () => this.toggleSetting('showNotifications'));
+  }
+
+  updateUI() {
+    // Update toggle states
+    this.updateToggle('autoFillToggle', this.settings.autoFill);
+    this.updateToggle('trackToggle', this.settings.trackApplications);
+    this.updateToggle('notificationToggle', this.settings.showNotifications);
+
+    // Enable/disable buttons based on authentication
+    const buttons = ['analyzeJobBtn', 'saveJobBtn', 'fillFormBtn'];
+    buttons.forEach(buttonId => {
+      const button = document.getElementById(buttonId);
+      button.disabled = !this.isAuthenticated;
+    });
+  }
+
+  updateToggle(toggleId, isActive) {
+    const toggle = document.getElementById(toggleId);
+    if (isActive) {
+      toggle.classList.add('active');
+    } else {
+      toggle.classList.remove('active');
+    }
+  }
+
+  async toggleSetting(settingKey) {
+    this.settings[settingKey] = !this.settings[settingKey];
+    await this.saveSettings();
+    this.updateUI();
+    
+    // Send settings to content script
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      await chrome.tabs.sendMessage(this.currentTab.id, {
+        action: 'UPDATE_SETTINGS',
+        settings: this.settings
+      });
+    } catch (error) {
+      // Content script might not be loaded
+    }
+  }
+
+  async analyzeJob() {
+    if (!this.isAuthenticated) {
+      this.showLoginPrompt();
+      return;
+    }
+
+    try {
+      this.setButtonLoading('analyzeJobBtn', true);
       
-      if (tab) {
-        await chrome.tabs.sendMessage(tab.id, {
-          action: 'ANALYZE_JOB_MATCH'
-        });
-        
-        console.log('✅ Job analysis triggered');
+      const response = await chrome.tabs.sendMessage(this.currentTab.id, {
+        action: 'ANALYZE_CURRENT_JOB'
+      });
+
+      if (response && response.success) {
+        this.showNotification('Job analyzed successfully!');
+      } else {
+        this.showNotification('Failed to analyze job', 'error');
       }
     } catch (error) {
-      console.error('Job analysis failed:', error);
+      console.error('Analyze job failed:', error);
+      this.showNotification('Analysis failed', 'error');
+    } finally {
+      this.setButtonLoading('analyzeJobBtn', false);
     }
   }
 
   async saveJob() {
-    if (this.currentJobData) {
+    if (!this.isAuthenticated) {
+      this.showLoginPrompt();
+      return;
+    }
+
+    try {
+      this.setButtonLoading('saveJobBtn', true);
+      
+      const response = await chrome.tabs.sendMessage(this.currentTab.id, {
+        action: 'SAVE_CURRENT_JOB'
+      });
+
+      if (response && response.success) {
+        this.showNotification('Job saved successfully!');
+      } else {
+        this.showNotification('Failed to save job', 'error');
+      }
+    } catch (error) {
+      console.error('Save job failed:', error);
+      this.showNotification('Save failed', 'error');
+    } finally {
+      this.setButtonLoading('saveJobBtn', false);
+    }
+  }
+
+  async fillForm() {
+    if (!this.isAuthenticated) {
+      this.showLoginPrompt();
+      return;
+    }
+
+    try {
+      this.setButtonLoading('fillFormBtn', true);
+      
+      const response = await chrome.tabs.sendMessage(this.currentTab.id, {
+        action: 'FILL_FORM'
+      });
+
+      if (response && response.success) {
+        this.showNotification('Form filled successfully!');
+      } else {
+        this.showNotification('Form fill failed', 'error');
+      }
+    } catch (error) {
+      console.error('Fill form failed:', error);
+      this.showNotification('Fill failed', 'error');
+    } finally {
+      this.setButtonLoading('fillFormBtn', false);
+    }
+  }
+
+  viewApplications() {
+    const url = 'https://2c294fad-7817-4711-a460-7808eeccb047-00-3bi7bnnz6rhfb.picard.replit.dev/applications';
+    chrome.tabs.create({ url: url });
+  }
+
+  showLoginPrompt() {
+    const url = 'https://2c294fad-7817-4711-a460-7808eeccb047-00-3bi7bnnz6rhfb.picard.replit.dev/login';
+    chrome.tabs.create({ url: url });
+  }
+
+  setButtonLoading(buttonId, isLoading) {
+    const button = document.getElementById(buttonId);
+    const originalText = button.textContent;
+    
+    if (isLoading) {
+      button.disabled = true;
+      button.textContent = '⏳ Loading...';
+      button.dataset.originalText = originalText;
+    } else {
+      button.disabled = !this.isAuthenticated;
+      button.textContent = button.dataset.originalText || originalText;
+    }
+  }
+
+  showNotification(message, type = 'success') {
+    // Create and show a temporary notification
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: ${type === 'error' ? '#ef4444' : '#10b981'};
+      color: white;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 12px;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.remove();
+      }
+    }, 3000);
+  }
+
+  // Enhanced form navigation helpers
+  async navigateForm(direction) {
+    try {
+      await chrome.tabs.sendMessage(this.currentTab.id, {
+        action: 'NAVIGATE_FORM',
+        direction: direction
+      });
+    } catch (error) {
+      console.error('Form navigation failed:', error);
+    }
+  }
+
+  async askForUnknownData(fieldType) {
+    const userInput = prompt(`Please provide ${fieldType}:`);
+    if (userInput) {
       try {
-        const response = await chrome.runtime.sendMessage({
-          action: 'SAVE_JOB',
-          jobData: this.currentJobData
+        await chrome.tabs.sendMessage(this.currentTab.id, {
+          action: 'FILL_FIELD_DATA',
+          fieldType: fieldType,
+          data: userInput
         });
-        
-        if (response.success) {
-          console.log('✅ Job saved successfully');
-        }
       } catch (error) {
-        console.error('Save job failed:', error);
+        console.error('Failed to fill field:', error);
       }
     }
   }
+
+  // Multi-step form handling
+  async handleMultiStepForm() {
+    try {
+      const response = await chrome.tabs.sendMessage(this.currentTab.id, {
+        action: 'DETECT_FORM_STEPS'
+      });
+
+      if (response && response.steps > 1) {
+        this.showFormNavigationUI(response.currentStep, response.steps);
+      }
+    } catch (error) {
+      console.error('Multi-step form detection failed:', error);
+    }
+  }
+
+  showFormNavigationUI(currentStep, totalSteps) {
+    const navigationDiv = document.createElement('div');
+    navigationDiv.id = 'formNavigation';
+    navigationDiv.innerHTML = `
+      <div style="padding: 12px; border-top: 1px solid #e2e8f0; margin-top: 12px;">
+        <div style="text-align: center; margin-bottom: 8px; font-size: 12px; color: #6b7280;">
+          Step ${currentStep} of ${totalSteps}
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button id="prevStepBtn" class="btn btn-secondary" style="flex: 1;">← Previous</button>
+          <button id="nextStepBtn" class="btn btn-primary" style="flex: 1;">Next →</button>
+        </div>
+      </div>
+    `;
+
+    // Remove existing navigation
+    const existing = document.getElementById('formNavigation');
+    if (existing) existing.remove();
+
+    document.querySelector('.content').appendChild(navigationDiv);
+
+    // Add event listeners
+    document.getElementById('prevStepBtn').addEventListener('click', () => this.navigateForm('previous'));
+    document.getElementById('nextStepBtn').addEventListener('click', () => this.navigateForm('next'));
+  }
 }
 
-// Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => new AutoJobrPopup());
-} else {
+// Initialize popup when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
   new AutoJobrPopup();
-}
+});
+
+// Listen for messages from content script
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'UNKNOWN_FIELD_DATA') {
+    const popup = window.autojobrPopup;
+    if (popup) {
+      popup.askForUnknownData(message.fieldType);
+    }
+  }
+});

@@ -1,6 +1,6 @@
 // Configuration for AutoJobr Extension
 const CONFIG = {
-  API_BASE_URL: 'http://40.160.50.128:5000',
+  API_BASE_URL: 'https://2c294fad-7817-4711-a460-7808eeccb047-00-3bi7bnnz6rhfb.picard.replit.dev',
   ENDPOINTS: {
     USER: '/api/user',
     PROFILE: '/api/profile',
@@ -35,6 +35,7 @@ const CONFIG = {
     'greenhouse.io',
     'lever.co',
     'workday.com',
+    'myworkdayjobs.com',
     'bamboohr.com',
     'smartrecruiters.com',
     'jobvite.com',
@@ -45,6 +46,117 @@ const CONFIG = {
     'shine.com',
     'timesjobs.com',
     'foundit.in'
+  ],
+  FIELD_MAPPINGS: {
+    firstName: [
+      'input[name*="first" i]',
+      'input[placeholder*="first" i]',
+      'input[id*="first" i]',
+      '[data-automation-id*="first"]',
+      '[data-testid*="first"]'
+    ],
+    lastName: [
+      'input[name*="last" i]',
+      'input[placeholder*="last" i]',
+      'input[id*="last" i]',
+      '[data-automation-id*="last"]',
+      '[data-testid*="last"]'
+    ],
+    email: [
+      'input[type="email"]',
+      'input[name*="email" i]',
+      'input[placeholder*="email" i]',
+      '[data-automation-id*="email"]'
+    ],
+    phone: [
+      'input[type="tel"]',
+      'input[name*="phone" i]',
+      'input[placeholder*="phone" i]',
+      '[data-automation-id*="phone"]'
+    ],
+    address: [
+      'input[name*="address" i]',
+      'textarea[name*="address" i]',
+      '[data-automation-id*="address"]'
+    ],
+    city: [
+      'input[name*="city" i]',
+      '[data-automation-id*="city"]'
+    ],
+    state: [
+      'select[name*="state" i]',
+      'input[name*="state" i]',
+      '[data-automation-id*="state"]'
+    ],
+    zipCode: [
+      'input[name*="zip" i]',
+      'input[name*="postal" i]',
+      '[data-automation-id*="zip"]'
+    ],
+    linkedinUrl: [
+      'input[name*="linkedin" i]',
+      'input[placeholder*="linkedin" i]'
+    ],
+    githubUrl: [
+      'input[name*="github" i]',
+      'input[placeholder*="github" i]'
+    ],
+    portfolioUrl: [
+      'input[name*="portfolio" i]',
+      'input[name*="website" i]'
+    ],
+    yearsExperience: [
+      'select[name*="experience" i]',
+      'input[name*="experience" i]'
+    ],
+    university: [
+      'input[name*="university" i]',
+      'input[name*="college" i]',
+      'input[name*="school" i]'
+    ],
+    degree: [
+      'select[name*="degree" i]',
+      'input[name*="degree" i]'
+    ],
+    major: [
+      'input[name*="major" i]',
+      'input[name*="field" i]'
+    ]
+  },
+  JOB_SELECTORS: {
+    title: [
+      'h1', 
+      '[data-automation-id*="jobTitle"]',
+      '.job-title',
+      '.position-title',
+      '[class*="title"]'
+    ],
+    company: [
+      '[data-automation-id*="company"]',
+      '.company-name',
+      '[class*="company"]',
+      'a[href*="company"]'
+    ],
+    location: [
+      '[data-automation-id*="location"]',
+      '.job-location',
+      '[class*="location"]'
+    ],
+    description: [
+      '[data-automation-id*="description"]',
+      '.job-description',
+      '[class*="description"]',
+      '[role="main"]'
+    ]
+  },
+  SUBMISSION_SELECTORS: [
+    'button[type="submit"]',
+    'input[type="submit"]',
+    'button[data-automation-id*="submit"]',
+    'button[data-automation-id*="apply"]',
+    'button:contains("Submit")',
+    'button:contains("Apply")',
+    'a[href*="apply"]'
   ]
 };
 
@@ -59,8 +171,8 @@ class AutoJobrAPI {
   }
 
   detectBackendURL() {
-    // Use VM server
-    return 'http://40.160.50.128:5000';
+    // Use Replit app URL
+    return 'https://2c294fad-7817-4711-a460-7808eeccb047-00-3bi7bnnz6rhfb.picard.replit.dev';
   }
 
   async makeRequest(endpoint, options = {}) {
@@ -156,6 +268,34 @@ class AutoJobrAPI {
       });
     } catch (error) {
       console.error('Failed to analyze job:', error);
+      throw error;
+    }
+  }
+
+  async saveJob(jobData) {
+    try {
+      return await this.makeRequest('/api/saved-jobs', {
+        method: 'POST',
+        body: JSON.stringify(jobData)
+      });
+    } catch (error) {
+      console.error('Failed to save job:', error);
+      throw error;
+    }
+  }
+
+  async trackApplication(applicationData) {
+    try {
+      return await this.makeRequest('/api/applications', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...applicationData,
+          source: 'extension',
+          appliedDate: new Date().toISOString()
+        })
+      });
+    } catch (error) {
+      console.error('Failed to track application:', error);
       throw error;
     }
   }
