@@ -85,9 +85,6 @@
         "config.js",
         "universal-content-script.js"
       ],
-      "css": [
-        "content.css"
-      ],
       "run_at": "document_end"
     }
   ],
@@ -104,7 +101,6 @@
     {
       "resources": [
         "config.js",
-        "content.css",
         "icons/*.png"
       ],
       "matches": ["<all_urls>"]
