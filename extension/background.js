@@ -1,7 +1,7 @@
 // Background script for AutoJobr Extension - Fixed Version
 class AutoJobrBackground {
   constructor() {
-    this.apiBase = 'https://2c294fad-7817-4711-a460-7808eeccb047-00-3bi7bnnz6rhfb.picard.replit.dev';
+    this.apiBase = 'http://40.160.50.128';
     this.isAuthenticated = false;
     this.userProfile = null;
     
@@ -103,14 +103,71 @@ class AutoJobrBackground {
         body: JSON.stringify(jobData)
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        return { success: true, analysis: result };
-      } else {
-        return { success: false, error: 'Failed to analyze job' };
+      // Check if response is successful
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Job analysis API error:', response.status, errorText);
+        return { 
+          success: false, 
+          error: `API Error: ${response.status} - ${errorText.substring(0, 100)}...` 
+        };
       }
+
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const htmlText = await response.text();
+        console.error('Job analysis returned HTML instead of JSON:', htmlText.substring(0, 200));
+        return { 
+          success: false, 
+          error: 'Server returned HTML instead of JSON. Please check authentication.' 
+        };
+      }
+
+      const result = await response.json();
+      return { success: true, analysis: result };
     } catch (error) {
       console.error('Error analyzing job:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async generateCoverLetter(jobData) {
+    try {
+      const response = await fetch(`${this.apiBase}/api/generate-cover-letter`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(jobData)
+      });
+
+      // Check if response is successful
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Cover letter API error:', response.status, errorText);
+        return { 
+          success: false, 
+          error: `API Error: ${response.status} - ${errorText.substring(0, 100)}...` 
+        };
+      }
+
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const htmlText = await response.text();
+        console.error('Cover letter returned HTML instead of JSON:', htmlText.substring(0, 200));
+        return { 
+          success: false, 
+          error: 'Server returned HTML instead of JSON. Please check authentication.' 
+        };
+      }
+
+      const result = await response.json();
+      return { success: true, coverLetter: result.coverLetter || result.text || result };
+    } catch (error) {
+      console.error('Error generating cover letter:', error);
       return { success: false, error: error.message };
     }
   }
@@ -161,6 +218,11 @@ class AutoJobrBackground {
         case 'ANALYZE_JOB':
           const analysisResult = await this.analyzeJob(message.jobData);
           sendResponse(analysisResult);
+          break;
+
+        case 'GENERATE_COVER_LETTER':
+          const coverLetterResult = await this.generateCoverLetter(message.jobData);
+          sendResponse(coverLetterResult);
           break;
 
         case 'FILL_FORM':

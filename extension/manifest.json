@@ -16,7 +16,8 @@
     "http://*/*",
     "https://*.replit.dev/*",
     "https://*.replit.app/*", 
-    "https://*.replit.co/*"
+    "https://*.replit.co/*",
+    "http://40.160.50.128/*"
   ],
   "background": {
     "service_worker": "background.js"

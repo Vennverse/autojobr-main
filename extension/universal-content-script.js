@@ -168,16 +168,45 @@ if (typeof window.CONFIG === 'undefined') {
       widget.innerHTML = `
         <div class="autojobr-widget">
           <div class="autojobr-header">
-            <span class="autojobr-logo">📋 AutoJobr</span>
-            <button class="autojobr-close">×</button>
+            <div class="autojobr-header-content">
+              <div class="autojobr-icon">🚀</div>
+              <span class="autojobr-title">AutoJobr Assistant</span>
+            </div>
+            <button class="autojobr-close">✕</button>
           </div>
           <div class="autojobr-content">
-            <div class="autojobr-actions">
-              <button class="autojobr-btn save-job" title="Save this job">💾 Save Job</button>
-              <button class="autojobr-btn fill-form" title="Auto-fill application form">✏️ Fill Form</button>
-              <button class="autojobr-btn analyze-job" title="Analyze job match">📊 Analyze</button>
+            <p class="autojobr-subtitle">Enhanced AI-powered job analysis</p>
+            
+            <div class="autojobr-auth-notice" id="autojobr-auth-notice" style="display: none;">
+              🔴 Please Sign In
             </div>
-            <div class="autojobr-status">Ready</div>
+
+            <div class="autojobr-analysis-result" id="autojobr-analysis-result" style="display: none;">
+              <div class="autojobr-match-header">
+                <span class="autojobr-match-label">AI Job Match Analysis</span>
+                <div class="autojobr-match-score" id="autojobr-match-score">25%</div>
+              </div>
+              <div class="autojobr-match-details">
+                <div class="autojobr-profile-note">Complete your skills profile for better analysis</div>
+                <div class="autojobr-match-stats">
+                  <span id="autojobr-skills-match">0/0 Skills Match</span>
+                  <span id="autojobr-experience">0y Experience</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="autojobr-actions">
+              <button class="autojobr-btn analyze-job primary">🧠 AI Job Analysis</button>
+              <button class="autojobr-btn fill-form success">⚡ Smart Auto-fill</button>
+              <div class="autojobr-secondary-actions">
+                <button class="autojobr-btn cover-letter secondary">📝 Generate Cover Letter</button>
+                <button class="autojobr-btn save-job secondary">💾 Save Job</button>
+              </div>
+            </div>
+            
+            <div class="autojobr-footer">
+              <a href="#" class="autojobr-premium-link">🔄 Try Premium</a>
+            </div>
           </div>
         </div>
       `;
@@ -186,12 +215,31 @@ if (typeof window.CONFIG === 'undefined') {
       this.addWidgetStyles();
       
       // Add event listeners
-      widget.querySelector('.autojobr-close').onclick = () => widget.remove();
+      widget.querySelector('.autojobr-close').onclick = () => {
+        widget.style.transform = 'translateX(350px)';
+        setTimeout(() => widget.remove(), 300);
+      };
       widget.querySelector('.save-job').onclick = () => this.saveCurrentJob();
       widget.querySelector('.fill-form').onclick = () => this.autoFillForm();
       widget.querySelector('.analyze-job').onclick = () => this.analyzeCurrentJob();
+      
+      const coverLetterBtn = widget.querySelector('.cover-letter');
+      if (coverLetterBtn) {
+        coverLetterBtn.onclick = () => this.generateCoverLetter();
+      }
 
       document.body.appendChild(widget);
+      this.updateWidgetAuthStatus();
+
+      // Auto-hide after 15 seconds
+      setTimeout(() => {
+        if (widget && widget.parentNode) {
+          widget.style.transform = 'translateX(350px)';
+          setTimeout(() => {
+            if (widget.parentNode) widget.remove();
+          }, 300);
+        }
+      }, 15000);
     }
 
     addWidgetStyles() {
@@ -204,68 +252,167 @@ if (typeof window.CONFIG === 'undefined') {
           position: fixed;
           top: 20px;
           right: 20px;
-          width: 280px;
-          background: white;
-          border: 2px solid #4f46e5;
-          border-radius: 12px;
-          box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+          width: 320px;
+          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+          border-radius: 16px;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.15), 0 8px 16px rgba(0,0,0,0.1);
           z-index: 10000;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
           font-size: 14px;
+          color: white;
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255,255,255,0.2);
+          transform: translateX(0);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .autojobr-header {
-          background: linear-gradient(135deg, #4f46e5, #7c3aed);
-          color: white;
-          padding: 12px 16px;
-          border-radius: 10px 10px 0 0;
+          padding: 20px;
+          border-radius: 16px 16px 0 0;
           display: flex;
           justify-content: space-between;
           align-items: center;
+        }
+        .autojobr-header-content {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .autojobr-icon {
+          width: 24px;
+          height: 24px;
+          background: rgba(255,255,255,0.2);
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+        }
+        .autojobr-title {
+          font-size: 17px;
+          font-weight: 600;
+          margin: 0;
         }
         .autojobr-logo {
           font-weight: bold;
           font-size: 16px;
         }
         .autojobr-close {
-          background: none;
+          background: rgba(255,255,255,0.1);
           border: none;
           color: white;
-          font-size: 18px;
+          font-size: 16px;
           cursor: pointer;
-          padding: 0;
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
+          padding: 6px;
+          width: 28px;
+          height: 28px;
+          border-radius: 6px;
           display: flex;
           align-items: center;
           justify-content: center;
+          transition: all 0.2s ease;
         }
         .autojobr-close:hover {
           background: rgba(255,255,255,0.2);
         }
         .autojobr-content {
-          padding: 16px;
+          padding: 0 20px 20px 20px;
+        }
+        .autojobr-subtitle {
+          margin: 0 0 16px 0;
+          font-size: 14px;
+          opacity: 0.9;
+          line-height: 1.4;
+        }
+        .autojobr-auth-notice {
+          margin-bottom: 16px;
+          padding: 12px;
+          background: rgba(239, 68, 68, 0.2);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          border-radius: 8px;
+          font-size: 13px;
+        }
+        .autojobr-analysis-result {
+          margin-bottom: 16px;
+          padding: 12px;
+          background: rgba(255,255,255,0.1);
+          border-radius: 8px;
+          font-size: 13px;
+        }
+        .autojobr-match-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 8px;
+        }
+        .autojobr-match-label {
+          font-weight: 500;
+        }
+        .autojobr-match-score {
+          background: rgba(34, 197, 94, 0.8);
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 600;
+        }
+        .autojobr-profile-note {
+          font-size: 12px;
+          opacity: 0.8;
+          margin-bottom: 8px;
+        }
+        .autojobr-match-stats {
+          display: flex;
+          justify-content: space-between;
+          font-size: 11px;
         }
         .autojobr-actions {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .autojobr-secondary-actions {
+          display: flex;
           gap: 8px;
-          margin-bottom: 12px;
         }
         .autojobr-btn {
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          padding: 8px 12px;
+          border: none;
+          border-radius: 10px;
           cursor: pointer;
-          font-size: 13px;
-          transition: all 0.2s;
+          font-weight: 600;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          font-size: 14px;
+        }
+        .autojobr-btn.primary {
+          background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+          color: white;
+          padding: 12px 20px;
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        .autojobr-btn.success {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+          padding: 12px 20px;
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        .autojobr-btn.secondary {
+          background: rgba(255,255,255,0.15);
+          border: 1px solid rgba(255,255,255,0.2);
+          color: white;
+          padding: 10px 16px;
+          font-size: 12px;
+          flex: 1;
+        }
+        .autojobr-footer {
+          margin-top: 12px;
           text-align: center;
         }
-        .autojobr-btn:hover {
-          background: #4f46e5;
-          color: white;
-          border-color: #4f46e5;
+        .autojobr-premium-link {
+          color: rgba(255,255,255,0.7);
+          font-size: 11px;
+          text-decoration: none;
         }
         .autojobr-status {
           padding: 8px 12px;
@@ -704,12 +851,85 @@ if (typeof window.CONFIG === 'undefined') {
 
         if (response.success) {
           this.showJobAnalysis(response.analysis);
+          this.updateAnalysisDisplay(response.analysis);
         } else {
           this.showNotification('Analysis failed', 'error');
         }
       } catch (error) {
         console.error('Job analysis failed:', error);
         this.showNotification('Analysis error', 'error');
+      }
+    }
+
+    async generateCoverLetter() {
+      if (!this.currentJobData) {
+        this.showNotification('No job data available', 'warning');
+        return;
+      }
+
+      try {
+        const response = await chrome.runtime.sendMessage({
+          action: 'GENERATE_COVER_LETTER',
+          jobData: this.currentJobData
+        });
+
+        if (response.success) {
+          this.showNotification('Cover letter generated!');
+          // Could open in new tab or copy to clipboard
+          navigator.clipboard.writeText(response.coverLetter);
+        } else {
+          this.showNotification('Cover letter generation failed', 'error');
+        }
+      } catch (error) {
+        console.error('Cover letter generation failed:', error);
+        this.showNotification('Cover letter error', 'error');
+      }
+    }
+
+    async updateWidgetAuthStatus() {
+      const authNotice = document.getElementById('autojobr-auth-notice');
+      const analysisResult = document.getElementById('autojobr-analysis-result');
+      
+      try {
+        const response = await chrome.runtime.sendMessage({ action: 'CHECK_AUTH' });
+        
+        if (response.authenticated) {
+          if (authNotice) authNotice.style.display = 'none';
+          if (analysisResult) analysisResult.style.display = 'block';
+        } else {
+          if (authNotice) authNotice.style.display = 'block';
+          if (analysisResult) analysisResult.style.display = 'none';
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        if (authNotice) authNotice.style.display = 'block';
+        if (analysisResult) analysisResult.style.display = 'none';
+      }
+    }
+
+    updateAnalysisDisplay(analysis) {
+      const matchScore = document.getElementById('autojobr-match-score');
+      const skillsMatch = document.getElementById('autojobr-skills-match');
+      const experience = document.getElementById('autojobr-experience');
+      
+      if (matchScore && analysis.matchScore) {
+        matchScore.textContent = `${analysis.matchScore}%`;
+        matchScore.className = 'autojobr-match-score';
+        if (analysis.matchScore >= 80) {
+          matchScore.style.background = 'rgba(34, 197, 94, 0.8)';
+        } else if (analysis.matchScore >= 60) {
+          matchScore.style.background = 'rgba(251, 191, 36, 0.8)';
+        } else {
+          matchScore.style.background = 'rgba(239, 68, 68, 0.8)';
+        }
+      }
+      
+      if (skillsMatch && analysis.skillsMatched) {
+        skillsMatch.textContent = `${analysis.skillsMatched}/${analysis.totalSkills || 0} Skills Match`;
+      }
+      
+      if (experience && this.userProfile) {
+        experience.textContent = `${this.calculateExperience()}y Experience`;
       }
     }
 
@@ -813,43 +1033,223 @@ if (typeof window.CONFIG === 'undefined') {
       }
     }
 
-    // Auto-detection for form submissions without user interaction
+    // Enhanced auto-detection for form submissions across all platforms
     async setupAutoSubmissionTracking() {
       // Monitor for form submissions
       document.addEventListener('submit', async (event) => {
         if (this.isJobApplicationForm(event.target)) {
-          setTimeout(async () => {
-            await this.detectApplicationSubmission();
-          }, 3000); // Wait 3 seconds for page redirect/content change
-        }
-      });
-
-      // Monitor for button clicks that might submit applications
-      document.addEventListener('click', async (event) => {
-        const button = event.target;
-        const buttonText = button.textContent?.toLowerCase() || '';
-        
-        if (buttonText.includes('apply') || buttonText.includes('submit')) {
+          this.pendingSubmission = true;
           setTimeout(async () => {
             await this.detectApplicationSubmission();
           }, 3000);
         }
       });
 
-      // Monitor for URL changes (SPA navigation)
+      // Enhanced button click monitoring for Workday and other platforms
+      document.addEventListener('click', async (event) => {
+        const button = event.target;
+        const buttonText = button.textContent?.toLowerCase() || '';
+        const buttonId = button.id?.toLowerCase() || '';
+        const buttonClass = button.className?.toLowerCase() || '';
+        
+        // Comprehensive submit button detection
+        const isSubmitButton = (
+          buttonText.includes('apply') || 
+          buttonText.includes('submit') ||
+          buttonText.includes('send application') ||
+          buttonText.includes('complete application') ||
+          buttonId.includes('apply') ||
+          buttonId.includes('submit') ||
+          buttonClass.includes('apply') ||
+          buttonClass.includes('submit') ||
+          button.type === 'submit'
+        );
+
+        // Special Workday detection patterns
+        const isWorkdaySubmit = (
+          buttonClass.includes('wd-button') ||
+          buttonClass.includes('css-') ||
+          button.getAttribute('data-automation-id')?.includes('apply') ||
+          button.closest('[data-automation-id*="apply"]')
+        );
+
+        if (isSubmitButton || isWorkdaySubmit) {
+          this.pendingSubmission = true;
+          setTimeout(async () => {
+            await this.detectApplicationSubmission();
+          }, 3000);
+        }
+      });
+
+      // Enhanced URL change monitoring with Workday patterns
       let currentUrl = window.location.href;
       setInterval(async () => {
         if (window.location.href !== currentUrl) {
           const newUrl = window.location.href;
+          const oldUrl = currentUrl;
           currentUrl = newUrl;
           
-          // Check if URL suggests successful submission
-          if (newUrl.includes('thank') || newUrl.includes('success') || newUrl.includes('confirm')) {
-            await this.trackApplication('url_change_detection');
+          // Enhanced success URL detection
+          const successPatterns = [
+            'thank', 'thanks', 'success', 'confirm', 'complete', 'submitted', 
+            'application-submitted', 'submission-complete', 'applied'
+          ];
+          
+          // Workday specific success patterns
+          const workdayPatterns = [
+            'applicationSubmitted', 'submit-success', 'confirmation'
+          ];
+          
+          const hasSuccessPattern = [...successPatterns, ...workdayPatterns].some(pattern => 
+            newUrl.toLowerCase().includes(pattern)
+          );
+
+          if (hasSuccessPattern || this.pendingSubmission) {
+            await this.trackApplication('automatic_url_detection');
             await this.showApplicationTrackedConfirmation();
+            this.pendingSubmission = false;
           }
         }
       }, 1000);
+
+      // Monitor for success messages in page content
+      const observer = new MutationObserver(async (mutations) => {
+        for (const mutation of mutations) {
+          if (mutation.type === 'childList') {
+            for (const node of mutation.addedNodes) {
+              if (node.nodeType === 1) { // Element node
+                const text = node.textContent?.toLowerCase() || '';
+                const successIndicators = [
+                  'application submitted', 'thank you for applying', 'successfully submitted',
+                  'application received', 'we have received your application'
+                ];
+                
+                if (successIndicators.some(indicator => text.includes(indicator))) {
+                  await this.trackApplication('content_change_detection');
+                  await this.showApplicationTrackedConfirmation();
+                  this.pendingSubmission = false;
+                }
+              }
+            }
+          }
+        }
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    }
+
+    // Enhanced form detection for all platforms including Workday
+    isJobApplicationForm(form) {
+      if (!form) return false;
+      
+      const formText = form.textContent?.toLowerCase() || '';
+      const formAction = form.action?.toLowerCase() || '';
+      const formId = form.id?.toLowerCase() || '';
+      
+      // Standard application form indicators
+      const applicationIndicators = [
+        'application', 'apply', 'resume', 'cover letter', 'job',
+        'candidate', 'personal information', 'work experience',
+        'education', 'skills'
+      ];
+
+      // Workday specific indicators
+      const workdayIndicators = [
+        'workday', 'wd-', 'myworkdayjobs', 'job-apply', 'application-form'
+      ];
+
+      return [...applicationIndicators, ...workdayIndicators].some(indicator =>
+        formText.includes(indicator) || formAction.includes(indicator) || formId.includes(indicator)
+      );
+    }
+
+    // Enhanced application tracking confirmation
+    async showApplicationTrackedConfirmation() {
+      const popup = document.createElement('div');
+      popup.innerHTML = `
+        <div style="
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0,0,0,0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 10002;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        ">
+          <div style="
+            background: white;
+            padding: 32px;
+            border-radius: 16px;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+          ">
+            <div style="
+              width: 64px;
+              height: 64px;
+              background: linear-gradient(135deg, #10b981, #059669);
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              margin: 0 auto 20px auto;
+              font-size: 24px;
+            ">✓</div>
+            <h3 style="
+              margin: 0 0 12px 0;
+              color: #10b981;
+              font-size: 20px;
+              font-weight: 600;
+            ">Application Tracked!</h3>
+            <p style="
+              margin: 0 0 24px 0;
+              color: #6b7280;
+              line-height: 1.5;
+            ">Your job application has been automatically detected and saved to your AutoJobr dashboard.</p>
+            <div style="
+              display: flex;
+              gap: 12px;
+              justify-content: center;
+            ">
+              <a href="${CONFIG.API_BASE_URL}/applications" target="_blank" style="
+                background: #4f46e5;
+                color: white;
+                text-decoration: none;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-weight: 500;
+                transition: background 0.2s;
+              ">View Applications</a>
+              <button onclick="this.closest('div').remove()" style="
+                background: #f3f4f6;
+                color: #374151;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: background 0.2s;
+              ">Close</button>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(popup);
+      
+      // Auto-close after 8 seconds
+      setTimeout(() => {
+        if (popup.parentNode) {
+          popup.remove();
+        }
+      }, 8000);
     }
   }
 

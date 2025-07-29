@@ -192,12 +192,12 @@ class AutoJobrPopup {
   }
 
   viewApplications() {
-    const url = 'https://2c294fad-7817-4711-a460-7808eeccb047-00-3bi7bnnz6rhfb.picard.replit.dev/applications';
+    const url = 'http://40.160.50.128/applications';
     chrome.tabs.create({ url: url });
   }
 
   showLoginPrompt() {
-    const url = 'https://2c294fad-7817-4711-a460-7808eeccb047-00-3bi7bnnz6rhfb.picard.replit.dev/login';
+    const url = 'http://40.160.50.128/login';
     chrome.tabs.create({ url: url });
   }
 
