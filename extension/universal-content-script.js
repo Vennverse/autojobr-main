@@ -500,7 +500,18 @@ if (typeof window.CONFIG === 'undefined') {
     }
 
     async fillFormFields() {
-      if (!this.userProfile?.profile) return;
+      if (!this.userProfile?.profile) {
+        console.log('❌ No user profile available');
+        return;
+      }
+
+      console.log('🚀 Starting form fill with profile:', this.userProfile.profile);
+      
+      // Check if this is a Workday form for specialized handling
+      if (this.isWorkdayForm()) {
+        console.log('🏢 Detected Workday form, using specialized filling');
+        return await this.fillWorkdayForm();
+      }
 
       const profile = this.userProfile.profile;
       const fieldMappings = this.getUniversalFieldMappings();
@@ -591,6 +602,9 @@ if (typeof window.CONFIG === 'undefined') {
       };
 
       // Fill fields with enhanced timing and event handling
+      console.log('📝 Starting to fill fields...');
+      let fieldsFilledCount = 0;
+      
       for (const [dataKey, value] of Object.entries(dataMapping)) {
         if (!value) continue;
         
@@ -599,13 +613,92 @@ if (typeof window.CONFIG === 'undefined') {
           const elements = document.querySelectorAll(selector);
           for (const element of elements) {
             if (this.shouldFillField(element)) {
+              console.log(`🎯 Filling ${dataKey} with "${value}" using selector: ${selector}`);
               await this.fillField(element, value);
+              fieldsFilledCount++;
               await this.delay(300); // Spacing between fields
             }
           }
         }
       }
+      
+      console.log(`✅ Form filling complete: ${fieldsFilledCount} fields filled`);
     }
+
+    isWorkdayForm() {
+      return window.location.hostname.includes('workday') || 
+             window.location.hostname.includes('myworkdayjobs') ||
+             document.querySelector('[data-automation-id]') !== null;
+    }
+
+    async fillWorkdayForm() {
+      console.log('🏢 Filling Workday form with specialized logic');
+      const profile = this.userProfile.profile;
+      let fieldsFilledCount = 0;
+
+      // Workday-specific field mapping with enhanced selectors
+      const workdayFields = [
+        { key: 'firstName', value: profile.fullName?.split(' ')[0] || '', selectors: [
+          'input[data-automation-id*="firstName"]',
+          'input[data-automation-id*="legalNameSection_firstName"]',
+          'input[aria-label*="first name" i]',
+          'input[placeholder*="first name" i]',
+          'input[name*="first" i]'
+        ]},
+        { key: 'lastName', value: profile.fullName?.split(' ').slice(1).join(' ') || '', selectors: [
+          'input[data-automation-id*="lastName"]',
+          'input[data-automation-id*="legalNameSection_lastName"]',
+          'input[aria-label*="last name" i]',
+          'input[placeholder*="last name" i]',
+          'input[name*="last" i]'
+        ]},
+        { key: 'email', value: profile.email || '', selectors: [
+          'input[data-automation-id*="email"]',
+          'input[type="email"]',
+          'input[aria-label*="email" i]',
+          'input[placeholder*="email" i]'
+        ]},
+        { key: 'phone', value: profile.phone || '', selectors: [
+          'input[data-automation-id*="phone"]',
+          'input[type="tel"]',
+          'input[aria-label*="phone" i]',
+          'input[placeholder*="phone" i]'
+        ]},
+        { key: 'country', value: profile.country || 'India', selectors: [
+          'select[data-automation-id*="country"]',
+          'select[aria-label*="country" i]',
+          'input[data-automation-id*="country"]'
+        ]}
+      ];
+
+      // Fill each Workday field
+      for (const field of workdayFields) {
+        if (!field.value) continue;
+        
+        for (const selector of field.selectors) {
+          const elements = document.querySelectorAll(selector);
+          if (elements.length > 0) {
+            console.log(`🎯 Found ${elements.length} elements for ${field.key} using: ${selector}`);
+            
+            for (const element of elements) {
+              if (this.shouldFillField(element)) {
+                console.log(`✏️ Filling ${field.key} with "${field.value}"`);
+                await this.fillField(element, field.value);
+                fieldsFilledCount++;
+                await this.delay(500); // Longer delay for Workday
+                break; // Only fill the first matching element
+              }
+            }
+            break; // Break if we found elements with this selector
+          }
+        }
+      }
+
+      console.log(`✅ Workday form filling complete: ${fieldsFilledCount} fields filled`);
+      return fieldsFilledCount;
+    }
+
+
 
     getUniversalFieldMappings() {
       return window.CONFIG?.FIELD_MAPPINGS || {};
