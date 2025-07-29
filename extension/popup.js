@@ -174,8 +174,22 @@ class AutoJobrPopup {
     try {
       this.setButtonLoading('fillFormBtn', true);
       
-      const response = await chrome.tabs.sendMessage(this.currentTab.id, {
-        action: 'FILL_FORM'
+      // Check if auto-progression is enabled (could add a checkbox to popup later)
+      const autoProgress = this.settings.autoProgress || false;
+      
+      const response = await chrome.tabs.sendMessage(this.currentTab.id, { 
+        action: 'AUTO_FILL_FORM',
+        autoProgress: autoProgress 
+      });
+
+      if (response && response.success) {
+        const message = response.type === 'multi-step' ? 
+          `Multi-step form completed in ${response.steps} steps!` : 
+          'Form filled successfully!';
+        this.showNotification(message);
+      } else {
+        this.showNotification(response?.error || 'Failed to fill form', 'error');
+      }
       });
 
       if (response && response.success) {

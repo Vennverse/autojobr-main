@@ -463,24 +463,39 @@ if (typeof window.CONFIG === 'undefined') {
       }
     }
 
-    async autoFillForm() {
+    async autoFillForm(autoProgress = false) {
+      console.log('🤖 Starting enhanced auto-fill...', autoProgress ? 'with auto-progression' : 'single step');
+      
       if (!this.userProfile) {
         this.showNotification('Please login to AutoJobr first', 'warning');
-        return;
+        return { success: false, error: 'No user profile' };
       }
 
       if (this.settings.confirmBeforeFill) {
         if (!confirm('Auto-fill the application form with your profile data?')) {
-          return;
+          return { success: false, error: 'User cancelled' };
         }
       }
 
-      try {
-        await this.fillFormFields();
-        this.showNotification('Form filled successfully!');
-      } catch (error) {
-        console.error('Auto-fill failed:', error);
-        this.showNotification('Auto-fill failed', 'error');
+      // Check if this is a multi-step form
+      const formStructure = this.detectFormSteps();
+      
+      if (autoProgress && formStructure.isMultiStep) {
+        // Use auto-progression for multi-step forms
+        this.showNotification('Auto-filling multi-step form...', 'info');
+        return await this.autoProgressForm();
+      } else {
+        // Use single-step fill for simple forms
+        this.showNotification('Auto-filling form...', 'info');
+        try {
+          await this.fillFormFields();
+          this.showNotification('Form filled successfully!');
+          return { success: true, type: 'single-step' };
+        } catch (error) {
+          console.error('Auto-fill failed:', error);
+          this.showNotification('Auto-fill failed', 'error');
+          return { success: false, error: error.message };
+        }
       }
     }
 
@@ -1168,22 +1183,174 @@ ${profile.fullName || 'Your Name'}`;
       return '#fee2e2';
     }
 
-    // Enhanced form navigation for multi-step forms
-    async navigateFormStep(direction) {
-      const nextButtons = document.querySelectorAll('button[type="submit"], button:contains("Next"), button:contains("Continue"), input[type="submit"]');
-      const prevButtons = document.querySelectorAll('button:contains("Previous"), button:contains("Back"), a:contains("Back")');
+    // Enhanced form navigation for multi-step forms with comprehensive button detection
+    async navigateFormStep(direction = 'next') {
+      console.log(`🔄 Attempting to navigate form step: ${direction}`);
+      
+      if (direction === 'next') {
+        // Comprehensive next button selectors
+        const nextSelectors = [
+          'button[type="submit"]',
+          'input[type="submit"]',
+          'button:contains("Next")',
+          'button:contains("Continue")',
+          'button:contains("Submit")',
+          'button:contains("Apply")',
+          'button:contains("Send")',
+          'a:contains("Next")',
+          'a:contains("Continue")',
+          '[data-automation-id*="next"]',
+          '[data-automation-id*="continue"]',
+          '[data-automation-id*="submit"]',
+          '.next-button',
+          '.continue-button',
+          '.submit-button',
+          '.apply-button',
+          'button[aria-label*="next" i]',
+          'button[aria-label*="continue" i]',
+          'button[aria-label*="submit" i]',
+          // Workday specific
+          '[data-automation-id="bottom-navigation-next-button"]',
+          '[data-automation-id="formField-submitButton"]',
+          // Generic patterns
+          'button[class*="next"]',
+          'button[class*="continue"]',
+          'button[class*="submit"]',
+          'button[id*="next"]',
+          'button[id*="continue"]',
+          'button[id*="submit"]'
+        ];
 
-      if (direction === 'next' && nextButtons.length > 0) {
-        nextButtons[0].click();
-        await this.delay(1000);
-        return { success: true, navigated: 'next' };
-      } else if (direction === 'previous' && prevButtons.length > 0) {
-        prevButtons[0].click();
-        await this.delay(1000);
-        return { success: true, navigated: 'previous' };
+        for (const selector of nextSelectors) {
+          const buttons = document.querySelectorAll(selector);
+          for (const button of buttons) {
+            if (this.isValidNavigationButton(button, 'next')) {
+              console.log(`✅ Found next button:`, button);
+              await this.clickButtonSafely(button);
+              await this.delay(2000); // Wait for page transition
+              return { success: true, navigated: 'next', buttonText: button.textContent?.trim() };
+            }
+          }
+        }
+      } else if (direction === 'previous') {
+        // Previous button selectors
+        const prevSelectors = [
+          'button:contains("Previous")',
+          'button:contains("Back")',
+          'a:contains("Previous")',
+          'a:contains("Back")',
+          '[data-automation-id*="previous"]',
+          '[data-automation-id*="back"]',
+          '.previous-button',
+          '.back-button',
+          'button[aria-label*="previous" i]',
+          'button[aria-label*="back" i]'
+        ];
+
+        for (const selector of prevSelectors) {
+          const buttons = document.querySelectorAll(selector);
+          for (const button of buttons) {
+            if (this.isValidNavigationButton(button, 'previous')) {
+              console.log(`✅ Found previous button:`, button);
+              await this.clickButtonSafely(button);
+              await this.delay(2000);
+              return { success: true, navigated: 'previous', buttonText: button.textContent?.trim() };
+            }
+          }
+        }
       }
 
-      return { success: false, error: 'Navigation button not found' };
+      return { success: false, error: `No ${direction} button found` };
+    }
+
+    // Complete the isFormComplete method
+    async isFormComplete() {
+      // Look for completion indicators
+      const completionIndicators = [
+        'Thank you',
+        'Application submitted',
+        'Successfully submitted',
+        'Confirmation',
+        'Application complete',
+        'Review and submit'
+      ];
+      
+      const pageText = document.body.textContent.toLowerCase();
+      const hasCompletionText = completionIndicators.some(indicator => 
+        pageText.includes(indicator.toLowerCase())
+      );
+      
+      // Check for final step indicators
+      const finalStepIndicators = document.querySelectorAll(
+        '.final-step, .last-step, .review-step, .confirmation-step, [data-step="final"]'
+      );
+      
+      // Check URL for completion patterns
+      const url = window.location.href.toLowerCase();
+      const completionUrls = ['thank-you', 'confirmation', 'complete', 'submitted'];
+      const hasCompletionUrl = completionUrls.some(pattern => url.includes(pattern));
+      
+      return hasCompletionText || finalStepIndicators.length > 0 || hasCompletionUrl;
+
+    // Validate if button is appropriate for navigation
+    isValidNavigationButton(button, direction) {
+      if (!button || !button.offsetParent) return false; // Not visible
+      if (button.disabled) return false; // Disabled
+      
+      const text = button.textContent?.toLowerCase() || '';
+      const ariaLabel = button.getAttribute('aria-label')?.toLowerCase() || '';
+      const className = button.className?.toLowerCase() || '';
+      const id = button.id?.toLowerCase() || '';
+      
+      if (direction === 'next') {
+        const nextKeywords = ['next', 'continue', 'submit', 'apply', 'send', 'finish', 'complete'];
+        const hasNextKeyword = nextKeywords.some(keyword => 
+          text.includes(keyword) || ariaLabel.includes(keyword) || className.includes(keyword) || id.includes(keyword)
+        );
+        
+        // Exclude cancel/back buttons
+        const excludeKeywords = ['cancel', 'back', 'previous', 'close', 'exit'];
+        const hasExcludeKeyword = excludeKeywords.some(keyword =>
+          text.includes(keyword) || ariaLabel.includes(keyword) || className.includes(keyword) || id.includes(keyword)
+        );
+        
+        return hasNextKeyword && !hasExcludeKeyword;
+      } else if (direction === 'previous') {
+        const prevKeywords = ['previous', 'back'];
+        return prevKeywords.some(keyword => 
+          text.includes(keyword) || ariaLabel.includes(keyword) || className.includes(keyword) || id.includes(keyword)
+        );
+      }
+      
+      return false;
+    }
+
+    // Safely click button with proper event handling
+    async clickButtonSafely(button) {
+      try {
+        // Scroll button into view
+        button.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        await this.delay(500);
+        
+        // Trigger multiple events for compatibility
+        const events = ['mousedown', 'mouseup', 'click'];
+        events.forEach(eventType => {
+          const event = new MouseEvent(eventType, {
+            bubbles: true,
+            cancelable: true,
+            view: window
+          });
+          button.dispatchEvent(event);
+        });
+        
+        // Also try direct click
+        button.click();
+        
+        console.log(`🖱️ Clicked button: ${button.textContent?.trim()}`);
+      } catch (error) {
+        console.error('Error clicking button:', error);
+        throw error;
+      }
     }
 
     // Fill specific field with user-provided data
@@ -1204,15 +1371,221 @@ ${profile.fullName || 'Your Name'}`;
       return { success: false, error: 'Field not found' };
     }
 
-    // Detect form steps for multi-step forms
+    // Enhanced multi-step form detection and auto-progression
     detectFormSteps() {
+      console.log('🔍 Detecting form steps and structure...');
+      
       // Look for step indicators
       const stepIndicators = document.querySelectorAll('.step, .stepper, [class*="step"], [data-step]');
       const progressBars = document.querySelectorAll('.progress, [role="progressbar"]');
       const pageNumbers = document.querySelectorAll('[class*="page"]');
-
+      
+      // Workday specific step indicators
+      const workdaySteps = document.querySelectorAll('[data-automation-id*="step"]');
+      
       let totalSteps = 1;
       let currentStep = 1;
+      
+      // Try to determine total steps
+      if (stepIndicators.length > 0) {
+        totalSteps = stepIndicators.length;
+        // Find current active step
+        stepIndicators.forEach((step, index) => {
+          if (step.classList.contains('active') || step.classList.contains('current') || 
+              step.getAttribute('aria-current') === 'step') {
+            currentStep = index + 1;
+          }
+        });
+      } else if (workdaySteps.length > 0) {
+        totalSteps = workdaySteps.length;
+      }
+      
+      console.log(`📋 Form structure: Step ${currentStep} of ${totalSteps}`);
+      return { totalSteps, currentStep, isMultiStep: totalSteps > 1 };
+    }
+
+    // Auto-progress through multi-step forms after filling current step
+    async autoProgressForm() {
+      console.log('🚀 Starting auto-progression through form...');
+      
+      const formStructure = this.detectFormSteps();
+      let attempts = 0;
+      const maxAttempts = 10; // Prevent infinite loops
+      
+      while (attempts < maxAttempts) {
+        attempts++;
+        console.log(`🔄 Form progression attempt ${attempts}`);
+        
+        // Fill current step
+        const fillResult = await this.autoFillCurrentStep();
+        console.log(`📝 Fill result:`, fillResult);
+        
+        if (!fillResult.hasFields) {
+          console.log('ℹ️ No fillable fields found on current step');
+        }
+        
+        // Check if form is complete
+        if (await this.isFormComplete()) {
+          console.log('✅ Form appears to be complete');
+          break;
+        }
+        
+        // Try to navigate to next step
+        const navResult = await this.navigateFormStep('next');
+        console.log(`🔄 Navigation result:`, navResult);
+        
+        if (!navResult.success) {
+          console.log('⏹️ No more navigation possible, form progression complete');
+          break;
+        }
+        
+        // Wait for new content to load
+        await this.delay(3000);
+        
+        // Check if we're on a new step or page
+        const newUrl = window.location.href;
+        if (newUrl !== this.lastUrl) {
+          this.lastUrl = newUrl;
+          console.log('🌐 Detected page change, continuing with new content');
+        }
+      }
+      
+      console.log(`🏁 Auto-progression completed after ${attempts} attempts`);
+      return { completed: true, steps: attempts };
+    }
+
+    // Fill only the current step/section of the form
+    async autoFillCurrentStep() {
+      console.log('📝 Filling current form step...');
+      
+      if (!this.userProfile) {
+        console.log('❌ No user profile data available');
+        return { success: false, hasFields: false };
+      }
+
+      const profile = this.userProfile.profile;
+      const fieldMappings = this.getUniversalFieldMappings();
+      
+      // Create comprehensive data mapping
+      const latestEducation = this.getLatestEducation();
+      const latestWork = this.getLatestWorkExperience();
+      const skillsList = this.getSkillsList();
+      
+      const dataMapping = {
+        // All the comprehensive data mapping from before
+        firstName: profile.fullName?.split(' ')[0] || '',
+        lastName: profile.fullName?.split(' ').slice(1).join(' ') || '',
+        email: profile.email || '',
+        phone: profile.phone || '',
+        address: profile.address || '',
+        city: profile.city || '',
+        state: profile.state || '',
+        zipCode: profile.zipCode || '',
+        country: profile.country || 'United States',
+        linkedinUrl: profile.linkedinUrl || '',
+        githubUrl: profile.githubUrl || '',
+        portfolioUrl: profile.portfolioUrl || profile.website || '',
+        workAuthorization: profile.workAuthorization || 'Yes',
+        requireSponsorship: profile.requiresSponsorship || 'No',
+        university: latestEducation?.institution || '',
+        degree: latestEducation?.degree || '',
+        major: latestEducation?.fieldOfStudy || '',
+        gpa: latestEducation?.gpa || '',
+        graduationYear: latestEducation?.endDate ? new Date(latestEducation.endDate).getFullYear().toString() : '',
+        yearsExperience: this.calculateExperience().toString(),
+        currentCompany: latestWork?.company || '',
+        currentTitle: latestWork?.position || profile.professionalTitle || '',
+        programmingLanguages: skillsList.technical.join(', '),
+        certifications: skillsList.certifications.join(', '),
+        expectedSalary: profile.expectedSalary || profile.currentSalary || '',
+        salaryRange: profile.salaryRange || this.formatSalaryRange(profile.expectedSalary),
+        availableStartDate: profile.availableStartDate || this.getAvailableStartDate(),
+        willingToRelocate: profile.willingToRelocate || profile.relocateWillingness || 'Open to discuss',
+        preferredWorkLocation: profile.preferredWorkLocation || profile.workLocationPreference || 'Remote/Hybrid',
+        coverLetter: profile.preferredCoverLetter || this.generateQuickCoverLetter(),
+        whyInterested: profile.careerObjective || this.generateInterestStatement(),
+        additionalInfo: profile.summary || profile.professionalSummary || profile.resumeSummary || '',
+        achievements: this.getAchievements(),
+        projectExperience: this.getProjectExperience(),
+        languages: profile.spokenLanguages || this.getLanguages(),
+        industries: this.getIndustryExperience(),
+        managementExperience: profile.managementExperience || this.hasManagementExperience(),
+        teamSize: profile.teamSize || this.getTeamSizeExperience()
+      };
+
+      let filledCount = 0;
+      let totalFieldsFound = 0;
+
+      // Fill fields only on the currently visible/active form section
+      for (const [dataKey, value] of Object.entries(dataMapping)) {
+        if (!value || value === '') continue;
+        
+        const selectors = fieldMappings[dataKey] || [];
+        for (const selector of selectors) {
+          const elements = document.querySelectorAll(selector);
+          for (const element of elements) {
+            if (this.shouldFillField(element) && this.isElementInCurrentStep(element)) {
+              totalFieldsFound++;
+              try {
+                await this.fillField(element, value);
+                filledCount++;
+                await this.delay(100); // Small delay between fields
+              } catch (error) {
+                console.error(`Error filling field ${dataKey}:`, error);
+              }
+            }
+          }
+        }
+      }
+
+      console.log(`📊 Current step: filled ${filledCount}/${totalFieldsFound} fields`);
+      return { success: filledCount > 0, filledCount, totalFieldsFound, hasFields: totalFieldsFound > 0 };
+    }
+
+    // Check if element is in the currently active form step/section
+    isElementInCurrentStep(element) {
+      // Check if element is visible
+      if (!element.offsetParent) return false;
+      
+      // Check if element is in viewport or close to it
+      const rect = element.getBoundingClientRect();
+      const isInViewport = rect.top >= -100 && rect.top <= window.innerHeight + 100;
+      
+      // For multi-step forms, prioritize elements in active sections
+      const activeSection = element.closest('.active, .current, [aria-current="step"]');
+      const hiddenSection = element.closest('.hidden, [style*="display: none"], [style*="visibility: hidden"]');
+      
+      return !hiddenSection && (isInViewport || activeSection);
+    }
+
+    // Check if form appears to be complete
+    async isFormComplete() {
+      // Look for completion indicators
+      const completionIndicators = [
+        'Thank you',
+        'Application submitted',
+        'Successfully submitted',
+        'Confirmation',
+        'Application complete',
+        'Review and submit'
+      ];
+      
+      const pageText = document.body.textContent.toLowerCase();
+      const hasCompletionText = completionIndicators.some(indicator => 
+        pageText.includes(indicator.toLowerCase())
+      );
+      
+      // Check for final step indicators
+      const finalStepIndicators = document.querySelectorAll(
+        '.final-step, .last-step, .review-step, .confirmation-step, [data-step="final"]'
+      );
+      
+      // Check URL for completion patterns
+      const url = window.location.href.toLowerCase();
+      const completionUrls = ['thank-you', 'confirmation', 'complete', 'submitted'];
+      const hasCompletionUrl = completionUrls.some(pattern => url.includes(pattern));
+      
+      return hasCompletionText || finalStepIndicators.length > 0 || hasCompletionUrl;
 
       if (stepIndicators.length > 0) {
         totalSteps = stepIndicators.length;
