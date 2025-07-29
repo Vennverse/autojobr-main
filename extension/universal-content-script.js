@@ -18,6 +18,7 @@ if (typeof window.CONFIG === 'undefined') {
       this.userProfile = null;
       this.currentJobData = null;
       this.isTracking = false;
+      this.pendingSubmission = false;
       this.formSteps = [];
       this.currentStep = 0;
       this.savedJobs = new Set();
@@ -1015,119 +1016,135 @@ if (typeof window.CONFIG === 'undefined') {
 
     // Enhanced submission detection that works across all platforms
     async detectApplicationSubmission() {
-      // Watch for URL changes that indicate successful submission
-      const originalUrl = window.location.href;
+      // Only proceed if we have a pending submission
+      if (!this.pendingSubmission) return;
       
-      // Look for success indicators
+      // Look for very specific success indicators
       const successIndicators = [
-        'thank you', 'thanks', 'submitted', 'received', 'confirmation',
-        'application sent', 'application submitted', 'success'
+        'your application has been submitted',
+        'application submitted successfully', 
+        'thank you for your application',
+        'application received',
+        'we have received your application'
       ];
 
       const pageText = document.body.textContent.toLowerCase();
       const hasSuccessText = successIndicators.some(indicator => pageText.includes(indicator));
 
-      if (hasSuccessText || window.location.href !== originalUrl) {
+      // Check for success URL patterns
+      const successUrlPatterns = [
+        'application-submitted', 'submission-complete', 'thank-you',
+        'confirmation', 'success'
+      ];
+      
+      const hasSuccessUrl = successUrlPatterns.some(pattern => 
+        window.location.href.toLowerCase().includes(pattern)
+      );
+
+      if (hasSuccessText || hasSuccessUrl) {
         await this.trackApplication('automatic_detection');
         await this.showApplicationTrackedConfirmation();
+        this.pendingSubmission = false;
       }
     }
 
     // Enhanced auto-detection for form submissions across all platforms
     async setupAutoSubmissionTracking() {
-      // Monitor for form submissions
+      // Monitor for actual form submissions only
       document.addEventListener('submit', async (event) => {
         if (this.isJobApplicationForm(event.target)) {
           this.pendingSubmission = true;
+          // Wait longer to ensure submission completes
           setTimeout(async () => {
             await this.detectApplicationSubmission();
-          }, 3000);
+          }, 5000);
         }
       });
 
-      // Enhanced button click monitoring for Workday and other platforms
+      // Only track on final submit button clicks, not navigation or partial saves
       document.addEventListener('click', async (event) => {
         const button = event.target;
         const buttonText = button.textContent?.toLowerCase() || '';
         const buttonId = button.id?.toLowerCase() || '';
         const buttonClass = button.className?.toLowerCase() || '';
         
-        // Comprehensive submit button detection
+        // More restrictive submit button detection - only final submission actions
         const isSubmitButton = (
-          buttonText.includes('apply') || 
-          buttonText.includes('submit') ||
-          buttonText.includes('send application') ||
-          buttonText.includes('complete application') ||
-          buttonId.includes('apply') ||
-          buttonId.includes('submit') ||
-          buttonClass.includes('apply') ||
-          buttonClass.includes('submit') ||
-          button.type === 'submit'
+          (buttonText.includes('submit application') || 
+           buttonText.includes('send application') ||
+           buttonText.includes('complete application') ||
+           buttonText === 'submit' ||
+           buttonText === 'apply now') &&
+          !buttonText.includes('save') &&
+          !buttonText.includes('continue') &&
+          !buttonText.includes('next') &&
+          !buttonText.includes('previous')
         );
 
-        // Special Workday detection patterns
-        const isWorkdaySubmit = (
-          buttonClass.includes('wd-button') ||
-          buttonClass.includes('css-') ||
-          button.getAttribute('data-automation-id')?.includes('apply') ||
-          button.closest('[data-automation-id*="apply"]')
+        // Special Workday final submission detection
+        const isWorkdayFinalSubmit = (
+          buttonText.includes('submit application') ||
+          (buttonClass.includes('wd-button') && buttonText.includes('submit')) ||
+          button.getAttribute('data-automation-id')?.includes('submitApplication')
         );
 
-        if (isSubmitButton || isWorkdaySubmit) {
+        if (isSubmitButton || isWorkdayFinalSubmit) {
           this.pendingSubmission = true;
           setTimeout(async () => {
             await this.detectApplicationSubmission();
-          }, 3000);
+          }, 5000);
         }
       });
 
-      // Enhanced URL change monitoring with Workday patterns
+      // More restrictive URL change monitoring - only clear success patterns
       let currentUrl = window.location.href;
       setInterval(async () => {
-        if (window.location.href !== currentUrl) {
+        if (window.location.href !== currentUrl && this.pendingSubmission) {
           const newUrl = window.location.href;
-          const oldUrl = currentUrl;
           currentUrl = newUrl;
           
-          // Enhanced success URL detection
+          // Only track on very specific success URL patterns
           const successPatterns = [
-            'thank', 'thanks', 'success', 'confirm', 'complete', 'submitted', 
-            'application-submitted', 'submission-complete', 'applied'
+            'application-submitted', 'submission-complete', 'thank-you',
+            'confirmation', 'success', 'submitted'
           ];
           
-          // Workday specific success patterns
-          const workdayPatterns = [
-            'applicationSubmitted', 'submit-success', 'confirmation'
-          ];
-          
-          const hasSuccessPattern = [...successPatterns, ...workdayPatterns].some(pattern => 
+          const hasSuccessPattern = successPatterns.some(pattern => 
             newUrl.toLowerCase().includes(pattern)
           );
 
-          if (hasSuccessPattern || this.pendingSubmission) {
+          if (hasSuccessPattern) {
             await this.trackApplication('automatic_url_detection');
             await this.showApplicationTrackedConfirmation();
             this.pendingSubmission = false;
           }
         }
-      }, 1000);
+      }, 2000);
 
-      // Monitor for success messages in page content
+      // Monitor for very specific success messages only
       const observer = new MutationObserver(async (mutations) => {
+        if (!this.pendingSubmission) return;
+        
         for (const mutation of mutations) {
           if (mutation.type === 'childList') {
             for (const node of mutation.addedNodes) {
               if (node.nodeType === 1) { // Element node
                 const text = node.textContent?.toLowerCase() || '';
+                
+                // Very specific success indicators to avoid false positives
                 const successIndicators = [
-                  'application submitted', 'thank you for applying', 'successfully submitted',
-                  'application received', 'we have received your application'
+                  'your application has been submitted',
+                  'application submitted successfully',
+                  'thank you for your application',
+                  'we have received your application',
+                  'application received'
                 ];
                 
                 if (successIndicators.some(indicator => text.includes(indicator))) {
                   await this.trackApplication('content_change_detection');
                   await this.showApplicationTrackedConfirmation();
                   this.pendingSubmission = false;
+                  break;
                 }
               }
             }
