@@ -82,7 +82,7 @@ if (typeof window.CONFIG === 'undefined') {
         
         // Create a simple fetch function that includes credentials
         const apiRequest = async (endpoint) => {
-          const response = await fetch(`${window.CONFIG?.API_BASE_URL || 'http://40.160.50.128'}${endpoint}`, {
+          const response = await fetch(`${window.CONFIG?.API_BASE_URL || 'https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev'}${endpoint}`, {
             credentials: 'include',
             headers: {
               'Content-Type': 'application/json'
@@ -753,6 +753,12 @@ if (typeof window.CONFIG === 'undefined') {
     isWorkdayForm() {
       return window.location.hostname.includes('workday') || 
              window.location.hostname.includes('myworkdayjobs') ||
+             // Enhanced Workday detection with specific selectors
+             document.querySelector('[data-automation-id*="jobRequisition"]') ||
+             document.querySelector('[data-automation-id*="jobTitle"]') ||
+             document.querySelector('.css-1id67r3') ||
+             document.querySelector('.WDKN_PositionTitle') ||
+             document.querySelector('[data-automation-id*="jobDescription"]') ||
              document.querySelector('[data-automation-id]') !== null;
     }
 

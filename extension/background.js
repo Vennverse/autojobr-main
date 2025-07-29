@@ -41,7 +41,7 @@ class AutoJobrBackground {
         this.config = { ...stored.autojobr_config };
       } else {
         this.config = {
-          API_BASE_URL: 'http://40.160.50.128',
+          API_BASE_URL: 'https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev',
           SUPPORTED_JOB_BOARDS: ['linkedin.com', 'indeed.com', 'glassdoor.com', 'workday.com', 'myworkdayjobs.com']
         };
       }
@@ -149,7 +149,7 @@ class AutoJobrBackground {
           break;
 
         case 'ANALYZE_JOB':
-          const analysisResult = await this.analyzeJob(message.jobData);
+          const analysisResult = await this.analyzeJobWithNLP(message.jobData);
           sendResponse(analysisResult);
           break;
 
@@ -169,7 +169,7 @@ class AutoJobrBackground {
 
   async checkAuthentication() {
     try {
-      const response = await fetch(`${this.apiBase}/api/user`, {
+      const response = await fetch(`${this.config.API_BASE_URL}/api/user`, {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -203,7 +203,7 @@ class AutoJobrBackground {
     }
     
     try {
-      const profileResponse = await fetch(`${this.apiBase}/api/extension/profile`, { 
+      const profileResponse = await fetch(`${this.config.API_BASE_URL}/api/extension/profile`, { 
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -224,7 +224,7 @@ class AutoJobrBackground {
         return { success: false, error: 'Invalid job data' };
       }
 
-      const response = await fetch(`${this.apiBase}/api/saved-jobs`, {
+      const response = await fetch(`${this.config.API_BASE_URL}/api/saved-jobs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

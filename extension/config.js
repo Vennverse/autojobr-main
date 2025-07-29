@@ -1,6 +1,6 @@
 // Configuration for AutoJobr Extension
 const CONFIG = Object.freeze({
-  API_BASE_URL: 'http://40.160.50.128',
+  API_BASE_URL: 'https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev',
   ENDPOINTS: {
     USER: '/api/user',
     PROFILE: '/api/profile',

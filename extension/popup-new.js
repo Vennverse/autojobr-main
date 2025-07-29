@@ -77,13 +77,26 @@ class UnifiedAutoJobrPopup {
     ];
 
     const isJobBoard = jobBoards.some(board => hostname.includes(board));
-    const hasJobIndicators = url.includes('/job') || url.includes('/career') || 
-                            url.includes('/posting') || url.includes('/position') ||
-                            url.includes('/opening') || url.includes('/vacancy');
+    
+    // Enhanced job page detection for LinkedIn, Workday and other platforms
+    const hasJobIndicators = 
+      url.includes('/job') || url.includes('/career') || 
+      url.includes('/posting') || url.includes('/position') ||
+      url.includes('/opening') || url.includes('/vacancy') ||
+      url.includes('/collections/recommended/') || // LinkedIn job recommendations
+      url.includes('/jobs/view/') || // LinkedIn specific job view
+      url.includes('/jobs/search/') || // LinkedIn job search
+      url.includes('/companies/') && url.includes('/jobs'); // Company job pages
 
-    if (isJobBoard && hasJobIndicators) {
+    // Enhanced Workday detection
+    const isWorkdayJob = (hostname.includes('workday.com') || hostname.includes('myworkdayjobs.com')) &&
+      (url.includes('/job') || url.includes('/career') || url.includes('/posting'));
+
+    if (isJobBoard || isWorkdayJob) {
       this.showJobPageUI();
       await this.extractJobData();
+      // Perform NLP analysis automatically
+      await this.performJobAnalysis();
     } else {
       this.showNotSupportedUI();
     }
@@ -334,7 +347,7 @@ class UnifiedAutoJobrPopup {
     });
 
     document.getElementById('viewApplicationsBtn').addEventListener('click', () => {
-      chrome.tabs.create({ url: 'http://40.160.50.128/applications' });
+      chrome.tabs.create({ url: 'https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev/applications' });
     });
 
     // Quick actions
@@ -384,11 +397,11 @@ class UnifiedAutoJobrPopup {
 
     // Header buttons
     document.getElementById('settingsBtn').addEventListener('click', () => {
-      chrome.tabs.create({ url: 'http://40.160.50.128/settings' });
+      chrome.tabs.create({ url: 'https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev/settings' });
     });
 
     document.getElementById('helpBtn').addEventListener('click', () => {
-      chrome.tabs.create({ url: 'http://40.160.50.128/help' });
+      chrome.tabs.create({ url: 'https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev/help' });
     });
   }
 
@@ -453,7 +466,7 @@ class UnifiedAutoJobrPopup {
 
   async performAutoFill() {
     if (!this.isAuthenticated) {
-      chrome.tabs.create({ url: 'http://40.160.50.128/auth' });
+      chrome.tabs.create({ url: 'https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev/auth' });
       return;
     }
 
@@ -493,7 +506,7 @@ class UnifiedAutoJobrPopup {
 
   async saveJob() {
     if (!this.isAuthenticated) {
-      chrome.tabs.create({ url: 'http://40.160.50.128/auth' });
+      chrome.tabs.create({ url: 'https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev/auth' });
       return;
     }
 
