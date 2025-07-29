@@ -1291,6 +1291,7 @@ ${profile.fullName || 'Your Name'}`;
       const hasCompletionUrl = completionUrls.some(pattern => url.includes(pattern));
       
       return hasCompletionText || finalStepIndicators.length > 0 || hasCompletionUrl;
+    }
 
     // Validate if button is appropriate for navigation
     isValidNavigationButton(button, direction) {
@@ -1369,6 +1370,8 @@ ${profile.fullName || 'Your Name'}`;
       }
 
       return { success: false, error: 'Field not found' };
+    }
+
     }
 
     // Enhanced multi-step form detection and auto-progression

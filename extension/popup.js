@@ -190,13 +190,6 @@ class AutoJobrPopup {
       } else {
         this.showNotification(response?.error || 'Failed to fill form', 'error');
       }
-      });
-
-      if (response && response.success) {
-        this.showNotification('Form filled successfully!');
-      } else {
-        this.showNotification('Form fill failed', 'error');
-      }
     } catch (error) {
       console.error('Fill form failed:', error);
       this.showNotification('Fill failed', 'error');
@@ -206,12 +199,12 @@ class AutoJobrPopup {
   }
 
   viewApplications() {
-    const url = 'http://40.160.50.128/applications';
+    const url = 'https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev/applications';
     chrome.tabs.create({ url: url });
   }
 
   showLoginPrompt() {
-    const url = 'http://40.160.50.128/login';
+    const url = 'https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev/auth';
     chrome.tabs.create({ url: url });
   }
 
