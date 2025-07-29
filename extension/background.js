@@ -1,12 +1,12 @@
 // Background script for AutoJobr Extension - Fixed Version
 class AutoJobrBackground {
   constructor() {
-    this.apiBase = window.CONFIG?.API_BASE_URL || 'http://40.160.50.128';
+    this.apiBase = 'http://40.160.50.128';
     this.isAuthenticated = false;
     this.userProfile = null;
     this.initRetries = 0;
     this.maxRetries = 3;
-    this.features = window.CONFIG?.FEATURES || {
+    this.features = {
       AUTO_FILL: true,
       AUTO_TRACKING: true,
       COVER_LETTER: true,
@@ -42,9 +42,12 @@ class AutoJobrBackground {
     // Load stored configuration
     const stored = await chrome.storage.local.get('autojobr_config');
     if (stored.autojobr_config) {
-      this.config = { ...window.CONFIG, ...stored.autojobr_config };
+      this.config = { ...stored.autojobr_config };
     } else {
-      this.config = window.CONFIG;
+      this.config = {
+        API_BASE_URL: 'http://40.160.50.128',
+        SUPPORTED_JOB_BOARDS: ['linkedin.com', 'indeed.com', 'glassdoor.com', 'workday.com', 'myworkdayjobs.com']
+      };
     }
   }
 
@@ -681,13 +684,17 @@ class AutoJobrBackground {
           timestamp: Date.now()
         });
 
-        // Show confirmation notification
-        chrome.notifications.create({
-          type: 'basic',
-          iconUrl: 'icons/icon128.png',
-          title: 'Application Tracked',
-          message: `Your application to ${latestJob.company || 'the position'} has been automatically tracked.`
-        });
+        // Show confirmation notification (check if notifications API is available)
+        if (chrome.notifications && chrome.notifications.create) {
+          chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icons/icon128.png',
+            title: 'Application Tracked',
+            message: `Your application to ${latestJob.company || 'the position'} has been automatically tracked.`
+          });
+        } else {
+          console.log('Application tracked:', latestJob.company || 'the position');
+        }
       }
     } catch (error) {
       console.error('Error handling application submission:', error);
@@ -749,13 +756,17 @@ class AutoJobrBackground {
   }
 
   notifyInitializationFailure() {
-    chrome.notifications.create({
-      type: 'basic',
-      iconUrl: 'icons/icon128.png',
-      title: 'AutoJobr Initialization Failed',
-      message: 'The extension failed to initialize. Please try reloading your browser.',
-      buttons: [{ title: 'Retry' }]
-    });
+    if (chrome.notifications && chrome.notifications.create) {
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icons/icon128.png',
+        title: 'AutoJobr Initialization Failed',
+        message: 'The extension failed to initialize. Please try reloading your browser.',
+        buttons: [{ title: 'Retry' }]
+      });
+    } else {
+      console.error('AutoJobr initialization failed');
+    }
   }
 
   async updateExtensionData() {
@@ -793,10 +804,12 @@ try {
   new AutoJobrBackground();
 } catch (error) {
   console.error('Critical initialization error:', error);
-  chrome.notifications.create({
-    type: 'basic',
-    iconUrl: 'icons/icon128.png',
-    title: 'AutoJobr Error',
-    message: 'Failed to initialize the extension. Please contact support.'
-  });
+  if (chrome.notifications && chrome.notifications.create) {
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icons/icon128.png',
+      title: 'AutoJobr Error',
+      message: 'Failed to initialize the extension. Please contact support.'
+    });
+  }
 }

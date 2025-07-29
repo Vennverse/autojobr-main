@@ -9,7 +9,8 @@
     "scripting",
     "cookies",
     "background",
-    "tabs"
+    "tabs",
+    "notifications"
   ],
   "host_permissions": [
     "https://*/*",
