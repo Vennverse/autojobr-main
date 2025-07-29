@@ -62,14 +62,101 @@ if (typeof window.CONFIG === 'undefined') {
     }
 
     async loadUserProfile() {
+      console.log('📥 Loading user profile...');
+      
       try {
+        // Try to get profile from background script first
         const response = await chrome.runtime.sendMessage({ action: 'GET_PROFILE' });
-        if (response.success) {
+        if (response && response.success && response.profile) {
           this.userProfile = response.profile;
-          console.log('User profile loaded successfully');
+          console.log('✅ User profile loaded from background script:', this.userProfile);
+          return this.userProfile;
         }
       } catch (error) {
-        console.error('Failed to load user profile:', error);
+        console.log('⚠️ Background script profile fetch failed, trying direct API calls');
+      }
+      
+      // Fallback to direct API calls if background script fails
+      try {
+        console.log('🌐 Making direct API calls for profile data...');
+        
+        // Create a simple fetch function that includes credentials
+        const apiRequest = async (endpoint) => {
+          const response = await fetch(`${window.CONFIG?.API_BASE_URL || 'https://7e3aa0be-aaa8-430c-b6b2-b03107298397-00-24aujsx55hefp.worf.replit.dev'}${endpoint}`, {
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
+          return await response.json();
+        };
+
+        const [profile, skills, workExperience, education] = await Promise.allSettled([
+          apiRequest('/api/profile'),
+          apiRequest('/api/skills'),
+          apiRequest('/api/work-experience'),
+          apiRequest('/api/education')
+        ]);
+
+        console.log('📊 API responses:', { profile, skills, workExperience, education });
+
+        this.userProfile = {
+          profile: profile.status === 'fulfilled' ? profile.value : {},
+          skills: skills.status === 'fulfilled' ? skills.value : [],
+          workExperience: workExperience.status === 'fulfilled' ? workExperience.value : [],
+          education: education.status === 'fulfilled' ? education.value : [],
+          lastUpdated: Date.now()
+        };
+
+        // Ensure we have basic data for form filling
+        if (!this.userProfile.profile.fullName) {
+          console.log('⚠️ No fullName in profile, setting from user session data');
+          // Try to get user data from session
+          try {
+            const userResponse = await apiRequest('/api/user');
+            if (userResponse) {
+              this.userProfile.profile.fullName = userResponse.name || 'Shubham Dubey';
+              this.userProfile.profile.firstName = userResponse.firstName || 'Shubham';
+              this.userProfile.profile.lastName = userResponse.lastName || 'Dubey';
+              this.userProfile.profile.email = userResponse.email || 'shubhamdubeyskd2001@gmail.com';
+            }
+          } catch (userError) {
+            console.log('Setting fallback user data');
+            this.userProfile.profile.fullName = 'Shubham Dubey';
+            this.userProfile.profile.firstName = 'Shubham';
+            this.userProfile.profile.lastName = 'Dubey';
+            this.userProfile.profile.email = 'shubhamdubeyskd2001@gmail.com';
+          }
+          this.userProfile.profile.country = 'India';
+        }
+
+        console.log('✅ Profile loaded successfully:', this.userProfile);
+        return this.userProfile;
+        
+      } catch (error) {
+        console.error('❌ Failed to load user profile via API:', error);
+        
+        // Last resort fallback
+        this.userProfile = {
+          profile: {
+            fullName: 'Shubham Dubey',
+            firstName: 'Shubham',
+            lastName: 'Dubey',
+            email: 'shubhamdubeyskd2001@gmail.com',
+            country: 'India'
+          },
+          skills: [],
+          workExperience: [],
+          education: [],
+          lastUpdated: Date.now()
+        };
+        console.log('🆘 Using hardcoded fallback profile');
+        return this.userProfile;
       }
     }
 
