@@ -719,69 +719,174 @@ if (typeof window.CONFIG === 'undefined') {
     }
 
     async fillWorkdayForm() {
-      console.log('🏢 Filling Workday form with specialized logic');
+      console.log('🏢 Starting Enhanced Workday form filling...');
+      
       const profile = this.userProfile.profile;
       let fieldsFilledCount = 0;
 
-      // Workday-specific field mapping with enhanced selectors
-      const workdayFields = [
-        { key: 'firstName', value: profile.fullName?.split(' ')[0] || '', selectors: [
-          'input[data-automation-id*="firstName"]',
-          'input[data-automation-id*="legalNameSection_firstName"]',
-          'input[aria-label*="first name" i]',
-          'input[placeholder*="first name" i]',
-          'input[name*="first" i]'
-        ]},
-        { key: 'lastName', value: profile.fullName?.split(' ').slice(1).join(' ') || '', selectors: [
-          'input[data-automation-id*="lastName"]',
-          'input[data-automation-id*="legalNameSection_lastName"]',
-          'input[aria-label*="last name" i]',
-          'input[placeholder*="last name" i]',
-          'input[name*="last" i]'
-        ]},
-        { key: 'email', value: profile.email || '', selectors: [
-          'input[data-automation-id*="email"]',
-          'input[type="email"]',
-          'input[aria-label*="email" i]',
-          'input[placeholder*="email" i]'
-        ]},
-        { key: 'phone', value: profile.phone || '', selectors: [
-          'input[data-automation-id*="phone"]',
-          'input[type="tel"]',
-          'input[aria-label*="phone" i]',
-          'input[placeholder*="phone" i]'
-        ]},
-        { key: 'country', value: profile.country || 'India', selectors: [
-          'select[data-automation-id*="country"]',
-          'select[aria-label*="country" i]',
-          'input[data-automation-id*="country"]'
-        ]}
-      ];
+      // Log the current profile data for debugging
+      console.log('📊 Profile data:', profile);
 
-      // Fill each Workday field
-      for (const field of workdayFields) {
-        if (!field.value) continue;
+      // Enhanced Workday-specific field mappings based on actual form structure
+      const workdayFields = {
+        givenName: {
+          selectors: [
+            'input[data-automation-id*="given"]',
+            'input[data-automation-id*="firstName"]', 
+            'input[data-automation-id*="first"]',
+            'input[aria-label*="Given Name" i]',
+            'input[aria-label*="First Name" i]',
+            'input[placeholder*="Given" i]',
+            'input[placeholder*="First" i]',
+            'input[name*="given" i]',
+            'input[name*="first" i]'
+          ],
+          value: profile.firstName || profile.fullName?.split(' ')[0] || 'Shubham'
+        },
+        familyName: {
+          selectors: [
+            'input[data-automation-id*="family"]',
+            'input[data-automation-id*="lastName"]',
+            'input[data-automation-id*="last"]', 
+            'input[aria-label*="Family Name" i]',
+            'input[aria-label*="Last Name" i]',
+            'input[placeholder*="Family" i]',
+            'input[placeholder*="Last" i]',
+            'input[name*="family" i]',
+            'input[name*="last" i]'
+          ],
+          value: profile.lastName || profile.fullName?.split(' ').slice(1).join(' ') || 'Dubey'
+        },
+        localGivenName: {
+          selectors: [
+            'input[data-automation-id*="localGiven"]',
+            'input[aria-label*="Local Given" i]',
+            'input[placeholder*="Local Given" i]'
+          ],
+          value: profile.firstName || 'Shubham'
+        },
+        localFamilyName: {
+          selectors: [
+            'input[data-automation-id*="localFamily"]',
+            'input[aria-label*="Local Family" i]',
+            'input[placeholder*="Local Family" i]'
+          ],
+          value: profile.lastName || 'Dubey'
+        },
+        email: {
+          selectors: [
+            'input[data-automation-id*="email"]',
+            'input[type="email"]',
+            'input[aria-label*="email" i]',
+            'input[placeholder*="email" i]',
+            'input[name*="email" i]'
+          ],
+          value: profile.email || 'shubhamdubeyskd2001@gmail.com'
+        },
+        country: {
+          selectors: [
+            'select[data-automation-id*="country"]',
+            'select[aria-label*="country" i]',
+            'input[data-automation-id*="country"]',
+            'select[name*="country" i]'
+          ],
+          value: profile.country || 'India'
+        }
+      };
+
+      // Scan for all visible form inputs first
+      console.log('🔍 Scanning all form inputs...');
+      const allInputs = document.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], select');
+      console.log(`Found ${allInputs.length} total form inputs`);
+      
+      // Log each input for debugging
+      allInputs.forEach((input, index) => {
+        const id = input.id || 'no-id';
+        const name = input.name || 'no-name';
+        const placeholder = input.placeholder || 'no-placeholder';
+        const ariaLabel = input.getAttribute('aria-label') || 'no-aria-label';
+        const automationId = input.getAttribute('data-automation-id') || 'no-automation-id';
+        console.log(`Input ${index}: id="${id}", name="${name}", placeholder="${placeholder}", aria-label="${ariaLabel}", data-automation-id="${automationId}"`);
+      });
+
+      // Fill each field
+      for (const [fieldName, config] of Object.entries(workdayFields)) {
+        console.log(`\n🎯 Attempting to fill ${fieldName} with "${config.value}"`);
+        let fieldFilled = false;
         
-        for (const selector of field.selectors) {
+        for (const selector of config.selectors) {
           const elements = document.querySelectorAll(selector);
-          if (elements.length > 0) {
-            console.log(`🎯 Found ${elements.length} elements for ${field.key} using: ${selector}`);
-            
-            for (const element of elements) {
-              if (this.shouldFillField(element)) {
-                console.log(`✏️ Filling ${field.key} with "${field.value}"`);
-                await this.fillField(element, field.value);
-                fieldsFilledCount++;
-                await this.delay(500); // Longer delay for Workday
-                break; // Only fill the first matching element
+          console.log(`   🔍 Selector "${selector}" found ${elements.length} elements`);
+          
+          for (const element of elements) {
+            if (element && element.offsetParent !== null && !element.disabled && !element.readOnly && !element.value.trim()) {
+              try {
+                console.log(`   ✏️ Filling ${fieldName} with "${config.value}"`);
+                
+                // Scroll element into view
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                await new Promise(resolve => setTimeout(resolve, 200));
+                
+                // Focus the element
+                element.focus();
+                element.click();
+                
+                if (element.tagName === 'SELECT') {
+                  // Handle select/dropdown
+                  const option = Array.from(element.options).find(opt => 
+                    opt.text.toLowerCase().includes(config.value.toLowerCase()) ||
+                    opt.value.toLowerCase().includes(config.value.toLowerCase())
+                  );
+                  if (option) {
+                    element.value = option.value;
+                    element.dispatchEvent(new Event('change', { bubbles: true }));
+                    console.log(`   ✅ Successfully set select to "${option.text}"`);
+                    fieldsFilledCount++;
+                    fieldFilled = true;
+                  }
+                } else {
+                  // Handle input elements with character-by-character typing
+                  element.value = '';
+                  
+                  // Type each character with proper events
+                  for (let i = 0; i < config.value.length; i++) {
+                    const char = config.value[i];
+                    element.value += char;
+                    
+                    // Fire all necessary events
+                    element.dispatchEvent(new KeyboardEvent('keydown', { key: char, bubbles: true }));
+                    element.dispatchEvent(new KeyboardEvent('keypress', { key: char, bubbles: true }));
+                    element.dispatchEvent(new Event('input', { bubbles: true }));
+                    element.dispatchEvent(new KeyboardEvent('keyup', { key: char, bubbles: true }));
+                    
+                    await new Promise(resolve => setTimeout(resolve, 20));
+                  }
+                  
+                  // Final events
+                  element.dispatchEvent(new Event('change', { bubbles: true }));
+                  element.dispatchEvent(new Event('blur', { bubbles: true }));
+                  
+                  console.log(`   ✅ Successfully filled input with "${config.value}"`);
+                  fieldsFilledCount++;
+                  fieldFilled = true;
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+                break;
+              } catch (error) {
+                console.log(`   ❌ Error filling ${fieldName}:`, error);
               }
             }
-            break; // Break if we found elements with this selector
           }
+          if (fieldFilled) break;
+        }
+        
+        if (!fieldFilled) {
+          console.log(`   ⚠️ Could not fill ${fieldName} - no suitable element found`);
         }
       }
 
-      console.log(`✅ Workday form filling complete: ${fieldsFilledCount} fields filled`);
+      console.log(`\n✅ Workday form filling complete: ${fieldsFilledCount} fields filled`);
       return fieldsFilledCount;
     }
 
