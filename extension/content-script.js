@@ -9,6 +9,9 @@ class AutoJobrContentScript {
     this.observers = [];
     this.fillHistory = [];
     this.smartSelectors = new Map();
+    this.autoFillAttempts = 0;
+    this.lastAutofillTime = 0;
+    this.filledFields = new Set(); // Track already filled fields
     this.init();
   }
 
@@ -950,13 +953,23 @@ class AutoJobrContentScript {
       return { success: false, error: 'Auto-fill already in progress' };
     }
 
-    // Prevent infinite loops by tracking attempts
+    // Prevent infinite loops with multiple safeguards
+    const now = Date.now();
+    const timeSinceLastFill = now - this.lastAutofillTime;
+    
+    // Don't allow autofill more than once every 10 seconds
+    if (timeSinceLastFill < 10000) {
+      console.log('Auto-fill cooldown active, please wait before trying again');
+      return { success: false, error: 'Auto-fill on cooldown, please wait' };
+    }
+    
     this.autoFillAttempts = (this.autoFillAttempts || 0) + 1;
     if (this.autoFillAttempts > 2) {
-      console.log('Max auto-fill attempts reached, stopping to prevent loops');
-      this.autoFillAttempts = 0; // Reset counter
+      console.log('Max auto-fill attempts reached for this session');
       return { success: false, error: 'Max auto-fill attempts reached' };
     }
+    
+    this.lastAutofillTime = now;
 
     this.fillInProgress = true;
     this.showProgress(true);
@@ -1016,10 +1029,11 @@ class AutoJobrContentScript {
       this.fillInProgress = false;
       this.showProgress(false);
       
-      // Reset attempts counter after successful completion
+      // Reset attempts counter after longer delay to prevent loops
       setTimeout(() => {
         this.autoFillAttempts = 0;
-      }, 5000);
+        this.filledFields.clear(); // Clear filled fields tracking
+      }, 30000); // 30 seconds instead of 5
       
       return {
         success: true,
@@ -1033,10 +1047,11 @@ class AutoJobrContentScript {
     } catch (error) {
       this.fillInProgress = false;
       this.showProgress(false);
-      // Reset attempts counter on error
+      // Reset attempts counter on error after longer delay
       setTimeout(() => {
         this.autoFillAttempts = 0;
-      }, 5000);
+        this.filledFields.clear(); // Clear filled fields tracking
+      }, 30000); // 30 seconds instead of 5
       console.error('Smart auto-fill error:', error);
       return { success: false, error: error.message };
     }
@@ -1146,8 +1161,26 @@ class AutoJobrContentScript {
     return false;
   }
 
+  getFieldIdentifier(field) {
+    // Create unique identifier for field tracking
+    return `${field.name || ''}_${field.id || ''}_${field.placeholder || ''}_${field.type || ''}_${field.className || ''}`;
+  }
+
   async fillFieldSmart(field, userProfile, smartMode) {
     try {
+      // Create unique field identifier to prevent refilling
+      const fieldId = this.getFieldIdentifier(field);
+      if (this.filledFields.has(fieldId)) {
+        console.log('Field already filled, skipping:', fieldId);
+        return false; // Skip already filled fields
+      }
+
+      // Check if field is already filled and mark it
+      if (field.value && field.value.trim().length > 0 && !smartMode) {
+        this.filledFields.add(fieldId); // Mark as filled
+        return false; // Skip pre-filled fields in non-smart mode
+      }
+
       // Scroll field into view smoothly
       field.scrollIntoView({ 
         behavior: 'smooth', 
@@ -1159,6 +1192,9 @@ class AutoJobrContentScript {
       // Focus the field with animation
       field.focus();
       await this.delay(50);
+      
+      // Mark field as being filled
+      this.filledFields.add(fieldId);
 
       const fieldInfo = this.analyzeFieldAdvanced(field);
       const value = this.getValueForFieldSmart(fieldInfo, userProfile, smartMode);
