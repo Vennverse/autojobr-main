@@ -534,12 +534,15 @@ class AutoJobrContentScript {
   async detectJobPosting() {
     try {
       const jobData = await this.extractJobDetails();
+      const hasFormFields = this.detectFormFields();
       
-      if (jobData.success && jobData.jobData.title) {
-        this.currentJobData = jobData.jobData;
+      // Show widget if job detected OR form fields found
+      if ((jobData.success && jobData.jobData.title) || hasFormFields) {
+        if (jobData.success && jobData.jobData.title) {
+          this.currentJobData = jobData.jobData;
+          this.updateJobInfo(jobData.jobData);
+        }
         this.showWidget();
-        this.updateJobInfo(jobData.jobData);
-        
         return { success: true, jobData: jobData.jobData };
       } else {
         this.hideWidget();
@@ -549,6 +552,32 @@ class AutoJobrContentScript {
       console.error('Job detection error:', error);
       return { success: false, error: error.message };
     }
+  }
+
+  detectFormFields() {
+    // Check for common application form fields
+    const formFieldSelectors = [
+      'input[name*="name"]',
+      'input[name*="email"]', 
+      'input[name*="phone"]',
+      'input[placeholder*="name"]',
+      'input[placeholder*="email"]',
+      'input[placeholder*="phone"]',
+      'input[type="tel"]',
+      'input[type="email"]',
+      'select[name*="experience"]',
+      'textarea[name*="cover"]',
+      'input[name*="resume"]',
+      'input[type="file"]'
+    ];
+
+    for (const selector of formFieldSelectors) {
+      if (document.querySelector(selector)) {
+        console.log('Form fields detected on page');
+        return true;
+      }
+    }
+    return false;
   }
 
   updateJobInfo(jobData) {
@@ -593,8 +622,82 @@ class AutoJobrContentScript {
       
       setTimeout(() => {
         widget.style.display = 'none';
+        // Show floating button when widget is hidden
+        this.showFloatingButton();
       }, 300);
     }
+  }
+
+  showFloatingButton() {
+    // Remove existing floating button
+    const existingButton = document.getElementById('autojobr-floating-btn');
+    if (existingButton) existingButton.remove();
+
+    const floatingBtn = document.createElement('div');
+    floatingBtn.id = 'autojobr-floating-btn';
+    floatingBtn.innerHTML = `
+      <div class="floating-btn-content">
+        <span class="floating-icon">A</span>
+        <span class="floating-tooltip">AutoJobr</span>
+      </div>
+    `;
+    
+    // Add styles
+    floatingBtn.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 9999;
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      animation: floatIn 0.3s ease-out;
+    `;
+
+    floatingBtn.addEventListener('mouseenter', () => {
+      floatingBtn.style.transform = 'scale(1.1)';
+      floatingBtn.style.boxShadow = '0 6px 25px rgba(102, 126, 234, 0.6)';
+    });
+
+    floatingBtn.addEventListener('mouseleave', () => {
+      floatingBtn.style.transform = 'scale(1)';
+      floatingBtn.style.boxShadow = '0 4px 20px rgba(102, 126, 234, 0.4)';
+    });
+
+    floatingBtn.addEventListener('click', () => {
+      this.showWidget();
+      floatingBtn.remove();
+    });
+
+    // Add CSS animation
+    if (!document.getElementById('autojobr-float-styles')) {
+      const style = document.createElement('style');
+      style.id = 'autojobr-float-styles';
+      style.textContent = `
+        @keyframes floatIn {
+          from { opacity: 0; transform: translateY(20px) scale(0.8); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .floating-btn-content {
+          color: white;
+          font-weight: bold;
+          font-size: 18px;
+        }
+        .floating-tooltip {
+          display: none;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    document.body.appendChild(floatingBtn);
   }
 
   minimizeWidget() {
@@ -1607,29 +1710,47 @@ class AutoJobrContentScript {
 
   async fillChoiceFieldSmart(field, value) {
     try {
-      const shouldCheck = this.interpretBooleanValue(value);
-      
       if (field.type === 'radio') {
-        // For radio buttons, find the appropriate option
+        // Enhanced radio button handling
         const radioGroup = document.querySelectorAll(`input[name="${field.name}"]`);
+        console.log(`Processing radio group "${field.name}" with ${radioGroup.length} options for value: ${value}`);
+        
         for (const radio of radioGroup) {
           const radioInfo = this.analyzeFieldAdvanced(radio);
+          radioInfo.field = radio; // Add reference to field for better matching
+          
           if (this.shouldSelectRadio(radioInfo, value)) {
+            // Uncheck other radios first
+            radioGroup.forEach(r => r.checked = false);
+            
+            // Check the selected radio
             radio.checked = true;
+            radio.focus();
+            
+            // Dispatch multiple events for better compatibility
             radio.dispatchEvent(new Event('change', { bubbles: true }));
+            radio.dispatchEvent(new Event('click', { bubbles: true }));
+            radio.dispatchEvent(new Event('input', { bubbles: true }));
+            
+            console.log(`Selected radio option: ${radio.value || radio.id} for field: ${field.name}`);
             return true;
           }
         }
+        
+        console.log(`No matching radio option found for value: ${value} in field: ${field.name}`);
+        return false;
       } else {
-        // Checkbox
+        // Enhanced checkbox handling
+        const shouldCheck = this.interpretBooleanValue(value);
         if (field.checked !== shouldCheck) {
           field.checked = shouldCheck;
+          field.focus();
           field.dispatchEvent(new Event('change', { bubbles: true }));
+          field.dispatchEvent(new Event('click', { bubbles: true }));
+          field.dispatchEvent(new Event('input', { bubbles: true }));
         }
         return true;
       }
-
-      return false;
     } catch (error) {
       console.error('Choice field fill error:', error);
       return false;
@@ -1646,18 +1767,45 @@ class AutoJobrContentScript {
   }
 
   shouldSelectRadio(radioInfo, value) {
-    const combined = radioInfo.combined;
+    const combined = radioInfo.combined.toLowerCase();
     const valueLower = value.toLowerCase();
+    const radioValue = (radioInfo.field?.value || '').toLowerCase();
+    const radioText = (radioInfo.field?.nextElementSibling?.textContent || '').toLowerCase();
     
-    // Match based on value content
-    if (valueLower === 'yes' && (combined.includes('yes') || combined.includes('authorized'))) {
-      return true;
-    }
-    if (valueLower === 'no' && (combined.includes('no') || combined.includes('not authorized'))) {
-      return true;
+    // Enhanced radio button matching
+    if (valueLower === 'yes' || valueLower === 'true' || valueLower === 'authorized') {
+      return (
+        combined.includes('yes') || 
+        combined.includes('authorized') || 
+        combined.includes('eligible') ||
+        radioValue === 'yes' ||
+        radioValue === 'true' ||
+        radioText.includes('yes') ||
+        radioText.includes('authorized')
+      );
     }
     
-    return combined.includes(valueLower);
+    if (valueLower === 'no' || valueLower === 'false' || valueLower === 'not authorized') {
+      return (
+        combined.includes('no') || 
+        combined.includes('not authorized') || 
+        combined.includes('not eligible') ||
+        radioValue === 'no' ||
+        radioValue === 'false' ||
+        radioText.includes('no') ||
+        radioText.includes('not authorized')
+      );
+    }
+    
+    // Check for experience levels
+    if (value.includes('year')) {
+      if (combined.includes(valueLower) || radioText.includes(valueLower)) {
+        return true;
+      }
+    }
+    
+    // Fallback to exact match
+    return combined.includes(valueLower) || radioValue === valueLower || radioText.includes(valueLower);
   }
 
   async fillFileFieldSmart(field, value, userProfile) {
