@@ -29,6 +29,15 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 
 ## Recent Changes
 
+### January 30, 2025 - Chrome Extension Migration & CORS Fix Complete
+- ✅ **Chrome Extension URL Migration**: Updated all extension files (background.js, popup.js, content-script.js) to use new Replit URL instead of old VM server (40.160.50.128:5000)
+- ✅ **New Platform URL**: https://29ce8162-da3c-47aa-855b-eac2ee4b17cd-00-2uv34jdoe24cx.riker.replit.dev
+- ✅ **CORS Configuration**: Added comprehensive CORS support for Workday domains (*.wd*.myworkdayjobs.com, chevron.wd5.myworkdayjobs.com) and other job sites
+- ✅ **Health Check Verified**: API endpoint confirmed working with successful health check response
+- ✅ **Extension Compatibility**: Resolved "Failed to fetch" errors and mixed content issues for HTTPS job sites
+- ✅ **Service Worker Fix**: Fixed "window is not defined" errors in Chrome extension background scripts
+- ✅ **Migration Complete**: AutoJobr platform fully operational on standard Replit environment with Chrome extension support
+
 ### January 29, 2025 - AutoJobr Migration to Standard Replit Environment COMPLETE
 - ✅ **Complete Chrome Extension Infrastructure**: Built comprehensive Chrome extension from scratch with manifest.json, popup interface, content scripts, and background service worker
 - ✅ **Essential API Endpoints Added**: Created /api/health, /api/analyze-job-match, /api/generate-cover-letter, and /api/extension/applications endpoints
