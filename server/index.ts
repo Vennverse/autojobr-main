@@ -52,6 +52,10 @@ app.use(cors({
     'https://www.angel.co',
     'https://wellfound.com',
     'https://www.wellfound.com',
+    // Workday job sites
+    /^https:\/\/.*\.wd\d*\.myworkdayjobs\.com$/,
+    /^https:\/\/.*\.myworkdayjobs\.com$/,
+    'https://chevron.wd5.myworkdayjobs.com',
     ...(process.env.PRODUCTION_DOMAIN ? [process.env.PRODUCTION_DOMAIN] : [])
   ],
   credentials: true,

@@ -1,9 +1,7 @@
 // AutoJobr Background Service Worker
 class AutoJobrBackground {
   constructor() {
-    this.apiUrl = window.location.hostname.includes('replit') 
-      ? `${window.location.protocol}//${window.location.host}`
-      : 'http://40.160.50.128:5000';
+    this.apiUrl = 'https://29ce8162-da3c-47aa-855b-eac2ee4b17cd-00-2uv34jdoe24cx.riker.replit.dev';
     this.init();
   }
 
@@ -16,8 +14,7 @@ class AutoJobrBackground {
   async detectApiUrl() {
     // Try to detect the correct API URL based on current environment
     const possibleUrls = [
-      'http://40.160.50.128:5000',
-      chrome.runtime.getURL('').replace('chrome-extension://', 'https://').replace('/', '') + '.replit.dev',
+      'https://29ce8162-da3c-47aa-855b-eac2ee4b17cd-00-2uv34jdoe24cx.riker.replit.dev',
     ];
 
     for (const url of possibleUrls) {

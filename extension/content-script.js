@@ -766,7 +766,7 @@ class AutoJobrContentScript {
   getApiUrl() {
     return window.location.hostname.includes('replit.dev') || window.location.hostname.includes('replit.app') 
       ? `${window.location.protocol}//${window.location.host}`
-      : 'http://40.160.50.128:5000';
+      : 'https://29ce8162-da3c-47aa-855b-eac2ee4b17cd-00-2uv34jdoe24cx.riker.replit.dev';
   }
 
   showNotification(message) {
