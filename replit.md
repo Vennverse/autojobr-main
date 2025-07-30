@@ -30,7 +30,7 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 ## Recent Changes
 
 ### January 30, 2025 - Chrome Extension Complete Fix & Floating Popup Implementation
-- ✅ **Chrome Extension Backend URL Updated**: Updated all extension files to use current Replit URL (https://cf942c1a-8aa1-4eb6-b16c-28a387fd4b1e-00-feprbstml9g6.worf.replit.dev)
+- ✅ **Chrome Extension Backend URL Updated**: Updated all extension files to use current Replit URL (https://fce2901e-6020-4c23-97dc-13c7fd7f97c3-00-15wzli1eenkr6.picard.replit.dev)
 - ✅ **Real User Name Fix**: Fixed extension profile endpoint to return actual user names (Shubham Dubey) instead of "Demo User" placeholder data
 - ✅ **Database Field Mapping**: Corrected server endpoint to properly map database fields (first_name, last_name, full_name) to extension format
 - ✅ **Profile Data Fallback Fix**: Enhanced /api/extension/profile to use real session user data instead of mock demo profiles
@@ -53,7 +53,7 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 
 ### January 30, 2025 - Chrome Extension Migration & CORS Fix Complete
 - ✅ **Chrome Extension URL Migration**: Updated all extension files (background.js, popup.js, content-script.js) to use new Replit URL instead of old VM server (40.160.50.128:5000)
-- ✅ **New Platform URL**: https://cf942c1a-8aa1-4eb6-b16c-28a387fd4b1e-00-feprbstml9g6.worf.replit.dev
+- ✅ **New Platform URL**: https://fce2901e-6020-4c23-97dc-13c7fd7f97c3-00-15wzli1eenkr6.picard.replit.dev
 - ✅ **CORS Configuration**: Added comprehensive CORS support for Workday domains (*.wd*.myworkdayjobs.com, chevron.wd5.myworkdayjobs.com) and other job sites
 - ✅ **Health Check Verified**: API endpoint confirmed working with successful health check response
 - ✅ **Extension Compatibility**: Resolved "Failed to fetch" errors and mixed content issues for HTTPS job sites
