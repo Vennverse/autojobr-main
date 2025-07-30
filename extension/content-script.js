@@ -558,42 +558,72 @@ class AutoJobrContentScript {
     const url = window.location.href.toLowerCase();
     const hostname = window.location.hostname.toLowerCase();
     
-    // Check for job application specific URLs and pages
-    const jobApplicationIndicators = [
-      '/apply', '/application', '/job', '/career', '/jobs',
+    // Strict job platform detection first
+    const strictJobPlatforms = [
       'greenhouse.io', 'lever.co', 'workday', 'myworkdayjobs.com',
-      'icims.com', 'smartrecruiters.com', 'bamboohr.com', 'ashbyhq.com',
-      'linkedin.com/jobs', 'indeed.com/viewjob', 'glassdoor.com/job'
+      'icims.com', 'smartrecruiters.com', 'bamboohr.com', 'ashbyhq.com'
     ];
 
-    // Check URL patterns
-    const hasJobUrlPattern = jobApplicationIndicators.some(indicator => 
-      url.includes(indicator) || hostname.includes(indicator)
-    );
+    const isJobPlatform = strictJobPlatforms.some(platform => hostname.includes(platform));
+    
+    if (isJobPlatform) {
+      console.log('✅ Detected job platform:', hostname);
+      return true;
+    }
 
-    // Check for job application form fields specifically
-    const jobFormSelectors = [
-      'form[action*="apply"]',
-      'form[action*="application"]', 
-      'form[action*="job"]',
-      '.job-application-form',
-      '.application-form',
-      '[data-automation-id*="application"]',
-      '[data-automation-id*="job"]',
-      'input[name*="resume"]',
-      'input[name*="cv"]',
-      'textarea[name*="cover"]',
-      'select[name*="experience"]',
-      'input[name*="work_auth"]',
-      'input[name*="authorization"]'
+    // For major sites, be more strict about URL patterns
+    const majorSites = ['linkedin.com', 'indeed.com', 'glassdoor.com'];
+    const isMajorSite = majorSites.some(site => hostname.includes(site));
+    
+    if (isMajorSite) {
+      const strictPatterns = [
+        '/jobs/',
+        '/job/',
+        '/apply',
+        '/application',
+        'viewjob'
+      ];
+      
+      const hasStrictPattern = strictPatterns.some(pattern => url.includes(pattern));
+      
+      if (hasStrictPattern) {
+        // Additional check for actual job content
+        const hasJobContent = this.hasJobPostingContent();
+        console.log('Major site job check:', { hasStrictPattern, hasJobContent });
+        return hasJobContent;
+      }
+      
+      return false;
+    }
+
+    // For other sites, check both URL patterns AND job content
+    const jobUrlPatterns = ['/apply', '/application', '/job', '/career'];
+    const hasJobUrl = jobUrlPatterns.some(pattern => url.includes(pattern));
+    
+    if (hasJobUrl) {
+      const hasJobContent = this.hasJobPostingContent();
+      console.log('Other site job check:', { hasJobUrl, hasJobContent });
+      return hasJobContent;
+    }
+
+    return false;
+  }
+
+  hasJobPostingContent() {
+    // Check for job posting specific content
+    const jobContentSelectors = [
+      'h1[class*="job"], h2[class*="job"], h3[class*="job"]',
+      '[class*="job-title"], [class*="position-title"]',
+      '[class*="company-name"], [class*="employer"]',
+      '[class*="job-description"], [class*="job-summary"]',
+      '[class*="requirements"], [class*="qualifications"]',
+      'form[action*="apply"], form[action*="application"]',
+      '.job-application-form, .application-form',
+      'input[name*="resume"], input[name*="cv"]',
+      'textarea[name*="cover"], select[name*="experience"]'
     ];
 
-    const hasJobFormFields = jobFormSelectors.some(selector => 
-      document.querySelector(selector)
-    );
-
-    console.log('Job application page check:', { hasJobUrlPattern, hasJobFormFields });
-    return hasJobUrlPattern || hasJobFormFields;
+    return jobContentSelectors.some(selector => document.querySelector(selector));
   }
 
   updateJobInfo(jobData) {

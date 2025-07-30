@@ -2209,7 +2209,7 @@ Additional Information:
         source: 'platform'
       };
 
-      const application = await storage.createApplication(applicationData);
+      const application = await storage.addJobApplication(applicationData);
       
       // Clear applications cache
       invalidateUserCache(userId);
@@ -3605,7 +3605,7 @@ Additional Information:
         source: 'extension'
       };
 
-      const application = await storage.createApplication(applicationData);
+      const application = await storage.addJobApplication(applicationData);
       
       // Clear applications cache to ensure fresh data
       const cacheKey = `applications_${userId}`;
