@@ -316,10 +316,18 @@ class AutoJobrPopup {
     }
   }
 
-  async detectJobDetails() {
+  async detectJobDetails(forceRefresh = false) {
     try {
+      // Clear cached data if force refresh
+      if (forceRefresh) {
+        this.jobData = null;
+        const scoreSection = document.getElementById('scoreSection');
+        scoreSection.style.display = 'none';
+      }
+
       const response = await chrome.tabs.sendMessage(this.currentTab.id, {
-        action: 'extractJobDetails'
+        action: 'extractJobDetails',
+        forceRefresh: forceRefresh
       });
 
       if (response && response.success && response.jobData) {
@@ -335,6 +343,12 @@ class AutoJobrPopup {
           jobCompany.textContent = this.jobData.company || 'Company not detected';
           jobInfo.style.display = 'block';
           
+          console.log('Extension Popup - Job Data:', {
+            title: this.jobData.title,
+            company: this.jobData.company,
+            forceRefresh: forceRefresh
+          });
+          
           // Analyze job match if user is authenticated
           if (this.isAuthenticated && this.userProfile) {
             await this.showJobAnalysis();
@@ -347,9 +361,22 @@ class AutoJobrPopup {
   }
 
   async showJobAnalysis() {
-    if (!this.jobData || !this.userProfile) return;
+    if (!this.jobData || !this.userProfile) {
+      console.log('Extension Popup - Missing data for analysis:', {
+        hasJobData: !!this.jobData,
+        hasUserProfile: !!this.userProfile
+      });
+      return;
+    }
 
     try {
+      console.log('Extension Popup - Starting job analysis with:', {
+        jobTitle: this.jobData.title,
+        jobCompany: this.jobData.company,
+        userSkills: this.userProfile.skills?.length || 0,
+        timestamp: new Date().toISOString()
+      });
+
       const analysis = await this.makeApiRequest('/api/analyze-job-match', {
         method: 'POST',
         body: JSON.stringify({
@@ -357,6 +384,8 @@ class AutoJobrPopup {
           userProfile: this.userProfile
         })
       });
+
+      console.log('Extension Popup - Analysis Response:', analysis);
 
       if (analysis && !analysis.error) {
         const scoreSection = document.getElementById('scoreSection');
@@ -385,7 +414,7 @@ class AutoJobrPopup {
         matchScore.style.webkitTextFillColor = 'transparent';
         
         // Log detailed analysis for debugging
-        console.log('Job Analysis Results:', {
+        console.log('Extension Popup - Final Analysis Results:', {
           matchScore: analysis.matchScore,
           factors: analysis.factors,
           recommendation: analysis.recommendation,
@@ -394,9 +423,11 @@ class AutoJobrPopup {
           jobTitle: this.jobData.title,
           jobCompany: this.jobData.company
         });
+      } else {
+        console.error('Extension Popup - Analysis failed:', analysis);
       }
     } catch (error) {
-      console.error('Job analysis failed:', error);
+      console.error('Extension Popup - Job analysis error:', error);
     }
   }
 
@@ -460,7 +491,8 @@ class AutoJobrPopup {
     this.showLoading(true);
 
     try {
-      await this.detectJobDetails();
+      // Force refresh to get latest job data
+      await this.detectJobDetails(true);
       await this.showJobAnalysis();
       this.showNotification('✅ Job analysis completed!', 'success');
     } catch (error) {

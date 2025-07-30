@@ -453,6 +453,11 @@ class AutoJobrContentScript {
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       switch (message.action) {
         case 'extractJobDetails':
+          // Clear cached data if force refresh requested
+          if (message.forceRefresh) {
+            this.currentJobData = null;
+            console.log('Content Script - Force refresh: cleared cached job data');
+          }
           this.extractJobDetails().then(sendResponse);
           return true;
           
@@ -840,6 +845,17 @@ class AutoJobrContentScript {
 
       // Validate required fields
       const isValid = jobData.title && jobData.title.length > 2;
+
+      // Cache the extracted job data
+      if (isValid) {
+        this.currentJobData = jobData;
+        console.log('Content Script - Job data extracted:', {
+          title: jobData.title,
+          company: jobData.company,
+          site: jobData.site,
+          timestamp: jobData.extractedAt
+        });
+      }
 
       return { 
         success: isValid, 
