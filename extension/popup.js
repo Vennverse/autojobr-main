@@ -1,5 +1,12 @@
 // Enhanced AutoJobr Popup with Advanced Features
-const API_BASE_URL = 'https://ccc06d53-240e-4267-9893-b843005070da-00-2ahfje86xai73.spock.replit.dev';
+// Load configuration
+if (typeof AUTOJOBR_CONFIG === 'undefined') {
+  // Fallback if config.js didn't load
+  const AUTOJOBR_CONFIG = {
+    API_URL: 'https://e3d8b3db-2c8e-4107-8058-625851bb3dc7-00-1r96d8sk4fqju.kirk.replit.dev'
+  };
+}
+const API_BASE_URL = AUTOJOBR_CONFIG.API_URL;
 
 class AutoJobrPopup {
   constructor() {

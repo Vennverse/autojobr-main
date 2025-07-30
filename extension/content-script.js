@@ -1,4 +1,11 @@
 // Enhanced AutoJobr Content Script v2.0 - Advanced Job Board Auto-Fill System
+
+// Load API configuration
+const API_CONFIG = {
+  API_URL: 'https://e3d8b3db-2c8e-4107-8058-625851bb3dc7-00-1r96d8sk4fqju.kirk.replit.dev',
+  TIMEOUT: 5000
+};
+
 class AutoJobrContentScript {
   constructor() {
     this.isInitialized = false;
@@ -12,6 +19,7 @@ class AutoJobrContentScript {
     this.autoFillAttempts = 0;
     this.lastAutofillTime = 0;
     this.filledFields = new Set(); // Track already filled fields
+    this.apiUrl = API_CONFIG.API_URL;
     this.init();
   }
 

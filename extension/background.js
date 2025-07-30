@@ -1,9 +1,13 @@
 // Enhanced AutoJobr Background Service Worker
 console.log('🚀 AutoJobr background service worker v2.0 loading...');
 
+// Import configuration
+importScripts('config.js');
+
 class AutoJobrBackground {
   constructor() {
-    this.apiUrl = 'https://ccc06d53-240e-4267-9893-b843005070da-00-2ahfje86xai73.spock.replit.dev';
+    this.apiUrl = AUTOJOBR_CONFIG.API_URL;
+    this.fallbackUrls = AUTOJOBR_CONFIG.FALLBACK_URLS;
     this.cache = new Map();
     this.rateLimiter = new Map();
     this.init();
@@ -17,11 +21,7 @@ class AutoJobrBackground {
   }
 
   async detectApiUrl() {
-    const possibleUrls = [
-      'https://ccc06d53-240e-4267-9893-b843005070da-00-2ahfje86xai73.spock.replit.dev',
-      'http://localhost:3000',
-      'http://127.0.0.1:3000'
-    ];
+    const possibleUrls = this.fallbackUrls;
 
     for (const url of possibleUrls) {
       try {

@@ -29,6 +29,16 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 
 ## Recent Changes
 
+### January 30, 2025 - Chrome Extension URL Update & Centralized Configuration Complete
+- ✅ **Centralized URL Configuration**: Created single config.js file for all extension URL management
+- ✅ **Extension URL Updated**: Updated to current Replit URL (https://e3d8b3db-2c8e-4107-8058-625851bb3dc7-00-1r96d8sk4fqju.kirk.replit.dev)
+- ✅ **One-File Update System**: Users now only need to change URL in extension/config.js to update entire extension
+- ✅ **Background Service Worker**: Updated to use centralized configuration with importScripts
+- ✅ **Popup Interface**: Updated to load config.js and use centralized API URL
+- ✅ **Content Script**: Updated with API configuration for form filling and job analysis
+- ✅ **Extension Documentation**: Created comprehensive EXTENSION_UPDATE_GUIDE.md with update instructions
+- ✅ **Migration Complete**: AutoJobr platform successfully migrated to standard Replit environment with updated extension
+
 ### January 30, 2025 - Chrome Extension Critical Fixes & Job Application Restriction Complete
 - ✅ **Extension Restriction Fixed**: Extension now only appears on actual job application pages, not all form-filling sites
 - ✅ **Smart Job Detection**: Enhanced job page detection with strict platform checking (Greenhouse, Lever, Workday, etc.)
