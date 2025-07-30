@@ -1966,6 +1966,140 @@ class AutoJobrContentScript {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  // Application tracking system
+  async setupApplicationTracking() {
+    console.log('Setting up application tracking...');
+    
+    // Track form submissions
+    document.addEventListener('submit', async (e) => {
+      if (this.isJobApplicationForm(e.target)) {
+        console.log('Job application form submitted');
+        setTimeout(() => this.trackApplicationSubmission(), 2000);
+      }
+    });
+
+    // Track button clicks for submit buttons
+    document.addEventListener('click', async (e) => {
+      if (this.isSubmissionButton(e.target)) {
+        console.log('Submit button clicked:', e.target);
+        setTimeout(() => this.trackApplicationSubmission(), 3000);
+      }
+    });
+
+    // Monitor URL changes for SPAs
+    let currentUrl = window.location.href;
+    setInterval(() => {
+      if (window.location.href !== currentUrl) {
+        currentUrl = window.location.href;
+        this.checkForSubmissionConfirmation();
+      }
+    }, 1000);
+  }
+
+  isJobApplicationForm(form) {
+    if (!form || form.tagName !== 'FORM') return false;
+    
+    const formText = form.textContent.toLowerCase();
+    const actionUrl = form.action?.toLowerCase() || '';
+    
+    return formText.includes('apply') || 
+           formText.includes('application') || 
+           formText.includes('submit') ||
+           actionUrl.includes('apply') ||
+           actionUrl.includes('application');
+  }
+
+  isSubmissionButton(button) {
+    if (!button) return false;
+    
+    const buttonText = button.textContent?.toLowerCase() || '';
+    const buttonValue = button.value?.toLowerCase() || '';
+    const buttonClass = button.className?.toLowerCase() || '';
+    const buttonId = button.id?.toLowerCase() || '';
+    
+    const submitKeywords = [
+      'submit application', 'apply now', 'submit', 'apply', 'send application',
+      'continue to apply', 'review and submit', 'complete application'
+    ];
+    
+    return submitKeywords.some(keyword => 
+      buttonText.includes(keyword) || 
+      buttonValue.includes(keyword) ||
+      buttonClass.includes(keyword.replace(' ', '-')) ||
+      buttonId.includes(keyword.replace(' ', '-'))
+    );
+  }
+
+  async trackApplicationSubmission() {
+    try {
+      const jobData = await this.extractJobDetails();
+      
+      if (jobData.success && jobData.jobData) {
+        console.log('Tracking application submission:', jobData.jobData);
+        
+        const response = await chrome.runtime.sendMessage({
+          action: 'trackApplication',
+          data: {
+            jobTitle: jobData.jobData.title,
+            company: jobData.jobData.company,
+            location: jobData.jobData.location || '',
+            jobUrl: window.location.href,
+            status: 'applied',
+            source: 'extension',
+            platform: this.detectPlatform(window.location.hostname),
+            appliedDate: new Date().toISOString()
+          }
+        });
+
+        if (response && response.success) {
+          this.showNotification('✅ Application tracked successfully!', 'success');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to track application:', error);
+    }
+  }
+
+  checkForSubmissionConfirmation() {
+    const confirmationPatterns = [
+      /thank.*you.*application/i,
+      /application.*submitted/i,
+      /application.*received/i,
+      /successfully.*applied/i,
+      /confirmation/i
+    ];
+
+    const pageText = document.body.textContent.toLowerCase();
+    const currentUrl = window.location.href.toLowerCase();
+    
+    if (confirmationPatterns.some(pattern => pattern.test(pageText)) ||
+        currentUrl.includes('confirmation') ||
+        currentUrl.includes('thank') ||
+        currentUrl.includes('success')) {
+      
+      this.trackApplicationSubmission();
+    }
+  }
+
+  detectPlatform(hostname) {
+    const platformMap = {
+      'linkedin.com': 'LinkedIn',
+      'myworkdayjobs.com': 'Workday',
+      'indeed.com': 'Indeed',
+      'glassdoor.com': 'Glassdoor',
+      'lever.co': 'Lever',
+      'greenhouse.io': 'Greenhouse',
+      'ashbyhq.com': 'AshbyHQ'
+    };
+
+    for (const [domain, platform] of Object.entries(platformMap)) {
+      if (hostname.includes(domain)) {
+        return platform;
+      }
+    }
+    return 'Unknown';
+  }
+
   // Cleanup method
   destroy() {
     this.observers.forEach(observer => observer.disconnect());
@@ -1981,8 +2115,10 @@ class AutoJobrContentScript {
 // Initialize content script
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    new AutoJobrContentScript();
+    const extension = new AutoJobrContentScript();
+    extension.setupApplicationTracking();
   });
 } else {
-  new AutoJobrContentScript();
+  const extension = new AutoJobrContentScript();
+  extension.setupApplicationTracking();
 }

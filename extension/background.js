@@ -239,8 +239,8 @@ class AutoJobrBackground {
           break;
 
         case 'trackApplication':
-          await this.trackApplication(message.data);
-          sendResponse({ success: true });
+          const trackResult = await this.trackApplication(message.data);
+          sendResponse(trackResult);
           break;
 
         case 'saveJob':
@@ -525,16 +525,20 @@ class AutoJobrBackground {
         headers['Authorization'] = `Bearer ${sessionToken}`;
       }
       
-      const response = await fetch(`${this.apiUrl}/api/extension/applications`, {
+      // Use the main applications endpoint that updates job_applications table
+      const response = await fetch(`${this.apiUrl}/api/applications`, {
         method: 'POST',
         headers,
         credentials: 'include',
         mode: 'cors',
         body: JSON.stringify({
-          ...data,
-          timestamp: new Date().toISOString(),
-          userAgent: navigator.userAgent,
-          source: 'extension_v2'
+          jobTitle: data.jobTitle,
+          company: data.company,
+          location: data.location || '',
+          jobUrl: data.jobUrl || '',
+          status: 'applied',
+          source: 'extension',
+          notes: `Applied via ${data.platform || 'extension'} on ${new Date().toLocaleDateString()}`
         })
       });
 
@@ -542,14 +546,19 @@ class AutoJobrBackground {
         if (response.status === 401) {
           await chrome.storage.local.remove(['sessionToken', 'userId']);
         }
-        throw new Error('Failed to track application');
+        const errorText = await response.text();
+        throw new Error(`Failed to track application: ${errorText}`);
       }
+
+      const application = await response.json();
 
       await this.showAdvancedNotification(
         'Application Tracked! 📊',
-        `Successfully tracked application to ${data.company}`,
+        `Tracked: ${data.jobTitle} at ${data.company}`,
         'success'
       );
+
+      return { success: true, application };
 
     } catch (error) {
       console.error('Track application error:', error);
@@ -697,24 +706,7 @@ class AutoJobrBackground {
         analysis.matchScore >= 60 ? 'success' : 'warning'
       );
 
-      // Auto-save interesting jobs (match score >= 50)
-      if (analysis.matchScore >= 50 && data.jobData) {
-        try {
-          await this.saveJob({
-            jobTitle: data.jobData.title,
-            company: data.jobData.company,
-            description: data.jobData.description || '',
-            location: data.jobData.location || '',
-            salary: data.jobData.salary || '',
-            url: data.jobData.url || window.location.href,
-            platform: data.jobData.platform || this.detectPlatform(window.location.hostname),
-            autoSaved: true
-          });
-          console.log('Auto-saved good match job');
-        } catch (saveError) {
-          console.log('Auto-save failed, but analysis succeeded:', saveError.message);
-        }
-      }
+      // Remove auto-save - only save when user clicks save button
 
       return analysis;
 
