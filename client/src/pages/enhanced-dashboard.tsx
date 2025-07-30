@@ -49,7 +49,8 @@ import {
   PenTool,
   Globe,
   Flame,
-  TrendingDown
+  TrendingDown,
+  Copy
 } from "lucide-react";
 
 const containerVariants = {
@@ -301,8 +302,11 @@ export default function EnhancedDashboard() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           jobDescription,
+          jobTitle: 'Software Engineer', // Default title
+          companyName: 'Target Company', // Default company
         }),
       });
 
