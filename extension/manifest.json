@@ -1,15 +1,17 @@
 {
   "manifest_version": 3,
   "name": "AutoJobr",
-  "version": "2.0.0",
-  "description": "Smart job application assistant - Auto-fill forms, analyze jobs, and track applications across 100+ job boards",
+  "version": "2.1.0",
+  "description": "AI-powered job application assistant - Smart auto-fill, job matching, and application tracking across 100+ job boards",
   "permissions": [
     "storage",
     "activeTab",
     "scripting",
     "notifications",
     "cookies",
-    "webNavigation"
+    "webNavigation",
+    "tabs",
+    "contextMenus"
   ],
   "host_permissions": [
     "*://*.linkedin.com/*",
@@ -41,7 +43,7 @@
     "*://127.0.0.1:*/*"
   ],
   "background": {
-    "service_worker": "test-background.js"
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
@@ -77,7 +79,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "AutoJobr - Smart Job Assistant",
+    "default_title": "AutoJobr - AI Job Assistant",
     "default_icon": {
       "16": "icons/icon16.svg",
       "32": "icons/icon32.svg",
@@ -96,5 +98,25 @@
       "resources": ["popup-styles.css", "icons/*"],
       "matches": ["<all_urls>"]
     }
-  ]
+  ],
+  "commands": {
+    "autofill": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+A"
+      },
+      "description": "Auto-fill current form"
+    },
+    "analyze": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+J"
+      },
+      "description": "Analyze job match"
+    },
+    "save-job": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S"
+      },
+      "description": "Save current job"
+    }
+  }
 }

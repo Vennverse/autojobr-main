@@ -1,4 +1,4 @@
-// AutoJobr Content Script - Advanced Job Board Auto-Fill System
+// Enhanced AutoJobr Content Script v2.0 - Advanced Job Board Auto-Fill System
 class AutoJobrContentScript {
   constructor() {
     this.isInitialized = false;
@@ -6,6 +6,9 @@ class AutoJobrContentScript {
     this.fillInProgress = false;
     this.currentSite = this.detectSite();
     this.fieldMappings = this.initializeFieldMappings();
+    this.observers = [];
+    this.fillHistory = [];
+    this.smartSelectors = new Map();
     this.init();
   }
 
@@ -13,13 +16,18 @@ class AutoJobrContentScript {
     if (this.isInitialized) return;
     
     try {
-      this.injectUI();
+      this.injectEnhancedUI();
       this.setupMessageListener();
       this.observePageChanges();
       this.detectJobPosting();
+      this.setupKeyboardShortcuts();
+      this.initializeSmartSelectors();
       this.isInitialized = true;
       
-      console.log('🚀 AutoJobr extension initialized on:', this.currentSite);
+      // Mark as loaded for background script
+      window.autojobrContentScriptLoaded = true;
+      
+      console.log('🚀 AutoJobr extension v2.0 initialized on:', this.currentSite);
     } catch (error) {
       console.error('AutoJobr initialization error:', error);
     }
@@ -66,46 +74,163 @@ class AutoJobrContentScript {
   initializeFieldMappings() {
     return {
       // Personal Information
-      firstName: ['firstName', 'first_name', 'fname', 'first-name', 'given-name', 'forename'],
-      lastName: ['lastName', 'last_name', 'lname', 'last-name', 'family-name', 'surname'],
-      fullName: ['fullName', 'full_name', 'name', 'full-name', 'candidate-name', 'applicant-name'],
-      email: ['email', 'emailAddress', 'email_address', 'email-address', 'e-mail', 'mail'],
-      phone: ['phone', 'phoneNumber', 'phone_number', 'phone-number', 'telephone', 'mobile', 'cell'],
+      firstName: {
+        patterns: ['firstName', 'first_name', 'fname', 'first-name', 'given-name', 'forename'],
+        types: ['text'],
+        priority: 10
+      },
+      lastName: {
+        patterns: ['lastName', 'last_name', 'lname', 'last-name', 'family-name', 'surname'],
+        types: ['text'],
+        priority: 10
+      },
+      fullName: {
+        patterns: ['fullName', 'full_name', 'name', 'full-name', 'candidate-name', 'applicant-name'],
+        types: ['text'],
+        priority: 9
+      },
+      email: {
+        patterns: ['email', 'emailAddress', 'email_address', 'email-address', 'e-mail', 'mail'],
+        types: ['email', 'text'],
+        priority: 10
+      },
+      phone: {
+        patterns: ['phone', 'phoneNumber', 'phone_number', 'phone-number', 'telephone', 'mobile', 'cell'],
+        types: ['tel', 'text'],
+        priority: 9
+      },
       
       // Address
-      address: ['address', 'street', 'streetAddress', 'street_address', 'address1', 'addr1'],
-      city: ['city', 'locality', 'town'],
-      state: ['state', 'region', 'province', 'st'],
-      zipCode: ['zipCode', 'zip', 'postalCode', 'postal_code', 'postal-code', 'postcode'],
-      country: ['country', 'nation'],
+      address: {
+        patterns: ['address', 'street', 'streetAddress', 'street_address', 'address1', 'addr1'],
+        types: ['text'],
+        priority: 8
+      },
+      city: {
+        patterns: ['city', 'locality', 'town'],
+        types: ['text'],
+        priority: 8
+      },
+      state: {
+        patterns: ['state', 'region', 'province', 'st'],
+        types: ['text', 'select-one'],
+        priority: 8
+      },
+      zipCode: {
+        patterns: ['zipCode', 'zip', 'postalCode', 'postal_code', 'postal-code', 'postcode'],
+        types: ['text'],
+        priority: 8
+      },
+      country: {
+        patterns: ['country', 'nation'],
+        types: ['text', 'select-one'],
+        priority: 7
+      },
       
       // Professional
-      currentTitle: ['currentTitle', 'title', 'jobTitle', 'job_title', 'position', 'role'],
-      company: ['company', 'employer', 'organization', 'current_company', 'currentCompany'],
-      experience: ['experience', 'yearsExperience', 'years_experience', 'years-experience', 'exp'],
+      currentTitle: {
+        patterns: ['currentTitle', 'title', 'jobTitle', 'job_title', 'position', 'role'],
+        types: ['text'],
+        priority: 9
+      },
+      company: {
+        patterns: ['company', 'employer', 'organization', 'current_company', 'currentCompany'],
+        types: ['text'],
+        priority: 8
+      },
+      experience: {
+        patterns: ['experience', 'yearsExperience', 'years_experience', 'years-experience', 'exp'],
+        types: ['text', 'number', 'select-one'],
+        priority: 7
+      },
       
       // Education
-      university: ['university', 'school', 'college', 'education', 'institution'],
-      degree: ['degree', 'education_level', 'qualification'],
-      major: ['major', 'field', 'study', 'specialization', 'concentration'],
+      university: {
+        patterns: ['university', 'school', 'college', 'education', 'institution'],
+        types: ['text'],
+        priority: 7
+      },
+      degree: {
+        patterns: ['degree', 'education_level', 'qualification'],
+        types: ['text', 'select-one'],
+        priority: 7
+      },
+      major: {
+        patterns: ['major', 'field', 'study', 'specialization', 'concentration'],
+        types: ['text'],
+        priority: 7
+      },
       
       // Links
-      linkedin: ['linkedin', 'linkedinUrl', 'linkedin_url', 'linkedin-url', 'li-url'],
-      github: ['github', 'githubUrl', 'github_url', 'github-url'],
-      portfolio: ['portfolio', 'website', 'portfolioUrl', 'personal_website'],
+      linkedin: {
+        patterns: ['linkedin', 'linkedinUrl', 'linkedin_url', 'linkedin-url', 'li-url'],
+        types: ['url', 'text'],
+        priority: 6
+      },
+      github: {
+        patterns: ['github', 'githubUrl', 'github_url', 'github-url'],
+        types: ['url', 'text'],
+        priority: 6
+      },
+      portfolio: {
+        patterns: ['portfolio', 'website', 'portfolioUrl', 'personal_website'],
+        types: ['url', 'text'],
+        priority: 6
+      },
       
       // Work Authorization
-      workAuth: ['workAuthorization', 'work_authorization', 'eligible', 'authorized', 'legal'],
-      visa: ['visa', 'visaStatus', 'visa_status', 'immigration', 'sponsor'],
+      workAuth: {
+        patterns: ['workAuthorization', 'work_authorization', 'eligible', 'authorized', 'legal'],
+        types: ['select-one', 'radio', 'checkbox'],
+        priority: 8
+      },
+      visa: {
+        patterns: ['visa', 'visaStatus', 'visa_status', 'immigration', 'sponsor'],
+        types: ['select-one', 'radio', 'checkbox'],
+        priority: 7
+      },
       
       // Resume/Cover Letter
-      resume: ['resume', 'cv', 'resumeUpload', 'resume_upload', 'curriculum'],
-      coverLetter: ['coverLetter', 'cover_letter', 'covering_letter', 'motivation']
+      resume: {
+        patterns: ['resume', 'cv', 'resumeUpload', 'resume_upload', 'curriculum'],
+        types: ['file'],
+        priority: 9
+      },
+      coverLetter: {
+        patterns: ['coverLetter', 'cover_letter', 'covering_letter', 'motivation'],
+        types: ['textarea', 'text'],
+        priority: 8
+      }
     };
   }
 
-  injectUI() {
-    // Create floating UI similar to Simplify
+  initializeSmartSelectors() {
+    // Site-specific smart selectors for better accuracy
+    const siteSelectors = {
+      linkedin: {
+        forms: ['.jobs-apply-form', '.application-outlet', '.jobs-easy-apply-modal'],
+        skipButtons: ['.artdeco-button--secondary', '[data-test-modal-close-btn]'],
+        nextButtons: ['.artdeco-button--primary', '[aria-label*="Continue"]'],
+        submitButtons: ['.artdeco-button--primary', '[aria-label*="Submit"]']
+      },
+      indeed: {
+        forms: ['.ia-BasePage-content form', '.jobsearch-ApplyIndeed-content form'],
+        skipButtons: ['.ia-continueButton--secondary'],
+        nextButtons: ['.ia-continueButton', '.np-button'],
+        submitButtons: ['.ia-continueButton--primary']
+      },
+      workday: {
+        forms: ['[data-automation-id="jobApplication"]', '.css-1hwfws3'],
+        skipButtons: ['[data-automation-id="cancelButton"]'],
+        nextButtons: ['[data-automation-id="continueButton"]'],
+        submitButtons: ['[data-automation-id="submitButton"]']
+      }
+    };
+
+    this.smartSelectors = siteSelectors[this.currentSite] || siteSelectors.generic || {};
+  }
+
+  injectEnhancedUI() {
     if (document.getElementById('autojobr-overlay')) return;
 
     const overlay = document.createElement('div');
@@ -115,69 +240,181 @@ class AutoJobrContentScript {
         <div class="autojobr-header">
           <div class="autojobr-logo">
             <div class="autojobr-icon">A</div>
-            <span>AutoJobr</span>
+            <span>AutoJobr v2.0</span>
           </div>
-          <button class="autojobr-close" onclick="this.closest('.autojobr-widget').style.display='none'">×</button>
+          <div class="autojobr-controls">
+            <button class="autojobr-minimize" title="Minimize">−</button>
+            <button class="autojobr-close" title="Close">×</button>
+          </div>
         </div>
         
         <div class="autojobr-content">
           <div class="autojobr-status" id="autojobr-status">
-            <div class="status-icon">✓</div>
-            <div class="status-text">Ready to auto-fill application</div>
+            <div class="status-icon">🎯</div>
+            <div class="status-text">Job detected - Ready to auto-fill</div>
+            <div class="status-progress" id="autojobr-progress" style="display: none;">
+              <div class="progress-bar"></div>
+            </div>
+          </div>
+          
+          <div class="autojobr-job-info" id="autojobr-job-info" style="display: none;">
+            <div class="job-title" id="autojobr-job-title"></div>
+            <div class="job-company" id="autojobr-job-company"></div>
+            <div class="job-match" id="autojobr-job-match"></div>
           </div>
           
           <div class="autojobr-actions">
             <button class="autojobr-btn primary" id="autojobr-autofill">
-              <span class="btn-icon">✎</span>
-              Autofill
+              <span class="btn-icon">⚡</span>
+              <span class="btn-text">Smart Auto-fill</span>
+              <span class="btn-shortcut">Ctrl+A</span>
             </button>
-            <button class="autojobr-btn" id="autojobr-analyze">
-              <span class="btn-icon">📊</span>
-              Keywords Score
-            </button>
-            <button class="autojobr-btn" id="autojobr-profile">
-              <span class="btn-icon">👤</span>
-              Profile
-            </button>
+            
+            <div class="action-row">
+              <button class="autojobr-btn secondary" id="autojobr-analyze">
+                <span class="btn-icon">📊</span>
+                <span>Analyze</span>
+              </button>
+              <button class="autojobr-btn secondary" id="autojobr-save-job">
+                <span class="btn-icon">💾</span>
+                <span>Save</span>
+              </button>
+              <button class="autojobr-btn secondary" id="autojobr-cover-letter">
+                <span class="btn-icon">📝</span>
+                <span>Cover Letter</span>
+              </button>
+            </div>
           </div>
           
           <div class="autojobr-features">
-            <div class="feature-item" id="autojobr-save-job">
-              <span class="feature-icon">💾</span>
-              <span>Save Job</span>
-              <button class="feature-btn">→</button>
+            <div class="feature-toggle">
+              <input type="checkbox" id="smart-fill" checked>
+              <label for="smart-fill">Smart Fill Mode</label>
             </div>
-            <div class="feature-item" id="autojobr-cover-letter">
-              <span class="feature-icon">📝</span>
-              <span>Generate Cover Letter</span>
-              <button class="feature-btn">→</button>
-            </div>
-            <div class="feature-item" id="autojobr-resume">
-              <span class="feature-icon">📄</span>
-              <span>Tailor Resume</span>
-              <button class="feature-btn">→</button>
+            <div class="feature-toggle">
+              <input type="checkbox" id="auto-submit">
+              <label for="auto-submit">Auto Submit</label>
             </div>
           </div>
           
-          <div class="autojobr-footer">
-            <button class="submit-btn" id="autojobr-submit">
-              📤 Submit Autofill Request
-            </button>
+          <div class="autojobr-stats" id="autojobr-stats" style="display: none;">
+            <div class="stat-item">
+              <span class="stat-label">Fields Found:</span>
+              <span class="stat-value" id="fields-found">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Fields Filled:</span>
+              <span class="stat-value" id="fields-filled">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Success Rate:</span>
+              <span class="stat-value" id="success-rate">0%</span>
+            </div>
           </div>
         </div>
       </div>
     `;
 
     document.body.appendChild(overlay);
-    this.attachUIEventListeners();
+    this.attachEnhancedUIEventListeners();
+    this.makeWidgetDraggable();
   }
 
-  attachUIEventListeners() {
-    document.getElementById('autojobr-autofill')?.addEventListener('click', () => this.handleAutofill());
+  attachEnhancedUIEventListeners() {
+    // Main action buttons
+    document.getElementById('autojobr-autofill')?.addEventListener('click', () => this.handleSmartAutofill());
     document.getElementById('autojobr-analyze')?.addEventListener('click', () => this.handleAnalyze());
     document.getElementById('autojobr-save-job')?.addEventListener('click', () => this.handleSaveJob());
     document.getElementById('autojobr-cover-letter')?.addEventListener('click', () => this.handleCoverLetter());
-    document.getElementById('autojobr-submit')?.addEventListener('click', () => this.handleSubmitRequest());
+
+    // Widget controls
+    document.getElementById('autojobr-close')?.addEventListener('click', () => this.hideWidget());
+    document.getElementById('autojobr-minimize')?.addEventListener('click', () => this.minimizeWidget());
+
+    // Feature toggles
+    document.getElementById('smart-fill')?.addEventListener('change', (e) => {
+      chrome.storage.sync.set({ smartFillMode: e.target.checked });
+    });
+
+    document.getElementById('auto-submit')?.addEventListener('change', (e) => {
+      chrome.storage.sync.set({ autoSubmitMode: e.target.checked });
+    });
+  }
+
+  makeWidgetDraggable() {
+    const widget = document.querySelector('.autojobr-widget');
+    const header = document.querySelector('.autojobr-header');
+    
+    if (!widget || !header) return;
+
+    let isDragging = false;
+    let currentX;
+    let currentY;
+    let initialX;
+    let initialY;
+    let xOffset = 0;
+    let yOffset = 0;
+
+    header.addEventListener('mousedown', dragStart);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', dragEnd);
+
+    function dragStart(e) {
+      initialX = e.clientX - xOffset;
+      initialY = e.clientY - yOffset;
+
+      if (e.target === header || header.contains(e.target)) {
+        isDragging = true;
+        widget.style.cursor = 'grabbing';
+      }
+    }
+
+    function drag(e) {
+      if (isDragging) {
+        e.preventDefault();
+        currentX = e.clientX - initialX;
+        currentY = e.clientY - initialY;
+
+        xOffset = currentX;
+        yOffset = currentY;
+
+        widget.style.transform = `translate(${currentX}px, ${currentY}px)`;
+      }
+    }
+
+    function dragEnd() {
+      initialX = currentX;
+      initialY = currentY;
+      isDragging = false;
+      widget.style.cursor = 'default';
+    }
+  }
+
+  setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key.toLowerCase()) {
+          case 'a':
+            if (e.shiftKey) {
+              e.preventDefault();
+              this.handleSmartAutofill();
+            }
+            break;
+          case 'j':
+            if (e.shiftKey) {
+              e.preventDefault();
+              this.handleAnalyze();
+            }
+            break;
+          case 's':
+            if (e.shiftKey) {
+              e.preventDefault();
+              this.handleSaveJob();
+            }
+            break;
+        }
+      }
+    });
   }
 
   setupMessageListener() {
@@ -187,8 +424,12 @@ class AutoJobrContentScript {
           this.extractJobDetails().then(sendResponse);
           return true;
           
+        case 'detectJobPosting':
+          this.detectJobPosting().then(sendResponse);
+          return true;
+          
         case 'startAutofill':
-          this.startAutofill(message.userProfile).then(sendResponse);
+          this.startSmartAutofill(message.userProfile).then(sendResponse);
           return true;
           
         case 'fillCoverLetter':
@@ -198,6 +439,10 @@ class AutoJobrContentScript {
         case 'analyzeJob':
           this.analyzeCurrentJob().then(sendResponse);
           return true;
+
+        case 'saveCurrentJob':
+          this.saveCurrentJob().then(sendResponse);
+          return true;
           
         default:
           sendResponse({ success: false, error: 'Unknown action' });
@@ -206,41 +451,95 @@ class AutoJobrContentScript {
   }
 
   observePageChanges() {
-    // Watch for URL changes (SPA navigation)
+    // Enhanced mutation observer for SPA navigation
     let currentUrl = window.location.href;
     
-    const observer = new MutationObserver(() => {
+    const observer = new MutationObserver((mutations) => {
+      // Check for URL changes
       if (window.location.href !== currentUrl) {
         currentUrl = window.location.href;
         setTimeout(() => {
           this.detectJobPosting();
-        }, 1000);
+        }, 1500);
       }
+
+      // Check for form changes
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              const forms = node.querySelectorAll ? node.querySelectorAll('form') : [];
+              if (forms.length > 0 || node.tagName === 'FORM') {
+                setTimeout(() => this.analyzeNewForms(), 500);
+              }
+            }
+          });
+        }
+      });
     });
 
     observer.observe(document.body, {
       childList: true,
-      subtree: true
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class', 'id']
     });
 
-    // Also listen for popstate events
+    this.observers.push(observer);
+
+    // Listen for popstate events
     window.addEventListener('popstate', () => {
       setTimeout(() => this.detectJobPosting(), 1000);
     });
+
+    // Listen for pushstate/replacestate
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+
+    history.pushState = function() {
+      originalPushState.apply(history, arguments);
+      setTimeout(() => this.detectJobPosting(), 1000);
+    }.bind(this);
+
+    history.replaceState = function() {
+      originalReplaceState.apply(history, arguments);
+      setTimeout(() => this.detectJobPosting(), 1000);
+    }.bind(this);
   }
 
   async detectJobPosting() {
-    const jobData = await this.extractJobDetails();
-    
-    if (jobData.success && jobData.jobData.title) {
-      this.currentJobData = jobData.jobData;
-      this.showAutoJobrWidget();
-    } else {
-      this.hideAutoJobrWidget();
+    try {
+      const jobData = await this.extractJobDetails();
+      
+      if (jobData.success && jobData.jobData.title) {
+        this.currentJobData = jobData.jobData;
+        this.showWidget();
+        this.updateJobInfo(jobData.jobData);
+        
+        return { success: true, jobData: jobData.jobData };
+      } else {
+        this.hideWidget();
+        return { success: false };
+      }
+    } catch (error) {
+      console.error('Job detection error:', error);
+      return { success: false, error: error.message };
     }
   }
 
-  showAutoJobrWidget() {
+  updateJobInfo(jobData) {
+    const jobInfo = document.getElementById('autojobr-job-info');
+    const jobTitle = document.getElementById('autojobr-job-title');
+    const jobCompany = document.getElementById('autojobr-job-company');
+    
+    if (jobInfo && jobTitle && jobCompany) {
+      jobTitle.textContent = jobData.title || 'Job Title';
+      jobCompany.textContent = jobData.company || 'Company';
+      jobInfo.style.display = 'block';
+    }
+  }
+
+  showWidget() {
     const widget = document.querySelector('.autojobr-widget');
     if (widget) {
       widget.style.display = 'block';
@@ -248,13 +547,46 @@ class AutoJobrContentScript {
       widget.style.top = '20px';
       widget.style.right = '20px';
       widget.style.zIndex = '10000';
+      
+      // Animate in
+      widget.style.opacity = '0';
+      widget.style.transform = 'translateX(100%)';
+      
+      setTimeout(() => {
+        widget.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+        widget.style.opacity = '1';
+        widget.style.transform = 'translateX(0)';
+      }, 100);
     }
   }
 
-  hideAutoJobrWidget() {
+  hideWidget() {
     const widget = document.querySelector('.autojobr-widget');
     if (widget) {
-      widget.style.display = 'none';
+      widget.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+      widget.style.opacity = '0';
+      widget.style.transform = 'translateX(100%)';
+      
+      setTimeout(() => {
+        widget.style.display = 'none';
+      }, 300);
+    }
+  }
+
+  minimizeWidget() {
+    const widget = document.querySelector('.autojobr-widget');
+    const content = document.querySelector('.autojobr-content');
+    
+    if (widget && content) {
+      const isMinimized = content.style.display === 'none';
+      
+      if (isMinimized) {
+        content.style.display = 'block';
+        widget.style.height = 'auto';
+      } else {
+        content.style.display = 'none';
+        widget.style.height = '60px';
+      }
     }
   }
 
@@ -270,78 +602,302 @@ class AutoJobrContentScript {
         requirements: this.extractText(selectors.requirements),
         salary: this.extractText(selectors.salary),
         type: this.extractText(selectors.type),
-        url: window.location.href
+        url: window.location.href,
+        site: this.currentSite,
+        extractedAt: new Date().toISOString()
       };
 
-      // Clean up extracted data
+      // Enhanced data cleaning
       Object.keys(jobData).forEach(key => {
         if (typeof jobData[key] === 'string') {
-          jobData[key] = jobData[key].trim().replace(/\s+/g, ' ');
+          jobData[key] = jobData[key]
+            .trim()
+            .replace(/\s+/g, ' ')
+            .replace(/[\r\n\t]/g, ' ')
+            .substring(0, key === 'description' ? 5000 : 500); // Limit lengths
         }
       });
 
-      return { success: true, jobData };
+      // Validate required fields
+      const isValid = jobData.title && jobData.title.length > 2;
+
+      return { 
+        success: isValid, 
+        jobData: isValid ? jobData : null,
+        confidence: this.calculateExtractionConfidence(jobData)
+      };
     } catch (error) {
       console.error('Job extraction error:', error);
       return { success: false, error: error.message };
     }
   }
 
+  calculateExtractionConfidence(jobData) {
+    let score = 0;
+    const weights = {
+      title: 30,
+      company: 25,
+      location: 15,
+      description: 20,
+      salary: 10
+    };
+
+    Object.keys(weights).forEach(key => {
+      if (jobData[key] && jobData[key].length > 2) {
+        score += weights[key];
+      }
+    });
+
+    return Math.min(100, score);
+  }
+
   getJobSelectors() {
     const siteSelectors = {
       linkedin: {
-        title: ['.top-card-layout__title h1', '.job-details-jobs-unified-top-card__job-title h1', 'h1.t-24'],
-        company: ['.topcard__org-name-link', '.job-details-jobs-unified-top-card__company-name a', '.topcard__flavor--black-link'],
-        location: ['.topcard__flavor--bullet', '.job-details-jobs-unified-top-card__bullet', '.topcard__flavor'],
-        description: ['.description__text', '.jobs-description-content__text', '.jobs-description .t-14'],
-        requirements: ['.description__text', '.jobs-description-content__text'],
-        salary: ['.salary', '.compensation', '.pay-range'],
-        type: ['.job-criteria__text', '.job-details-preferences-and-skills']
+        title: [
+          '.top-card-layout__title h1',
+          '.job-details-jobs-unified-top-card__job-title h1',
+          'h1.t-24',
+          '.jobs-unified-top-card__job-title h1'
+        ],
+        company: [
+          '.topcard__org-name-link',
+          '.job-details-jobs-unified-top-card__company-name a',
+          '.topcard__flavor--black-link',
+          '.jobs-unified-top-card__company-name a'
+        ],
+        location: [
+          '.topcard__flavor--bullet',
+          '.job-details-jobs-unified-top-card__bullet',
+          '.topcard__flavor',
+          '.jobs-unified-top-card__bullet'
+        ],
+        description: [
+          '.description__text',
+          '.jobs-description-content__text',
+          '.jobs-description .t-14',
+          '.jobs-box__html-content'
+        ],
+        requirements: [
+          '.description__text',
+          '.jobs-description-content__text'
+        ],
+        salary: [
+          '.salary',
+          '.compensation',
+          '.pay-range'
+        ],
+        type: [
+          '.job-criteria__text',
+          '.job-details-preferences-and-skills'
+        ]
       },
       indeed: {
-        title: ['[data-testid="jobsearch-JobInfoHeader-title"] h1', '.jobsearch-JobInfoHeader-title h1', 'h1[data-testid="job-title"]'],
-        company: ['[data-testid="inlineHeader-companyName"] a', '.jobsearch-InlineCompanyRating-companyHeader a', 'a[data-testid="company-name"]'],
-        location: ['[data-testid="job-location"]', '.jobsearch-JobInfoHeader-subtitle div', '.companyLocation'],
-        description: ['#jobDescriptionText', '.jobsearch-jobDescriptionText', '.jobsearch-JobComponent-description'],
-        requirements: ['#jobDescriptionText', '.jobsearch-jobDescriptionText'],
-        salary: ['.attribute_snippet', '.salary-snippet', '.estimated-salary'],
-        type: ['.jobsearch-JobDescriptionSection-section', '.job-snippet']
+        title: [
+          '[data-testid="jobsearch-JobInfoHeader-title"] h1',
+          '.jobsearch-JobInfoHeader-title h1',
+          'h1[data-testid="job-title"]',
+          '.jobsearch-JobInfoHeader-title span'
+        ],
+        company: [
+          '[data-testid="inlineHeader-companyName"] a',
+          '.jobsearch-InlineCompanyRating-companyHeader a',
+          'a[data-testid="company-name"]',
+          '.jobsearch-CompanyReview--heading'
+        ],
+        location: [
+          '[data-testid="job-location"]',
+          '.jobsearch-JobInfoHeader-subtitle div',
+          '.companyLocation',
+          '[data-testid="job-location"] div'
+        ],
+        description: [
+          '#jobDescriptionText',
+          '.jobsearch-jobDescriptionText',
+          '.jobsearch-JobComponent-description',
+          '.jobsearch-JobComponent-description div'
+        ],
+        requirements: [
+          '#jobDescriptionText',
+          '.jobsearch-jobDescriptionText'
+        ],
+        salary: [
+          '.attribute_snippet',
+          '.salary-snippet',
+          '.estimated-salary',
+          '.jobsearch-SalaryGuide-module'
+        ],
+        type: [
+          '.jobsearch-JobDescriptionSection-section',
+          '.job-snippet'
+        ]
       },
       workday: {
-        title: ['.css-1id67r3', '[data-automation-id="jobPostingHeader"]', '.WDKN_PositionTitle', 'h1[data-automation-id="jobPostingHeader"]'],
-        company: ['[data-automation-id="company"]', '.css-1x9zq2f', '.WDKN_CompanyName'],
-        location: ['[data-automation-id="locations"]', '.css-129m7dg', '.WDKN_Location'],
-        description: ['[data-automation-id="jobPostingDescription"]', '.css-1t3of01', '.WDKN_JobDescription'],
-        requirements: ['[data-automation-id="jobPostingDescription"]', '.css-1t3of01'],
-        salary: ['.css-salary', '.compensation-section'],
-        type: ['[data-automation-id="employmentType"]', '.employment-type']
+        title: [
+          '.css-1id67r3',
+          '[data-automation-id="jobPostingHeader"]',
+          '.WDKN_PositionTitle',
+          'h1[data-automation-id="jobPostingHeader"]',
+          '[data-automation-id="jobPostingHeader"] h1'
+        ],
+        company: [
+          '[data-automation-id="company"]',
+          '.css-1x9zq2f',
+          '.WDKN_CompanyName',
+          '[data-automation-id="company"] div'
+        ],
+        location: [
+          '[data-automation-id="locations"]',
+          '.css-129m7dg',
+          '.WDKN_Location',
+          '[data-automation-id="locations"] div'
+        ],
+        description: [
+          '[data-automation-id="jobPostingDescription"]',
+          '.css-1t3of01',
+          '.WDKN_JobDescription',
+          '[data-automation-id="jobPostingDescription"] div'
+        ],
+        requirements: [
+          '[data-automation-id="jobPostingDescription"]',
+          '.css-1t3of01'
+        ],
+        salary: [
+          '.css-salary',
+          '.compensation-section'
+        ],
+        type: [
+          '[data-automation-id="employmentType"]',
+          '.employment-type'
+        ]
       },
       greenhouse: {
-        title: ['.header--title', '.app-title', 'h1.header-title'],
-        company: ['.header--company', '.company-name', '.header-company'],
-        location: ['.header--location', '.location', '.job-location'],
-        description: ['.body--text', '.section--text', '.job-post-content'],
-        requirements: ['.body--text', '.section--text'],
-        salary: ['.salary', '.compensation'],
-        type: ['.employment-type', '.job-type']
+        title: [
+          '.header--title',
+          '.app-title',
+          'h1.header-title',
+          '.posting-headline h2'
+        ],
+        company: [
+          '.header--company',
+          '.company-name',
+          '.header-company',
+          '.posting-company'
+        ],
+        location: [
+          '.header--location',
+          '.location',
+          '.job-location',
+          '.posting-categories .location'
+        ],
+        description: [
+          '.body--text',
+          '.section--text',
+          '.job-post-content',
+          '.posting-description .section-wrapper'
+        ],
+        requirements: [
+          '.body--text',
+          '.section--text'
+        ],
+        salary: [
+          '.salary',
+          '.compensation'
+        ],
+        type: [
+          '.employment-type',
+          '.job-type'
+        ]
       },
       lever: {
-        title: ['.posting-headline h2', '.template-job-page h1', '.job-title'],
-        company: ['.posting-company', '.company-name', '.lever-company'],
-        location: ['.posting-categories .location', '.job-location', '.posting-location'],
-        description: ['.posting-description .section-wrapper', '.job-description'],
-        requirements: ['.posting-description .section-wrapper', '.job-description'],
-        salary: ['.salary', '.compensation'],
-        type: ['.posting-categories .commitment', '.employment-type']
+        title: [
+          '.posting-headline h2',
+          '.template-job-page h1',
+          '.job-title'
+        ],
+        company: [
+          '.posting-company',
+          '.company-name',
+          '.lever-company'
+        ],
+        location: [
+          '.posting-categories .location',
+          '.job-location',
+          '.posting-location'
+        ],
+        description: [
+          '.posting-description .section-wrapper',
+          '.job-description'
+        ],
+        requirements: [
+          '.posting-description .section-wrapper',
+          '.job-description'
+        ],
+        salary: [
+          '.salary',
+          '.compensation'
+        ],
+        type: [
+          '.posting-categories .commitment',
+          '.employment-type'
+        ]
       },
       generic: {
-        title: ['h1', '.job-title', '.position-title', '[class*="title"]', '[class*="job"]', '[class*="position"]'],
-        company: ['.company', '.employer', '.organization', '[class*="company"]', '[class*="employer"]'],
-        location: ['.location', '.address', '.city', '[class*="location"]', '[class*="address"]'],
-        description: ['.description', '.job-desc', '.content', '[class*="description"]', '[class*="content"]'],
-        requirements: ['.requirements', '.qualifications', '[class*="requirements"]', '[class*="qualifications"]'],
-        salary: ['.salary', '.compensation', '.pay', '[class*="salary"]', '[class*="compensation"]'],
-        type: ['.job-type', '.employment-type', '[class*="type"]']
+        title: [
+          'h1',
+          '.job-title',
+          '.position-title',
+          '[class*="title"]',
+          '[class*="job"]',
+          '[class*="position"]',
+          'h1[class*="job"]',
+          'h2[class*="job"]'
+        ],
+        company: [
+          '.company',
+          '.employer',
+          '.organization',
+          '[class*="company"]',
+          '[class*="employer"]',
+          '[class*="org"]'
+        ],
+        location: [
+          '.location',
+          '.address',
+          '.city',
+          '[class*="location"]',
+          '[class*="address"]',
+          '[class*="city"]'
+        ],
+        description: [
+          '.description',
+          '.job-desc',
+          '.content',
+          '[class*="description"]',
+          '[class*="content"]',
+          '[class*="detail"]'
+        ],
+        requirements: [
+          '.requirements',
+          '.qualifications',
+          '[class*="requirements"]',
+          '[class*="qualifications"]',
+          '[class*="skills"]'
+        ],
+        salary: [
+          '.salary',
+          '.compensation',
+          '.pay',
+          '[class*="salary"]',
+          '[class*="compensation"]',
+          '[class*="pay"]'
+        ],
+        type: [
+          '.job-type',
+          '.employment-type',
+          '[class*="type"]',
+          '[class*="employment"]'
+        ]
       }
     };
 
@@ -352,93 +908,238 @@ class AutoJobrContentScript {
     if (!selectors) return '';
     
     for (const selector of selectors) {
-      const element = document.querySelector(selector);
-      if (element) {
-        return element.innerText || element.textContent || '';
+      try {
+        const element = document.querySelector(selector);
+        if (element) {
+          const text = element.innerText || element.textContent || '';
+          if (text.trim().length > 0) {
+            return text.trim();
+          }
+        }
+      } catch (error) {
+        console.warn(`Selector error: ${selector}`, error);
       }
     }
     
     return '';
   }
 
-  async startAutofill(userProfile) {
+  async startSmartAutofill(userProfile) {
     if (this.fillInProgress) {
       return { success: false, error: 'Auto-fill already in progress' };
     }
 
     this.fillInProgress = true;
+    this.showProgress(true);
 
     try {
-      // Find all form fields
-      const forms = document.querySelectorAll('form');
-      let fieldsFound = 0;
-      let fieldsFilled = 0;
+      // Get settings
+      const settings = await chrome.storage.sync.get(['smartFillMode', 'autoSubmitMode']);
+      const smartMode = settings.smartFillMode !== false;
+      const autoSubmit = settings.autoSubmitMode === true;
+
+      // Find all forms with enhanced detection
+      const forms = this.findAllForms();
+      let totalFieldsFound = 0;
+      let totalFieldsFilled = 0;
+      const fillResults = [];
 
       for (const form of forms) {
-        const fields = form.querySelectorAll('input, select, textarea');
+        const result = await this.fillForm(form, userProfile, smartMode);
+        totalFieldsFound += result.fieldsFound;
+        totalFieldsFilled += result.fieldsFilled;
+        fillResults.push(result);
         
-        for (const field of fields) {
-          fieldsFound++;
-          
-          if (await this.fillField(field, userProfile)) {
-            fieldsFilled++;
-            // Human-like delay between fields
-            await this.delay(200 + Math.random() * 300);
-          }
-        }
+        // Update progress
+        this.updateProgress(totalFieldsFilled, totalFieldsFound);
+        
+        // Delay between forms
+        await this.delay(500);
       }
 
-      // Handle file uploads (resume)
-      await this.handleFileUploads(userProfile);
+      // Handle file uploads
+      const fileResults = await this.handleAdvancedFileUploads(userProfile);
+      totalFieldsFound += fileResults.filesFound;
+      totalFieldsFilled += fileResults.filesUploaded;
+
+      // Update statistics
+      this.updateStats(totalFieldsFound, totalFieldsFilled);
+
+      // Auto-submit if enabled
+      if (autoSubmit && totalFieldsFilled > 0) {
+        await this.attemptAutoSubmit();
+      }
 
       this.fillInProgress = false;
+      this.showProgress(false);
       
       return {
         success: true,
-        fieldsFound,
-        fieldsFilled,
-        message: `Successfully filled ${fieldsFilled} out of ${fieldsFound} fields`
+        fieldsFound: totalFieldsFound,
+        fieldsFilled: totalFieldsFilled,
+        successRate: totalFieldsFound > 0 ? Math.round((totalFieldsFilled / totalFieldsFound) * 100) : 0,
+        message: `Successfully filled ${totalFieldsFilled} out of ${totalFieldsFound} fields`,
+        results: fillResults
       };
 
     } catch (error) {
       this.fillInProgress = false;
-      console.error('Auto-fill error:', error);
+      this.showProgress(false);
+      console.error('Smart auto-fill error:', error);
       return { success: false, error: error.message };
     }
   }
 
-  async fillField(field, userProfile) {
+  findAllForms() {
+    const forms = [];
+    
+    // Standard form detection
+    document.querySelectorAll('form').forEach(form => {
+      if (this.isRelevantForm(form)) {
+        forms.push(form);
+      }
+    });
+
+    // Site-specific form detection
+    if (this.smartSelectors.forms) {
+      this.smartSelectors.forms.forEach(selector => {
+        document.querySelectorAll(selector).forEach(form => {
+          if (!forms.includes(form) && this.isRelevantForm(form)) {
+            forms.push(form);
+          }
+        });
+      });
+    }
+
+    // Fallback: look for containers with form fields
+    if (forms.length === 0) {
+      const containers = document.querySelectorAll('div, section, main');
+      containers.forEach(container => {
+        const fields = container.querySelectorAll('input, select, textarea');
+        if (fields.length >= 3) { // Minimum threshold
+          forms.push(container);
+        }
+      });
+    }
+
+    return forms;
+  }
+
+  isRelevantForm(form) {
+    // Skip forms that are clearly not job applications
+    const skipPatterns = [
+      'search', 'login', 'signin', 'signup', 'newsletter', 
+      'subscribe', 'comment', 'review', 'feedback'
+    ];
+
+    const formText = (form.textContent || '').toLowerCase();
+    const formClass = (form.className || '').toLowerCase();
+    const formId = (form.id || '').toLowerCase();
+
+    return !skipPatterns.some(pattern => 
+      formText.includes(pattern) || 
+      formClass.includes(pattern) || 
+      formId.includes(pattern)
+    );
+  }
+
+  async fillForm(form, userProfile, smartMode) {
+    const fields = form.querySelectorAll('input, select, textarea');
+    let fieldsFound = 0;
+    let fieldsFilled = 0;
+
+    for (const field of fields) {
+      if (this.shouldSkipField(field)) continue;
+      
+      fieldsFound++;
+      
+      try {
+        const filled = await this.fillFieldSmart(field, userProfile, smartMode);
+        if (filled) {
+          fieldsFilled++;
+          
+          // Add visual feedback
+          this.addFieldFeedback(field, true);
+          
+          // Human-like delay
+          await this.delay(150 + Math.random() * 200);
+        }
+      } catch (error) {
+        console.warn('Field fill error:', error);
+        this.addFieldFeedback(field, false);
+      }
+    }
+
+    return { fieldsFound, fieldsFilled };
+  }
+
+  shouldSkipField(field) {
+    // Skip hidden, disabled, or readonly fields
+    if (field.type === 'hidden' || field.disabled || field.readOnly) {
+      return true;
+    }
+
+    // Skip fields that are not visible
+    const style = window.getComputedStyle(field);
+    if (style.display === 'none' || style.visibility === 'hidden') {
+      return true;
+    }
+
+    // Skip certain input types
+    const skipTypes = ['submit', 'button', 'reset', 'image'];
+    if (skipTypes.includes(field.type)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  async fillFieldSmart(field, userProfile, smartMode) {
     try {
-      if (!field || field.disabled || field.readOnly) return false;
-
-      const fieldInfo = this.analyzeField(field);
-      const value = this.getValueForField(fieldInfo, userProfile);
-
-      if (!value) return false;
-
-      // Scroll field into view
-      field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Scroll field into view smoothly
+      field.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center',
+        inline: 'nearest'
+      });
       await this.delay(100);
 
-      // Focus the field
+      // Focus the field with animation
       field.focus();
       await this.delay(50);
 
-      if (field.tagName === 'SELECT') {
-        return this.fillSelectField(field, value);
-      } else if (field.type === 'checkbox' || field.type === 'radio') {
-        return this.fillChoiceField(field, value);
-      } else {
-        return this.fillTextField(field, value);
+      const fieldInfo = this.analyzeFieldAdvanced(field);
+      const value = this.getValueForFieldSmart(fieldInfo, userProfile, smartMode);
+
+      if (!value) return false;
+
+      // Fill based on field type
+      switch (field.tagName.toLowerCase()) {
+        case 'select':
+          return await this.fillSelectFieldSmart(field, value);
+        case 'textarea':
+          return await this.fillTextAreaSmart(field, value);
+        case 'input':
+          switch (field.type.toLowerCase()) {
+            case 'checkbox':
+            case 'radio':
+              return await this.fillChoiceFieldSmart(field, value);
+            case 'file':
+              return await this.fillFileFieldSmart(field, value, userProfile);
+            default:
+              return await this.fillTextFieldSmart(field, value);
+          }
+        default:
+          return await this.fillTextFieldSmart(field, value);
       }
 
     } catch (error) {
-      console.error('Field fill error:', error);
+      console.error('Smart field fill error:', error);
       return false;
     }
   }
 
-  analyzeField(field) {
+  analyzeFieldAdvanced(field) {
     const info = {
       name: field.name?.toLowerCase() || '',
       id: field.id?.toLowerCase() || '',
@@ -446,89 +1147,236 @@ class AutoJobrContentScript {
       label: '',
       type: field.type?.toLowerCase() || 'text',
       className: field.className?.toLowerCase() || '',
-      automationId: field.getAttribute('data-automation-id')?.toLowerCase() || ''
+      automationId: field.getAttribute('data-automation-id')?.toLowerCase() || '',
+      ariaLabel: field.getAttribute('aria-label')?.toLowerCase() || '',
+      title: field.title?.toLowerCase() || '',
+      required: field.required || false,
+      maxLength: field.maxLength || null,
+      pattern: field.pattern || null
     };
 
-    // Find associated label
-    const label = field.closest('label') || 
-                  document.querySelector(`label[for="${field.id}"]`) ||
-                  field.previousElementSibling?.tagName === 'LABEL' ? field.previousElementSibling : null;
+    // Find associated label with multiple strategies
+    let label = field.closest('label') || 
+                document.querySelector(`label[for="${field.id}"]`);
+    
+    if (!label) {
+      // Look for nearby text
+      const parent = field.parentElement;
+      const siblings = parent ? Array.from(parent.children) : [];
+      const fieldIndex = siblings.indexOf(field);
+      
+      // Check previous siblings
+      for (let i = fieldIndex - 1; i >= 0; i--) {
+        const sibling = siblings[i];
+        if (sibling.tagName === 'LABEL' || sibling.textContent?.trim()) {
+          label = sibling;
+          break;
+        }
+      }
+    }
     
     if (label) {
-      info.label = label.innerText?.toLowerCase() || '';
+      info.label = (label.innerText || label.textContent || '').toLowerCase();
     }
 
     // Combine all identifiers for matching
-    info.combined = `${info.name} ${info.id} ${info.placeholder} ${info.label} ${info.className} ${info.automationId}`;
+    info.combined = `${info.name} ${info.id} ${info.placeholder} ${info.label} ${info.className} ${info.automationId} ${info.ariaLabel} ${info.title}`;
+
+    // Calculate confidence score
+    info.confidence = this.calculateFieldConfidence(info);
 
     return info;
   }
 
-  getValueForField(fieldInfo, userProfile) {
+  calculateFieldConfidence(fieldInfo) {
+    let confidence = 0;
+    
+    // Higher confidence for specific identifiers
+    if (fieldInfo.name) confidence += 30;
+    if (fieldInfo.id) confidence += 25;
+    if (fieldInfo.label) confidence += 20;
+    if (fieldInfo.placeholder) confidence += 15;
+    if (fieldInfo.automationId) confidence += 10;
+
+    return Math.min(100, confidence);
+  }
+
+  getValueForFieldSmart(fieldInfo, userProfile, smartMode) {
     if (!userProfile) return null;
 
-    // Match field to user profile data
-    for (const [profileKey, fieldPatterns] of Object.entries(this.fieldMappings)) {
-      for (const pattern of fieldPatterns) {
+    // Enhanced field matching with priority scoring
+    let bestMatch = null;
+    let bestScore = 0;
+
+    for (const [profileKey, mapping] of Object.entries(this.fieldMappings)) {
+      for (const pattern of mapping.patterns) {
         if (fieldInfo.combined.includes(pattern)) {
-          return this.getProfileValue(profileKey, userProfile);
+          let score = mapping.priority || 1;
+          
+          // Boost score for exact matches
+          if (fieldInfo.name === pattern || fieldInfo.id === pattern) {
+            score += 20;
+          }
+          
+          // Boost score for type compatibility
+          if (mapping.types.includes(fieldInfo.type)) {
+            score += 10;
+          }
+          
+          // Boost score for required fields
+          if (fieldInfo.required) {
+            score += 5;
+          }
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = profileKey;
+          }
         }
       }
     }
 
-    // Special case matching for common patterns
-    if (fieldInfo.combined.includes('name') && !fieldInfo.combined.includes('company')) {
-      if (fieldInfo.combined.includes('first') || fieldInfo.combined.includes('given')) {
-        return userProfile.firstName;
-      } else if (fieldInfo.combined.includes('last') || fieldInfo.combined.includes('family')) {
-        return userProfile.lastName;
-      } else {
-        return `${userProfile.firstName} ${userProfile.lastName}`;
-      }
+    if (bestMatch) {
+      return this.getProfileValueSmart(bestMatch, userProfile, fieldInfo);
     }
 
-    return null;
+    // Fallback pattern matching
+    return this.getFallbackValue(fieldInfo, userProfile);
   }
 
-  getProfileValue(key, profile) {
+  getProfileValueSmart(key, profile, fieldInfo) {
     const valueMap = {
       firstName: profile.firstName,
       lastName: profile.lastName,
-      fullName: `${profile.firstName} ${profile.lastName}`,
+      fullName: `${profile.firstName || ''} ${profile.lastName || ''}`.trim(),
       email: profile.email,
-      phone: profile.phone,
+      phone: this.formatPhone(profile.phone, fieldInfo),
       address: profile.currentAddress,
-      city: profile.location?.split(',')[0]?.trim(),
-      state: profile.location?.split(',')[1]?.trim(),
+      city: this.extractCity(profile.location),
+      state: this.extractState(profile.location),
       zipCode: profile.zipCode,
-      country: 'United States',
+      country: profile.country || 'United States',
       currentTitle: profile.professionalTitle,
       company: profile.currentCompany,
-      experience: profile.yearsExperience?.toString(),
+      experience: this.formatExperience(profile.yearsExperience, fieldInfo),
+      university: profile.education?.[0]?.institution,
+      degree: profile.education?.[0]?.degree,
+      major: profile.education?.[0]?.fieldOfStudy,
       linkedin: profile.linkedinUrl,
       github: profile.githubUrl,
       portfolio: profile.portfolioUrl,
-      workAuth: 'Yes',
-      visa: 'No sponsorship required'
+      workAuth: this.formatWorkAuth(profile.workAuthorization, fieldInfo),
+      visa: this.formatVisa(profile.visaStatus, fieldInfo),
+      coverLetter: profile.defaultCoverLetter
     };
 
     return valueMap[key] || null;
   }
 
-  async fillTextField(field, value) {
-    try {
-      // Clear existing value
-      field.value = '';
-      field.dispatchEvent(new Event('input', { bubbles: true }));
+  formatPhone(phone, fieldInfo) {
+    if (!phone) return null;
+    
+    // Remove all non-digits
+    const digits = phone.replace(/\D/g, '');
+    
+    // Format based on field pattern or maxLength
+    if (fieldInfo.pattern?.includes('(') || fieldInfo.maxLength === 14) {
+      return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6,10)}`;
+    } else if (fieldInfo.maxLength === 12) {
+      return `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6,10)}`;
+    } else {
+      return digits.slice(0, 10);
+    }
+  }
 
-      // Type with human-like delays
-      for (let i = 0; i < value.length; i++) {
-        field.value = value.substring(0, i + 1);
-        field.dispatchEvent(new Event('input', { bubbles: true }));
-        await this.delay(30 + Math.random() * 20);
+  formatExperience(years, fieldInfo) {
+    if (!years) return null;
+    
+    if (fieldInfo.type === 'select-one') {
+      // Return appropriate range for select fields
+      if (years < 1) return '0-1 years';
+      if (years < 3) return '1-3 years';
+      if (years < 5) return '3-5 years';
+      if (years < 10) return '5-10 years';
+      return '10+ years';
+    }
+    
+    return years.toString();
+  }
+
+  formatWorkAuth(workAuth, fieldInfo) {
+    if (!workAuth) return 'Yes'; // Default assumption
+    
+    if (fieldInfo.type === 'select-one') {
+      return workAuth === 'authorized' ? 'Yes' : 'No';
+    }
+    
+    return workAuth;
+  }
+
+  formatVisa(visaStatus, fieldInfo) {
+    if (!visaStatus) return 'No'; // Default assumption
+    
+    if (fieldInfo.type === 'select-one') {
+      return visaStatus === 'required' ? 'Yes' : 'No';
+    }
+    
+    return visaStatus;
+  }
+
+  extractCity(location) {
+    if (!location) return null;
+    return location.split(',')[0]?.trim();
+  }
+
+  extractState(location) {
+    if (!location) return null;
+    const parts = location.split(',');
+    return parts[1]?.trim();
+  }
+
+  getFallbackValue(fieldInfo, userProfile) {
+    // Smart fallback based on common patterns
+    const combined = fieldInfo.combined;
+    
+    if (combined.includes('name') && !combined.includes('company')) {
+      if (combined.includes('first') || combined.includes('given')) {
+        return userProfile.firstName;
+      } else if (combined.includes('last') || combined.includes('family')) {
+        return userProfile.lastName;
+      } else {
+        return `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim();
+      }
+    }
+    
+    return null;
+  }
+
+  async fillTextFieldSmart(field, value) {
+    try {
+      // Clear existing value with animation
+      if (field.value) {
+        for (let i = field.value.length; i >= 0; i--) {
+          field.value = field.value.substring(0, i);
+          field.dispatchEvent(new Event('input', { bubbles: true }));
+          await this.delay(20);
+        }
       }
 
-      // Trigger additional events for React/Angular compatibility
+      // Type with human-like rhythm
+      for (let i = 0; i < value.length; i++) {
+        field.value = value.substring(0, i + 1);
+        
+        // Dispatch events for framework compatibility
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        field.dispatchEvent(new Event('keyup', { bubbles: true }));
+        
+        // Variable typing speed
+        const delay = 30 + Math.random() * 40;
+        await this.delay(delay);
+      }
+
+      // Final events
       field.dispatchEvent(new Event('change', { bubbles: true }));
       field.dispatchEvent(new Event('blur', { bubbles: true }));
       
@@ -539,7 +1387,7 @@ class AutoJobrContentScript {
     }
   }
 
-  fillSelectField(field, value) {
+  async fillSelectFieldSmart(field, value) {
     try {
       const options = Array.from(field.options);
       
@@ -557,9 +1405,15 @@ class AutoJobrContentScript {
         );
       }
 
+      // Try fuzzy match for common variations
+      if (!option) {
+        option = this.findFuzzyMatch(options, value);
+      }
+
       if (option) {
         field.value = option.value;
         field.dispatchEvent(new Event('change', { bubbles: true }));
+        field.dispatchEvent(new Event('blur', { bubbles: true }));
         return true;
       }
 
@@ -570,50 +1424,355 @@ class AutoJobrContentScript {
     }
   }
 
-  fillChoiceField(field, value) {
-    try {
-      const shouldCheck = value.toLowerCase() === 'yes' || 
-                         value.toLowerCase() === 'true' || 
-                         value === '1';
+  findFuzzyMatch(options, value) {
+    const normalizedValue = value.toLowerCase().replace(/[^a-z0-9]/g, '');
+    
+    for (const option of options) {
+      const normalizedOption = option.text.toLowerCase().replace(/[^a-z0-9]/g, '');
+      
+      // Check for common abbreviations and variations
+      if (this.isFuzzyMatch(normalizedValue, normalizedOption)) {
+        return option;
+      }
+    }
+    
+    return null;
+  }
 
-      if (field.checked !== shouldCheck) {
-        field.checked = shouldCheck;
-        field.dispatchEvent(new Event('change', { bubbles: true }));
+  isFuzzyMatch(value1, value2) {
+    // Simple fuzzy matching logic
+    const minLength = Math.min(value1.length, value2.length);
+    const maxLength = Math.max(value1.length, value2.length);
+    
+    if (minLength < 3) return false;
+    
+    // Check if one contains the other
+    if (value1.includes(value2) || value2.includes(value1)) {
+      return true;
+    }
+    
+    // Check similarity ratio
+    let matches = 0;
+    for (let i = 0; i < minLength; i++) {
+      if (value1[i] === value2[i]) {
+        matches++;
+      }
+    }
+    
+    return (matches / maxLength) > 0.7;
+  }
+
+  async fillTextAreaSmart(field, value) {
+    try {
+      // For cover letters and long text, use a different approach
+      field.focus();
+      await this.delay(100);
+      
+      // Clear existing content
+      field.value = '';
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      
+      // Insert text in chunks for better performance
+      const chunkSize = 50;
+      for (let i = 0; i < value.length; i += chunkSize) {
+        const chunk = value.substring(i, i + chunkSize);
+        field.value += chunk;
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        await this.delay(100);
+      }
+      
+      field.dispatchEvent(new Event('change', { bubbles: true }));
+      field.dispatchEvent(new Event('blur', { bubbles: true }));
+      
+      return true;
+    } catch (error) {
+      console.error('Textarea fill error:', error);
+      return false;
+    }
+  }
+
+  async fillChoiceFieldSmart(field, value) {
+    try {
+      const shouldCheck = this.interpretBooleanValue(value);
+      
+      if (field.type === 'radio') {
+        // For radio buttons, find the appropriate option
+        const radioGroup = document.querySelectorAll(`input[name="${field.name}"]`);
+        for (const radio of radioGroup) {
+          const radioInfo = this.analyzeFieldAdvanced(radio);
+          if (this.shouldSelectRadio(radioInfo, value)) {
+            radio.checked = true;
+            radio.dispatchEvent(new Event('change', { bubbles: true }));
+            return true;
+          }
+        }
+      } else {
+        // Checkbox
+        if (field.checked !== shouldCheck) {
+          field.checked = shouldCheck;
+          field.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        return true;
       }
 
-      return true;
+      return false;
     } catch (error) {
       console.error('Choice field fill error:', error);
       return false;
     }
   }
 
-  async handleFileUploads(userProfile) {
-    const fileInputs = document.querySelectorAll('input[type="file"]');
+  interpretBooleanValue(value) {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+      const lower = value.toLowerCase();
+      return ['yes', 'true', '1', 'on', 'enabled', 'authorized'].includes(lower);
+    }
+    return false;
+  }
+
+  shouldSelectRadio(radioInfo, value) {
+    const combined = radioInfo.combined;
+    const valueLower = value.toLowerCase();
     
-    for (const input of fileInputs) {
-      if (input.accept?.includes('.pdf') || input.name?.toLowerCase().includes('resume')) {
-        await this.uploadResume(input, userProfile);
-      }
+    // Match based on value content
+    if (valueLower === 'yes' && (combined.includes('yes') || combined.includes('authorized'))) {
+      return true;
+    }
+    if (valueLower === 'no' && (combined.includes('no') || combined.includes('not authorized'))) {
+      return true;
+    }
+    
+    return combined.includes(valueLower);
+  }
+
+  async fillFileFieldSmart(field, value, userProfile) {
+    try {
+      // This would need to be implemented based on actual file handling
+      // For now, we'll skip file fields as they require actual file data
+      console.log('File field detected, skipping for now:', field);
+      return false;
+    } catch (error) {
+      console.error('File field fill error:', error);
+      return false;
     }
   }
 
-  async uploadResume(input, userProfile) {
+  addFieldFeedback(field, success) {
+    // Add visual feedback to filled fields
+    const indicator = document.createElement('div');
+    indicator.className = `autojobr-field-indicator ${success ? 'success' : 'error'}`;
+    indicator.innerHTML = success ? '✓' : '✗';
+    indicator.style.cssText = `
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: ${success ? '#22c55e' : '#ef4444'};
+      color: white;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      animation: fadeInScale 0.3s ease-out;
+    `;
+
+    // Position relative to field
+    const rect = field.getBoundingClientRect();
+    indicator.style.position = 'fixed';
+    indicator.style.left = `${rect.right - 8}px`;
+    indicator.style.top = `${rect.top - 8}px`;
+
+    document.body.appendChild(indicator);
+
+    // Remove after 2 seconds
+    setTimeout(() => {
+      indicator.remove();
+    }, 2000);
+  }
+
+  showProgress(show) {
+    const progress = document.getElementById('autojobr-progress');
+    if (progress) {
+      progress.style.display = show ? 'block' : 'none';
+    }
+  }
+
+  updateProgress(filled, total) {
+    const progress = document.querySelector('#autojobr-progress .progress-bar');
+    if (progress && total > 0) {
+      const percentage = (filled / total) * 100;
+      progress.style.width = `${percentage}%`;
+    }
+  }
+
+  updateStats(found, filled) {
+    const fieldsFoundEl = document.getElementById('fields-found');
+    const fieldsFilledEl = document.getElementById('fields-filled');
+    const successRateEl = document.getElementById('success-rate');
+    const statsEl = document.getElementById('autojobr-stats');
+
+    if (fieldsFoundEl) fieldsFoundEl.textContent = found;
+    if (fieldsFilledEl) fieldsFilledEl.textContent = filled;
+    if (successRateEl) {
+      const rate = found > 0 ? Math.round((filled / found) * 100) : 0;
+      successRateEl.textContent = `${rate}%`;
+    }
+    if (statsEl) statsEl.style.display = 'block';
+  }
+
+  async handleAdvancedFileUploads(userProfile) {
+    const fileInputs = document.querySelectorAll('input[type="file"]');
+    let filesFound = fileInputs.length;
+    let filesUploaded = 0;
+
+    for (const input of fileInputs) {
+      try {
+        if (await this.handleFileUpload(input, userProfile)) {
+          filesUploaded++;
+        }
+      } catch (error) {
+        console.error('File upload error:', error);
+      }
+    }
+
+    return { filesFound, filesUploaded };
+  }
+
+  async handleFileUpload(input, userProfile) {
+    // This would need actual file handling implementation
+    // For now, we'll return false as we can't upload actual files
+    return false;
+  }
+
+  async attemptAutoSubmit() {
+    // Look for submit buttons
+    const submitSelectors = [
+      'input[type="submit"]',
+      'button[type="submit"]',
+      'button:contains("Submit")',
+      'button:contains("Apply")',
+      '.submit-btn',
+      '.apply-btn'
+    ];
+
+    if (this.smartSelectors.submitButtons) {
+      submitSelectors.push(...this.smartSelectors.submitButtons);
+    }
+
+    for (const selector of submitSelectors) {
+      const button = document.querySelector(selector);
+      if (button && !button.disabled) {
+        // Add confirmation
+        if (confirm('Auto-submit is enabled. Submit the application now?')) {
+          button.click();
+          return true;
+        }
+        break;
+      }
+    }
+
+    return false;
+  }
+
+  async analyzeNewForms() {
+    // Analyze newly added forms for auto-fill opportunities
+    const forms = this.findAllForms();
+    if (forms.length > 0) {
+      console.log('New forms detected:', forms.length);
+      // Could trigger auto-analysis here
+    }
+  }
+
+  // Enhanced UI event handlers
+  async handleSmartAutofill() {
+    const userProfile = await this.getUserProfile();
+    if (!userProfile) {
+      this.showNotification('Please sign in to use auto-fill', 'error');
+      return;
+    }
+
+    const result = await this.startSmartAutofill(userProfile);
+    if (result.success) {
+      this.showNotification(
+        `✅ Filled ${result.fieldsFilled}/${result.fieldsFound} fields (${result.successRate}% success)`,
+        'success'
+      );
+    } else {
+      this.showNotification(`❌ Auto-fill failed: ${result.error}`, 'error');
+    }
+  }
+
+  async handleAnalyze() {
+    const result = await this.analyzeCurrentJob();
+    if (result.success) {
+      this.showNotification('✅ Job analysis completed!', 'success');
+    } else {
+      this.showNotification('❌ Job analysis failed', 'error');
+    }
+  }
+
+  async handleSaveJob() {
+    if (!this.currentJobData) {
+      this.showNotification('No job data found on this page', 'error');
+      return;
+    }
+
     try {
-      // Create a mock file (in real implementation, would fetch from server)
-      const resumeBlob = new Blob(['Resume content would be here'], { type: 'application/pdf' });
-      const resumeFile = new File([resumeBlob], 'resume.pdf', { type: 'application/pdf' });
-      
-      const dataTransfer = new DataTransfer();
-      dataTransfer.items.add(resumeFile);
-      input.files = dataTransfer.files;
-      
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-      
-      return true;
+      const result = await chrome.runtime.sendMessage({
+        action: 'saveJob',
+        data: {
+          jobTitle: this.currentJobData.title,
+          company: this.currentJobData.company,
+          location: this.currentJobData.location,
+          jobUrl: window.location.href,
+          description: this.currentJobData.description,
+          source: 'extension_v2'
+        }
+      });
+
+      if (result.success) {
+        this.showNotification('✅ Job saved successfully!', 'success');
+      } else {
+        throw new Error('Failed to save job');
+      }
     } catch (error) {
-      console.error('Resume upload error:', error);
-      return false;
+      console.error('Save job error:', error);
+      this.showNotification('❌ Failed to save job', 'error');
+    }
+  }
+
+  async handleCoverLetter() {
+    if (!this.currentJobData) {
+      this.showNotification('No job data found on this page', 'error');
+      return;
+    }
+
+    try {
+      const userProfile = await this.getUserProfile();
+      const result = await chrome.runtime.sendMessage({
+        action: 'generateCoverLetter',
+        data: {
+          jobData: this.currentJobData,
+          userProfile: userProfile
+        }
+      });
+
+      if (result.success) {
+        await navigator.clipboard.writeText(result.coverLetter);
+        this.showNotification('✅ Cover letter generated and copied!', 'success');
+        
+        // Try to fill cover letter field
+        await this.fillCoverLetter(result.coverLetter);
+      } else {
+        throw new Error('Failed to generate cover letter');
+      }
+    } catch (error) {
+      console.error('Cover letter error:', error);
+      this.showNotification('❌ Failed to generate cover letter', 'error');
     }
   }
 
@@ -622,14 +1781,14 @@ class AutoJobrContentScript {
       const textAreas = document.querySelectorAll('textarea');
       
       for (const textarea of textAreas) {
-        const fieldInfo = this.analyzeField(textarea);
+        const fieldInfo = this.analyzeFieldAdvanced(textarea);
         
         if (fieldInfo.combined.includes('cover') || 
             fieldInfo.combined.includes('letter') || 
             fieldInfo.combined.includes('motivation') ||
             fieldInfo.combined.includes('message')) {
           
-          await this.fillTextField(textarea, coverLetter);
+          await this.fillTextAreaSmart(textarea, coverLetter);
           return { success: true };
         }
       }
@@ -640,160 +1799,121 @@ class AutoJobrContentScript {
     }
   }
 
-  delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  // UI Event Handlers
-  async handleAutofill() {
-    // This would be triggered from the popup
-    console.log('Autofill triggered from content script UI');
-  }
-
-  async handleAnalyze() {
-    await this.analyzeCurrentJob();
-  }
-
-  async handleSaveJob() {
-    if (!this.currentJobData) {
-      alert('No job data found on this page');
-      return;
-    }
-
-    try {
-      const response = await fetch(`${this.getApiUrl()}/api/saved-jobs`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          title: this.currentJobData.title || 'Job Position',
-          company: this.currentJobData.company || 'Company Name',
-          description: this.currentJobData.description,
-          location: this.currentJobData.location,
-          url: window.location.href,
-          platform: 'extension'
-        })
-      });
-
-      if (response.ok) {
-        this.showNotification('✅ Job saved successfully!');
-      } else {
-        throw new Error('Failed to save job');
-      }
-    } catch (error) {
-      console.error('Save job error:', error);
-      alert('Failed to save job. Please try again.');
-    }
-  }
-
-  async handleCoverLetter() {
-    if (!this.currentJobData) {
-      alert('No job data found on this page');
-      return;
-    }
-
-    try {
-      const response = await fetch(`${this.getApiUrl()}/api/generate-cover-letter`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          jobTitle: this.currentJobData.title || 'The Position',
-          companyName: this.currentJobData.company || 'The Company',
-          jobDescription: this.currentJobData.description || ''
-        })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        await navigator.clipboard.writeText(result.coverLetter);
-        this.showNotification('✅ Cover letter generated and copied to clipboard!');
-      } else {
-        throw new Error('Failed to generate cover letter');
-      }
-    } catch (error) {
-      console.error('Cover letter error:', error);
-      alert('Failed to generate cover letter. Please try again.');
-    }
-  }
-
-  async handleSubmitRequest() {
-    // This mimics the "Submit Autofill Request" functionality from Simplify
-    if (!this.currentJobData) {
-      alert('No job data found on this page');
-      return;
-    }
-
-    alert('🚀 Autofill request submitted! The form will be filled automatically.');
-    
-    // Trigger autofill if user profile is available
-    const userProfile = await this.getUserProfile();
-    if (userProfile) {
-      await this.startAutofill(userProfile);
-    }
-  }
-
-  async getUserProfile() {
-    try {
-      const response = await fetch(`${this.getApiUrl()}/api/extension/profile`, {
-        credentials: 'include'
-      });
-      
-      if (response.ok) {
-        return await response.json();
-      }
-    } catch (error) {
-      console.error('Failed to get user profile:', error);
-    }
-    
-    return null;
-  }
-
   async analyzeCurrentJob() {
     const jobData = await this.extractJobDetails();
     
     if (jobData.success) {
-      // Display job analysis in the UI
-      const statusEl = document.getElementById('autojobr-status');
-      if (statusEl) {
-        statusEl.innerHTML = `
-          <div class="status-icon">📊</div>
-          <div class="status-text">Job: ${jobData.jobData.title} at ${jobData.jobData.company}</div>
-        `;
+      // Update UI with job info
+      this.updateJobInfo(jobData.jobData);
+      
+      // Send to background for analysis
+      try {
+        const userProfile = await this.getUserProfile();
+        const result = await chrome.runtime.sendMessage({
+          action: 'analyzeJob',
+          data: {
+            jobData: jobData.jobData,
+            userProfile: userProfile
+          }
+        });
+
+        if (result.success) {
+          this.updateJobMatch(result.analysis);
+        }
+
+        return { success: true, analysis: result.analysis };
+      } catch (error) {
+        console.error('Job analysis error:', error);
+        return { success: false, error: error.message };
       }
     }
     
     return jobData;
   }
 
-  getApiUrl() {
-    return window.location.hostname.includes('replit.dev') || window.location.hostname.includes('replit.app') 
-      ? `${window.location.protocol}//${window.location.host}`
-      : 'https://29ce8162-da3c-47aa-855b-eac2ee4b17cd-00-2uv34jdoe24cx.riker.replit.dev';
+  updateJobMatch(analysis) {
+    const matchEl = document.getElementById('autojobr-job-match');
+    if (matchEl && analysis) {
+      const score = analysis.matchScore || 0;
+      const level = score >= 80 ? 'Excellent' : 
+                   score >= 60 ? 'Good' : 
+                   score >= 40 ? 'Fair' : 'Poor';
+      
+      matchEl.innerHTML = `
+        <div class="match-score ${level.toLowerCase()}">
+          ${score}% Match (${level})
+        </div>
+      `;
+    }
   }
 
-  showNotification(message) {
-    // Create a temporary notification
+  async saveCurrentJob() {
+    return await this.handleSaveJob();
+  }
+
+  async getUserProfile() {
+    try {
+      const result = await chrome.runtime.sendMessage({
+        action: 'getUserProfile'
+      });
+
+      return result.success ? result.profile : null;
+    } catch (error) {
+      console.error('Failed to get user profile:', error);
+      return null;
+    }
+  }
+
+  showNotification(message, type = 'success') {
+    // Create notification element
     const notification = document.createElement('div');
+    notification.className = `autojobr-notification ${type}`;
+    notification.textContent = message;
     notification.style.cssText = `
       position: fixed;
       top: 20px;
       right: 20px;
-      background: #22c55e;
+      background: ${type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#3b82f6'};
       color: white;
       padding: 12px 20px;
       border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
       z-index: 10001;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      max-width: 300px;
+      word-wrap: break-word;
     `;
-    notification.textContent = message;
     
     document.body.appendChild(notification);
     
+    // Animate in
     setTimeout(() => {
-      notification.remove();
-    }, 3000);
+      notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Remove after 4 seconds
+    setTimeout(() => {
+      notification.style.transform = 'translateX(100%)';
+      setTimeout(() => notification.remove(), 300);
+    }, 4000);
+  }
+
+  delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // Cleanup method
+  destroy() {
+    this.observers.forEach(observer => observer.disconnect());
+    this.observers = [];
+    
+    const overlay = document.getElementById('autojobr-overlay');
+    if (overlay) {
+      overlay.remove();
+    }
   }
 }
 

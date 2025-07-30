@@ -1,38 +1,51 @@
-// AutoJobr Background Service Worker
-console.log('🚀 AutoJobr background service worker loading...');
+// Enhanced AutoJobr Background Service Worker
+console.log('🚀 AutoJobr background service worker v2.0 loading...');
 
 class AutoJobrBackground {
   constructor() {
     this.apiUrl = 'https://29ce8162-da3c-47aa-855b-eac2ee4b17cd-00-2uv34jdoe24cx.riker.replit.dev';
+    this.cache = new Map();
+    this.rateLimiter = new Map();
     this.init();
   }
 
   init() {
     this.setupEventListeners();
     this.detectApiUrl();
-    console.log('🚀 AutoJobr background service worker initialized');
+    this.setupPeriodicTasks();
+    console.log('🚀 AutoJobr background service worker v2.0 initialized');
   }
 
   async detectApiUrl() {
-    // Try to detect the correct API URL based on current environment
     const possibleUrls = [
       'https://29ce8162-da3c-47aa-855b-eac2ee4b17cd-00-2uv34jdoe24cx.riker.replit.dev',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000'
     ];
 
     for (const url of possibleUrls) {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
         const response = await fetch(`${url}/api/health`, { 
           method: 'GET',
-          mode: 'cors'
+          mode: 'cors',
+          signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
         
         if (response.ok) {
           this.apiUrl = url;
           console.log('✅ Connected to AutoJobr server:', this.apiUrl);
+          
+          // Update stored API URL
+          await chrome.storage.sync.set({ apiUrl: this.apiUrl });
           break;
         }
       } catch (error) {
-        // Continue trying other URLs
+        console.log(`Failed to connect to ${url}:`, error.message);
       }
     }
   }
@@ -60,14 +73,41 @@ class AutoJobrBackground {
       }
     });
 
-    // Handle navigation completed (only if webNavigation permission is available)
+    // Handle navigation completed
     if (chrome.webNavigation) {
       chrome.webNavigation.onCompleted.addListener((details) => {
-        if (details.frameId === 0) { // Main frame only
+        if (details.frameId === 0) {
           this.handleNavigationCompleted(details);
         }
       });
     }
+
+    // Handle context menu clicks
+    chrome.contextMenus.onClicked.addListener((info, tab) => {
+      this.handleContextMenuClick(info, tab);
+    });
+
+    // Handle keyboard shortcuts
+    chrome.commands.onCommand.addListener((command) => {
+      this.handleCommand(command);
+    });
+  }
+
+  setupPeriodicTasks() {
+    // Clean cache every 5 minutes
+    setInterval(() => {
+      this.cleanCache();
+    }, 5 * 60 * 1000);
+
+    // Clean rate limiter every minute
+    setInterval(() => {
+      this.cleanRateLimiter();
+    }, 60 * 1000);
+
+    // Sync user data every 10 minutes if authenticated
+    setInterval(() => {
+      this.syncUserData();
+    }, 10 * 60 * 1000);
   }
 
   async handleInstall() {
@@ -76,39 +116,123 @@ class AutoJobrBackground {
       autofillEnabled: true,
       trackingEnabled: true,
       notificationsEnabled: true,
-      apiUrl: this.apiUrl
+      smartAnalysis: true,
+      autoSaveJobs: false,
+      apiUrl: this.apiUrl,
+      theme: 'light',
+      shortcuts: {
+        autofill: 'Ctrl+Shift+A',
+        analyze: 'Ctrl+Shift+J',
+        saveJob: 'Ctrl+Shift+S'
+      }
     };
 
     await chrome.storage.sync.set(defaultSettings);
+
+    // Create context menus
+    this.createContextMenus();
 
     // Show welcome notification
     chrome.notifications.create({
       type: 'basic',
       iconUrl: 'icons/icon48.png',
-      title: 'AutoJobr Installed!',
-      message: 'Start auto-filling job applications on 100+ job boards. Click the extension icon to get started.'
+      title: 'AutoJobr Installed! 🎉',
+      message: 'Start auto-filling job applications on 100+ job boards. Click the extension icon to get started.',
+      buttons: [
+        { title: 'Get Started' },
+        { title: 'View Tutorial' }
+      ]
     });
 
     // Open onboarding page
     chrome.tabs.create({
-      url: `${this.apiUrl}/onboarding?source=extension`
+      url: `${this.apiUrl}/onboarding?source=extension&version=2.0`
     });
   }
 
   async handleUpdate(previousVersion) {
     console.log(`Updated from ${previousVersion} to ${chrome.runtime.getManifest().version}`);
     
+    // Migration logic for different versions
+    if (previousVersion < '2.0.0') {
+      await this.migrateToV2();
+    }
+
     // Show update notification
     chrome.notifications.create({
       type: 'basic',
       iconUrl: 'icons/icon48.png',
-      title: 'AutoJobr Updated!',
-      message: 'New features and improvements are now available.'
+      title: 'AutoJobr Updated! ✨',
+      message: 'New features: Enhanced UI, better job matching, and improved auto-fill accuracy.',
+      buttons: [
+        { title: 'See What\'s New' },
+        { title: 'Dismiss' }
+      ]
+    });
+  }
+
+  async migrateToV2() {
+    // Migrate old settings to new format
+    const oldSettings = await chrome.storage.sync.get();
+    const newSettings = {
+      ...oldSettings,
+      smartAnalysis: true,
+      autoSaveJobs: false,
+      theme: 'light'
+    };
+    
+    await chrome.storage.sync.set(newSettings);
+    console.log('✅ Migrated settings to v2.0');
+  }
+
+  createContextMenus() {
+    chrome.contextMenus.create({
+      id: 'autofill-form',
+      title: 'Auto-fill this form',
+      contexts: ['page'],
+      documentUrlPatterns: [
+        '*://*.linkedin.com/*',
+        '*://*.indeed.com/*',
+        '*://*.glassdoor.com/*',
+        '*://*.ziprecruiter.com/*',
+        '*://*.monster.com/*',
+        '*://*.dice.com/*',
+        '*://*.greenhouse.io/*',
+        '*://*.lever.co/*',
+        '*://*.workday.com/*',
+        '*://*.myworkdayjobs.com/*'
+      ]
+    });
+
+    chrome.contextMenus.create({
+      id: 'analyze-job',
+      title: 'Analyze job match',
+      contexts: ['page'],
+      documentUrlPatterns: [
+        '*://*.linkedin.com/*',
+        '*://*.indeed.com/*',
+        '*://*.glassdoor.com/*',
+        '*://*.ziprecruiter.com/*',
+        '*://*.monster.com/*',
+        '*://*.dice.com/*'
+      ]
+    });
+
+    chrome.contextMenus.create({
+      id: 'save-job',
+      title: 'Save this job',
+      contexts: ['page']
     });
   }
 
   async handleMessage(message, sender, sendResponse) {
     try {
+      // Rate limiting
+      if (!this.checkRateLimit(sender.tab?.id || 'unknown', message.action)) {
+        sendResponse({ success: false, error: 'Rate limit exceeded' });
+        return;
+      }
+
       switch (message.action) {
         case 'getApiUrl':
           sendResponse({ apiUrl: this.apiUrl });
@@ -120,8 +244,8 @@ class AutoJobrBackground {
           break;
 
         case 'saveJob':
-          await this.saveJob(message.data);
-          sendResponse({ success: true });
+          const savedJob = await this.saveJob(message.data);
+          sendResponse({ success: true, job: savedJob });
           break;
 
         case 'generateCoverLetter':
@@ -145,12 +269,17 @@ class AutoJobrBackground {
           break;
 
         case 'showNotification':
-          chrome.notifications.create({
-            type: 'basic',
-            iconUrl: 'icons/icon48.png',
-            title: message.title || 'AutoJobr',
-            message: message.message
-          });
+          await this.showAdvancedNotification(message.title, message.message, message.type);
+          sendResponse({ success: true });
+          break;
+
+        case 'getJobSuggestions':
+          const suggestions = await this.getJobSuggestions(message.data);
+          sendResponse({ success: true, suggestions });
+          break;
+
+        case 'updateUserPreferences':
+          await this.updateUserPreferences(message.data);
           sendResponse({ success: true });
           break;
 
@@ -163,8 +292,26 @@ class AutoJobrBackground {
     }
   }
 
+  checkRateLimit(identifier, action) {
+    const key = `${identifier}_${action}`;
+    const now = Date.now();
+    const limit = this.rateLimiter.get(key) || { count: 0, resetTime: now + 60000 };
+
+    if (now > limit.resetTime) {
+      limit.count = 0;
+      limit.resetTime = now + 60000;
+    }
+
+    if (limit.count >= 10) { // 10 requests per minute
+      return false;
+    }
+
+    limit.count++;
+    this.rateLimiter.set(key, limit);
+    return true;
+  }
+
   async handleTabUpdate(tabId, tab) {
-    // Check if the tab is a supported job board
     const supportedDomains = [
       'linkedin.com', 'indeed.com', 'glassdoor.com', 'ziprecruiter.com',
       'monster.com', 'careerbuilder.com', 'dice.com', 'stackoverflow.com',
@@ -176,10 +323,10 @@ class AutoJobrBackground {
     const isJobBoard = supportedDomains.some(domain => tab.url.includes(domain));
 
     if (isJobBoard) {
-      // Update badge to indicate job board detection
+      // Update badge with enhanced styling
       chrome.action.setBadgeText({
         tabId: tabId,
-        text: '!'
+        text: '✓'
       });
 
       chrome.action.setBadgeBackgroundColor({
@@ -188,9 +335,14 @@ class AutoJobrBackground {
       });
 
       // Inject content script if needed
-      this.ensureContentScriptInjected(tabId);
+      await this.ensureContentScriptInjected(tabId);
+
+      // Auto-detect job postings
+      setTimeout(() => {
+        this.detectJobPosting(tabId);
+      }, 2000);
+
     } else {
-      // Clear badge
       chrome.action.setBadgeText({
         tabId: tabId,
         text: ''
@@ -199,24 +351,51 @@ class AutoJobrBackground {
   }
 
   async handleNavigationCompleted(details) {
-    // Additional handling for SPA navigation
     const { tabId, url } = details;
     
-    // Small delay to ensure page is fully loaded
+    // Delay to ensure page is fully loaded
     setTimeout(() => {
       this.handleTabUpdate(tabId, { url });
-    }, 1000);
+    }, 1500);
+  }
+
+  async handleContextMenuClick(info, tab) {
+    switch (info.menuItemId) {
+      case 'autofill-form':
+        await this.triggerAutofill(tab.id);
+        break;
+      case 'analyze-job':
+        await this.triggerJobAnalysis(tab.id);
+        break;
+      case 'save-job':
+        await this.triggerSaveJob(tab.id);
+        break;
+    }
+  }
+
+  async handleCommand(command) {
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    switch (command) {
+      case 'autofill':
+        await this.triggerAutofill(activeTab.id);
+        break;
+      case 'analyze':
+        await this.triggerJobAnalysis(activeTab.id);
+        break;
+      case 'save-job':
+        await this.triggerSaveJob(activeTab.id);
+        break;
+    }
   }
 
   async ensureContentScriptInjected(tabId) {
     try {
-      // Try to execute a test function
       await chrome.scripting.executeScript({
         target: { tabId },
         func: () => window.autojobrContentScriptLoaded
       });
     } catch (error) {
-      // Content script not loaded, inject it
       try {
         await chrome.scripting.executeScript({
           target: { tabId },
@@ -227,15 +406,61 @@ class AutoJobrBackground {
           target: { tabId },
           files: ['popup-styles.css']
         });
+
+        console.log('✅ Content script injected successfully');
       } catch (injectionError) {
         console.error('Failed to inject content script:', injectionError);
       }
     }
   }
 
+  async detectJobPosting(tabId) {
+    try {
+      const response = await chrome.tabs.sendMessage(tabId, {
+        action: 'detectJobPosting'
+      });
+
+      if (response && response.success && response.jobData) {
+        // Cache job data
+        this.cache.set(`job_${tabId}`, {
+          data: response.jobData,
+          timestamp: Date.now()
+        });
+
+        // Show smart notification if enabled
+        const settings = await chrome.storage.sync.get(['smartAnalysis']);
+        if (settings.smartAnalysis) {
+          await this.showJobDetectedNotification(response.jobData);
+        }
+      }
+    } catch (error) {
+      console.error('Job detection failed:', error);
+    }
+  }
+
+  async showJobDetectedNotification(jobData) {
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icons/icon48.png',
+      title: '🎯 Job Detected!',
+      message: `${jobData.title} at ${jobData.company}`,
+      buttons: [
+        { title: 'Analyze Match' },
+        { title: 'Auto-fill' }
+      ]
+    });
+  }
+
   async testConnection() {
     try {
-      const response = await fetch(`${this.apiUrl}/api/health`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(`${this.apiUrl}/api/health`, {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
       return response.ok;
     } catch (error) {
       return false;
@@ -244,15 +469,43 @@ class AutoJobrBackground {
 
   async getUserProfile() {
     try {
+      const result = await chrome.storage.local.get(['sessionToken']);
+      const sessionToken = result.sessionToken;
+      
+      if (!sessionToken) return null;
+      
+      // Check cache first
+      const cacheKey = 'user_profile';
+      const cached = this.cache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < 300000) { // 5 minute cache
+        return cached.data;
+      }
+      
       const response = await fetch(`${this.apiUrl}/api/extension/profile`, {
-        credentials: 'include'
+        headers: {
+          'Authorization': `Bearer ${sessionToken}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        mode: 'cors'
       });
 
       if (response.ok) {
-        return await response.json();
-      } else {
-        throw new Error('Failed to fetch user profile');
+        const profile = await response.json();
+        
+        // Cache the profile
+        this.cache.set(cacheKey, {
+          data: profile,
+          timestamp: Date.now()
+        });
+        
+        return profile;
+      } else if (response.status === 401) {
+        await chrome.storage.local.remove(['sessionToken', 'userId']);
+        return null;
       }
+      
+      throw new Error('Failed to fetch user profile');
     } catch (error) {
       console.error('Get user profile error:', error);
       return null;
@@ -261,26 +514,42 @@ class AutoJobrBackground {
 
   async trackApplication(data) {
     try {
+      const result = await chrome.storage.local.get(['sessionToken']);
+      const sessionToken = result.sessionToken;
+      
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (sessionToken) {
+        headers['Authorization'] = `Bearer ${sessionToken}`;
+      }
+      
       const response = await fetch(`${this.apiUrl}/api/extension/applications`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         credentials: 'include',
-        body: JSON.stringify(data)
+        mode: 'cors',
+        body: JSON.stringify({
+          ...data,
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent,
+          source: 'extension_v2'
+        })
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          await chrome.storage.local.remove(['sessionToken', 'userId']);
+        }
         throw new Error('Failed to track application');
       }
 
-      // Show success notification
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icons/icon48.png',
-        title: 'Application Tracked!',
-        message: `Successfully tracked application to ${data.company}`
-      });
+      await this.showAdvancedNotification(
+        'Application Tracked! 📊',
+        `Successfully tracked application to ${data.company}`,
+        'success'
+      );
 
     } catch (error) {
       console.error('Track application error:', error);
@@ -290,26 +559,45 @@ class AutoJobrBackground {
 
   async saveJob(data) {
     try {
+      const result = await chrome.storage.local.get(['sessionToken']);
+      const sessionToken = result.sessionToken;
+      
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (sessionToken) {
+        headers['Authorization'] = `Bearer ${sessionToken}`;
+      }
+      
       const response = await fetch(`${this.apiUrl}/api/saved-jobs`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         credentials: 'include',
-        body: JSON.stringify(data)
+        mode: 'cors',
+        body: JSON.stringify({
+          ...data,
+          savedAt: new Date().toISOString(),
+          source: 'extension_v2'
+        })
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          await chrome.storage.local.remove(['sessionToken', 'userId']);
+        }
         throw new Error('Failed to save job');
       }
 
-      // Show success notification
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icons/icon48.png',
-        title: 'Job Saved!',
-        message: `Saved "${data.jobTitle}" at ${data.company}`
-      });
+      const savedJob = await response.json();
+
+      await this.showAdvancedNotification(
+        'Job Saved! 💾',
+        `Saved "${data.jobTitle}" at ${data.company}`,
+        'success'
+      );
+
+      return savedJob;
 
     } catch (error) {
       console.error('Save job error:', error);
@@ -319,30 +607,45 @@ class AutoJobrBackground {
 
   async generateCoverLetter(data) {
     try {
+      const result = await chrome.storage.local.get(['sessionToken']);
+      const sessionToken = result.sessionToken;
+      
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (sessionToken) {
+        headers['Authorization'] = `Bearer ${sessionToken}`;
+      }
+      
       const response = await fetch(`${this.apiUrl}/api/generate-cover-letter`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         credentials: 'include',
-        body: JSON.stringify(data)
+        mode: 'cors',
+        body: JSON.stringify({
+          ...data,
+          requestedAt: new Date().toISOString(),
+          source: 'extension_v2'
+        })
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          await chrome.storage.local.remove(['sessionToken', 'userId']);
+        }
         throw new Error('Failed to generate cover letter');
       }
 
-      const result = await response.json();
+      const result_data = await response.json();
 
-      // Show success notification
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icons/icon48.png',
-        title: 'Cover Letter Generated!',
-        message: 'Cover letter has been generated and copied to clipboard'
-      });
+      await this.showAdvancedNotification(
+        'Cover Letter Generated! 📝',
+        'Cover letter has been generated and copied to clipboard',
+        'success'
+      );
 
-      return result.coverLetter;
+      return result_data.coverLetter;
 
     } catch (error) {
       console.error('Generate cover letter error:', error);
@@ -352,34 +655,201 @@ class AutoJobrBackground {
 
   async analyzeJob(data) {
     try {
+      const result = await chrome.storage.local.get(['sessionToken']);
+      const sessionToken = result.sessionToken;
+      
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (sessionToken) {
+        headers['Authorization'] = `Bearer ${sessionToken}`;
+      }
+      
       const response = await fetch(`${this.apiUrl}/api/analyze-job-match`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         credentials: 'include',
-        body: JSON.stringify(data)
+        mode: 'cors',
+        body: JSON.stringify({
+          ...data,
+          analyzedAt: new Date().toISOString(),
+          source: 'extension_v2'
+        })
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          await chrome.storage.local.remove(['sessionToken', 'userId']);
+        }
         throw new Error('Failed to analyze job');
       }
 
       const analysis = await response.json();
 
-      // Show analysis notification
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icons/icon48.png',
-        title: 'Job Analysis Complete!',
-        message: `Match Score: ${analysis.matchScore}% - ${analysis.matchScore >= 70 ? 'Great match!' : 'Consider tailoring your application'}`
-      });
+      const matchLevel = analysis.matchScore >= 80 ? 'Excellent' : 
+                        analysis.matchScore >= 60 ? 'Good' : 
+                        analysis.matchScore >= 40 ? 'Fair' : 'Poor';
+
+      await this.showAdvancedNotification(
+        'Job Analysis Complete! 🎯',
+        `Match Score: ${analysis.matchScore}% (${matchLevel} match)`,
+        analysis.matchScore >= 60 ? 'success' : 'warning'
+      );
 
       return analysis;
 
     } catch (error) {
       console.error('Analyze job error:', error);
       throw error;
+    }
+  }
+
+  async getJobSuggestions(data) {
+    try {
+      const result = await chrome.storage.local.get(['sessionToken']);
+      const sessionToken = result.sessionToken;
+      
+      if (!sessionToken) return [];
+      
+      const headers = {
+        'Authorization': `Bearer ${sessionToken}`,
+        'Content-Type': 'application/json'
+      };
+      
+      const response = await fetch(`${this.apiUrl}/api/job-suggestions`, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        mode: 'cors',
+        body: JSON.stringify(data)
+      });
+
+      if (response.ok) {
+        return await response.json();
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Get job suggestions error:', error);
+      return [];
+    }
+  }
+
+  async updateUserPreferences(data) {
+    try {
+      const result = await chrome.storage.local.get(['sessionToken']);
+      const sessionToken = result.sessionToken;
+      
+      if (!sessionToken) return;
+      
+      const headers = {
+        'Authorization': `Bearer ${sessionToken}`,
+        'Content-Type': 'application/json'
+      };
+      
+      await fetch(`${this.apiUrl}/api/user/preferences`, {
+        method: 'PUT',
+        headers,
+        credentials: 'include',
+        mode: 'cors',
+        body: JSON.stringify(data)
+      });
+
+      // Clear profile cache to force refresh
+      this.cache.delete('user_profile');
+      
+    } catch (error) {
+      console.error('Update user preferences error:', error);
+    }
+  }
+
+  async showAdvancedNotification(title, message, type = 'basic') {
+    const iconMap = {
+      success: 'icons/icon48.png',
+      warning: 'icons/icon48.png',
+      error: 'icons/icon48.png',
+      info: 'icons/icon48.png'
+    };
+
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: iconMap[type] || iconMap.basic,
+      title,
+      message,
+      priority: type === 'error' ? 2 : 1
+    });
+  }
+
+  async triggerAutofill(tabId) {
+    try {
+      const profile = await this.getUserProfile();
+      if (!profile) {
+        await this.showAdvancedNotification(
+          'Authentication Required',
+          'Please sign in to use auto-fill',
+          'warning'
+        );
+        return;
+      }
+
+      await chrome.tabs.sendMessage(tabId, {
+        action: 'startAutofill',
+        userProfile: profile
+      });
+    } catch (error) {
+      console.error('Trigger autofill error:', error);
+    }
+  }
+
+  async triggerJobAnalysis(tabId) {
+    try {
+      await chrome.tabs.sendMessage(tabId, {
+        action: 'analyzeJob'
+      });
+    } catch (error) {
+      console.error('Trigger job analysis error:', error);
+    }
+  }
+
+  async triggerSaveJob(tabId) {
+    try {
+      await chrome.tabs.sendMessage(tabId, {
+        action: 'saveCurrentJob'
+      });
+    } catch (error) {
+      console.error('Trigger save job error:', error);
+    }
+  }
+
+  cleanCache() {
+    const now = Date.now();
+    for (const [key, value] of this.cache.entries()) {
+      if (now - value.timestamp > 600000) { // 10 minutes
+        this.cache.delete(key);
+      }
+    }
+  }
+
+  cleanRateLimiter() {
+    const now = Date.now();
+    for (const [key, value] of this.rateLimiter.entries()) {
+      if (now > value.resetTime) {
+        this.rateLimiter.delete(key);
+      }
+    }
+  }
+
+  async syncUserData() {
+    try {
+      const result = await chrome.storage.local.get(['sessionToken']);
+      if (result.sessionToken) {
+        // Refresh user profile cache
+        this.cache.delete('user_profile');
+        await this.getUserProfile();
+      }
+    } catch (error) {
+      console.error('Sync user data error:', error);
     }
   }
 }
