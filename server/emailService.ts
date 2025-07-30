@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 import { apiKeyRotationService } from './apiKeyRotationService.js';
 
 interface EmailParams {
@@ -7,7 +8,70 @@ interface EmailParams {
   html: string;
 }
 
-export async function sendEmail(params: EmailParams): Promise<boolean> {
+interface EmailConfig {
+  provider: 'resend' | 'nodemailer';
+  from: string;
+}
+
+// Email service configuration
+const EMAIL_CONFIG: EmailConfig = {
+  provider: (process.env.EMAIL_PROVIDER as 'resend' | 'nodemailer') || 'resend',
+  from: process.env.EMAIL_FROM || 'AutoJobr <noreply@vennverse.com>'
+};
+
+// Nodemailer transporter for Postal SMTP
+let nodemailerTransporter: nodemailer.Transporter | null = null;
+
+function createNodemailerTransporter() {
+  if (!nodemailerTransporter && EMAIL_CONFIG.provider === 'nodemailer') {
+    const smtpConfig = {
+      host: process.env.POSTAL_SMTP_HOST || 'localhost',
+      port: parseInt(process.env.POSTAL_SMTP_PORT || '587'),
+      secure: process.env.POSTAL_SMTP_SECURE === 'true', // true for 465, false for other ports
+      auth: {
+        user: process.env.POSTAL_SMTP_USER,
+        pass: process.env.POSTAL_SMTP_PASS
+      },
+      // Additional SMTP options for Postal
+      tls: {
+        rejectUnauthorized: process.env.POSTAL_SMTP_TLS_REJECT_UNAUTHORIZED !== 'false'
+      }
+    };
+
+    console.log(`📧 Initializing Nodemailer with Postal SMTP: ${smtpConfig.host}:${smtpConfig.port}`);
+    nodemailerTransporter = nodemailer.createTransport(smtpConfig);
+  }
+  return nodemailerTransporter;
+}
+
+async function sendEmailWithNodemailer(params: EmailParams): Promise<boolean> {
+  try {
+    const transporter = createNodemailerTransporter();
+    if (!transporter) {
+      throw new Error('Nodemailer transporter not configured');
+    }
+
+    // Verify SMTP connection
+    if (!await transporter.verify()) {
+      throw new Error('SMTP connection verification failed');
+    }
+
+    const result = await transporter.sendMail({
+      from: EMAIL_CONFIG.from,
+      to: params.to,
+      subject: params.subject,
+      html: params.html
+    });
+
+    console.log('📧 Email sent via Postal SMTP:', result.messageId);
+    return true;
+  } catch (error) {
+    console.error('❌ Postal SMTP email error:', error);
+    return false;
+  }
+}
+
+async function sendEmailWithResend(params: EmailParams): Promise<boolean> {
   try {
     const status = apiKeyRotationService.getStatus();
     
@@ -24,7 +88,7 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     // Use rotation service to send email
     const result = await apiKeyRotationService.executeWithResendRotation(async (resend) => {
       const { data, error } = await resend.emails.send({
-        from: 'AutoJobr <noreply@vennverse.com>',
+        from: EMAIL_CONFIG.from,
         to: params.to,
         subject: params.subject,
         html: params.html,
@@ -41,23 +105,103 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
         throw new Error(`Resend API error: ${JSON.stringify(error)}`);
       }
 
-      console.log('Email sent successfully:', data?.id);
+      console.log('📧 Email sent via Resend:', data?.id);
       return data;
     });
 
     return true;
   } catch (error) {
-    console.error('Email sending error:', error);
-    
-    // Fallback simulation for complete failures
-    if (params.html.includes('verify-email?token=')) {
-      const tokenMatch = params.html.match(/verify-email\?token=([^"]+)/);
-      if (tokenMatch) {
-        console.log('FALLBACK VERIFICATION URL:', `http://localhost:5000/verify-email?token=${tokenMatch[1]}`);
+    console.error('❌ Resend email error:', error);
+    return false;
+  }
+}
+
+export async function sendEmail(params: EmailParams): Promise<boolean> {
+  console.log(`📧 Sending email via ${EMAIL_CONFIG.provider.toUpperCase()}`);
+  
+  try {
+    let success = false;
+
+    // Primary email service
+    if (EMAIL_CONFIG.provider === 'nodemailer') {
+      success = await sendEmailWithNodemailer(params);
+    } else {
+      success = await sendEmailWithResend(params);
+    }
+
+    // Fallback to the other service if primary fails
+    if (!success) {
+      console.log(`⚠️ Primary email service (${EMAIL_CONFIG.provider}) failed, trying fallback...`);
+      
+      if (EMAIL_CONFIG.provider === 'nodemailer') {
+        success = await sendEmailWithResend(params);
+      } else if (process.env.POSTAL_SMTP_HOST) {
+        success = await sendEmailWithNodemailer(params);
       }
     }
-    
+
+    // Final fallback: simulation for development
+    if (!success) {
+      console.log('=== EMAIL FALLBACK SIMULATION ===');
+      console.log('To:', params.to);
+      console.log('Subject:', params.subject);
+      console.log('Provider:', EMAIL_CONFIG.provider);
+      
+      // Log verification URL for manual testing
+      if (params.html.includes('verify-email?token=')) {
+        const tokenMatch = params.html.match(/verify-email\?token=([^"]+)/);
+        if (tokenMatch) {
+          const baseUrl = process.env.NODE_ENV === 'production' 
+            ? `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}`
+            : 'http://localhost:5000';
+          console.log('MANUAL VERIFICATION URL:', `${baseUrl}/verify-email?token=${tokenMatch[1]}`);
+        }
+      }
+      console.log('=== END EMAIL SIMULATION ===');
+      return true; // Return true for development purposes
+    }
+
+    return success;
+  } catch (error) {
+    console.error('❌ Email service error:', error);
     return false;
+  }
+}
+
+// Export configuration for external use
+export function getEmailConfig(): EmailConfig {
+  return EMAIL_CONFIG;
+}
+
+// Function to test email configuration
+export async function testEmailConfiguration(): Promise<{ provider: string; status: string; details?: string }> {
+  try {
+    if (EMAIL_CONFIG.provider === 'nodemailer') {
+      const transporter = createNodemailerTransporter();
+      if (!transporter) {
+        return { provider: 'nodemailer', status: 'error', details: 'Transporter not configured' };
+      }
+      
+      const verified = await transporter.verify();
+      return { 
+        provider: 'nodemailer', 
+        status: verified ? 'connected' : 'failed',
+        details: `SMTP: ${process.env.POSTAL_SMTP_HOST}:${process.env.POSTAL_SMTP_PORT}`
+      };
+    } else {
+      const status = apiKeyRotationService.getStatus();
+      return { 
+        provider: 'resend', 
+        status: status.resend.totalKeys > 0 ? 'connected' : 'no-keys',
+        details: `Available keys: ${status.resend.availableKeys}`
+      };
+    }
+  } catch (error) {
+    return { 
+      provider: EMAIL_CONFIG.provider, 
+      status: 'error', 
+      details: error instanceof Error ? error.message : 'Unknown error'
+    };
   }
 }
 

@@ -29,6 +29,15 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 
 ## Recent Changes
 
+### January 30, 2025 - Email Provider Switch System & Extension Configuration Complete
+- ✅ **Configurable Email System**: Added switch between Resend and Nodemailer with Postal SMTP
+- ✅ **Email Provider Selection**: Environment variable `EMAIL_PROVIDER` switches between 'resend' and 'nodemailer'
+- ✅ **Automatic Fallback**: Primary provider fails → automatic fallback to secondary → development simulation
+- ✅ **Postal SMTP Integration**: Full Nodemailer configuration with SMTP host, port, auth, and TLS options
+- ✅ **Admin Email Endpoints**: Added /api/admin/email/config and /api/admin/email/test for configuration management
+- ✅ **Email Configuration Testing**: Built-in connection verification and test email functionality
+- ✅ **Comprehensive Documentation**: Created EMAIL_CONFIGURATION_GUIDE.md with setup instructions
+
 ### January 30, 2025 - Chrome Extension URL Update & Centralized Configuration Complete
 - ✅ **Centralized URL Configuration**: Created single config.js file for all extension URL management
 - ✅ **Extension URL Updated**: Updated to current Replit URL (https://e3d8b3db-2c8e-4107-8058-625851bb3dc7-00-1r96d8sk4fqju.kirk.replit.dev)

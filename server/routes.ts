@@ -17,6 +17,7 @@ import { apiKeyRotationService } from "./apiKeyRotationService.js";
 import { companyVerificationService } from "./companyVerificationService.js";
 import { adminFixService } from "./adminFixService.js";
 import { recruiterDashboardFix } from "./recruiterDashboardFix.js";
+import { sendEmail, getEmailConfig, testEmailConfiguration } from "./emailService.js";
 
 // Enhanced in-memory cache with better performance
 const cache = new Map();
@@ -279,6 +280,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
       timestamp: new Date().toISOString(),
       service: 'autojobr-api'
     });
+  });
+
+  // Email configuration endpoints
+  app.get('/api/admin/email/config', isAuthenticated, async (req: any, res) => {
+    try {
+      // Admin check
+      if (!req.user || (req.user.email !== 'admin@autojobr.com' && req.user.userType !== 'admin')) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const config = getEmailConfig();
+      const testResult = await testEmailConfiguration();
+      
+      res.json({
+        currentProvider: config.provider,
+        fromAddress: config.from,
+        status: testResult,
+        availableProviders: ['resend', 'nodemailer'],
+        environmentVars: {
+          resend: {
+            required: ['RESEND_API_KEY'],
+            optional: ['EMAIL_FROM']
+          },
+          nodemailer: {
+            required: ['POSTAL_SMTP_HOST', 'POSTAL_SMTP_USER', 'POSTAL_SMTP_PASS'],
+            optional: ['POSTAL_SMTP_PORT', 'POSTAL_SMTP_SECURE', 'POSTAL_SMTP_TLS_REJECT_UNAUTHORIZED', 'EMAIL_FROM']
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error getting email config:', error);
+      res.status(500).json({ message: 'Failed to get email configuration' });
+    }
+  });
+
+  app.post('/api/admin/email/test', isAuthenticated, async (req: any, res) => {
+    try {
+      // Admin check
+      if (!req.user || (req.user.email !== 'admin@autojobr.com' && req.user.userType !== 'admin')) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const { testEmail } = req.body;
+      if (!testEmail || !testEmail.includes('@')) {
+        return res.status(400).json({ message: 'Valid test email address required' });
+      }
+
+      const testResult = await testEmailConfiguration();
+      
+      // Send a test email
+      const success = await sendEmail({
+        to: testEmail,
+        subject: 'AutoJobr Email Configuration Test',
+        html: `
+          <h2>Email Configuration Test</h2>
+          <p>This is a test email from AutoJobr to verify email configuration.</p>
+          <p><strong>Provider:</strong> ${testResult.provider}</p>
+          <p><strong>Status:</strong> ${testResult.status}</p>
+          <p><strong>Details:</strong> ${testResult.details}</p>
+          <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
+        `
+      });
+
+      res.json({
+        success,
+        provider: testResult.provider,
+        status: testResult.status,
+        details: testResult.details,
+        message: success ? 'Test email sent successfully' : 'Failed to send test email'
+      });
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      res.status(500).json({ message: 'Failed to send test email' });
+    }
   });
 
   // Extension API for Chrome extension - provides profile data for form filling
