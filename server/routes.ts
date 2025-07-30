@@ -296,41 +296,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
           storage.getUserEducation(sessionUser.id)
         ]);
         
-        if (profile) {
-          const extensionProfile = {
-            firstName: profile.fullName?.split(' ')[0] || sessionUser.firstName || 'User',
-            lastName: profile.fullName?.split(' ').slice(1).join(' ') || sessionUser.lastName || 'Name',
-            email: sessionUser.email || 'user@example.com',
-            phone: profile.phone || '',
-            linkedinUrl: profile.linkedinUrl || '',
-            githubUrl: profile.githubUrl || '',
-            location: profile.location || `${profile.city || ''}, ${profile.state || ''}`.trim(),
-            professionalTitle: profile.professionalTitle || '',
-            yearsExperience: profile.yearsExperience || 0,
-            currentAddress: profile.currentAddress || '',
-            summary: profile.summary || '',
-            workAuthorization: profile.workAuthorization || '',
-            desiredSalaryMin: profile.desiredSalaryMin || 0,
-            desiredSalaryMax: profile.desiredSalaryMax || 0,
-            salaryCurrency: profile.salaryCurrency || 'USD',
-            skills: skills.map(s => s.skillName || s.name),
-            education: education.map(e => ({
-              degree: e.degree,
-              fieldOfStudy: e.fieldOfStudy,
-              institution: e.institution,
-              graduationYear: e.graduationYear
-            })),
-            workExperience: workExperience.map(w => ({
-              company: w.company,
-              position: w.position,
-              startDate: w.startDate?.toISOString().split('T')[0],
-              endDate: w.endDate?.toISOString().split('T')[0] || null,
-              description: w.description
-            }))
-          };
-          
-          return res.json(extensionProfile);
-        }
+        // Always create a profile response, even if no database profile exists
+        // Note: Database uses snake_case (first_name, last_name, full_name) but sessionUser uses camelCase
+        const fullNameParts = profile?.fullName?.trim().split(' ') || [];
+        const firstName = fullNameParts[0] || sessionUser.first_name || sessionUser.firstName || profile?.firstName || sessionUser.email?.split('@')[0] || '';
+        const lastName = fullNameParts.slice(1).join(' ') || sessionUser.last_name || sessionUser.lastName || profile?.lastName || '';
+        
+        const extensionProfile = {
+          firstName: firstName,
+          lastName: lastName,
+          fullName: profile?.fullName || `${firstName} ${lastName}`.trim() || sessionUser.email?.split('@')[0] || 'User',
+          email: sessionUser.email || 'user@example.com',
+          phone: profile?.phone || '',
+          linkedinUrl: profile?.linkedinUrl || '',
+          githubUrl: profile?.githubUrl || '',
+          location: profile?.location || `${profile?.city || ''}, ${profile?.state || ''}`.trim(),
+          professionalTitle: profile?.professionalTitle || '',
+          yearsExperience: profile?.yearsExperience || 0,
+          currentAddress: profile?.currentAddress || '',
+          summary: profile?.summary || '',
+          workAuthorization: profile?.workAuthorization || '',
+          desiredSalaryMin: profile?.desiredSalaryMin || 0,
+          desiredSalaryMax: profile?.desiredSalaryMax || 0,
+          salaryCurrency: profile?.salaryCurrency || 'USD',
+          skills: skills.map(s => s.skillName || s.name),
+          education: education.map(e => ({
+            degree: e.degree,
+            fieldOfStudy: e.fieldOfStudy,
+            institution: e.institution,
+            graduationYear: e.graduationYear
+          })),
+          workExperience: workExperience.map(w => ({
+            company: w.company,
+            position: w.position,
+            startDate: w.startDate?.toISOString().split('T')[0],
+            endDate: w.endDate?.toISOString().split('T')[0] || null,
+            description: w.description
+          }))
+        };
+        
+        return res.json(extensionProfile);
       }
       
       // Fallback for demo/anonymous users

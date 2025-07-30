@@ -75,17 +75,17 @@ class AutoJobrContentScript {
     return {
       // Personal Information
       firstName: {
-        patterns: ['firstName', 'first_name', 'fname', 'first-name', 'given-name', 'forename'],
+        patterns: ['firstName', 'first_name', 'fname', 'first-name', 'given-name', 'forename', 'given name', 'legal first name', 'first legal name'],
         types: ['text'],
         priority: 10
       },
       lastName: {
-        patterns: ['lastName', 'last_name', 'lname', 'last-name', 'family-name', 'surname'],
+        patterns: ['lastName', 'last_name', 'lname', 'last-name', 'family-name', 'surname', 'family name', 'legal last name', 'last legal name'],
         types: ['text'],
         priority: 10
       },
       fullName: {
-        patterns: ['fullName', 'full_name', 'name', 'full-name', 'candidate-name', 'applicant-name'],
+        patterns: ['fullName', 'full_name', 'name', 'full-name', 'candidate-name', 'applicant-name', 'legal name', 'legal full name', 'full legal name'],
         types: ['text'],
         priority: 9
       },
@@ -932,6 +932,15 @@ class AutoJobrContentScript {
     this.fillInProgress = true;
     this.showProgress(true);
 
+    // Debug: Log profile data to help diagnose name issues
+    console.log('AutoJobr Extension - Profile data received:', {
+      firstName: userProfile?.firstName,
+      lastName: userProfile?.lastName,
+      fullName: userProfile?.fullName,
+      email: userProfile?.email,
+      userObject: userProfile?.user
+    });
+
     try {
       // Get settings
       const settings = await chrome.storage.sync.get(['smartFillMode', 'autoSubmitMode']);
@@ -1223,6 +1232,17 @@ class AutoJobrContentScript {
             score += 10;
           }
           
+          // Debug: Log field matching for name fields
+          if (profileKey === 'firstName' || profileKey === 'lastName' || profileKey === 'fullName') {
+            console.log(`AutoJobr Extension - Name field match:`, {
+              fieldPattern: pattern,
+              profileKey: profileKey,
+              fieldInfo: fieldInfo.combined,
+              score: score,
+              userProfileValue: this.getProfileValueSmart(profileKey, userProfile, fieldInfo)
+            });
+          }
+          
           // Boost score for required fields
           if (fieldInfo.required) {
             score += 5;
@@ -1246,14 +1266,14 @@ class AutoJobrContentScript {
 
   getProfileValueSmart(key, profile, fieldInfo) {
     const valueMap = {
-      firstName: profile.firstName,
-      lastName: profile.lastName,
-      fullName: `${profile.firstName || ''} ${profile.lastName || ''}`.trim(),
-      email: profile.email,
-      phone: this.formatPhone(profile.phone, fieldInfo),
-      address: profile.currentAddress,
-      city: this.extractCity(profile.location),
-      state: this.extractState(profile.location),
+      firstName: profile.firstName || profile.user?.firstName || (profile.fullName || '').split(' ')[0] || '',
+      lastName: profile.lastName || profile.user?.lastName || (profile.fullName || '').split(' ').slice(1).join(' ') || '',
+      fullName: profile.fullName || `${profile.firstName || profile.user?.firstName || ''} ${profile.lastName || profile.user?.lastName || ''}`.trim(),
+      email: profile.email || profile.user?.email || '',
+      phone: this.formatPhone(profile.phone || profile.profile?.phone, fieldInfo),
+      address: profile.currentAddress || profile.profile?.currentAddress || '',
+      city: this.extractCity(profile.location || profile.profile?.city),
+      state: this.extractState(profile.location || profile.profile?.state),
       zipCode: profile.zipCode,
       country: profile.country || 'United States',
       currentTitle: profile.professionalTitle,
@@ -1341,11 +1361,11 @@ class AutoJobrContentScript {
     
     if (combined.includes('name') && !combined.includes('company')) {
       if (combined.includes('first') || combined.includes('given')) {
-        return userProfile.firstName;
+        return userProfile.firstName || userProfile.user?.firstName || (userProfile.fullName || '').split(' ')[0] || '';
       } else if (combined.includes('last') || combined.includes('family')) {
-        return userProfile.lastName;
+        return userProfile.lastName || userProfile.user?.lastName || (userProfile.fullName || '').split(' ').slice(1).join(' ') || '';
       } else {
-        return `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim();
+        return userProfile.fullName || `${userProfile.firstName || userProfile.user?.firstName || ''} ${userProfile.lastName || userProfile.user?.lastName || ''}`.trim();
       }
     }
     
