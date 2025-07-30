@@ -533,20 +533,31 @@ class AutoJobrContentScript {
 
   async detectJobPosting() {
     try {
-      const jobData = await this.extractJobDetails();
+      // First check if this is actually a job application page
       const isJobApplicationPage = this.isJobApplicationPage();
       
-      // Show widget only on job application pages with job data OR application forms
-      if ((jobData.success && jobData.jobData.title) || isJobApplicationPage) {
-        if (jobData.success && jobData.jobData.title) {
-          this.currentJobData = jobData.jobData;
-          this.updateJobInfo(jobData.jobData);
-        }
+      if (!isJobApplicationPage) {
+        console.log('❌ Not a job application page, hiding widget');
+        this.hideWidget();
+        return { success: false, reason: 'Not a job application page' };
+      }
+
+      console.log('✅ Job application page detected, checking for job data');
+      
+      // Then try to extract job data
+      const jobData = await this.extractJobDetails();
+      
+      if (jobData.success && jobData.jobData.title) {
+        this.currentJobData = jobData.jobData;
+        this.updateJobInfo(jobData.jobData);
         this.showWidget();
+        // Run analysis automatically
+        setTimeout(() => this.analyzeCurrentJob(), 1000);
         return { success: true, jobData: jobData.jobData };
       } else {
-        this.hideWidget();
-        return { success: false };
+        // Show widget anyway on job application pages, even without job data
+        this.showWidget();
+        return { success: true, reason: 'Job application page but no job data extracted' };
       }
     } catch (error) {
       console.error('Job detection error:', error);
@@ -596,21 +607,22 @@ class AutoJobrContentScript {
       return false;
     }
 
-    // For other sites, check both URL patterns AND job content
-    const jobUrlPatterns = ['/apply', '/application', '/job', '/career'];
+    // For other sites, be very strict - require job URL patterns AND job content
+    const jobUrlPatterns = ['/apply', '/application', '/job/', '/career/'];
     const hasJobUrl = jobUrlPatterns.some(pattern => url.includes(pattern));
     
     if (hasJobUrl) {
       const hasJobContent = this.hasJobPostingContent();
-      console.log('Other site job check:', { hasJobUrl, hasJobContent });
+      console.log('Other site job check:', { url, hasJobUrl, hasJobContent });
       return hasJobContent;
     }
 
+    console.log('❌ Page rejected - no job URL patterns found:', url);
     return false;
   }
 
   hasJobPostingContent() {
-    // Check for job posting specific content
+    // Check for job posting specific content - be more strict
     const jobContentSelectors = [
       'h1[class*="job"], h2[class*="job"], h3[class*="job"]',
       '[class*="job-title"], [class*="position-title"]',
@@ -623,7 +635,34 @@ class AutoJobrContentScript {
       'textarea[name*="cover"], select[name*="experience"]'
     ];
 
-    return jobContentSelectors.some(selector => document.querySelector(selector));
+    let foundElements = 0;
+    for (const selector of jobContentSelectors) {
+      const element = document.querySelector(selector);
+      if (element && element.textContent && element.textContent.trim().length > 5) {
+        foundElements++;
+        console.log('✅ Found job element:', selector);
+      }
+    }
+
+    // Also check for job-related text content
+    const pageText = document.body.innerText.toLowerCase();
+    const jobKeywords = [
+      'job description', 'responsibilities', 'requirements', 'qualifications',
+      'apply now', 'submit application', 'job posting', 'position summary',
+      'what you\'ll do', 'what we\'re looking for', 'about the role'
+    ];
+
+    const foundKeywords = jobKeywords.filter(keyword => pageText.includes(keyword));
+    
+    console.log('Job content analysis:', {
+      foundElements,
+      foundKeywords: foundKeywords.length,
+      keywords: foundKeywords.slice(0, 3),
+      url: window.location.href.substring(0, 100)
+    });
+
+    // Require at least 2 job elements OR 3 job keywords
+    return foundElements >= 2 || foundKeywords.length >= 3;
   }
 
   updateJobInfo(jobData) {
@@ -2123,35 +2162,63 @@ class AutoJobrContentScript {
   }
 
   async analyzeCurrentJob() {
-    const jobData = await this.extractJobDetails();
-    
-    if (jobData.success) {
-      // Update UI with job info
-      this.updateJobInfo(jobData.jobData);
+    try {
+      let jobData = this.currentJobData;
       
-      // Send to background for analysis
-      try {
-        const userProfile = await this.getUserProfile();
-        const result = await chrome.runtime.sendMessage({
-          action: 'analyzeJob',
-          data: {
-            jobData: jobData.jobData,
-            userProfile: userProfile
-          }
-        });
-
-        if (result.success) {
-          this.updateJobMatch(result.analysis);
+      if (!jobData) {
+        const extractedData = await this.extractJobDetails();
+        if (extractedData.success && extractedData.jobData.title) {
+          jobData = extractedData.jobData;
+          this.currentJobData = jobData;
         }
-
-        return { success: true, analysis: result.analysis };
-      } catch (error) {
-        console.error('Job analysis error:', error);
-        return { success: false, error: error.message };
       }
+
+      if (!jobData || !jobData.title) {
+        console.log('No job data available for analysis');
+        this.updateJobMatch({ matchScore: 0, message: 'No job data found' });
+        return { success: false, error: 'No job data found' };
+      }
+
+      // Update UI with job info
+      this.updateJobInfo(jobData);
+      
+      // Get user profile
+      const userProfile = await this.getUserProfile();
+      if (!userProfile) {
+        console.log('No user profile available');
+        this.updateJobMatch({ matchScore: 0, message: 'Please sign in to analyze jobs' });
+        return { success: false, error: 'User not authenticated' };
+      }
+
+      console.log('Analyzing job with data:', {
+        jobTitle: jobData.title,
+        company: jobData.company,
+        profileSkills: userProfile.skills?.length || 0
+      });
+
+      // Send to background for analysis
+      const result = await chrome.runtime.sendMessage({
+        action: 'analyzeJob',
+        data: {
+          jobData: jobData,
+          userProfile: userProfile
+        }
+      });
+
+      if (result && result.success && result.analysis) {
+        console.log('Analysis result:', result.analysis);
+        this.updateJobMatch(result.analysis);
+        return { success: true, analysis: result.analysis };
+      } else {
+        console.error('Analysis failed:', result);
+        this.updateJobMatch({ matchScore: 0, message: 'Analysis failed' });
+        return { success: false, error: result?.error || 'Analysis failed' };
+      }
+    } catch (error) {
+      console.error('Job analysis error:', error);
+      this.updateJobMatch({ matchScore: 0, message: 'Analysis error' });
+      return { success: false, error: error.message };
     }
-    
-    return jobData;
   }
 
   updateJobMatch(analysis) {

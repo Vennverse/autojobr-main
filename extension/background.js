@@ -705,20 +705,28 @@ class AutoJobrBackground {
       }
 
       const analysis = await response.json();
+      
+      console.log('API Analysis response:', analysis);
 
-      const matchLevel = analysis.matchScore >= 80 ? 'Excellent' : 
-                        analysis.matchScore >= 60 ? 'Good' : 
-                        analysis.matchScore >= 40 ? 'Fair' : 'Poor';
+      // Ensure we have a match score
+      const matchScore = analysis.matchScore || analysis.score || 0;
+      const finalAnalysis = {
+        ...analysis,
+        matchScore: matchScore,
+        success: true
+      };
+
+      const matchLevel = matchScore >= 80 ? 'Excellent' : 
+                        matchScore >= 60 ? 'Good' : 
+                        matchScore >= 40 ? 'Fair' : 'Poor';
 
       await this.showAdvancedNotification(
         'Job Analysis Complete! 🎯',
-        `Match Score: ${analysis.matchScore}% (${matchLevel} match)`,
-        analysis.matchScore >= 60 ? 'success' : 'warning'
+        `Match Score: ${matchScore}% (${matchLevel} match)`,
+        matchScore >= 60 ? 'success' : 'warning'
       );
 
-      // Remove auto-save - only save when user clicks save button
-
-      return analysis;
+      return { success: true, analysis: finalAnalysis };
 
     } catch (error) {
       console.error('Analyze job error:', error);

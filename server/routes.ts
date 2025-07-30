@@ -9043,7 +9043,9 @@ Host: https://autojobr.com`;
         userProfessionalTitle: completeUserProfile?.professionalTitle
       });
 
+      // Return the analysis result
       res.json({
+        success: true,
         matchScore,
         factors,
         recommendation: matchScore >= 70 ? 'Strong match - apply now!' : 
@@ -9055,6 +9057,15 @@ Host: https://autojobr.com`;
           skillsCount: completeUserProfile?.skills?.length || 0,
           professionalTitle: completeUserProfile?.professionalTitle || '',
           yearsExperience: completeUserProfile?.yearsExperience || 0
+        },
+        analysis: {
+          matchScore,
+          factors,
+          strengths: factors.filter(f => !f.includes('Need')),
+          improvements: factors.filter(f => f.includes('Need')),
+          summary: `${matchScore}% match based on ${factors.length} factors`,
+          jobTitle: jobData.title,
+          company: jobData.company
         }
       });
 
