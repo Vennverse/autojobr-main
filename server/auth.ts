@@ -47,7 +47,7 @@ export async function setupAuth(app: Express) {
     cookie: {
       secure: false, // Set to false for development
       httpOnly: true,
-      maxAge: authConfig.session.maxAge,
+      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year for persistent extension auth
       sameSite: 'lax',
     },
     name: 'autojobr.sid' // Custom session name
@@ -91,20 +91,32 @@ export async function setupAuth(app: Express) {
           return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        // Set session
+        // Set session with complete user data
         (req as any).session.user = {
           id: user.id,
           email: user.email,
           name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+          firstName: user.firstName,
+          lastName: user.lastName,
+          userType: user.userType
         };
 
-        res.json({ 
-          message: "Login successful", 
-          user: {
-            id: user.id,
-            email: user.email,
-            name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        // Save session before responding
+        (req as any).session.save((err: any) => {
+          if (err) {
+            console.error('Session save error during login:', err);
+            return res.status(500).json({ message: 'Login failed - session error' });
           }
+          
+          console.log('✅ Session saved successfully for user:', user.email);
+          res.json({ 
+            message: "Login successful", 
+            user: {
+              id: user.id,
+              email: user.email,
+              name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+            }
+          });
         });
       } catch (error) {
         console.error("Login error:", error);
@@ -1016,6 +1028,150 @@ export async function setupAuth(app: Express) {
       console.error('Reset password error:', error);
       res.status(500).json({ message: 'Failed to reset password' });
     }
+  });
+
+  // Extension-specific authentication routes
+  app.get('/auth/extension-login', (req, res) => {
+    // Render a simple login page for extension
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>AutoJobr Extension Login</title>
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            max-width: 400px; 
+            margin: 50px auto; 
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+          }
+          .container {
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+          }
+          input { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 10px 0; 
+            border: none;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+          }
+          button { 
+            width: 100%; 
+            padding: 12px; 
+            background: #ff6b6b; 
+            color: white; 
+            border: none; 
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+          }
+          button:hover { background: #ff5252; }
+          .error { color: #ffcdd2; margin: 10px 0; }
+          h2 { text-align: center; margin-bottom: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h2>🚀 AutoJobr Extension</h2>
+          <p>Sign in to access your profile data for job applications</p>
+          <form id="loginForm">
+            <input type="email" id="email" placeholder="Email" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button type="submit">Sign In</button>
+          </form>
+          <div id="error" class="error"></div>
+        </div>
+        
+        <script>
+          document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('error');
+            
+            try {
+              const response = await fetch('/api/auth/signin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ provider: 'credentials', email, password }),
+                credentials: 'include'
+              });
+              
+              const data = await response.json();
+              
+              if (response.ok) {
+                // Success - redirect to success page
+                window.location.href = '/auth/extension-success';
+              } else {
+                errorDiv.textContent = data.message || 'Login failed';
+              }
+            } catch (error) {
+              errorDiv.textContent = 'Login failed - please try again';
+            }
+          });
+        </script>
+      </body>
+      </html>
+    `);
+  });
+
+  app.get('/auth/extension-success', (req: any, res) => {
+    // Check if user is authenticated
+    if (!req.session?.user) {
+      return res.redirect('/auth/extension-login');
+    }
+    
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>AutoJobr Extension - Success</title>
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            max-width: 400px; 
+            margin: 50px auto; 
+            padding: 20px;
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+            color: white;
+            text-align: center;
+          }
+          .container {
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+          }
+          h2 { margin-bottom: 20px; }
+          .success { font-size: 48px; margin: 20px 0; }
+          p { margin: 15px 0; line-height: 1.6; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="success">✅</div>
+          <h2>Authentication Successful!</h2>
+          <p>You can now close this tab and return to your Chrome extension.</p>
+          <p>Your AutoJobr extension is now connected and ready to use.</p>
+        </div>
+        
+        <script>
+          // Auto-close after 3 seconds
+          setTimeout(() => {
+            window.close();
+          }, 3000);
+        </script>
+      </body>
+      </html>
+    `);
   });
 
 

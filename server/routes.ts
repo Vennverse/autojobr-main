@@ -281,17 +281,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware early for extension support
   // Note: Session setup is handled in setupAuth(), removing duplicate setup
 
-  // Extension API for Chrome extension - provides profile data for form filling (no auth required)
+  // Extension API for Chrome extension - provides profile data for form filling
   app.get('/api/extension/profile', async (req: any, res) => {
     try {
       console.log('Extension profile request received');
       console.log('Session exists:', !!req.session);
       console.log('Session user:', req.session?.user ? 'exists' : 'not found');
       
-      // Check for session user first (without requiring authentication)
+      // Check for session user first
       const sessionUser = req.session?.user;
       
       if (sessionUser && sessionUser.id) {
+        console.log('Authenticated user found, fetching real profile data');
+        
         // Get real user profile from database
         const [profile, skills, workExperience, education] = await Promise.all([
           storage.getUserProfile(sessionUser.id),
@@ -300,21 +302,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           storage.getUserEducation(sessionUser.id)
         ]);
         
-        // Always create a profile response, even if no database profile exists
-        // Note: Database uses snake_case (first_name, last_name, full_name) but sessionUser uses camelCase
+        // Build profile response with real data
         const fullNameParts = profile?.fullName?.trim().split(' ') || [];
-        const firstName = fullNameParts[0] || sessionUser.first_name || sessionUser.firstName || profile?.firstName || sessionUser.email?.split('@')[0] || '';
-        const lastName = fullNameParts.slice(1).join(' ') || sessionUser.last_name || sessionUser.lastName || profile?.lastName || '';
+        const firstName = fullNameParts[0] || sessionUser.firstName || sessionUser.email?.split('@')[0] || '';
+        const lastName = fullNameParts.slice(1).join(' ') || sessionUser.lastName || '';
         
         const extensionProfile = {
+          authenticated: true,
           firstName: firstName,
           lastName: lastName,
-          fullName: profile?.fullName || `${firstName} ${lastName}`.trim() || sessionUser.email?.split('@')[0] || 'User',
-          email: sessionUser.email || 'user@example.com',
+          fullName: profile?.fullName || `${firstName} ${lastName}`.trim(),
+          email: sessionUser.email,
           phone: profile?.phone || '',
           linkedinUrl: profile?.linkedinUrl || '',
           githubUrl: profile?.githubUrl || '',
-          location: profile?.location || `${profile?.city || ''}, ${profile?.state || ''}`.trim(),
+          location: profile?.location || `${profile?.city || ''}, ${profile?.state || ''}`.trim() || profile?.city || '',
           professionalTitle: profile?.professionalTitle || '',
           yearsExperience: profile?.yearsExperience || 0,
           currentAddress: profile?.currentAddress || '',
@@ -323,12 +325,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           desiredSalaryMin: profile?.desiredSalaryMin || 0,
           desiredSalaryMax: profile?.desiredSalaryMax || 0,
           salaryCurrency: profile?.salaryCurrency || 'USD',
-          skills: skills.map(s => s.skillName || s.name),
+          skills: skills.map(s => s.skillName),
           education: education.map(e => ({
             degree: e.degree,
             fieldOfStudy: e.fieldOfStudy,
             institution: e.institution,
-            graduationYear: e.graduationYear
+            graduationYear: e.graduationYear || null
           })),
           workExperience: workExperience.map(w => ({
             company: w.company,
@@ -337,54 +339,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             endDate: w.endDate?.toISOString().split('T')[0] || null,
             description: w.description
           })),
-          // Add additional fields that may be missing
           currentCompany: workExperience[0]?.company || '',
-          skillsList: skills.map(s => s.skillName || s.name).join(', ')
+          skillsList: skills.map(s => s.skillName).join(', ')
         };
         
+        console.log('Returning real profile data for authenticated user');
         return res.json(extensionProfile);
       }
       
-      // Use real user data instead of demo fallback
-      const realProfile = {
-        firstName: sessionUser?.firstName || sessionUser?.name?.split(' ')[0] || 'Shubham',
-        lastName: sessionUser?.lastName || sessionUser?.name?.split(' ').slice(1).join(' ') || 'Dubey',
-        email: sessionUser?.email || 'user@example.com',
-        phone: '(555) 123-4567',
-        linkedinUrl: 'https://linkedin.com/in/demo-user',
-        githubUrl: 'https://github.com/demo-user',
-        location: 'San Francisco, CA',
-        professionalTitle: 'Senior Full Stack Developer',
-        yearsExperience: 5,
-        currentAddress: '123 Tech Street, San Francisco, CA 94105',
-        summary: 'Experienced software engineer with expertise in full-stack development.',
-        workAuthorization: 'US Citizen',
-        desiredSalaryMin: 100000,
-        desiredSalaryMax: 150000,
-        salaryCurrency: 'USD',
-        skills: ['JavaScript', 'React', 'Node.js', 'Python', 'PostgreSQL'],
-        education: [{
-          degree: 'Bachelor of Science',
-          fieldOfStudy: 'Computer Science',
-          institution: 'University of California, Berkeley',
-          graduationYear: 2019
-        }],
-        workExperience: [{
-          company: 'Tech Corp',
-          position: 'Senior Software Engineer',
-          startDate: '2021-01-01',
-          endDate: null,
-          description: 'Led development of web applications using React and Node.js'
-        }]
-      };
-      
-      console.log('Using real profile for extension:', {
-        firstName: realProfile.firstName,
-        lastName: realProfile.lastName,
-        email: realProfile.email
+      // Return error when not authenticated - no demo data fallback
+      console.log('No authenticated user, requiring login');
+      res.status(401).json({ 
+        authenticated: false,
+        message: 'Please log in to AutoJobr to access profile data',
+        loginRequired: true
       });
       
-      res.json(realProfile);
     } catch (error) {
       console.error('Error fetching extension profile:', error);
       res.status(500).json({ message: 'Failed to fetch profile' });
