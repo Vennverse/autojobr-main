@@ -8,8 +8,8 @@
     "activeTab",
     "scripting",
     "notifications",
-    "background",
-    "cookies"
+    "cookies",
+    "webNavigation"
   ],
   "host_permissions": [
     "*://*.linkedin.com/*",
@@ -41,7 +41,7 @@
     "*://127.0.0.1:*/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "test-background.js"
   },
   "content_scripts": [
     {

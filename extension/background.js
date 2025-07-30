@@ -60,12 +60,14 @@ class AutoJobrBackground {
       }
     });
 
-    // Handle navigation completed
-    chrome.webNavigation.onCompleted.addListener((details) => {
-      if (details.frameId === 0) { // Main frame only
-        this.handleNavigationCompleted(details);
-      }
-    });
+    // Handle navigation completed (only if webNavigation permission is available)
+    if (chrome.webNavigation) {
+      chrome.webNavigation.onCompleted.addListener((details) => {
+        if (details.frameId === 0) { // Main frame only
+          this.handleNavigationCompleted(details);
+        }
+      });
+    }
   }
 
   async handleInstall() {

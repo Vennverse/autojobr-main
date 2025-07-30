@@ -63,31 +63,50 @@ class AutoJobrPopup {
 
   async checkConnection() {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/health`, {
+      // First check health endpoint
+      const healthResponse = await fetch(`${API_BASE_URL}/api/health`, {
         method: 'GET',
         credentials: 'include'
       });
       
-      this.isConnected = response.ok;
-      this.updateConnectionStatus(this.isConnected);
+      if (!healthResponse.ok) {
+        throw new Error('Server not reachable');
+      }
+      
+      // Then check authentication
+      const authResponse = await fetch(`${API_BASE_URL}/api/user`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      this.isConnected = healthResponse.ok;
+      const isAuthenticated = authResponse.ok;
+      
+      this.updateConnectionStatus(this.isConnected, isAuthenticated);
       
     } catch (error) {
       console.error('Connection check failed:', error);
       this.isConnected = false;
-      this.updateConnectionStatus(false);
+      this.updateConnectionStatus(false, false);
     }
   }
 
-  updateConnectionStatus(connected) {
+  updateConnectionStatus(connected, authenticated = false) {
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('connectionStatus');
     
-    if (connected) {
+    if (connected && authenticated) {
       statusDot.classList.remove('disconnected');
       statusText.textContent = 'Connected to AutoJobr';
+      this.enableActionButtons();
+    } else if (connected && !authenticated) {
+      statusDot.classList.add('disconnected');
+      statusText.innerHTML = 'Connected but not logged in - <a href="' + API_BASE_URL + '/auth" target="_blank" style="color: #3b82f6; text-decoration: underline;">Sign In</a>';
+      this.disableActionButtons();
     } else {
       statusDot.classList.add('disconnected');
-      statusText.textContent = 'Disconnected';
+      statusText.textContent = 'Disconnected - Check internet connection';
+      this.disableActionButtons();
     }
   }
 
@@ -200,8 +219,7 @@ class AutoJobrPopup {
   }
 
   async loadUserProfile() {
-    if (!this.isConnected) return;
-
+    // Always try to load profile for testing
     try {
       const response = await fetch(`${API_BASE_URL}/api/extension/profile`, {
         credentials: 'include'
@@ -421,6 +439,44 @@ class AutoJobrPopup {
     chrome.tabs.create({
       url: `${API_BASE_URL}/applications`
     });
+  }
+
+  enableActionButtons() {
+    const buttons = ['autofillBtn', 'analyzeBtn', 'saveJobBtn', 'coverLetterBtn'];
+    buttons.forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+      }
+    });
+  }
+
+  disableActionButtons() {
+    const buttons = ['autofillBtn', 'analyzeBtn', 'saveJobBtn', 'coverLetterBtn'];
+    buttons.forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+      }
+    });
+  }
+
+  showLoading(show) {
+    // Implement loading state UI updates here
+    const loadingElements = document.querySelectorAll('.loading-indicator');
+    loadingElements.forEach(el => {
+      el.style.display = show ? 'block' : 'none';
+    });
+  }
+
+  showError(message) {
+    // Simple error notification - could be enhanced with proper UI
+    console.error(message);
+    this.showNotification(`❌ ${message}`);
   }
 }
 
