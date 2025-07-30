@@ -332,7 +332,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             startDate: w.startDate?.toISOString().split('T')[0],
             endDate: w.endDate?.toISOString().split('T')[0] || null,
             description: w.description
-          }))
+          })),
+          // Add additional fields that may be missing
+          currentCompany: workExperience[0]?.company || '',
+          skillsList: skills.map(s => s.skillName || s.name).join(', ')
         };
         
         return res.json(extensionProfile);

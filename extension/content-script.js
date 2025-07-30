@@ -190,6 +190,27 @@ class AutoJobrContentScript {
         priority: 7
       },
       
+      // Skills and Technical
+      skills: {
+        patterns: ['skills', 'technical_skills', 'technologies', 'programming', 'tech_stack', 'competencies'],
+        types: ['text', 'textarea'],
+        priority: 7
+      },
+      
+      // Salary and Compensation
+      salary: {
+        patterns: ['salary', 'compensation', 'expected_salary', 'desired_salary', 'pay_rate', 'wage', 'salary_expectation'],
+        types: ['text', 'number'],
+        priority: 6
+      },
+      
+      // Additional fields
+      description: {
+        patterns: ['description', 'summary', 'about', 'bio', 'overview', 'profile_summary', 'personal_statement'],
+        types: ['textarea', 'text'],
+        priority: 6
+      },
+      
       // Resume/Cover Letter
       resume: {
         patterns: ['resume', 'cv', 'resumeUpload', 'resume_upload', 'curriculum'],
@@ -932,13 +953,18 @@ class AutoJobrContentScript {
     this.fillInProgress = true;
     this.showProgress(true);
 
-    // Debug: Log profile data to help diagnose name issues
+    // Debug: Log profile data to help diagnose field mapping issues
     console.log('AutoJobr Extension - Profile data received:', {
       firstName: userProfile?.firstName,
       lastName: userProfile?.lastName,
       fullName: userProfile?.fullName,
       email: userProfile?.email,
-      userObject: userProfile?.user
+      phone: userProfile?.phone,
+      professionalTitle: userProfile?.professionalTitle,
+      workAuthorization: userProfile?.workAuthorization,
+      skills: userProfile?.skills,
+      workExperience: userProfile?.workExperience?.length || 0,
+      education: userProfile?.education?.length || 0
     });
 
     try {
@@ -1274,20 +1300,23 @@ class AutoJobrContentScript {
       address: profile.currentAddress || profile.profile?.currentAddress || '',
       city: this.extractCity(profile.location || profile.profile?.city),
       state: this.extractState(profile.location || profile.profile?.state),
-      zipCode: profile.zipCode,
+      zipCode: profile.zipCode || profile.profile?.zipCode || '',
       country: profile.country || 'United States',
-      currentTitle: profile.professionalTitle,
-      company: profile.currentCompany,
+      currentTitle: profile.professionalTitle || profile.workExperience?.[0]?.position || '',
+      company: profile.currentCompany || profile.workExperience?.[0]?.company || '',
       experience: this.formatExperience(profile.yearsExperience, fieldInfo),
-      university: profile.education?.[0]?.institution,
-      degree: profile.education?.[0]?.degree,
-      major: profile.education?.[0]?.fieldOfStudy,
-      linkedin: profile.linkedinUrl,
-      github: profile.githubUrl,
-      portfolio: profile.portfolioUrl,
+      university: profile.education?.[0]?.institution || '',
+      degree: profile.education?.[0]?.degree || '',
+      major: profile.education?.[0]?.fieldOfStudy || profile.education?.[0]?.field_of_study || '',
+      linkedin: profile.linkedinUrl || '',
+      github: profile.githubUrl || '',
+      portfolio: profile.portfolioUrl || '',
       workAuth: this.formatWorkAuth(profile.workAuthorization, fieldInfo),
-      visa: this.formatVisa(profile.visaStatus, fieldInfo),
-      coverLetter: profile.defaultCoverLetter
+      visa: this.formatVisa(profile.visaStatus || profile.workAuthorization, fieldInfo),
+      coverLetter: profile.defaultCoverLetter || '',
+      skills: Array.isArray(profile.skills) ? profile.skills.join(', ') : (profile.skills || ''),
+      salary: profile.desiredSalaryMin ? `${profile.desiredSalaryMin}-${profile.desiredSalaryMax || profile.desiredSalaryMin}` : '',
+      description: profile.summary || ''
     };
 
     return valueMap[key] || null;
@@ -1325,9 +1354,15 @@ class AutoJobrContentScript {
   }
 
   formatWorkAuth(workAuth, fieldInfo) {
-    if (!workAuth) return 'Yes'; // Default assumption
+    if (!workAuth) return 'Yes'; // Default assumption for US-based applications
     
     if (fieldInfo.type === 'select-one') {
+      // Handle various work authorization values from database
+      if (workAuth === 'authorized' || workAuth === 'citizen' || workAuth === 'permanent_resident') {
+        return 'Yes';
+      } else if (workAuth === 'visa_required' || workAuth === 'not_authorized') {
+        return 'No';
+      }
       return workAuth === 'authorized' ? 'Yes' : 'No';
     }
     
@@ -1338,6 +1373,12 @@ class AutoJobrContentScript {
     if (!visaStatus) return 'No'; // Default assumption
     
     if (fieldInfo.type === 'select-one') {
+      // Handle various visa status values from database
+      if (visaStatus === 'visa_required' || visaStatus === 'required') {
+        return 'Yes';
+      } else if (visaStatus === 'authorized' || visaStatus === 'citizen' || visaStatus === 'permanent_resident') {
+        return 'No';
+      }
       return visaStatus === 'required' ? 'Yes' : 'No';
     }
     
