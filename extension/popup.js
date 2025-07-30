@@ -1,5 +1,5 @@
 // Enhanced AutoJobr Popup with Advanced Features
-const API_BASE_URL = 'https://29ce8162-da3c-47aa-855b-eac2ee4b17cd-00-2uv34jdoe24cx.riker.replit.dev';
+const API_BASE_URL = 'https://cf942c1a-8aa1-4eb6-b16c-28a387fd4b1e-00-feprbstml9g6.worf.replit.dev';
 
 class AutoJobrPopup {
   constructor() {

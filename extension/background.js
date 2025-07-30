@@ -3,7 +3,7 @@ console.log('🚀 AutoJobr background service worker v2.0 loading...');
 
 class AutoJobrBackground {
   constructor() {
-    this.apiUrl = 'https://29ce8162-da3c-47aa-855b-eac2ee4b17cd-00-2uv34jdoe24cx.riker.replit.dev';
+    this.apiUrl = 'https://cf942c1a-8aa1-4eb6-b16c-28a387fd4b1e-00-feprbstml9g6.worf.replit.dev';
     this.cache = new Map();
     this.rateLimiter = new Map();
     this.init();
@@ -18,7 +18,7 @@ class AutoJobrBackground {
 
   async detectApiUrl() {
     const possibleUrls = [
-      'https://29ce8162-da3c-47aa-855b-eac2ee4b17cd-00-2uv34jdoe24cx.riker.replit.dev',
+      'https://cf942c1a-8aa1-4eb6-b16c-28a387fd4b1e-00-feprbstml9g6.worf.replit.dev',
       'http://localhost:3000',
       'http://127.0.0.1:3000'
     ];
