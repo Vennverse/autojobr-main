@@ -256,6 +256,9 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication middleware FIRST - this includes session setup
+  await setupAuth(app);
+  
   // Serve static files from uploads directory
   app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
   
@@ -278,15 +281,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Setup session middleware early for extension support
-  // Note: Session setup is handled in setupAuth(), removing duplicate setup
-
   // Extension API for Chrome extension - provides profile data for form filling
   app.get('/api/extension/profile', async (req: any, res) => {
     try {
       console.log('Extension profile request received');
-      console.log('Session exists:', !!req.session);
-      console.log('Session user:', req.session?.user ? 'exists' : 'not found');
       
       // Check for session user first
       const sessionUser = req.session?.user;
@@ -361,8 +359,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Auth middleware
-  await setupAuth(app);
+  // Auth middleware was already set up at the beginning of registerRoutes
 
   // Setup payment routes
   setupPaymentRoutes(app);

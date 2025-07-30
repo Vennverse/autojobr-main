@@ -1,5 +1,6 @@
 import express from "express";
 import session from "express-session";
+import MemoryStore from "memorystore";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
 import { storage } from "./storage";
@@ -38,21 +39,30 @@ const authConfig = {
 };
 
 export async function setupAuth(app: Express) {
-  // Setup session middleware with memory store for development
+  // Setup session middleware with proper memory store
   console.log('🔑 Setting up session middleware...');
+  
+  const MemoryStoreConstructor = MemoryStore(session);
+  const sessionStore = new MemoryStoreConstructor({
+    checkPeriod: 86400000 // prune expired entries every 24h
+  });
+  
   app.use(session({
+    store: sessionStore,
     secret: authConfig.session.secret,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false, // Set to false for development
+      secure: process.env.NODE_ENV === 'production', // Secure in production
       httpOnly: true,
       maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year for persistent extension auth
-      sameSite: 'lax',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Cross-origin for extension
+      domain: undefined, // Let it default to the request domain
     },
-    name: 'autojobr.sid' // Custom session name
+    name: 'autojobr.sid', // Custom session name
+    proxy: true // Trust first proxy for Replit environment
   }));
-  console.log('✅ Session middleware configured successfully');
+  console.log('✅ Session middleware configured successfully with MemoryStore');
 
   // Auth status endpoint with caching
   const providersCache = {
@@ -109,6 +119,7 @@ export async function setupAuth(app: Express) {
           }
           
           console.log('✅ Session saved successfully for user:', user.email);
+          
           res.json({ 
             message: "Login successful", 
             user: {
