@@ -284,6 +284,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Extension API for Chrome extension - provides profile data for form filling (no auth required)
   app.get('/api/extension/profile', async (req: any, res) => {
     try {
+      console.log('Extension profile request received');
+      console.log('Session exists:', !!req.session);
+      console.log('Session user:', req.session?.user ? 'exists' : 'not found');
+      
       // Check for session user first (without requiring authentication)
       const sessionUser = req.session?.user;
       
@@ -343,9 +347,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Use real user data instead of demo fallback
       const realProfile = {
-        firstName: sessionUser.firstName || sessionUser.name?.split(' ')[0] || 'Shubham',
-        lastName: sessionUser.lastName || sessionUser.name?.split(' ').slice(1).join(' ') || 'Dubey',
-        email: sessionUser.email || 'user@example.com',
+        firstName: sessionUser?.firstName || sessionUser?.name?.split(' ')[0] || 'Shubham',
+        lastName: sessionUser?.lastName || sessionUser?.name?.split(' ').slice(1).join(' ') || 'Dubey',
+        email: sessionUser?.email || 'user@example.com',
         phone: '(555) 123-4567',
         linkedinUrl: 'https://linkedin.com/in/demo-user',
         githubUrl: 'https://github.com/demo-user',
