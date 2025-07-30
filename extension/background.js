@@ -697,6 +697,25 @@ class AutoJobrBackground {
         analysis.matchScore >= 60 ? 'success' : 'warning'
       );
 
+      // Auto-save interesting jobs (match score >= 50)
+      if (analysis.matchScore >= 50 && data.jobData) {
+        try {
+          await this.saveJob({
+            jobTitle: data.jobData.title,
+            company: data.jobData.company,
+            description: data.jobData.description || '',
+            location: data.jobData.location || '',
+            salary: data.jobData.salary || '',
+            url: data.jobData.url || window.location.href,
+            platform: data.jobData.platform || this.detectPlatform(window.location.hostname),
+            autoSaved: true
+          });
+          console.log('Auto-saved good match job');
+        } catch (saveError) {
+          console.log('Auto-save failed, but analysis succeeded:', saveError.message);
+        }
+      }
+
       return analysis;
 
     } catch (error) {

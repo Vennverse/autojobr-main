@@ -376,6 +376,17 @@ class AutoJobrPopup {
         matchScore.style.background = `linear-gradient(135deg, ${color}, ${color}dd)`;
         matchScore.style.webkitBackgroundClip = 'text';
         matchScore.style.webkitTextFillColor = 'transparent';
+        
+        // Log detailed analysis for debugging
+        console.log('Job Analysis Results:', {
+          matchScore: analysis.matchScore,
+          factors: analysis.factors,
+          recommendation: analysis.recommendation,
+          userSkillsCount: analysis.userProfile?.skillsCount,
+          userTitle: analysis.userProfile?.professionalTitle,
+          jobTitle: this.jobData.title,
+          jobCompany: this.jobData.company
+        });
       }
     } catch (error) {
       console.error('Job analysis failed:', error);

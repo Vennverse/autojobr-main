@@ -8959,12 +8959,44 @@ Host: https://autojobr.com`;
   });
 
   // Job analysis endpoint for extension
-  app.post('/api/analyze-job-match', async (req: any, res) => {
+  app.post('/api/analyze-job-match', isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.id;
       const { jobData, userProfile } = req.body;
       
       if (!jobData || !jobData.title) {
         return res.status(400).json({ message: 'Job data is required' });
+      }
+
+      // Get complete user profile from database for accurate analysis
+      let completeUserProfile;
+      try {
+        const profile = await storage.getUserProfile(userId);
+        const [skills, workExperience, education] = await Promise.all([
+          storage.getUserSkills(userId),
+          storage.getUserWorkExperience(userId),
+          storage.getUserEducation(userId)
+        ]);
+
+        completeUserProfile = {
+          ...profile,
+          skills: skills.map(s => s.skillName || s.name),
+          workExperience,
+          education,
+          professionalTitle: profile?.professionalTitle || workExperience[0]?.position || '',
+          yearsExperience: profile?.yearsExperience || 0
+        };
+
+        console.log('Complete user profile for analysis:', {
+          skillsCount: skills.length,
+          workExpCount: workExperience.length,
+          educationCount: education.length,
+          professionalTitle: completeUserProfile.professionalTitle
+        });
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        // Fallback to provided profile if available
+        completeUserProfile = userProfile || {};
       }
 
       // Simple scoring algorithm for extension compatibility
@@ -8972,42 +9004,50 @@ Host: https://autojobr.com`;
       const factors = [];
 
       // Basic scoring based on job title and user profile
-      if (userProfile?.professionalTitle && jobData.title) {
-        const titleMatch = userProfile.professionalTitle.toLowerCase().includes(jobData.title.toLowerCase()) ||
-                          jobData.title.toLowerCase().includes(userProfile.professionalTitle.toLowerCase());
+      if (completeUserProfile?.professionalTitle && jobData.title) {
+        const titleMatch = completeUserProfile.professionalTitle.toLowerCase().includes(jobData.title.toLowerCase()) ||
+                          jobData.title.toLowerCase().includes(completeUserProfile.professionalTitle.toLowerCase());
         if (titleMatch) {
           matchScore += 30;
           factors.push('Title match');
         }
       }
 
-      // Skills matching
-      if (userProfile?.skills && jobData.description) {
-        const skillMatches = userProfile.skills.filter((skill: string) => 
+      // Skills matching - enhanced with actual user skills
+      if (completeUserProfile?.skills && Array.isArray(completeUserProfile.skills) && jobData.description) {
+        const skillMatches = completeUserProfile.skills.filter((skill: string) => 
           jobData.description.toLowerCase().includes(skill.toLowerCase())
         );
-        matchScore += Math.min(skillMatches.length * 10, 40);
+        const skillScore = Math.min(skillMatches.length * 10, 40);
+        matchScore += skillScore;
         if (skillMatches.length > 0) {
-          factors.push(`${skillMatches.length} skill matches`);
+          factors.push(`${skillMatches.length} skill matches: ${skillMatches.slice(0, 3).join(', ')}`);
         }
+        console.log('Skills analysis:', {
+          userSkills: completeUserProfile.skills,
+          matchedSkills: skillMatches,
+          skillScore
+        });
       }
 
       // Experience level matching
-      if (userProfile?.yearsExperience && jobData.description) {
+      if (completeUserProfile?.yearsExperience && jobData.description) {
         const expRequired = jobData.description.match(/(\d+)\+?\s*years?\s*(of\s*)?experience/i);
         if (expRequired) {
           const requiredYears = parseInt(expRequired[1]);
-          if (userProfile.yearsExperience >= requiredYears) {
+          if (completeUserProfile.yearsExperience >= requiredYears) {
             matchScore += 20;
             factors.push('Experience requirement met');
+          } else {
+            factors.push(`Need ${requiredYears - completeUserProfile.yearsExperience} more years experience`);
           }
         }
       }
 
       // Location matching (basic)
-      if (userProfile?.location && jobData.location) {
-        const locationMatch = userProfile.location.toLowerCase().includes(jobData.location.toLowerCase()) ||
-                             jobData.location.toLowerCase().includes(userProfile.location.toLowerCase());
+      if (completeUserProfile?.location && jobData.location) {
+        const locationMatch = completeUserProfile.location.toLowerCase().includes(jobData.location.toLowerCase()) ||
+                             jobData.location.toLowerCase().includes(completeUserProfile.location.toLowerCase());
         if (locationMatch) {
           matchScore += 10;
           factors.push('Location match');
@@ -9017,6 +9057,15 @@ Host: https://autojobr.com`;
       // Cap at 100%
       matchScore = Math.min(matchScore, 100);
 
+      console.log('Final match analysis:', {
+        jobTitle: jobData.title,
+        company: jobData.company,
+        matchScore,
+        factors,
+        userSkillsCount: completeUserProfile?.skills?.length || 0,
+        userProfessionalTitle: completeUserProfile?.professionalTitle
+      });
+
       res.json({
         matchScore,
         factors,
@@ -9024,7 +9073,12 @@ Host: https://autojobr.com`;
                       matchScore >= 50 ? 'Good match - consider applying' : 
                       'Consider tailoring your application',
         jobTitle: jobData.title,
-        company: jobData.company
+        company: jobData.company,
+        userProfile: {
+          skillsCount: completeUserProfile?.skills?.length || 0,
+          professionalTitle: completeUserProfile?.professionalTitle || '',
+          yearsExperience: completeUserProfile?.yearsExperience || 0
+        }
       });
 
     } catch (error) {
