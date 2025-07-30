@@ -1,4 +1,6 @@
 // AutoJobr Background Service Worker
+console.log('🚀 AutoJobr background service worker loading...');
+
 class AutoJobrBackground {
   constructor() {
     this.apiUrl = 'https://29ce8162-da3c-47aa-855b-eac2ee4b17cd-00-2uv34jdoe24cx.riker.replit.dev';

@@ -666,11 +666,12 @@ class AutoJobrContentScript {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          jobTitle: this.currentJobData.title,
-          company: this.currentJobData.company,
+          title: this.currentJobData.title || 'Job Position',
+          company: this.currentJobData.company || 'Company Name',
+          description: this.currentJobData.description,
           location: this.currentJobData.location,
-          jobUrl: window.location.href,
-          source: 'extension'
+          url: window.location.href,
+          platform: 'extension'
         })
       });
 
@@ -697,7 +698,9 @@ class AutoJobrContentScript {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          jobData: this.currentJobData
+          jobTitle: this.currentJobData.title || 'The Position',
+          companyName: this.currentJobData.company || 'The Company',
+          jobDescription: this.currentJobData.description || ''
         })
       });
 

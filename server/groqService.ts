@@ -751,6 +751,87 @@ Return JSON array:
       return [];
     }
   }
+
+  async generateCoverLetter(
+    jobData: {
+      title: string;
+      company: string;
+      description?: string;
+    },
+    userProfile: any,
+    user?: any
+  ): Promise<string> {
+    const prompt = `Generate a professional cover letter for this job application:
+
+JOB: ${jobData.title} at ${jobData.company}
+${jobData.description ? `DESCRIPTION: ${jobData.description}` : ''}
+
+CANDIDATE: ${userProfile?.fullName || userProfile?.firstName + ' ' + userProfile?.lastName || 'Candidate'}
+TITLE: ${userProfile?.professionalTitle || 'Professional'}
+EXPERIENCE: ${userProfile?.yearsExperience || '0'} years
+
+Write a compelling, personalized cover letter that:
+1. Shows enthusiasm for the specific role and company
+2. Highlights relevant experience and skills
+3. Demonstrates value proposition
+4. Uses professional but engaging tone
+5. Is 3-4 paragraphs, around 300-400 words
+
+Return only the cover letter text, no additional formatting or explanations.`;
+
+    try {
+      if (this.developmentMode) {
+        return `Dear Hiring Manager,
+
+I am writing to express my strong interest in the ${jobData.title} position at ${jobData.company}. With my background in professional development and passion for innovation, I am excited about the opportunity to contribute to your team.
+
+My experience has equipped me with the skills necessary to excel in this role. I am particularly drawn to ${jobData.company} because of its reputation for excellence and commitment to growth. I believe my dedication and enthusiasm would make me a valuable addition to your organization.
+
+I would welcome the opportunity to discuss how my background and skills can benefit your team. Thank you for considering my application.
+
+Sincerely,
+${userProfile?.fullName || 'Your Name'}`;
+      }
+
+      const completion = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
+        return await client.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content: "You are a professional career advisor. Write compelling, personalized cover letters that highlight the candidate's strengths and show genuine interest in the role and company."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          model: this.getModel(user),
+          temperature: 0.3,
+          max_tokens: 600,
+        });
+      });
+
+      const coverLetter = completion.choices[0]?.message?.content?.trim();
+      if (!coverLetter) {
+        throw new Error("No cover letter generated");
+      }
+
+      return coverLetter;
+    } catch (error) {
+      console.error("Cover letter generation error:", error);
+      // Return a basic fallback cover letter
+      return `Dear Hiring Manager,
+
+I am writing to express my interest in the ${jobData.title} position at ${jobData.company}. With my professional background and enthusiasm for this opportunity, I am confident I would be a valuable addition to your team.
+
+My experience has prepared me well for this role, and I am particularly excited about the opportunity to contribute to ${jobData.company}'s continued success. I would welcome the chance to discuss how my skills and passion can benefit your organization.
+
+Thank you for considering my application. I look forward to hearing from you.
+
+Best regards,
+${userProfile?.fullName || 'Your Name'}`;
+    }
+  }
 }
 
 export const groqService = new GroqService();
