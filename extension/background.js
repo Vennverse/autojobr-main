@@ -3,7 +3,7 @@ class AutoJobrBackground {
   constructor() {
     this.apiUrl = window.location.hostname.includes('replit') 
       ? `${window.location.protocol}//${window.location.host}`
-      : 'http://localhost:5000';
+      : 'http://40.160.50.128:5000';
     this.init();
   }
 
@@ -16,7 +16,7 @@ class AutoJobrBackground {
   async detectApiUrl() {
     // Try to detect the correct API URL based on current environment
     const possibleUrls = [
-      'http://localhost:5000',
+      'http://40.160.50.128:5000',
       chrome.runtime.getURL('').replace('chrome-extension://', 'https://').replace('/', '') + '.replit.dev',
     ];
 
