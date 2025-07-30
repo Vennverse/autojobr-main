@@ -233,6 +233,16 @@ class AutoJobrBackground {
         return;
       }
 
+      // Handle popup open request from floating button
+      if (message.action === 'openPopup') {
+        // Try to open extension popup
+        if (chrome.action && chrome.action.openPopup) {
+          chrome.action.openPopup();
+        }
+        sendResponse({ success: true });
+        return;
+      }
+
       switch (message.action) {
         case 'getApiUrl':
           sendResponse({ apiUrl: this.apiUrl });

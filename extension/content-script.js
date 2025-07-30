@@ -2261,6 +2261,8 @@ class AutoJobrContentScript {
     }
   }
 
+
+
   async saveCurrentJob() {
     return await this.handleSaveJob();
   }
@@ -2487,107 +2489,113 @@ class AutoJobrContentScript {
     return 'Unknown';
   }
 
-  // Create floating popup for job application forms
+  // Create floating button for job application forms
   createFloatingPopup() {
     // Only show on job application forms
     if (!this.isJobApplicationPage()) {
       return;
     }
 
-    // Don't create multiple popups
-    if (document.getElementById('autojobr-floating-popup')) {
-      return;
-    }
+    // Remove existing floating elements
+    const existingPopup = document.getElementById('autojobr-floating-popup');
+    const existingButton = document.getElementById('autojobr-floating-button');
+    if (existingPopup) existingPopup.remove();
+    if (existingButton) existingButton.remove();
 
-    const popup = document.createElement('div');
-    popup.id = 'autojobr-floating-popup';
-    popup.innerHTML = `
+    const floatingButton = document.createElement('div');
+    floatingButton.id = 'autojobr-floating-button';
+    floatingButton.innerHTML = `
       <div style="
         position: fixed;
-        top: 20px;
+        bottom: 20px;
         right: 20px;
+        width: 60px;
+        height: 60px;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 50%;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
         color: white;
-        padding: 16px;
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-        z-index: 10000;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        min-width: 280px;
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,0.2);
-      ">
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-          <div style="width: 24px; height: 24px; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
-            <span style="color: #667eea; font-weight: bold; font-size: 14px;">AJ</span>
-          </div>
-          <span style="font-weight: 600; font-size: 16px;">AutoJobr Assistant</span>
-          <button id="close-popup" style="
-            margin-left: auto;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 18px;
-            cursor: pointer;
-            opacity: 0.7;
-            padding: 0;
-            width: 20px;
-            height: 20px;
-          ">×</button>
-        </div>
-        <div style="margin-bottom: 12px; font-size: 14px; opacity: 0.9;">
-          Job application form detected!
-        </div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <button id="autofill-btn" style="
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-            font-weight: 500;
-            flex: 1;
-            min-width: 120px;
-          ">Auto-Fill Form</button>
-          <button id="analyze-btn" style="
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-            font-weight: 500;
-            flex: 1;
-            min-width: 120px;
-          ">Analyze Job</button>
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        z-index: 999999;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        animation: autojobrPulse 2s infinite;
+      " onmouseover="
+        this.style.transform = 'scale(1.1)';
+        this.style.boxShadow = '0 12px 35px rgba(102, 126, 234, 0.6)';
+      " onmouseout="
+        this.style.transform = 'scale(1)';
+        this.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
+      " title="Click to open AutoJobr Extension">
+        <div style="
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: 600;
+        ">
+          <div style="font-size: 18px; margin-bottom: 2px;">AJ</div>
         </div>
       </div>
+      <style>
+        @keyframes autojobrPulse {
+          0% { box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4); }
+          50% { box-shadow: 0 8px 25px rgba(102, 126, 234, 0.7); }
+          100% { box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4); }
+        }
+      </style>
     `;
 
-    document.body.appendChild(popup);
+    document.body.appendChild(floatingButton);
 
-    // Add event listeners
-    document.getElementById('close-popup').addEventListener('click', () => {
-      popup.remove();
+    // Add click event to open extension popup
+    floatingButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Try to communicate with extension to open popup
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage({ action: 'openPopup' }, (response) => {
+          if (chrome.runtime.lastError) {
+            // If extension popup can't be opened, show notification to use extension icon
+            this.showNotification('Click the AutoJobr extension icon in your browser toolbar', 'info');
+          }
+        });
+      } else {
+        // Fallback: show notification to use extension icon
+        this.showNotification('Click the AutoJobr extension icon in your browser toolbar', 'info');
+      }
     });
 
-    document.getElementById('autofill-btn').addEventListener('click', async () => {
-      this.handleSmartAutofill();
-    });
-
-    document.getElementById('analyze-btn').addEventListener('click', async () => {
-      this.handleAnalyze();
-    });
-
-    // Auto-hide after 30 seconds
-    setTimeout(() => {
-      if (popup.parentNode) {
-        popup.remove();
+    // Auto-fade after 30 seconds, but show again if user scrolls
+    let hideTimeout = setTimeout(() => {
+      if (floatingButton && floatingButton.parentNode) {
+        floatingButton.style.opacity = '0.6';
+        floatingButton.style.transform = 'scale(0.8)';
       }
     }, 30000);
+
+    // Show button again on scroll
+    let scrollTimeout;
+    window.addEventListener('scroll', () => {
+      if (floatingButton && floatingButton.parentNode) {
+        floatingButton.style.opacity = '1';
+        floatingButton.style.transform = 'scale(1)';
+        
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+          if (floatingButton && floatingButton.parentNode) {
+            floatingButton.style.opacity = '0.6';
+            floatingButton.style.transform = 'scale(0.8)';
+          }
+        }, 3000);
+      }
+    });
   }
 
   isJobApplicationPage() {
@@ -2619,8 +2627,10 @@ class AutoJobrContentScript {
     
     const overlay = document.getElementById('autojobr-overlay');
     const popup = document.getElementById('autojobr-floating-popup');
+    const button = document.getElementById('autojobr-floating-button');
     if (overlay) overlay.remove();
     if (popup) popup.remove();
+    if (button) button.remove();
   }
 }
 
