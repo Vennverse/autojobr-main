@@ -83,14 +83,14 @@ export class VirtualInterviewService {
   };
 
   constructor() {
-    if (!process.env.GROQ_API_KEY) {
-      throw new Error("GROQ_API_KEY environment variable is required for virtual interviews");
+    if (process.env.GROQ_API_KEY) {
+      this.groq = new Groq({
+        apiKey: process.env.GROQ_API_KEY,
+      });
+      console.log("Virtual Interview Groq client initialized successfully");
+    } else {
+      console.log("GROQ_API_KEY not provided - virtual interviews will use fallback mode");
     }
-    
-    this.groq = new Groq({
-      apiKey: process.env.GROQ_API_KEY,
-    });
-    console.log("Virtual Interview Groq client initialized successfully");
   }
 
   async generateGreeting(
