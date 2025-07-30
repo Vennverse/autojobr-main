@@ -534,10 +534,10 @@ class AutoJobrContentScript {
   async detectJobPosting() {
     try {
       const jobData = await this.extractJobDetails();
-      const hasFormFields = this.detectFormFields();
+      const isJobApplicationPage = this.isJobApplicationPage();
       
-      // Show widget if job detected OR form fields found
-      if ((jobData.success && jobData.jobData.title) || hasFormFields) {
+      // Show widget only on job application pages with job data OR application forms
+      if ((jobData.success && jobData.jobData.title) || isJobApplicationPage) {
         if (jobData.success && jobData.jobData.title) {
           this.currentJobData = jobData.jobData;
           this.updateJobInfo(jobData.jobData);
@@ -554,30 +554,46 @@ class AutoJobrContentScript {
     }
   }
 
-  detectFormFields() {
-    // Check for common application form fields
-    const formFieldSelectors = [
-      'input[name*="name"]',
-      'input[name*="email"]', 
-      'input[name*="phone"]',
-      'input[placeholder*="name"]',
-      'input[placeholder*="email"]',
-      'input[placeholder*="phone"]',
-      'input[type="tel"]',
-      'input[type="email"]',
-      'select[name*="experience"]',
-      'textarea[name*="cover"]',
-      'input[name*="resume"]',
-      'input[type="file"]'
+  isJobApplicationPage() {
+    const url = window.location.href.toLowerCase();
+    const hostname = window.location.hostname.toLowerCase();
+    
+    // Check for job application specific URLs and pages
+    const jobApplicationIndicators = [
+      '/apply', '/application', '/job', '/career', '/jobs',
+      'greenhouse.io', 'lever.co', 'workday', 'myworkdayjobs.com',
+      'icims.com', 'smartrecruiters.com', 'bamboohr.com', 'ashbyhq.com',
+      'linkedin.com/jobs', 'indeed.com/viewjob', 'glassdoor.com/job'
     ];
 
-    for (const selector of formFieldSelectors) {
-      if (document.querySelector(selector)) {
-        console.log('Form fields detected on page');
-        return true;
-      }
-    }
-    return false;
+    // Check URL patterns
+    const hasJobUrlPattern = jobApplicationIndicators.some(indicator => 
+      url.includes(indicator) || hostname.includes(indicator)
+    );
+
+    // Check for job application form fields specifically
+    const jobFormSelectors = [
+      'form[action*="apply"]',
+      'form[action*="application"]', 
+      'form[action*="job"]',
+      '.job-application-form',
+      '.application-form',
+      '[data-automation-id*="application"]',
+      '[data-automation-id*="job"]',
+      'input[name*="resume"]',
+      'input[name*="cv"]',
+      'textarea[name*="cover"]',
+      'select[name*="experience"]',
+      'input[name*="work_auth"]',
+      'input[name*="authorization"]'
+    ];
+
+    const hasJobFormFields = jobFormSelectors.some(selector => 
+      document.querySelector(selector)
+    );
+
+    console.log('Job application page check:', { hasJobUrlPattern, hasJobFormFields });
+    return hasJobUrlPattern || hasJobFormFields;
   }
 
   updateJobInfo(jobData) {
@@ -1978,32 +1994,47 @@ class AutoJobrContentScript {
   }
 
   async handleSaveJob() {
-    if (!this.currentJobData) {
-      this.showNotification('No job data found on this page', 'error');
-      return;
-    }
-
     try {
+      // Try to get current job data or extract fresh data
+      let jobData = this.currentJobData;
+      
+      if (!jobData) {
+        const extractedData = await this.extractJobDetails();
+        if (extractedData.success && extractedData.jobData.title) {
+          jobData = extractedData.jobData;
+        }
+      }
+
+      if (!jobData || !jobData.title) {
+        this.showNotification('❌ Could not find job details on this page', 'error');
+        return { success: false, error: 'No job data found' };
+      }
+
       const result = await chrome.runtime.sendMessage({
         action: 'saveJob',
         data: {
-          jobTitle: this.currentJobData.title,
-          company: this.currentJobData.company,
-          location: this.currentJobData.location,
+          jobTitle: jobData.title,
+          company: jobData.company || 'Unknown Company',
+          location: jobData.location || '',
           jobUrl: window.location.href,
-          description: this.currentJobData.description,
+          description: jobData.description || '',
+          salary: jobData.salary || '',
+          platform: this.detectPlatform(window.location.hostname),
+          savedDate: new Date().toISOString(),
           source: 'extension_v2'
         }
       });
 
-      if (result.success) {
+      if (result && result.success) {
         this.showNotification('✅ Job saved successfully!', 'success');
+        return { success: true, savedJob: result };
       } else {
-        throw new Error('Failed to save job');
+        throw new Error(result?.error || 'Failed to save job');
       }
     } catch (error) {
       console.error('Save job error:', error);
-      this.showNotification('❌ Failed to save job', 'error');
+      this.showNotification(`❌ Failed to save job: ${error.message}`, 'error');
+      return { success: false, error: error.message };
     }
   }
 
@@ -2242,31 +2273,56 @@ class AutoJobrContentScript {
 
   async trackApplicationSubmission() {
     try {
-      const jobData = await this.extractJobDetails();
+      // Try current job data first, then extract fresh data
+      let jobData = this.currentJobData;
       
-      if (jobData.success && jobData.jobData) {
-        console.log('Tracking application submission:', jobData.jobData);
-        
-        const response = await chrome.runtime.sendMessage({
-          action: 'trackApplication',
-          data: {
-            jobTitle: jobData.jobData.title,
-            company: jobData.jobData.company,
-            location: jobData.jobData.location || '',
-            jobUrl: window.location.href,
-            status: 'applied',
-            source: 'extension',
-            platform: this.detectPlatform(window.location.hostname),
-            appliedDate: new Date().toISOString()
-          }
-        });
-
-        if (response && response.success) {
-          this.showNotification('✅ Application tracked successfully!', 'success');
+      if (!jobData) {
+        const extractedData = await this.extractJobDetails();
+        if (extractedData.success && extractedData.jobData.title) {
+          jobData = extractedData.jobData;
         }
+      }
+
+      if (!jobData || !jobData.title) {
+        // Try to get basic info from page title or URL
+        const pageTitle = document.title;
+        const urlParts = window.location.pathname.split('/');
+        
+        jobData = {
+          title: pageTitle.includes('|') ? pageTitle.split('|')[0].trim() : 
+                 pageTitle.includes('-') ? pageTitle.split('-')[0].trim() : 
+                 'Job Application',
+          company: urlParts.find(part => part.length > 2 && !part.includes('job')) || 'Unknown Company',
+          location: '',
+          description: ''
+        };
+      }
+      
+      console.log('Tracking application submission:', jobData);
+      
+      const response = await chrome.runtime.sendMessage({
+        action: 'trackApplication',
+        data: {
+          jobTitle: jobData.title,
+          company: jobData.company || 'Unknown Company',
+          location: jobData.location || '',
+          jobUrl: window.location.href,
+          status: 'applied',
+          source: 'extension',
+          platform: this.detectPlatform(window.location.hostname),
+          appliedDate: new Date().toISOString()
+        }
+      });
+
+      if (response && response.success) {
+        this.showNotification('✅ Application tracked successfully!', 'success');
+        console.log('Application tracking successful:', response);
+      } else {
+        console.warn('Application tracking failed:', response);
       }
     } catch (error) {
       console.error('Failed to track application:', error);
+      this.showNotification('⚠️ Application tracking failed', 'error');
     }
   }
 

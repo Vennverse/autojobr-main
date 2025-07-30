@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Software Engineer - Google Careers</title>
+</head>
+<body>
+    <div class="job-posting">
+        <h1>Software Engineer - Machine Learning</h1>
+        <div class="company">Google</div>
+        <div class="location">Mountain View, CA</div>
+        
+        <div class="job-description">
+            <p>Join our Machine Learning team to build the next generation of AI systems...</p>
+            <ul>
+                <li>Bachelor's degree in Computer Science</li>
+                <li>5+ years of Python experience</li>
+                <li>Experience with TensorFlow/PyTorch</li>
+            </ul>
+        </div>
+        
+        <div class="salary">$150,000 - $200,000</div>
+    </div>
+
+    <!-- Job Application Form -->
+    <form id="job-application-form" action="/apply" method="post">
+        <h2>Apply for this Position</h2>
+        
+        <div class="form-group">
+            <label for="firstName">First Name</label>
+            <input type="text" id="firstName" name="firstName" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="lastName">Last Name</label>
+            <input type="text" id="lastName" name="lastName" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="phone">Phone</label>
+            <input type="tel" id="phone" name="phone" required>
+        </div>
+        
+        <div class="form-group">
+            <label>Are you authorized to work in the US?</label>
+            <div class="radio-group">
+                <input type="radio" id="auth-yes" name="work_authorization" value="yes">
+                <label for="auth-yes">Yes, I am authorized to work</label>
+                
+                <input type="radio" id="auth-no" name="work_authorization" value="no">
+                <label for="auth-no">No, I am not authorized</label>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="experience">Years of Experience</label>
+            <select id="experience" name="experience">
+                <option value="">Select experience</option>
+                <option value="0-1">0-1 years</option>
+                <option value="2-3">2-3 years</option>
+                <option value="4-5">4-5 years</option>
+                <option value="5+">5+ years</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="coverLetter">Cover Letter</label>
+            <textarea id="coverLetter" name="coverLetter" rows="5" placeholder="Tell us why you're interested..."></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="resume">Resume</label>
+            <input type="file" id="resume" name="resume" accept=".pdf,.doc,.docx">
+        </div>
+        
+        <button type="submit" id="submit-application">Submit Application</button>
+    </form>
+
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .job-posting { margin-bottom: 40px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .company { font-size: 20px; color: #1a73e8; margin: 10px 0; }
+        .location { color: #666; margin: 5px 0; }
+        .salary { font-weight: bold; color: #137333; margin: 10px 0; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        .radio-group { display: flex; flex-direction: column; gap: 10px; }
+        .radio-group input[type="radio"] { width: auto; margin-right: 8px; }
+        .radio-group label { display: inline; font-weight: normal; }
+        button { background: #1a73e8; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #1557b0; }
+    </style>
+
+    <script>
+        // Simulate form submission for testing
+        document.getElementById('job-application-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Application submitted! (This is a test page)');
+            
+            // Simulate navigation to confirmation page
+            setTimeout(() => {
+                document.body.innerHTML = '<h1>Thank you for your application!</h1><p>Your application has been successfully submitted.</p>';
+                document.title = 'Application Submitted - Google Careers';
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

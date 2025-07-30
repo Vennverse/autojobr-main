@@ -239,13 +239,23 @@ class AutoJobrBackground {
           break;
 
         case 'trackApplication':
-          const trackResult = await this.trackApplication(message.data);
-          sendResponse(trackResult);
+          try {
+            const trackResult = await this.trackApplication(message.data);
+            sendResponse(trackResult);
+          } catch (error) {
+            console.error('Track application error:', error);
+            sendResponse({ success: false, error: error.message });
+          }
           break;
 
         case 'saveJob':
-          const savedJob = await this.saveJob(message.data);
-          sendResponse({ success: true, job: savedJob });
+          try {
+            const savedJob = await this.saveJob(message.data);
+            sendResponse({ success: true, job: savedJob });
+          } catch (error) {
+            console.error('Save job error:', error);
+            sendResponse({ success: false, error: error.message });
+          }
           break;
 
         case 'generateCoverLetter':
