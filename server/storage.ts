@@ -673,11 +673,11 @@ export class DatabaseStorage implements IStorage {
         
         console.log(`[DEBUG] Resume stored successfully - ID: ${newResume.id}`);
         return newResume;
-      } catch (dbError) {
+      } catch (dbError: any) {
         console.error(`[ERROR] Database insert failed:`, dbError);
-        console.error(`[ERROR] Error code:`, dbError.code);
-        console.error(`[ERROR] Error detail:`, dbError.detail);
-        console.error(`[ERROR] Error constraint:`, dbError.constraint);
+        console.error(`[ERROR] Error code:`, dbError?.code);
+        console.error(`[ERROR] Error detail:`, dbError?.detail);
+        console.error(`[ERROR] Error constraint:`, dbError?.constraint);
         throw dbError;
       }
     });
@@ -1052,7 +1052,7 @@ export class DatabaseStorage implements IStorage {
       }
       
       try {
-        const questions = JSON.parse(template.questions);
+        const questions = JSON.parse(template.questions as string);
         return Array.isArray(questions) ? questions : [];
       } catch (error) {
         console.error('Error parsing questions JSON:', error);
@@ -1070,7 +1070,7 @@ export class DatabaseStorage implements IStorage {
       
       let questions = [];
       try {
-        questions = template.questions ? JSON.parse(template.questions) : [];
+        questions = template.questions ? JSON.parse(template.questions as string) : [];
       } catch (error) {
         questions = [];
       }
@@ -1102,7 +1102,7 @@ export class DatabaseStorage implements IStorage {
       
       let questions = [];
       try {
-        questions = template.questions ? JSON.parse(template.questions) : [];
+        questions = template.questions ? JSON.parse(template.questions as string) : [];
       } catch (error) {
         questions = [];
       }
@@ -1139,7 +1139,7 @@ export class DatabaseStorage implements IStorage {
         if (!template.questions) continue;
         
         try {
-          let questions = JSON.parse(template.questions);
+          let questions = JSON.parse(template.questions as string);
           const originalLength = questions.length;
           questions = questions.filter((q: any) => q.id !== questionId);
           
