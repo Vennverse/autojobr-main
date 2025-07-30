@@ -950,6 +950,14 @@ class AutoJobrContentScript {
       return { success: false, error: 'Auto-fill already in progress' };
     }
 
+    // Prevent infinite loops by tracking attempts
+    this.autoFillAttempts = (this.autoFillAttempts || 0) + 1;
+    if (this.autoFillAttempts > 2) {
+      console.log('Max auto-fill attempts reached, stopping to prevent loops');
+      this.autoFillAttempts = 0; // Reset counter
+      return { success: false, error: 'Max auto-fill attempts reached' };
+    }
+
     this.fillInProgress = true;
     this.showProgress(true);
 
@@ -1008,6 +1016,11 @@ class AutoJobrContentScript {
       this.fillInProgress = false;
       this.showProgress(false);
       
+      // Reset attempts counter after successful completion
+      setTimeout(() => {
+        this.autoFillAttempts = 0;
+      }, 5000);
+      
       return {
         success: true,
         fieldsFound: totalFieldsFound,
@@ -1020,6 +1033,10 @@ class AutoJobrContentScript {
     } catch (error) {
       this.fillInProgress = false;
       this.showProgress(false);
+      // Reset attempts counter on error
+      setTimeout(() => {
+        this.autoFillAttempts = 0;
+      }, 5000);
       console.error('Smart auto-fill error:', error);
       return { success: false, error: error.message };
     }
@@ -1918,6 +1935,15 @@ class AutoJobrContentScript {
         action: 'getUserProfile'
       });
 
+      if (result.success && result.profile) {
+        console.log('Extension received user profile:', {
+          firstName: result.profile.firstName,
+          lastName: result.profile.lastName,
+          fullName: result.profile.fullName,
+          skillsCount: result.profile.skills?.length || 0
+        });
+      }
+
       return result.success ? result.profile : null;
     } catch (error) {
       console.error('Failed to get user profile:', error);
@@ -2100,15 +2126,140 @@ class AutoJobrContentScript {
     return 'Unknown';
   }
 
+  // Create floating popup for job application forms
+  createFloatingPopup() {
+    // Only show on job application forms
+    if (!this.isJobApplicationPage()) {
+      return;
+    }
+
+    // Don't create multiple popups
+    if (document.getElementById('autojobr-floating-popup')) {
+      return;
+    }
+
+    const popup = document.createElement('div');
+    popup.id = 'autojobr-floating-popup';
+    popup.innerHTML = `
+      <div style="
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 16px;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        z-index: 10000;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        min-width: 280px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.2);
+      ">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <div style="width: 24px; height: 24px; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+            <span style="color: #667eea; font-weight: bold; font-size: 14px;">AJ</span>
+          </div>
+          <span style="font-weight: 600; font-size: 16px;">AutoJobr Assistant</span>
+          <button id="close-popup" style="
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            opacity: 0.7;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+          ">×</button>
+        </div>
+        <div style="margin-bottom: 12px; font-size: 14px; opacity: 0.9;">
+          Job application form detected!
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button id="autofill-btn" style="
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            flex: 1;
+            min-width: 120px;
+          ">Auto-Fill Form</button>
+          <button id="analyze-btn" style="
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            flex: 1;
+            min-width: 120px;
+          ">Analyze Job</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(popup);
+
+    // Add event listeners
+    document.getElementById('close-popup').addEventListener('click', () => {
+      popup.remove();
+    });
+
+    document.getElementById('autofill-btn').addEventListener('click', async () => {
+      this.handleSmartAutofill();
+    });
+
+    document.getElementById('analyze-btn').addEventListener('click', async () => {
+      this.handleAnalyze();
+    });
+
+    // Auto-hide after 30 seconds
+    setTimeout(() => {
+      if (popup.parentNode) {
+        popup.remove();
+      }
+    }, 30000);
+  }
+
+  isJobApplicationPage() {
+    const url = window.location.href.toLowerCase();
+    const pageText = document.body.textContent.toLowerCase();
+    
+    // Check for application form indicators
+    const applicationKeywords = [
+      'apply now', 'submit application', 'job application', 'application form',
+      'resume upload', 'cover letter', 'apply for this position'
+    ];
+    
+    const hasApplicationForm = applicationKeywords.some(keyword => 
+      url.includes(keyword.replace(' ', '-')) || 
+      url.includes(keyword.replace(' ', '_')) ||
+      pageText.includes(keyword)
+    );
+    
+    // Check for form fields that indicate job applications
+    const hasJobFormFields = document.querySelectorAll('input[type="file"], textarea, input[name*="resume"], input[name*="cv"]').length > 0;
+    
+    return hasApplicationForm || hasJobFormFields;
+  }
+
   // Cleanup method
   destroy() {
     this.observers.forEach(observer => observer.disconnect());
     this.observers = [];
     
     const overlay = document.getElementById('autojobr-overlay');
-    if (overlay) {
-      overlay.remove();
-    }
+    const popup = document.getElementById('autojobr-floating-popup');
+    if (overlay) overlay.remove();
+    if (popup) popup.remove();
   }
 }
 
@@ -2117,8 +2268,12 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     const extension = new AutoJobrContentScript();
     extension.setupApplicationTracking();
+    // Show floating popup on form pages after a delay
+    setTimeout(() => extension.createFloatingPopup(), 2000);
   });
 } else {
   const extension = new AutoJobrContentScript();
   extension.setupApplicationTracking();
+  // Show floating popup on form pages after a delay  
+  setTimeout(() => extension.createFloatingPopup(), 2000);
 }

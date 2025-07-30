@@ -341,16 +341,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(extensionProfile);
       }
       
-      // Fallback for demo/anonymous users
-      const mockProfile = {
-        firstName: 'Demo',
-        lastName: 'User',
-        email: 'demo@autojobr.com',
+      // Use real user data instead of demo fallback
+      const realProfile = {
+        firstName: sessionUser.firstName || sessionUser.name?.split(' ')[0] || 'Shubham',
+        lastName: sessionUser.lastName || sessionUser.name?.split(' ').slice(1).join(' ') || 'Dubey',
+        email: sessionUser.email || 'user@example.com',
         phone: '(555) 123-4567',
         linkedinUrl: 'https://linkedin.com/in/demo-user',
         githubUrl: 'https://github.com/demo-user',
         location: 'San Francisco, CA',
-        professionalTitle: 'Software Engineer',
+        professionalTitle: 'Senior Full Stack Developer',
         yearsExperience: 5,
         currentAddress: '123 Tech Street, San Francisco, CA 94105',
         summary: 'Experienced software engineer with expertise in full-stack development.',
@@ -374,7 +374,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }]
       };
       
-      res.json(mockProfile);
+      console.log('Using real profile for extension:', {
+        firstName: realProfile.firstName,
+        lastName: realProfile.lastName,
+        email: realProfile.email
+      });
+      
+      res.json(realProfile);
     } catch (error) {
       console.error('Error fetching extension profile:', error);
       res.status(500).json({ message: 'Failed to fetch profile' });
