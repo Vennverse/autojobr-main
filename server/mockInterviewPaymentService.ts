@@ -11,8 +11,8 @@ export interface MockInterviewUsage {
 }
 
 export class MockInterviewPaymentService {
-  private readonly FREE_INTERVIEWS_LIMIT = 1; // 1 free interview for all users
-  private readonly PREMIUM_FREE_LIMIT = 5; // 5 free interviews for premium users
+  private readonly FREE_INTERVIEWS_LIMIT = 10; // 10 free interviews for all users
+  private readonly PREMIUM_FREE_LIMIT = 25; // 25 free interviews for premium users
   private readonly INTERVIEW_COST = 5; // $5 per interview after free limit
 
   async checkUsageAndPayment(userId: string): Promise<MockInterviewUsage> {
