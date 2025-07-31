@@ -478,8 +478,8 @@ export default function VirtualInterview() {
               
               <Separator />
               
-              {/* Input Area */}
-              {interview.status === 'active' && (
+              {/* Input Area - Show as long as interview is not explicitly completed and user can still answer */}
+              {(interview.status === 'active' || interview.status === 'paused' || (interview.questionsAsked <= interview.totalQuestions && interview.status !== 'completed')) && (
                 <div className="p-4">
                   <div className="flex gap-2">
                     <Input

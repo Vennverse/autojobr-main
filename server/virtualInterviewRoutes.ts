@@ -273,6 +273,176 @@ router.get("/:sessionId", isAuthenticated, async (req: any, res) => {
       
       // Auto-complete if time is up
       if (actualTimeRemaining <= 0 && interview.status === 'active') {
+        // Force complete the interview with partial feedback
+        await this.forceCompleteInterview(interview.id, userId);
+      }
+    }
+
+    res.json({
+      interview: {
+        ...interview,
+        timeRemaining: actualTimeRemaining
+      },
+      messages
+    });
+
+  } catch (error) {
+    console.error('Error getting interview session:', error);
+    res.status(500).json({ error: 'Failed to get interview session' });
+  }
+});
+
+// Force complete interview (for timeout or incomplete scenarios)
+async function forceCompleteInterview(interviewId: number, userId: string) {
+  try {
+    // Get interview and messages
+    const interview = await db.query.virtualInterviews.findFirst({
+      where: eq(virtualInterviews.id, interviewId)
+    });
+
+    if (!interview) return;
+
+    const messages = await db.query.virtualInterviewMessages.findMany({
+      where: eq(virtualInterviewMessages.interviewId, interviewId),
+      orderBy: [virtualInterviewMessages.messageIndex]
+    });
+
+    // Generate partial feedback based on what was answered
+    const candidateMessages = messages.filter(m => m.sender === 'candidate');
+    const questionsAnswered = candidateMessages.length;
+    
+    const fallbackFeedback = {
+      performanceSummary: questionsAnswered > 0 
+        ? `You answered ${questionsAnswered} questions during this interview session. While the interview was incomplete, you demonstrated engagement and communication skills. Consider completing future interviews fully to get more comprehensive feedback.`
+        : "The interview session ended before any questions were answered. We recommend starting a new interview to demonstrate your skills and receive detailed feedback.",
+      keyStrengths: questionsAnswered > 0 
+        ? ["Active participation", "Communication effort", "Professional engagement"]
+        : ["Willingness to participate"],
+      areasForImprovement: questionsAnswered > 0
+        ? ["Interview completion", "Time management", "Consistent engagement throughout"]
+        : ["Interview completion", "Response preparation", "Time management"],
+      overallScore: Math.max(30, questionsAnswered * 15), // Minimum 30, 15 points per answered question
+      technicalScore: Math.max(25, questionsAnswered * 12),
+      communicationScore: Math.max(40, questionsAnswered * 18),
+      recommendedResources: [{
+        title: "Interview Preparation Guide",
+        url: "https://autojobr.com/interview-tips",
+        description: "Tips for completing technical interviews successfully"
+      }],
+      nextSteps: [
+        "Practice completing full interview sessions",
+        "Prepare responses for common technical questions",
+        "Focus on time management during interviews"
+      ]
+    };
+
+    // Update interview status
+    await db.update(virtualInterviews)
+      .set({
+        status: 'completed',
+        endTime: new Date(),
+        overallScore: fallbackFeedback.overallScore,
+        technicalScore: fallbackFeedback.technicalScore,
+        communicationScore: fallbackFeedback.communicationScore,
+        confidenceScore: 50,
+        strengths: fallbackFeedback.keyStrengths,
+        weaknesses: fallbackFeedback.areasForImprovement,
+        recommendations: fallbackFeedback.nextSteps,
+        detailedFeedback: fallbackFeedback.performanceSummary
+      })
+      .where(eq(virtualInterviews.id, interviewId));
+
+    // Save feedback
+    await db.insert(virtualInterviewFeedback).values({
+      interviewId: interviewId,
+      performanceSummary: fallbackFeedback.performanceSummary,
+      keyStrengths: fallbackFeedback.keyStrengths,
+      areasForImprovement: fallbackFeedback.areasForImprovement,
+      overallScore: fallbackFeedback.overallScore,
+      technicalSkillsScore: fallbackFeedback.technicalScore,
+      problemSolvingScore: fallbackFeedback.technicalScore,
+      communicationScore: fallbackFeedback.communicationScore,
+      responseConsistency: 50,
+      adaptabilityScore: 45,
+      stressHandling: 50,
+      recommendedResources: fallbackFeedback.recommendedResources,
+      nextSteps: fallbackFeedback.nextSteps,
+      roleReadiness: fallbackFeedback.overallScore >= 60 ? 'needs_practice' : 'significant_gaps',
+      aiConfidenceScore: 70
+    });
+
+    return fallbackFeedback;
+  } catch (error) {
+    console.error('Error force completing interview:', error);
+  }
+}
+
+// Add route to manually complete incomplete interviews
+router.post("/:sessionId/force-complete", isAuthenticated, async (req: any, res) => {
+  try {
+    const { sessionId } = req.params;
+    const userId = req.user.id;
+
+    const interview = await db.query.virtualInterviews.findFirst({
+      where: and(
+        eq(virtualInterviews.sessionId, sessionId),
+        eq(virtualInterviews.userId, userId)
+      )
+    });
+
+    if (!interview) {
+      return res.status(404).json({ error: 'Interview session not found' });
+    }
+
+    const feedback = await forceCompleteInterview(interview.id, userId);
+    
+    res.json({
+      success: true,
+      message: 'Interview completed with partial feedback',
+      feedback
+    });
+
+  } catch (error) {
+    console.error('Error force completing interview:', error);
+    res.status(500).json({ error: 'Failed to complete interview' });
+  }
+});
+
+// Continue with the rest of the routes...
+router.get("/:sessionId", isAuthenticated, async (req: any, res) => {
+  try {
+    const { sessionId } = req.params;
+    const userId = req.user.id;
+
+    const interview = await db.query.virtualInterviews.findFirst({
+      where: and(
+        eq(virtualInterviews.sessionId, sessionId),
+        eq(virtualInterviews.userId, userId)
+      )
+    });
+
+    if (!interview) {
+      return res.status(404).json({ error: 'Interview session not found' });
+    }
+
+    // Get all messages for this interview
+    const messages = await db.query.virtualInterviewMessages.findMany({
+      where: eq(virtualInterviewMessages.interviewId, interview.id),
+      orderBy: [virtualInterviewMessages.messageIndex]
+    });
+
+    // Calculate actual time remaining based on start time and duration
+    let actualTimeRemaining = interview.timeRemaining;
+    if (interview.startTime && interview.status === 'active') {
+      const elapsedSeconds = Math.floor((Date.now() - new Date(interview.startTime).getTime()) / 1000);
+      actualTimeRemaining = Math.max(0, (interview.duration * 60) - elapsedSeconds);
+      
+      // Update time remaining in database
+      if (actualTimeRemaining !== interview.timeRemaining) {
+        await db.update(virtualInterviews)
+          .set({ timeRemaining: actualTimeRemaining })
+          .where(eq(virtualInterviews.id, interview.id));
+      }
         await db.update(virtualInterviews)
           .set({ status: 'completed', endTime: new Date() })
           .where(eq(virtualInterviews.id, interview.id));
