@@ -100,12 +100,22 @@ print_status "Setting up PostgreSQL database..."
 DB_PASSWORD=$(openssl rand -base64 32)
 SESSION_SECRET=$(openssl rand -base64 64)
 
-# Create database and user
+# Create database and user with proper permissions
 sudo -u postgres psql << EOF
 CREATE DATABASE autojobr;
 CREATE USER autojobr_user WITH PASSWORD '$DB_PASSWORD';
 GRANT ALL PRIVILEGES ON DATABASE autojobr TO autojobr_user;
 ALTER USER autojobr_user CREATEDB;
+\q
+EOF
+
+# Grant schema permissions
+sudo -u postgres psql -d autojobr << EOF
+GRANT ALL ON SCHEMA public TO autojobr_user;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO autojobr_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO autojobr_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO autojobr_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO autojobr_user;
 \q
 EOF
 
@@ -188,9 +198,14 @@ mkdir -p logs
 
 # Replace placeholders in PM2 config with actual values using proper escaping
 DB_CONNECTION_STRING="postgresql://autojobr_user:$DB_PASSWORD@localhost:5432/autojobr"
+
+# Escape special characters for sed
+ESCAPED_DB_STRING=$(printf '%s\n' "$DB_CONNECTION_STRING" | sed 's/[[\.*^$()+?{|]/\\&/g')
+ESCAPED_SESSION_SECRET=$(printf '%s\n' "$SESSION_SECRET" | sed 's/[[\.*^$()+?{|]/\\&/g')
+
 # Use different delimiters to avoid conflicts with special characters
-sed -i "s#\$DB_CONNECTION_STRING#$DB_CONNECTION_STRING#g" ecosystem.config.cjs
-sed -i "s#\$SESSION_SECRET#$SESSION_SECRET#g" ecosystem.config.cjs
+sed -i "s|\$DB_CONNECTION_STRING|$ESCAPED_DB_STRING|g" ecosystem.config.cjs
+sed -i "s|\$SESSION_SECRET|$ESCAPED_SESSION_SECRET|g" ecosystem.config.cjs
 
 # Start application with PM2 using environment variables
 print_status "Starting application with PM2..."

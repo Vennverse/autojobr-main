@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # AutoJobr Linux VM Deployment Script - Fixed Version
-# This script automates the entire deployment process with proper error handling
+# This script fixes the database permissions and sed command issues
 
 set -e
 
@@ -73,7 +73,7 @@ print_status "Installing PostgreSQL..."
 if [ "$DISTRO" = "debian" ]; then
     sudo apt install postgresql postgresql-contrib -y
 else
-    sudo yum install postgresql postgresql-server postgresql-contrib -y
+    sudo yum install postgresql-server postgresql-contrib -y
     sudo postgresql-setup initdb
 fi
 
@@ -81,29 +81,11 @@ fi
 sudo systemctl start postgresql
 sudo systemctl enable postgresql
 
-# Generate secure passwords with alphanumeric characters only
-DB_PASSWORD=$(openssl rand -hex 16)
-SESSION_SECRET=$(openssl rand -hex 32)
-
-print_status "Generated secure database password and session secret"
-
-# Configure PostgreSQL user and database
-print_status "Configuring PostgreSQL database..."
-sudo -u postgres psql << EOF
-CREATE USER autojobr_user WITH PASSWORD '$DB_PASSWORD';
-CREATE DATABASE autojobr OWNER autojobr_user;
-GRANT ALL PRIVILEGES ON DATABASE autojobr TO autojobr_user;
-GRANT ALL PRIVILEGES ON SCHEMA public TO autojobr_user;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO autojobr_user;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO autojobr_user;
-\q
-EOF
-
 # Install PM2 globally
 print_status "Installing PM2 process manager..."
 sudo npm install -g pm2
 
-# Install Nginx
+# Install Nginx (optional)
 print_status "Installing Nginx..."
 if [ "$DISTRO" = "debian" ]; then
     sudo apt install nginx -y
@@ -111,51 +93,89 @@ else
     sudo yum install nginx -y
 fi
 
-# Clone repository
-print_status "Cloning AutoJobr repository..."
-if [ -d "autojobr-main" ]; then
-    rm -rf autojobr-main
+# Setup database with proper permissions
+print_status "Setting up PostgreSQL database with proper permissions..."
+
+# Generate secure passwords
+DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
+SESSION_SECRET=$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-50)
+
+print_status "Generated database password: $DB_PASSWORD"
+
+# Create database and user
+sudo -u postgres psql << EOF
+DROP DATABASE IF EXISTS autojobr;
+DROP USER IF EXISTS autojobr_user;
+CREATE DATABASE autojobr;
+CREATE USER autojobr_user WITH PASSWORD '$DB_PASSWORD';
+GRANT ALL PRIVILEGES ON DATABASE autojobr TO autojobr_user;
+ALTER USER autojobr_user CREATEDB;
+ALTER USER autojobr_user SUPERUSER;
+\q
+EOF
+
+# Grant additional schema permissions
+sudo -u postgres psql -d autojobr << EOF
+GRANT ALL ON SCHEMA public TO autojobr_user;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO autojobr_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO autojobr_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO autojobr_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO autojobr_user;
+\q
+EOF
+
+print_status "Database created with proper permissions"
+
+# Clone the repository if not already present
+if [ ! -d "autojobr-main" ]; then
+    print_status "Cloning AutoJobr repository..."
+    git clone https://github.com/Vennverse/autojobr-main.git
 fi
 
-git clone https://github.com/Vennverse/autojobr-main.git
+# Navigate to application directory
 cd autojobr-main
 
-# Install dependencies
-print_status "Installing Node.js dependencies..."
+# Install application dependencies
+print_status "Installing application dependencies..."
 npm install
 
-# Create environment file
+# Create .env file
 print_status "Creating environment configuration..."
 cat > .env << EOF
 # Database Configuration
 DATABASE_URL="postgresql://autojobr_user:$DB_PASSWORD@localhost:5432/autojobr"
 
-# Session Configuration  
-SESSION_SECRET="$SESSION_SECRET"
-
 # Server Configuration
 NODE_ENV="production"
 PORT="5000"
+SESSION_SECRET="$SESSION_SECRET"
 
-# API Keys (replace with your actual keys)
+# API Keys (YOU NEED TO SET THESE)
 GROQ_API_KEY="your_groq_api_key_here"
 RESEND_API_KEY="your_resend_api_key_here"
 
-# Optional Payment Keys
-STRIPE_SECRET_KEY="your_stripe_key_here"
+# Optional Payment Configuration
 PAYPAL_CLIENT_ID="your_paypal_client_id_here"
 PAYPAL_CLIENT_SECRET="your_paypal_client_secret_here"
+
+# Optional SMTP Configuration
+SMTP_HOST=""
+SMTP_PORT=""
+SMTP_USER=""
+SMTP_PASS=""
 EOF
 
-# Build the application
+# Set up database schema
+print_status "Setting up database schema..."
+source .env
+export $(cat .env | grep -v '^#' | xargs)
+npm run db:push
+
+# Build application
 print_status "Building application..."
 npm run build
 
-# Database setup
-print_status "Setting up database schema..."
-npm run db:push
-
-# Create PM2 configuration
+# Create PM2 ecosystem file with proper environment loading
 print_status "Creating PM2 configuration..."
 cat > ecosystem.config.cjs << 'EOF'
 module.exports = {
@@ -163,22 +183,12 @@ module.exports = {
     name: 'autojobr',
     script: './dist/index.js',
     instances: 1,
-    exec_mode: 'cluster',
-    env: {
-      NODE_ENV: 'production',
-      PORT: 5000,
-      DATABASE_URL: process.env.DATABASE_URL,
-      SESSION_SECRET: process.env.SESSION_SECRET,
-      GROQ_API_KEY: process.env.GROQ_API_KEY,
-      RESEND_API_KEY: process.env.RESEND_API_KEY
-    },
+    env_file: '.env',
     error_file: './logs/err.log',
     out_file: './logs/out.log',
     log_file: './logs/combined.log',
     time: true,
-    max_memory_restart: '1G',
-    watch: false,
-    ignore_watch: ['node_modules', 'logs']
+    max_memory_restart: '1G'
   }]
 }
 EOF
@@ -266,22 +276,39 @@ echo "=============================================="
 echo "🚀 DEPLOYMENT SUMMARY"
 echo "=============================================="
 echo "✅ Node.js 20 installed"
-echo "✅ PostgreSQL database configured"
+echo "✅ PostgreSQL database configured with proper permissions"
 echo "✅ Application built and started with PM2"
 echo "✅ Nginx reverse proxy configured"
 echo "✅ Firewall configured"
 echo ""
-echo "🌐 Access your application at: http://$SERVER_IP"
+echo "🌐 Application URL: http://$SERVER_IP"
 echo ""
-echo "📁 Project location: $(pwd)"
-echo "📊 Check PM2 status: pm2 status"
-echo "📜 View logs: pm2 logs autojobr"
-echo "🔄 Restart app: pm2 restart autojobr"
+echo "⚠️  IMPORTANT: You need to configure API keys!"
+echo "Edit .env file and add your API keys:"
+echo "   - GROQ_API_KEY (get from console.groq.com)"
+echo "   - RESEND_API_KEY (get from resend.com)"
 echo ""
-echo "⚠️  IMPORTANT: Update your API keys in .env file:"
-echo "   - GROQ_API_KEY (for AI features)"
-echo "   - RESEND_API_KEY (for email services)"
-echo "   - Add payment keys if needed"
+echo "Then restart the application:"
+echo "   cd autojobr-main"
+echo "   source .env"
+echo "   export \$(cat .env | grep -v '^#' | xargs)"
+echo "   pm2 restart autojobr"
 echo ""
-echo "Database credentials saved in .env file"
 echo "=============================================="
+echo "📋 USEFUL COMMANDS"
+echo "=============================================="
+echo "Check application status: pm2 status"
+echo "View logs: pm2 logs autojobr"
+echo "Restart application: pm2 restart autojobr"
+echo "View database: sudo -u postgres psql autojobr"
+echo "Database Password: $DB_PASSWORD"
+echo "=============================================="
+echo ""
+print_warning "Remember to:"
+print_warning "1. Add your API keys to .env file:"
+print_warning "   cd autojobr-main && nano .env"
+print_warning "2. Configure your domain name in Nginx"
+print_warning "3. Set up SSL certificate (Let's Encrypt)"
+print_warning "4. Set up regular backups"
+echo ""
+print_status "Happy deploying! 🚀"
