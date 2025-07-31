@@ -2401,7 +2401,7 @@ class AutoJobrContentScript {
     const score = analysis.matchScore || analysis.analysis?.matchScore || 0;
     const scoreText = `${Math.round(score)}%`;
     
-    // Update button with score
+    // Update button with score and click handler to open extension popup
     button.innerHTML = `
       <div style="
         position: fixed;
@@ -2419,7 +2419,7 @@ class AutoJobrContentScript {
         z-index: 10000;
         transition: all 0.3s ease;
         animation: pulse 2s infinite;
-      " title="Job Match: ${scoreText} - Click to open extension">
+      " title="Job Match: ${scoreText} - Click to open AutoJobr extension">
         <span style="color: white; font-weight: bold; font-size: 12px; text-align: center;">
           ${scoreText}
         </span>
@@ -2436,6 +2436,34 @@ class AutoJobrContentScript {
         }
       </style>
     `;
+
+    // Add click handler to open extension popup
+    button.onclick = () => {
+      // Try to open popup, fallback to notification
+      chrome.runtime.sendMessage({ action: 'openPopup' }, (response) => {
+        if (!response?.success) {
+          // Show notification if popup couldn't be opened
+          const notification = document.createElement('div');
+          notification.style.cssText = `
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            z-index: 10001;
+            animation: fadeInUp 0.3s ease;
+          `;
+          notification.textContent = 'Click the AutoJobr extension icon in your toolbar to view details';
+          document.body.appendChild(notification);
+          
+          // Remove notification after 3 seconds
+          setTimeout(() => notification.remove(), 3000);
+        }
+      });
+    };
 
     // Store analysis data for popup use
     this.currentAnalysis = analysis;

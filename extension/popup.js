@@ -265,7 +265,23 @@ class AutoJobrPopup {
     const pageInfo = document.getElementById('pageInfo');
     const url = this.currentTab?.url || '';
     
-    // Enhanced site detection
+    // First, try to get analysis data from content script (if auto-analysis was performed)
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const analysisData = await chrome.tabs.sendMessage(tab.id, { action: 'getCurrentAnalysis' }).catch(() => null);
+      
+      if (analysisData && analysisData.success && analysisData.analysis) {
+        // Use data from automatic analysis
+        this.jobData = analysisData.jobData;
+        this.displayUnifiedAnalysis(analysisData.analysis, analysisData.jobData);
+        this.updatePageInfoWithJob(analysisData.jobData);
+        return;
+      }
+    } catch (error) {
+      console.log('No auto-analysis data available, proceeding with manual detection');
+    }
+    
+    // Fallback to manual site detection and analysis
     const supportedSites = [
       { domain: 'linkedin.com', name: 'LinkedIn', icon: '💼' },
       { domain: 'indeed.com', name: 'Indeed', icon: '🔍' },
@@ -292,7 +308,7 @@ class AutoJobrPopup {
         <div style="font-size: 12px; opacity: 0.8;">Auto-fill and job analysis available</div>
       `;
       
-      // Try to detect job details
+      // Try to detect job details manually
       await this.detectJobDetails();
       
     } else {
@@ -307,6 +323,65 @@ class AutoJobrPopup {
       
       this.disableActionButtons();
     }
+  }
+
+  updatePageInfoWithJob(jobData) {
+    const pageInfo = document.getElementById('pageInfo');
+    pageInfo.className = 'page-info supported';
+    pageInfo.innerHTML = `
+      <div class="page-info-header">
+        <div class="page-info-icon" style="background: #22c55e; color: white;">✓</div>
+        <strong>Job Detected & Analyzed</strong>
+      </div>
+      <div style="font-size: 12px; opacity: 0.8;">${jobData.title} at ${jobData.company}</div>
+    `;
+  }
+
+  displayUnifiedAnalysis(analysis, jobData) {
+    // Show job info
+    const jobInfo = document.getElementById('jobInfo');
+    const jobTitle = document.getElementById('jobTitle');
+    const jobCompany = document.getElementById('jobCompany');
+    
+    jobTitle.textContent = jobData.title || 'Job Position';
+    jobCompany.textContent = jobData.company || 'Company';
+    jobInfo.style.display = 'block';
+    
+    // Display enhanced analysis results
+    this.displayEnhancedAnalysisResults(analysis);
+  }
+
+  displayEnhancedAnalysisResults(analysis) {
+    const scoreSection = document.getElementById('scoreSection');
+    const matchScore = document.getElementById('matchScore');
+    const scoreFill = document.getElementById('scoreFill');
+
+    const score = analysis.matchScore || analysis.analysis?.matchScore || 0;
+    matchScore.textContent = `${Math.round(score)}%`;
+    
+    // Animate score fill
+    setTimeout(() => {
+      scoreFill.style.width = `${score}%`;
+    }, 100);
+    
+    scoreSection.style.display = 'block';
+
+    // Update colors based on score
+    let color = '#ef4444';
+    if (score >= 80) color = '#22c55e';
+    else if (score >= 60) color = '#f59e0b';
+    else if (score >= 40) color = '#f97316';
+
+    scoreFill.style.background = `linear-gradient(90deg, ${color}, ${color}cc)`;
+    matchScore.style.background = `linear-gradient(135deg, ${color}, ${color}dd)`;
+    matchScore.style.webkitBackgroundClip = 'text';
+    matchScore.style.webkitTextFillColor = 'transparent';
+    
+    // Show detailed score explanations
+    this.displayScoreExplanations(analysis);
+    
+    // Log analysis for debugging
+    console.log('Enhanced Analysis Results:', analysis);
   }
 
   async detectJobDetails() {
