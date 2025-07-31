@@ -53,10 +53,10 @@ export async function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === 'production', // Secure in production
+      secure: false, // Set to false for HTTP connections on VM
       httpOnly: true,
       maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year for persistent extension auth
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Cross-origin for extension
+      sameSite: 'lax', // Use lax for HTTP connections
       domain: undefined, // Let it default to the request domain
     },
     name: 'autojobr.sid', // Custom session name
