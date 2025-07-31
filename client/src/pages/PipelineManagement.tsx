@@ -1,4 +1,87 @@
-import { useState, useEffect } from "react";
+// --- Enhanced, insightful NLP analysis utility ---
+function analyzeApplicantNLP(app: any): Partial<Application> {
+  // Combine all available text fields
+  const text = [
+    app.recruiterNotes,
+    app.applicantName,
+    app.applicantEmail,
+    app.applicantLocation,
+    app.applicantEducation,
+    app.applicantExperience,
+    app.applicantSkills,
+    app.jobPostingTitle,
+    app.jobPostingCompany,
+    app.jobPostingLocation
+  ].filter(Boolean).join(" ").toLowerCase();
+
+  // Skills extraction
+  const skillsList = [
+    "javascript", "typescript", "react", "node", "python", "java", "c++", "sql", "aws", "docker", "css", "html", "machine learning", "data", "api", "cloud", "devops", "testing", "leadership", "communication", "project management", "design", "sales", "marketing", "finance", "security", "linux", "windows", "mobile", "android", "ios"
+  ];
+  const foundSkills = skillsList.filter(skill => text.includes(skill));
+
+  // Education extraction (simple match)
+  const educationList = ["bachelor", "master", "phd", "b.sc", "m.sc", "mba", "btech", "mtech", "b.e", "m.e", "ba", "ma"];
+  const foundEducation = educationList.filter(edu => text.includes(edu));
+
+  // Experience extraction (look for years)
+  let yearsExp = 0;
+  const expMatch = text.match(/(\d+)\s*(\+)?\s*(years|yrs|year|yr)/);
+  if (expMatch) {
+    yearsExp = parseInt(expMatch[1], 10);
+  }
+
+  // Location match (city/state/country)
+  let locationMatch = false;
+  if (app.applicantLocation && app.jobPostingLocation) {
+    locationMatch = app.jobPostingLocation.toLowerCase().includes(app.applicantLocation.toLowerCase()) || app.applicantLocation.toLowerCase().includes(app.jobPostingLocation.toLowerCase());
+  }
+
+  // Company match (current or previous)
+  let companyMatch = false;
+  if (app.jobPostingCompany && text.includes(app.jobPostingCompany.toLowerCase())) {
+    companyMatch = true;
+  }
+
+  // Simulate fit score: skills, education, experience, location, company
+  let fitScore = 0;
+  fitScore += foundSkills.length * 12; // up to 60
+  fitScore += foundEducation.length > 0 ? 10 : 0;
+  fitScore += yearsExp >= 5 ? 10 : yearsExp >= 2 ? 5 : 0;
+  fitScore += locationMatch ? 10 : 0;
+  fitScore += companyMatch ? 10 : 0;
+  fitScore = Math.min(100, fitScore);
+
+  // Insights
+  let nlpInsights = [];
+  if (foundSkills.length > 0) nlpInsights.push(`Skills: ${foundSkills.join(", ")}`);
+  if (foundEducation.length > 0) nlpInsights.push(`Education: ${foundEducation.join(", ")}`);
+  if (yearsExp > 0) nlpInsights.push(`Experience: ${yearsExp} years`);
+  if (locationMatch) nlpInsights.push("Location matches job");
+  if (companyMatch) nlpInsights.push("Has experience at target company");
+  if (fitScore >= 80) nlpInsights.push("Excellent overall fit");
+  else if (fitScore >= 60) nlpInsights.push("Good fit");
+  else if (fitScore > 0) nlpInsights.push("Some relevant background");
+  else nlpInsights.push("No strong match detected");
+
+  // Job match highlights
+  const jobMatchHighlights = [];
+  if (foundSkills.length > 0) jobMatchHighlights.push(`Skills matched: ${foundSkills.join(", ")}`);
+  if (foundEducation.length > 0) jobMatchHighlights.push(`Education matched: ${foundEducation.join(", ")}`);
+  if (yearsExp > 0) jobMatchHighlights.push(`Experience: ${yearsExp} years`);
+  if (locationMatch) jobMatchHighlights.push("Location is a match");
+  if (companyMatch) jobMatchHighlights.push("Company experience match");
+  if (fitScore >= 80) jobMatchHighlights.push("Profile closely matches job requirements.");
+  if (fitScore < 40) jobMatchHighlights.push("Consider for other roles or further screening.");
+
+  return {
+    fitScore,
+    nlpInsights: nlpInsights.join(". "),
+    topSkills: foundSkills,
+    jobMatchHighlights
+  };
+}
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,6 +144,10 @@ interface Application {
   stage: string;
   score?: number;
   lastActivity: string;
+  fitScore?: number; // NLP fit score 0-100
+  nlpInsights?: string; // NLP summary/insights
+  topSkills?: string[]; // NLP extracted skills
+  jobMatchHighlights?: string[]; // NLP job match highlights
   candidate: {
     id: string;
     name: string;
@@ -149,6 +236,7 @@ export default function PipelineManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [selectedNlpApplication, setSelectedNlpApplication] = useState<Application | null>(null); // For NLP modal
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedJobFilter, setSelectedJobFilter] = useState<string>("all");
   const [selectedStageFilter, setSelectedStageFilter] = useState<string>("all");
@@ -183,28 +271,32 @@ export default function PipelineManagement() {
   // Organize applications by stage
   useEffect(() => {
     if (applications.length > 0) {
-      // Transform flat data structure to nested format expected by frontend
-      const transformedApplications = applications.map((app: any) => ({
-        ...app,
-        candidate: {
-          id: app.applicantId,
-          name: app.applicantName,
-          email: app.applicantEmail,
-          phone: app.applicantPhone,
-          location: app.applicantLocation,
-          profileImageUrl: app.applicantProfileImageUrl,
-        },
-        job: {
-          id: app.jobPostingId,
-          title: app.jobPostingTitle,
-          company: app.jobPostingCompany,
-          location: app.jobPostingLocation,
-        },
-        stage: app.stage || "applied",
-        lastActivity: app.updatedAt || app.appliedAt,
-        userId: app.applicantId,
-        appliedAt: app.appliedAt,
-      }));
+      // Transform flat data structure to nested format expected by frontend, and enrich with NLP
+      const transformedApplications = applications.map((app: any) => {
+        const nlp = analyzeApplicantNLP(app);
+        return {
+          ...app,
+          ...nlp,
+          candidate: {
+            id: app.applicantId,
+            name: app.applicantName,
+            email: app.applicantEmail,
+            phone: app.applicantPhone,
+            location: app.applicantLocation,
+            profileImageUrl: app.applicantProfileImageUrl,
+          },
+          job: {
+            id: app.jobPostingId,
+            title: app.jobPostingTitle,
+            company: app.jobPostingCompany,
+            location: app.jobPostingLocation,
+          },
+          stage: app.stage || "applied",
+          lastActivity: app.updatedAt || app.appliedAt,
+          userId: app.applicantId,
+          appliedAt: app.appliedAt,
+        };
+      });
 
       const updatedStages = defaultStages.map(stage => ({
         ...stage,
@@ -272,7 +364,7 @@ export default function PipelineManagement() {
   });
 
   const toggleStageExpansion = (stageId: string) => {
-    setExpandedStages(prev => {
+    setExpandedStages((prev: Set<string>) => {
       const newSet = new Set(prev);
       if (newSet.has(stageId)) {
         newSet.delete(stageId);
@@ -296,35 +388,38 @@ export default function PipelineManagement() {
     sendInterviewInviteMutation.mutate(assignmentData);
   };
 
-  const filteredStages = pipelineStages.map(stage => ({
+  // Add a "Top Matches" filter using fitScore
+  const [showTopMatches, setShowTopMatches] = useState(false);
+  const filteredStages = pipelineStages.map((stage: PipelineStage) => ({
     ...stage,
-    applications: stage.applications.filter(app => {
-      // Add null checks to prevent errors
-      if (!app.candidate || !app.job) {
-        return false;
-      }
-      
-      const matchesSearch = searchTerm === "" || 
-        app.candidate.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.candidate.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.job.title?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesJob = selectedJobFilter === "all" || 
-        app.jobPostingId.toString() === selectedJobFilter;
-      
-      return matchesSearch && matchesJob;
-    })
-  })).filter(stage => 
+    applications: stage.applications
+      .filter((app: Application) => {
+        if (!app.candidate || !app.job) return false;
+        const matchesSearch = searchTerm === "" || 
+          app.candidate.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          app.candidate.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          app.job.title?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesJob = selectedJobFilter === "all" || 
+          app.jobPostingId.toString() === selectedJobFilter;
+        return matchesSearch && matchesJob;
+      })
+      .sort((a: Application, b: Application) => {
+        // Sort by fitScore descending if showTopMatches is enabled
+        if (showTopMatches) {
+          return (b.fitScore || 0) - (a.fitScore || 0);
+        }
+        return 0;
+      })
+  })).filter((stage: PipelineStage) => 
     selectedStageFilter === "all" || stage.id === selectedStageFilter
   );
 
   const getStageStats = () => {
     const totalApplications = applications.length;
-    const hiredCount = pipelineStages.find(s => s.id === "hired")?.count || 0;
-    const rejectedCount = pipelineStages.find(s => s.id === "rejected")?.count || 0;
+    const hiredCount = pipelineStages.find((s: PipelineStage) => s.id === "hired")?.count || 0;
+    const rejectedCount = pipelineStages.find((s: PipelineStage) => s.id === "rejected")?.count || 0;
     const activeCount = totalApplications - hiredCount - rejectedCount;
     const conversionRate = totalApplications > 0 ? ((hiredCount / totalApplications) * 100).toFixed(1) : "0";
-    
     return { totalApplications, hiredCount, rejectedCount, activeCount, conversionRate };
   };
 
@@ -338,21 +433,19 @@ export default function PipelineManagement() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Pipeline Management</h1>
-            <p className="text-gray-600 dark:text-gray-400">Track and manage your recruitment pipeline</p>
+            <p className="text-gray-600 dark:text-gray-400">Track and manage your recruitment pipeline with AI-powered insights</p>
           </div>
-          
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <Input
                 placeholder="Search candidates..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                 className="w-64"
               />
               <Search className="h-5 w-5 text-gray-400" />
             </div>
-            
-            <Select value={selectedJobFilter} onValueChange={setSelectedJobFilter}>
+              <Select value={selectedJobFilter} onValueChange={(v: string) => setSelectedJobFilter(v)}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filter by job" />
               </SelectTrigger>
@@ -365,8 +458,7 @@ export default function PipelineManagement() {
                 ))}
               </SelectContent>
             </Select>
-            
-            <Select value={selectedStageFilter} onValueChange={setSelectedStageFilter}>
+              <Select value={selectedStageFilter} onValueChange={(v: string) => setSelectedStageFilter(v)}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filter by stage" />
               </SelectTrigger>
@@ -379,6 +471,13 @@ export default function PipelineManagement() {
                 ))}
               </SelectContent>
             </Select>
+            <Button
+              variant={showTopMatches ? "default" : "outline"}
+              onClick={() => setShowTopMatches((v) => !v)}
+              className="ml-2"
+            >
+              {showTopMatches ? "Showing Top Matches" : "Top Matches"}
+            </Button>
           </div>
         </div>
 
@@ -491,152 +590,227 @@ export default function PipelineManagement() {
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {stage.applications.map((application) => (
-                        <div key={application.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
-                                {application.candidate?.name?.charAt(0) || '?'}
-                              </div>
-                              <div>
-                                <h4 className="font-semibold text-gray-900 dark:text-white">
-                                  {application.candidate?.name || 'Unknown Candidate'}
-                                </h4>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">
-                                  {application.candidate?.email || 'No email provided'}
-                                </p>
-                                <div className="flex items-center gap-4 mt-1">
-                                  <span className="text-sm text-gray-500">
-                                    Applied to: {application.job?.title || 'Unknown Position'}
-                                  </span>
-                                  <span className="text-sm text-gray-500">
-                                    {new Date(application.appliedAt).toLocaleDateString()}
-                                  </span>
+                      {stage.applications.map((application: Application, idx: number) => {
+                        // Highlight top 3 matches if showTopMatches is enabled
+                        const isTopMatch = showTopMatches && idx < 3 && (application.fitScore || 0) > 0;
+                        return (
+                          <div
+                            key={application.id}
+                            className={`p-6 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${isTopMatch ? 'ring-2 ring-emerald-400 bg-emerald-50 dark:bg-emerald-900' : ''}`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
+                                  {application.candidate?.name?.charAt(0) || '?'}
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold text-gray-900 dark:text-white">
+                                    {application.candidate?.name || 'Unknown Candidate'}
+                                  </h4>
+                                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    {application.candidate?.email || 'No email provided'}
+                                  </p>
+                                  <div className="flex items-center gap-4 mt-1 flex-wrap">
+                                    <span className="text-sm text-gray-500">
+                                      Applied to: {application.job?.title || 'Unknown Position'}
+                                    </span>
+                                    <span className="text-sm text-gray-500">
+                                      {new Date(application.appliedAt).toLocaleDateString()}
+                                    </span>
+                                    {application.topSkills && application.topSkills.length > 0 && (
+                                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded ml-2">
+                                        Top Skills: {application.topSkills.slice(0, 3).join(', ')}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-2">
-                              {application.score && (
-                                <Badge variant="outline" className="mr-2">
-                                  Score: {application.score}%
-                                </Badge>
-                              )}
-                              
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={() => setSelectedApplication(application)}
-                                  >
-                                    <Video className="h-4 w-4 mr-2" />
-                                    Send Interview Invite
+                              <div className="flex items-center gap-2">
+                                {/* NLP Fit Score */}
+                                {application.fitScore !== undefined && (
+                                  <Badge variant={application.fitScore > 80 ? "success" : application.fitScore > 60 ? "default" : "outline"} className="mr-2 cursor-pointer" onClick={() => setSelectedNlpApplication(application)}>
+                                    Fit Score: {application.fitScore}%
+                                  </Badge>
+                                )}
+                                {/* NLP Insights Tooltip */}
+                                {application.nlpInsights && (
+                                  <Button variant="ghost" size="icon" title="View AI Insights" onClick={() => setSelectedNlpApplication(application)}>
+                                    <BarChart3 className="h-4 w-4 text-blue-500" />
                                   </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-md">
-                                  <DialogHeader>
-                                    <DialogTitle>Send Interview Invitation</DialogTitle>
-                                  </DialogHeader>
-                                  <div className="space-y-4">
-                                    <div>
-                                      <Label>Assignment Type</Label>
-                                      <Select 
-                                        value={interviewAssignmentData.assignmentType} 
-                                        onValueChange={(value) => 
-                                          setInterviewAssignmentData(prev => ({ ...prev, assignmentType: value }))
-                                        }
-                                      >
-                                        <SelectTrigger>
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="virtual">Virtual AI Interview</SelectItem>
-                                          <SelectItem value="mock">Mock Coding Test</SelectItem>
-                                          <SelectItem value="test">Test Assignment</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-                                    
-                                    <div>
-                                      <Label>Role</Label>
-                                      <Input 
-                                        value={interviewAssignmentData.role}
-                                        onChange={(e) => 
-                                          setInterviewAssignmentData(prev => ({ ...prev, role: e.target.value }))
-                                        }
-                                        placeholder="e.g., Senior Frontend Developer"
-                                      />
-                                    </div>
-                                    
-                                    <div>
-                                      <Label>Due Date</Label>
-                                      <Input 
-                                        type="datetime-local"
-                                        value={interviewAssignmentData.dueDate}
-                                        onChange={(e) => 
-                                          setInterviewAssignmentData(prev => ({ ...prev, dueDate: e.target.value }))
-                                        }
-                                      />
-                                    </div>
-                                    
-                                    <div>
-                                      <Label>Instructions</Label>
-                                      <Textarea 
-                                        value={interviewAssignmentData.instructions}
-                                        onChange={(e) => 
-                                          setInterviewAssignmentData(prev => ({ ...prev, instructions: e.target.value }))
-                                        }
-                                        placeholder="Additional instructions for the candidate..."
-                                        rows={3}
-                                      />
-                                    </div>
-                                    
+                                )}
+                                {/* Score (legacy) */}
+                                {application.score && (
+                                  <Badge variant="outline" className="mr-2">
+                                    Score: {application.score}%
+                                  </Badge>
+                                )}
+                                {/* Interview Invite */}
+                                <Dialog>
+                                  <DialogTrigger asChild>
                                     <Button 
-                                      onClick={handleSendInterviewInvite}
-                                      className="w-full"
-                                      disabled={sendInterviewInviteMutation.isPending}
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => setSelectedApplication(application)}
                                     >
-                                      {sendInterviewInviteMutation.isPending ? (
-                                        <>
-                                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                                          Sending...
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Send className="h-4 w-4 mr-2" />
-                                          Send Invitation
-                                        </>
-                                      )}
+                                      <Video className="h-4 w-4 mr-2" />
+                                      Send Interview Invite
                                     </Button>
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
-                              
-                              <Select 
-                                value={application.stage || "applied"}
-                                onValueChange={(newStage) => 
-                                  moveApplicationMutation.mutate({
-                                    applicationId: application.id,
-                                    newStage
-                                  })
-                                }
-                              >
-                                <SelectTrigger className="w-40">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {defaultStages.map((stage) => (
-                                    <SelectItem key={stage.id} value={stage.id}>
-                                      {stage.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-md">
+                                    <DialogHeader>
+                                      <DialogTitle>Send Interview Invitation</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="space-y-4">
+                                      <div>
+                                        <Label>Assignment Type</Label>
+                                        <Select 
+                                          value={interviewAssignmentData.assignmentType} 
+                                          onValueChange={(value) => 
+                                            setInterviewAssignmentData(prev => ({ ...prev, assignmentType: value }))
+                                          }
+                                        >
+                                          <SelectTrigger>
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="virtual">Virtual AI Interview</SelectItem>
+                                            <SelectItem value="mock">Mock Coding Test</SelectItem>
+                                            <SelectItem value="test">Test Assignment</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div>
+                                        <Label>Role</Label>
+                                        <Input 
+                                          value={interviewAssignmentData.role}
+                                          onChange={(e) => 
+                                            setInterviewAssignmentData(prev => ({ ...prev, role: e.target.value }))
+                                          }
+                                          placeholder="e.g., Senior Frontend Developer"
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label>Due Date</Label>
+                                        <Input 
+                                          type="datetime-local"
+                                          value={interviewAssignmentData.dueDate}
+                                          onChange={(e) => 
+                                            setInterviewAssignmentData(prev => ({ ...prev, dueDate: e.target.value }))
+                                          }
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label>Instructions</Label>
+                                        <Textarea 
+                                          value={interviewAssignmentData.instructions}
+                                          onChange={(e) => 
+                                            setInterviewAssignmentData(prev => ({ ...prev, instructions: e.target.value }))
+                                          }
+                                          placeholder="Additional instructions for the candidate..."
+                                          rows={3}
+                                        />
+                                      </div>
+                                      <Button 
+                                        onClick={handleSendInterviewInvite}
+                                        className="w-full"
+                                        disabled={sendInterviewInviteMutation.isPending}
+                                      >
+                                        {sendInterviewInviteMutation.isPending ? (
+                                          <>
+                                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                            Sending...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Send className="h-4 w-4 mr-2" />
+                                            Send Invitation
+                                          </>
+                                        )}
+                                      </Button>
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
+                                {/* Move Stage */}
+                                <Select 
+                                  value={application.stage || "applied"}
+                                  onValueChange={(newStage) => 
+                                    moveApplicationMutation.mutate({
+                                      applicationId: application.id,
+                                      newStage
+                                    })
+                                  }
+                                >
+                                  <SelectTrigger className="w-40">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {defaultStages.map((stage) => (
+                                      <SelectItem key={stage.id} value={stage.id}>
+                                        {stage.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        );
+                      })}
+        {/* NLP Analysis Modal */}
+        {selectedNlpApplication && (
+          <Dialog open={!!selectedNlpApplication} onOpenChange={() => setSelectedNlpApplication(null)}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>AI Candidate Analysis</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
+                    {selectedNlpApplication.candidate?.name?.charAt(0) || '?'}
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 dark:text-white">
+                      {selectedNlpApplication.candidate?.name || 'Unknown Candidate'}
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {selectedNlpApplication.candidate?.email || 'No email provided'}
+                    </p>
+                  </div>
+                </div>
+                {selectedNlpApplication.fitScore !== undefined && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant={selectedNlpApplication.fitScore > 80 ? "success" : selectedNlpApplication.fitScore > 60 ? "default" : "outline"}>
+                      Fit Score: {selectedNlpApplication.fitScore}%
+                    </Badge>
+                  </div>
+                )}
+                {selectedNlpApplication.nlpInsights && (
+                  <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-sm">
+                    <strong>AI Insights:</strong> {selectedNlpApplication.nlpInsights}
+                  </div>
+                )}
+                {selectedNlpApplication.topSkills && selectedNlpApplication.topSkills.length > 0 && (
+                  <div>
+                    <strong>Top Skills:</strong> {selectedNlpApplication.topSkills.join(', ')}
+                  </div>
+                )}
+                {selectedNlpApplication.jobMatchHighlights && selectedNlpApplication.jobMatchHighlights.length > 0 && (
+                  <div>
+                    <strong>Job Match Highlights:</strong>
+                    <ul className="list-disc ml-6">
+                      {selectedNlpApplication.jobMatchHighlights.map((h, i) => (
+                        <li key={i}>{h}</li>
                       ))}
+                    </ul>
+                  </div>
+                )}
+                <Button className="w-full mt-2" onClick={() => setSelectedNlpApplication(null)}>
+                  Close
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
                     </div>
                   )}
                 </CardContent>
