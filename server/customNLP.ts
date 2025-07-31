@@ -1,14 +1,15 @@
-// Custom NLP Service for Job Analysis
-// Replaces Groq dependency with native text processing
+// Enhanced Custom NLP Service for Job Analysis
+// Improved accuracy, comprehensive analysis, and better maintainability
 
 interface JobAnalysisResult {
   matchScore: number;
-  matchingSkills: string[];
-  missingSkills: string[];
+  confidenceLevel: 'high' | 'medium' | 'low';
+  matchingSkills: SkillMatch[];
+  missingSkills: SkillGap[];
   skillGaps: {
-    critical: string[];
-    important: string[];
-    nice_to_have: string[];
+    critical: SkillGap[];
+    important: SkillGap[];
+    nice_to_have: SkillGap[];
   };
   seniorityLevel: string;
   workMode: string;
@@ -17,364 +18,791 @@ interface JobAnalysisResult {
   careerProgression: string;
   industryFit: string;
   cultureFit: string;
-  applicationRecommendation: string;
-  tailoringAdvice: string;
-  interviewPrepTips: string;
-  salary?: {
-    min: number;
-    max: number;
-    currency: string;
-  };
-  extractedData: {
-    title: string;
-    company: string;
-    location: string;
-    requiredSkills: string[];
-    qualifications: string[];
-    benefits: string[];
+  applicationRecommendation: ApplicationRecommendation;
+  tailoringAdvice: string[];
+  interviewPrepTips: string[];
+  riskFactors: string[];
+  growthOpportunities: string[];
+  salary?: SalaryInfo;
+  extractedData: ExtractedJobData;
+  analysisMetadata: AnalysisMetadata;
+}
+
+interface SkillMatch {
+  skill: string;
+  userSkill?: string;
+  matchType: 'exact' | 'partial' | 'synonym' | 'related';
+  relevance: 'high' | 'medium' | 'low';
+  yearsExperience?: number;
+}
+
+interface SkillGap {
+  skill: string;
+  category: 'technical' | 'soft' | 'domain' | 'certification';
+  priority: 'critical' | 'important' | 'nice_to_have';
+  learningTime: string;
+  alternatives?: string[];
+}
+
+interface ApplicationRecommendation {
+  action: 'strongly_recommended' | 'recommended' | 'consider_with_preparation' | 'needs_development' | 'not_suitable';
+  reasoning: string[];
+  timeline?: string;
+  preparationSteps?: string[];
+}
+
+interface SalaryInfo {
+  min?: number;
+  max?: number;
+  currency: string;
+  isEstimated: boolean;
+  source: 'description' | 'inferred';
+  marketRate?: {
+    percentile: number;
+    comparison: 'above' | 'at' | 'below';
   };
 }
 
-export class CustomNLPService {
-  
-  // Technical skill patterns for matching
-  private technicalSkills = [
-    // Programming Languages
-    'javascript', 'typescript', 'python', 'java', 'c#', 'c++', 'php', 'ruby', 'go', 'rust', 'scala', 'kotlin', 'swift', 'dart',
-    
-    // Web Technologies
-    'react', 'angular', 'vue', 'svelte', 'nextjs', 'nuxt', 'gatsby', 'ember', 'backbone', 'jquery',
-    'html', 'css', 'scss', 'sass', 'less', 'bootstrap', 'tailwind', 'materialui', 'chakraui',
-    
-    // Backend/Server
-    'nodejs', 'express', 'nestjs', 'fastify', 'koa', 'spring', 'django', 'flask', 'rails', 'laravel', 'symfony',
-    
-    // Databases
-    'mysql', 'postgresql', 'mongodb', 'redis', 'elasticsearch', 'cassandra', 'dynamodb', 'sqlite', 'oracle',
-    
-    // Cloud & DevOps
-    'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'jenkins', 'gitlab', 'github actions', 'terraform', 'ansible',
-    
-    // Tools & Frameworks
-    'git', 'webpack', 'vite', 'babel', 'eslint', 'prettier', 'jest', 'cypress', 'selenium', 'postman',
-    
-    // Mobile
-    'react native', 'flutter', 'ionic', 'xamarin', 'android', 'ios', 'swift', 'kotlin',
-    
-    // Data Science
-    'pandas', 'numpy', 'scipy', 'tensorflow', 'pytorch', 'scikit-learn', 'r', 'matlab', 'tableau', 'powerbi'
-  ];
+interface ExtractedJobData {
+  title: string;
+  normalizedTitle: string;
+  company: string;
+  location: string;
+  isRemote: boolean;
+  requiredSkills: ParsedSkill[];
+  preferredSkills: ParsedSkill[];
+  qualifications: Qualification[];
+  benefits: string[];
+  responsibilities: string[];
+  teamSize?: number;
+  reportingStructure?: string;
+  industry?: string;
+  companyStage?: string;
+}
 
-  private softSkills = [
-    'leadership', 'communication', 'teamwork', 'problem solving', 'analytical thinking', 'creativity',
-    'adaptability', 'time management', 'project management', 'mentoring', 'collaboration', 'negotiation'
-  ];
+interface ParsedSkill {
+  name: string;
+  category: 'technical' | 'soft' | 'domain' | 'certification';
+  isRequired: boolean;
+  yearsRequired?: number;
+  context?: string;
+  alternatives?: string[];
+}
 
-  private experienceLevels = {
-    'junior|entry|graduate|intern': 'Entry Level',
-    'mid|intermediate|associate': 'Mid Level', 
-    'senior|lead|principal': 'Senior Level',
-    'manager|director|vp|cto|ceo': 'Executive Level'
+interface Qualification {
+  type: 'education' | 'experience' | 'certification' | 'other';
+  requirement: string;
+  isRequired: boolean;
+  alternatives?: string[];
+}
+
+interface AnalysisMetadata {
+  processingTime: number;
+  textLength: number;
+  extractionConfidence: number;
+  version: string;
+  timestamp: Date;
+}
+
+export class EnhancedNLPService {
+  private readonly version = '2.0.0';
+
+  // Comprehensive skill taxonomy with categories and weights for ALL professions
+  private readonly skillTaxonomy = {
+    // TECHNICAL SKILLS
+    programming: {
+      weight: 3.0,
+      skills: [
+        'javascript', 'typescript', 'python', 'java', 'c#', 'c++', 'php', 'ruby', 'go', 'rust', 
+        'scala', 'kotlin', 'swift', 'dart', 'r', 'matlab', 'perl', 'shell', 'bash', 'powershell'
+      ]
+    },
+    frontend: {
+      weight: 2.8,
+      skills: [
+        'react', 'angular', 'vue', 'svelte', 'nextjs', 'nuxt', 'gatsby', 'ember', 'backbone',
+        'html5', 'css3', 'scss', 'sass', 'less', 'bootstrap', 'tailwind', 'materialui', 'chakraui',
+        'webpack', 'vite', 'parcel', 'rollup', 'babel', 'eslint', 'prettier'
+      ]
+    },
+    // SALES SKILLS
+    sales: {
+      weight: 3.0,
+      skills: [
+        'salesforce', 'crm', 'hubspot', 'pipedrive', 'lead generation', 'prospecting', 'cold calling',
+        'lead qualification', 'sales funnel', 'account management', 'relationship building', 'negotiation',
+        'closing techniques', 'consultative selling', 'solution selling', 'b2b sales', 'b2c sales',
+        'inside sales', 'outside sales', 'territory management', 'sales forecasting', 'quota attainment',
+        'pipeline management', 'customer retention', 'upselling', 'cross-selling', 'sales presentations',
+        'demo delivery', 'proposal writing', 'contract negotiation', 'sales analytics', 'competitive analysis'
+      ]
+    },
+    // MARKETING SKILLS
+    marketing: {
+      weight: 3.0,
+      skills: [
+        'digital marketing', 'content marketing', 'social media marketing', 'email marketing', 'seo', 'sem',
+        'ppc advertising', 'google ads', 'facebook ads', 'linkedin ads', 'instagram marketing', 'twitter marketing',
+        'marketing automation', 'lead nurturing', 'customer segmentation', 'market research', 'brand management',
+        'product marketing', 'campaign management', 'analytics', 'google analytics', 'marketing metrics',
+        'conversion optimization', 'a/b testing', 'landing page optimization', 'copywriting', 'creative direction',
+        'graphic design', 'video marketing', 'influencer marketing', 'affiliate marketing', 'marketing strategy',
+        'marketing planning', 'budget management', 'roi analysis', 'customer acquisition', 'retention marketing'
+      ]
+    },
+    // HR/HUMAN RESOURCES SKILLS
+    hr: {
+      weight: 3.0,
+      skills: [
+        'recruiting', 'talent acquisition', 'interviewing', 'candidate screening', 'applicant tracking systems',
+        'ats', 'workday', 'bamboohr', 'greenhouse', 'lever', 'employee relations', 'performance management',
+        'compensation', 'benefits administration', 'payroll', 'hris', 'hr analytics', 'workforce planning',
+        'organizational development', 'training and development', 'onboarding', 'employee engagement',
+        'diversity and inclusion', 'compliance', 'employment law', 'policy development', 'conflict resolution',
+        'change management', 'succession planning', 'talent management', 'employer branding', 'hr strategy',
+        'exit interviews', 'retention strategies', 'hr metrics', 'people analytics', 'culture development'
+      ]
+    },
+    // FINANCE SKILLS
+    finance: {
+      weight: 3.0,
+      skills: [
+        'financial analysis', 'financial modeling', 'budgeting', 'forecasting', 'accounting', 'bookkeeping',
+        'financial reporting', 'tax preparation', 'audit', 'compliance', 'risk management', 'investment analysis',
+        'portfolio management', 'trading', 'derivatives', 'fixed income', 'equity research', 'valuation',
+        'mergers and acquisitions', 'corporate finance', 'treasury', 'cash flow management', 'credit analysis',
+        'loan underwriting', 'financial planning', 'wealth management', 'insurance', 'banking', 'fintech',
+        'excel', 'quickbooks', 'sage', 'bloomberg', 'reuters', 'sql', 'tableau', 'power bi'
+      ]
+    },
+    // HEALTHCARE SKILLS
+    healthcare: {
+      weight: 3.0,
+      skills: [
+        'patient care', 'clinical assessment', 'medical diagnosis', 'treatment planning', 'medication administration',
+        'electronic health records', 'ehr', 'epic', 'cerner', 'medical coding', 'icd-10', 'cpt', 'hipaa',
+        'patient safety', 'infection control', 'medical equipment', 'laboratory procedures', 'radiology',
+        'nursing', 'physician assistant', 'medical assistant', 'pharmacy', 'physical therapy', 'occupational therapy',
+        'speech therapy', 'medical research', 'clinical trials', 'healthcare administration', 'medical billing',
+        'healthcare analytics', 'telemedicine', 'public health', 'epidemiology', 'biostatistics'
+      ]
+    },
+    // OPERATIONS SKILLS  
+    operations: {
+      weight: 2.8,
+      skills: [
+        'project management', 'process improvement', 'lean manufacturing', 'six sigma', 'supply chain',
+        'logistics', 'inventory management', 'quality assurance', 'quality control', 'vendor management',
+        'procurement', 'contract management', 'operations planning', 'capacity planning', 'resource allocation',
+        'workflow optimization', 'standard operating procedures', 'continuous improvement', 'kaizen',
+        'operations research', 'data analysis', 'performance metrics', 'kpi tracking', 'cost reduction',
+        'efficiency optimization', 'automation', 'facility management', 'safety management', 'compliance'
+      ]
+    },
+    // CUSTOMER SERVICE SKILLS
+    customer_service: {
+      weight: 2.8,
+      skills: [
+        'customer support', 'customer success', 'technical support', 'help desk', 'call center', 'live chat',
+        'email support', 'ticket management', 'customer satisfaction', 'problem solving', 'conflict resolution',
+        'active listening', 'empathy', 'communication skills', 'product knowledge', 'troubleshooting',
+        'escalation management', 'customer retention', 'customer feedback', 'service recovery', 'crm systems',
+        'zendesk', 'freshdesk', 'intercom', 'salesforce service cloud', 'customer journey mapping',
+        'service level agreements', 'response time optimization', 'customer analytics', 'voice of customer'
+      ]
+    },
+    // SOFT SKILLS - Universal across professions
+    soft_skills: {
+      weight: 2.5,
+      skills: [
+        'leadership', 'communication', 'teamwork', 'problem solving', 'critical thinking', 'creativity',
+        'time management', 'organization', 'adaptability', 'flexibility', 'collaboration', 'presentation',
+        'public speaking', 'writing', 'research', 'analytical thinking', 'decision making', 'emotional intelligence',
+        'conflict management', 'mentoring', 'coaching', 'delegation', 'strategic thinking', 'innovation',
+        'change management', 'cross-functional collaboration', 'stakeholder management', 'project coordination'
+      ]
+    },
+    backend: {
+      weight: 2.9,
+      skills: [
+        'nodejs', 'express', 'nestjs', 'fastify', 'koa', 'spring', 'springboot', 'django', 'flask',
+        'rails', 'laravel', 'symfony', 'asp.net', 'fastapi', 'gin', 'fiber', 'actix'
+      ]
+    },
+    database: {
+      weight: 2.7,
+      skills: [
+        'mysql', 'postgresql', 'mongodb', 'redis', 'elasticsearch', 'cassandra', 'dynamodb',
+        'sqlite', 'oracle', 'mssql', 'neo4j', 'influxdb', 'firebase', 'supabase'
+      ]
+    },
+    cloud: {
+      weight: 2.9,
+      skills: [
+        'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'terraform', 'ansible', 'jenkins',
+        'gitlab ci', 'github actions', 'circleci', 'helm', 'istio', 'prometheus', 'grafana'
+      ]
+    },
+    mobile: {
+      weight: 2.6,
+      skills: [
+        'react native', 'flutter', 'ionic', 'xamarin', 'android', 'ios', 'swift', 'kotlin',
+        'cordova', 'phonegap', 'unity', 'unreal'
+      ]
+    },
+    dataScience: {
+      weight: 3.0,
+      skills: [
+        'pandas', 'numpy', 'scipy', 'tensorflow', 'pytorch', 'scikit-learn', 'keras',
+        'jupyter', 'tableau', 'powerbi', 'spark', 'hadoop', 'airflow', 'dbt'
+      ]
+    },
+    testing: {
+      weight: 2.3,
+      skills: [
+        'jest', 'cypress', 'selenium', 'playwright', 'puppeteer', 'junit', 'pytest',
+        'mocha', 'jasmine', 'testng', 'cucumber', 'postman', 'insomnia'
+      ]
+    },
+    soft: {
+      weight: 2.0,
+      skills: [
+        'leadership', 'communication', 'teamwork', 'problem solving', 'analytical thinking',
+        'creativity', 'adaptability', 'time management', 'project management', 'mentoring',
+        'collaboration', 'negotiation', 'presentation', 'documentation', 'agile', 'scrum'
+      ]
+    },
+    design: {
+      weight: 2.4,
+      skills: [
+        'figma', 'sketch', 'adobe xd', 'photoshop', 'illustrator', 'ux design', 'ui design',
+        'user research', 'wireframing', 'prototyping', 'design systems', 'accessibility'
+      ]
+    }
   };
 
-  private workModeKeywords = {
-    'remote|work from home|wfh|distributed': 'Remote',
-    'hybrid|flexible|mix': 'Hybrid',
-    'onsite|office|in-person': 'Onsite',
-    'contract|freelance|consulting': 'Contract'
-  };
+  // Enhanced synonym mapping with context awareness
+  private readonly skillSynonyms = new Map([
+    ['javascript', ['js', 'ecmascript', 'es6', 'es2020', 'vanilla js']],
+    ['typescript', ['ts']],
+    ['react', ['reactjs', 'react.js', 'jsx', 'tsx']],
+    ['angular', ['angularjs', 'angular2+', 'angular cli']],
+    ['vue', ['vuejs', 'vue.js', 'nuxt']],
+    ['node', ['nodejs', 'node.js']],
+    ['postgresql', ['postgres', 'psql']],
+    ['mongodb', ['mongo', 'nosql']],
+    ['amazon web services', ['aws']],
+    ['google cloud platform', ['gcp', 'google cloud']],
+    ['microsoft azure', ['azure']],
+    ['machine learning', ['ml', 'artificial intelligence', 'ai']],
+    ['continuous integration', ['ci/cd', 'devops']],
+    ['version control', ['git', 'github', 'gitlab', 'bitbucket']],
+    ['api', ['rest api', 'restful', 'graphql', 'grpc']],
+    ['microservices', ['micro-services', 'service oriented architecture', 'soa']],
+    ['test driven development', ['tdd', 'unit testing', 'integration testing']],
+    ['agile', ['scrum', 'kanban', 'sprint planning']]
+  ]);
 
-  extractJobData(jobDescription: string): JobAnalysisResult['extractedData'] {
+  // Job title normalization patterns
+  private readonly titleNormalization = new Map([
+    [/senior|sr\.?\s+/i, 'Senior '],
+    [/junior|jr\.?\s+/i, 'Junior '],
+    [/lead\s+/i, 'Lead '],
+    [/principal\s+/i, 'Principal '],
+    [/staff\s+/i, 'Staff '],
+    [/software\s+engineer/i, 'Software Engineer'],
+    [/full\s*stack/i, 'Full Stack'],
+    [/front\s*end/i, 'Frontend'],
+    [/back\s*end/i, 'Backend'],
+    [/dev\s*ops/i, 'DevOps'],
+    [/data\s+scientist/i, 'Data Scientist'],
+    [/product\s+manager/i, 'Product Manager']
+  ]);
+
+  // Experience level patterns with more nuanced matching
+  private readonly experienceLevels = new Map([
+    [/(intern|internship|trainee|graduate|entry.level|0.1\s+years?)/i, 'Entry Level'],
+    [/(junior|associate|1.3\s+years?)/i, 'Junior Level'],
+    [/(mid.level|intermediate|3.5\s+years?)/i, 'Mid Level'],
+    [/(senior|5.8\s+years?)/i, 'Senior Level'],
+    [/(lead|principal|staff|8\+\s+years?)/i, 'Lead Level'],
+    [/(manager|director|head\s+of|vp|cto|ceo)/i, 'Management Level']
+  ]);
+
+  // Work mode detection with confidence scoring
+  private readonly workModePatterns = new Map([
+    [/(100%\s+)?remote|work\s+from\s+home|wfh|distributed|anywhere/i, 'Remote'],
+    [/hybrid|flexible|mix|part.remote|some\s+remote/i, 'Hybrid'],
+    [/on.?site|office|in.person|colocation|headquarters/i, 'Onsite'],
+    [/contract|freelance|consulting|temporary|temp|project.based/i, 'Contract']
+  ]);
+
+  // Industry classification patterns
+  private readonly industryPatterns = new Map([
+    [/fintech|financial|banking|payments|trading|insurance/i, 'Financial Technology'],
+    [/healthcare|medical|biotech|pharma|telemedicine/i, 'Healthcare & Biotech'],
+    [/e.?commerce|retail|marketplace|shopping/i, 'E-commerce & Retail'],
+    [/gaming|game|entertainment|media|streaming/i, 'Gaming & Entertainment'],
+    [/education|edtech|learning|university|school/i, 'Education Technology'],
+    [/saas|enterprise|b2b|productivity|collaboration/i, 'Enterprise Software'],
+    [/startup|early.stage|series\s+[a-c]/i, 'Startup'],
+    [/fortune\s+500|enterprise|large\s+corporation/i, 'Enterprise']
+  ]);
+
+  async analyzeJob(jobDescription: string, userProfile: any): Promise<JobAnalysisResult> {
+    const startTime = performance.now();
+
+    try {
+      // Extract and parse job data
+      const extractedData = this.extractJobData(jobDescription);
+
+      // Normalize user profile data
+      const normalizedProfile = this.normalizeUserProfile(userProfile);
+
+      // Calculate comprehensive match score
+      const matchAnalysis = this.calculateEnhancedMatchScore(
+        normalizedProfile, 
+        extractedData
+      );
+
+      // Generate detailed recommendations
+      const recommendations = this.generateRecommendations(
+        matchAnalysis, 
+        extractedData, 
+        normalizedProfile
+      );
+
+      // Calculate analysis metadata
+      const processingTime = performance.now() - startTime;
+      const analysisMetadata: AnalysisMetadata = {
+        processingTime,
+        textLength: jobDescription.length,
+        extractionConfidence: this.calculateExtractionConfidence(extractedData),
+        version: this.version,
+        timestamp: new Date()
+      };
+
+      return {
+        ...matchAnalysis,
+        ...recommendations,
+        extractedData,
+        analysisMetadata
+      };
+    } catch (error) {
+      console.error('Job analysis failed:', error);
+      throw new Error(`Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  private extractJobData(jobDescription: string): ExtractedJobData {
     const text = jobDescription.toLowerCase();
-    
-    // Extract title
-    const titlePatterns = [
-      /(?:position|role|job title|title):\s*([^\n]+)/i,
-      /(?:hiring|seeking|looking for)(?:\s+an?\s+)?([^\n]+?)(?:at|with|for)/i,
-      /^([^\n]+?)(?:\s*-\s*|$)/m
+    const originalText = jobDescription;
+
+    // Extract title with improved patterns
+    const title = this.extractTitle(originalText);
+    const normalizedTitle = this.normalizeTitle(title);
+
+    // Extract company with better detection
+    const company = this.extractCompany(originalText);
+
+    // Extract location and remote status
+    const { location, isRemote } = this.extractLocationInfo(originalText);
+
+    // Extract skills with categorization
+    const { requiredSkills, preferredSkills } = this.extractSkills(originalText);
+
+    // Extract qualifications with structured parsing
+    const qualifications = this.extractQualifications(originalText);
+
+    // Extract additional job details
+    const benefits = this.extractBenefits(originalText);
+    const responsibilities = this.extractResponsibilities(originalText);
+    const teamSize = this.extractTeamSize(originalText);
+    const industry = this.detectIndustry(originalText);
+
+    return {
+      title,
+      normalizedTitle,
+      company,
+      location,
+      isRemote,
+      requiredSkills,
+      preferredSkills,
+      qualifications,
+      benefits,
+      responsibilities,
+      teamSize,
+      industry
+    };
+  }
+
+  private extractTitle(text: string): string {
+    const patterns = [
+      /(?:job\s+title|position|role):\s*([^\n\r]+)/i,
+      /(?:hiring|seeking|looking\s+for)(?:\s+an?\s+)?([^\n\r]+?)(?:\s*(?:at|with|for|in))/i,
+      /^([^\n\r]+?)(?:\s*[-–—]\s*|$)/m,
+      /we['']?re\s+hiring\s+an?\s+([^\n\r]+)/i
     ];
-    
-    let title = 'Software Engineer'; // default
-    for (const pattern of titlePatterns) {
-      const match = jobDescription.match(pattern);
-      if (match) {
-        title = match[1].trim();
-        break;
+
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        const title = match[1].trim();
+        if (title.length > 5 && title.length < 100) {
+          return title;
+        }
       }
     }
 
-    // Extract company
-    const companyPatterns = [
-      /(?:company|organization|employer):\s*([^\n]+)/i,
-      /(?:join|at)\s+([A-Z][a-zA-Z\s&]+?)(?:\s+as|\s+in|\s*,|\s*\.)/,
-      /^([A-Z][a-zA-Z\s&]+?)\s+is\s+(?:hiring|seeking|looking)/m
+    return 'Software Engineer'; // fallback
+  }
+
+  private normalizeTitle(title: string): string {
+    let normalized = title;
+
+    for (const [pattern, replacement] of this.titleNormalization) {
+      normalized = normalized.replace(pattern, replacement);
+    }
+
+    return normalized.trim();
+  }
+
+  private extractCompany(text: string): string {
+    const patterns = [
+      /(?:company|organization|employer):\s*([^\n\r]+)/i,
+      /(?:join|at)\s+([A-Z][a-zA-Z\s&.,'-]+?)(?:\s+(?:as|in|for|where|and)|\s*[,.]|\s*$)/,
+      /^([A-Z][a-zA-Z\s&.,'-]+?)\s+is\s+(?:hiring|seeking|looking)/m,
+      /about\s+([A-Z][a-zA-Z\s&.,'-]+?):/i
     ];
-    
-    let company = 'Technology Company'; // default
-    for (const pattern of companyPatterns) {
-      const match = jobDescription.match(pattern);
-      if (match) {
-        company = match[1].trim();
-        break;
+
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        const company = match[1].trim();
+        if (company.length > 2 && company.length < 50) {
+          return company;
+        }
       }
     }
 
-    // Extract location
+    return 'Technology Company';
+  }
+
+  private extractLocationInfo(text: string): { location: string; isRemote: boolean } {
+    const remotePatterns = [
+      /100%\s+remote/i,
+      /fully\s+remote/i,
+      /work\s+from\s+(?:home|anywhere)/i,
+      /location[:\s]*remote/i
+    ];
+
+    const isRemote = remotePatterns.some(pattern => pattern.test(text));
+
+    if (isRemote) {
+      return { location: 'Remote', isRemote: true };
+    }
+
     const locationPatterns = [
-      /(?:location|based in|office in):\s*([^\n]+)/i,
-      /([A-Za-z\s,]+(?:CA|NY|TX|FL|IL|WA|MA|CO|OR|GA|NC|VA|AZ|PA|OH|MI|MN|WI|IN|TN|MO|MD|NJ|CT|UT|NV|ID|KS|AR|MS|AL|LA|OK|SC|KY|IA|WV|NH|VT|ME|RI|DE|MT|ND|SD|WY|AK|HI))/,
-      /(san francisco|new york|los angeles|chicago|boston|seattle|austin|denver|atlanta|miami|dallas|houston|phoenix|philadelphia)/i
+      /location[:\s]*([^\n\r]+)/i,
+      /based\s+in[:\s]*([^\n\r]+)/i,
+      /office\s+in[:\s]*([^\n\r]+)/i,
+      /([A-Za-z\s,]+,\s*(?:CA|NY|TX|FL|IL|WA|MA|CO|OR|GA|NC|VA|AZ|PA|OH|MI|MN|WI|IN|TN|MO|MD|NJ|CT|UT|NV|ID|KS|AR|MS|AL|LA|OK|SC|KY|IA|WV|NH|VT|ME|RI|DE|MT|ND|SD|WY|AK|HI))/,
+      /(?:san francisco|new york|los angeles|chicago|boston|seattle|austin|denver|atlanta|miami|dallas|houston|phoenix|philadelphia|portland|nashville|charlotte|columbus|indianapolis|detroit|memphis|baltimore|milwaukee|albuquerque|tucson|fresno|sacramento|kansas city|colorado springs|omaha|raleigh|miami|virginia beach|oakland|minneapolis|tulsa|cleveland|wichita|arlington)/i
     ];
-    
-    let location = 'Remote';
+
     for (const pattern of locationPatterns) {
-      const match = jobDescription.match(pattern);
-      if (match) {
-        location = match[1].trim();
-        break;
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        const location = match[1].trim();
+        if (location.length > 2 && location.length < 100) {
+          return { location, isRemote: false };
+        }
       }
     }
 
-    // Extract skills
-    const requiredSkills: string[] = [];
-    for (const skill of this.technicalSkills) {
-      const regex = new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
-      if (regex.test(jobDescription)) {
-        requiredSkills.push(skill);
+    return { location: 'Not specified', isRemote: false };
+  }
+
+  private extractSkills(text: string): { requiredSkills: ParsedSkill[]; preferredSkills: ParsedSkill[] } {
+    const requiredSkills: ParsedSkill[] = [];
+    const preferredSkills: ParsedSkill[] = [];
+
+    // Split text into sections for better context
+    const sections = this.splitIntoSections(text);
+
+    for (const [category, skillData] of Object.entries(this.skillTaxonomy)) {
+      for (const skill of skillData.skills) {
+        const skillInfo = this.findSkillInText(skill, text, sections);
+        if (skillInfo) {
+          const parsedSkill: ParsedSkill = {
+            name: skill,
+            category: this.categorizeSkill(skill),
+            isRequired: skillInfo.isRequired,
+            yearsRequired: skillInfo.yearsRequired,
+            context: skillInfo.context,
+            alternatives: this.getSkillAlternatives(skill)
+          };
+
+          if (skillInfo.isRequired) {
+            requiredSkills.push(parsedSkill);
+          } else {
+            preferredSkills.push(parsedSkill);
+          }
+        }
       }
     }
 
-    for (const skill of this.softSkills) {
-      const regex = new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
-      if (regex.test(jobDescription)) {
-        requiredSkills.push(skill);
-      }
-    }
+    return { requiredSkills, preferredSkills };
+  }
 
-    // Extract qualifications
-    const qualificationPatterns = [
-      /(?:requirements?|qualifications?):(.*?)(?:\n\n|\n[A-Z]|$)/i,
-      /(?:must have|required):(.*?)(?:\n\n|\n[A-Z]|$)/i,
-      /bachelor|master|phd|degree|years?.*experience/gi
+  private splitIntoSections(text: string): Map<string, string> {
+    const sections = new Map<string, string>();
+
+    const sectionPatterns = [
+      { name: 'requirements', pattern: /(?:requirements?|qualifications?|must.haves?):(.*?)(?=\n\s*[A-Z]|\n\s*$|$)/is },
+      { name: 'preferred', pattern: /(?:preferred|nice.to.have|plus|bonus|desired):(.*?)(?=\n\s*[A-Z]|\n\s*$|$)/is },
+      { name: 'responsibilities', pattern: /(?:responsibilities|duties|you.will):(.*?)(?=\n\s*[A-Z]|\n\s*$|$)/is },
+      { name: 'skills', pattern: /(?:skills?|technologies?|tools?):(.*?)(?=\n\s*[A-Z]|\n\s*$|$)/is }
     ];
 
-    const qualifications: string[] = [];
-    for (const pattern of qualificationPatterns) {
-      const matches = jobDescription.match(pattern);
-      if (matches) {
-        const quals = matches[0].split(/[•\n-]/).filter(q => q.trim().length > 10);
-        qualifications.push(...quals.map(q => q.trim()));
+    for (const { name, pattern } of sectionPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        sections.set(name, match[1].trim());
       }
     }
 
-    // Extract benefits
+    return sections;
+  }
+
+  private findSkillInText(skill: string, text: string, sections: Map<string, string>): {
+    isRequired: boolean;
+    yearsRequired?: number;
+    context?: string;
+  } | null {
+    const skillRegex = new RegExp(`\\b${this.escapeRegex(skill)}\\b`, 'gi');
+    const synonyms = this.skillSynonyms.get(skill) || [];
+
+    // Check main skill and synonyms
+    const patterns = [skill, ...synonyms];
+
+    for (const pattern of patterns) {
+      const regex = new RegExp(`\\b${this.escapeRegex(pattern)}\\b`, 'gi');
+
+      if (regex.test(text)) {
+        // Determine if required based on context
+        const isRequired = this.isSkillRequired(pattern, text, sections);
+        const yearsRequired = this.extractYearsRequired(pattern, text);
+        const context = this.extractSkillContext(pattern, text);
+
+        return { isRequired, yearsRequired, context };
+      }
+    }
+
+    return null;
+  }
+
+  private isSkillRequired(skill: string, text: string, sections: Map<string, string>): boolean {
+    const requiredSection = sections.get('requirements');
+    if (requiredSection) {
+      const regex = new RegExp(`\\b${this.escapeRegex(skill)}\\b`, 'gi');
+      if (regex.test(requiredSection)) {
+        return true;
+      }
+    }
+
+    // Check for required indicators near the skill
+    const requiredIndicators = [
+      'required', 'must have', 'essential', 'mandatory', 'critical',
+      'need', 'expect', 'should have'
+    ];
+
+    const skillRegex = new RegExp(
+      `(?:${requiredIndicators.join('|')}).*?\\b${this.escapeRegex(skill)}\\b|\\b${this.escapeRegex(skill)}\\b.*?(?:${requiredIndicators.join('|')})`,
+      'gi'
+    );
+
+    return skillRegex.test(text);
+  }
+
+  private extractYearsRequired(skill: string, text: string): number | undefined {
+    const yearsPattern = new RegExp(
+      `\\b${this.escapeRegex(skill)}\\b.*?(\\d+)\\+?\\s*years?|\\b(\\d+)\\+?\\s*years?.*?\\b${this.escapeRegex(skill)}\\b`,
+      'gi'
+    );
+
+    const match = text.match(yearsPattern);
+    if (match) {
+      const years = parseInt(match[1] || match[2]);
+      return isNaN(years) ? undefined : years;
+    }
+
+    return undefined;
+  }
+
+  private extractSkillContext(skill: string, text: string): string | undefined {
+    const contextPattern = new RegExp(
+      `([^.!?]*\\b${this.escapeRegex(skill)}\\b[^.!?]*)`,
+      'gi'
+    );
+
+    const match = text.match(contextPattern);
+    if (match && match[0]) {
+      return match[0].trim().substring(0, 200);
+    }
+
+    return undefined;
+  }
+
+  private categorizeSkill(skill: string): 'technical' | 'soft' | 'domain' | 'certification' {
+    for (const [category, skillData] of Object.entries(this.skillTaxonomy)) {
+      if (skillData.skills.includes(skill)) {
+        if (category === 'soft') return 'soft';
+        return 'technical';
+      }
+    }
+
+    // Check for certifications
+    if (/aws|azure|gcp|cisco|oracle|microsoft|google|certified/i.test(skill)) {
+      return 'certification';
+    }
+
+    return 'domain';
+  }
+
+  private getSkillAlternatives(skill: string): string[] {
+    return this.skillSynonyms.get(skill) || [];
+  }
+
+  private extractQualifications(text: string): Qualification[] {
+    const qualifications: Qualification[] = [];
+
+    const patterns = [
+      {
+        type: 'education' as const,
+        pattern: /(?:bachelor|master|phd|degree|diploma|university|college)/gi,
+        context: /([^.!?]*(?:bachelor|master|phd|degree|diploma|university|college)[^.!?]*)/gi
+      },
+      {
+        type: 'experience' as const,
+        pattern: /(\d+)\+?\s*years?\s*(?:of\s+)?(?:experience|exp)/gi,
+        context: /([^.!?]*\d+\+?\s*years?\s*(?:of\s+)?(?:experience|exp)[^.!?]*)/gi
+      },
+      {
+        type: 'certification' as const,
+        pattern: /(?:certified|certification|license|accredited)/gi,
+        context: /([^.!?]*(?:certified|certification|license|accredited)[^.!?]*)/gi
+      }
+    ];
+
+    for (const { type, context } of patterns) {
+      const matches = text.match(context);
+      if (matches) {
+        for (const match of matches) {
+          const isRequired = this.isQualificationRequired(match);
+          qualifications.push({
+            type,
+            requirement: match.trim(),
+            isRequired,
+            alternatives: this.findQualificationAlternatives(match)
+          });
+        }
+      }
+    }
+
+    return qualifications;
+  }
+
+  private isQualificationRequired(qualification: string): boolean {
+    const requiredIndicators = ['required', 'must', 'mandatory', 'essential'];
+    const preferredIndicators = ['preferred', 'desired', 'plus', 'bonus'];
+
+    const lowerQual = qualification.toLowerCase();
+
+    const hasRequired = requiredIndicators.some(indicator => lowerQual.includes(indicator));
+    const hasPreferred = preferredIndicators.some(indicator => lowerQual.includes(indicator));
+
+    return hasRequired && !hasPreferred;
+  }
+
+  private findQualificationAlternatives(qualification: string): string[] {
+    const alternatives: string[] = [];
+
+    if (/bachelor/i.test(qualification)) {
+      alternatives.push('Equivalent work experience', 'Associate degree + experience');
+    }
+
+    if (/master/i.test(qualification)) {
+      alternatives.push('Bachelor + additional experience', 'Relevant certifications');
+    }
+
+    return alternatives;
+  }
+
+  private extractBenefits(text: string): string[] {
     const benefitKeywords = [
-      'health insurance', 'dental', 'vision', '401k', 'retirement', 'pto', 'vacation',
-      'work from home', 'flexible hours', 'equity', 'stock options', 'bonus',
-      'professional development', 'conference', 'training', 'tuition'
+      'health insurance', 'dental insurance', 'vision insurance', 'medical coverage',
+      '401k', '401(k)', 'retirement plan', 'pension', 'rrsp',
+      'pto', 'paid time off', 'vacation days', 'sick leave', 'personal days',
+      'work from home', 'remote work', 'flexible hours', 'flexible schedule',
+      'equity', 'stock options', 'esop', 'shares', 'ownership',
+      'bonus', 'performance bonus', 'annual bonus', 'quarterly bonus',
+      'professional development', 'training budget', 'conference budget',
+      'tuition reimbursement', 'education assistance', 'learning stipend',
+      'gym membership', 'wellness program', 'mental health support',
+      'parental leave', 'maternity leave', 'paternity leave',
+      'unlimited vacation', 'unlimited pto', 'sabbatical'
     ];
 
     const benefits: string[] = [];
+    const lowerText = text.toLowerCase();
+
     for (const benefit of benefitKeywords) {
-      const regex = new RegExp(`\\b${benefit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
-      if (regex.test(jobDescription)) {
+      if (lowerText.includes(benefit.toLowerCase())) {
         benefits.push(benefit);
       }
     }
 
-    return {
-      title,
-      company,
-      location,
-      requiredSkills: Array.from(new Set(requiredSkills)),
-      qualifications: Array.from(new Set(qualifications)),
-      benefits: Array.from(new Set(benefits))
-    };
+    return Array.from(new Set(benefits));
   }
 
-  calculateMatchScore(userSkills: string[], jobSkills: string[], userExperience: any[], yearsExperience: number = 0): number {
-    if (jobSkills.length === 0) return 65; // Better default for unknown requirements
-
-    const normalizedUserSkills = userSkills.map(s => s.toLowerCase());
-    
-    // Enhanced skill matching with weighted scoring
-    let skillMatchScore = 0;
-    let totalSkillWeight = 0;
-    
-    jobSkills.forEach(jobSkill => {
-      const skillLower = jobSkill.toLowerCase();
-      let skillWeight = this.getSkillWeight(skillLower);
-      totalSkillWeight += skillWeight;
-      
-      // Check for exact matches (higher score)
-      if (normalizedUserSkills.some(us => us === skillLower)) {
-        skillMatchScore += skillWeight * 1.0;
-      }
-      // Check for partial matches (medium score) 
-      else if (normalizedUserSkills.some(us => us.includes(skillLower) || skillLower.includes(us))) {
-        skillMatchScore += skillWeight * 0.7;
-      }
-      // Check for synonym matches (lower score)
-      else if (this.findSkillSynonyms(skillLower).some(syn => normalizedUserSkills.includes(syn))) {
-        skillMatchScore += skillWeight * 0.5;
-      }
-    });
-
-    const baseScore = totalSkillWeight > 0 ? (skillMatchScore / totalSkillWeight) * 60 : 30;
-    
-    // Experience bonuses
-    const experienceBonus = this.calculateExperienceBonus(yearsExperience, userExperience);
-    
-    // Skill diversity and depth bonus
-    const diversityBonus = Math.min(userSkills.length * 1.5, 15);
-    
-    // Role complexity adjustment
-    const complexityAdjustment = this.calculateComplexityAdjustment(jobSkills, yearsExperience);
-    
-    const finalScore = Math.min(Math.round(baseScore + experienceBonus + diversityBonus + complexityAdjustment), 100);
-    
-    // Ensure minimum reasonable score for partially matching profiles
-    return Math.max(finalScore, 15);
-  }
-
-  private getSkillWeight(skill: string): number {
-    // Critical technical skills get higher weight
-    const criticalSkills = ['react', 'javascript', 'python', 'java', 'sql', 'aws', 'docker', 'kubernetes'];
-    const importantSkills = ['html', 'css', 'git', 'linux', 'mongodb', 'postgresql', 'nodejs'];
-    
-    if (criticalSkills.some(cs => skill.includes(cs))) return 3.0;
-    if (importantSkills.some(is => skill.includes(is))) return 2.0;
-    return 1.0;
-  }
-
-  private calculateExperienceBonus(yearsExperience: number, workExperience: any[]): number {
-    const experienceYears = Math.max(yearsExperience, workExperience.length * 1.5);
-    
-    if (experienceYears >= 8) return 20;
-    if (experienceYears >= 5) return 15;
-    if (experienceYears >= 3) return 10;
-    if (experienceYears >= 1) return 5;
-    return 0;
-  }
-
-  private calculateComplexityAdjustment(jobSkills: string[], yearsExperience: number): number {
-    const complexSkills = jobSkills.filter(skill => 
-      ['architecture', 'microservices', 'devops', 'machine learning', 'ai', 'blockchain'].some(complex => 
-        skill.toLowerCase().includes(complex)
-      )
-    );
-    
-    if (complexSkills.length > 0 && yearsExperience < 3) return -10; // Penalize junior for complex roles
-    if (complexSkills.length === 0 && yearsExperience > 8) return -5;  // Senior for basic roles
-    return 0;
-  }
-
-  private findSkillSynonyms(skill: string): string[] {
-    const synonymMap: { [key: string]: string[] } = {
-      'javascript': ['js', 'ecmascript', 'es6', 'node'],
-      'python': ['py', 'django', 'flask'],
-      'java': ['spring', 'springboot', 'hibernate'],
-      'react': ['reactjs', 'jsx', 'redux'],
-      'angular': ['angularjs', 'typescript'],
-      'database': ['sql', 'mysql', 'postgresql', 'mongodb'],
-      'cloud': ['aws', 'azure', 'gcp', 'docker'],
-      'frontend': ['ui', 'ux', 'html', 'css'],
-      'backend': ['api', 'server', 'microservices']
-    };
-    
-    for (const [key, synonyms] of Object.entries(synonymMap)) {
-      if (key === skill || synonyms.includes(skill)) {
-        return [key, ...synonyms];
-      }
-    }
-    return [];
-  }
-
-  identifySkillGaps(userSkills: string[], jobSkills: string[]): JobAnalysisResult['skillGaps'] {
-    const userSkillsLower = userSkills.map(s => s.toLowerCase());
-    const missingSkills = jobSkills.filter(jobSkill => 
-      !userSkillsLower.some(userSkill => 
-        userSkill.toLowerCase().includes(jobSkill.toLowerCase()) || 
-        jobSkill.toLowerCase().includes(userSkill.toLowerCase())
-      )
-    );
-
-    // Categorize missing skills by importance
-    const critical: string[] = [];
-    const important: string[] = [];
-    const nice_to_have: string[] = [];
-
-    const criticalKeywords = ['required', 'must have', 'essential', 'mandatory'];
-    const importantKeywords = ['preferred', 'desired', 'plus', 'advantage'];
-
-    for (const skill of missingSkills) {
-      const skillLower = skill.toLowerCase();
-      if (this.technicalSkills.some(ts => ts.includes(skillLower) || skillLower.includes(ts))) {
-        if (criticalKeywords.some(kw => jobSkills.join(' ').toLowerCase().includes(kw))) {
-          critical.push(skill);
-        } else if (importantKeywords.some(kw => jobSkills.join(' ').toLowerCase().includes(kw))) {
-          important.push(skill);
-        } else {
-          important.push(skill);
-        }
-      } else {
-        nice_to_have.push(skill);
-      }
-    }
-
-    return { critical, important, nice_to_have };
-  }
-
-  determineWorkMode(jobDescription: string): string {
-    const text = jobDescription.toLowerCase();
-    
-    for (const [keywords, mode] of Object.entries(this.workModeKeywords)) {
-      const patterns = keywords.split('|');
-      if (patterns.some(pattern => text.includes(pattern))) {
-        return mode;
-      }
-    }
-    
-    return 'Not specified';
-  }
-
-  determineSeniorityLevel(jobDescription: string, userExperience: number): string {
-    const text = jobDescription.toLowerCase();
-    
-    for (const [patterns, level] of Object.entries(this.experienceLevels)) {
-      const keywords = patterns.split('|');
-      if (keywords.some(keyword => text.includes(keyword))) {
-        return level;
-      }
-    }
-
-    // Fallback based on user experience
-    if (userExperience >= 8) return 'Senior Level';
-    if (userExperience >= 3) return 'Mid Level';
-    return 'Entry Level';
-  }
-
-  extractSalaryInfo(jobDescription: string): JobAnalysisResult['salary'] | undefined {
-    const salaryPatterns = [
-      /\$(\d{2,3}),?(\d{3})\s*-\s*\$(\d{2,3}),?(\d{3})/,
-      /(\d{2,3})k?\s*-\s*(\d{2,3})k/i,
-      /salary.*?\$(\d{2,3}),?(\d{3})/i
+  private extractResponsibilities(text: string): string[] {
+    const responsibilityPatterns = [
+      /(?:responsibilities|duties|you will|your role):(.*?)(?=\n\s*[A-Z]|\n\s*$|$)/is,
+      /(?:^|\n)\s*[•\-*]\s*([^•\-*\n]+)/gm
     ];
 
-    for (const pattern of salaryPatterns) {
-      const match = jobDescription.match(pattern);
-      if (match) {
-        let min, max;
-        if (match[1] && match[3]) {
-          min = parseInt(match[1] + (match[2] || '000'));
-          max = parseInt(match[3] + (match[4] || '000'));
-        } else if (match[1] && match[2]) {
-          min = parseInt(match[1]) * 1000;
-          max = parseInt(match[2]) * 1000;
+    const responsibilities: string[] = [];
+
+    for (const pattern of responsibilityPatterns) {
+      const matches = text.match(pattern);
+      if (matches) {
+        for (const match of matches) {
+          const responsibility = match.replace(/^[•\-*\s]+/, '').trim();
+          if (responsibility.length > 10 && responsibility.length < 200) {
+            responsibilities.push(responsibility);
+          }
         }
-        
-        if (min && max) {
-          return { min, max, currency: 'USD' };
+      }
+    }
+
+    return responsibilities.slice(0, 10); // Limit to prevent bloat
+  }
+
+  private extractTeamSize(text: string): number | undefined {
+    const teamPatterns = [
+      /team\s+of\s+(\d+)/i,
+      /(\d+)\s*person\s+team/i,
+      /(\d+)\s*member\s+team/i,
+      /join\s+(?:our\s+)?(\d+)\s*person/i
+    ];
+
+    for (const pattern of teamPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        const size = parseInt(match[1]);
+        if (size > 0 && size < 1000) {
+          return size;
         }
       }
     }
@@ -382,92 +810,35 @@ export class CustomNLPService {
     return undefined;
   }
 
-  generateTailoringAdvice(matchingSkills: string[], missingSkills: string[]): string {
-    const advice = [];
-    
-    if (matchingSkills.length > 0) {
-      advice.push(`Highlight your experience with: ${matchingSkills.slice(0, 5).join(', ')}`);
+  private detectIndustry(text: string): string | undefined {
+    for (const [pattern, industry] of this.industryPatterns) {
+      if (pattern.test(text)) {
+        return industry;
+      }
     }
-    
-    if (missingSkills.length > 0) {
-      advice.push(`Consider gaining experience in: ${missingSkills.slice(0, 3).join(', ')}`);
-    }
-    
-    advice.push('Quantify your achievements with specific metrics and results');
-    advice.push('Customize your resume summary to match the job requirements');
-    
-    return advice.join('. ');
+
+    return undefined;
   }
 
-  generateInterviewTips(jobData: JobAnalysisResult['extractedData'], userSkills: string[]): string {
-    const tips = [];
-    
-    tips.push(`Research ${jobData.company} thoroughly including recent news and company culture`);
-    
-    if (jobData.requiredSkills.length > 0) {
-      tips.push(`Prepare examples demonstrating your experience with: ${jobData.requiredSkills.slice(0, 3).join(', ')}`);
-    }
-    
-    tips.push('Practice the STAR method for behavioral questions');
-    tips.push('Prepare questions about team structure, growth opportunities, and company challenges');
-    tips.push('Review fundamental concepts in your primary technical skills');
-    
-    return tips.join('. ');
-  }
-
-  analyzeJob(jobDescription: string, userProfile: any): JobAnalysisResult {
-    const extractedData = this.extractJobData(jobDescription);
-    const userSkills = userProfile.skills?.map((s: any) => s.skillName || s) || [];
-    const userExperience = userProfile.workExperience || [];
-    const yearsExperience = userProfile.yearsExperience || 0;
-
-    const matchScore = this.calculateMatchScore(userSkills, extractedData.requiredSkills, userExperience, yearsExperience);
-    
-    const matchingSkills = extractedData.requiredSkills.filter(jobSkill => 
-      userSkills.some((userSkill: string) => 
-        userSkill.toLowerCase().includes(jobSkill.toLowerCase()) || 
-        jobSkill.toLowerCase().includes(userSkill.toLowerCase())
-      )
-    );
-
-    const missingSkills = extractedData.requiredSkills.filter(jobSkill => 
-      !userSkills.some((userSkill: string) => 
-        userSkill.toLowerCase().includes(jobSkill.toLowerCase()) || 
-        jobSkill.toLowerCase().includes(userSkill.toLowerCase())
-      )
-    );
-
-    const skillGaps = this.identifySkillGaps(userSkills, extractedData.requiredSkills);
-    const workMode = this.determineWorkMode(jobDescription);
-    const seniorityLevel = this.determineSeniorityLevel(jobDescription, yearsExperience);
-    const salary = this.extractSalaryInfo(jobDescription);
-
-    // Determine application recommendation
-    let applicationRecommendation = 'recommended';
-    if (matchScore >= 80) applicationRecommendation = 'strongly_recommended';
-    else if (matchScore >= 60) applicationRecommendation = 'recommended';
-    else if (matchScore >= 40) applicationRecommendation = 'consider_with_preparation';
-    else applicationRecommendation = 'needs_development';
-
+  private normalizeUserProfile(userProfile: any): any {
     return {
-      matchScore,
-      matchingSkills,
-      missingSkills,
-      skillGaps,
-      seniorityLevel,
-      workMode,
-      jobType: 'Full-time', // default
-      roleComplexity: matchScore >= 70 ? 'Advanced' : matchScore >= 50 ? 'Standard' : 'Basic',
-      careerProgression: matchScore >= 60 ? 'Good opportunity' : 'Consider skill development',
-      industryFit: matchScore >= 70 ? 'Excellent' : matchScore >= 50 ? 'Good' : 'Needs research',
-      cultureFit: 'Research needed',
-      applicationRecommendation,
-      tailoringAdvice: this.generateTailoringAdvice(matchingSkills, missingSkills),
-      interviewPrepTips: this.generateInterviewTips(extractedData, userSkills),
-      salary,
-      extractedData
+      skills: this.normalizeUserSkills(userProfile.skills || []),
+      workExperience: userProfile.workExperience || [],
+      education: userProfile.education || [],
+      yearsExperience: userProfile.yearsExperience || 0,
+      summary: userProfile.summary || ''
     };
+  }
+
+  private normalizeUserSkills(skills: any[]): string[] {
+    return skills.map(skill => {
+      if (typeof skill === 'string') return skill.toLowerCase();
+      if (skill && skill.skillName) return skill.skillName.toLowerCase();
+      if (skill && skill.name) return skill.name.toLowerCase();
+      return '';
+    }).filter(skill => skill.length > 0);
   }
 }
 
-export const customNLPService = new CustomNLPService();
+// Export singleton instance for use in routes
+export const customNLPService = new EnhancedNLPService();

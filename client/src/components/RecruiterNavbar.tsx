@@ -2,6 +2,15 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   Building,
   Users,
@@ -17,10 +26,16 @@ import {
   Star,
   Bell,
   GitBranch,
-  Video
+  Video,
+  LogOut,
+  User,
+  ChevronDown,
+  Home,
+  TrendingUp
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface User {
   id: string;
@@ -37,8 +52,37 @@ interface RecruiterNavbarProps {
 }
 
 export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // Logout mutation
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('/api/auth/logout', {
+        method: 'POST'
+      });
+    },
+    onSuccess: () => {
+      // Clear all cached data
+      queryClient.clear();
+      // Show success message
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of your account.",
+      });
+      // Redirect to auth page
+      setLocation('/auth');
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Logout failed",
+        description: error.message || "Failed to logout properly",
+        variant: "destructive",
+      });
+    }
+  });
 
   const getPlanBadge = (planType: string) => {
     switch (planType) {
@@ -155,33 +199,90 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
             </div>
 
             {/* Right side */}
-            <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
-              {/* Plan Badge */}
-              {user && getPlanBadge(user.planType)}
+            <div className="hidden md:ml-6 md:flex md:items-center md:space-x-4">
+              {/* Notifications */}
+              <button className="relative p-1 text-gray-400 hover:text-gray-500 focus:outline-none">
+                <Bell className="h-6 w-6" />
+                <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white" />
+              </button>
               
               {/* Upgrade Button for Free Users */}
               {user?.planType === 'free' && (
                 <Link href="/recruiter/premium">
-                  <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white">
+                  <Button size="sm" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white">
                     <Zap className="w-4 h-4 mr-2" />
                     Upgrade
                   </Button>
                 </Link>
               )}
-
-              {/* Company Info */}
-              {user?.companyName && (
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  {user.companyName}
-                </div>
-              )}
-
-              {/* Settings */}
-              <Link href="/recruiter/settings">
-                <Button variant="ghost" size="sm">
-                  <Settings className="w-4 h-4" />
-                </Button>
-              </Link>
+              
+              {/* User Profile Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-auto px-3 hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${user?.firstName} ${user?.lastName}`} />
+                        <AvatarFallback className="bg-blue-600 text-white">
+                          {user?.firstName?.[0]}{user?.lastName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="text-left hidden lg:block">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {user?.firstName} {user?.lastName}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {user?.companyName}
+                        </p>
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-gray-400" />
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {user?.firstName} {user?.lastName}
+                      </p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user?.email}
+                      </p>
+                      <div className="pt-1">
+                        {getPlanBadge(user?.planType || 'free')}
+                      </div>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/recruiter/profile" className="w-full flex items-center">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile Settings</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/recruiter/billing" className="w-full flex items-center">
+                      <Crown className="mr-2 h-4 w-4" />
+                      <span>Billing & Plans</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/recruiter/settings" className="w-full flex items-center">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Account Settings</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => logoutMutation.mutate()}
+                    disabled={logoutMutation.isPending}
+                    className="text-red-600 focus:text-red-600 cursor-pointer"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>{logoutMutation.isPending ? 'Logging out...' : 'Logout'}</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Mobile menu button */}
