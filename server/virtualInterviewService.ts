@@ -305,40 +305,50 @@ Keep it conversational and under 100 words.`;
     recommendedResources: any[];
     nextSteps: string[];
   }> {
+    if (!this.groq) {
+      console.error('GROQ client not initialized - check API key');
+      return this.getFallbackFeedback();
+    }
+
     const candidateResponses = messages
       .filter(m => m.sender === 'candidate')
       .map(m => m.content)
       .join('\n\n');
 
-    const prompt = `
-Analyze this complete interview session:
+    const questionsAnswered = messages.filter(m => m.sender === 'candidate').length;
+    
+    const prompt = `Analyze this interview session and provide feedback as JSON only:
 
 Role: ${interviewData.role}
 Interview Type: ${interviewData.interviewType}
-Duration: ${interviewData.duration} minutes
+Questions Answered: ${questionsAnswered}
 
 Candidate Responses:
 ${candidateResponses}
 
-Provide comprehensive feedback as JSON with:
-- performanceSummary (string): 2-3 sentence overall assessment
-- keyStrengths (array): Top 3-5 strengths demonstrated
-- areasForImprovement (array): Top 3-5 areas to work on
-- overallScore (0-100): Overall interview performance
-- technicalScore (0-100): Technical knowledge/skills
-- communicationScore (0-100): Communication clarity and style
-- confidenceScore (0-100): Confidence and presence
-- recommendedResources (array): Learning resources with {title, url, description}
-- nextSteps (array): Specific actionable next steps
+Return valid JSON only with these exact fields:
+{
+  "performanceSummary": "2-3 sentence assessment",
+  "keyStrengths": ["strength1", "strength2", "strength3"],
+  "areasForImprovement": ["area1", "area2", "area3"],
+  "overallScore": 75,
+  "technicalScore": 70,
+  "communicationScore": 80,
+  "confidenceScore": 75,
+  "recommendedResources": [{"title": "Resource", "url": "https://example.com", "description": "Description"}],
+  "nextSteps": ["step1", "step2", "step3"]
+}
 
-Be constructive, specific, and encouraging.`;
+Be constructive and encouraging.`;
 
     try {
+      console.log('Generating GROQ feedback for interview:', interviewData.id);
+      
       const response = await this.groq.chat.completions.create({
         messages: [
           {
             role: "system",
-            content: "You are an expert interview coach providing detailed, constructive feedback."
+            content: "You are an expert interview coach. Return only valid JSON feedback."
           },
           {
             role: "user",
@@ -346,17 +356,30 @@ Be constructive, specific, and encouraging.`;
           }
         ],
         model: DEFAULT_MODEL_STR,
-        temperature: 0.4,
-        max_tokens: 800,
+        temperature: 0.3,
+        max_tokens: 1000,
       });
 
       const content = response.choices[0]?.message?.content;
-      if (!content) throw new Error('No response from AI');
+      if (!content) {
+        console.error('No content in GROQ response');
+        return this.getFallbackFeedback();
+      }
 
+      console.log('GROQ response received, parsing JSON...');
       const cleanedContent = this.cleanJsonResponse(content);
-      return JSON.parse(cleanedContent);
+      const feedback = JSON.parse(cleanedContent);
+      
+      // Validate required fields
+      if (!feedback.performanceSummary || !feedback.keyStrengths || !feedback.overallScore) {
+        console.error('Invalid feedback structure from GROQ');
+        return this.getFallbackFeedback();
+      }
+
+      console.log('GROQ feedback generated successfully');
+      return feedback;
     } catch (error) {
-      console.error('Error generating feedback:', error);
+      console.error('Error generating GROQ feedback:', error);
       return this.getFallbackFeedback();
     }
   }

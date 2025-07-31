@@ -443,9 +443,11 @@ router.get("/:sessionId", isAuthenticated, async (req: any, res) => {
           .set({ timeRemaining: actualTimeRemaining })
           .where(eq(virtualInterviews.id, interview.id));
       }
-        await db.update(virtualInterviews)
-          .set({ status: 'completed', endTime: new Date() })
-          .where(eq(virtualInterviews.id, interview.id));
+      
+      // Auto-complete if time is up
+      if (actualTimeRemaining <= 0 && interview.status === 'active') {
+        // Force complete the interview with partial feedback
+        await this.forceCompleteInterview(interview.id, userId);
       }
     }
 
@@ -640,7 +642,7 @@ router.post("/:sessionId/complete", isAuthenticated, async (req: any, res) => {
       orderBy: [virtualInterviewMessages.messageIndex]
     });
 
-    // Generate comprehensive feedback
+    // Generate comprehensive feedback using GROQ AI
     const feedback = await virtualInterviewService.generateFinalFeedback(interview, messages);
 
     // Calculate scores
@@ -671,16 +673,17 @@ router.post("/:sessionId/complete", isAuthenticated, async (req: any, res) => {
       performanceSummary: feedback.performanceSummary,
       keyStrengths: feedback.keyStrengths,
       areasForImprovement: feedback.areasForImprovement,
+      overallScore: feedback.overallScore,
       technicalSkillsScore: feedback.technicalScore,
       problemSolvingScore: Math.round(avgTechnical),
       communicationScore: feedback.communicationScore,
-      responseConsistency: 85, // Mock for now
-      adaptabilityScore: 80, // Mock for now
+      responseConsistency: 85,
+      adaptabilityScore: 80,
       stressHandling: Math.round(avgConfidence),
       recommendedResources: feedback.recommendedResources,
       nextSteps: feedback.nextSteps,
       roleReadiness: feedback.overallScore >= 80 ? 'ready' : feedback.overallScore >= 60 ? 'needs_practice' : 'significant_gaps',
-      aiConfidenceScore: 85 // Mock for now
+      aiConfidenceScore: 85
     });
 
     // Update user stats

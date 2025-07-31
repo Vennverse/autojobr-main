@@ -145,7 +145,9 @@ NODE_ENV="production"
 PORT="5000"
 SESSION_SECRET="$SESSION_SECRET"
 
-# API Keys (YOU NEED TO SET THESE)
+# API Keys (REQUIRED FOR PROPER FUNCTIONALITY)
+# Get GROQ API key from: https://console.groq.com/
+# Get RESEND API key from: https://resend.com/
 GROQ_API_KEY="your_groq_api_key_here"
 RESEND_API_KEY="your_resend_api_key_here"
 
