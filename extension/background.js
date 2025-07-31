@@ -283,6 +283,11 @@ class AutoJobrBackground {
           sendResponse({ success: true });
           break;
 
+        case 'openPopup':
+          await this.openExtensionPopup();
+          sendResponse({ success: true });
+          break;
+
         default:
           sendResponse({ success: false, error: 'Unknown action' });
       }
@@ -861,6 +866,26 @@ class AutoJobrBackground {
       }
     } catch (error) {
       console.error('Sync user data error:', error);
+    }
+  }
+
+  async openExtensionPopup() {
+    try {
+      // Get current active tab
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      
+      if (activeTab) {
+        // Open extension popup programmatically
+        chrome.action.openPopup();
+      }
+    } catch (error) {
+      console.error('Failed to open popup:', error);
+      // Fallback: try to open popup using different method
+      try {
+        chrome.browserAction.openPopup();
+      } catch (fallbackError) {
+        console.error('Fallback popup open failed:', fallbackError);
+      }
     }
   }
 }

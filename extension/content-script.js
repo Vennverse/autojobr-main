@@ -2149,129 +2149,110 @@ class AutoJobrContentScript {
     return 'Unknown';
   }
 
-  // Create floating popup for job application forms
-  createFloatingPopup() {
+  // Create floating button that opens extension popup
+  createFloatingButton() {
     // Only show on job application forms
     if (!this.isJobApplicationPage()) {
       return;
     }
 
-    // Don't create multiple popups
-    if (document.getElementById('autojobr-floating-popup')) {
+    // Don't create multiple buttons
+    if (document.getElementById('autojobr-floating-button')) {
       return;
     }
 
-    const popup = document.createElement('div');
-    popup.id = 'autojobr-floating-popup';
-    popup.innerHTML = `
+    const button = document.createElement('div');
+    button.id = 'autojobr-floating-button';
+    button.innerHTML = `
       <div style="
         position: fixed;
-        top: 20px;
+        bottom: 20px;
         right: 20px;
+        width: 60px;
+        height: 60px;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 16px;
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        border-radius: 50%;
+        box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         z-index: 10000;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        min-width: 280px;
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,0.2);
-      ">
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-          <div style="width: 24px; height: 24px; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
-            <span style="color: #667eea; font-weight: bold; font-size: 14px;">AJ</span>
-          </div>
-          <span style="font-weight: 600; font-size: 16px;">AutoJobr Assistant</span>
-          <button id="close-popup" style="
-            margin-left: auto;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 18px;
-            cursor: pointer;
-            opacity: 0.7;
-            padding: 0;
-            width: 20px;
-            height: 20px;
-          ">×</button>
-        </div>
-        <div style="margin-bottom: 12px; font-size: 14px; opacity: 0.9;">
-          Job application form detected!
-        </div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <button id="autofill-btn" style="
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-            font-weight: 500;
-            flex: 1;
-            min-width: 120px;
-          ">Auto-Fill Form</button>
-          <button id="analyze-btn" style="
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-            font-weight: 500;
-            flex: 1;
-            min-width: 120px;
-          ">Analyze Job</button>
-        </div>
+        transition: all 0.3s ease;
+        animation: pulse 2s infinite;
+      " title="Open AutoJobr Extension">
+        <span style="color: white; font-weight: bold; font-size: 18px;">AJ</span>
       </div>
+      <style>
+        @keyframes pulse {
+          0% { box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4); }
+          50% { box-shadow: 0 4px 20px rgba(102, 126, 234, 0.8); }
+          100% { box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4); }
+        }
+        #autojobr-floating-button:hover > div {
+          transform: scale(1.1);
+          box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+        }
+      </style>
     `;
 
-    document.body.appendChild(popup);
+    document.body.appendChild(button);
 
-    // Add event listeners
-    document.getElementById('close-popup').addEventListener('click', () => {
-      popup.remove();
+    // Open extension popup when clicked
+    button.addEventListener('click', () => {
+      chrome.runtime.sendMessage({ action: 'openPopup' });
     });
 
-    document.getElementById('autofill-btn').addEventListener('click', async () => {
-      this.handleSmartAutofill();
-    });
-
-    document.getElementById('analyze-btn').addEventListener('click', async () => {
-      this.handleAnalyze();
-    });
-
-    // Auto-hide after 30 seconds
+    // Auto-fade after 30 seconds
     setTimeout(() => {
-      if (popup.parentNode) {
-        popup.remove();
+      if (button.parentNode) {
+        button.style.opacity = '0.3';
       }
     }, 30000);
+
+    // Reappear on scroll
+    let scrollTimeout;
+    window.addEventListener('scroll', () => {
+      if (button.parentNode) {
+        button.style.opacity = '1';
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+          button.style.opacity = '0.3';
+        }, 5000);
+      }
+    });
   }
 
   isJobApplicationPage() {
     const url = window.location.href.toLowerCase();
+    const hostname = window.location.hostname.toLowerCase();
+    
+    // LinkedIn specific detection - avoid feeds, home, search pages
+    if (hostname.includes('linkedin.com')) {
+      // Must be jobs page AND have easy apply or application form
+      const isJobsPage = url.includes('/jobs/view/') || url.includes('/jobs/collections/');
+      const hasEasyApply = document.querySelector('[data-test-modal="jobs-easy-apply-modal"], .jobs-easy-apply-content, .jobs-apply-button');
+      const isFeedPage = url.includes('/feed/') || url.includes('/mynetwork/') || url === 'https://www.linkedin.com/';
+      
+      return isJobsPage && hasEasyApply && !isFeedPage;
+    }
+    
+    // Workday specific detection
+    if (hostname.includes('myworkdayjobs.com')) {
+      return url.includes('/job/') && document.querySelector('form[data-automation-id="jobApplicationForm"], .css-1x9zq2f');
+    }
+    
+    // Indeed specific detection
+    if (hostname.includes('indeed.com')) {
+      return url.includes('/viewjob') && document.querySelector('.indeed-apply-button, .ia-IndeedApplyButton');
+    }
+    
+    // Generic detection for other sites
     const pageText = document.body.textContent.toLowerCase();
+    const hasStrictJobForm = document.querySelectorAll('input[type="file"][accept*="pdf"], textarea[name*="cover"], input[name*="resume"]').length > 0;
+    const hasApplyButton = document.querySelector('[class*="apply"], [id*="apply"], button[data-test*="apply"]');
     
-    // Check for application form indicators
-    const applicationKeywords = [
-      'apply now', 'submit application', 'job application', 'application form',
-      'resume upload', 'cover letter', 'apply for this position'
-    ];
-    
-    const hasApplicationForm = applicationKeywords.some(keyword => 
-      url.includes(keyword.replace(' ', '-')) || 
-      url.includes(keyword.replace(' ', '_')) ||
-      pageText.includes(keyword)
-    );
-    
-    // Check for form fields that indicate job applications
-    const hasJobFormFields = document.querySelectorAll('input[type="file"], textarea, input[name*="resume"], input[name*="cv"]').length > 0;
-    
-    return hasApplicationForm || hasJobFormFields;
+    return hasStrictJobForm && hasApplyButton;
   }
 
   // Cleanup method
@@ -2280,9 +2261,9 @@ class AutoJobrContentScript {
     this.observers = [];
     
     const overlay = document.getElementById('autojobr-overlay');
-    const popup = document.getElementById('autojobr-floating-popup');
+    const button = document.getElementById('autojobr-floating-button');
     if (overlay) overlay.remove();
-    if (popup) popup.remove();
+    if (button) button.remove();
   }
 }
 
@@ -2290,11 +2271,11 @@ class AutoJobrContentScript {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     const extension = new AutoJobrContentScript();
-    // Show floating popup on form pages after a delay
-    setTimeout(() => extension.createFloatingPopup(), 2000);
+    // Show floating button on job application pages after a delay
+    setTimeout(() => extension.createFloatingButton(), 3000);
   });
 } else {
   const extension = new AutoJobrContentScript();
-  // Show floating popup on form pages after a delay  
-  setTimeout(() => extension.createFloatingPopup(), 2000);
+  // Show floating button on job application pages after a delay  
+  setTimeout(() => extension.createFloatingButton(), 3000);
 }
