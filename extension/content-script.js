@@ -22,6 +22,7 @@ class AutoJobrContentScript {
       this.detectJobPosting();
       this.setupKeyboardShortcuts();
       this.initializeSmartSelectors();
+      this.setupApplicationTracking(); // Setup tracking once during initialization
       this.isInitialized = true;
       
       // Mark as loaded for background script
@@ -1992,34 +1993,42 @@ class AutoJobrContentScript {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  // Application tracking system
+  // Application tracking system - Only tracks actual form submissions
   async setupApplicationTracking() {
-    console.log('Setting up application tracking...');
+    console.log('Setting up application tracking for form submissions only...');
     
-    // Track form submissions
+    // Only track actual form submissions - not page visits
     document.addEventListener('submit', async (e) => {
       if (this.isJobApplicationForm(e.target)) {
-        console.log('Job application form submitted');
-        setTimeout(() => this.trackApplicationSubmission(), 2000);
-      }
-    });
-
-    // Track button clicks for submit buttons
-    document.addEventListener('click', async (e) => {
-      if (this.isSubmissionButton(e.target)) {
-        console.log('Submit button clicked:', e.target);
+        console.log('Job application form submitted - tracking application');
+        // Only track if form actually submitted successfully
         setTimeout(() => this.trackApplicationSubmission(), 3000);
       }
     });
 
-    // Monitor URL changes for SPAs
+    // Track confirmation pages only when navigating FROM a form submission
+    let lastFormSubmissionTime = 0;
     let currentUrl = window.location.href;
+    
+    // Enhanced form submission tracking
+    document.addEventListener('submit', (e) => {
+      if (this.isJobApplicationForm(e.target)) {
+        lastFormSubmissionTime = Date.now();
+        console.log('Form submitted, will monitor for confirmation page');
+      }
+    });
+
+    // Only check for confirmation if we recently submitted a form (within 30 seconds)
     setInterval(() => {
       if (window.location.href !== currentUrl) {
         currentUrl = window.location.href;
-        this.checkForSubmissionConfirmation();
+        
+        // Only check for confirmation within 30 seconds of form submission
+        if (Date.now() - lastFormSubmissionTime < 30000 && lastFormSubmissionTime > 0) {
+          this.checkForSubmissionConfirmation();
+        }
       }
-    }, 1000);
+    }, 2000);
   }
 
   isJobApplicationForm(form) {
@@ -2058,10 +2067,16 @@ class AutoJobrContentScript {
 
   async trackApplicationSubmission() {
     try {
+      // Double-check this is actually a job application submission
+      if (!this.isJobApplicationPage()) {
+        console.log('Not a job application page - skipping tracking');
+        return;
+      }
+
       const jobData = await this.extractJobDetails();
       
-      if (jobData.success && jobData.jobData) {
-        console.log('Tracking application submission:', jobData.jobData);
+      if (jobData.success && jobData.jobData && jobData.jobData.title) {
+        console.log('Tracking confirmed application submission:', jobData.jobData);
         
         const response = await chrome.runtime.sendMessage({
           action: 'trackApplication',
@@ -2078,8 +2093,12 @@ class AutoJobrContentScript {
         });
 
         if (response && response.success) {
-          this.showNotification('✅ Application tracked successfully!', 'success');
+          this.showNotification('✅ Application submitted & tracked!', 'success');
+        } else {
+          console.log('Application tracking failed:', response);
         }
+      } else {
+        console.log('No valid job data found - skipping tracking');
       }
     } catch (error) {
       console.error('Failed to track application:', error);
@@ -2088,21 +2107,25 @@ class AutoJobrContentScript {
 
   checkForSubmissionConfirmation() {
     const confirmationPatterns = [
-      /thank.*you.*application/i,
-      /application.*submitted/i,
-      /application.*received/i,
-      /successfully.*applied/i,
-      /confirmation/i
+      /thank.*you.*for.*your.*application/i,
+      /application.*successfully.*submitted/i,
+      /application.*has.*been.*received/i,
+      /we.*have.*received.*your.*application/i,
+      /application.*confirmation/i
     ];
 
     const pageText = document.body.textContent.toLowerCase();
     const currentUrl = window.location.href.toLowerCase();
     
-    if (confirmationPatterns.some(pattern => pattern.test(pageText)) ||
-        currentUrl.includes('confirmation') ||
-        currentUrl.includes('thank') ||
-        currentUrl.includes('success')) {
-      
+    // More strict confirmation detection - must have strong confirmation text
+    const hasStrongConfirmation = confirmationPatterns.some(pattern => pattern.test(pageText));
+    const hasConfirmationUrl = currentUrl.includes('confirmation') || 
+                               currentUrl.includes('thank-you') ||
+                               currentUrl.includes('application-submitted');
+    
+    // Only track if we have BOTH strong text confirmation AND confirmation URL
+    if (hasStrongConfirmation && hasConfirmationUrl) {
+      console.log('Strong confirmation detected - tracking application');
       this.trackApplicationSubmission();
     }
   }
@@ -2267,13 +2290,11 @@ class AutoJobrContentScript {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     const extension = new AutoJobrContentScript();
-    extension.setupApplicationTracking();
     // Show floating popup on form pages after a delay
     setTimeout(() => extension.createFloatingPopup(), 2000);
   });
 } else {
   const extension = new AutoJobrContentScript();
-  extension.setupApplicationTracking();
   // Show floating popup on form pages after a delay  
   setTimeout(() => extension.createFloatingPopup(), 2000);
 }
