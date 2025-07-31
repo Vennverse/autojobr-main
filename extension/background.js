@@ -1,13 +1,9 @@
 // Enhanced AutoJobr Background Service Worker
 console.log('🚀 AutoJobr background service worker v2.0 loading...');
 
-// Import configuration
-importScripts('config.js');
-
 class AutoJobrBackground {
   constructor() {
-    this.apiUrl = AUTOJOBR_CONFIG.API_URL;
-    this.fallbackUrls = AUTOJOBR_CONFIG.FALLBACK_URLS;
+    this.apiUrl = 'https://474e72d5-d02a-4881-a1b1-207472132974-00-13rhdq6o0h8j1.worf.replit.dev';
     this.cache = new Map();
     this.rateLimiter = new Map();
     this.init();
@@ -21,7 +17,11 @@ class AutoJobrBackground {
   }
 
   async detectApiUrl() {
-    const possibleUrls = this.fallbackUrls;
+    const possibleUrls = [
+      'https://fce2901e-6020-4c23-97dc-13c7fd7f97c3-00-15wzli1eenkr6.picard.replit.dev',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000'
+    ];
 
     for (const url of possibleUrls) {
       try {
@@ -233,39 +233,19 @@ class AutoJobrBackground {
         return;
       }
 
-      // Handle popup open request from floating button
-      if (message.action === 'openPopup') {
-        // Try to open extension popup
-        if (chrome.action && chrome.action.openPopup) {
-          chrome.action.openPopup();
-        }
-        sendResponse({ success: true });
-        return;
-      }
-
       switch (message.action) {
         case 'getApiUrl':
           sendResponse({ apiUrl: this.apiUrl });
           break;
 
         case 'trackApplication':
-          try {
-            const trackResult = await this.trackApplication(message.data);
-            sendResponse(trackResult);
-          } catch (error) {
-            console.error('Track application error:', error);
-            sendResponse({ success: false, error: error.message });
-          }
+          const trackResult = await this.trackApplication(message.data);
+          sendResponse(trackResult);
           break;
 
         case 'saveJob':
-          try {
-            const savedJob = await this.saveJob(message.data);
-            sendResponse({ success: true, job: savedJob });
-          } catch (error) {
-            console.error('Save job error:', error);
-            sendResponse({ success: false, error: error.message });
-          }
+          const savedJob = await this.saveJob(message.data);
+          sendResponse({ success: true, job: savedJob });
           break;
 
         case 'generateCoverLetter':
@@ -715,28 +695,20 @@ class AutoJobrBackground {
       }
 
       const analysis = await response.json();
-      
-      console.log('API Analysis response:', analysis);
 
-      // Ensure we have a match score
-      const matchScore = analysis.matchScore || analysis.score || 0;
-      const finalAnalysis = {
-        ...analysis,
-        matchScore: matchScore,
-        success: true
-      };
-
-      const matchLevel = matchScore >= 80 ? 'Excellent' : 
-                        matchScore >= 60 ? 'Good' : 
-                        matchScore >= 40 ? 'Fair' : 'Poor';
+      const matchLevel = analysis.matchScore >= 80 ? 'Excellent' : 
+                        analysis.matchScore >= 60 ? 'Good' : 
+                        analysis.matchScore >= 40 ? 'Fair' : 'Poor';
 
       await this.showAdvancedNotification(
         'Job Analysis Complete! 🎯',
-        `Match Score: ${matchScore}% (${matchLevel} match)`,
-        matchScore >= 60 ? 'success' : 'warning'
+        `Match Score: ${analysis.matchScore}% (${matchLevel} match)`,
+        analysis.matchScore >= 60 ? 'success' : 'warning'
       );
 
-      return { success: true, analysis: finalAnalysis };
+      // Remove auto-save - only save when user clicks save button
+
+      return analysis;
 
     } catch (error) {
       console.error('Analyze job error:', error);

@@ -551,17 +551,9 @@
         <div id="pageStatus">Analyzing current page...</div>
       </div>
 
-      <div class="job-info" id="jobInfo" style="
-        margin-bottom: 16px; 
-        font-size: 14px;
-        display: none;
-        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 12px;
-      ">
-        <div class="job-title" id="jobTitle" style="font-weight: 600; margin-bottom: 4px; color: #1e293b;"></div>
-        <div class="job-company" id="jobCompany" style="font-size: 13px; color: #64748b;"></div>
+      <div class="job-info" id="jobInfo" style="display: none;">
+        <div class="job-title" id="jobTitle"></div>
+        <div class="job-company" id="jobCompany"></div>
       </div>
 
       <div class="action-section">
@@ -597,32 +589,13 @@
         </div>
       </div>
 
-      <!-- Match Score Section (identical to floating popup) -->
       <div class="score-section" id="scoreSection" style="display: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-          <span style="font-size: 14px; font-weight: 600; color: #64748b;">Job Match Score</span>
-          <span id="matchScore" style="
-            font-size: 24px;
-            font-weight: 800;
-            background: linear-gradient(135deg, #22c55e, #16a34a);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-          ">--</span>
+        <div class="score-header">
+          <span class="score-title">Job Match Score</span>
+          <span class="score-value" id="matchScore">--</span>
         </div>
-        <div style="
-          width: 100%;
-          height: 6px;
-          background: #e2e8f0;
-          border-radius: 3px;
-          overflow: hidden;
-        ">
-          <div id="scoreFill" style="
-            height: 100%;
-            background: linear-gradient(90deg, #22c55e, #16a34a);
-            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-            width: 0%;
-          "></div>
+        <div class="score-progress">
+          <div class="score-fill" id="scoreFill" style="width: 0%"></div>
         </div>
       </div>
 
@@ -661,7 +634,6 @@
     </div>
   </div>
 
-  <script src="config.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

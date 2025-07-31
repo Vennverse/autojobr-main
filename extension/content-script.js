@@ -1,11 +1,4 @@
 // Enhanced AutoJobr Content Script v2.0 - Advanced Job Board Auto-Fill System
-
-// Load API configuration
-const API_CONFIG = {
-  API_URL: 'https://e3d8b3db-2c8e-4107-8058-625851bb3dc7-00-1r96d8sk4fqju.kirk.replit.dev',
-  TIMEOUT: 5000
-};
-
 class AutoJobrContentScript {
   constructor() {
     this.isInitialized = false;
@@ -16,10 +9,6 @@ class AutoJobrContentScript {
     this.observers = [];
     this.fillHistory = [];
     this.smartSelectors = new Map();
-    this.autoFillAttempts = 0;
-    this.lastAutofillTime = 0;
-    this.filledFields = new Set(); // Track already filled fields
-    this.apiUrl = API_CONFIG.API_URL;
     this.init();
   }
 
@@ -453,11 +442,6 @@ class AutoJobrContentScript {
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       switch (message.action) {
         case 'extractJobDetails':
-          // Clear cached data if force refresh requested
-          if (message.forceRefresh) {
-            this.currentJobData = null;
-            console.log('Content Script - Force refresh: cleared cached job data');
-          }
           this.extractJobDetails().then(sendResponse);
           return true;
           
@@ -546,136 +530,22 @@ class AutoJobrContentScript {
 
   async detectJobPosting() {
     try {
-      // First check if this is actually a job application page
-      const isJobApplicationPage = this.isJobApplicationPage();
-      
-      if (!isJobApplicationPage) {
-        console.log('❌ Not a job application page, hiding widget');
-        this.hideWidget();
-        return { success: false, reason: 'Not a job application page' };
-      }
-
-      console.log('✅ Job application page detected, checking for job data');
-      
-      // Then try to extract job data
       const jobData = await this.extractJobDetails();
       
       if (jobData.success && jobData.jobData.title) {
         this.currentJobData = jobData.jobData;
-        this.updateJobInfo(jobData.jobData);
         this.showWidget();
-        // Run analysis automatically
-        setTimeout(() => this.analyzeCurrentJob(), 1000);
+        this.updateJobInfo(jobData.jobData);
+        
         return { success: true, jobData: jobData.jobData };
       } else {
-        // Show widget anyway on job application pages, even without job data
-        this.showWidget();
-        return { success: true, reason: 'Job application page but no job data extracted' };
+        this.hideWidget();
+        return { success: false };
       }
     } catch (error) {
       console.error('Job detection error:', error);
       return { success: false, error: error.message };
     }
-  }
-
-  isJobApplicationPage() {
-    const url = window.location.href.toLowerCase();
-    const hostname = window.location.hostname.toLowerCase();
-    
-    // Strict job platform detection first
-    const strictJobPlatforms = [
-      'greenhouse.io', 'lever.co', 'workday', 'myworkdayjobs.com',
-      'icims.com', 'smartrecruiters.com', 'bamboohr.com', 'ashbyhq.com'
-    ];
-
-    const isJobPlatform = strictJobPlatforms.some(platform => hostname.includes(platform));
-    
-    if (isJobPlatform) {
-      console.log('✅ Detected job platform:', hostname);
-      return true;
-    }
-
-    // For major sites, be more strict about URL patterns
-    const majorSites = ['linkedin.com', 'indeed.com', 'glassdoor.com'];
-    const isMajorSite = majorSites.some(site => hostname.includes(site));
-    
-    if (isMajorSite) {
-      const strictPatterns = [
-        '/jobs/',
-        '/job/',
-        '/apply',
-        '/application',
-        'viewjob'
-      ];
-      
-      const hasStrictPattern = strictPatterns.some(pattern => url.includes(pattern));
-      
-      if (hasStrictPattern) {
-        // Additional check for actual job content
-        const hasJobContent = this.hasJobPostingContent();
-        console.log('Major site job check:', { hasStrictPattern, hasJobContent });
-        return hasJobContent;
-      }
-      
-      return false;
-    }
-
-    // For other sites, be very strict - require job URL patterns AND job content
-    const jobUrlPatterns = ['/apply', '/application', '/job/', '/career/'];
-    const hasJobUrl = jobUrlPatterns.some(pattern => url.includes(pattern));
-    
-    if (hasJobUrl) {
-      const hasJobContent = this.hasJobPostingContent();
-      console.log('Other site job check:', { url, hasJobUrl, hasJobContent });
-      return hasJobContent;
-    }
-
-    console.log('❌ Page rejected - no job URL patterns found:', url);
-    return false;
-  }
-
-  hasJobPostingContent() {
-    // Check for job posting specific content - be more strict
-    const jobContentSelectors = [
-      'h1[class*="job"], h2[class*="job"], h3[class*="job"]',
-      '[class*="job-title"], [class*="position-title"]',
-      '[class*="company-name"], [class*="employer"]',
-      '[class*="job-description"], [class*="job-summary"]',
-      '[class*="requirements"], [class*="qualifications"]',
-      'form[action*="apply"], form[action*="application"]',
-      '.job-application-form, .application-form',
-      'input[name*="resume"], input[name*="cv"]',
-      'textarea[name*="cover"], select[name*="experience"]'
-    ];
-
-    let foundElements = 0;
-    for (const selector of jobContentSelectors) {
-      const element = document.querySelector(selector);
-      if (element && element.textContent && element.textContent.trim().length > 5) {
-        foundElements++;
-        console.log('✅ Found job element:', selector);
-      }
-    }
-
-    // Also check for job-related text content
-    const pageText = document.body.innerText.toLowerCase();
-    const jobKeywords = [
-      'job description', 'responsibilities', 'requirements', 'qualifications',
-      'apply now', 'submit application', 'job posting', 'position summary',
-      'what you\'ll do', 'what we\'re looking for', 'about the role'
-    ];
-
-    const foundKeywords = jobKeywords.filter(keyword => pageText.includes(keyword));
-    
-    console.log('Job content analysis:', {
-      foundElements,
-      foundKeywords: foundKeywords.length,
-      keywords: foundKeywords.slice(0, 3),
-      url: window.location.href.substring(0, 100)
-    });
-
-    // Require at least 2 job elements OR 3 job keywords
-    return foundElements >= 2 || foundKeywords.length >= 3;
   }
 
   updateJobInfo(jobData) {
@@ -720,82 +590,8 @@ class AutoJobrContentScript {
       
       setTimeout(() => {
         widget.style.display = 'none';
-        // Show floating button when widget is hidden
-        this.showFloatingButton();
       }, 300);
     }
-  }
-
-  showFloatingButton() {
-    // Remove existing floating button
-    const existingButton = document.getElementById('autojobr-floating-btn');
-    if (existingButton) existingButton.remove();
-
-    const floatingBtn = document.createElement('div');
-    floatingBtn.id = 'autojobr-floating-btn';
-    floatingBtn.innerHTML = `
-      <div class="floating-btn-content">
-        <span class="floating-icon">A</span>
-        <span class="floating-tooltip">AutoJobr</span>
-      </div>
-    `;
-    
-    // Add styles
-    floatingBtn.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 56px;
-      height: 56px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 50%;
-      cursor: pointer;
-      z-index: 9999;
-      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s ease;
-      animation: floatIn 0.3s ease-out;
-    `;
-
-    floatingBtn.addEventListener('mouseenter', () => {
-      floatingBtn.style.transform = 'scale(1.1)';
-      floatingBtn.style.boxShadow = '0 6px 25px rgba(102, 126, 234, 0.6)';
-    });
-
-    floatingBtn.addEventListener('mouseleave', () => {
-      floatingBtn.style.transform = 'scale(1)';
-      floatingBtn.style.boxShadow = '0 4px 20px rgba(102, 126, 234, 0.4)';
-    });
-
-    floatingBtn.addEventListener('click', () => {
-      this.showWidget();
-      floatingBtn.remove();
-    });
-
-    // Add CSS animation
-    if (!document.getElementById('autojobr-float-styles')) {
-      const style = document.createElement('style');
-      style.id = 'autojobr-float-styles';
-      style.textContent = `
-        @keyframes floatIn {
-          from { opacity: 0; transform: translateY(20px) scale(0.8); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .floating-btn-content {
-          color: white;
-          font-weight: bold;
-          font-size: 18px;
-        }
-        .floating-tooltip {
-          display: none;
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
-    document.body.appendChild(floatingBtn);
   }
 
   minimizeWidget() {
@@ -845,17 +641,6 @@ class AutoJobrContentScript {
 
       // Validate required fields
       const isValid = jobData.title && jobData.title.length > 2;
-
-      // Cache the extracted job data
-      if (isValid) {
-        this.currentJobData = jobData;
-        console.log('Content Script - Job data extracted:', {
-          title: jobData.title,
-          company: jobData.company,
-          site: jobData.site,
-          timestamp: jobData.extractedAt
-        });
-      }
 
       return { 
         success: isValid, 
@@ -1165,23 +950,13 @@ class AutoJobrContentScript {
       return { success: false, error: 'Auto-fill already in progress' };
     }
 
-    // Prevent infinite loops with multiple safeguards
-    const now = Date.now();
-    const timeSinceLastFill = now - this.lastAutofillTime;
-    
-    // Don't allow autofill more than once every 10 seconds
-    if (timeSinceLastFill < 10000) {
-      console.log('Auto-fill cooldown active, please wait before trying again');
-      return { success: false, error: 'Auto-fill on cooldown, please wait' };
-    }
-    
+    // Prevent infinite loops by tracking attempts
     this.autoFillAttempts = (this.autoFillAttempts || 0) + 1;
     if (this.autoFillAttempts > 2) {
-      console.log('Max auto-fill attempts reached for this session');
+      console.log('Max auto-fill attempts reached, stopping to prevent loops');
+      this.autoFillAttempts = 0; // Reset counter
       return { success: false, error: 'Max auto-fill attempts reached' };
     }
-    
-    this.lastAutofillTime = now;
 
     this.fillInProgress = true;
     this.showProgress(true);
@@ -1241,11 +1016,10 @@ class AutoJobrContentScript {
       this.fillInProgress = false;
       this.showProgress(false);
       
-      // Reset attempts counter after longer delay to prevent loops
+      // Reset attempts counter after successful completion
       setTimeout(() => {
         this.autoFillAttempts = 0;
-        this.filledFields.clear(); // Clear filled fields tracking
-      }, 30000); // 30 seconds instead of 5
+      }, 5000);
       
       return {
         success: true,
@@ -1259,11 +1033,10 @@ class AutoJobrContentScript {
     } catch (error) {
       this.fillInProgress = false;
       this.showProgress(false);
-      // Reset attempts counter on error after longer delay
+      // Reset attempts counter on error
       setTimeout(() => {
         this.autoFillAttempts = 0;
-        this.filledFields.clear(); // Clear filled fields tracking
-      }, 30000); // 30 seconds instead of 5
+      }, 5000);
       console.error('Smart auto-fill error:', error);
       return { success: false, error: error.message };
     }
@@ -1373,26 +1146,8 @@ class AutoJobrContentScript {
     return false;
   }
 
-  getFieldIdentifier(field) {
-    // Create unique identifier for field tracking
-    return `${field.name || ''}_${field.id || ''}_${field.placeholder || ''}_${field.type || ''}_${field.className || ''}`;
-  }
-
   async fillFieldSmart(field, userProfile, smartMode) {
     try {
-      // Create unique field identifier to prevent refilling
-      const fieldId = this.getFieldIdentifier(field);
-      if (this.filledFields.has(fieldId)) {
-        console.log('Field already filled, skipping:', fieldId);
-        return false; // Skip already filled fields
-      }
-
-      // Check if field is already filled and mark it
-      if (field.value && field.value.trim().length > 0 && !smartMode) {
-        this.filledFields.add(fieldId); // Mark as filled
-        return false; // Skip pre-filled fields in non-smart mode
-      }
-
       // Scroll field into view smoothly
       field.scrollIntoView({ 
         behavior: 'smooth', 
@@ -1404,9 +1159,6 @@ class AutoJobrContentScript {
       // Focus the field with animation
       field.focus();
       await this.delay(50);
-      
-      // Mark field as being filled
-      this.filledFields.add(fieldId);
 
       const fieldInfo = this.analyzeFieldAdvanced(field);
       const value = this.getValueForFieldSmart(fieldInfo, userProfile, smartMode);
@@ -1819,47 +1571,29 @@ class AutoJobrContentScript {
 
   async fillChoiceFieldSmart(field, value) {
     try {
+      const shouldCheck = this.interpretBooleanValue(value);
+      
       if (field.type === 'radio') {
-        // Enhanced radio button handling
+        // For radio buttons, find the appropriate option
         const radioGroup = document.querySelectorAll(`input[name="${field.name}"]`);
-        console.log(`Processing radio group "${field.name}" with ${radioGroup.length} options for value: ${value}`);
-        
         for (const radio of radioGroup) {
           const radioInfo = this.analyzeFieldAdvanced(radio);
-          radioInfo.field = radio; // Add reference to field for better matching
-          
           if (this.shouldSelectRadio(radioInfo, value)) {
-            // Uncheck other radios first
-            radioGroup.forEach(r => r.checked = false);
-            
-            // Check the selected radio
             radio.checked = true;
-            radio.focus();
-            
-            // Dispatch multiple events for better compatibility
             radio.dispatchEvent(new Event('change', { bubbles: true }));
-            radio.dispatchEvent(new Event('click', { bubbles: true }));
-            radio.dispatchEvent(new Event('input', { bubbles: true }));
-            
-            console.log(`Selected radio option: ${radio.value || radio.id} for field: ${field.name}`);
             return true;
           }
         }
-        
-        console.log(`No matching radio option found for value: ${value} in field: ${field.name}`);
-        return false;
       } else {
-        // Enhanced checkbox handling
-        const shouldCheck = this.interpretBooleanValue(value);
+        // Checkbox
         if (field.checked !== shouldCheck) {
           field.checked = shouldCheck;
-          field.focus();
           field.dispatchEvent(new Event('change', { bubbles: true }));
-          field.dispatchEvent(new Event('click', { bubbles: true }));
-          field.dispatchEvent(new Event('input', { bubbles: true }));
         }
         return true;
       }
+
+      return false;
     } catch (error) {
       console.error('Choice field fill error:', error);
       return false;
@@ -1876,45 +1610,18 @@ class AutoJobrContentScript {
   }
 
   shouldSelectRadio(radioInfo, value) {
-    const combined = radioInfo.combined.toLowerCase();
+    const combined = radioInfo.combined;
     const valueLower = value.toLowerCase();
-    const radioValue = (radioInfo.field?.value || '').toLowerCase();
-    const radioText = (radioInfo.field?.nextElementSibling?.textContent || '').toLowerCase();
     
-    // Enhanced radio button matching
-    if (valueLower === 'yes' || valueLower === 'true' || valueLower === 'authorized') {
-      return (
-        combined.includes('yes') || 
-        combined.includes('authorized') || 
-        combined.includes('eligible') ||
-        radioValue === 'yes' ||
-        radioValue === 'true' ||
-        radioText.includes('yes') ||
-        radioText.includes('authorized')
-      );
+    // Match based on value content
+    if (valueLower === 'yes' && (combined.includes('yes') || combined.includes('authorized'))) {
+      return true;
+    }
+    if (valueLower === 'no' && (combined.includes('no') || combined.includes('not authorized'))) {
+      return true;
     }
     
-    if (valueLower === 'no' || valueLower === 'false' || valueLower === 'not authorized') {
-      return (
-        combined.includes('no') || 
-        combined.includes('not authorized') || 
-        combined.includes('not eligible') ||
-        radioValue === 'no' ||
-        radioValue === 'false' ||
-        radioText.includes('no') ||
-        radioText.includes('not authorized')
-      );
-    }
-    
-    // Check for experience levels
-    if (value.includes('year')) {
-      if (combined.includes(valueLower) || radioText.includes(valueLower)) {
-        return true;
-      }
-    }
-    
-    // Fallback to exact match
-    return combined.includes(valueLower) || radioValue === valueLower || radioText.includes(valueLower);
+    return combined.includes(valueLower);
   }
 
   async fillFileFieldSmart(field, value, userProfile) {
@@ -2087,47 +1794,32 @@ class AutoJobrContentScript {
   }
 
   async handleSaveJob() {
+    if (!this.currentJobData) {
+      this.showNotification('No job data found on this page', 'error');
+      return;
+    }
+
     try {
-      // Try to get current job data or extract fresh data
-      let jobData = this.currentJobData;
-      
-      if (!jobData) {
-        const extractedData = await this.extractJobDetails();
-        if (extractedData.success && extractedData.jobData.title) {
-          jobData = extractedData.jobData;
-        }
-      }
-
-      if (!jobData || !jobData.title) {
-        this.showNotification('❌ Could not find job details on this page', 'error');
-        return { success: false, error: 'No job data found' };
-      }
-
       const result = await chrome.runtime.sendMessage({
         action: 'saveJob',
         data: {
-          jobTitle: jobData.title,
-          company: jobData.company || 'Unknown Company',
-          location: jobData.location || '',
+          jobTitle: this.currentJobData.title,
+          company: this.currentJobData.company,
+          location: this.currentJobData.location,
           jobUrl: window.location.href,
-          description: jobData.description || '',
-          salary: jobData.salary || '',
-          platform: this.detectPlatform(window.location.hostname),
-          savedDate: new Date().toISOString(),
+          description: this.currentJobData.description,
           source: 'extension_v2'
         }
       });
 
-      if (result && result.success) {
+      if (result.success) {
         this.showNotification('✅ Job saved successfully!', 'success');
-        return { success: true, savedJob: result };
       } else {
-        throw new Error(result?.error || 'Failed to save job');
+        throw new Error('Failed to save job');
       }
     } catch (error) {
       console.error('Save job error:', error);
-      this.showNotification(`❌ Failed to save job: ${error.message}`, 'error');
-      return { success: false, error: error.message };
+      this.showNotification('❌ Failed to save job', 'error');
     }
   }
 
@@ -2186,63 +1878,35 @@ class AutoJobrContentScript {
   }
 
   async analyzeCurrentJob() {
-    try {
-      let jobData = this.currentJobData;
-      
-      if (!jobData) {
-        const extractedData = await this.extractJobDetails();
-        if (extractedData.success && extractedData.jobData.title) {
-          jobData = extractedData.jobData;
-          this.currentJobData = jobData;
-        }
-      }
-
-      if (!jobData || !jobData.title) {
-        console.log('No job data available for analysis');
-        this.updateJobMatch({ matchScore: 0, message: 'No job data found' });
-        return { success: false, error: 'No job data found' };
-      }
-
+    const jobData = await this.extractJobDetails();
+    
+    if (jobData.success) {
       // Update UI with job info
-      this.updateJobInfo(jobData);
+      this.updateJobInfo(jobData.jobData);
       
-      // Get user profile
-      const userProfile = await this.getUserProfile();
-      if (!userProfile) {
-        console.log('No user profile available');
-        this.updateJobMatch({ matchScore: 0, message: 'Please sign in to analyze jobs' });
-        return { success: false, error: 'User not authenticated' };
-      }
-
-      console.log('Analyzing job with data:', {
-        jobTitle: jobData.title,
-        company: jobData.company,
-        profileSkills: userProfile.skills?.length || 0
-      });
-
       // Send to background for analysis
-      const result = await chrome.runtime.sendMessage({
-        action: 'analyzeJob',
-        data: {
-          jobData: jobData,
-          userProfile: userProfile
-        }
-      });
+      try {
+        const userProfile = await this.getUserProfile();
+        const result = await chrome.runtime.sendMessage({
+          action: 'analyzeJob',
+          data: {
+            jobData: jobData.jobData,
+            userProfile: userProfile
+          }
+        });
 
-      if (result && result.success && result.analysis) {
-        console.log('Analysis result:', result.analysis);
-        this.updateJobMatch(result.analysis);
+        if (result.success) {
+          this.updateJobMatch(result.analysis);
+        }
+
         return { success: true, analysis: result.analysis };
-      } else {
-        console.error('Analysis failed:', result);
-        this.updateJobMatch({ matchScore: 0, message: 'Analysis failed' });
-        return { success: false, error: result?.error || 'Analysis failed' };
+      } catch (error) {
+        console.error('Job analysis error:', error);
+        return { success: false, error: error.message };
       }
-    } catch (error) {
-      console.error('Job analysis error:', error);
-      this.updateJobMatch({ matchScore: 0, message: 'Analysis error' });
-      return { success: false, error: error.message };
     }
+    
+    return jobData;
   }
 
   updateJobMatch(analysis) {
@@ -2260,8 +1924,6 @@ class AutoJobrContentScript {
       `;
     }
   }
-
-
 
   async saveCurrentJob() {
     return await this.handleSaveJob();
@@ -2396,56 +2058,31 @@ class AutoJobrContentScript {
 
   async trackApplicationSubmission() {
     try {
-      // Try current job data first, then extract fresh data
-      let jobData = this.currentJobData;
+      const jobData = await this.extractJobDetails();
       
-      if (!jobData) {
-        const extractedData = await this.extractJobDetails();
-        if (extractedData.success && extractedData.jobData.title) {
-          jobData = extractedData.jobData;
-        }
-      }
-
-      if (!jobData || !jobData.title) {
-        // Try to get basic info from page title or URL
-        const pageTitle = document.title;
-        const urlParts = window.location.pathname.split('/');
+      if (jobData.success && jobData.jobData) {
+        console.log('Tracking application submission:', jobData.jobData);
         
-        jobData = {
-          title: pageTitle.includes('|') ? pageTitle.split('|')[0].trim() : 
-                 pageTitle.includes('-') ? pageTitle.split('-')[0].trim() : 
-                 'Job Application',
-          company: urlParts.find(part => part.length > 2 && !part.includes('job')) || 'Unknown Company',
-          location: '',
-          description: ''
-        };
-      }
-      
-      console.log('Tracking application submission:', jobData);
-      
-      const response = await chrome.runtime.sendMessage({
-        action: 'trackApplication',
-        data: {
-          jobTitle: jobData.title,
-          company: jobData.company || 'Unknown Company',
-          location: jobData.location || '',
-          jobUrl: window.location.href,
-          status: 'applied',
-          source: 'extension',
-          platform: this.detectPlatform(window.location.hostname),
-          appliedDate: new Date().toISOString()
-        }
-      });
+        const response = await chrome.runtime.sendMessage({
+          action: 'trackApplication',
+          data: {
+            jobTitle: jobData.jobData.title,
+            company: jobData.jobData.company,
+            location: jobData.jobData.location || '',
+            jobUrl: window.location.href,
+            status: 'applied',
+            source: 'extension',
+            platform: this.detectPlatform(window.location.hostname),
+            appliedDate: new Date().toISOString()
+          }
+        });
 
-      if (response && response.success) {
-        this.showNotification('✅ Application tracked successfully!', 'success');
-        console.log('Application tracking successful:', response);
-      } else {
-        console.warn('Application tracking failed:', response);
+        if (response && response.success) {
+          this.showNotification('✅ Application tracked successfully!', 'success');
+        }
       }
     } catch (error) {
       console.error('Failed to track application:', error);
-      this.showNotification('⚠️ Application tracking failed', 'error');
     }
   }
 
@@ -2489,113 +2126,107 @@ class AutoJobrContentScript {
     return 'Unknown';
   }
 
-  // Create floating button for job application forms
+  // Create floating popup for job application forms
   createFloatingPopup() {
     // Only show on job application forms
     if (!this.isJobApplicationPage()) {
       return;
     }
 
-    // Remove existing floating elements
-    const existingPopup = document.getElementById('autojobr-floating-popup');
-    const existingButton = document.getElementById('autojobr-floating-button');
-    if (existingPopup) existingPopup.remove();
-    if (existingButton) existingButton.remove();
+    // Don't create multiple popups
+    if (document.getElementById('autojobr-floating-popup')) {
+      return;
+    }
 
-    const floatingButton = document.createElement('div');
-    floatingButton.id = 'autojobr-floating-button';
-    floatingButton.innerHTML = `
+    const popup = document.createElement('div');
+    popup.id = 'autojobr-floating-popup';
+    popup.innerHTML = `
       <div style="
         position: fixed;
-        bottom: 20px;
+        top: 20px;
         right: 20px;
-        width: 60px;
-        height: 60px;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
-        border-radius: 50%;
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
         color: white;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        z-index: 999999;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.3s ease;
-        animation: autojobrPulse 2s infinite;
-      " onmouseover="
-        this.style.transform = 'scale(1.1)';
-        this.style.boxShadow = '0 12px 35px rgba(102, 126, 234, 0.6)';
-      " onmouseout="
-        this.style.transform = 'scale(1)';
-        this.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
-      " title="Click to open AutoJobr Extension">
-        <div style="
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          font-size: 12px;
-          font-weight: 600;
-        ">
-          <div style="font-size: 18px; margin-bottom: 2px;">AJ</div>
+        padding: 16px;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        z-index: 10000;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        min-width: 280px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.2);
+      ">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <div style="width: 24px; height: 24px; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+            <span style="color: #667eea; font-weight: bold; font-size: 14px;">AJ</span>
+          </div>
+          <span style="font-weight: 600; font-size: 16px;">AutoJobr Assistant</span>
+          <button id="close-popup" style="
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            opacity: 0.7;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+          ">×</button>
+        </div>
+        <div style="margin-bottom: 12px; font-size: 14px; opacity: 0.9;">
+          Job application form detected!
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button id="autofill-btn" style="
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            flex: 1;
+            min-width: 120px;
+          ">Auto-Fill Form</button>
+          <button id="analyze-btn" style="
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            flex: 1;
+            min-width: 120px;
+          ">Analyze Job</button>
         </div>
       </div>
-      <style>
-        @keyframes autojobrPulse {
-          0% { box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4); }
-          50% { box-shadow: 0 8px 25px rgba(102, 126, 234, 0.7); }
-          100% { box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4); }
-        }
-      </style>
     `;
 
-    document.body.appendChild(floatingButton);
+    document.body.appendChild(popup);
 
-    // Add click event to open extension popup
-    floatingButton.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      // Try to communicate with extension to open popup
-      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-        chrome.runtime.sendMessage({ action: 'openPopup' }, (response) => {
-          if (chrome.runtime.lastError) {
-            // If extension popup can't be opened, show notification to use extension icon
-            this.showNotification('Click the AutoJobr extension icon in your browser toolbar', 'info');
-          }
-        });
-      } else {
-        // Fallback: show notification to use extension icon
-        this.showNotification('Click the AutoJobr extension icon in your browser toolbar', 'info');
-      }
+    // Add event listeners
+    document.getElementById('close-popup').addEventListener('click', () => {
+      popup.remove();
     });
 
-    // Auto-fade after 30 seconds, but show again if user scrolls
-    let hideTimeout = setTimeout(() => {
-      if (floatingButton && floatingButton.parentNode) {
-        floatingButton.style.opacity = '0.6';
-        floatingButton.style.transform = 'scale(0.8)';
+    document.getElementById('autofill-btn').addEventListener('click', async () => {
+      this.handleSmartAutofill();
+    });
+
+    document.getElementById('analyze-btn').addEventListener('click', async () => {
+      this.handleAnalyze();
+    });
+
+    // Auto-hide after 30 seconds
+    setTimeout(() => {
+      if (popup.parentNode) {
+        popup.remove();
       }
     }, 30000);
-
-    // Show button again on scroll
-    let scrollTimeout;
-    window.addEventListener('scroll', () => {
-      if (floatingButton && floatingButton.parentNode) {
-        floatingButton.style.opacity = '1';
-        floatingButton.style.transform = 'scale(1)';
-        
-        clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => {
-          if (floatingButton && floatingButton.parentNode) {
-            floatingButton.style.opacity = '0.6';
-            floatingButton.style.transform = 'scale(0.8)';
-          }
-        }, 3000);
-      }
-    });
   }
 
   isJobApplicationPage() {
@@ -2627,10 +2258,8 @@ class AutoJobrContentScript {
     
     const overlay = document.getElementById('autojobr-overlay');
     const popup = document.getElementById('autojobr-floating-popup');
-    const button = document.getElementById('autojobr-floating-button');
     if (overlay) overlay.remove();
     if (popup) popup.remove();
-    if (button) button.remove();
   }
 }
 
