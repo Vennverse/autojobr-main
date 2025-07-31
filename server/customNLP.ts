@@ -153,8 +153,8 @@ export class CustomNLPService {
 
     // Extract qualifications
     const qualificationPatterns = [
-      /(?:requirements?|qualifications?):(.*?)(?:\n\n|\n[A-Z]|$)/is,
-      /(?:must have|required):(.*?)(?:\n\n|\n[A-Z]|$)/is,
+      /(?:requirements?|qualifications?):(.*?)(?:\n\n|\n[A-Z]|$)/i,
+      /(?:must have|required):(.*?)(?:\n\n|\n[A-Z]|$)/i,
       /bachelor|master|phd|degree|years?.*experience/gi
     ];
 
@@ -186,33 +186,108 @@ export class CustomNLPService {
       title,
       company,
       location,
-      requiredSkills: [...new Set(requiredSkills)],
-      qualifications: [...new Set(qualifications)],
-      benefits: [...new Set(benefits)]
+      requiredSkills: Array.from(new Set(requiredSkills)),
+      qualifications: Array.from(new Set(qualifications)),
+      benefits: Array.from(new Set(benefits))
     };
   }
 
-  calculateMatchScore(userSkills: string[], jobSkills: string[], userExperience: any[]): number {
-    let score = 0;
-    const userSkillsLower = userSkills.map(s => s.toLowerCase());
-    const jobSkillsLower = jobSkills.map(s => s.toLowerCase());
+  calculateMatchScore(userSkills: string[], jobSkills: string[], userExperience: any[], yearsExperience: number = 0): number {
+    if (jobSkills.length === 0) return 65; // Better default for unknown requirements
 
-    // Skill matching (60% of score)
-    const matchingSkills = jobSkillsLower.filter(jobSkill => 
-      userSkillsLower.some(userSkill => 
-        userSkill.includes(jobSkill) || jobSkill.includes(userSkill)
+    const normalizedUserSkills = userSkills.map(s => s.toLowerCase());
+    
+    // Enhanced skill matching with weighted scoring
+    let skillMatchScore = 0;
+    let totalSkillWeight = 0;
+    
+    jobSkills.forEach(jobSkill => {
+      const skillLower = jobSkill.toLowerCase();
+      let skillWeight = this.getSkillWeight(skillLower);
+      totalSkillWeight += skillWeight;
+      
+      // Check for exact matches (higher score)
+      if (normalizedUserSkills.some(us => us === skillLower)) {
+        skillMatchScore += skillWeight * 1.0;
+      }
+      // Check for partial matches (medium score) 
+      else if (normalizedUserSkills.some(us => us.includes(skillLower) || skillLower.includes(us))) {
+        skillMatchScore += skillWeight * 0.7;
+      }
+      // Check for synonym matches (lower score)
+      else if (this.findSkillSynonyms(skillLower).some(syn => normalizedUserSkills.includes(syn))) {
+        skillMatchScore += skillWeight * 0.5;
+      }
+    });
+
+    const baseScore = totalSkillWeight > 0 ? (skillMatchScore / totalSkillWeight) * 60 : 30;
+    
+    // Experience bonuses
+    const experienceBonus = this.calculateExperienceBonus(yearsExperience, userExperience);
+    
+    // Skill diversity and depth bonus
+    const diversityBonus = Math.min(userSkills.length * 1.5, 15);
+    
+    // Role complexity adjustment
+    const complexityAdjustment = this.calculateComplexityAdjustment(jobSkills, yearsExperience);
+    
+    const finalScore = Math.min(Math.round(baseScore + experienceBonus + diversityBonus + complexityAdjustment), 100);
+    
+    // Ensure minimum reasonable score for partially matching profiles
+    return Math.max(finalScore, 15);
+  }
+
+  private getSkillWeight(skill: string): number {
+    // Critical technical skills get higher weight
+    const criticalSkills = ['react', 'javascript', 'python', 'java', 'sql', 'aws', 'docker', 'kubernetes'];
+    const importantSkills = ['html', 'css', 'git', 'linux', 'mongodb', 'postgresql', 'nodejs'];
+    
+    if (criticalSkills.some(cs => skill.includes(cs))) return 3.0;
+    if (importantSkills.some(is => skill.includes(is))) return 2.0;
+    return 1.0;
+  }
+
+  private calculateExperienceBonus(yearsExperience: number, workExperience: any[]): number {
+    const experienceYears = Math.max(yearsExperience, workExperience.length * 1.5);
+    
+    if (experienceYears >= 8) return 20;
+    if (experienceYears >= 5) return 15;
+    if (experienceYears >= 3) return 10;
+    if (experienceYears >= 1) return 5;
+    return 0;
+  }
+
+  private calculateComplexityAdjustment(jobSkills: string[], yearsExperience: number): number {
+    const complexSkills = jobSkills.filter(skill => 
+      ['architecture', 'microservices', 'devops', 'machine learning', 'ai', 'blockchain'].some(complex => 
+        skill.toLowerCase().includes(complex)
       )
     );
     
-    const skillScore = jobSkillsLower.length > 0 ? 
-      (matchingSkills.length / jobSkillsLower.length) * 60 : 30;
-    score += skillScore;
+    if (complexSkills.length > 0 && yearsExperience < 3) return -10; // Penalize junior for complex roles
+    if (complexSkills.length === 0 && yearsExperience > 8) return -5;  // Senior for basic roles
+    return 0;
+  }
 
-    // Experience relevance (40% of score)
-    const experienceScore = Math.min(userExperience.length * 10, 40);
-    score += experienceScore;
-
-    return Math.min(Math.round(score), 100);
+  private findSkillSynonyms(skill: string): string[] {
+    const synonymMap: { [key: string]: string[] } = {
+      'javascript': ['js', 'ecmascript', 'es6', 'node'],
+      'python': ['py', 'django', 'flask'],
+      'java': ['spring', 'springboot', 'hibernate'],
+      'react': ['reactjs', 'jsx', 'redux'],
+      'angular': ['angularjs', 'typescript'],
+      'database': ['sql', 'mysql', 'postgresql', 'mongodb'],
+      'cloud': ['aws', 'azure', 'gcp', 'docker'],
+      'frontend': ['ui', 'ux', 'html', 'css'],
+      'backend': ['api', 'server', 'microservices']
+    };
+    
+    for (const [key, synonyms] of Object.entries(synonymMap)) {
+      if (key === skill || synonyms.includes(skill)) {
+        return [key, ...synonyms];
+      }
+    }
+    return [];
   }
 
   identifySkillGaps(userSkills: string[], jobSkills: string[]): JobAnalysisResult['skillGaps'] {
@@ -346,7 +421,7 @@ export class CustomNLPService {
     const userExperience = userProfile.workExperience || [];
     const yearsExperience = userProfile.yearsExperience || 0;
 
-    const matchScore = this.calculateMatchScore(userSkills, extractedData.requiredSkills, userExperience);
+    const matchScore = this.calculateMatchScore(userSkills, extractedData.requiredSkills, userExperience, yearsExperience);
     
     const matchingSkills = extractedData.requiredSkills.filter(jobSkill => 
       userSkills.some((userSkill: string) => 

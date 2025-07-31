@@ -23,6 +23,7 @@ class AutoJobrContentScript {
       this.setupKeyboardShortcuts();
       this.initializeSmartSelectors();
       this.setupApplicationTracking(); // Setup tracking once during initialization
+      this.setupAutoAnalysis(); // New: Setup automatic job analysis
       this.isInitialized = true;
       
       // Mark as loaded for background script
@@ -2255,6 +2256,224 @@ class AutoJobrContentScript {
     return hasStrictJobForm && hasApplyButton;
   }
 
+  // Setup automatic job analysis when new pages load
+  setupAutoAnalysis() {
+    // Analyze current page if it's a job page
+    if (this.isJobApplicationPage()) {
+      setTimeout(() => this.performAutoAnalysis(), 2000);
+    }
+
+    // Watch for URL changes (SPA navigation)
+    let lastUrl = window.location.href;
+    const urlObserver = new MutationObserver(() => {
+      if (window.location.href !== lastUrl) {
+        lastUrl = window.location.href;
+        if (this.isJobApplicationPage()) {
+          setTimeout(() => this.performAutoAnalysis(), 3000);
+        }
+      }
+    });
+
+    urlObserver.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    this.observers.push(urlObserver);
+  }
+
+  async performAutoAnalysis() {
+    try {
+      const jobData = this.extractJobData();
+      if (!jobData || !jobData.title) {
+        console.log('No job data found for analysis');
+        return;
+      }
+
+      // Get user profile first
+      const profile = await this.getUserProfile();
+      if (!profile) {
+        console.log('User not authenticated - skipping auto analysis');
+        return;
+      }
+
+      // Perform enhanced job analysis
+      const analysis = await this.analyzeJobWithAPI(jobData, profile);
+      if (analysis) {
+        // Update floating button with analysis results
+        this.updateFloatingButtonWithAnalysis(analysis);
+        console.log('Auto-analysis completed:', analysis);
+      }
+    } catch (error) {
+      console.error('Auto-analysis failed:', error);
+    }
+  }
+
+  extractJobData() {
+    const url = window.location.href;
+    const hostname = window.location.hostname.toLowerCase();
+    
+    let jobData = {
+      title: '',
+      company: '',
+      description: '',
+      location: '',
+      salary: '',
+      url: url
+    };
+
+    // LinkedIn job extraction
+    if (hostname.includes('linkedin.com')) {
+      jobData.title = document.querySelector('.job-details-jobs-unified-top-card__job-title, .job-title')?.textContent?.trim() || '';
+      jobData.company = document.querySelector('.job-details-jobs-unified-top-card__company-name, .company-name')?.textContent?.trim() || '';
+      jobData.location = document.querySelector('.job-details-jobs-unified-top-card__bullet, .job-location')?.textContent?.trim() || '';
+      jobData.description = document.querySelector('.job-details__description-text, .job-view-description')?.textContent?.trim() || '';
+    }
+    
+    // Workday job extraction
+    else if (hostname.includes('myworkdayjobs.com')) {
+      jobData.title = document.querySelector('[data-automation-id="jobPostingHeader"], .css-1id67r3')?.textContent?.trim() || '';
+      jobData.company = document.querySelector('[data-automation-id="jobPostingCompany"], .css-1x9zq2f')?.textContent?.trim() || '';
+      jobData.location = document.querySelector('[data-automation-id="jobPostingLocation"]')?.textContent?.trim() || '';
+      jobData.description = document.querySelector('[data-automation-id="jobPostingDescription"]')?.textContent?.trim() || '';
+    }
+    
+    // Indeed job extraction
+    else if (hostname.includes('indeed.com')) {
+      jobData.title = document.querySelector('[data-jk] h1, .jobsearch-JobInfoHeader-title')?.textContent?.trim() || '';
+      jobData.company = document.querySelector('[data-testid="inlineHeader-companyName"]')?.textContent?.trim() || '';
+      jobData.location = document.querySelector('[data-testid="job-location"]')?.textContent?.trim() || '';
+      jobData.description = document.querySelector('#jobDescriptionText, .jobsearch-jobDescriptionText')?.textContent?.trim() || '';
+    }
+    
+    // Generic extraction for other sites
+    else {
+      jobData.title = document.querySelector('h1, .job-title, [class*="title"]')?.textContent?.trim() || '';
+      jobData.company = document.querySelector('.company, [class*="company"]')?.textContent?.trim() || '';
+      jobData.description = document.querySelector('.description, .job-description, [class*="description"]')?.textContent?.trim() || '';
+    }
+
+    return jobData.title ? jobData : null;
+  }
+
+  async analyzeJobWithAPI(jobData, userProfile) {
+    try {
+      const apiUrl = await this.getApiUrl();
+      const response = await fetch(`${apiUrl}/api/analyze-job-match`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          jobData: {
+            title: jobData.title,
+            company: jobData.company,
+            description: jobData.description,
+            requirements: jobData.description,
+            qualifications: jobData.description,
+            benefits: jobData.description,
+            location: jobData.location,
+            salary: jobData.salary,
+            url: jobData.url
+          },
+          userProfile
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Analysis failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('API job analysis failed:', error);
+      return null;
+    }
+  }
+
+  updateFloatingButtonWithAnalysis(analysis) {
+    const button = document.getElementById('autojobr-floating-button');
+    if (!button) return;
+
+    const score = analysis.matchScore || analysis.analysis?.matchScore || 0;
+    const scoreText = `${Math.round(score)}%`;
+    
+    // Update button with score
+    button.innerHTML = `
+      <div style="
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, ${this.getScoreColor(score)} 0%, ${this.getScoreColor(score)}dd 100%);
+        border-radius: 50%;
+        box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        transition: all 0.3s ease;
+        animation: pulse 2s infinite;
+      " title="Job Match: ${scoreText} - Click to open extension">
+        <span style="color: white; font-weight: bold; font-size: 12px; text-align: center;">
+          ${scoreText}
+        </span>
+      </div>
+      <style>
+        @keyframes pulse {
+          0% { box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4); }
+          50% { box-shadow: 0 4px 20px rgba(102, 126, 234, 0.8); }
+          100% { box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4); }
+        }
+        #autojobr-floating-button:hover > div {
+          transform: scale(1.1);
+          box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+        }
+      </style>
+    `;
+
+    // Store analysis data for popup use
+    this.currentAnalysis = analysis;
+  }
+
+  getScoreColor(score) {
+    if (score >= 80) return '#22c55e';
+    if (score >= 60) return '#f59e0b';
+    if (score >= 40) return '#f97316';
+    return '#ef4444';
+  }
+
+  async getUserProfile() {
+    try {
+      const apiUrl = await this.getApiUrl();
+      const response = await fetch(`${apiUrl}/api/extension/profile`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        return await response.json();
+      }
+      return null;
+    } catch (error) {
+      console.error('Failed to get user profile:', error);
+      return null;
+    }
+  }
+
+  async getApiUrl() {
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage({ action: 'getApiUrl' }, (response) => {
+        resolve(response?.apiUrl || 'https://474e72d5-d02a-4881-a1b1-207472132974-00-13rhdq6o0h8j1.worf.replit.dev');
+      });
+    });
+  }
+
   // Cleanup method
   destroy() {
     this.observers.forEach(observer => observer.disconnect());
@@ -2267,15 +2486,34 @@ class AutoJobrContentScript {
   }
 }
 
+// Add message listener for getting current analysis data
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'getCurrentAnalysis') {
+    const extension = window.autojobrExtension;
+    if (extension && extension.currentAnalysis) {
+      sendResponse({
+        success: true,
+        analysis: extension.currentAnalysis,
+        jobData: extension.extractJobData()
+      });
+    } else {
+      sendResponse({ success: false });
+    }
+  }
+  return true;
+});
+
 // Initialize content script
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     const extension = new AutoJobrContentScript();
+    window.autojobrExtension = extension; // Store reference for message handling
     // Show floating button on job application pages after a delay
     setTimeout(() => extension.createFloatingButton(), 3000);
   });
 } else {
   const extension = new AutoJobrContentScript();
+  window.autojobrExtension = extension; // Store reference for message handling
   // Show floating button on job application pages after a delay  
   setTimeout(() => extension.createFloatingButton(), 3000);
 }

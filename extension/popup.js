@@ -377,6 +377,9 @@ class AutoJobrPopup {
         matchScore.style.webkitBackgroundClip = 'text';
         matchScore.style.webkitTextFillColor = 'transparent';
         
+        // Show detailed score explanations
+        this.displayScoreExplanations(analysis);
+        
         // Log detailed analysis for debugging
         console.log('Job Analysis Results:', {
           matchScore: analysis.matchScore,
@@ -391,6 +394,244 @@ class AutoJobrPopup {
     } catch (error) {
       console.error('Job analysis failed:', error);
     }
+  }
+
+  displayScoreExplanations(analysis) {
+    // Create or update score explanation section
+    let explanationSection = document.getElementById('scoreExplanation');
+    if (!explanationSection) {
+      explanationSection = document.createElement('div');
+      explanationSection.id = 'scoreExplanation';
+      explanationSection.style.cssText = `
+        margin-top: 12px;
+        padding: 12px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.1);
+        font-size: 12px;
+        display: none;
+      `;
+      document.getElementById('scoreSection').appendChild(explanationSection);
+    }
+
+    const score = analysis.matchScore || analysis.analysis?.matchScore || 0;
+    const matchingSkills = analysis.matchingSkills || analysis.analysis?.matchingSkills || [];
+    const missingSkills = analysis.missingSkills || analysis.analysis?.missingSkills || [];
+    const recommendation = analysis.applicationRecommendation || analysis.recommendation || 'review_required';
+    
+    explanationSection.innerHTML = `
+      <div style="margin-bottom: 8px; font-weight: 600; color: #e5e7eb;">
+        📊 Score Breakdown
+      </div>
+      
+      ${matchingSkills.length > 0 ? `
+        <div style="margin-bottom: 8px;">
+          <div style="color: #22c55e; font-weight: 500; margin-bottom: 4px;">
+            ✅ Matching Skills (${matchingSkills.length})
+          </div>
+          <div style="color: #d1d5db; font-size: 11px;">
+            ${matchingSkills.slice(0, 5).join(', ')}${matchingSkills.length > 5 ? '...' : ''}
+          </div>
+        </div>
+      ` : ''}
+      
+      ${missingSkills.length > 0 ? `
+        <div style="margin-bottom: 8px;">
+          <div style="color: #f59e0b; font-weight: 500; margin-bottom: 4px;">
+            ⚠️ Missing Skills (${missingSkills.length})
+          </div>
+          <div style="color: #d1d5db; font-size: 11px;">
+            ${missingSkills.slice(0, 5).join(', ')}${missingSkills.length > 5 ? '...' : ''}
+          </div>
+        </div>
+      ` : ''}
+      
+      <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <div style="color: #e5e7eb; font-weight: 500; margin-bottom: 4px;">
+          💡 Recommendation
+        </div>
+        <div style="color: #d1d5db; font-size: 11px;">
+          ${this.getRecommendationText(recommendation, score)}
+        </div>
+      </div>
+      
+      <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <button id="viewDetailedAnalysis" style="
+          background: rgba(255,255,255,0.1);
+          border: 1px solid rgba(255,255,255,0.2);
+          color: #e5e7eb;
+          padding: 6px 12px;
+          border-radius: 6px;
+          font-size: 11px;
+          cursor: pointer;
+          width: 100%;
+        ">
+          View Detailed Analysis
+        </button>
+      </div>
+    `;
+
+    // Add event listener for detailed analysis
+    document.getElementById('viewDetailedAnalysis')?.addEventListener('click', () => {
+      this.showDetailedAnalysisModal(analysis);
+    });
+
+    explanationSection.style.display = 'block';
+  }
+
+  getRecommendationText(recommendation, score) {
+    switch (recommendation) {
+      case 'strongly_recommended':
+        return 'Excellent match! Your profile aligns very well with this role. Apply with confidence.';
+      case 'recommended':
+        return 'Good match! You meet most requirements. Consider applying with a tailored resume.';
+      case 'consider_with_preparation':
+        return 'Moderate match. Review missing skills and consider highlighting transferable experience.';
+      case 'needs_development':
+        return 'Skills gap identified. Consider developing key missing skills before applying.';
+      case 'not_recommended':
+        return 'Limited match. This role may require significant additional preparation.';
+      default:
+        if (score >= 70) return 'Strong match - apply now!';
+        if (score >= 50) return 'Good match - consider applying';
+        return 'Consider tailoring your application';
+    }
+  }
+
+  showDetailedAnalysisModal(analysis) {
+    // Create detailed analysis modal
+    const modal = document.createElement('div');
+    modal.id = 'detailedAnalysisModal';
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10001;
+      backdrop-filter: blur(5px);
+    `;
+
+    const content = this.buildDetailedAnalysisContent(analysis);
+    modal.innerHTML = `
+      <div style="
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        border-radius: 12px;
+        padding: 20px;
+        max-width: 400px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      ">
+        <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 16px;">
+          <h3 style="color: #e5e7eb; margin: 0; font-size: 16px;">Detailed Job Analysis</h3>
+          <button id="closeModal" style="
+            background: none;
+            border: none;
+            color: #9ca3af;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            margin-left: auto;
+          ">×</button>
+        </div>
+        ${content}
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Add close functionality
+    document.getElementById('closeModal').addEventListener('click', () => {
+      modal.remove();
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
+  }
+
+  buildDetailedAnalysisContent(analysis) {
+    const score = analysis.matchScore || analysis.analysis?.matchScore || 0;
+    const skillGaps = analysis.skillGaps || {};
+    const seniorityLevel = analysis.seniorityLevel || 'Not specified';
+    const workMode = analysis.workMode || 'Not specified';
+    const tailoringAdvice = analysis.tailoringAdvice || 'Review job requirements carefully';
+    const interviewTips = analysis.interviewPrepTips || 'Prepare for standard interview questions';
+
+    return `
+      <div style="color: #e5e7eb; font-size: 13px; line-height: 1.5;">
+        <div style="text-align: center; margin-bottom: 16px;">
+          <div style="
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, ${this.getScoreColor(score)}, ${this.getScoreColor(score)}dd);
+            margin: 0 auto 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+          ">
+            ${Math.round(score)}%
+          </div>
+          <div style="font-weight: 600; margin-bottom: 4px;">Overall Match Score</div>
+          <div style="font-size: 11px; opacity: 0.8;">Based on comprehensive analysis</div>
+        </div>
+
+        ${skillGaps.critical && skillGaps.critical.length > 0 ? `
+          <div style="margin-bottom: 12px; padding: 8px; background: rgba(239,68,68,0.1); border-radius: 6px; border-left: 3px solid #ef4444;">
+            <div style="font-weight: 600; color: #ef4444; margin-bottom: 4px;">🚨 Critical Skills Gap</div>
+            <div style="font-size: 11px; opacity: 0.9;">${skillGaps.critical.join(', ')}</div>
+          </div>
+        ` : ''}
+
+        ${skillGaps.important && skillGaps.important.length > 0 ? `
+          <div style="margin-bottom: 12px; padding: 8px; background: rgba(245,158,11,0.1); border-radius: 6px; border-left: 3px solid #f59e0b;">
+            <div style="font-weight: 600; color: #f59e0b; margin-bottom: 4px;">⚠️ Important Skills</div>
+            <div style="font-size: 11px; opacity: 0.9;">${skillGaps.important.join(', ')}</div>
+          </div>
+        ` : ''}
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+          <div style="padding: 8px; background: rgba(255,255,255,0.05); border-radius: 6px;">
+            <div style="font-size: 10px; opacity: 0.7; margin-bottom: 2px;">Seniority Level</div>
+            <div style="font-weight: 500;">${seniorityLevel}</div>
+          </div>
+          <div style="padding: 8px; background: rgba(255,255,255,0.05); border-radius: 6px;">
+            <div style="font-size: 10px; opacity: 0.7; margin-bottom: 2px;">Work Mode</div>
+            <div style="font-weight: 500;">${workMode}</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 12px; padding: 8px; background: rgba(34,197,94,0.1); border-radius: 6px; border-left: 3px solid #22c55e;">
+          <div style="font-weight: 600; color: #22c55e; margin-bottom: 4px;">💡 Tailoring Advice</div>
+          <div style="font-size: 11px; opacity: 0.9;">${tailoringAdvice}</div>
+        </div>
+
+        <div style="margin-bottom: 12px; padding: 8px; background: rgba(59,130,246,0.1); border-radius: 6px; border-left: 3px solid #3b82f6;">
+          <div style="font-weight: 600; color: #3b82f6; margin-bottom: 4px;">🎯 Interview Tips</div>
+          <div style="font-size: 11px; opacity: 0.9;">${interviewTips}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  getScoreColor(score) {
+    if (score >= 80) return '#22c55e';
+    if (score >= 60) return '#f59e0b';
+    if (score >= 40) return '#f97316';
+    return '#ef4444';
   }
 
   async loadUserProfile() {

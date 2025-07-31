@@ -29,17 +29,19 @@ AutoJobr is a comprehensive job application platform that connects job seekers w
 
 ## Recent Changes
 
-### January 31, 2025 - Extension Application Tracking Fix & Replit Migration Complete
+### January 31, 2025 - Automatic Job Analysis & Enhanced Score Explanations Complete
+- ✅ **Automatic Job Analysis**: Extension now automatically analyzes job pages when new jobs are opened with robust detection logic
+- ✅ **Enhanced Analysis Engine**: Improved job analysis with weighted skill matching, synonym detection, and experience bonuses
+- ✅ **Smart Score Explanations**: Added detailed score breakdown showing matching skills, missing skills, and personalized recommendations
+- ✅ **Floating Button with Score**: Button displays real-time match score (e.g., "72%") with color-coded indicators
+- ✅ **Detailed Analysis Modal**: Full analysis popup with critical skills gaps, tailoring advice, and interview preparation tips
+- ✅ **LinkedIn Feed Fix**: Extension only appears on actual job pages (/jobs/view/) and not on LinkedIn feeds or home pages
+- ✅ **Platform-Specific Extraction**: Enhanced job data extraction for LinkedIn, Workday, Indeed with accurate title/company detection
+- ✅ **Real-Time Updates**: Automatic analysis on page navigation with SPA support for single-page applications
+- ✅ **Content Script Optimization**: Cleaned up duplicates and streamlined auto-analysis workflow
 - ✅ **Application Tracking Fixed**: Extension now only tracks applications when users actually submit forms, not when visiting job pages
 - ✅ **Smart Tracking Logic**: Enhanced tracking to require actual form submission events and confirmation page detection
-- ✅ **Reduced False Positives**: Eliminated premature "application tracked" notifications by making tracking more restrictive
-- ✅ **Form Submission Monitoring**: Only tracks within 30 seconds of actual form submission with strong confirmation detection
-- ✅ **User Experience Improvement**: Users now get accurate tracking notifications only when applications are genuinely submitted
 - ✅ **Complete Replit Migration**: Successfully migrated AutoJobr platform from Replit Agent to standard Replit environment
-- ✅ **Database Configuration**: PostgreSQL database properly configured with all required environment variables
-- ✅ **Schema Migration**: Applied all database migrations successfully with proper table structure
-- ✅ **Server Running**: Application operational on port 5000 with all core services functional
-- ✅ **Security Maintained**: Client/server separation and authentication middleware preserved during migration
 
 ### January 30, 2025 - Floating Button UI/UX & Extension Popup Standardization Complete
 - ✅ **Simplified Floating Interface**: Replaced complex floating popup with elegant circular floating button
