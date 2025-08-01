@@ -109,13 +109,14 @@ ALTER USER autojobr_user CREATEDB;
 \q
 EOF
 
-# Grant schema permissions
+# Grant schema permissions and superuser privileges (CRITICAL FIX)
 sudo -u postgres psql -d autojobr << EOF
 GRANT ALL ON SCHEMA public TO autojobr_user;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO autojobr_user;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO autojobr_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO autojobr_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO autojobr_user;
+ALTER USER autojobr_user WITH SUPERUSER;
 \q
 EOF
 
@@ -209,10 +210,21 @@ ESCAPED_SESSION_SECRET=$(printf '%s\n' "$SESSION_SECRET" | sed 's/[[\.*^$()+?{|]
 sed -i "s|\$DB_CONNECTION_STRING|$ESCAPED_DB_STRING|g" ecosystem.config.cjs
 sed -i "s|\$SESSION_SECRET|$ESCAPED_SESSION_SECRET|g" ecosystem.config.cjs
 
-# Start application with PM2 using environment variables
+# Start application with PM2 using environment variables (FIXED ENV LOADING)
 print_status "Starting application with PM2..."
-source .env
-export $(cat .env | grep -v '^#' | xargs)
+# Ensure .env file is properly loaded
+if [ -f .env ]; then
+    set -a
+    source .env
+    set +a
+    export $(cat .env | grep -v '^#' | grep -v '^$' | cut -d= -f1)
+else
+    print_error ".env file not found"
+    exit 1
+fi
+
+# Kill any existing PM2 processes first
+pm2 delete autojobr 2>/dev/null || true
 pm2 start ecosystem.config.cjs
 pm2 save
 
@@ -314,11 +326,9 @@ echo "View database: sudo -u postgres psql autojobr"
 echo "=============================================="
 echo ""
 print_warning "Remember to:"
-print_warning "1. Add your API keys to .env file:"
-print_warning "   cd autojobr-main && nano .env"
-print_warning "   Then run: source .env && export \$(cat .env | grep -v '^#' | xargs) && pm2 restart autojobr"
-print_warning "2. Configure your domain name in Nginx"
-print_warning "3. Set up SSL certificate (Let's Encrypt)"
-print_warning "4. Set up regular backups"
+print_warning "1. Configure your domain name in Nginx"
+print_warning "2. Set up SSL certificate (Let's Encrypt)"
+print_warning "3. Set up regular backups"
+print_warning "4. Add API keys if needed (GROQ for AI features, RESEND for emails)"
 echo ""
 print_status "Happy deploying! 🚀"
