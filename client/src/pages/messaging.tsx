@@ -52,6 +52,8 @@ export default function MessagingPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const [location] = useLocation();
+  const [isConnected, setIsConnected] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
   
   // Parse URL parameters for user preload
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
@@ -92,21 +94,34 @@ export default function MessagingPage() {
   const { data: conversationMessages = [], isLoading: messagesLoading, error: messagesError } = useQuery<ChatMessage[]>({
     queryKey: [`/api/chat/conversations/${selectedConversation}/messages`],
     enabled: !!selectedConversation,
-    refetchInterval: 2000,
+    refetchInterval: 30000, // Reduced to 30 seconds to save resources
   });
 
 
 
 
 
-  // Send message mutation
+  // Send message mutation with WebSocket optimization
   const sendMessageMutation = useMutation({
     mutationFn: async (messageData: { message: string }) => {
+      // Try WebSocket first for faster sending
+      if (wsRef.current && isConnected) {
+        wsRef.current.send(JSON.stringify({
+          type: 'sendMessage',
+          conversationId: selectedConversation,
+          messageText: messageData.message
+        }));
+        return { success: true, method: 'websocket' };
+      }
+      // Fallback to HTTP API
       return apiRequest('POST', `/api/chat/conversations/${selectedConversation}/messages`, messageData);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/chat/conversations/${selectedConversation}/messages`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
+    onSuccess: (result) => {
+      // Only invalidate if sent via HTTP (WebSocket handles real-time updates)
+      if (result.method !== 'websocket') {
+        queryClient.invalidateQueries({ queryKey: [`/api/chat/conversations/${selectedConversation}/messages`] });
+        queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
+      }
       setNewMessage('');
     },
   });
@@ -128,15 +143,68 @@ export default function MessagingPage() {
     }
   }, [conversationMessages]);
 
-  // Track user activity
+  // WebSocket connection for real-time messaging
+  useEffect(() => {
+    if (user?.id && selectedConversation) {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      
+      try {
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+          setIsConnected(true);
+          // Authenticate with server
+          ws.send(JSON.stringify({
+            type: 'authenticate',
+            userId: user.id
+          }));
+        };
+
+        ws.onmessage = (event) => {
+          const message = JSON.parse(event.data);
+          
+          if (message.type === 'newMessage' && message.conversationId === selectedConversation) {
+            // Refresh messages for this conversation
+            queryClient.invalidateQueries({ 
+              queryKey: [`/api/chat/conversations/${selectedConversation}/messages`] 
+            });
+            // Also refresh conversation list for unread counts
+            queryClient.invalidateQueries({ 
+              queryKey: ['/api/chat/conversations'] 
+            });
+          }
+        };
+
+        ws.onclose = () => {
+          setIsConnected(false);
+        };
+
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          setIsConnected(false);
+        };
+
+        return () => {
+          ws.close();
+          wsRef.current = null;
+        };
+      } catch (error) {
+        console.error('Failed to establish WebSocket connection:', error);
+      }
+    }
+  }, [user?.id, selectedConversation, queryClient]);
+
+  // Track user activity (reduced frequency to save resources)
   useEffect(() => {
     // Track activity when component mounts
     trackActivityMutation.mutate();
     
-    // Track activity every 2 minutes
+    // Reduced to every 5 minutes to save resources
     const activityInterval = setInterval(() => {
       trackActivityMutation.mutate();
-    }, 2 * 60 * 1000);
+    }, 5 * 60 * 1000);
 
     return () => clearInterval(activityInterval);
   }, []);
@@ -401,6 +469,15 @@ export default function MessagingPage() {
 
             {/* Message Input */}
             <div className="bg-white border-t border-gray-200 p-4">
+              {/* Connection Status */}
+              <div className="flex items-center justify-between mb-2 text-xs text-gray-500">
+                <div className="flex items-center gap-1">
+                  <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-gray-400'}`} />
+                  <span>{isConnected ? 'Connected' : 'Connecting...'}</span>
+                </div>
+                <span>Real-time messaging {isConnected ? 'enabled' : 'disabled'}</span>
+              </div>
+              
               <div className="flex items-center space-x-2">
                 <Input
                   placeholder="Type a message..."
@@ -414,6 +491,7 @@ export default function MessagingPage() {
                   onClick={handleSendMessage}
                   disabled={!newMessage.trim() || sendMessageMutation.isPending}
                   className="bg-blue-600 hover:bg-blue-700"
+                  title={isConnected ? "Send via WebSocket (instant)" : "Send via HTTP"}
                 >
                   <Send className="h-4 w-4" />
                 </Button>
