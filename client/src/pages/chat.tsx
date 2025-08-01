@@ -154,7 +154,9 @@ export default function ChatPage() {
 
   // Handle direct user chat from URL parameter
   useEffect(() => {
-    if (targetUserId && user && conversations.length > 0) {
+    if (targetUserId && user && !conversationsLoading) {
+      console.log('Processing targetUserId:', targetUserId, 'User:', user.userType);
+      
       // Check if conversation already exists
       const existingConversation = conversations.find(conv => 
         (user.userType === 'recruiter' && conv.jobSeekerId === targetUserId) ||
@@ -162,16 +164,18 @@ export default function ChatPage() {
       );
 
       if (existingConversation) {
+        console.log('Found existing conversation:', existingConversation.id);
         setSelectedConversation(existingConversation.id);
         if (isMobileView) {
           setShowConversationList(false);
         }
-      } else {
+      } else if (!createConversationMutation.isPending) {
         // Create new conversation
+        console.log('Creating new conversation with user:', targetUserId);
         createConversationMutation.mutate(targetUserId);
       }
     }
-  }, [targetUserId, user, conversations, isMobileView]);
+  }, [targetUserId, user, conversations, isMobileView, conversationsLoading, createConversationMutation]);
 
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedConversation || sendMessageMutation.isPending) {
