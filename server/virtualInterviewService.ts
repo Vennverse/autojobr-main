@@ -90,6 +90,8 @@ export class VirtualInterviewService {
       console.log("Virtual Interview Groq client initialized successfully");
     } else {
       console.log("GROQ_API_KEY not provided - virtual interviews will use fallback mode");
+      // Initialize with null to avoid undefined errors
+      this.groq = null as any;
     }
   }
 
@@ -160,6 +162,11 @@ export class VirtualInterviewService {
   ): Promise<MessageAnalysis> {
     // First, detect if AI was used
     const aiDetection = await aiDetectionService.detectAIUsage(userResponse, question);
+    
+    // If GROQ is not available, return fallback analysis
+    if (!this.groq) {
+      return this.getFallbackAnalysis(userResponse, expectedKeywords, aiDetection);
+    }
     
     const prompt = `
 Analyze this interview response. Be concise.
