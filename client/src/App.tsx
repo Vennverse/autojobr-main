@@ -28,6 +28,7 @@ import EditJob from "@/pages/edit-job";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
 import ChatPage from "@/pages/chat";
+import SimpleChatPage from "@/pages/simple-chat";
 import MessagingPage from "@/pages/messaging";
 import ResumesPage from "@/pages/resumes";
 import JobDiscoveryPage from "@/pages/job-discovery-simple";
@@ -117,7 +118,8 @@ function Router() {
               <Route path="/profile" component={Profile} />
               <Route path="/subscription" component={RecruiterSubscription} />
               <Route path="/recruiter-premium" component={RecruiterPremium} />
-              <Route path="/chat" component={MessagingPage} />
+              <Route path="/chat" component={SimpleChatPage} />
+              <Route path="/messages" component={MessagingPage} />
               <Route path="/job-seeker-view" component={Dashboard} />
             </>
           ) : user?.userType === 'job_seeker' ? (
@@ -156,7 +158,8 @@ function Router() {
                   <Route path="/career-ai-assistant" component={CareerAIAssistant} />
                   <Route path="/subscription" component={Subscription} />
                   <Route path="/job-seeker-premium" component={JobSeekerPremium} />
-                  <Route path="/chat" component={MessagingPage} />
+                  <Route path="/chat" component={SimpleChatPage} />
+                  <Route path="/messages" component={MessagingPage} />
                 </>
               )}
             </>
@@ -176,7 +179,8 @@ function Router() {
               <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
               <Route path="/virtual-interview/:sessionId/feedback" component={VirtualInterviewFeedback} />
               <Route path="/subscription" component={Subscription} />
-              <Route path="/chat" component={MessagingPage} />
+              <Route path="/chat" component={SimpleChatPage} />
+              <Route path="/messages" component={MessagingPage} />
             </>
           )}
         </>
