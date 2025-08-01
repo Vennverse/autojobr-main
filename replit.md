@@ -7,6 +7,7 @@ AutoJobr is a comprehensive job application platform designed to connect job see
 - **UI/UX Focus**: User prefers "BEST OF BEST" modern, beautiful UI/UX implementations
 - **Feature Simplification**: Requested removal of AI recommendations tab for cleaner job browsing experience
 - **Visual Quality**: Emphasis on premium, professional visual design and user experience
+- **User Profile**: Main test user is Shubham Dubey (shubhamdubexskd2001@gmail.com) - Senior Technical Recruiter at TechCorp Solutions
 
 ## System Architecture
 
