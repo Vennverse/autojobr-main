@@ -58,8 +58,15 @@ export default function ChatPage() {
   const [location] = useLocation();
 
   // Parse URL parameters for direct user chat
-  const urlParams = new URLSearchParams(window.location.search);
-  const targetUserId = urlParams.get('user');
+  const [targetUserId, setTargetUserId] = useState<string | null>(null);
+  
+  // Update target user when location changes
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('user');
+    console.log('URL changed, checking for user parameter:', userId);
+    setTargetUserId(userId);
+  }, [location]);
 
   // Get current user with proper typing
   const { data: user } = useQuery<User>({
@@ -90,13 +97,28 @@ export default function ChatPage() {
   // Create conversation mutation for direct user chat
   const createConversationMutation = useMutation({
     mutationFn: async (otherUserId: string) => {
+      console.log('Creating conversation with user:', otherUserId);
       return apiRequest('POST', '/api/chat/conversations', { otherUserId });
     },
     onSuccess: (data: any) => {
+      console.log('Conversation created successfully:', data);
       queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
       if (data?.conversationId) {
+        console.log('Setting selected conversation to:', data.conversationId);
         setSelectedConversation(data.conversationId);
+        if (isMobileView) {
+          setShowConversationList(false);
+        }
+      } else if (data?.id) {
+        console.log('Setting selected conversation to:', data.id);
+        setSelectedConversation(data.id);
+        if (isMobileView) {
+          setShowConversationList(false);
+        }
       }
+    },
+    onError: (error: any) => {
+      console.error('Failed to create conversation:', error);
     },
   });
 
@@ -155,7 +177,8 @@ export default function ChatPage() {
   // Handle direct user chat from URL parameter
   useEffect(() => {
     if (targetUserId && user && !conversationsLoading) {
-      console.log('Processing targetUserId:', targetUserId, 'User:', user.userType);
+      console.log('Processing targetUserId:', targetUserId, 'User type:', user.userType);
+      console.log('Available conversations:', conversations.length);
       
       // Check if conversation already exists
       const existingConversation = conversations.find(conv => 
@@ -169,13 +192,13 @@ export default function ChatPage() {
         if (isMobileView) {
           setShowConversationList(false);
         }
-      } else if (!createConversationMutation.isPending) {
+      } else if (!createConversationMutation.isPending && !createConversationMutation.isSuccess) {
         // Create new conversation
         console.log('Creating new conversation with user:', targetUserId);
         createConversationMutation.mutate(targetUserId);
       }
     }
-  }, [targetUserId, user, conversations, isMobileView, conversationsLoading, createConversationMutation]);
+  }, [targetUserId, user, conversations, conversationsLoading]);
 
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedConversation || sendMessageMutation.isPending) {
