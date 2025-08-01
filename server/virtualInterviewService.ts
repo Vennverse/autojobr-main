@@ -165,7 +165,29 @@ export class VirtualInterviewService {
     
     // If GROQ is not available, return fallback analysis
     if (!this.groq) {
-      return this.getFallbackAnalysis(userResponse, expectedKeywords, aiDetection);
+      const baseAnalysis = {
+        responseQuality: Math.min(10, Math.max(1, Math.floor(userResponse.length / 20) + 3)),
+        technicalAccuracy: 60,
+        clarityScore: 65,
+        depthScore: 55,
+        keywordsMatched: expectedKeywords.filter(keyword => 
+          userResponse.toLowerCase().includes(keyword.toLowerCase())
+        ),
+        sentiment: 'neutral' as const,
+        confidence: 60
+      };
+
+      const responseAnalysis = aiDetectionService.analyzeResponseWithAI(
+        { overallScore: baseAnalysis.responseQuality * 10 }, 
+        aiDetection
+      );
+
+      return {
+        ...baseAnalysis,
+        aiDetection: responseAnalysis.aiDetection,
+        finalScore: responseAnalysis.finalScore,
+        partialResultsOnly: responseAnalysis.partialResultsOnly
+      };
     }
     
     const prompt = `
@@ -257,6 +279,15 @@ Return JSON only: {"responseQuality": 1-10, "technicalAccuracy": 0-100, "clarity
     personality: string
   ): Promise<string> {
     const personalityConfig = this.personalities[personality] || this.personalities.professional;
+    
+    if (!this.groq) {
+      // Fallback follow-up based on response quality
+      if (analysis.responseQuality >= 7) {
+        return personalityConfig.encouragements[0] + " Can you elaborate on that further?";
+      } else {
+        return "That's interesting. Can you tell me more about your approach to this?";
+      }
+    }
     
     const prompt = `
 As an interviewer with a ${personalityConfig.style} style, generate a follow-up response to:

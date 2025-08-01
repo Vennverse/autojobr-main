@@ -23,28 +23,29 @@ import { testService } from "./testService";
 class RankingTestService {
   // Create a new ranking test for a user
   async createRankingTest(userId: string, category: string, domain: string, difficultyLevel: string): Promise<RankingTest> {
-    // Check user's free practice allocation
-    const [userProfile] = await db.select()
-      .from(userProfiles)
-      .where(eq(userProfiles.userId, userId));
+    // Check user's free practice allocation from users table
+    const [user] = await db.select()
+      .from(users)
+      .where(eq(users.id, userId));
 
     let isFreeTest = false;
     let paymentStatus = "pending";
 
-    if (userProfile && userProfile.freeRankingTestsRemaining > 0) {
+    if (user && user.freeRankingTestsRemaining > 0) {
       // User has free tests remaining
       isFreeTest = true;
       paymentStatus = "completed";
       
       // Deduct one free test
-      await db.update(userProfiles)
+      await db.update(users)
         .set({ 
-          freeRankingTestsRemaining: userProfile.freeRankingTestsRemaining - 1,
-          totalRankingTestsUsed: (userProfile.totalRankingTestsUsed || 0) + 1
+          freeRankingTestsRemaining: user.freeRankingTestsRemaining - 1
         })
-        .where(eq(userProfiles.userId, userId));
+        .where(eq(users.id, userId));
         
-      console.log(`✅ Used free practice test for user ${userId}. Remaining: ${userProfile.freeRankingTestsRemaining - 1}`);
+      console.log(`✅ Used free practice test for user ${userId}. Remaining: ${user.freeRankingTestsRemaining - 1}`);
+    } else {
+      console.log(`❌ No free tests remaining for user ${userId}. Current: ${user?.freeRankingTestsRemaining || 0}`);
     }
     
     // Generate questions using the existing question bank
@@ -59,11 +60,11 @@ class RankingTestService {
       totalQuestions: questions.length,
       correctAnswers: 0,
       totalScore: 0,
-      maxScore: questions.reduce((sum, q) => sum + q.points, 0),
+      maxScore: questions.reduce((sum, q) => sum + (q.points || 5), 0),
       percentageScore: 0,
       timeSpent: 0,
       answers: [],
-      questions,
+      questions: questions as any,
       status: "in_progress",
       paymentStatus,
       paymentId: isFreeTest ? "free_practice_test" : null
