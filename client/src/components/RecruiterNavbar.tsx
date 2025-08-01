@@ -31,7 +31,8 @@ import {
   User,
   ChevronDown,
   Home,
-  TrendingUp
+  TrendingUp,
+  MessageCircle
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -56,6 +57,17 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Get unread message count for notifications
+  const { data: conversations = [] } = useQuery({
+    queryKey: ['/api/chat/conversations'],
+    enabled: !!user?.id,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  const unreadCount = conversations.reduce((total: number, conv: any) => {
+    return total + (conv.unreadCount || 0);
+  }, 0);
 
   // Logout mutation
   const logoutMutation = useMutation({
@@ -131,6 +143,13 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
       current: location === "/recruiter/pipeline"
     },
     {
+      name: "Messages",
+      href: "/messaging",
+      icon: MessageCircle,
+      current: location === "/messaging",
+      badge: unreadCount > 0 ? unreadCount : undefined
+    },
+    {
       name: "Interview Assignments",
       href: "/recruiter/interview-assignments",
       icon: Video,
@@ -199,6 +218,11 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
                     >
                       <Icon className="w-4 h-4 mr-2" />
                       {item.name}
+                      {item.badge && (
+                        <Badge className="ml-2 bg-red-500 text-white text-xs px-1 py-0 min-w-[1rem] h-5">
+                          {item.badge > 9 ? '9+' : item.badge}
+                        </Badge>
+                      )}
                       {item.premium && !canAccess && (
                         <Crown className="w-3 h-3 ml-1 text-amber-500" />
                       )}
@@ -211,10 +235,16 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
             {/* Right side */}
             <div className="hidden md:ml-6 md:flex md:items-center md:space-x-4">
               {/* Notifications */}
-              <button className="relative p-1 text-gray-400 hover:text-gray-500 focus:outline-none">
-                <Bell className="h-6 w-6" />
-                <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white" />
-              </button>
+              <Link href="/messaging">
+                <button className="relative p-1 text-gray-400 hover:text-gray-500 focus:outline-none">
+                  <Bell className="h-6 w-6" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white ring-2 ring-white">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+              </Link>
               
               {/* Upgrade Button for Free Users */}
               {user?.planType === 'free' && (

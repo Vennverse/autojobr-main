@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Send, MessageCircle, Search, ArrowLeft, Phone, Video, MoreVertical } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { RecruiterNavbar } from '@/components/RecruiterNavbar';
 
 interface ChatMessage {
   id: number;
@@ -54,7 +55,9 @@ export default function MessagingPage() {
   
   // Parse URL parameters for user preload
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
-  const preloadUserId = urlParams.get('user');
+  const preloadApplicantId = urlParams.get('applicant');
+  const preloadJobId = urlParams.get('job');
+  const preloadApplicationId = urlParams.get('application');
   
   // Track user activity for online status
   const trackActivityMutation = useMutation({
@@ -72,6 +75,17 @@ export default function MessagingPage() {
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery<ChatConversation[]>({
     queryKey: ['/api/chat/conversations'],
     refetchInterval: 30000,
+  });
+
+  // Create conversation mutation
+  const createConversationMutation = useMutation({
+    mutationFn: async (data: { jobSeekerId: string; recruiterId: string; jobPostingId?: string; applicationId?: string }) => {
+      return apiRequest('POST', '/api/chat/conversations', data);
+    },
+    onSuccess: (conversation) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
+      setSelectedConversation(conversation.id);
+    },
   });
 
   // Get messages for selected conversation
@@ -127,23 +141,30 @@ export default function MessagingPage() {
     return () => clearInterval(activityInterval);
   }, []);
 
-  // Auto-select conversation based on URL parameter or first conversation
+  // Auto-select or create conversation based on URL parameters
   useEffect(() => {
-    if (conversations.length > 0 && !selectedConversation) {
-      // If there's a preload user ID, try to find the conversation with that user
-      if (preloadUserId) {
-        const targetConversation = conversations.find(conv => 
-          conv.jobSeekerId === preloadUserId || conv.recruiterId === preloadUserId
-        );
-        if (targetConversation) {
-          setSelectedConversation(targetConversation.id);
-          return;
-        }
+    if (preloadApplicantId && user && conversations.length > 0) {
+      // Look for existing conversation with this applicant
+      const existingConversation = conversations.find(conv => 
+        conv.jobSeekerId === preloadApplicantId || conv.recruiterId === preloadApplicantId
+      );
+      
+      if (existingConversation) {
+        setSelectedConversation(existingConversation.id);
+      } else if (user.userType === 'recruiter' || user.currentRole === 'recruiter') {
+        // Create new conversation as recruiter
+        createConversationMutation.mutate({
+          jobSeekerId: preloadApplicantId,
+          recruiterId: user.id,
+          jobPostingId: preloadJobId || undefined,
+          applicationId: preloadApplicationId || undefined,
+        });
       }
+    } else if (conversations.length > 0 && !selectedConversation) {
       // Otherwise select the first conversation
       setSelectedConversation(conversations[0].id);
     }
-  }, [conversations, selectedConversation, preloadUserId]);
+  }, [conversations, selectedConversation, preloadApplicantId, user]);
 
   // Mark messages as read when conversation is selected
   useEffect(() => {
@@ -207,7 +228,9 @@ export default function MessagingPage() {
   });
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50">
+      <RecruiterNavbar user={user} />
+      <div className="flex flex-1 bg-gray-50">
       {/* Sidebar - Conversations List */}
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
         {/* Header */}
@@ -411,6 +434,7 @@ export default function MessagingPage() {
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

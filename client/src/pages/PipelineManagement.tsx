@@ -34,6 +34,8 @@ import {
   Code,
   Target,
   RefreshCw,
+  MessageCircle,
+  Bell,
 } from "lucide-react";
 
 interface RawApplication {
@@ -1028,6 +1030,17 @@ export default function PipelineManagement() {
                                   }}
                                 >
                                   <GraduationCap className="h-4 w-4 text-green-600" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title="Message Applicant"
+                                  onClick={() => {
+                                    // Navigate to messaging with pre-selected applicant
+                                    window.location.href = `/messaging?applicant=${application.applicantId}&job=${application.jobPostingId}&application=${application.id}`;
+                                  }}
+                                >
+                                  <MessageCircle className="h-4 w-4 text-blue-600" />
                                 </Button>
                                 {application.score && (
                                   <Badge variant="outline" className="mr-2">
