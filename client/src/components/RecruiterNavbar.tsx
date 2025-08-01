@@ -58,12 +58,12 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Get unread message count for notifications (optimized polling)
-  const { data: conversations = [] } = useQuery({
+  // Get unread message count for notifications (load once per session)
+  const { data: conversations = [] } = useQuery<any[]>({
     queryKey: ['/api/chat/conversations'],
     enabled: !!user?.id,
-    refetchInterval: 60000, // Reduced to 1 minute to save resources
-    staleTime: 30000, // Consider data fresh for 30 seconds
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    // No automatic refresh - updates when user navigates or manually refreshes
   });
 
   const unreadCount = conversations.reduce((total: number, conv: any) => {

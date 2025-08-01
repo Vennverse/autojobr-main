@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Send, MessageCircle, Search, ArrowLeft, Phone, Video, MoreVertical } from 'lucide-react';
+import { Send, MessageCircle, Search, ArrowLeft, Phone, Video, MoreVertical, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { RecruiterNavbar } from '@/components/RecruiterNavbar';
 
@@ -43,6 +43,9 @@ interface User {
   firstName?: string;
   lastName?: string;
   profileImageUrl?: string;
+  companyName?: string;
+  planType?: string;
+  subscriptionStatus?: string;
 }
 
 export default function MessagingPage() {
@@ -52,8 +55,6 @@ export default function MessagingPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const [location] = useLocation();
-  const [isConnected, setIsConnected] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
   
   // Parse URL parameters for user preload
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
@@ -73,10 +74,10 @@ export default function MessagingPage() {
     queryKey: ['/api/user'],
   });
 
-  // Get conversations
+  // Get conversations (manual refresh only)
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery<ChatConversation[]>({
     queryKey: ['/api/chat/conversations'],
-    refetchInterval: 30000,
+    // No automatic refresh - user refreshes page when needed
   });
 
   // Create conversation mutation
@@ -84,44 +85,31 @@ export default function MessagingPage() {
     mutationFn: async (data: { jobSeekerId: string; recruiterId: string; jobPostingId?: string; applicationId?: string }) => {
       return apiRequest('POST', '/api/chat/conversations', data);
     },
-    onSuccess: (conversation) => {
+    onSuccess: (conversation: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
       setSelectedConversation(conversation.id);
     },
   });
 
-  // Get messages for selected conversation
+  // Get messages for selected conversation (manual refresh)
   const { data: conversationMessages = [], isLoading: messagesLoading, error: messagesError } = useQuery<ChatMessage[]>({
     queryKey: [`/api/chat/conversations/${selectedConversation}/messages`],
     enabled: !!selectedConversation,
-    refetchInterval: 30000, // Reduced to 30 seconds to save resources
+    // No automatic refresh - messages load once when conversation selected
   });
 
 
 
 
 
-  // Send message mutation with WebSocket optimization
+  // Simple send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (messageData: { message: string }) => {
-      // Try WebSocket first for faster sending
-      if (wsRef.current && isConnected) {
-        wsRef.current.send(JSON.stringify({
-          type: 'sendMessage',
-          conversationId: selectedConversation,
-          messageText: messageData.message
-        }));
-        return { success: true, method: 'websocket' };
-      }
-      // Fallback to HTTP API
       return apiRequest('POST', `/api/chat/conversations/${selectedConversation}/messages`, messageData);
     },
-    onSuccess: (result) => {
-      // Only invalidate if sent via HTTP (WebSocket handles real-time updates)
-      if (result.method !== 'websocket') {
-        queryClient.invalidateQueries({ queryKey: [`/api/chat/conversations/${selectedConversation}/messages`] });
-        queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/chat/conversations/${selectedConversation}/messages`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
       setNewMessage('');
     },
   });
@@ -143,71 +131,15 @@ export default function MessagingPage() {
     }
   }, [conversationMessages]);
 
-  // WebSocket connection for real-time messaging
-  useEffect(() => {
-    if (user?.id && selectedConversation) {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
-      
-      try {
-        const ws = new WebSocket(wsUrl);
-        wsRef.current = ws;
-
-        ws.onopen = () => {
-          setIsConnected(true);
-          // Authenticate with server
-          ws.send(JSON.stringify({
-            type: 'authenticate',
-            userId: user.id
-          }));
-        };
-
-        ws.onmessage = (event) => {
-          const message = JSON.parse(event.data);
-          
-          if (message.type === 'newMessage' && message.conversationId === selectedConversation) {
-            // Refresh messages for this conversation
-            queryClient.invalidateQueries({ 
-              queryKey: [`/api/chat/conversations/${selectedConversation}/messages`] 
-            });
-            // Also refresh conversation list for unread counts
-            queryClient.invalidateQueries({ 
-              queryKey: ['/api/chat/conversations'] 
-            });
-          }
-        };
-
-        ws.onclose = () => {
-          setIsConnected(false);
-        };
-
-        ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
-          setIsConnected(false);
-        };
-
-        return () => {
-          ws.close();
-          wsRef.current = null;
-        };
-      } catch (error) {
-        console.error('Failed to establish WebSocket connection:', error);
-      }
-    }
-  }, [user?.id, selectedConversation, queryClient]);
-
-  // Track user activity (reduced frequency to save resources)
-  useEffect(() => {
-    // Track activity when component mounts
-    trackActivityMutation.mutate();
-    
-    // Reduced to every 5 minutes to save resources
-    const activityInterval = setInterval(() => {
-      trackActivityMutation.mutate();
-    }, 5 * 60 * 1000);
-
-    return () => clearInterval(activityInterval);
-  }, []);
+  // Simple message refresh button instead of real-time updates
+  const refreshMessages = () => {
+    queryClient.invalidateQueries({ 
+      queryKey: [`/api/chat/conversations/${selectedConversation}/messages`] 
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: ['/api/chat/conversations'] 
+    });
+  };
 
   // Auto-select or create conversation based on URL parameters
   useEffect(() => {
@@ -219,7 +151,7 @@ export default function MessagingPage() {
       
       if (existingConversation) {
         setSelectedConversation(existingConversation.id);
-      } else if (user.userType === 'recruiter' || user.currentRole === 'recruiter') {
+      } else if (user.userType === 'recruiter') {
         // Create new conversation as recruiter
         createConversationMutation.mutate({
           jobSeekerId: preloadApplicantId,
@@ -297,7 +229,7 @@ export default function MessagingPage() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      <RecruiterNavbar user={user} />
+      <RecruiterNavbar user={user as any} />
       <div className="flex flex-1 bg-gray-50">
       {/* Sidebar - Conversations List */}
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
@@ -469,15 +401,6 @@ export default function MessagingPage() {
 
             {/* Message Input */}
             <div className="bg-white border-t border-gray-200 p-4">
-              {/* Connection Status */}
-              <div className="flex items-center justify-between mb-2 text-xs text-gray-500">
-                <div className="flex items-center gap-1">
-                  <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-gray-400'}`} />
-                  <span>{isConnected ? 'Connected' : 'Connecting...'}</span>
-                </div>
-                <span>Real-time messaging {isConnected ? 'enabled' : 'disabled'}</span>
-              </div>
-              
               <div className="flex items-center space-x-2">
                 <Input
                   placeholder="Type a message..."
@@ -488,10 +411,18 @@ export default function MessagingPage() {
                   disabled={sendMessageMutation.isPending}
                 />
                 <Button
+                  onClick={refreshMessages}
+                  variant="outline"
+                  size="icon"
+                  title="Refresh messages"
+                  className="mr-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+                <Button
                   onClick={handleSendMessage}
                   disabled={!newMessage.trim() || sendMessageMutation.isPending}
                   className="bg-blue-600 hover:bg-blue-700"
-                  title={isConnected ? "Send via WebSocket (instant)" : "Send via HTTP"}
                 >
                   <Send className="h-4 w-4" />
                 </Button>
