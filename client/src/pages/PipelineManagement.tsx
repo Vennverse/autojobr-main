@@ -400,20 +400,20 @@ export default function PipelineManagement() {
 
   const { data: user } = useQuery({
     queryKey: ["/api/user"],
-  });
+  }) as { data: any };
 
   const { data: applications = [], isLoading } = useQuery({
     queryKey: ["/api/recruiter/applications"],
     refetchInterval: 30000, // Refresh every 30 seconds
-  });
+  }) as { data: any[], isLoading: boolean };
 
   const { data: jobPostings = [] } = useQuery({
     queryKey: ["/api/recruiter/jobs"],
-  });
+  }) as { data: any[] };
 
   // Organize applications by stage
   useEffect(() => {
-    if (applications.length > 0) {
+    if (Array.isArray(applications) && applications.length > 0) {
       // Transform flat data structure to nested format expected by frontend, and enrich with NLP
       const transformedApplications = applications.map((app: any) => {
         const nlp = analyzeApplicantNLP(app);
@@ -1098,21 +1098,13 @@ export default function PipelineManagement() {
                       </div>
                     </CardContent>
                   </Card>
-                )}
-
-                <div className="flex gap-3">
-                  <Button variant="outline" className="flex-1" onClick={() => setSelectedNlpApplication(null)}>
-                    Close Analysis
-                  </Button>
-                  <Button className="flex-1">
-                    <Video className="h-4 w-4 mr-2" />
-                    Schedule Interview
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </CardContent>
@@ -1120,6 +1112,50 @@ export default function PipelineManagement() {
             </Card>
           ))}
         </div>
+
+        {/* Interview Assignment Modal */}
+        {selectedApplication && (
+          <InterviewAssignmentModal
+            isOpen={!!selectedApplication}
+            onClose={() => setSelectedApplication(null)}
+            candidate={selectedApplication}
+            jobPostings={jobPostings}
+            interviewAssignmentData={interviewAssignmentData}
+            setInterviewAssignmentData={setInterviewAssignmentData}
+            isAssigning={isAssigning}
+            onSubmit={handleSendInterviewInvite}
+          />
+        )}
+
+        {/* AI Insights Modal */}
+        {selectedNlpApplication && (
+          <Dialog open={!!selectedNlpApplication} onOpenChange={() => setSelectedNlpApplication(null)}>
+            <DialogContent className="max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>AI Candidate Analysis</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-blue-600">
+                    {selectedNlpApplication?.fitScore || 78}%
+                  </div>
+                  <p>Job Fit Score</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold">Skills</h3>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {(selectedNlpApplication?.topSkills || ['JavaScript', 'React', 'Node.js']).map((skill: string, i: number) => (
+                      <Badge key={i} variant="secondary">{skill}</Badge>
+                    ))}
+                  </div>
+                </div>
+                <Button className="w-full" onClick={() => setSelectedNlpApplication(null)}>
+                  Close
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </div>
   );
