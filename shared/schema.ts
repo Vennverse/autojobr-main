@@ -183,6 +183,7 @@ export const education = pgTable("education", {
   fieldOfStudy: varchar("field_of_study"),
   startDate: timestamp("start_date"),
   endDate: timestamp("end_date"),
+  graduationYear: integer("graduation_year"),
   gpa: varchar("gpa"),
   achievements: text("achievements").array(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -230,6 +231,7 @@ export const jobApplications = pgTable("job_applications", {
   jobDescription: text("job_description"),
   requiredSkills: text("required_skills").array(),
   matchScore: integer("match_score"), // 0-100
+  analysisData: jsonb("analysis_data"), // AI analysis data
   notes: text("notes"),
   source: varchar("source"), // linkedin, indeed, company_website, etc.
   createdAt: timestamp("created_at").defaultNow(),
@@ -322,14 +324,17 @@ export const jobPostings = pgTable("job_postings", {
   title: varchar("title").notNull(),
   description: text("description").notNull(),
   companyName: varchar("company_name").notNull(),
+  company: varchar("company"), // alias for compatibility
   companyLogo: varchar("company_logo"), // URL to company logo
   location: varchar("location"),
   workMode: varchar("work_mode"), // remote, hybrid, onsite
   jobType: varchar("job_type"), // full-time, part-time, contract, internship
   experienceLevel: varchar("experience_level"), // entry, mid, senior, lead
   skills: text("skills").array(), // Required skills
+  qualifications: text("qualifications"), // Required qualifications
   minSalary: integer("min_salary"),
   maxSalary: integer("max_salary"),
+  salaryRange: varchar("salary_range"), // text representation
   currency: varchar("currency").default("USD"),
   benefits: text("benefits"),
   requirements: text("requirements"),
@@ -1359,6 +1364,7 @@ export const subscriptions = pgTable("subscriptions", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
   tier: varchar("tier").notNull(), // subscription tier ID
+  tierId: varchar("tier_id"), // alias for compatibility
   status: varchar("status").notNull(), // 'pending', 'active', 'cancelled', 'expired'
   paymentMethod: varchar("payment_method").notNull(), // 'paypal', 'razorpay'
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
@@ -1366,7 +1372,9 @@ export const subscriptions = pgTable("subscriptions", {
   billingCycle: varchar("billing_cycle").notNull(), // 'monthly', 'yearly'
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
+  nextBillingDate: timestamp("next_billing_date"),
   paymentId: varchar("payment_id"),
+  paypalSubscriptionId: varchar("paypal_subscription_id"),
   autoRenew: boolean("auto_renew").default(true),
   activatedAt: timestamp("activated_at"),
   cancelledAt: timestamp("cancelled_at"),
