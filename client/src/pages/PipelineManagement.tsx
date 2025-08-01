@@ -650,7 +650,15 @@ export default function PipelineManagement() {
                                     <Button 
                                       variant="outline" 
                                       size="sm"
-                                      onClick={() => setSelectedApplication(application)}
+                                      onClick={() => {
+                                        setSelectedApplication(application);
+                                        setInterviewAssignmentData(prev => ({
+                                          ...prev,
+                                          role: application.job?.title || "",
+                                          candidateId: application.userId || "",
+                                          jobPostingId: application.jobPostingId?.toString() || ""
+                                        }));
+                                      }}
                                     >
                                       <Video className="h-4 w-4 mr-2" />
                                       Send Interview Invite
