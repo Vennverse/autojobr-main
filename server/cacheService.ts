@@ -14,34 +14,47 @@ export interface CacheConfig {
   staleWhileRevalidate?: number;
 }
 
-// Simple cache implementation using Map to avoid LRU import issues
-class SimpleLRUCache<K, V> {
+// High-performance LRU cache implementation with better eviction strategy
+class OptimizedLRUCache<K, V> {
   private cache = new Map<K, V>();
-  private accessOrder = new Map<K, number>();
-  private accessCounter = 0;
+  private usage = new Map<K, { lastAccess: number; frequency: number }>();
+  private maxSize: number;
+  private hitCount = 0;
+  private missCount = 0;
   
-  constructor(private maxSize: number = 2000) {}
+  constructor(maxSize: number = 2000) {
+    this.maxSize = maxSize;
+  }
   
   set(key: K, value: V): void {
-    // Remove oldest entries if cache is full
-    if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
-      const oldestKey = this.findOldestKey();
-      if (oldestKey !== undefined) {
-        this.cache.delete(oldestKey);
-        this.accessOrder.delete(oldestKey);
-      }
-    }
+    const now = Date.now();
     
-    this.cache.set(key, value);
-    this.accessOrder.set(key, ++this.accessCounter);
+    if (this.cache.has(key)) {
+      // Update existing entry
+      this.cache.set(key, value);
+      this.updateUsage(key, now);
+    } else {
+      // Add new entry
+      if (this.cache.size >= this.maxSize) {
+        this.evictLeastUsed();
+      }
+      this.cache.set(key, value);
+      this.usage.set(key, { lastAccess: now, frequency: 1 });
+    }
   }
   
   get(key: K): V | undefined {
     const value = this.cache.get(key);
+    const now = Date.now();
+    
     if (value !== undefined) {
-      this.accessOrder.set(key, ++this.accessCounter);
+      this.hitCount++;
+      this.updateUsage(key, now);
+      return value;
+    } else {
+      this.missCount++;
+      return undefined;
     }
-    return value;
   }
   
   has(key: K): boolean {
@@ -49,14 +62,15 @@ class SimpleLRUCache<K, V> {
   }
   
   delete(key: K): boolean {
-    this.accessOrder.delete(key);
+    this.usage.delete(key);
     return this.cache.delete(key);
   }
   
   clear(): void {
     this.cache.clear();
-    this.accessOrder.clear();
-    this.accessCounter = 0;
+    this.usage.clear();
+    this.hitCount = 0;
+    this.missCount = 0;
   }
   
   get size(): number {
@@ -71,28 +85,75 @@ class SimpleLRUCache<K, V> {
     return this.cache.keys();
   }
   
-  private findOldestKey(): K | undefined {
-    let oldestKey: K | undefined;
-    let oldestAccess = Infinity;
+  getHitRate(): number {
+    const total = this.hitCount + this.missCount;
+    return total > 0 ? this.hitCount / total : 0;
+  }
+  
+  private updateUsage(key: K, now: number): void {
+    const current = this.usage.get(key);
+    if (current) {
+      this.usage.set(key, {
+        lastAccess: now,
+        frequency: current.frequency + 1
+      });
+    }
+  }
+  
+  private evictLeastUsed(): void {
+    let leastUsedKey: K | undefined;
+    let lowestScore = Infinity;
+    const now = Date.now();
     
-    for (const [key, access] of this.accessOrder) {
-      if (access < oldestAccess) {
-        oldestAccess = access;
-        oldestKey = key;
+    // Use combined score: frequency and recency
+    for (const [key, usage] of this.usage) {
+      const ageWeight = Math.max(1, (now - usage.lastAccess) / 60000); // Age in minutes
+      const score = usage.frequency / ageWeight;
+      
+      if (score < lowestScore) {
+        lowestScore = score;
+        leastUsedKey = key;
       }
     }
     
-    return oldestKey;
+    if (leastUsedKey !== undefined) {
+      this.delete(leastUsedKey);
+    }
+  }
+  
+  // Memory cleanup for expired entries
+  cleanup(): number {
+    const now = Date.now();
+    const maxAge = 30 * 60 * 1000; // 30 minutes
+    let cleaned = 0;
+    
+    for (const [key, usage] of this.usage) {
+      if (now - usage.lastAccess > maxAge) {
+        this.delete(key);
+        cleaned++;
+      }
+    }
+    
+    return cleaned;
   }
 }
 
 class EnhancedCacheService {
-  private cache: SimpleLRUCache<string, CacheEntry>;
+  private cache: OptimizedLRUCache<string, CacheEntry>;
   private dependencyMap: Map<string, Set<string>> = new Map(); // dependency -> cache keys
   private lastUpdated: Map<string, Date> = new Map(); // resource -> last update time
+  private cleanupInterval: NodeJS.Timeout;
   
   constructor() {
-    this.cache = new SimpleLRUCache<string, CacheEntry>(2000);
+    this.cache = new OptimizedLRUCache<string, CacheEntry>(2000);
+    
+    // Auto-cleanup every 10 minutes
+    this.cleanupInterval = setInterval(() => {
+      const cleaned = this.cache.cleanup();
+      if (cleaned > 0) {
+        console.log(`🧹 Cache cleanup: removed ${cleaned} expired entries`);
+      }
+    }, 10 * 60 * 1000);
   }
 
   // Smart caching with dependency tracking
@@ -179,14 +240,22 @@ class EnhancedCacheService {
     });
   }
 
-  // Get cache statistics
+  // Get comprehensive cache statistics
   getStats() {
     return {
       size: this.cache.size,
       max: this.cache.max,
-      hitRate: this.cache.size > 0 ? 0.8 : 0, // Simplified hit rate calculation
+      hitRate: this.cache.getHitRate(),
       dependencyCount: this.dependencyMap.size,
+      lastUpdatedCount: this.lastUpdated.size,
+      memoryUsage: process.memoryUsage().heapUsed / 1024 / 1024, // MB
     };
+  }
+  
+  // Destroy cache service and cleanup intervals
+  destroy(): void {
+    clearInterval(this.cleanupInterval);
+    this.clear();
   }
 
   // Generate etag for data
