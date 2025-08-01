@@ -72,13 +72,19 @@ export default function VirtualInterview() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Add type safety for sessionData
+  interface SessionData {
+    interview: VirtualInterview;
+    messages: VirtualInterviewMessage[];
+  }
+
   // Fetch interview session data
-  const { data: sessionData, isLoading } = useQuery({
+  const { data: sessionData, isLoading } = useQuery<SessionData>({
     queryKey: [`/api/virtual-interview/${sessionId}`],
     enabled: !!sessionId,
   });
 
-  const interview: VirtualInterview = sessionData?.interview;
+  const interview: VirtualInterview | undefined = sessionData?.interview;
   const messages: VirtualInterviewMessage[] = sessionData?.messages || [];
 
   // Start interview mutation for assigned interviews
@@ -479,7 +485,7 @@ export default function VirtualInterview() {
               <Separator />
               
               {/* Input Area - Show as long as interview is not explicitly completed and user can still answer */}
-              {(interview.status === 'active' || interview.status === 'paused' || (interview.questionsAsked <= interview.totalQuestions && interview.status !== 'completed')) && (
+              {interview && (interview.status === 'active' || interview.status === 'paused' || (interview.questionsAsked <= interview.totalQuestions && interview.status !== 'completed')) && (
                 <div className="p-4">
                   <div className="flex gap-2">
                     <Input
@@ -506,7 +512,7 @@ export default function VirtualInterview() {
                 </div>
               )}
               
-              {interview.status === 'completed' && (
+              {interview && interview.status === 'completed' && (
                 <div className="p-4 bg-gray-50 text-center">
                   <p className="text-gray-600 mb-2">Interview completed!</p>
                   <Button onClick={() => setLocation(`/virtual-interview/${sessionId}/feedback`)}>
