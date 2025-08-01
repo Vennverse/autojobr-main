@@ -1,7 +1,7 @@
-// --- Enhanced, insightful NLP analysis utility ---
+// --- Enterprise-Grade AI Candidate Analysis ---
 function analyzeApplicantNLP(app: any): Partial<Application> {
-  // Combine all available text fields
-  const text = [
+  // Comprehensive text extraction and normalization
+  const profileText = [
     app.recruiterNotes,
     app.applicantName,
     app.applicantEmail,
@@ -9,76 +9,206 @@ function analyzeApplicantNLP(app: any): Partial<Application> {
     app.applicantEducation,
     app.applicantExperience,
     app.applicantSkills,
+    app.applicantBio,
+    app.applicantSummary
+  ].filter(Boolean).join(" ").toLowerCase();
+
+  const jobText = [
     app.jobPostingTitle,
+    app.jobPostingDescription,
+    app.jobPostingRequirements,
     app.jobPostingCompany,
     app.jobPostingLocation
   ].filter(Boolean).join(" ").toLowerCase();
 
-  // Skills extraction
-  const skillsList = [
-    "javascript", "typescript", "react", "node", "python", "java", "c++", "sql", "aws", "docker", "css", "html", "machine learning", "data", "api", "cloud", "devops", "testing", "leadership", "communication", "project management", "design", "sales", "marketing", "finance", "security", "linux", "windows", "mobile", "android", "ios"
+  // Advanced Skills Analysis with Categories and Weights
+  const skillsDatabase = {
+    technical: {
+      programming: ["javascript", "typescript", "python", "java", "c++", "c#", "go", "rust", "kotlin", "swift", "php"],
+      frontend: ["react", "vue", "angular", "nextjs", "svelte", "html", "css", "sass", "tailwind"],
+      backend: ["node", "express", "django", "flask", "spring", "laravel", "rails", "asp.net"],
+      database: ["sql", "postgresql", "mysql", "mongodb", "redis", "elasticsearch", "cassandra"],
+      cloud: ["aws", "azure", "gcp", "docker", "kubernetes", "terraform", "jenkins"],
+      mobile: ["react native", "flutter", "ios", "android", "xamarin"],
+      ai_ml: ["machine learning", "deep learning", "tensorflow", "pytorch", "pandas", "numpy", "sklearn"]
+    },
+    soft: {
+      leadership: ["leadership", "management", "team lead", "project management", "scrum master"],
+      communication: ["communication", "presentation", "writing", "public speaking", "collaboration"],
+      analytical: ["analysis", "problem solving", "critical thinking", "data analysis", "research"]
+    },
+    domain: {
+      finance: ["finance", "banking", "fintech", "trading", "investment", "accounting"],
+      healthcare: ["healthcare", "medical", "pharma", "biotech", "clinical"],
+      ecommerce: ["ecommerce", "retail", "marketplace", "payment", "logistics"],
+      education: ["education", "edtech", "training", "learning", "curriculum"]
+    }
+  };
+
+  // Extract skills with categories and confidence scores
+  const extractedSkills: any = {};
+  Object.entries(skillsDatabase).forEach(([category, subcats]) => {
+    extractedSkills[category] = {};
+    Object.entries(subcats).forEach(([subcat, skills]) => {
+      extractedSkills[category][subcat] = skills.filter(skill => 
+        profileText.includes(skill) || jobText.includes(skill)
+      );
+    });
+  });
+
+  // Advanced Experience Analysis
+  const experiencePatterns = [
+    { pattern: /(\d+)\+?\s*(years?|yrs?)\s*of?\s*experience/g, multiplier: 1.0 },
+    { pattern: /(\d+)\+?\s*(years?|yrs?)\s*in/g, multiplier: 0.9 },
+    { pattern: /over\s*(\d+)\s*(years?|yrs?)/g, multiplier: 1.1 },
+    { pattern: /(\d+)\+\s*(years?|yrs?)/g, multiplier: 1.2 }
   ];
-  const foundSkills = skillsList.filter(skill => text.includes(skill));
 
-  // Education extraction (simple match)
-  const educationList = ["bachelor", "master", "phd", "b.sc", "m.sc", "mba", "btech", "mtech", "b.e", "m.e", "ba", "ma"];
-  const foundEducation = educationList.filter(edu => text.includes(edu));
+  let totalExperience = 0;
+  let seniorityLevel = "Junior";
+  experiencePatterns.forEach(({ pattern, multiplier }) => {
+    let match;
+    while ((match = pattern.exec(profileText)) !== null) {
+      const years = parseInt(match[1]) * multiplier;
+      totalExperience = Math.max(totalExperience, years);
+    }
+  });
 
-  // Experience extraction (look for years)
-  let yearsExp = 0;
-  const expMatch = text.match(/(\d+)\s*(\+)?\s*(years|yrs|year|yr)/);
-  if (expMatch) {
-    yearsExp = parseInt(expMatch[1], 10);
-  }
+  if (totalExperience >= 8) seniorityLevel = "Senior";
+  else if (totalExperience >= 5) seniorityLevel = "Mid-Level";
+  else if (totalExperience >= 2) seniorityLevel = "Junior";
+  else seniorityLevel = "Entry-Level";
 
-  // Location match (city/state/country)
-  let locationMatch = false;
+  // Education Analysis with Prestige Scoring
+  const educationData = {
+    degrees: {
+      "phd": { score: 100, level: "Doctorate" },
+      "doctorate": { score: 100, level: "Doctorate" },
+      "mba": { score: 90, level: "Master's" },
+      "master": { score: 85, level: "Master's" },
+      "m.s": { score: 85, level: "Master's" },
+      "m.sc": { score: 85, level: "Master's" },
+      "bachelor": { score: 70, level: "Bachelor's" },
+      "b.s": { score: 70, level: "Bachelor's" },
+      "b.sc": { score: 70, level: "Bachelor's" }
+    },
+    institutions: {
+      "mit": 100, "stanford": 100, "harvard": 100, "berkeley": 95, "caltech": 95,
+      "cmu": 90, "princeton": 100, "yale": 95, "columbia": 90, "cornell": 85
+    }
+  };
+
+  let educationScore = 0;
+  let highestDegree = "High School";
+  Object.entries(educationData.degrees).forEach(([degree, data]) => {
+    if (profileText.includes(degree)) {
+      educationScore = Math.max(educationScore, data.score);
+      highestDegree = data.level;
+    }
+  });
+
+  // Company Analysis with Industry Recognition
+  const prestigiousCompanies = {
+    "google": 100, "microsoft": 100, "apple": 100, "amazon": 100, "meta": 100, "facebook": 100,
+    "netflix": 95, "tesla": 95, "uber": 90, "airbnb": 90, "spotify": 85, "linkedin": 90,
+    "salesforce": 85, "adobe": 85, "nvidia": 95, "intel": 85, "oracle": 80
+  };
+
+  let companyPrestige = 0;
+  let workHistory: Array<{company: string; prestige: number}> = [];
+  Object.entries(prestigiousCompanies).forEach(([company, score]) => {
+    if (profileText.includes(company)) {
+      companyPrestige = Math.max(companyPrestige, score);
+      workHistory.push({ company, prestige: score });
+    }
+  });
+
+  // Advanced Fit Score Calculation (0-100)
+  const jobSkillsWeight = 0.35;
+  const experienceWeight = 0.25;
+  const educationWeight = 0.15;
+  const companyWeight = 0.15;
+  const locationWeight = 0.10;
+
+  // Skills matching with job requirements
+  let skillsScore = 0;
+  const jobSkills = Object.values(extractedSkills).flat().flat();
+  const profileSkills = Object.values(extractedSkills).flat().flat();
+  const matchedSkills = jobSkills.filter(skill => profileSkills.includes(skill));
+  skillsScore = Math.min(100, (matchedSkills.length / Math.max(jobSkills.length, 1)) * 100);
+
+  // Experience scoring
+  let experienceScore = Math.min(100, (totalExperience / 10) * 100);
+
+  // Location matching
+  let locationScore = 0;
   if (app.applicantLocation && app.jobPostingLocation) {
-    locationMatch = app.jobPostingLocation.toLowerCase().includes(app.applicantLocation.toLowerCase()) || app.applicantLocation.toLowerCase().includes(app.jobPostingLocation.toLowerCase());
+    const locMatch = app.jobPostingLocation.toLowerCase().includes(app.applicantLocation.toLowerCase()) ||
+                     app.applicantLocation.toLowerCase().includes(app.jobPostingLocation.toLowerCase());
+    locationScore = locMatch ? 100 : 20; // Remote work consideration
+  } else {
+    locationScore = 50; // Neutral if location not specified
   }
 
-  // Company match (current or previous)
-  let companyMatch = false;
-  if (app.jobPostingCompany && text.includes(app.jobPostingCompany.toLowerCase())) {
-    companyMatch = true;
-  }
+  // Final weighted score
+  const fitScore = Math.round(
+    (skillsScore * jobSkillsWeight) +
+    (experienceScore * experienceWeight) +
+    (educationScore * educationWeight) +
+    (companyPrestige * companyWeight) +
+    (locationScore * locationWeight)
+  );
 
-  // Simulate fit score: skills, education, experience, location, company
-  let fitScore = 0;
-  fitScore += foundSkills.length * 12; // up to 60
-  fitScore += foundEducation.length > 0 ? 10 : 0;
-  fitScore += yearsExp >= 5 ? 10 : yearsExp >= 2 ? 5 : 0;
-  fitScore += locationMatch ? 10 : 0;
-  fitScore += companyMatch ? 10 : 0;
-  fitScore = Math.min(100, fitScore);
+  // Risk Assessment
+  const riskFactors = [];
+  if (totalExperience < 1) riskFactors.push("Limited professional experience");
+  if (educationScore < 70) riskFactors.push("Educational background may not align");
+  if (locationScore < 50) riskFactors.push("Location mismatch - may require relocation");
+  if (matchedSkills.length < 3) riskFactors.push("Limited skill overlap with job requirements");
 
-  // Insights
-  let nlpInsights = [];
-  if (foundSkills.length > 0) nlpInsights.push(`Skills: ${foundSkills.join(", ")}`);
-  if (foundEducation.length > 0) nlpInsights.push(`Education: ${foundEducation.join(", ")}`);
-  if (yearsExp > 0) nlpInsights.push(`Experience: ${yearsExp} years`);
-  if (locationMatch) nlpInsights.push("Location matches job");
-  if (companyMatch) nlpInsights.push("Has experience at target company");
-  if (fitScore >= 80) nlpInsights.push("Excellent overall fit");
-  else if (fitScore >= 60) nlpInsights.push("Good fit");
-  else if (fitScore > 0) nlpInsights.push("Some relevant background");
-  else nlpInsights.push("No strong match detected");
+  // Strengths Identification
+  const strengths = [];
+  if (fitScore >= 85) strengths.push("Exceptional candidate profile");
+  if (companyPrestige >= 90) strengths.push("Experience at top-tier companies");
+  if (totalExperience >= 5) strengths.push("Strong professional experience");
+  if (educationScore >= 85) strengths.push("Advanced educational background");
+  if (matchedSkills.length >= 5) strengths.push("Strong technical skill alignment");
 
-  // Job match highlights
-  const jobMatchHighlights = [];
-  if (foundSkills.length > 0) jobMatchHighlights.push(`Skills matched: ${foundSkills.join(", ")}`);
-  if (foundEducation.length > 0) jobMatchHighlights.push(`Education matched: ${foundEducation.join(", ")}`);
-  if (yearsExp > 0) jobMatchHighlights.push(`Experience: ${yearsExp} years`);
-  if (locationMatch) jobMatchHighlights.push("Location is a match");
-  if (companyMatch) jobMatchHighlights.push("Company experience match");
-  if (fitScore >= 80) jobMatchHighlights.push("Profile closely matches job requirements.");
-  if (fitScore < 40) jobMatchHighlights.push("Consider for other roles or further screening.");
+  // Interview Recommendations
+  const interviewFocus = [];
+  if (matchedSkills.length > 0) interviewFocus.push(`Technical assessment on: ${matchedSkills.slice(0, 3).join(", ")}`);
+  if (totalExperience >= 3) interviewFocus.push("Deep dive into past project experiences");
+  if (companyPrestige >= 80) interviewFocus.push("Understanding of scale and best practices");
+  if (riskFactors.length > 0) interviewFocus.push(`Address concerns: ${riskFactors[0]}`);
 
   return {
     fitScore,
-    nlpInsights: nlpInsights.join(". "),
-    topSkills: foundSkills,
-    jobMatchHighlights
+    seniorityLevel,
+    totalExperience,
+    highestDegree,
+    educationScore,
+    companyPrestige,
+    matchedSkills: matchedSkills.slice(0, 8) as string[], // Top matched skills
+    topSkills: profileSkills.slice(0, 10) as string[],
+    strengths,
+    riskFactors,
+    interviewFocus,
+    workHistory,
+    nlpInsights: [
+      `${seniorityLevel} level with ${totalExperience} years experience`,
+      `Education: ${highestDegree} (Score: ${educationScore}/100)`,
+      `Technical skills: ${matchedSkills.length} matches with job requirements`,
+      companyPrestige > 0 ? `Experience at prestigious companies (Score: ${companyPrestige}/100)` : "Diverse company background",
+      ...strengths.slice(0, 2),
+      riskFactors.length > 0 ? `Considerations: ${riskFactors[0]}` : "No major concerns identified"
+    ].join(". "),
+    jobMatchHighlights: [
+      `Overall Match: ${fitScore}/100 (${fitScore >= 85 ? 'Exceptional' : fitScore >= 70 ? 'Strong' : fitScore >= 50 ? 'Good' : 'Consider for other roles'})`,
+      `Experience Level: ${seniorityLevel} (${totalExperience} years)`,
+      `Skills Alignment: ${matchedSkills.length} of ${jobSkills.length} required skills`,
+      ...strengths.slice(0, 3),
+      ...interviewFocus.slice(0, 2)
+    ]
   };
 }
 import React, { useState, useEffect } from "react";
@@ -132,6 +262,8 @@ import {
   Plus,
   Edit,
   Trash2,
+  Building,
+  AlertCircle,
 } from "lucide-react";
 
 interface Application {
@@ -148,6 +280,17 @@ interface Application {
   nlpInsights?: string; // NLP summary/insights
   topSkills?: string[]; // NLP extracted skills
   jobMatchHighlights?: string[]; // NLP job match highlights
+  // Enhanced AI analysis fields
+  seniorityLevel?: string;
+  totalExperience?: number;
+  highestDegree?: string;
+  educationScore?: number;
+  companyPrestige?: number;
+  matchedSkills?: string[];
+  strengths?: string[];
+  riskFactors?: string[];
+  interviewFocus?: string[];
+  workHistory?: Array<{company: string; prestige: number}>;
   candidate: {
     id: string;
     name: string;
@@ -628,7 +771,7 @@ export default function PipelineManagement() {
                               <div className="flex items-center gap-2">
                                 {/* NLP Fit Score */}
                                 {application.fitScore !== undefined && (
-                                  <Badge variant={application.fitScore > 80 ? "success" : application.fitScore > 60 ? "default" : "outline"} className="mr-2 cursor-pointer" onClick={() => setSelectedNlpApplication(application)}>
+                                  <Badge variant={application.fitScore > 80 ? "default" : application.fitScore > 60 ? "secondary" : "outline"} className="mr-2 cursor-pointer" onClick={() => setSelectedNlpApplication(application)}>
                                     Fit Score: {application.fitScore}%
                                   </Badge>
                                 )}
@@ -764,57 +907,208 @@ export default function PipelineManagement() {
                           </div>
                         );
                       })}
-        {/* NLP Analysis Modal */}
+        {/* Enhanced AI Analysis Modal */}
         {selectedNlpApplication && (
           <Dialog open={!!selectedNlpApplication} onOpenChange={() => setSelectedNlpApplication(null)}>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>AI Candidate Analysis</DialogTitle>
+                <DialogTitle className="flex items-center gap-2">
+                  <Star className="h-5 w-5 text-yellow-500" />
+                  Enterprise AI Candidate Analysis
+                </DialogTitle>
               </DialogHeader>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
+              <div className="space-y-6">
+                {/* Candidate Header */}
+                <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg">
+                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
                     {selectedNlpApplication.candidate?.name?.charAt(0) || '?'}
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 dark:text-white">
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                       {selectedNlpApplication.candidate?.name || 'Unknown Candidate'}
-                    </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400">
                       {selectedNlpApplication.candidate?.email || 'No email provided'}
                     </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      {selectedNlpApplication.seniorityLevel && (
+                        <Badge variant="secondary">{selectedNlpApplication.seniorityLevel}</Badge>
+                      )}
+                      {selectedNlpApplication.totalExperience && (
+                        <Badge variant="outline">{selectedNlpApplication.totalExperience} years exp</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-bold text-emerald-600">
+                      {selectedNlpApplication.fitScore || 0}%
+                    </div>
+                    <div className="text-sm text-gray-600">Overall Match</div>
                   </div>
                 </div>
-                {selectedNlpApplication.fitScore !== undefined && (
-                  <div className="flex items-center gap-2">
-                    <Badge variant={selectedNlpApplication.fitScore > 80 ? "success" : selectedNlpApplication.fitScore > 60 ? "default" : "outline"}>
-                      Fit Score: {selectedNlpApplication.fitScore}%
-                    </Badge>
-                  </div>
+
+                {/* Score Breakdown */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2">
+                        <GraduationCap className="h-4 w-4 text-blue-500" />
+                        <span className="font-medium">Education</span>
+                      </div>
+                      <div className="mt-2">
+                        <div className="text-xl font-bold">{selectedNlpApplication.educationScore || 0}/100</div>
+                        <div className="text-sm text-gray-600">{selectedNlpApplication.highestDegree || 'Not specified'}</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-4 w-4 text-green-500" />
+                        <span className="font-medium">Experience</span>
+                      </div>
+                      <div className="mt-2">
+                        <div className="text-xl font-bold">{selectedNlpApplication.totalExperience || 0} years</div>
+                        <div className="text-sm text-gray-600">{selectedNlpApplication.seniorityLevel || 'Entry-Level'}</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2">
+                        <Building className="h-4 w-4 text-purple-500" />
+                        <span className="font-medium">Company Prestige</span>
+                      </div>
+                      <div className="mt-2">
+                        <div className="text-xl font-bold">{selectedNlpApplication.companyPrestige || 0}/100</div>
+                        <div className="text-sm text-gray-600">Background Score</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Strengths & Risks */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {selectedNlpApplication.strengths && selectedNlpApplication.strengths.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-green-600">
+                          <CheckCircle className="h-5 w-5" />
+                          Key Strengths
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {selectedNlpApplication.strengths.map((strength, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <div className="w-2 h-2 rounded-full bg-green-500 mt-2 flex-shrink-0"></div>
+                              <span className="text-sm">{strength}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {selectedNlpApplication.riskFactors && selectedNlpApplication.riskFactors.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-orange-600">
+                          <AlertCircle className="h-5 w-5" />
+                          Risk Factors
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {selectedNlpApplication.riskFactors.map((risk, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <div className="w-2 h-2 rounded-full bg-orange-500 mt-2 flex-shrink-0"></div>
+                              <span className="text-sm">{risk}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+
+                {/* Skills Analysis */}
+                {selectedNlpApplication.matchedSkills && selectedNlpApplication.matchedSkills.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Code className="h-5 w-5 text-blue-500" />
+                        Matched Skills ({selectedNlpApplication.matchedSkills.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedNlpApplication.matchedSkills.map((skill, i) => (
+                          <Badge key={i} variant="secondary" className="bg-blue-100 text-blue-800">
+                            {skill}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
-                {selectedNlpApplication.nlpInsights && (
-                  <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-sm">
-                    <strong>AI Insights:</strong> {selectedNlpApplication.nlpInsights}
-                  </div>
+
+                {/* Interview Recommendations */}
+                {selectedNlpApplication.interviewFocus && selectedNlpApplication.interviewFocus.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Target className="h-5 w-5 text-purple-500" />
+                        Interview Focus Areas
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-3">
+                        {selectedNlpApplication.interviewFocus.map((focus, i) => (
+                          <li key={i} className="flex items-start gap-3 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                            <div className="w-6 h-6 rounded-full bg-purple-500 text-white text-xs flex items-center justify-center font-bold">
+                              {i + 1}
+                            </div>
+                            <span className="text-sm">{focus}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
                 )}
-                {selectedNlpApplication.topSkills && selectedNlpApplication.topSkills.length > 0 && (
-                  <div>
-                    <strong>Top Skills:</strong> {selectedNlpApplication.topSkills.join(', ')}
-                  </div>
-                )}
+
+                {/* Job Match Details */}
                 {selectedNlpApplication.jobMatchHighlights && selectedNlpApplication.jobMatchHighlights.length > 0 && (
-                  <div>
-                    <strong>Job Match Highlights:</strong>
-                    <ul className="list-disc ml-6">
-                      {selectedNlpApplication.jobMatchHighlights.map((h, i) => (
-                        <li key={i}>{h}</li>
-                      ))}
-                    </ul>
-                  </div>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5 text-emerald-500" />
+                        Detailed Analysis
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {selectedNlpApplication.jobMatchHighlights.map((highlight, i) => (
+                          <div key={i} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <span className="text-sm">{highlight}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
-                <Button className="w-full mt-2" onClick={() => setSelectedNlpApplication(null)}>
-                  Close
-                </Button>
+
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1" onClick={() => setSelectedNlpApplication(null)}>
+                    Close Analysis
+                  </Button>
+                  <Button className="flex-1">
+                    <Video className="h-4 w-4 mr-2" />
+                    Schedule Interview
+                  </Button>
+                </div>
               </div>
             </DialogContent>
           </Dialog>

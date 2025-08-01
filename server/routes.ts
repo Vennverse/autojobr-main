@@ -18,6 +18,7 @@ import { companyVerificationService } from "./companyVerificationService.js";
 import { adminFixService } from "./adminFixService.js";
 import { recruiterDashboardFix } from "./recruiterDashboardFix.js";
 import { sendEmail, getEmailConfig, testEmailConfiguration } from "./emailService.js";
+import { usageMonitoringService } from "./usageMonitoringService.js";
 
 // Enhanced in-memory cache with better performance
 const cache = new Map();
