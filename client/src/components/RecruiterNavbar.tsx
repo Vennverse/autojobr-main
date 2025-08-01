@@ -60,9 +60,19 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('/api/auth/logout', {
-        method: 'POST'
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Important for session-based auth
       });
+      
+      if (!response.ok) {
+        throw new Error('Logout failed');
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       // Clear all cached data

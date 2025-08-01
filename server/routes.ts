@@ -801,6 +801,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }));
 
+  // Logout endpoint
+  app.post('/api/auth/logout', asyncHandler(async (req: any, res: any) => {
+    try {
+      // Destroy the session
+      req.session.destroy((err: any) => {
+        if (err) {
+          console.error('Error destroying session:', err);
+          return res.status(500).json({ message: 'Failed to logout' });
+        }
+        
+        // Clear the session cookie
+        res.clearCookie('connect.sid', {
+          path: '/',
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax'
+        });
+        
+        res.json({ message: 'Logged out successfully' });
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      res.status(500).json({ message: 'Failed to logout' });
+    }
+  }));
+
 
 
   // Email verification for recruiters
