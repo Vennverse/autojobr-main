@@ -894,13 +894,25 @@ export class DatabaseStorage implements IStorage {
     return await handleDbOperation(async () => {
       await db
         .update(chatMessages)
-        .set({ isRead: true })
+        .set({ 
+          isRead: true,
+          readAt: new Date()
+        })
         .where(
           and(
             eq(chatMessages.conversationId, conversationId),
             ne(chatMessages.senderId, userId)
           )
         );
+    });
+  }
+
+  async updateConversationLastMessage(conversationId: number): Promise<void> {
+    return await handleDbOperation(async () => {
+      await db
+        .update(chatConversations)
+        .set({ lastMessageAt: new Date() })
+        .where(eq(chatConversations.id, conversationId));
     });
   }
 

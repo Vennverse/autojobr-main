@@ -522,11 +522,13 @@ export const chatConversations = pgTable("chat_conversations", {
   jobPostingId: integer("job_posting_id").references(() => jobPostings.id), // Context of the conversation
   applicationId: integer("application_id").references(() => jobPostingApplications.id), // Related application
   lastMessageAt: timestamp("last_message_at").defaultNow(),
+  lastEmailNotificationAt: timestamp("last_email_notification_at"), // Last email notification sent
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("chat_conversations_recruiter_idx").on(table.recruiterId),
   index("chat_conversations_job_seeker_idx").on(table.jobSeekerId),
+  index("chat_conversations_last_message_idx").on(table.lastMessageAt),
 ]);
 
 export const chatMessages = pgTable("chat_messages", {
@@ -536,10 +538,13 @@ export const chatMessages = pgTable("chat_messages", {
   message: text("message").notNull(),
   messageType: varchar("message_type").default("text"), // text, file, system
   isRead: boolean("is_read").default(false),
+  isDelivered: boolean("is_delivered").default(true), // Message delivery status
+  readAt: timestamp("read_at"), // When message was read
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("chat_messages_conversation_idx").on(table.conversationId),
   index("chat_messages_sender_idx").on(table.senderId),
+  index("chat_messages_read_idx").on(table.isRead),
 ]);
 
 // Email verification tokens for users

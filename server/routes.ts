@@ -5624,10 +5624,23 @@ Additional Information:
         senderId: userId,
         message,
         messageType: 'text',
-        isRead: false
+        isRead: false,
+        isDelivered: true,
       };
 
       const newMessage = await storage.createChatMessage(messageData);
+      
+      // Update conversation last message time
+      await storage.updateConversationLastMessage(conversationId);
+      
+      // Trigger email notification service (async)
+      try {
+        const { emailNotificationService } = await import('./emailNotificationService');
+        setImmediate(() => emailNotificationService.processNotifications());
+      } catch (error) {
+        console.log('Email notification service not available');
+      }
+      
       res.status(201).json(newMessage);
     } catch (error) {
       console.error("Error sending message:", error);
