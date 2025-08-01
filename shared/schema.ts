@@ -142,6 +142,13 @@ export const userProfiles = pgTable("user_profiles", {
   profileCompletion: integer("profile_completion").default(0),
   lastResumeAnalysis: timestamp("last_resume_analysis"),
   
+  // Practice Tests Quota (Free tier gets 1 free ranking test)
+  freeRankingTestsRemaining: integer("free_ranking_tests_remaining").default(1),
+  freeInterviewsRemaining: integer("free_interviews_remaining").default(5),
+  premiumInterviewsRemaining: integer("premium_interviews_remaining").default(50),
+  totalInterviewsUsed: integer("total_interviews_used").default(0),
+  totalRankingTestsUsed: integer("total_ranking_tests_used").default(0),
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

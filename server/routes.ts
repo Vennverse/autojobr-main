@@ -3874,6 +3874,25 @@ Additional Information:
   // RANKING TEST SYSTEM ROUTES
   // =====================================
 
+  // Get user's free practice allocation and test info
+  app.get('/api/ranking-tests/user-info', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const userProfile = await storage.getUserProfile(userId);
+      
+      const testInfo = {
+        freeRankingTestsRemaining: userProfile?.freeRankingTestsRemaining || 0,
+        totalRankingTestsUsed: userProfile?.totalRankingTestsUsed || 0,
+        canTakeFreeTest: (userProfile?.freeRankingTestsRemaining || 0) > 0
+      };
+      
+      res.json(testInfo);
+    } catch (error) {
+      console.error('Error fetching user test info:', error);
+      res.status(500).json({ message: 'Failed to fetch user test info' });
+    }
+  });
+
   // Get available test categories and domains
   app.get('/api/ranking-tests/categories', isAuthenticated, async (req: any, res) => {
     try {

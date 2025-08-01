@@ -23,6 +23,30 @@ import { testService } from "./testService";
 class RankingTestService {
   // Create a new ranking test for a user
   async createRankingTest(userId: string, category: string, domain: string, difficultyLevel: string): Promise<RankingTest> {
+    // Check user's free practice allocation
+    const [userProfile] = await db.select()
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, userId));
+
+    let isFreeTest = false;
+    let paymentStatus = "pending";
+
+    if (userProfile && userProfile.freeRankingTestsRemaining > 0) {
+      // User has free tests remaining
+      isFreeTest = true;
+      paymentStatus = "completed";
+      
+      // Deduct one free test
+      await db.update(userProfiles)
+        .set({ 
+          freeRankingTestsRemaining: userProfile.freeRankingTestsRemaining - 1,
+          totalRankingTestsUsed: (userProfile.totalRankingTestsUsed || 0) + 1
+        })
+        .where(eq(userProfiles.userId, userId));
+        
+      console.log(`✅ Used free practice test for user ${userId}. Remaining: ${userProfile.freeRankingTestsRemaining - 1}`);
+    }
+    
     // Generate questions using the existing question bank
     const questions = getQuestionsByCategory(category).slice(0, 30);
     
@@ -41,7 +65,8 @@ class RankingTestService {
       answers: [],
       questions,
       status: "in_progress",
-      paymentStatus: "pending"
+      paymentStatus,
+      paymentId: isFreeTest ? "free_practice_test" : null
     };
 
     const [test] = await db.insert(rankingTests).values(testData).returning();

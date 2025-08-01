@@ -310,6 +310,25 @@ export async function setupAuth(app: Express) {
         companyWebsite: null
       });
 
+      // Create user profile with free practice test allocation
+      try {
+        await storage.upsertUserProfile({
+          userId: userId,
+          fullName: `${firstName} ${lastName}`,
+          freeRankingTestsRemaining: 1, // New users get 1 free ranking test
+          freeInterviewsRemaining: 5,   // New users get 5 free interviews
+          premiumInterviewsRemaining: 50,
+          totalInterviewsUsed: 0,
+          totalRankingTestsUsed: 0,
+          onboardingCompleted: false,
+          profileCompletion: 15, // Basic info completed
+        });
+        console.log(`✅ Created user profile with free practice allocation for user: ${userId}`);
+      } catch (profileError) {
+        console.error('Error creating user profile:', profileError);
+        // Continue with signup even if profile creation fails
+      }
+
       // Generate verification token
       const verificationToken = Math.random().toString(36).substr(2, 32);
       const expiresAt = new Date();
