@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,6 +55,11 @@ export default function ChatPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  const [location] = useLocation();
+
+  // Parse URL parameters for direct user chat
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetUserId = urlParams.get('user');
 
   // Get current user with proper typing
   const { data: user } = useQuery<User>({
@@ -79,6 +85,19 @@ export default function ChatPage() {
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery<ChatConversation[]>({
     queryKey: ['/api/chat/conversations'],
     refetchInterval: 30000, // Refetch every 30 seconds for new messages
+  });
+
+  // Create conversation mutation for direct user chat
+  const createConversationMutation = useMutation({
+    mutationFn: async (otherUserId: string) => {
+      return apiRequest('POST', '/api/chat/conversations', { otherUserId });
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
+      if (data?.conversationId) {
+        setSelectedConversation(data.conversationId);
+      }
+    },
   });
 
   // Get messages for selected conversation
@@ -132,6 +151,27 @@ export default function ChatPage() {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [conversationMessages]);
+
+  // Handle direct user chat from URL parameter
+  useEffect(() => {
+    if (targetUserId && user && conversations.length > 0) {
+      // Check if conversation already exists
+      const existingConversation = conversations.find(conv => 
+        (user.userType === 'recruiter' && conv.jobSeekerId === targetUserId) ||
+        (user.userType === 'job_seeker' && conv.recruiterId === targetUserId)
+      );
+
+      if (existingConversation) {
+        setSelectedConversation(existingConversation.id);
+        if (isMobileView) {
+          setShowConversationList(false);
+        }
+      } else {
+        // Create new conversation
+        createConversationMutation.mutate(targetUserId);
+      }
+    }
+  }, [targetUserId, user, conversations, isMobileView]);
 
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedConversation || sendMessageMutation.isPending) {

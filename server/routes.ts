@@ -5545,18 +5545,57 @@ Additional Information:
   app.post('/api/chat/conversations', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { jobSeekerId, recruiterId, jobPostingId, applicationId } = req.body;
+      const { jobSeekerId, recruiterId, jobPostingId, applicationId, otherUserId } = req.body;
       
-      const conversationData = {
-        recruiterId,
-        jobSeekerId,
-        jobPostingId: jobPostingId || null,
-        applicationId: applicationId || null,
-        isActive: true
-      };
+      // Get current user to determine their role
+      const currentUser = await storage.getUser(userId);
+      
+      let conversationData: any;
+      
+      if (otherUserId) {
+        // Direct user chat - determine roles based on current user type
+        if (currentUser?.userType === 'recruiter') {
+          conversationData = {
+            recruiterId: userId,
+            jobSeekerId: otherUserId,
+            jobPostingId: null,
+            applicationId: null,
+            isActive: true
+          };
+        } else {
+          conversationData = {
+            recruiterId: otherUserId,
+            jobSeekerId: userId,
+            jobPostingId: null,
+            applicationId: null,
+            isActive: true
+          };
+        }
+      } else {
+        // Traditional conversation creation
+        conversationData = {
+          recruiterId,
+          jobSeekerId,
+          jobPostingId: jobPostingId || null,
+          applicationId: applicationId || null,
+          isActive: true
+        };
+      }
+
+      // Check if conversation already exists
+      const existingConversations = await storage.getChatConversations(userId);
+      const existingConversation = existingConversations.find(conv => 
+        conv.recruiterId === conversationData.recruiterId && 
+        conv.jobSeekerId === conversationData.jobSeekerId
+      );
+
+      if (existingConversation) {
+        res.json({ conversationId: existingConversation.id, conversation: existingConversation });
+        return;
+      }
 
       const conversation = await storage.createChatConversation(conversationData);
-      res.status(201).json(conversation);
+      res.status(201).json({ conversationId: conversation.id, conversation });
     } catch (error) {
       console.error("Error creating conversation:", error);
       res.status(500).json({ message: "Failed to create conversation" });
