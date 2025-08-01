@@ -74,9 +74,10 @@ export default function SimpleChatPage() {
   });
 
   // Get messages for selected conversation
-  const { data: messages = [] } = useQuery<ChatMessage[]>({
-    queryKey: ['/api/chat/conversations', selectedConversation, 'messages'],
+  const { data: messages = [], isLoading: messagesLoading, error: messagesError } = useQuery<ChatMessage[]>({
+    queryKey: [`/api/chat/conversations/${selectedConversation}/messages`],
     enabled: !!selectedConversation,
+    refetchInterval: 2000, // Refetch every 2 seconds for real-time updates
   });
 
   // Send message mutation
@@ -85,7 +86,8 @@ export default function SimpleChatPage() {
       return apiRequest('POST', `/api/chat/conversations/${selectedConversation}/messages`, { message: messageData.message });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations', selectedConversation, 'messages'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/chat/conversations/${selectedConversation}/messages`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
       setNewMessage('');
     },
   });
@@ -247,6 +249,10 @@ export default function SimpleChatPage() {
               userType: user?.userType,
               conversationsCount: conversations.length,
               selectedConversation,
+              messagesCount: messages.length,
+              messages: messages.slice(0, 3), // Show first 3 messages
+              messagesLoading,
+              messagesError: messagesError?.message,
               createPending: createConversationMutation.isPending,
               createError: createConversationMutation.error?.message
             }, null, 2)}
