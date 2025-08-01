@@ -19,6 +19,8 @@ import { adminFixService } from "./adminFixService.js";
 import { recruiterDashboardFix } from "./recruiterDashboardFix.js";
 import { sendEmail, getEmailConfig, testEmailConfiguration } from "./emailService.js";
 import { usageMonitoringService } from "./usageMonitoringService.js";
+import { cacheService, cacheMiddleware } from "./cacheService.js";
+import { FileStorageService } from "./fileStorage.js";
 
 // Enhanced in-memory cache with better performance
 const cache = new Map();
@@ -28,6 +30,9 @@ const MAX_CACHE_SIZE = 1000; // Prevent memory bloat
 // Track user activity for online/offline status
 const userActivity = new Map<string, number>();
 const ONLINE_THRESHOLD = 5 * 60 * 1000; // 5 minutes - user is considered online if active within 5 minutes
+
+// Initialize file storage service
+const fileStorage = new FileStorageService();
 
 const getCached = (key: string) => {
   const item = cache.get(key);
@@ -140,7 +145,6 @@ import { customNLPService } from "./customNLP";
 import { recruiterAnalytics } from "./recruiterAnalytics.js";
 import { subscriptionService } from "./subscriptionService";
 import { generateVerificationEmail } from "./emailService";
-import { fileStorage } from "./fileStorage";
 import { testService } from "./testService";
 import { paymentService } from "./paymentService";
 import { setupPaymentRoutes } from "./paymentRoutes";
@@ -1714,6 +1718,90 @@ Additional Information:
     }
   });
 
+  // Resume download route for recruiters (view applicant resume in new tab)
+  app.get('/api/recruiter/resume/view/:applicationId', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const applicationId = parseInt(req.params.applicationId);
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      }
+
+      // Get application and verify recruiter owns the job
+      const application = await storage.getJobPostingApplication(applicationId);
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+
+      const jobPosting = await storage.getJobPosting(application.jobPostingId);
+      if (!jobPosting || jobPosting.recruiterId !== userId) {
+        return res.status(403).json({ message: "Access denied. You can only view resumes from your job postings." });
+      }
+
+      let resume = null;
+      const applicantId = application.applicantId;
+
+      // Try to get resume from database using resume_id from application
+      if (application.resumeId) {
+        try {
+          const [dbResume] = await db.select().from(schema.resumes).where(
+            eq(schema.resumes.id, application.resumeId)
+          );
+          if (dbResume && dbResume.fileData) {
+            resume = {
+              fileData: dbResume.fileData,
+              fileName: dbResume.fileName,
+              fileType: dbResume.mimeType || 'application/pdf'
+            };
+          }
+        } catch (dbError) {
+          console.error("Error fetching resume from database:", dbError);
+        }
+      }
+
+      // Fallback to get user's active resume
+      if (!resume) {
+        try {
+          const fallbackResumes = await storage.getUserResumes(applicantId);
+          const activeResume = fallbackResumes.find((r: any) => r.isActive) || fallbackResumes[0];
+          if (activeResume) {
+            const [fullResumeData] = await db.select().from(schema.resumes).where(
+              eq(schema.resumes.id, activeResume.id)
+            );
+            if (fullResumeData?.fileData) {
+              resume = {
+                fileData: fullResumeData.fileData,
+                fileName: fullResumeData.fileName,
+                fileType: fullResumeData.mimeType || 'application/pdf'
+              };
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching fallback resume:", error);
+        }
+      }
+      
+      if (!resume || !resume.fileData) {
+        return res.status(404).json({ message: "Resume not found" });
+      }
+      
+      const fileBuffer = Buffer.from(resume.fileData, 'base64');
+      
+      // Set headers for viewing in browser (new tab)
+      res.setHeader('Content-Type', resume.fileType || 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${resume.fileName}"`);
+      res.setHeader('Content-Length', fileBuffer.length.toString());
+      res.setHeader('Cache-Control', 'private, max-age=300'); // Cache for 5 minutes
+      
+      return res.send(fileBuffer);
+    } catch (error) {
+      console.error("Error viewing resume:", error);
+      res.status(500).json({ message: "Failed to view resume" });
+    }
+  });
+
   // Resume download route
   app.get('/api/resumes/:id/download', isAuthenticated, async (req: any, res) => {
     try {
@@ -1938,8 +2026,19 @@ Additional Information:
         return res.status(403).json({ message: "Access denied. Recruiter account required." });
       }
 
-      // Get applications for this recruiter's jobs
-      const applications = await storage.getApplicationsForRecruiter(userId);
+      // Get applications for this recruiter's jobs with caching
+      const cacheKey = `recruiter_applications_${userId}`;
+      let applications = [];
+      
+      const cached = cacheService.get(cacheKey);
+      if (cached && !cacheService.hasChanged(cacheKey, cached.data)) {
+        applications = cached.data;
+        res.set('Cache-Control', 'private, max-age=30');
+      } else {
+        applications = await storage.getApplicationsForRecruiter(userId);
+        // Cache with 30 second TTL and dependency tracking
+        cacheService.set(cacheKey, applications, { ttl: 30000 }, [`user:${userId}`, 'applications']);
+      }
       
       // Get unique job count and calculate metrics from applications
       const uniqueJobIds = new Set(applications.map((app: any) => app.jobPostingId));

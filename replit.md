@@ -19,20 +19,23 @@ AutoJobr is a comprehensive job application platform designed to connect job see
 - **Security First**: Implements session-based authentication and secure API practices.
 
 ### Technical Implementation
-- **Backend**: Express.js with TypeScript, session-based authentication using Passport.js, AI integration via Groq SDK, payment processing with Stripe and PayPal, email services with Resend and Nodemailer.
-- **Frontend**: React with TypeScript, Wouter for routing, Tailwind CSS and shadcn/ui for styling, React Query for state management, Vite as the build tool.
+- **Backend**: Express.js with TypeScript, session-based authentication using Passport.js, AI integration via Groq SDK, payment processing with Stripe and PayPal, email services with Resend and Nodemailer. Enhanced with LRU caching system using dependency tracking for reduced compute usage and improved performance.
+- **Frontend**: React with TypeScript, Wouter for routing, Tailwind CSS and shadcn/ui for styling, React Query for state management, Vite as the build tool. Pipeline management includes resume viewing functionality with small icon buttons.
 - **Chrome Extension**: Comprehensive extension with manifest.json, popup interface, content scripts, and background service worker. Supports auto-fill for 500+ job board platforms (LinkedIn, Indeed, Workday, Greenhouse, Lever, AshbyHQ, etc.), real-time job compatibility scoring, application tracking, and AI cover letter generation. Features a simplified circular floating button for access and advanced form detection.
 - **UI/UX Decisions**: "BEST OF BEST" modern and beautiful UI/UX, premium professional visual design, simplified floating button interface, multiple view modes (Cards, Table, Kanban) for applications, enhanced statistics dashboard, and comprehensive empty state management. Features engaging elements like streaks, achievements, and progress tracking.
+- **Performance Optimizations**: Enhanced caching service with LRU cache, file compression for resume storage, dependency-based cache invalidation, and smart conditional requests with ETags.
 
 ### Feature Specifications
-- Resume upload and AI-powered ATS scoring.
-- Job posting and application management for recruiters.
+- Resume upload and AI-powered ATS scoring with compression for storage optimization.
+- Job posting and application management for recruiters with enhanced caching system.
 - Real-time messaging between recruiters and candidates.
 - Payment processing for premium features and services (e.g., test retakes, job promotion).
 - Virtual AI interviews and coding tests with AI detection.
 - Comprehensive application tracking and analytics for job seekers.
 - Role-based access and consistent user type management (job seeker, recruiter).
 - Advanced API key rotation system for Groq and Resend.
+- Resume viewing functionality with new tab opening for recruiters.
+- LRU-based caching system with dependency tracking for improved performance.
 
 ## External Dependencies
 - **Database**: Neon PostgreSQL

@@ -69,35 +69,27 @@ export class FileStorageService {
     // Generate unique file ID
     const fileId = `resume_${userId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const fileExtension = this.getFileExtension(file.originalname);
-    const fileName = `${fileId}${fileExtension}`;
+    const fileName = `${fileId}${fileExtension}.gz`; // Add .gz for compressed files
     const filePath = path.join(this.resumesDir, fileName);
 
-    // Compress file data
-    const originalBuffer = file.buffer;
-    const compressedBuffer = await gzip(originalBuffer);
-    
-    // Determine if compression is beneficial (if compressed size is smaller)
-    const useCompression = compressedBuffer.length < originalBuffer.length;
-    const finalBuffer = useCompression ? compressedBuffer : originalBuffer;
-    const finalPath = useCompression ? `${filePath}.gz` : filePath;
-
-    // Store file
-    await writeFile(finalPath, finalBuffer);
+    // Compress file data to save space
+    const compressedData = await gzip(file.buffer);
+    await writeFile(filePath, compressedData);
 
     const storedFile: StoredFile = {
       id: fileId,
       originalName: file.originalname,
       mimeType: file.mimetype,
-      size: originalBuffer.length,
-      compressedSize: finalBuffer.length,
-      path: finalPath,
-      compressed: useCompression,
+      size: file.size,
+      compressedSize: compressedData.length,
+      path: filePath,
+      compressed: true,
       createdAt: new Date(),
-      userId
+      userId,
     };
 
-    console.log(`[FILE_STORAGE] Stored resume: ${file.originalname} (${this.formatBytes(originalBuffer.length)} -> ${this.formatBytes(finalBuffer.length)}) for user ${userId}`);
-
+    console.log(`📄 Resume stored: ${file.originalname} (${file.size} bytes → ${compressedData.length} bytes, ${((1 - compressedData.length / file.size) * 100).toFixed(1)}% compression)`);
+    
     return storedFile;
   }
 

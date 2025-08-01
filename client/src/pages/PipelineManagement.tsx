@@ -1019,6 +1019,16 @@ export default function PipelineManagement() {
                                     <BarChart3 className="h-4 w-4 text-blue-500" />
                                   </Button>
                                 )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title="View Resume (Opens in new tab)"
+                                  onClick={() => {
+                                    window.open(`/api/recruiter/resume/view/${application.id}`, '_blank');
+                                  }}
+                                >
+                                  <GraduationCap className="h-4 w-4 text-green-600" />
+                                </Button>
                                 {application.score && (
                                   <Badge variant="outline" className="mr-2">
                                     Score: {application.score}%

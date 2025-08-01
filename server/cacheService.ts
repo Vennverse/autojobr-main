@@ -1,0 +1,192 @@
+import { LRUCache } from 'lru-cache';
+import crypto from 'crypto';
+
+export interface CacheEntry {
+  data: any;
+  etag: string;
+  lastModified: Date;
+  dependsOn?: string[]; // What this cache depends on (user profiles, jobs, etc.)
+}
+
+export interface CacheConfig {
+  ttl?: number;
+  maxSize?: number;
+  staleWhileRevalidate?: number;
+}
+
+class EnhancedCacheService {
+  private cache: LRUCache<string, CacheEntry>;
+  private dependencyMap: Map<string, Set<string>> = new Map(); // dependency -> cache keys
+  private lastUpdated: Map<string, Date> = new Map(); // resource -> last update time
+  
+  constructor() {
+    this.cache = new LRUCache<string, CacheEntry>({
+      max: 2000, // Increased from 1000
+      ttl: 5 * 60 * 1000, // 5 minutes default
+      allowStale: true, // Allow stale data while revalidating
+      updateAgeOnGet: true,
+      updateAgeOnHas: true,
+    });
+  }
+
+  // Smart caching with dependency tracking
+  set(key: string, data: any, config: CacheConfig = {}, dependsOn: string[] = []): void {
+    const etag = this.generateEtag(data);
+    const entry: CacheEntry = {
+      data,
+      etag,
+      lastModified: new Date(),
+      dependsOn,
+    };
+
+    // Set with custom TTL if provided
+    if (config.ttl) {
+      this.cache.set(key, entry, { ttl: config.ttl });
+    } else {
+      this.cache.set(key, entry);
+    }
+
+    // Track dependencies
+    dependsOn.forEach(dep => {
+      if (!this.dependencyMap.has(dep)) {
+        this.dependencyMap.set(dep, new Set());
+      }
+      this.dependencyMap.get(dep)!.add(key);
+    });
+  }
+
+  get(key: string): CacheEntry | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+
+    // Check if dependencies have been updated
+    if (entry.dependsOn) {
+      for (const dep of entry.dependsOn) {
+        const lastUpdate = this.lastUpdated.get(dep);
+        if (lastUpdate && lastUpdate > entry.lastModified) {
+          // Dependency updated, cache is stale
+          this.cache.delete(key);
+          return null;
+        }
+      }
+    }
+
+    return entry;
+  }
+
+  // Check if data has changed using etag
+  hasChanged(key: string, newData: any): boolean {
+    const entry = this.cache.get(key);
+    if (!entry) return true;
+    
+    const newEtag = this.generateEtag(newData);
+    return entry.etag !== newEtag;
+  }
+
+  // Invalidate cache when a resource is updated
+  invalidateByDependency(dependency: string): void {
+    this.lastUpdated.set(dependency, new Date());
+    
+    const dependentKeys = this.dependencyMap.get(dependency);
+    if (dependentKeys) {
+      dependentKeys.forEach(key => {
+        this.cache.delete(key);
+      });
+      this.dependencyMap.delete(dependency);
+    }
+  }
+
+  // Invalidate user-specific cache
+  invalidateUser(userId: string): void {
+    this.invalidateByDependency(`user:${userId}`);
+    this.invalidateByDependency(`profile:${userId}`);
+    
+    // Also clear any keys containing the user ID
+    for (const key of this.cache.keys()) {
+      if (key.includes(userId)) {
+        this.cache.delete(key);
+      }
+    }
+  }
+
+  // Get cache statistics
+  getStats() {
+    return {
+      size: this.cache.size,
+      max: this.cache.max,
+      hitRate: this.cache.calculatedSize / (this.cache.calculatedSize + this.cache.fetchMethod?.length || 1),
+      dependencyCount: this.dependencyMap.size,
+    };
+  }
+
+  // Generate etag for data
+  private generateEtag(data: any): string {
+    const hash = crypto.createHash('md5');
+    hash.update(JSON.stringify(data));
+    return hash.digest('hex');
+  }
+
+  // Clear all cache
+  clear(): void {
+    this.cache.clear();
+    this.dependencyMap.clear();
+    this.lastUpdated.clear();
+  }
+
+  // Helper for conditional requests
+  checkIfModified(key: string, clientEtag?: string, clientLastModified?: string): boolean {
+    const entry = this.cache.get(key);
+    if (!entry) return true;
+
+    if (clientEtag && entry.etag === clientEtag) return false;
+    if (clientLastModified) {
+      const clientDate = new Date(clientLastModified);
+      if (entry.lastModified <= clientDate) return false;
+    }
+
+    return true;
+  }
+}
+
+export const cacheService = new EnhancedCacheService();
+
+// Cache middleware for Express routes
+export const cacheMiddleware = (ttl: number = 5 * 60 * 1000, dependsOn: string[] = []) => {
+  return (req: any, res: any, next: any) => {
+    const key = `${req.method}:${req.originalUrl}:${req.user?.id || 'anon'}`;
+    
+    // Check cache
+    const cached = cacheService.get(key);
+    if (cached && !cacheService.hasChanged(key, cached.data)) {
+      // Set cache headers
+      res.set('ETag', cached.etag);
+      res.set('Last-Modified', cached.lastModified.toUTCString());
+      res.set('Cache-Control', `max-age=${Math.floor(ttl / 1000)}, must-revalidate`);
+      
+      // Check client cache
+      if (!cacheService.checkIfModified(key, req.get('If-None-Match'), req.get('If-Modified-Since'))) {
+        return res.status(304).send();
+      }
+      
+      return res.json(cached.data);
+    }
+
+    // Intercept response
+    const originalJson = res.json.bind(res);
+    res.json = (data: any) => {
+      // Cache the response
+      cacheService.set(key, data, { ttl }, dependsOn);
+      
+      const entry = cacheService.get(key);
+      if (entry) {
+        res.set('ETag', entry.etag);
+        res.set('Last-Modified', entry.lastModified.toUTCString());
+        res.set('Cache-Control', `max-age=${Math.floor(ttl / 1000)}, must-revalidate`);
+      }
+      
+      return originalJson(data);
+    };
+
+    next();
+  };
+};
