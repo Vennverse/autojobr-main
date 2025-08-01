@@ -838,6 +838,10 @@ export class EnhancedNLPService {
       return '';
     }).filter(skill => skill.length > 0);
   }
+
+  private escapeRegex(string: string): string {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
 }
 
 // Export singleton instance for use in routes
