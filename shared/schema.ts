@@ -324,7 +324,6 @@ export const jobPostings = pgTable("job_postings", {
   title: varchar("title").notNull(),
   description: text("description").notNull(),
   companyName: varchar("company_name").notNull(),
-  company: varchar("company"), // alias for compatibility
   companyLogo: varchar("company_logo"), // URL to company logo
   location: varchar("location"),
   workMode: varchar("work_mode"), // remote, hybrid, onsite

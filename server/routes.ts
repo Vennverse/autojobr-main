@@ -5007,7 +5007,15 @@ Additional Information:
         return res.status(403).json({ message: "Access denied. Recruiter account required." });
       }
 
-      const jobPostingData = { ...req.body, recruiterId: userId };
+      // Fix company field mapping and ensure proper data structure
+      const { company, companyName, skills, ...restData } = req.body;
+      const jobPostingData = { 
+        ...restData,
+        recruiterId: userId,
+        companyName: companyName || company || "Company Name", // Map to correct field
+        skills: Array.isArray(skills) ? skills : (skills ? [skills] : []) // Ensure skills is array
+      };
+      
       const jobPosting = await storage.createJobPosting(jobPostingData);
       res.status(201).json(jobPosting);
     } catch (error) {
