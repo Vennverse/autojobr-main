@@ -922,7 +922,7 @@ async function loginAndCreateJobs() {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      email: 'chronic.hawk.dbae@rapidletter.net',
+      email: 'shubhamdubexskd2001@gmail.com',
       password: '12345678'
     })
   });
