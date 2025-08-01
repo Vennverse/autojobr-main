@@ -64,7 +64,7 @@ export default function ChatPage() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('user');
-    console.log('URL changed, checking for user parameter:', userId);
+    console.log('URL changed, checking for user parameter:', userId, 'Current location:', location);
     setTargetUserId(userId);
   }, [location]);
 
@@ -176,6 +176,16 @@ export default function ChatPage() {
 
   // Handle direct user chat from URL parameter
   useEffect(() => {
+    console.log('Direct chat effect triggered:', {
+      targetUserId,
+      user: user?.id,
+      userType: user?.userType,
+      conversationsLoading,
+      conversationsLength: conversations.length,
+      createPending: createConversationMutation.isPending,
+      createSuccess: createConversationMutation.isSuccess
+    });
+
     if (targetUserId && user && !conversationsLoading) {
       console.log('Processing targetUserId:', targetUserId, 'User type:', user.userType);
       console.log('Available conversations:', conversations.length);
