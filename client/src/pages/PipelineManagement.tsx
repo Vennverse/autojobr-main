@@ -763,9 +763,9 @@ export default function PipelineManagement() {
   const handleSendInterviewInvite = () => {
     if (!selectedApplication) return;
     const assignmentData = {
+      ...interviewAssignmentData,
       candidateId: selectedApplication.userId,
       jobPostingId: selectedApplication.jobPostingId,
-      ...interviewAssignmentData,
       dueDate: new Date(interviewAssignmentData.dueDate).toISOString(),
     };
     sendInterviewInviteMutation.mutate(assignmentData);

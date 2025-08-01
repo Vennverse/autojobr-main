@@ -11,6 +11,8 @@ interface User {
   onboardingCompleted?: boolean;
   planType?: string;
   userType?: string;
+  currentRole?: string;
+  availableRoles?: string;
   emailVerified?: boolean;
 }
 
