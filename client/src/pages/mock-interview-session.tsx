@@ -85,7 +85,7 @@ export default function MockInterviewSession() {
 
   // Fetch interview session
   const { data: session, isLoading } = useQuery<InterviewSession>({
-    queryKey: [`/api/mock-interview/session/${sessionId}`],
+    queryKey: [`/api/mock-interviews/${sessionId}`],
     enabled: !!sessionId,
     retry: false,
   });
@@ -93,8 +93,7 @@ export default function MockInterviewSession() {
   // Submit answer mutation
   const submitAnswerMutation = useMutation({
     mutationFn: async (data: { questionId: number; answer: string; code?: string; timeSpent: number }) => {
-      const response = await apiRequest('POST', '/api/mock-interview/answer', data);
-      return await response.json();
+      return await apiRequest('/api/mock-interview/answer', 'POST', data);
     },
     onSuccess: () => {
       toast({
@@ -114,15 +113,14 @@ export default function MockInterviewSession() {
   // Start interview mutation
   const startInterviewMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', `/api/mock-interview/${sessionId}/start`);
-      return await response.json();
+      return await apiRequest(`/api/mock-interviews/${sessionId}/start`, 'POST');
     },
     onSuccess: () => {
       toast({
         title: "Interview Started!",
         description: "Good luck! The timer is now running.",
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/mock-interview/session/${sessionId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/mock-interviews/${sessionId}`] });
       setIsTimerRunning(true);
     },
     onError: (error) => {
@@ -137,8 +135,7 @@ export default function MockInterviewSession() {
   // Complete interview mutation
   const completeInterviewMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', `/api/mock-interview/complete/${sessionId}`);
-      return await response.json();
+      return await apiRequest(`/api/mock-interview/complete/${sessionId}`, 'POST');
     },
     onSuccess: () => {
       toast({
