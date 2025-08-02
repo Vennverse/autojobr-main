@@ -147,13 +147,13 @@ class EnhancedCacheService {
   constructor() {
     this.cache = new OptimizedLRUCache<string, CacheEntry>(2000);
     
-    // Auto-cleanup every 10 minutes
+    // OPTIMIZATION: Reduce cleanup frequency and make it more efficient
     this.cleanupInterval = setInterval(() => {
       const cleaned = this.cache.cleanup();
       if (cleaned > 0) {
         console.log(`🧹 Cache cleanup: removed ${cleaned} expired entries`);
       }
-    }, 10 * 60 * 1000);
+    }, 15 * 60 * 1000); // Increased to 15 minutes
   }
 
   // Smart caching with dependency tracking

@@ -38,10 +38,20 @@ const useWebSocket = (user: User | undefined) => {
         
         if (message.type === 'new_message') {
           // Invalidate conversations and messages
-          queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
-          queryClient.invalidateQueries({ 
-            queryKey: ['/api/chat/conversations', message.conversationId, 'messages'] 
-          });
+          // OPTIMIZATION: Update cache directly instead of invalidating
+          queryClient.setQueryData(
+            ['/api/chat/conversations'],
+            (oldConversations: any[] = []) => oldConversations.map(conv => 
+              conv.id === message.conversationId 
+                ? { ...conv, unreadCount: (conv.unreadCount || 0) + 1 }
+                : conv
+            )
+          );
+          
+          queryClient.setQueryData(
+            ['/api/chat/conversations', message.conversationId, 'messages'],
+            (oldMessages: any[] = []) => [...oldMessages, message.data]
+          );
         }
         
         if (message.type === 'typing') {

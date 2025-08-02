@@ -63,16 +63,23 @@ export default function SimpleChatPage() {
         console.log('WebSocket message received:', message);
         
         if (message.type === 'new_message') {
-          // Refresh messages for the current conversation
-          if (selectedConversation) {
-            queryClient.invalidateQueries({ 
-              queryKey: [`/api/chat/conversations/${selectedConversation}/messages`] 
-            });
+          // OPTIMIZATION: Update cache directly instead of invalidating
+          if (selectedConversation && message.conversationId === selectedConversation) {
+            queryClient.setQueryData(
+              [`/api/chat/conversations/${selectedConversation}/messages`],
+              (oldMessages: any[] = []) => [...oldMessages, message.data]
+            );
           }
-          // Refresh conversations list to update unread counts
-          queryClient.invalidateQueries({ 
-            queryKey: ['/api/chat/conversations'] 
-          });
+          
+          // OPTIMIZATION: Update conversation unread count directly
+          queryClient.setQueryData(
+            ['/api/chat/conversations'],
+            (oldConversations: any[] = []) => oldConversations.map(conv => 
+              conv.id === message.conversationId 
+                ? { ...conv, unreadCount: (conv.unreadCount || 0) + 1 }
+                : conv
+            )
+          );
         }
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);

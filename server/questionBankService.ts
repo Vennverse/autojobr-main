@@ -98,7 +98,7 @@ export class QuestionBankService {
     }
   }
   
-  // Get questions by category with filtering
+  // Get questions by category with filtering - OPTIMIZED
   async getQuestionsByCategory(
     category: string,
     tags: string[] = [],
@@ -112,38 +112,21 @@ export class QuestionBankService {
         inArray(questionBank.difficulty, difficulty)
       ];
       
-      // Add tag filtering if provided
-      if (tags.length > 0) {
-        // Create tag filtering conditions
-        const tagConditions = tags.map(tag => 
-          // Check if any tag in the array matches
-          db.select().from(questionBank).where(
-            and(
-              eq(questionBank.category, category),
-              eq(questionBank.isActive, true),
-              // SQL to check if tag exists in tags array
-              // This is a simplified approach - in practice you'd use array operators
-            )
-          )
-        );
-      }
-      
+      // OPTIMIZATION: Use database-level randomization instead of fetching 2x data
       const questions = await db.select()
         .from(questionBank)
         .where(and(...whereConditions))
-        .limit(limit * 2); // Get more than needed for better randomization
+        .orderBy(sql`RANDOM()`) // Database-level randomization
+        .limit(limit); // Fetch only what we need
       
-      // Shuffle and limit
-      return questions
-        .sort(() => Math.random() - 0.5)
-        .slice(0, limit)
-        .map(q => ({
-          ...q,
-          correctAnswer: this.parseCorrectAnswer(q.correctAnswer),
-          options: q.options || [],
-          tags: q.tags || [],
-          keywords: q.keywords || []
-        }));
+      // OPTIMIZATION: Minimal processing, only parse when needed
+      return questions.map(q => ({
+        ...q,
+        correctAnswer: this.parseCorrectAnswer(q.correctAnswer),
+        options: q.options || [],
+        tags: q.tags || [],
+        keywords: q.keywords || []
+      }));
       
     } catch (error) {
       console.error('Error fetching questions by category:', error);

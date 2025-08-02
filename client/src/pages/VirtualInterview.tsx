@@ -174,11 +174,14 @@ export default function VirtualInterview() {
     }
   }, [interview, isPaused]);
 
-  // Refetch interview data every 30 seconds to sync time
+  // OPTIMIZATION: Reduce sync frequency and use conditional updates
   useEffect(() => {
     if (interview && interview.status === 'active') {
       const syncTimer = setInterval(() => {
-        queryClient.invalidateQueries({ queryKey: [`/api/virtual-interview/${sessionId}`] });
+        // Only sync if window is visible and user is active
+        if (!document.hidden) {
+          queryClient.invalidateQueries({ queryKey: [`/api/virtual-interview/${sessionId}`] });
+        }
       }, 30000);
 
       return () => clearInterval(syncTimer);

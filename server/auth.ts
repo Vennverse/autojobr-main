@@ -1207,64 +1207,93 @@ export async function setupAuth(app: Express) {
 
 }
 
-// Middleware to check authentication
+// User session cache to reduce database calls
+const userSessionCache = new Map<string, { user: any; lastCheck: number; }>();
+const USER_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Middleware to check authentication - OPTIMIZED
 export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
   try {
-    console.log('=== Authentication Check ===');
-    console.log('Session ID:', req.sessionID);
-    console.log('Session data:', req.session);
-    console.log('Session user:', req.session?.user);
-    console.log('Has session?', !!req.session);
-    console.log('Has session.user?', !!req.session?.user);
-    
     const sessionUser = req.session?.user;
     
     if (!sessionUser) {
-      console.log('❌ No authenticated user in session');
       return res.status(401).json({ message: "Not authenticated" });
     }
 
-    // COMPREHENSIVE ROLE CONSISTENCY CHECK
-    // Auto-fix any user type/role mismatches to prevent future issues
-    try {
-      const currentUser = await storage.getUser(sessionUser.id);
-      if (currentUser && currentUser.userType && currentUser.currentRole !== currentUser.userType) {
-        console.log(`🔧 ROLE MISMATCH DETECTED: User ${currentUser.id} has userType(${currentUser.userType}) != currentRole(${currentUser.currentRole})`);
-        
-        // Auto-fix the mismatch using database trigger
-        await storage.upsertUser({
-          ...currentUser,
-          currentRole: currentUser.userType // This will trigger our database sync function
-        });
-        
-        // Update session to match fixed database state
-        req.session.user = {
-          ...req.session.user,
-          userType: currentUser.userType,
-          currentRole: currentUser.userType
-        };
-        
-        console.log(`✅ ROLE CONSISTENCY FIXED: User ${currentUser.id} now has consistent userType and currentRole: ${currentUser.userType}`);
-      }
-    } catch (roleCheckError) {
-      console.error('Role consistency check failed (non-blocking):', roleCheckError);
-      // Don't block authentication for role check failures
+    // OPTIMIZATION: Use cached user data to reduce database calls
+    const cached = userSessionCache.get(sessionUser.id);
+    const now = Date.now();
+    
+    if (cached && (now - cached.lastCheck) < USER_CACHE_TTL) {
+      // Use cached user data
+      req.user = cached.user;
+      return next();
     }
 
-    console.log('✅ Authenticated user:', sessionUser.id, sessionUser.email);
-    
-    // For real users, use session data
-    req.user = {
-      id: sessionUser.id,
-      email: sessionUser.email,
-      name: sessionUser.name || `${sessionUser.firstName || ''} ${sessionUser.lastName || ''}`.trim(),
-      firstName: sessionUser.firstName || 'User',
-      lastName: sessionUser.lastName || 'Name',
-      userType: sessionUser.userType || 'job_seeker'
-    };
+    // Only check database if cache is stale or missing
+    try {
+      const currentUser = await storage.getUser(sessionUser.id);
+      
+      // Build user object
+      const userObj = {
+        id: sessionUser.id,
+        email: sessionUser.email,
+        name: sessionUser.name || `${sessionUser.firstName || ''} ${sessionUser.lastName || ''}`.trim(),
+        firstName: sessionUser.firstName || 'User',
+        lastName: sessionUser.lastName || 'Name',
+        userType: sessionUser.userType || 'job_seeker'
+      };
+
+      // Cache the user data
+      userSessionCache.set(sessionUser.id, {
+        user: userObj,
+        lastCheck: now
+      });
+
+      // Optional role consistency check (only if mismatch detected)
+      if (currentUser && currentUser.userType && currentUser.currentRole !== currentUser.userType) {
+        console.log(`🔧 ROLE MISMATCH: User ${currentUser.id} - fixing in background`);
+        
+        // Fix asynchronously to not block request
+        setImmediate(async () => {
+          try {
+            await storage.upsertUser({
+              ...currentUser,
+              currentRole: currentUser.userType
+            });
+          } catch (err) {
+            console.error('Background role fix failed:', err);
+          }
+        });
+      }
+
+      req.user = userObj;
+    } catch (roleCheckError) {
+      console.error('User lookup failed (non-blocking):', roleCheckError);
+      // Use session data as fallback
+      req.user = {
+        id: sessionUser.id,
+        email: sessionUser.email,
+        name: sessionUser.name || `${sessionUser.firstName || ''} ${sessionUser.lastName || ''}`.trim(),
+        firstName: sessionUser.firstName || 'User',
+        lastName: sessionUser.lastName || 'Name',
+        userType: sessionUser.userType || 'job_seeker'
+      };
+    }
+
     next();
   } catch (error) {
     console.error("Authentication error:", error);
     res.status(401).json({ message: "Authentication failed" });
   }
 };
+
+// Clean up stale cache entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [userId, cached] of userSessionCache.entries()) {
+    if ((now - cached.lastCheck) > USER_CACHE_TTL * 2) {
+      userSessionCache.delete(userId);
+    }
+  }
+}, USER_CACHE_TTL);

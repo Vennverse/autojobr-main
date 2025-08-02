@@ -37,11 +37,17 @@ import { sendEmail, getEmailConfig, testEmailConfiguration } from "./emailServic
 import { usageMonitoringService } from "./usageMonitoringService.js";
 import { cacheService, cacheMiddleware } from "./cacheService.js";
 import { FileStorageService } from "./fileStorage.js";
+import { performanceMonitor } from "./performanceMonitor.js";
+import { 
+  conditionalRequestMiddleware, 
+  deduplicationMiddleware, 
+  rateLimitMiddleware 
+} from "./optimizedMiddleware.js";
 
-// Enhanced in-memory cache with better performance
+// OPTIMIZATION: Enhanced in-memory cache with better performance
 const cache = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-const MAX_CACHE_SIZE = 1000; // Prevent memory bloat
+const CACHE_TTL = 10 * 60 * 1000; // Increased to 10 minutes
+const MAX_CACHE_SIZE = 2000; // Increased cache size for better hit rates
 
 // Track user activity for online/offline status
 const userActivity = new Map<string, number>();
