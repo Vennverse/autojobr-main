@@ -66,7 +66,7 @@ export default function SimpleChatPage() {
           // Refresh messages for the current conversation
           if (selectedConversation) {
             queryClient.invalidateQueries({ 
-              queryKey: ['/api/chat/conversations', selectedConversation, 'messages'] 
+              queryKey: [`/api/chat/conversations/${selectedConversation}/messages`] 
             });
           }
           // Refresh conversations list to update unread counts
@@ -107,7 +107,7 @@ export default function SimpleChatPage() {
 
   // Get messages for selected conversation
   const { data: messages = [] } = useQuery<ChatMessage[]>({
-    queryKey: ['/api/chat/conversations', selectedConversation, 'messages'],
+    queryKey: [`/api/chat/conversations/${selectedConversation}/messages`],
     enabled: !!selectedConversation,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -123,7 +123,13 @@ export default function SimpleChatPage() {
     },
     onSuccess: () => {
       setNewMessage('');
-      // WebSocket will handle the real-time update
+      // Immediately invalidate queries to show the message
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/chat/conversations/${selectedConversation}/messages`] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/chat/conversations'] 
+      });
     },
   });
 
@@ -237,7 +243,12 @@ export default function SimpleChatPage() {
             <CardContent className="flex flex-col h-[calc(100vh-200px)]">
               {/* Messages */}
               <div className="flex-1 overflow-y-auto mb-4 space-y-2">
-                {messages.map((message) => (
+                {messages.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 dark:text-gray-400">No messages yet. Start the conversation!</p>
+                  </div>
+                ) : (
+                  messages.map((message) => (
                   <div
                     key={message.id}
                     className={`flex ${
@@ -257,7 +268,8 @@ export default function SimpleChatPage() {
                       </p>
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
                 <div ref={messagesEndRef} />
               </div>
 
