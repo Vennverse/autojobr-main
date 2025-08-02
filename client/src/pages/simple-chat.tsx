@@ -124,7 +124,7 @@ export default function SimpleChatPage() {
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (messageData: { message: string }) => {
-      return apiRequest('POST', `/api/chat/conversations/${selectedConversation}/messages`, { 
+      return apiRequest(`/api/chat/conversations/${selectedConversation}/messages`, 'POST', { 
         message: messageData.message 
       });
     },

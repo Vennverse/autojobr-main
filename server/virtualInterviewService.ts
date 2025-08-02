@@ -138,7 +138,14 @@ export class VirtualInterviewService {
 
       // Clean and parse the JSON response
       const cleanedContent = this.cleanJsonResponse(content);
-      const questionData = JSON.parse(cleanedContent);
+      let questionData;
+      try {
+        questionData = JSON.parse(cleanedContent);
+      } catch (parseError) {
+        console.error('JSON parse error for question generation:', parseError);
+        console.error('Content that failed to parse:', cleanedContent);
+        throw new Error('Invalid JSON response from AI service');
+      }
 
       return {
         category: questionData.category || interviewType as any,
@@ -406,7 +413,14 @@ Be constructive and encouraging.`;
 
       console.log('GROQ response received, parsing JSON...');
       const cleanedContent = this.cleanJsonResponse(content);
-      const feedback = JSON.parse(cleanedContent);
+      let feedback;
+      try {
+        feedback = JSON.parse(cleanedContent);
+      } catch (parseError) {
+        console.error('JSON parse error for feedback generation:', parseError);
+        console.error('Content that failed to parse:', cleanedContent);
+        return this.getFallbackFeedback();
+      }
       
       // Validate required fields
       if (!feedback.performanceSummary || !feedback.keyStrengths || !feedback.overallScore) {
@@ -451,6 +465,10 @@ Return JSON with:
   }
 
   private cleanJsonResponse(content: string): string {
+    if (!content || typeof content !== 'string') {
+      throw new Error('Invalid content provided for JSON cleaning');
+    }
+    
     // Remove markdown code blocks and clean the response
     let cleaned = content.replace(/```json\s*|\s*```/g, '').trim();
     
@@ -460,6 +478,11 @@ Return JSON with:
     
     if (firstBrace !== -1 && lastBrace !== -1) {
       cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+    }
+    
+    // Validate that we have valid JSON structure
+    if (!cleaned.startsWith('{') || !cleaned.endsWith('}')) {
+      throw new Error('Response does not contain valid JSON structure');
     }
     
     return cleaned;

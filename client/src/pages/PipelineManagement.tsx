@@ -702,7 +702,7 @@ export default function PipelineManagement() {
 
   const moveApplicationMutation = useMutation({
     mutationFn: async ({ applicationId, newStage, notes }: { applicationId: number; newStage: string; notes?: string }) => {
-      return await apiRequest("PUT", `/api/recruiter/applications/${applicationId}/stage`, {
+      return await apiRequest(`/api/recruiter/applications/${applicationId}/stage`, "PUT", {
         stage: newStage,
         notes,
       });
@@ -731,7 +731,7 @@ export default function PipelineManagement() {
           : data.assignmentType === "mock"
           ? "/api/interviews/mock/assign"
           : "/api/test-assignments";
-      return await apiRequest("POST", endpoint, data);
+      return await apiRequest(endpoint, "POST", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recruiter/applications"] });

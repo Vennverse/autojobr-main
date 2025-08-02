@@ -243,8 +243,7 @@ export default function TestManagement() {
         console.log('Assignment payload:', assignmentPayload);
         
         try {
-          const response = await apiRequest("/api/test-assignments", "POST", assignmentPayload);
-          const assignment = await response.json();
+          const assignment = await apiRequest("/api/test-assignments", "POST", assignmentPayload);
           assignments.push(assignment);
           console.log('Successfully assigned test to candidate:', candidateId);
         } catch (error) {
@@ -277,7 +276,7 @@ export default function TestManagement() {
   const deleteTestMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await apiRequest(`/api/test-templates/${id}`, "DELETE");
-      return await response.json();
+      return response;
     },
     onSuccess: () => {
       toast({ title: "Test template deleted successfully" });

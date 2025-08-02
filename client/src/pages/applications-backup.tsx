@@ -175,14 +175,8 @@ export default function Applications() {
   // Add application mutation
   const addApplicationMutation = useMutation({
     mutationFn: async (applicationData: any) => {
-      const response = await apiRequest("/api/applications", {
-        method: "POST",
-        body: JSON.stringify(applicationData),
-      });
-      if (response.ok) {
-        return response.json();
-      }
-      throw new Error("Failed to add application");
+      const response = await apiRequest("/api/applications", "POST", applicationData);
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/applications"] });

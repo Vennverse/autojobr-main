@@ -127,9 +127,19 @@ Requirements:
   }
 
   async startInterview(userId: string, config: InterviewConfiguration): Promise<MockInterview> {
-    const sessionId = `interview_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Generate a more robust UUID-like session ID
+    const sessionId = `interview_${Date.now()}_${Math.random().toString(36).substr(2, 12)}_${userId.substr(-4)}`;
     
     console.log('🔍 Starting interview with sessionId:', sessionId);
+    
+    // Check if a session with this ID already exists (unlikely but good to check)
+    const existingInterview = await storage.getMockInterviewBySessionId(sessionId);
+    if (existingInterview) {
+      console.warn('⚠️ Session ID collision detected, generating new one');
+      const newSessionId = `interview_${Date.now()}_${Math.random().toString(36).substr(2, 12)}_${userId.substr(-4)}_retry`;
+      console.log('🔍 Using new sessionId:', newSessionId);
+      return this.startInterviewWithSessionId(userId, config, newSessionId);
+    }
     
     const interviewData: InsertMockInterview = {
       userId,
@@ -197,6 +207,60 @@ Requirements:
 
     console.log('🔍 Returning interview:', interview);
     
+    return interview;
+  }
+
+  // Helper method to start interview with specific session ID
+  private async startInterviewWithSessionId(userId: string, config: InterviewConfiguration, sessionId: string): Promise<MockInterview> {
+    const interviewData: InsertMockInterview = {
+      userId,
+      sessionId,
+      interviewType: config.interviewType,
+      difficulty: config.difficulty,
+      role: config.role,
+      company: config.company,
+      language: config.language,
+      totalQuestions: config.totalQuestions,
+      timeRemaining: 3600, // 1 hour
+      isPaid: false // First interview is free
+    };
+
+    const interview = await storage.createMockInterview(interviewData);
+    
+    if (!interview) {
+      throw new Error('Failed to create interview in storage');
+    }
+    
+    // Generate and store questions
+    try {
+      const questions = await this.generateInterviewQuestions(config);
+      
+      if (questions.length === 0) {
+        throw new Error('No questions generated');
+      }
+      
+      // Store questions with error handling
+      for (let i = 0; i < questions.length; i++) {
+        const questionData: InsertMockInterviewQuestion = {
+          interviewId: interview.id,
+          questionNumber: i + 1,
+          question: questions[i].question,
+          questionType: questions[i].type,
+          difficulty: questions[i].difficulty,
+          hints: JSON.stringify(questions[i].hints),
+          testCases: JSON.stringify(questions[i].testCases || []),
+          sampleAnswer: questions[i].sampleAnswer
+        };
+        
+        await storage.createMockInterviewQuestion(questionData);
+      }
+      
+    } catch (error) {
+      console.error('❌ Critical error during question generation/storage:', error);
+      await storage.deleteMockInterview(interview.id);
+      throw new Error('Failed to create interview questions. Please try again.');
+    }
+
     return interview;
   }
 
