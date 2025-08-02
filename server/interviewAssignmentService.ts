@@ -68,7 +68,7 @@ export class InterviewAssignmentService {
     await this.sendAssignmentEmail(
       data.candidateId,
       data.recruiterId,
-      interview.id,
+      Number(interview.id),
       'virtual',
       data.dueDate,
       data.role,
@@ -98,6 +98,8 @@ export class InterviewAssignmentService {
   }) {
     const sessionId = `mock_assigned_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
+    console.log(`🎯 Creating assigned mock interview with session: ${sessionId}`);
+    
     // Use only fields that exist in the database (same pattern as working test assignment)
     const interviewData = {
       userId: data.candidateId,
@@ -125,12 +127,71 @@ export class InterviewAssignmentService {
     `);
     
     const interview = result.rows[0];
+    
+    console.log(`✅ Interview created with ID: ${interview.id}`);
+
+    // CRITICAL FIX: Generate questions immediately for assigned interviews
+    try {
+      console.log(`🔄 Generating questions for assigned interview ${interview.id}`);
+      
+      // Import and use the MockInterviewService to generate questions
+      const { MockInterviewService } = await import('./mockInterviewService');
+      const mockService = new MockInterviewService();
+      
+      const config = {
+        role: data.role,
+        company: data.company,
+        difficulty: data.difficulty as 'easy' | 'medium' | 'hard',
+        interviewType: data.interviewType as 'technical' | 'behavioral' | 'system_design',
+        language: data.language,
+        totalQuestions: data.totalQuestions
+      };
+      
+      const questions = await mockService.generateInterviewQuestions(config);
+      
+      if (questions.length === 0) {
+        throw new Error('No questions generated for assigned interview');
+      }
+      
+      // Store questions in database
+      for (let i = 0; i < questions.length; i++) {
+        const questionData = {
+          interviewId: interview.id,
+          questionNumber: i + 1,
+          question: questions[i].question,
+          questionType: questions[i].type,
+          difficulty: questions[i].difficulty,
+          hints: JSON.stringify(questions[i].hints),
+          testCases: JSON.stringify(questions[i].testCases || []),
+          sampleAnswer: questions[i].sampleAnswer
+        };
+        
+        await db.execute(sql`
+          INSERT INTO mock_interview_questions (
+            interview_id, question_number, question, question_type, 
+            difficulty, hints, test_cases, sample_answer, created_at, updated_at
+          ) VALUES (
+            ${interview.id}, ${i + 1}, ${questions[i].question}, ${questions[i].type},
+            ${questions[i].difficulty}, ${JSON.stringify(questions[i].hints)}, 
+            ${JSON.stringify(questions[i].testCases || [])}, ${questions[i].sampleAnswer},
+            NOW(), NOW()
+          )
+        `);
+      }
+      
+      console.log(`✅ Generated and stored ${questions.length} questions for assigned interview`);
+      
+    } catch (error) {
+      console.error(`❌ Failed to generate questions for assigned interview ${interview.id}:`, error);
+      // Don't fail the assignment, but log the error for monitoring
+      console.warn(`⚠️ Interview ${interview.id} created without questions - will be generated on access`);
+    }
 
     // Send email notification to candidate
     await this.sendAssignmentEmail(
       data.candidateId,
       data.recruiterId,
-      interview.id,
+      Number(interview.id),
       'mock',
       data.dueDate,
       data.role,
@@ -162,7 +223,7 @@ export class InterviewAssignmentService {
       throw new Error('Interview not found');
     }
 
-    if (interview.retakeCount >= interview.maxRetakes) {
+    if ((interview.retakeCount || 0) >= (interview.maxRetakes || 2)) {
       throw new Error('Maximum retakes exceeded');
     }
 
@@ -172,7 +233,7 @@ export class InterviewAssignmentService {
       interviewId: data.interviewId,
       amount: data.amount || 500, // $5 default
       paymentProvider: data.paymentProvider,
-      retakeNumber: interview.retakeCount + 1,
+      retakeNumber: (interview.retakeCount || 0) + 1,
       previousScore: interview.overallScore || 0,
       status: 'pending'
     };
@@ -231,7 +292,7 @@ export class InterviewAssignmentService {
       throw new Error('Interview not found');
     }
 
-    if (interview.retakeCount >= interview.maxRetakes) {
+    if ((interview.retakeCount || 0) >= (interview.maxRetakes || 2)) {
       throw new Error('Maximum retakes exceeded');
     }
 
@@ -241,7 +302,7 @@ export class InterviewAssignmentService {
       interviewId: data.interviewId,
       amount: data.amount || 500, // $5 default
       paymentProvider: data.paymentProvider,
-      retakeNumber: interview.retakeCount + 1,
+      retakeNumber: (interview.retakeCount || 0) + 1,
       previousScore: interview.score || 0,
       status: 'pending'
     };

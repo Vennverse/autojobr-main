@@ -363,11 +363,40 @@ export function getQuestionsByCompany(company: string): InterviewQuestion[] {
   return QUESTION_BANK.filter(q => q.companies?.includes(company));
 }
 
-export function getRandomQuestions(
+export async function getRandomQuestions(
   type: 'coding' | 'behavioral' | 'system_design',
   difficulty: 'easy' | 'medium' | 'hard',
   count: number
-): InterviewQuestion[] {
+): Promise<InterviewQuestion[]> {
+  try {
+    // Try to get from database first
+    const { storage } = await import('./storage');
+    const dbQuestions = await storage.getQuestionBankQuestions({ 
+      type: type === 'coding' ? 'coding' : type, 
+      difficulty, 
+      limit: count 
+    });
+    
+    if (dbQuestions.length > 0) {
+      console.log(`✅ Found ${dbQuestions.length} questions in database for ${type}/${difficulty}`);
+      return dbQuestions.map(q => ({
+        id: q.questionId,
+        question: q.question,
+        type: q.type as 'coding' | 'behavioral' | 'system_design',
+        difficulty: q.difficulty as 'easy' | 'medium' | 'hard',
+        category: q.category || 'general',
+        hints: q.tags ? JSON.parse(q.tags) : [],
+        testCases: q.testCases ? JSON.parse(q.testCases) : [],
+        sampleAnswer: q.explanation || '',
+        boilerplate: q.boilerplate || undefined,
+        timeLimit: q.timeLimit || 15
+      }));
+    }
+  } catch (error) {
+    console.warn('Failed to fetch from database, using fallback questions:', error);
+  }
+  
+  // Fallback to static questions
   const filtered = QUESTION_BANK.filter(q => q.type === type && q.difficulty === difficulty);
   const shuffled = filtered.sort(() => 0.5 - Math.random());
   return shuffled.slice(0, count);
@@ -381,12 +410,12 @@ export function getQuestionById(id: string): InterviewQuestion | undefined {
 export const questionBank = QUESTION_BANK;
 
 // Generate test questions helper functions
-export function generateTestQuestions(
+export async function generateTestQuestions(
   type: 'coding' | 'behavioral' | 'system_design',
   difficulty: 'easy' | 'medium' | 'hard',
   count: number
-): InterviewQuestion[] {
-  return getRandomQuestions(type, difficulty, count);
+): Promise<InterviewQuestion[]> {
+  return await getRandomQuestions(type, difficulty, count);
 }
 
 export function getQuestionsByDomain(domain: string): InterviewQuestion[] {

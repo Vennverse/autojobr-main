@@ -66,6 +66,7 @@ import {
   type InsertInterviewPayment,
   type UserInterviewStats,
   type InsertUserInterviewStats,
+  questionBank,
 } from "@shared/schema";
 import { db } from "./db";
 
@@ -1426,6 +1427,29 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return updatedPayment;
     });
+  }
+
+  // Question bank operations
+  async getQuestionBankQuestions(filters?: { type?: string; difficulty?: string; limit?: number }): Promise<any[]> {
+    return await handleDbOperation(async () => {
+      let query = db.select().from(questionBank).where(eq(questionBank.isActive, true));
+      
+      // Apply filters if provided
+      if (filters?.type) {
+        query = query.where(eq(questionBank.type, filters.type));
+      }
+      if (filters?.difficulty) {
+        query = query.where(eq(questionBank.difficulty, filters.difficulty));
+      }
+      
+      let results = await query.orderBy(sql`RANDOM()`);
+      
+      if (filters?.limit) {
+        results = results.slice(0, filters.limit);
+      }
+      
+      return results;
+    }, []);
   }
 
   // User interview stats
