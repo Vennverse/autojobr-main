@@ -106,7 +106,7 @@ class OptimizedLRUCache<K, V> {
     const now = Date.now();
     
     // Use combined score: frequency and recency
-    for (const [key, usage] of this.usage) {
+    for (const [key, usage] of Array.from(this.usage.entries())) {
       const ageWeight = Math.max(1, (now - usage.lastAccess) / 60000); // Age in minutes
       const score = usage.frequency / ageWeight;
       
@@ -127,7 +127,7 @@ class OptimizedLRUCache<K, V> {
     const maxAge = 30 * 60 * 1000; // 30 minutes
     let cleaned = 0;
     
-    for (const [key, usage] of this.usage) {
+    for (const [key, usage] of Array.from(this.usage.entries())) {
       if (now - usage.lastAccess > maxAge) {
         this.delete(key);
         cleaned++;

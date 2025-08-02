@@ -1,5 +1,6 @@
 // Optimized middleware for compute reduction
 import { RequestHandler } from 'express';
+import crypto from 'crypto';
 
 // Response compression middleware
 export const compressionMiddleware: RequestHandler = (req, res, next) => {
@@ -76,7 +77,7 @@ export const conditionalRequestMiddleware: RequestHandler = (req, res, next) => 
   
   res.json = function(data: any) {
     try {
-      const etag = require('crypto').createHash('md5').update(JSON.stringify(data)).digest('hex');
+      const etag = crypto.createHash('md5').update(JSON.stringify(data)).digest('hex');
       
       // Check if client has the same ETag
       if (req.headers['if-none-match'] === etag) {

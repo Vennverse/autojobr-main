@@ -61,6 +61,11 @@ export class MockInterviewService {
 [{"question": "text", "hints": ["h1","h2","h3"], "testCases": [{"input":1,"expected":2}], "sampleAnswer": "brief"}]`;
 
     try {
+      if (!groqService.client) {
+        console.log('⚠️ Groq client not available, using fallback questions');
+        return [];
+      }
+      
       const response = await groqService.client.chat.completions.create({
         model: 'llama-3.1-8b-instant',
         messages: [{ role: 'user', content: prompt }],

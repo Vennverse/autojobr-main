@@ -1,0 +1,77 @@
+0|autojobr  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|autojobr  | 2025-08-02T10:23:03: 10:23:03 AM [express] GET /api/interviews/stats 200 in 4ms :: {"total":0,"completed":0,"pending":0,"a…
+0|autojobr  | 2025-08-02T10:23:11: Fetching candidates for job posting: 72
+0|autojobr  | 2025-08-02T10:23:11: Found 0 candidates for job 72
+0|autojobr  | 2025-08-02T10:23:11: ETag generation error: Error: Dynamic require of "crypto" is not supported
+0|autojobr  |     at file:///home/ubuntu/autojobr-main/dist/index.js:7:9
+0|autojobr  |     at res.json (file:///home/ubuntu/autojobr-main/dist/index.js:6625:20)
+0|autojobr  |     at file:///home/ubuntu/autojobr-main/dist/index.js:20908:11
+0|autojobr  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|autojobr  | 2025-08-02T10:23:11: 10:23:11 AM [express] GET /api/candidates/for-job/72 200 in 3ms :: []
+0|autojobr  | 2025-08-02T10:23:13: Fetching candidates for job posting: 74
+0|autojobr  | 2025-08-02T10:23:13: Found 1 candidates for job 74
+0|autojobr  | 2025-08-02T10:23:13: ETag generation error: Error: Dynamic require of "crypto" is not supported
+0|autojobr  |     at file:///home/ubuntu/autojobr-main/dist/index.js:7:9
+0|autojobr  |     at res.json (file:///home/ubuntu/autojobr-main/dist/index.js:6625:20)
+0|autojobr  |     at file:///home/ubuntu/autojobr-main/dist/index.js:20908:11
+0|autojobr  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|autojobr  | 2025-08-02T10:23:13: 10:23:13 AM [express] GET /api/candidates/for-job/74 200 in 3ms :: [{"id":"user-1754038624681-755aj31…
+0|autojobr  | 2025-08-02T10:23:40: ✅ Connected to external PostgreSQL database
+0|autojobr  | 2025-08-02T10:23:40: 📧 Sending email via RESEND
+0|autojobr  | 2025-08-02T10:23:40: 📧 Using Resend key: re_Tm6vhbw... (attempt 1/2)
+0|autojobr  | 2025-08-02T10:23:40: 📧 Email sent via Resend: b9c5002b-1a91-49bb-bb9e-18bcba346b7b
+0|autojobr  | 2025-08-02T10:23:40: ETag generation error: Error: Dynamic require of "crypto" is not supported
+0|autojobr  |     at file:///home/ubuntu/autojobr-main/dist/index.js:7:9
+0|autojobr  |     at res.json (file:///home/ubuntu/autojobr-main/dist/index.js:6625:20)
+0|autojobr  |     at file:///home/ubuntu/autojobr-main/dist/index.js:17424:11
+0|autojobr  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|autojobr  | 2025-08-02T10:23:40: 10:23:40 AM [express] POST /api/interviews/mock/assign 200 in 356ms :: {"success":true,"interview":{"…
+0|autojobr  | 2025-08-02T10:23:40: ETag generation error: Error: Dynamic require of "crypto" is not supported
+0|autojobr  |     at file:///home/ubuntu/autojobr-main/dist/index.js:7:9
+0|autojobr  |     at res.json (file:///home/ubuntu/autojobr-main/dist/index.js:6625:20)
+0|autojobr  |     at file:///home/ubuntu/autojobr-main/dist/index.js:17438:11
+0|autojobr  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|autojobr  | 2025-08-02T10:23:40: 10:23:40 AM [express] GET /api/interviews/assigned 200 in 3ms :: [{"id":1,"type":"technical","role":"…
+0|autojobr  | 2025-08-02T10:23:40: ETag generation error: Error: Dynamic require of "crypto" is not supported
+0|autojobr  |     at file:///home/ubuntu/autojobr-main/dist/index.js:7:9
+0|autojobr  |     at res.json (file:///home/ubuntu/autojobr-main/dist/index.js:6625:20)
+0|autojobr  |     at file:///home/ubuntu/autojobr-main/dist/index.js:21008:11
+0|autojobr  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|autojobr  | 2025-08-02T10:23:40: 10:23:40 AM [express] GET /api/interviews/stats 200 in 3ms :: {"total":1,"completed":0,"pending":0,"a…
+0|autojobr  | 2025-08-02T10:24:31: ETag generation error: Error: Dynamic require of "crypto" is not supported
+0|autojobr  |     at file:///home/ubuntu/autojobr-main/dist/index.js:7:9
+0|autojobr  |     at res.json (file:///home/ubuntu/autojobr-main/dist/index.js:6625:20)
+0|autojobr  |     at Immediate._onImmediate (file:///home/ubuntu/autojobr-main/dist/index.js:14430:13)
+0|autojobr  |     at process.processImmediate (node:internal/timers:485:21)
+0|autojobr  | 2025-08-02T10:24:31: 10:24:31 AM [express] POST /api/auth/logout 200 in 1ms :: {"message":"Logged out successfully"}
+0|autojobr  | 2025-08-02T10:24:31: 10:24:31 AM [express] GET /api/auth/providers 304 in 1ms :: {"providers":{"google":false,"github":fal…
+0|autojobr  | 2025-08-02T10:25:15: 10:25:15 AM [express] GET /api/user 401 in 1ms :: {"message":"Not authenticated"}
+0|autojobr  | 2025-08-02T10:25:16: 10:25:16 AM [express] GET /api/user 401 in 1ms :: {"message":"Not authenticated"}
+0|autojobr  | 2025-08-02T10:25:16: 10:25:16 AM [express] GET /api/user 401 in 0ms :: {"message":"Not authenticated"}
+0|autojobr  | 2025-08-02T10:25:27: ✅ Connected to external PostgreSQL database
+0|autojobr  | 2025-08-02T10:25:27: Session saved successfully for user: user-1754038624681-755aj318b
+0|autojobr  | 2025-08-02T10:25:27: 10:25:27 AM [express] POST /api/auth/email/login 200 in 88ms :: {"message":"Login successful","user":…
+0|autojobr  | 2025-08-02T10:25:28: 10:25:28 AM [express] GET /api/user 200 in 3ms :: {"id":"user-1754038624681-755aj318b","email":"shubh…
+0|autojobr  | 2025-08-02T10:25:30: ETag generation error: Error: Dynamic require of "crypto" is not supported
+0|autojobr  |     at file:///home/ubuntu/autojobr-main/dist/index.js:7:9
+0|autojobr  |     at res.json (file:///home/ubuntu/autojobr-main/dist/index.js:6625:20)
+0|autojobr  |     at file:///home/ubuntu/autojobr-main/dist/index.js:10893:9
+0|autojobr  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|autojobr  | 2025-08-02T10:25:30: 10:25:30 AM [express] GET /api/mock-interview/usage 200 in 6ms :: {"canStartInterview":false,"require…
+0|autojobr  | 2025-08-02T10:25:30: ETag generation error: Error: Dynamic require of "crypto" is not supported
+0|autojobr  |     at file:///home/ubuntu/autojobr-main/dist/index.js:7:9
+0|autojobr  |     at res.json (file:///home/ubuntu/autojobr-main/dist/index.js:6625:20)
+0|autojobr  |     at file:///home/ubuntu/autojobr-main/dist/index.js:10904:9
+0|autojobr  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|autojobr  | 2025-08-02T10:25:30: 10:25:30 AM [express] GET /api/mock-interview/stats 304 in 3ms :: {"id":1,"userId":"user-175403862468…
+0|autojobr  | 2025-08-02T10:25:30: ✅ Connected to external PostgreSQL database
+0|autojobr  | 2025-08-02T10:25:30: ETag generation error: Error: Dynamic require of "crypto" is not supported
+0|autojobr  |     at file:///home/ubuntu/autojobr-main/dist/index.js:7:9
+0|autojobr  |     at res.json (file:///home/ubuntu/autojobr-main/dist/index.js:6625:20)
+0|autojobr  |     at file:///home/ubuntu/autojobr-main/dist/index.js:10917:9
+0|autojobr  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|autojobr  | 2025-08-02T10:25:30: 10:25:30 AM [express] GET /api/mock-interview/history 200 in 13ms :: [{"id":1,"userId":"user-17540386…
+0|autojobr  | 2025-08-02T10:25:41: 10:25:41 AM [express] GET /api/user 304 in 3ms :: {"id":"user-1754038624681-755aj318b","email":"shubh…
+^[[A^[[B0|autojobr  | 2025-08-02T10:29:36: ✅ Connected to external PostgreSQL database
+0|autojobr  | 2025-08-02T10:29:36: 10:29:36 AM [express] GET /api/user 304 in 8ms :: {"id":"user-1754038624681-755aj318b","email":"shubh…
+
