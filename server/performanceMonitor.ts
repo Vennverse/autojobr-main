@@ -23,27 +23,28 @@ class PerformanceMonitor {
 
       // Override res.end to capture completion
       const originalEnd = res.end;
+      const self = this;
       res.end = function(...args) {
         const duration = Date.now() - startTime;
         const memoryUsage = process.memoryUsage().heapUsed - startMemory;
 
         // Log slow requests
-        if (duration > this.SLOW_REQUEST_THRESHOLD) {
+        if (duration > self.SLOW_REQUEST_THRESHOLD) {
           console.warn(`🐌 Slow request: ${req.method} ${req.path} took ${duration}ms`);
         }
 
         // Store metrics
-        this.addMetric({
+        self.addMetric({
           endpoint: req.path,
           method: req.method,
           duration,
           memoryUsage,
           timestamp: Date.now(),
-          userId: req.user?.id
+          userId: (req as any).user?.id
         });
 
         return originalEnd.apply(this, args);
-      }.bind(this);
+      };
 
       next();
     };

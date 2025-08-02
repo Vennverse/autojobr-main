@@ -295,6 +295,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication middleware FIRST - this includes session setup
   await setupAuth(app);
   
+  // OPTIMIZATION: Apply performance middleware after auth setup
+  app.use(conditionalRequestMiddleware);
+  app.use(deduplicationMiddleware);
+  
   // Serve static files from uploads directory
   app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
   

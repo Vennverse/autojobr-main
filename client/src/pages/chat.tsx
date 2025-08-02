@@ -37,7 +37,6 @@ const useWebSocket = (user: User | undefined) => {
         console.log('WebSocket message received:', message);
         
         if (message.type === 'new_message') {
-          // Invalidate conversations and messages
           // OPTIMIZATION: Update cache directly instead of invalidating
           queryClient.setQueryData(
             ['/api/chat/conversations'],

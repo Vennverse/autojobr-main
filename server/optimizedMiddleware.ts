@@ -14,40 +14,18 @@ export const compressionMiddleware: RequestHandler = (req, res, next) => {
 const pendingRequests = new Map<string, Promise<any>>();
 
 export const deduplicationMiddleware: RequestHandler = (req, res, next) => {
-  // Only deduplicate GET requests with query parameters
-  if (req.method !== 'GET' || !Object.keys(req.query).length) {
+  // Skip deduplication for non-GET requests or requests without query params
+  if (req.method !== 'GET' || !req.query || Object.keys(req.query).length === 0) {
     return next();
   }
 
-  const key = `${req.path}?${new URLSearchParams(req.query as any).toString()}`;
+  const key = `${req.path}?${new URLSearchParams(req.query as Record<string, string>).toString()}`;
   
+  // If request is already pending, skip deduplication for now
   if (pendingRequests.has(key)) {
-    // Wait for existing request to complete
-    pendingRequests.get(key)!.then((result) => {
-      res.json(result);
-    }).catch(() => {
-      next(); // Fallback to normal processing
-    });
-    return;
+    console.log(`Duplicate request detected for: ${key}`);
   }
-
-  // Store the request
-  const promise = new Promise((resolve, reject) => {
-    const originalSend = res.send;
-    res.send = function(data) {
-      resolve(data);
-      pendingRequests.delete(key);
-      return originalSend.call(this, data);
-    };
-    
-    // Clean up after 30 seconds
-    setTimeout(() => {
-      pendingRequests.delete(key);
-      reject(new Error('Request timeout'));
-    }, 30000);
-  });
   
-  pendingRequests.set(key, promise);
   next();
 };
 
@@ -96,17 +74,22 @@ export const memoryMonitoringMiddleware: RequestHandler = (req, res, next) => {
 export const conditionalRequestMiddleware: RequestHandler = (req, res, next) => {
   const originalJson = res.json;
   
-  res.json = function(data) {
-    const etag = require('crypto').createHash('md5').update(JSON.stringify(data)).digest('hex');
-    
-    // Check if client has the same ETag
-    if (req.headers['if-none-match'] === etag) {
-      return res.status(304).end();
+  res.json = function(data: any) {
+    try {
+      const etag = require('crypto').createHash('md5').update(JSON.stringify(data)).digest('hex');
+      
+      // Check if client has the same ETag
+      if (req.headers['if-none-match'] === etag) {
+        return this.status(304).end();
+      }
+      
+      this.setHeader('ETag', etag);
+      this.setHeader('Cache-Control', 'max-age=300'); // 5 minutes
+      return originalJson.call(this, data);
+    } catch (error) {
+      console.error('ETag generation error:', error);
+      return originalJson.call(this, data);
     }
-    
-    res.setHeader('ETag', etag);
-    res.setHeader('Cache-Control', 'max-age=300'); // 5 minutes
-    return originalJson.call(this, data);
   };
   
   next();

@@ -1,7 +1,7 @@
 import { db } from './db';
 import { questionBank, testGenerationLogs } from '@shared/schema';
 import { questionBank as questionBankData, generateTestQuestions, getQuestionsByCategory, getQuestionsByDomain } from './questionBank';
-import { eq, inArray, and, or } from 'drizzle-orm';
+import { eq, inArray, and, or, sql } from 'drizzle-orm';
 
 export class QuestionBankService {
   
@@ -141,6 +141,7 @@ export class QuestionBankService {
     limit: number = 10
   ): Promise<any[]> {
     try {
+      // OPTIMIZATION: Use database-level randomization
       const questions = await db.select()
         .from(questionBank)
         .where(
@@ -150,26 +151,17 @@ export class QuestionBankService {
             eq(questionBank.category, 'domain_specific')
           )
         )
-        .limit(limit * 2);
+        .orderBy(sql`RANDOM()`) // Database-level randomization
+        .limit(limit); // Exact amount needed
       
-      // Filter by tags if provided
-      let filteredQuestions = questions;
-      if (tags.length > 0) {
-        filteredQuestions = questions.filter(q => 
-          tags.some(tag => q.tags?.includes(tag))
-        );
-      }
-      
-      return filteredQuestions
-        .sort(() => Math.random() - 0.5)
-        .slice(0, limit)
-        .map(q => ({
-          ...q,
-          correctAnswer: this.parseCorrectAnswer(q.correctAnswer),
-          options: q.options || [],
-          tags: q.tags || [],
-          keywords: q.keywords || []
-        }));
+      // OPTIMIZATION: Return formatted questions directly
+      return questions.map(q => ({
+        ...q,
+        correctAnswer: this.parseCorrectAnswer(q.correctAnswer),
+        options: q.options || [],
+        tags: q.tags || [],
+        keywords: q.keywords || []
+      }));
       
     } catch (error) {
       console.error('Error fetching questions by domain:', error);
