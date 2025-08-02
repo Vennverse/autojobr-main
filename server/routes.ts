@@ -5633,13 +5633,9 @@ Additional Information:
       // Update conversation last message time
       await storage.updateConversationLastMessage(conversationId);
       
-      // Trigger email notification service (async)
-      try {
-        const { emailNotificationService } = await import('./emailNotificationService');
-        setImmediate(() => emailNotificationService.processNotifications());
-      } catch (error) {
-        console.log('Email notification service not available');
-      }
+      // Email notifications disabled during chat system fix
+      // TODO: Re-enable email notifications after fixing authentication issues
+      console.log('Email notifications temporarily disabled');
       
       res.status(201).json(newMessage);
     } catch (error) {

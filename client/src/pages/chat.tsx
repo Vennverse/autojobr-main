@@ -91,6 +91,7 @@ export default function ChatPage() {
   // Get conversations
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery<ChatConversation[]>({
     queryKey: ['/api/chat/conversations'],
+    enabled: !!user?.id, // Only fetch if user is authenticated
     refetchInterval: 30000, // Refetch every 30 seconds for new messages
   });
 
@@ -125,7 +126,7 @@ export default function ChatPage() {
   // Get messages for selected conversation
   const { data: conversationMessages = [] } = useQuery<ChatMessage[]>({
     queryKey: ['/api/chat/conversations', selectedConversation, 'messages'],
-    enabled: !!selectedConversation,
+    enabled: !!selectedConversation && !!user?.id, // Only fetch if user is authenticated and conversation selected
     refetchInterval: 5000, // Refetch every 5 seconds when conversation is open
   });
 
@@ -153,12 +154,14 @@ export default function ChatPage() {
 
   // Mark messages as read when selecting conversation (with debounce)
   const markAsRead = useCallback((conversationId: number) => {
-    if (!markAsReadMutation.isPending) {
+    // Only mark as read if user is authenticated and not pending
+    if (user?.id && !markAsReadMutation.isPending) {
       markAsReadMutation.mutate(conversationId);
     }
-  }, [markAsReadMutation]);
+  }, [markAsReadMutation, user?.id]);
 
   useEffect(() => {
+    // Only attempt to mark as read if user is authenticated and conversation is selected
     if (selectedConversation && user?.id) {
       const timer = setTimeout(() => {
         markAsRead(selectedConversation);
