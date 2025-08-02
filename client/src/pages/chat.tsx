@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/hooks/use-auth';
 
 // WebSocket hook for real-time chat
 const useWebSocket = (user: User | undefined) => {
@@ -149,13 +150,22 @@ export default function ChatPage() {
     setTargetUserId(userId);
   }, [location]);
 
-  // Get current user with proper typing
-  const { data: user } = useQuery<User>({
-    queryKey: ['/api/user'],
-  });
+  // Get current user with proper typing - use the auth hook instead to avoid duplicating queries
+  const { user } = useAuth();
 
-  // Initialize WebSocket connection
-  const { socket, isConnected, sendTyping } = useWebSocket(user);
+  // Initialize WebSocket connection with correct parameters
+  const { isConnected, sendMessage: wsMessage } = useWebSocket({
+    url: '/ws',
+    userId: user?.id,
+    onMessage: (message) => {
+      console.log('WebSocket message received:', message);
+      // Handle real-time message updates
+      if (message.type === 'new_message') {
+        queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations', selectedConversation, 'messages'] });
+      }
+    }
+  });
 
   // Handle mobile responsiveness
   useEffect(() => {
@@ -172,11 +182,13 @@ export default function ChatPage() {
     return () => window.removeEventListener('resize', checkMobileView);
   }, []);
 
-  // Get conversations - reduce refetch since WebSocket handles real-time updates
+  // Get conversations - disable auto-refetch since WebSocket handles real-time updates
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery<ChatConversation[]>({
     queryKey: ['/api/chat/conversations'],
     enabled: !!user?.id, // Only fetch if user is authenticated
-    refetchInterval: isConnected ? 60000 : 10000, // Longer interval when WebSocket is connected
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    refetchInterval: false, // Disable auto-refetch completely since WebSocket handles updates
   });
 
   // Create conversation mutation for direct user chat
@@ -207,11 +219,13 @@ export default function ChatPage() {
     },
   });
 
-  // Get messages for selected conversation - reduce refetch since WebSocket handles real-time updates
+  // Get messages for selected conversation - disable auto-refetch since WebSocket handles real-time updates
   const { data: conversationMessages = [] } = useQuery<ChatMessage[]>({
     queryKey: ['/api/chat/conversations', selectedConversation, 'messages'],
     enabled: !!selectedConversation && !!user?.id, // Only fetch if user is authenticated and conversation selected
-    refetchInterval: isConnected ? 30000 : 5000, // Longer interval when WebSocket is connected
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    refetchInterval: false, // Disable auto-refetch completely since WebSocket handles updates
   });
 
   // Send message mutation
@@ -232,7 +246,8 @@ export default function ChatPage() {
       return apiRequest('POST', `/api/chat/conversations/${conversationId}/read`, {});
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
+      // Don't invalidate - this was causing the refresh loop
+      console.log('Messages marked as read');
     },
   });
 
@@ -244,15 +259,19 @@ export default function ChatPage() {
     }
   }, [markAsReadMutation, user?.id]);
 
+  // Track which conversations have been marked as read to prevent duplicate calls
+  const markedConversationsRef = useRef<Set<number>>(new Set());
+
   useEffect(() => {
-    // Only attempt to mark as read if user is authenticated and conversation is selected
-    if (selectedConversation && user?.id) {
+    // Only mark as read once when conversation is first selected
+    if (selectedConversation && user?.id && !markAsReadMutation.isPending && !markedConversationsRef.current.has(selectedConversation)) {
+      markedConversationsRef.current.add(selectedConversation);
       const timer = setTimeout(() => {
         markAsRead(selectedConversation);
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [selectedConversation, user?.id, markAsRead]);
+  }, [selectedConversation, user?.id]); // Remove markAsRead from dependencies to prevent infinite loops
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {

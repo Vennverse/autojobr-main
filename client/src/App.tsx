@@ -28,6 +28,7 @@ import EditJob from "@/pages/edit-job";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
 import ChatPage from "@/pages/chat";
+import SimpleChatPage from "@/pages/simple-chat";
 import PremiumChatPage from "@/pages/premium-chat";
 import MessagingPage from "@/pages/messaging";
 import ResumesPage from "@/pages/resumes";
@@ -118,7 +119,8 @@ function Router() {
               <Route path="/profile" component={Profile} />
               <Route path="/subscription" component={RecruiterSubscription} />
               <Route path="/recruiter-premium" component={RecruiterPremium} />
-              <Route path="/chat" component={ChatPage} />
+              <Route path="/chat" component={SimpleChatPage} />
+              <Route path="/chat-old" component={ChatPage} />
               <Route path="/messages" component={MessagingPage} />
               <Route path="/job-seeker-view" component={Dashboard} />
             </>
@@ -158,7 +160,8 @@ function Router() {
                   <Route path="/career-ai-assistant" component={CareerAIAssistant} />
                   <Route path="/subscription" component={Subscription} />
                   <Route path="/job-seeker-premium" component={JobSeekerPremium} />
-                  <Route path="/chat" component={ChatPage} />
+                  <Route path="/chat" component={SimpleChatPage} />
+                  <Route path="/chat-old" component={ChatPage} />
                   <Route path="/messages" component={MessagingPage} />
                 </>
               )}
