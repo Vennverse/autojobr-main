@@ -5596,6 +5596,62 @@ Additional Information:
     }
   });
 
+  // Personalized job recommendations endpoint (excludes applied jobs)
+  app.get('/api/jobs/recommendations', isAuthenticated, async (req: any, res) => {
+    try {
+      const { search, location, jobType, workMode, limit = '10', offset = '0', exclude_applied = 'false' } = req.query;
+      const limitNum = parseInt(limit as string);
+      const offsetNum = parseInt(offset as string);
+      const userId = req.user.id;
+      
+      let jobPostings = await storage.getJobPostings(); // Get all active jobs
+      
+      // Exclude applied jobs if requested
+      if (exclude_applied === 'true') {
+        const applications = await storage.getApplications(userId);
+        const appliedJobIds = applications.map(app => app.jobPostingId);
+        jobPostings = jobPostings.filter(job => !appliedJobIds.includes(job.id));
+      }
+      
+      // Apply filters
+      if (search) {
+        const searchLower = (search as string).toLowerCase();
+        jobPostings = jobPostings.filter(job => 
+          job.title.toLowerCase().includes(searchLower) ||
+          job.companyName.toLowerCase().includes(searchLower) ||
+          job.description.toLowerCase().includes(searchLower) ||
+          (job.requiredSkills && job.requiredSkills.some(skill => skill.toLowerCase().includes(searchLower)))
+        );
+      }
+      
+      if (location) {
+        const locationLower = (location as string).toLowerCase();
+        jobPostings = jobPostings.filter(job => 
+          job.location && job.location.toLowerCase().includes(locationLower)
+        );
+      }
+      
+      if (jobType && jobType !== 'all') {
+        jobPostings = jobPostings.filter(job => job.jobType === jobType);
+      }
+      
+      if (workMode && workMode !== 'all') {
+        jobPostings = jobPostings.filter(job => job.workMode === workMode);
+      }
+      
+      // Sort by relevance/compatibility (for now just by date, can be enhanced with AI scoring)
+      jobPostings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      // Apply pagination
+      const paginatedJobs = jobPostings.slice(offsetNum, offsetNum + limitNum);
+      
+      res.json(paginatedJobs);
+    } catch (error) {
+      console.error("Error fetching job recommendations:", error);
+      res.status(500).json({ message: "Failed to fetch job recommendations" });
+    }
+  });
+
   // Get a single job posting by ID for job seekers
   app.get('/api/jobs/postings/:id', isAuthenticated, async (req: any, res) => {
     try {

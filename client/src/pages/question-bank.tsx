@@ -74,12 +74,14 @@ export default function QuestionBank() {
     }
   });
 
-  // Query for available domains
-  const { data: domains = [] } = useQuery<string[]>({
+  // Query for available domains  
+  const { data: domains = ['Technology', 'Finance', 'Marketing', 'Sales', 'Healthcare', 'Education', 'Operations', 'HR', 'Legal', 'Engineering'] } = useQuery<string[]>({
     queryKey: ['/api/question-bank/domains'],
     queryFn: async () => {
       const response = await apiRequest('/api/question-bank/domains');
-      return response.json();
+      const data = await response.json();
+      // Return default domains if API returns empty array
+      return data.length > 0 ? data : ['Technology', 'Finance', 'Marketing', 'Sales', 'Healthcare', 'Education', 'Operations', 'HR', 'Legal', 'Engineering'];
     }
   });
 
@@ -409,19 +411,97 @@ export default function QuestionBank() {
         <TabsContent value="generate" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Test Generation</CardTitle>
+              <CardTitle>Start Ranking Test</CardTitle>
               <p className="text-sm text-gray-600">
-                Generate dynamic tests based on job profiles and requirements
+                Select category and domain to start your personalized ranking test
               </p>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8">
-                <Target className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-600">
-                  Test generation is available through individual test templates.
-                  <br />
-                  Go to Test Management to create and generate tests.
-                </p>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Test Category</label>
+                    <Select value={selectedCategory} onValueChange={(value) => {
+                      console.log('Selected category:', value);
+                      setSelectedCategory(value);
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="general_aptitude">General Aptitude</SelectItem>
+                        <SelectItem value="english">English & Communication</SelectItem>
+                        <SelectItem value="domain_specific">Domain Specific</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Domain Focus</label>
+                    <Select value={selectedDomain} onValueChange={(value) => {
+                      console.log('Selected domain:', value);
+                      setSelectedDomain(value);
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Domain" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {domains.map(domain => (
+                          <SelectItem key={domain} value={domain}>{domain}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-2">Difficulty Level</label>
+                  <Select value={selectedDifficulty} onValueChange={(value) => {
+                    console.log('Selected difficulty:', value);
+                    setSelectedDifficulty(value);
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Difficulty" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="easy">Easy - Beginner Level</SelectItem>
+                      <SelectItem value="medium">Medium - Intermediate Level</SelectItem>
+                      <SelectItem value="hard">Hard - Advanced Level</SelectItem>
+                      <SelectItem value="extreme">Extreme - Expert Level</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h4 className="font-medium text-blue-900 mb-2">Test Configuration</h4>
+                  <div className="text-sm text-blue-700 space-y-1">
+                    <p>• Category: {selectedCategory && selectedCategory !== 'all' ? selectedCategory.replace('_', ' ') : 'Not Selected'}</p>
+                    <p>• Domain: {selectedDomain || 'Not Selected'}</p>
+                    <p>• Difficulty: {selectedDifficulty && selectedDifficulty !== 'all' ? selectedDifficulty : 'Not Selected'}</p>
+                    <p>• Duration: 30 minutes</p>
+                    <p>• Questions: 20-30 questions</p>
+                  </div>
+                </div>
+
+                <Button 
+                  className="w-full" 
+                  size="lg"
+                  disabled={!selectedCategory || selectedCategory === 'all' || !selectedDomain || !selectedDifficulty || selectedDifficulty === 'all'}
+                  onClick={() => {
+                    console.log('Test start clicked:', { selectedCategory, selectedDomain, selectedDifficulty });
+                    if (selectedCategory && selectedCategory !== 'all' && selectedDomain && selectedDifficulty && selectedDifficulty !== 'all') {
+                      // Navigate to test interface or start test
+                      toast({
+                        title: "Starting Test",
+                        description: `Generating ${selectedCategory.replace('_', ' ')} test for ${selectedDomain} domain at ${selectedDifficulty} difficulty`
+                      });
+                      // TODO: Implement actual test start logic
+                      window.open(`/test-interface?category=${selectedCategory}&domain=${selectedDomain}&difficulty=${selectedDifficulty}`, '_blank');
+                    }
+                  }}
+                >
+                  <Target className="w-4 h-4 mr-2" />
+                  Start Ranking Test
+                </Button>
               </div>
             </CardContent>
           </Card>

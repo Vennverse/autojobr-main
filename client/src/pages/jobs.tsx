@@ -89,23 +89,31 @@ export default function Jobs() {
     category: ""
   });
 
-  // Fetch job postings
+  // Fetch personalized job recommendations (excludes applied jobs)
   const { data: jobs = [], isLoading: jobsLoading } = useQuery({
-    queryKey: ["/api/jobs/postings", searchQuery, filterPreferences],
+    queryKey: ["/api/jobs/recommendations", searchQuery, filterPreferences],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchQuery) params.append('search', searchQuery);
+      params.append('limit', '10'); // Show 10 jobs initially
+      params.append('exclude_applied', 'true'); // Exclude applied jobs
       Object.entries(filterPreferences).forEach(([key, value]) => {
         if (value && typeof value === 'string') params.append(key, value);
       });
       
-      const response = await fetch(`/api/jobs/postings?${params}`, {
+      const response = await fetch(`/api/jobs/recommendations?${params}`, {
         credentials: 'include'
       });
       
-      if (!response.ok) throw new Error('Failed to fetch jobs');
+      if (!response.ok) throw new Error('Failed to fetch job recommendations');
       return response.json();
     },
+    enabled: isAuthenticated
+  });
+
+  // Get user profile for compatibility scoring
+  const { data: userProfile } = useQuery({
+    queryKey: ["/api/profile"],
     enabled: isAuthenticated
   });
 
@@ -114,6 +122,10 @@ export default function Jobs() {
     queryKey: ["/api/applications"],
     enabled: isAuthenticated
   });
+
+  // State for pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showMore, setShowMore] = useState(false);
 
   // Save job mutation
   const saveJobMutation = useMutation({
@@ -221,16 +233,88 @@ export default function Jobs() {
     }
   });
 
-  // Enhanced Job Card Component
-  const JobCard = ({ job, viewMode }: { job: any; viewMode: "grid" | "list" }) => (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      whileHover={{ y: -2 }}
-      className="group"
-    >
+  // Calculate job compatibility score
+  const calculateCompatibility = (job: any) => {
+    if (!userProfile) return 65; // Default score if no profile
+    
+    let score = 50; // Base score
+    
+    // Skills matching
+    const userSkills = userProfile.skills || [];
+    const jobSkills = job.requiredSkills || [];
+    const skillsMatch = jobSkills.filter((skill: string) => 
+      userSkills.some((userSkill: string) => 
+        userSkill.toLowerCase().includes(skill.toLowerCase())
+      )
+    ).length;
+    
+    if (skillsMatch > 0) {
+      score += Math.min(30, (skillsMatch / jobSkills.length) * 30);
+    }
+    
+    // Experience level matching
+    if (userProfile.experienceLevel && job.experienceLevel) {
+      const levels = ['entry', 'junior', 'mid', 'senior', 'lead'];
+      const userLevelIndex = levels.indexOf(userProfile.experienceLevel.toLowerCase());
+      const jobLevelIndex = levels.indexOf(job.experienceLevel.toLowerCase());
+      
+      if (Math.abs(userLevelIndex - jobLevelIndex) <= 1) {
+        score += 15;
+      }
+    }
+    
+    // Location preference
+    if (userProfile.preferredLocation && job.location) {
+      if (job.location.toLowerCase().includes(userProfile.preferredLocation.toLowerCase())) {
+        score += 5;
+      }
+    }
+    
+    return Math.min(100, Math.round(score));
+  };
+
+  // Load more jobs function
+  const loadMoreJobs = useMutation({
+    mutationFn: async () => {
+      const params = new URLSearchParams();
+      if (searchQuery) params.append('search', searchQuery);
+      params.append('limit', '10');
+      params.append('offset', (jobs.length).toString());
+      params.append('exclude_applied', 'true');
+      Object.entries(filterPreferences).forEach(([key, value]) => {
+        if (value && typeof value === 'string') params.append(key, value);
+      });
+      
+      const response = await fetch(`/api/jobs/recommendations?${params}`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) throw new Error('Failed to load more jobs');
+      return response.json();
+    },
+    onSuccess: (newJobs) => {
+      // Append new jobs to existing ones
+      queryClient.setQueryData(["/api/jobs/recommendations", searchQuery, filterPreferences], 
+        (oldData: any) => [...(oldData || []), ...newJobs]
+      );
+      setShowMore(newJobs.length === 10); // Show more button if we got full batch
+    }
+  });
+
+  // Enhanced Job Card Component with compatibility score
+  const JobCard = ({ job, viewMode }: { job: any; viewMode: "grid" | "list" }) => {
+    const compatibility = calculateCompatibility(job);
+    const isApplied = appliedJobIds.includes(job.id);
+    
+    return (
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        whileHover={{ y: -2 }}
+        className="group"
+      >
       <Card className={`border-0 shadow-md hover:shadow-2xl transition-all duration-500 bg-gradient-to-br from-white via-gray-50/50 to-blue-50/20 dark:from-gray-900 dark:via-gray-800/50 dark:to-blue-900/10 backdrop-blur-sm overflow-hidden ${
         viewMode === "list" ? "flex" : ""
       }`}>
@@ -245,6 +329,15 @@ export default function Jobs() {
                   }`}>
                     {job.title}
                   </h3>
+                  {/* Compatibility Score */}
+                  <Badge className={`text-xs font-medium ${
+                    compatibility >= 80 ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
+                    compatibility >= 60 ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' :
+                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                  }`}>
+                    <BarChart3 className="w-3 h-3 mr-1" />
+                    {compatibility}% Match
+                  </Badge>
                   {job.isBookmarked && (
                     <Badge className="text-xs bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 dark:from-yellow-900/20 dark:to-orange-900/20">
                       <Bookmark className="w-3 h-3 mr-1" />
@@ -377,7 +470,8 @@ export default function Jobs() {
         </CardContent>
       </Card>
     </motion.div>
-  );
+    );
+  };
 
   if (!isAuthenticated) {
     return (
@@ -639,15 +733,21 @@ export default function Jobs() {
         </motion.div>
 
         {/* Load More Button */}
-        {sortedJobs.length > 0 && (
+        {sortedJobs.length > 0 && (sortedJobs.length % 10 === 0) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
             className="text-center mt-12"
           >
-            <Button variant="outline" size="lg" className="px-8">
-              Load More Jobs
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="px-8"
+              onClick={() => loadMoreJobs.mutate()}
+              disabled={loadMoreJobs.isPending}
+            >
+              {loadMoreJobs.isPending ? "Loading..." : "Load More Jobs"}
             </Button>
           </motion.div>
         )}
