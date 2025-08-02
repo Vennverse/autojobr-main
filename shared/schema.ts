@@ -1739,7 +1739,7 @@ export const interviewRetakePayments = pgTable("interview_retake_payments", {
 // User interview statistics
 export const userInterviewStats = pgTable("user_interview_stats", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").references(() => users.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull().unique(),
   totalInterviews: integer("total_interviews").default(0),
   freeInterviewsUsed: integer("free_interviews_used").default(0),
   paidInterviews: integer("paid_interviews").default(0),

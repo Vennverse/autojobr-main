@@ -1,5 +1,6 @@
 import { storage } from "./storage";
 import { groqService } from "./groqService";
+import { apiKeyRotationService } from "./apiKeyRotationService";
 import { pistonService } from "./pistonService";
 import { MockInterview, MockInterviewQuestion, InsertMockInterview, InsertMockInterviewQuestion } from "@shared/schema";
 import { QUESTION_BANK, getRandomQuestions, getQuestionsByType } from "./questionBank";
@@ -354,16 +355,18 @@ Requirements:
     Keep feedback constructive and encouraging. Keep response under 300 words.`;
 
     try {
-      if (!groqService.client && groqService.developmentMode) {
+      if (!groqService.client) {
         return `Good attempt! Here's some feedback: Your answer addresses the main points of the question. ${code ? 'Your code shows understanding of the problem.' : 'Consider providing more specific examples.'} Continue practicing to improve your interview skills.`;
       }
 
       // Use the proper Groq API call with rotation service
-      const response = await groqService.makeRequest({
-        model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.5,
-        max_tokens: 400,
+      const response = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
+        return await client.chat.completions.create({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.5,
+          max_tokens: 400,
+        });
       });
 
       return response.choices[0]?.message?.content || 'No feedback available';
@@ -525,7 +528,7 @@ Return only the numeric score (0-100).`;
       Return only the numeric score (0-100).`;
 
       try {
-        if (!groqService.client && groqService.developmentMode) {
+        if (!groqService.client) {
           // Fallback scoring based on answer length and basic analysis
           const answerLength = answer.trim().length;
           if (answerLength < 50) return 40;
@@ -534,11 +537,13 @@ Return only the numeric score (0-100).`;
           return 85;
         }
 
-        const response = await groqService.makeRequest({
-          model: 'llama-3.3-70b-versatile',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.2,
-          max_tokens: 10,
+        const response = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
+          return await client.chat.completions.create({
+            model: 'llama-3.3-70b-versatile',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.2,
+            max_tokens: 10,
+          });
         });
 
         const scoreText = response.choices[0]?.message?.content?.trim() || '50';
@@ -573,7 +578,12 @@ Return only the numeric score (0-100).`;
     });
 
     // Update user interview stats
-    await this.updateUserStats(interview.userId, averageScore);
+    try {
+      await this.updateUserStats(interview.userId, averageScore);
+    } catch (error) {
+      console.error('Error updating user stats:', error);
+      // Don't fail the completion if stats update fails
+    }
 
     return updatedInterview;
   }
@@ -597,11 +607,13 @@ Return only the numeric score (0-100).`;
     Keep it encouraging and actionable.`;
 
     try {
-      const response = await groqService.client.chat.completions.create({
-        model: 'llama-3.1-8b-instant',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.6,
-        max_tokens: 800,
+      const response = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
+        return await client.chat.completions.create({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.6,
+          max_tokens: 800,
+        });
       });
 
       return response.choices[0]?.message?.content || 'Great job completing the interview! Keep practicing to improve your skills.';
@@ -614,15 +626,15 @@ Return only the numeric score (0-100).`;
     const existingStats = await storage.getUserInterviewStats(userId);
     
     if (existingStats) {
-      const totalInterviews = existingStats.totalInterviews + 1;
-      const newAverage = Math.round(((existingStats.averageScore * existingStats.totalInterviews) + score) / totalInterviews);
+      const totalInterviews = (existingStats.totalInterviews || 0) + 1;
+      const newAverage = Math.round((((existingStats.averageScore || 0) * (existingStats.totalInterviews || 0)) + score) / totalInterviews);
       
       await storage.upsertUserInterviewStats({
         userId,
         totalInterviews,
-        freeInterviewsUsed: existingStats.freeInterviewsUsed + 1,
+        freeInterviewsUsed: (existingStats.freeInterviewsUsed || 0) + 1,
         averageScore: newAverage,
-        bestScore: Math.max(existingStats.bestScore, score),
+        bestScore: Math.max(existingStats.bestScore || 0, score),
         lastInterviewDate: new Date()
       });
     } else {
@@ -651,7 +663,7 @@ Return only the numeric score (0-100).`;
       await storage.upsertUserInterviewStats({
         userId,
         totalInterviews: stats.totalInterviews,
-        freeInterviewsUsed: Math.max(0, stats.freeInterviewsUsed - credits),
+        freeInterviewsUsed: Math.max(0, (stats.freeInterviewsUsed || 0) - credits),
         averageScore: stats.averageScore,
         bestScore: stats.bestScore,
         lastInterviewDate: stats.lastInterviewDate

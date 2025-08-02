@@ -251,45 +251,86 @@ public class Main {
     return extensions[language] || 'txt';
   }
 
-  // Get language-specific boilerplate code
-  getBoilerplate(language: string, functionName: string = 'solution'): string {
-    switch (language.toLowerCase()) {
-      case 'javascript':
-        return `function ${functionName}(input) {
-    // Your code here
-    return input;
-}`;
 
-      case 'python':
-        return `def ${functionName}(input):
+
+  getBoilerplate(language: string): string {
+    const boilerplates: { [key: string]: string } = {
+      javascript: `function solution(input) {
+  // Your code here
+  return input;
+}
+
+// Example usage:
+console.log(solution("test"));`,
+      python: `def solution(input):
     # Your code here
-    return input`;
+    return input
 
-      case 'java':
-        return `public class Solution {
-    public static Object ${functionName}(Object input) {
+# Example usage:
+print(solution("test"))`,
+      java: `public class Solution {
+    public static Object solution(Object input) {
         // Your code here
         return input;
     }
-}`;
-
-      case 'cpp':
-        return `#include <iostream>
-#include <vector>
+    
+    public static void main(String[] args) {
+        System.out.println(solution("test"));
+    }
+}`,
+      cpp: `#include <iostream>
 using namespace std;
 
-auto ${functionName}(auto input) {
+auto solution(auto input) {
     // Your code here
     return input;
-}`;
+}
 
-      default:
-        return `// ${language} boilerplate not available
-function ${functionName}(input) {
+int main() {
+    cout << solution("test") << endl;
+    return 0;
+}`,
+      c: `#include <stdio.h>
+
+void solution(char* input) {
+    // Your code here
+    printf("%s\\n", input);
+}
+
+int main() {
+    solution("test");
+    return 0;
+}`,
+      go: `package main
+
+import "fmt"
+
+func solution(input interface{}) interface{} {
+    // Your code here
+    return input
+}
+
+func main() {
+    fmt.Println(solution("test"))
+}`,
+      rust: `fn solution(input: &str) -> &str {
+    // Your code here
+    input
+}
+
+fn main() {
+    println!("{}", solution("test"));
+}`,
+      typescript: `function solution(input: any): any {
     // Your code here
     return input;
-}`;
-    }
+}
+
+// Example usage:
+console.log(solution("test"));`
+    };
+
+    return boilerplates[language.toLowerCase()] || boilerplates.javascript;
   }
 }
 

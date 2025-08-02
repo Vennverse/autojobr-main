@@ -84,6 +84,7 @@ export default function MockInterviewSession() {
   const [isTimerRunning, setIsTimerRunning] = useState(true);
   const [showHints, setShowHints] = useState(false);
   const [showTestCases, setShowTestCases] = useState(false);
+  const [codeOutput, setCodeOutput] = useState('');
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const questionStartTime = useRef(Date.now());
 
@@ -140,6 +141,23 @@ export default function MockInterviewSession() {
         variant: "destructive",
       });
     },
+  });
+
+  // Run code mutation
+  const runCodeMutation = useMutation({
+    mutationFn: async (code: string) => {
+      return await apiRequest('/api/mock-interview/execute-code', 'POST', {
+        code,
+        language: session?.interview.language || 'javascript',
+        testCases: currentQuestion?.testCases ? JSON.parse(currentQuestion.testCases) : []
+      });
+    },
+    onSuccess: (result) => {
+      setCodeOutput(result.output || result.error || 'Code executed successfully');
+    },
+    onError: (error) => {
+      setCodeOutput(`Error: ${error.message}`);
+    }
   });
 
   // Complete interview mutation
@@ -246,6 +264,12 @@ export default function MockInterviewSession() {
   const handlePreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(prev => prev - 1);
+    }
+  };
+
+  const handleRunCode = () => {
+    if (userCode.trim()) {
+      runCodeMutation.mutate(userCode);
     }
   };
 
@@ -474,6 +498,32 @@ export default function MockInterviewSession() {
                           }}
                         />
                       </div>
+                      
+                      {/* Run Code Button and Output */}
+                      {userCode && (
+                        <div className="mt-4 space-y-3">
+                          <Button
+                            onClick={handleRunCode}
+                            disabled={runCodeMutation.isPending}
+                            variant="outline"
+                            className="w-full"
+                          >
+                            {runCodeMutation.isPending ? (
+                              <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2" />
+                            ) : (
+                              <Play className="w-4 h-4 mr-2" />
+                            )}
+                            Run Code
+                          </Button>
+                          
+                          {codeOutput && (
+                            <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm">
+                              <div className="text-gray-400 text-xs mb-2">Output:</div>
+                              <pre className="whitespace-pre-wrap">{codeOutput}</pre>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
