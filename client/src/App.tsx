@@ -118,7 +118,7 @@ function Router() {
               <Route path="/profile" component={Profile} />
               <Route path="/subscription" component={RecruiterSubscription} />
               <Route path="/recruiter-premium" component={RecruiterPremium} />
-              <Route path="/chat" component={PremiumChatPage} />
+              <Route path="/chat" component={ChatPage} />
               <Route path="/messages" component={MessagingPage} />
               <Route path="/job-seeker-view" component={Dashboard} />
             </>
@@ -158,7 +158,7 @@ function Router() {
                   <Route path="/career-ai-assistant" component={CareerAIAssistant} />
                   <Route path="/subscription" component={Subscription} />
                   <Route path="/job-seeker-premium" component={JobSeekerPremium} />
-                  <Route path="/chat" component={PremiumChatPage} />
+                  <Route path="/chat" component={ChatPage} />
                   <Route path="/messages" component={MessagingPage} />
                 </>
               )}
@@ -179,7 +179,7 @@ function Router() {
               <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
               <Route path="/virtual-interview/:sessionId/feedback" component={VirtualInterviewFeedback} />
               <Route path="/subscription" component={Subscription} />
-              <Route path="/chat" component={PremiumChatPage} />
+              <Route path="/chat" component={ChatPage} />
               <Route path="/messages" component={MessagingPage} />
             </>
           )}

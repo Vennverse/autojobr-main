@@ -236,29 +236,7 @@ export default function SimpleChatPage() {
         </Card>
       </div>
 
-      {/* Debug Info */}
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle>Debug Info</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <pre className="text-xs bg-gray-100 p-2 rounded">
-            {JSON.stringify({
-              targetUserId,
-              userId: user?.id,
-              userType: user?.userType,
-              conversationsCount: conversations.length,
-              selectedConversation,
-              messagesCount: messages.length,
-              messages: messages.slice(0, 3), // Show first 3 messages
-              messagesLoading,
-              messagesError: messagesError?.message,
-              createPending: createConversationMutation.isPending,
-              createError: createConversationMutation.error?.message
-            }, null, 2)}
-          </pre>
-        </CardContent>
-      </Card>
+
     </div>
   );
 }
