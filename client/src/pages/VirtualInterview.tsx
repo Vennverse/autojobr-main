@@ -90,8 +90,7 @@ export default function VirtualInterview() {
   // Start interview mutation for assigned interviews
   const startInterviewMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', `/api/virtual-interview/${sessionId}/start`);
-      return response.json();
+      return await apiRequest(`/api/virtual-interview/${sessionId}/start`, 'POST');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/virtual-interview/${sessionId}`] });
@@ -112,8 +111,7 @@ export default function VirtualInterview() {
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (data: { content: string; messageType: string }) => {
-      const response = await apiRequest('POST', `/api/virtual-interview/${sessionId}/message`, data);
-      return response.json();
+      return await apiRequest(`/api/virtual-interview/${sessionId}/message`, 'POST', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/virtual-interview/${sessionId}`] });
@@ -133,8 +131,7 @@ export default function VirtualInterview() {
   // Complete interview mutation
   const completeInterviewMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', `/api/virtual-interview/${sessionId}/complete`);
-      return response.json();
+      return await apiRequest(`/api/virtual-interview/${sessionId}/complete`, 'POST');
     },
     onSuccess: (data) => {
       toast({

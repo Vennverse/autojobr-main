@@ -9136,6 +9136,44 @@ Host: https://autojobr.com`;
     }
   });
 
+  // Start/Activate mock interview session (similar to virtual interview)
+  app.post('/api/mock-interviews/:sessionId/start', isAuthenticated, async (req: any, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const userId = req.user.id;
+      
+      console.log('🔍 Mock interview START request - SessionId:', sessionId, 'UserId:', userId);
+      
+      const interviewData = await mockInterviewService.getInterviewWithQuestions(sessionId);
+      
+      if (!interviewData) {
+        console.log('❌ No interview found for session:', sessionId);
+        return res.status(404).json({ error: 'Interview session not found' });
+      }
+      
+      // Verify user owns this interview
+      if (interviewData.interview.userId !== userId) {
+        console.log('❌ Unauthorized access attempt - Interview belongs to:', interviewData.interview.userId, 'Request from:', userId);
+        return res.status(403).json({ error: 'Unauthorized access' });
+      }
+      
+      // Update interview status to active if not already
+      if (interviewData.interview.status !== 'active') {
+        await storage.updateMockInterview(interviewData.interview.id, {
+          status: 'active',
+          startTime: new Date()
+        });
+      }
+      
+      console.log('✅ Mock interview started:', interviewData.interview.id);
+      
+      res.json({ success: true, message: 'Mock interview started successfully' });
+    } catch (error) {
+      console.error('❌ Error starting mock interview:', error);
+      res.status(500).json({ error: 'Failed to start interview session' });
+    }
+  });
+
   // Get interview assignment statistics
   app.get('/api/interviews/stats', isAuthenticated, async (req: any, res) => {
     try {
