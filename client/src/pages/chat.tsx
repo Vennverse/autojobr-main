@@ -154,10 +154,9 @@ export default function ChatPage() {
   const { user } = useAuth();
 
   // Initialize WebSocket connection with correct parameters
-  const { isConnected, sendMessage: wsMessage } = useWebSocket({
-    url: '/ws',
+  const { isConnected, sendTyping } = useWebSocket({
     userId: user?.id,
-    onMessage: (message) => {
+    onMessage: (message: any) => {
       console.log('WebSocket message received:', message);
       // Handle real-time message updates
       if (message.type === 'new_message') {

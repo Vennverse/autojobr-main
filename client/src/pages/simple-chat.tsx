@@ -186,15 +186,15 @@ export default function SimpleChatPage() {
             {conversationsLoading ? (
               <div className="p-4 text-center">Loading conversations...</div>
             ) : conversations.length === 0 ? (
-              <div className="p-4 text-center text-gray-500">
+              <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                 No conversations yet
               </div>
             ) : (
               conversations.map((conversation) => (
                 <div
                   key={conversation.id}
-                  className={`p-4 border-b cursor-pointer hover:bg-gray-50 ${
-                    selectedConversation === conversation.id ? 'bg-blue-50' : ''
+                  className={`p-4 border-b cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 ${
+                    selectedConversation === conversation.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
                   }`}
                   onClick={() => setSelectedConversation(conversation.id)}
                 >
@@ -205,8 +205,8 @@ export default function SimpleChatPage() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <p className="font-medium">{getUserDisplayName(conversation)}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="font-medium text-gray-900 dark:text-white">{getUserDisplayName(conversation)}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         {new Date(conversation.lastMessageAt).toLocaleDateString()}
                       </p>
                     </div>
@@ -248,7 +248,7 @@ export default function SimpleChatPage() {
                       className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                         message.senderId === user?.id
                           ? 'bg-blue-500 text-white'
-                          : 'bg-gray-200 text-gray-800'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white'
                       }`}
                     >
                       <p className="text-sm">{message.message}</p>
@@ -282,7 +282,7 @@ export default function SimpleChatPage() {
           </>
         ) : (
           <CardContent className="flex items-center justify-center h-full">
-            <p className="text-gray-500">Select a conversation to start chatting</p>
+            <p className="text-gray-500 dark:text-gray-400">Select a conversation to start chatting</p>
           </CardContent>
         )}
       </Card>
