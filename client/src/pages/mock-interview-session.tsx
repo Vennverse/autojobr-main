@@ -67,12 +67,16 @@ interface InterviewSession {
 }
 
 export default function MockInterviewSession() {
-  const [, params] = useRoute('/mock-interview/session/:sessionId');
+  const [, params] = useRoute('/mock-interview/:sessionId');
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   
   const sessionId = params?.sessionId;
+  
+  // Debug logging
+  console.log('🔍 MockInterviewSession - Route params:', params);
+  console.log('🔍 MockInterviewSession - SessionId:', sessionId);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
   const [userCode, setUserCode] = useState('');
@@ -84,11 +88,17 @@ export default function MockInterviewSession() {
   const questionStartTime = useRef(Date.now());
 
   // Fetch interview session
-  const { data: session, isLoading } = useQuery<InterviewSession>({
+  const { data: session, isLoading, error } = useQuery<InterviewSession>({
     queryKey: [`/api/mock-interviews/${sessionId}`],
     enabled: !!sessionId,
     retry: false,
   });
+  
+  // Debug logging
+  console.log('🔍 MockInterviewSession Query - sessionId:', sessionId);
+  console.log('🔍 MockInterviewSession Query - isLoading:', isLoading);
+  console.log('🔍 MockInterviewSession Query - session:', session);
+  console.log('🔍 MockInterviewSession Query - error:', error);
 
   // Submit answer mutation
   const submitAnswerMutation = useMutation({
