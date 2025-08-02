@@ -8,6 +8,11 @@ AutoJobr is a comprehensive job application platform designed to connect job see
 - **Feature Simplification**: Requested removal of AI recommendations tab for cleaner job browsing experience
 - **Visual Quality**: Emphasis on premium, professional visual design and user experience
 - **User Profile**: Main test user is Shubham Dubey (shubhamdubexskd2001@gmail.com) - Senior Technical Recruiter at TechCorp Solutions
+- **Navigation Preferences**: 
+  - Removed Applications tab from recruiter navbar (empty/unused)
+  - Messages navigation should point to /chat instead of /messaging
+  - Pipeline chat links should use format: /chat?user=userId
+  - Removed "Revenue Generator" text from Premium Candidate Targeting for cleaner UI
 
 ## System Architecture
 

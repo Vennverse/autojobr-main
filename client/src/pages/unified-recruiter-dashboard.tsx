@@ -289,10 +289,6 @@ export default function RecruiterDashboard() {
                     Target ideal candidates with precision - Education, Skills, Experience, Clubs & More
                   </p>
                   <div className="flex items-center gap-4 mt-2">
-                    <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                      <Star className="w-3 h-3 mr-1" />
-                      Revenue Generator
-                    </Badge>
                     <Badge className="bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200">
                       $99-$300+ per posting
                     </Badge>

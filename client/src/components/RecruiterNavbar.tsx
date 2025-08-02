@@ -131,12 +131,7 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
       icon: Briefcase,
       current: location === "/recruiter/jobs"
     },
-    {
-      name: "Applications",
-      href: "/recruiter/applications",
-      icon: Users,
-      current: location === "/recruiter/applications"
-    },
+
     {
       name: "Pipeline",
       href: "/recruiter/pipeline",
@@ -145,9 +140,9 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
     },
     {
       name: "Messages",
-      href: "/messaging",
+      href: "/chat",
       icon: MessageCircle,
-      current: location === "/messaging",
+      current: location === "/chat",
       badge: unreadCount > 0 ? unreadCount : undefined
     },
     {

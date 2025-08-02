@@ -1036,8 +1036,8 @@ export default function PipelineManagement() {
                                   size="icon"
                                   title="Message Applicant"
                                   onClick={() => {
-                                    // Navigate to messaging with pre-selected applicant
-                                    window.location.href = `/messaging?applicant=${application.applicantId}&job=${application.jobPostingId}&application=${application.id}`;
+                                    // Navigate to chat with pre-selected user
+                                    window.location.href = `/chat?user=${application.applicantId}`;
                                   }}
                                 >
                                   <MessageCircle className="h-4 w-4 text-blue-600" />
