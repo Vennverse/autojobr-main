@@ -1427,20 +1427,25 @@ Additional Information:
         });
       }
       
-      // Create new resume entry for database storage
+      // Store physical file using FileStorageService (not in database)
+      const storedFile = await fileStorage.storeResume(file, userId);
+      console.log(`[FILE_STORAGE] Resume file stored at: ${storedFile.path}`);
+      
+      // Create metadata entry for database storage (no file data)
       const resumeData = {
         name: req.body.name || file.originalname.replace(/\.[^/.]+$/, "") || "New Resume",
         fileName: file.originalname,
+        filePath: storedFile.path, // Store file system path, not Base64 data
         isActive: existingResumes.length === 0, // First resume is active by default
         atsScore: analysis.atsScore,
         analysis: analysis,
         resumeText: resumeText,
         fileSize: file.size,
-        mimeType: file.mimetype,
-        fileData: file.buffer.toString('base64')
+        mimeType: file.mimetype
+        // fileData is intentionally omitted - physical files stored on file system
       };
       
-      // Store in database with compression
+      // Store metadata in database (no physical file data)
       const newResume = await storage.storeResume(userId, resumeData);
       
       // Invalidate user cache after resume upload
@@ -1774,26 +1779,23 @@ Additional Information:
       let resume = null;
       const applicantId = application.applicantId;
 
-      // Try to get resume from database using resume_id from application
+      // Try to get resume metadata from database using resume_id from application
+      let resumeRecord = null;
       if (application.resumeId) {
         try {
           const [dbResume] = await db.select().from(schema.resumes).where(
             eq(schema.resumes.id, application.resumeId)
           );
-          if (dbResume && dbResume.fileData) {
-            resume = {
-              fileData: dbResume.fileData,
-              fileName: dbResume.fileName,
-              fileType: dbResume.mimeType || 'application/pdf'
-            };
+          if (dbResume && dbResume.filePath) {
+            resumeRecord = dbResume;
           }
         } catch (dbError) {
-          console.error("Error fetching resume from database:", dbError);
+          console.error("Error fetching resume metadata from database:", dbError);
         }
       }
 
-      // Fallback to get user's active resume
-      if (!resume) {
+      // Fallback to get user's active resume metadata
+      if (!resumeRecord) {
         try {
           const fallbackResumes = await storage.getUserResumes(applicantId);
           const activeResume = fallbackResumes.find((r: any) => r.isActive) || fallbackResumes[0];
@@ -1801,28 +1803,30 @@ Additional Information:
             const [fullResumeData] = await db.select().from(schema.resumes).where(
               eq(schema.resumes.id, activeResume.id)
             );
-            if (fullResumeData?.fileData) {
-              resume = {
-                fileData: fullResumeData.fileData,
-                fileName: fullResumeData.fileName,
-                fileType: fullResumeData.mimeType || 'application/pdf'
-              };
+            if (fullResumeData?.filePath) {
+              resumeRecord = fullResumeData;
             }
           }
         } catch (error) {
-          console.error("Error fetching fallback resume:", error);
+          console.error("Error fetching fallback resume metadata:", error);
         }
       }
       
-      if (!resume || !resume.fileData) {
+      if (!resumeRecord || !resumeRecord.filePath) {
         return res.status(404).json({ message: "Resume not found" });
       }
       
-      const fileBuffer = Buffer.from(resume.fileData, 'base64');
+      // Extract file ID from path for FileStorageService
+      const fileId = resumeRecord.filePath.split('/').pop()?.split('.')[0] || '';
+      const fileBuffer = await fileStorage.retrieveResume(fileId, applicantId);
+      
+      if (!fileBuffer) {
+        return res.status(404).json({ message: "Resume file not found on file system" });
+      }
       
       // Set headers for viewing in browser (new tab)
-      res.setHeader('Content-Type', resume.fileType || 'application/pdf');
-      res.setHeader('Content-Disposition', `inline; filename="${resume.fileName}"`);
+      res.setHeader('Content-Type', resumeRecord.mimeType || 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${resumeRecord.fileName}"`);
       res.setHeader('Content-Length', fileBuffer.length.toString());
       res.setHeader('Cache-Control', 'private, max-age=300'); // Cache for 5 minutes
       

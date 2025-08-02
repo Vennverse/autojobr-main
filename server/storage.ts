@@ -656,8 +656,8 @@ export class DatabaseStorage implements IStorage {
           userId,
           name: resumeData.name,
           fileName: resumeData.fileName,
-          filePath: resumeData.filePath || null,
-          fileData: resumeData.fileData || null,
+          filePath: resumeData.filePath || null, // Store only file path, not the actual file data
+          fileData: null, // Never store file data in database - use file system instead
           resumeText: resumeData.resumeText || null,
           atsScore: resumeData.atsScore || null,
           analysisData: resumeData.analysis || null,
