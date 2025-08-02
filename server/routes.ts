@@ -9,6 +9,22 @@ import { fileURLToPath } from "url";
 // Fix for __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// WebSocket connection management
+const wsConnections = new Map<string, Set<WebSocket>>();
+
+// Helper function to broadcast message to user's connections
+const broadcastToUser = (userId: string, message: any) => {
+  const userConnections = wsConnections.get(userId);
+  if (userConnections) {
+    const messageStr = JSON.stringify(message);
+    userConnections.forEach(ws => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(messageStr);
+      }
+    });
+  }
+};
 import { db } from "./db";
 import { eq, desc, and, or, like, isNotNull, count, asc, isNull, sql } from "drizzle-orm";
 import * as schema from "@shared/schema";
@@ -103,7 +119,7 @@ const asyncHandler = (fn: Function) => (req: any, res: any, next: any) => {
 };
 
 // Helper function for user profile operations with caching
-const getUserWithCache = async (userId: number) => {
+const getUserWithCache = async (userId: string) => {
   const cacheKey = `user_${userId}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
@@ -114,7 +130,7 @@ const getUserWithCache = async (userId: number) => {
 };
 
 // Helper function for resume operations
-const processResumeUpload = async (file: any, userId: number, resumeText: string, analysis: any) => {
+const processResumeUpload = async (file: any, userId: string, resumeText: string, analysis: any) => {
   const existingResumes = await storage.getUserResumes(userId);
   const user = await storage.getUser(userId);
   
@@ -135,11 +151,15 @@ const processResumeUpload = async (file: any, userId: number, resumeText: string
     fileData: file.buffer.toString('base64')
   };
   
-  return await storage.storeResume(userId, resumeData);
+  // TODO: Implement storeResume method in storage
+  throw new Error('Resume storage not implemented yet');
 };
 // Dynamic import for pdf-parse to avoid startup issues
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
+import { db } from "./db";
+import * as schema from "@shared/schema";
+import { eq, and, ne, count } from "drizzle-orm";
 import { groqService } from "./groqService";
 import { customNLPService } from "./customNLP";
 import { recruiterAnalytics } from "./recruiterAnalytics.js";
@@ -4802,7 +4822,252 @@ Additional Information:
     }
   });
 
+  // ========================================
+  // CHAT SYSTEM WITH WEBSOCKET
+  // ========================================
+  
+  // Chat conversations endpoint
+  app.get('/api/chat/conversations', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      console.log('Fetching conversations for user:', userId);
+      
+      const conversations = await storage.getChatConversations(userId);
+      console.log('Found conversations:', conversations.length);
+      
+      // Add additional user details for each conversation
+      const enrichedConversations = await Promise.all(
+        conversations.map(async (conv) => {
+          const otherUserId = conv.recruiterId === userId ? conv.jobSeekerId : conv.recruiterId;
+          const otherUser = await storage.getUser(otherUserId);
+          
+          // Get unread message count
+          const unreadMessages = await db
+            .select({ count: count() })
+            .from(schema.chatMessages)
+            .where(
+              and(
+                eq(schema.chatMessages.conversationId, conv.id),
+                eq(schema.chatMessages.isRead, false),
+                ne(schema.chatMessages.senderId, userId)
+              )
+            );
+          
+          return {
+            ...conv,
+            recruiterName: conv.recruiterId === otherUserId ? 
+              `${otherUser?.firstName || ''} ${otherUser?.lastName || ''}`.trim() || otherUser?.email : 
+              null,
+            jobSeekerName: conv.jobSeekerId === otherUserId ? 
+              `${otherUser?.firstName || ''} ${otherUser?.lastName || ''}`.trim() || otherUser?.email : 
+              null,
+            unreadCount: unreadMessages[0]?.count || 0
+          };
+        })
+      );
+
+      res.json(enrichedConversations);
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+      res.status(500).json({ message: 'Failed to fetch conversations' });
+    }
+  });
+
+  // Create conversation endpoint
+  app.post('/api/chat/conversations', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { otherUserId } = req.body;
+      
+      if (!otherUserId) {
+        return res.status(400).json({ message: 'Other user ID is required' });
+      }
+
+      // Check if conversation already exists
+      const existingConversations = await storage.getChatConversations(userId);
+      const existingConv = existingConversations.find(conv => 
+        (conv.recruiterId === userId && conv.jobSeekerId === otherUserId) ||
+        (conv.jobSeekerId === userId && conv.recruiterId === otherUserId)
+      );
+
+      if (existingConv) {
+        return res.json({ conversationId: existingConv.id, id: existingConv.id });
+      }
+
+      // Get current user to determine role assignment
+      const currentUser = await storage.getUser(userId);
+      const otherUser = await storage.getUser(otherUserId);
+
+      if (!currentUser || !otherUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Create new conversation with proper role assignment
+      const conversationData = {
+        recruiterId: currentUser.userType === 'recruiter' ? userId : otherUserId,
+        jobSeekerId: currentUser.userType === 'job_seeker' ? userId : otherUserId,
+        jobPostingId: null,
+        applicationId: null
+      };
+
+      const conversation = await storage.createChatConversation(conversationData);
+      res.json({ conversationId: conversation.id, id: conversation.id });
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+      res.status(500).json({ message: 'Failed to create conversation' });
+    }
+  });
+
+  // Get messages for a conversation
+  app.get('/api/chat/conversations/:id/messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const conversationId = parseInt(req.params.id);
+      
+      // Verify user has access to this conversation
+      const conversation = await storage.getChatConversation(conversationId);
+      if (!conversation || (conversation.recruiterId !== userId && conversation.jobSeekerId !== userId)) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+
+      const messages = await storage.getChatMessages(conversationId);
+      res.json(messages);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      res.status(500).json({ message: 'Failed to fetch messages' });
+    }
+  });
+
+  // Send message
+  app.post('/api/chat/conversations/:id/messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const conversationId = parseInt(req.params.id);
+      const { message } = req.body;
+      
+      if (!message || !message.trim()) {
+        return res.status(400).json({ message: 'Message content is required' });
+      }
+
+      // Verify user has access to this conversation
+      const conversation = await storage.getChatConversation(conversationId);
+      if (!conversation || (conversation.recruiterId !== userId && conversation.jobSeekerId !== userId)) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+
+      // Create message
+      const messageData = {
+        conversationId,
+        senderId: userId,
+        message: message.trim(),
+        messageType: 'text'
+      };
+
+      const newMessage = await storage.createChatMessage(messageData);
+      
+      // Broadcast to WebSocket connections
+      const otherUserId = conversation.recruiterId === userId ? conversation.jobSeekerId : conversation.recruiterId;
+      broadcastToUser(otherUserId, {
+        type: 'new_message',
+        conversationId,
+        message: newMessage
+      });
+
+      res.json(newMessage);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      res.status(500).json({ message: 'Failed to send message' });
+    }
+  });
+
+  // Mark messages as read
+  app.post('/api/chat/conversations/:id/read', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const conversationId = parseInt(req.params.id);
+      
+      // Verify user has access to this conversation
+      const conversation = await storage.getChatConversation(conversationId);
+      if (!conversation || (conversation.recruiterId !== userId && conversation.jobSeekerId !== userId)) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+
+      await storage.markMessagesAsRead(conversationId, userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+      res.status(500).json({ message: 'Failed to mark messages as read' });
+    }
+  });
+
   const httpServer = createServer(app);
+  
+  // Setup WebSocket server for real-time chat
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+
+  wss.on('connection', (ws, req) => {
+    let userId: string | null = null;
+    
+    ws.on('message', async (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        
+        if (message.type === 'auth') {
+          // Authenticate WebSocket connection
+          userId = message.userId;
+          if (userId) {
+            if (!wsConnections.has(userId)) {
+              wsConnections.set(userId, new Set());
+            }
+            wsConnections.get(userId)!.add(ws);
+            
+            // Send confirmation
+            ws.send(JSON.stringify({ 
+              type: 'auth_success', 
+              message: 'WebSocket authenticated successfully' 
+            }));
+          }
+        }
+        
+        if (message.type === 'typing') {
+          // Broadcast typing indicator
+          const { conversationId, isTyping } = message;
+          if (userId && conversationId) {
+            // Get conversation to find other user
+            const conversation = await storage.getChatConversation(conversationId);
+            if (conversation) {
+              const otherUserId = conversation.recruiterId === userId ? 
+                conversation.jobSeekerId : conversation.recruiterId;
+              
+              broadcastToUser(otherUserId, {
+                type: 'typing',
+                conversationId,
+                isTyping,
+                userId
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('WebSocket message error:', error);
+      }
+    });
+
+    ws.on('close', () => {
+      // Remove connection from user's connection set
+      if (userId && wsConnections.has(userId)) {
+        wsConnections.get(userId)!.delete(ws);
+        if (wsConnections.get(userId)!.size === 0) {
+          wsConnections.delete(userId);
+        }
+      }
+    });
+
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+    });
+  });
+
   // Note: Job search route moved to bottom of file to be public (no authentication required)
 
   // Job analysis endpoint
@@ -5655,112 +5920,6 @@ Additional Information:
       console.error("Error marking messages as read:", error);
       res.status(500).json({ message: "Failed to mark messages as read" });
     }
-  });
-
-  // WebSocket server for real-time chat
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
-  
-  // Store active WebSocket connections by user ID
-  const connectedUsers = new Map<string, WebSocket>();
-  
-  wss.on('connection', (ws: WebSocket, req) => {
-    console.log('New WebSocket connection');
-    
-    let userId: string | null = null;
-    
-    ws.on('message', async (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-        
-        if (message.type === 'authenticate') {
-          userId = message.userId;
-          if (userId) {
-            connectedUsers.set(userId, ws);
-            console.log(`User ${userId} connected to WebSocket`);
-            
-            ws.send(JSON.stringify({
-              type: 'authenticated',
-              userId: userId
-            }));
-          }
-        }
-        
-        if (message.type === 'sendMessage' && userId) {
-          const { conversationId, messageText } = message;
-          
-          // Save message to database
-          const messageData = {
-            conversationId: parseInt(conversationId),
-            senderId: userId,
-            message: messageText,
-            messageType: 'text',
-          };
-          
-          const savedMessage = await storage.createChatMessage(messageData);
-          
-          // Get conversation details to find recipient
-          const conversation = await storage.getChatConversation(parseInt(conversationId));
-          if (!conversation) {
-            ws.send(JSON.stringify({
-              type: 'error',
-              message: 'Conversation not found'
-            }));
-            return;
-          }
-          const recipientId = conversation.recruiterId === userId ? conversation.jobSeekerId : conversation.recruiterId;
-          
-          // Send to recipient if they're connected
-          const recipientWs = connectedUsers.get(recipientId);
-          if (recipientWs && recipientWs.readyState === WebSocket.OPEN) {
-            recipientWs.send(JSON.stringify({
-              type: 'newMessage',
-              message: savedMessage,
-              conversationId: conversationId
-            }));
-          }
-          
-          // Send confirmation back to sender
-          ws.send(JSON.stringify({
-            type: 'messageSent',
-            message: savedMessage,
-            conversationId: conversationId
-          }));
-        }
-        
-        if (message.type === 'joinConversation' && userId) {
-          const { conversationId } = message;
-          
-          // Mark messages as read
-          await storage.markMessagesAsRead(parseInt(conversationId), userId);
-          
-          ws.send(JSON.stringify({
-            type: 'joinedConversation',
-            conversationId: conversationId
-          }));
-        }
-        
-      } catch (error) {
-        console.error('WebSocket message error:', error);
-        ws.send(JSON.stringify({
-          type: 'error',
-          message: 'Failed to process message'
-        }));
-      }
-    });
-    
-    ws.on('close', () => {
-      if (userId) {
-        connectedUsers.delete(userId);
-        console.log(`User ${userId} disconnected from WebSocket`);
-      }
-    });
-    
-    ws.on('error', (error) => {
-      console.error('WebSocket error:', error);
-      if (userId) {
-        connectedUsers.delete(userId);
-      }
-    });
   });
 
   // ========================================

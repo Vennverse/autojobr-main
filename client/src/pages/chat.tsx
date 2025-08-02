@@ -2,6 +2,85 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
+
+// WebSocket hook for real-time chat
+const useWebSocket = (user: User | undefined) => {
+  const [socket, setSocket] = useState<WebSocket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Determine WebSocket URL
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    console.log('Connecting to WebSocket:', wsUrl);
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      console.log('WebSocket connected');
+      setIsConnected(true);
+      
+      // Authenticate the connection
+      ws.send(JSON.stringify({
+        type: 'auth',
+        userId: user.id
+      }));
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        console.log('WebSocket message received:', message);
+        
+        if (message.type === 'new_message') {
+          // Invalidate conversations and messages
+          queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
+          queryClient.invalidateQueries({ 
+            queryKey: ['/api/chat/conversations', message.conversationId, 'messages'] 
+          });
+        }
+        
+        if (message.type === 'typing') {
+          // Handle typing indicators
+          console.log('User typing:', message);
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+      setIsConnected(false);
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      setIsConnected(false);
+    };
+
+    setSocket(ws);
+
+    return () => {
+      ws.close();
+    };
+  }, [user?.id, queryClient]);
+
+  const sendTyping = useCallback((conversationId: number, isTyping: boolean) => {
+    if (socket && isConnected) {
+      socket.send(JSON.stringify({
+        type: 'typing',
+        conversationId,
+        isTyping
+      }));
+    }
+  }, [socket, isConnected]);
+
+  return { socket, isConnected, sendTyping };
+};
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -53,9 +132,11 @@ export default function ChatPage() {
   const [isMobileView, setIsMobileView] = useState(false);
   const [showConversationList, setShowConversationList] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const [location] = useLocation();
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Parse URL parameters for direct user chat
   const [targetUserId, setTargetUserId] = useState<string | null>(null);
@@ -73,6 +154,9 @@ export default function ChatPage() {
     queryKey: ['/api/user'],
   });
 
+  // Initialize WebSocket connection
+  const { socket, isConnected, sendTyping } = useWebSocket(user);
+
   // Handle mobile responsiveness
   useEffect(() => {
     const checkMobileView = () => {
@@ -88,11 +172,11 @@ export default function ChatPage() {
     return () => window.removeEventListener('resize', checkMobileView);
   }, []);
 
-  // Get conversations
+  // Get conversations - reduce refetch since WebSocket handles real-time updates
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery<ChatConversation[]>({
     queryKey: ['/api/chat/conversations'],
     enabled: !!user?.id, // Only fetch if user is authenticated
-    refetchInterval: 30000, // Refetch every 30 seconds for new messages
+    refetchInterval: isConnected ? 60000 : 10000, // Longer interval when WebSocket is connected
   });
 
   // Create conversation mutation for direct user chat
@@ -123,11 +207,11 @@ export default function ChatPage() {
     },
   });
 
-  // Get messages for selected conversation
+  // Get messages for selected conversation - reduce refetch since WebSocket handles real-time updates
   const { data: conversationMessages = [] } = useQuery<ChatMessage[]>({
     queryKey: ['/api/chat/conversations', selectedConversation, 'messages'],
     enabled: !!selectedConversation && !!user?.id, // Only fetch if user is authenticated and conversation selected
-    refetchInterval: 5000, // Refetch every 5 seconds when conversation is open
+    refetchInterval: isConnected ? 30000 : 5000, // Longer interval when WebSocket is connected
   });
 
   // Send message mutation
