@@ -195,6 +195,7 @@ import { subscriptionPaymentService } from "./subscriptionPaymentService";
 import { usageMonitoringService } from "./usageMonitoringService";
 import virtualInterviewRoutes from "./virtualInterviewRoutes";
 import { interviewAssignmentService } from "./interviewAssignmentService";
+import { mockInterviewService } from "./mockInterviewService";
 
 // Middleware to check usage limits
 const checkUsageLimit = (feature: 'jobAnalyses' | 'resumeAnalyses' | 'applications' | 'autoFills') => {
@@ -9102,6 +9103,36 @@ Host: https://autojobr.com`;
     } catch (error) {
       console.error('Error fetching mock interview partial results:', error);
       res.status(500).json({ message: error.message || 'Failed to fetch results' });
+    }
+  });
+
+  // Get mock interview by session ID
+  app.get('/api/mock-interviews/:sessionId', isAuthenticated, async (req: any, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const userId = req.user.id;
+      
+      console.log('🔍 Mock interview GET request - SessionId:', sessionId, 'UserId:', userId);
+      
+      const interviewData = await mockInterviewService.getInterviewWithQuestions(sessionId);
+      
+      if (!interviewData) {
+        console.log('❌ No interview found for session:', sessionId);
+        return res.status(404).json({ error: 'Interview session not found' });
+      }
+      
+      // Verify user owns this interview
+      if (interviewData.interview.userId !== userId) {
+        console.log('❌ Unauthorized access attempt - Interview belongs to:', interviewData.interview.userId, 'Request from:', userId);
+        return res.status(403).json({ error: 'Unauthorized access' });
+      }
+      
+      console.log('✅ Mock interview found:', interviewData.interview.id, 'with', interviewData.questions.length, 'questions');
+      
+      res.json(interviewData);
+    } catch (error) {
+      console.error('❌ Error fetching mock interview:', error);
+      res.status(500).json({ error: 'Failed to fetch interview session' });
     }
   });
 
