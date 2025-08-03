@@ -501,9 +501,9 @@ export default function EnhancedDashboard() {
                     )}
                   </div>
                   
-                  <h3 className="text-xl font-semibold mb-2">AI Resume Analysis</h3>
+                  <h3 className="text-xl font-semibold mb-2">Resume Analysis</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Get instant ATS compatibility scores and personalized improvement suggestions to increase your job application success rate
+                    Upload and optimize your resumes with AI-powered ATS scoring
                   </p>
                   
                   {resumes && resumes.length > 0 ? (
