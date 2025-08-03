@@ -1,368 +1,502 @@
+import { useState, useEffect } from "react";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
   Users, 
   Target, 
-  TestTube, 
-  Shield,
-  Brain,
-  MessageSquare,
-  BarChart3,
-  Zap,
-  CheckCircle,
-  TrendingUp,
-  Clock,
-  Mail,
-  Filter,
-  Building,
-  DollarSign,
+  BarChart3, 
+  Zap, 
+  Clock, 
   Award,
-  Search,
-  FileText,
-  Globe,
-  Bot,
-  PlayCircle,
-  Eye,
-  AlertTriangle,
-  Timer,
-  CheckSquare,
-  BookOpen,
-  Cpu,
-  UserCheck,
-  Headphones,
+  ArrowRight,
+  CheckCircle,
   Star,
-  ArrowRight
+  Brain,
+  Filter,
+  MessageCircle,
+  FileText,
+  Crown,
+  TrendingUp,
+  Shield,
+  Search,
+  Eye,
+  Calendar,
+  Briefcase,
+  UserCheck,
+  Globe,
+  Rocket
 } from "lucide-react";
+import logoImage from "@assets/generated_images/AutoJobr_professional_logo_17c702fa.png";
+import dashboardMockup from "@assets/generated_images/Recruitment_dashboard_mockup_2b680657.png";
 
-export default function RecruiterFeatures() {
-  const handleGetStarted = () => {
-    window.location.href = "/auth";
-  };
+const recruiterStats = [
+  { label: "Time Saved", value: "60%", icon: Clock },
+  { label: "Quality Hires", value: "85%", icon: Award },
+  { label: "Cost Reduction", value: "40%", icon: TrendingUp },
+  { label: "Faster Hiring", value: "3x", icon: Zap }
+];
 
-  const features = [
-    {
-      icon: TestTube,
-      title: "Comprehensive Test System",
-      description: "Create and manage tests across multiple domains with AI-powered automatic scoring",
-      details: [
-        "Technical, Finance, Marketing, Sales, HR, and General assessments",
-        "AI-powered automatic scoring for all question types",
-        "Multiple choice, coding, essays, scenarios, and case studies",
-        "Custom question builder with difficulty levels",
-        "Template library with platform and custom templates"
-      ],
-      highlight: "AI Scoring"
-    },
-    {
-      icon: CheckSquare,
-      title: "Multi-Candidate Test Assignment",
-      description: "Efficiently assign tests to multiple candidates with advanced filtering",
-      details: [
-        "Checkbox-based multi-candidate selection",
-        "Filter candidates by specific job postings",
-        "Select All functionality for bulk assignments",
-        "Automated email notifications with test links",
-        "Due date management and reminders"
-      ],
-      highlight: "Bulk Assignment"
-    },
-    {
-      icon: Shield,
-      title: "Anti-Cheating Protection",
-      description: "Advanced proctoring system ensures test integrity",
-      details: [
-        "Copy-paste prevention with warnings",
-        "Tab switching monitoring and alerts",
-        "Fullscreen mode enforcement",
-        "Right-click blocking",
-        "Automatic test submission after 5 violations"
-      ],
-      highlight: "Secure Testing"
-    },
-    {
-      icon: Timer,
-      title: "Real-Time Test Monitoring",
-      description: "Track test progress and detect violations in real-time",
-      details: [
-        "Live test progress tracking",
-        "Time monitoring with alerts",
-        "Violation detection and logging",
-        "Comprehensive scoring analytics",
-        "Test completion notifications"
-      ],
-      highlight: "Live Tracking"
-    },
-    {
-      icon: Target,
-      title: "Premium Candidate Targeting",
-      description: "Advanced B2B revenue model with precise candidate filtering",
-      details: [
-        "Education filtering (schools, degrees, GPA)",
-        "Experience level and skills matching",
-        "Certifications and club memberships",
-        "Dynamic pricing $99-$300+ based on precision",
-        "Real-time candidate reach estimation"
-      ],
-      highlight: "B2B Revenue"
-    },
-    {
-      icon: Brain,
-      title: "AI-Powered Matching",
-      description: "Advanced AI algorithms to find the perfect candidates",
-      details: [
-        "Job description analysis and skill extraction",
-        "Candidate profile matching with scores",
-        "Skill gap analysis and recommendations",
-        "Cultural fit assessment",
-        "Interview preparation tips"
-      ],
-      highlight: "85%+ Accuracy"
-    },
-    {
-      icon: BarChart3,
-      title: "Job Discovery Playlists",
-      description: "Spotify-like job browsing with curated playlists",
-      details: [
-        "Curated job playlists by category",
-        "Multi-source aggregation (LinkedIn, Indeed, Glassdoor)",
-        "Bookmarking and organization",
-        "Advanced search and filtering",
-        "Trending opportunities tracking"
-      ],
-      highlight: "New Feature"
-    },
-    {
-      icon: MessageSquare,
-      title: "Candidate Communication",
-      description: "Integrated messaging system for seamless recruitment",
-      details: [
-        "Real-time messaging with candidates",
-        "Automated email notifications",
-        "Interview scheduling integration",
-        "Message templates and quick responses",
-        "Communication history tracking"
-      ],
-      highlight: "Integrated Chat"
-    },
-    {
-      icon: Building,
-      title: "Company Profile Management",
-      description: "Showcase your company and attract top talent",
-      details: [
-        "Comprehensive company profiles",
-        "Culture and values showcase",
-        "Team member highlights",
-        "Benefits and perks listing",
-        "Company size and industry tags"
-      ],
-      highlight: "Professional Branding"
-    },
-    {
-      icon: DollarSign,
-      title: "Flexible Payment Options",
-      description: "Multiple payment methods with competitive pricing",
-      details: [
-        "Stripe, PayPal, and Razorpay integration",
-        "Monthly subscription at $49/month",
-        "Premium targeting add-ons",
-        "Test retake fees ($5 per attempt)",
-        "Usage-based pricing for large teams"
-      ],
-      highlight: "Competitive Pricing"
-    },
-    {
-      icon: BarChart3,
-      title: "Advanced Analytics",
-      description: "Comprehensive recruitment metrics and insights",
-      details: [
-        "Application tracking and conversion rates",
-        "Candidate quality scoring",
-        "Test performance analytics",
-        "Time-to-hire metrics",
-        "ROI tracking and reporting"
-      ],
-      highlight: "Data-Driven"
-    },
-    {
-      icon: Zap,
-      title: "Workflow Automation",
-      description: "Streamline your recruitment process with smart automation",
-      details: [
-        "Automated candidate screening",
-        "Smart job posting distribution",
-        "Interview scheduling automation",
-        "Follow-up email sequences",
-        "Status update notifications"
-      ],
-      highlight: "Time-Saving"
-    }
-  ];
+const recruiterFeatures = [
+  {
+    icon: Brain,
+    title: "AI-Powered Candidate Matching",
+    description: "Advanced algorithms analyze resumes, skills, and experience to find perfect-fit candidates automatically.",
+    benefits: ["90% better matches", "Reduce screening time", "Eliminate bias"]
+  },
+  {
+    icon: Target,
+    title: "Premium Candidate Targeting",
+    description: "Reach passive candidates and top talent with precision targeting based on skills, location, and career goals.",
+    benefits: ["Access hidden talent", "Higher response rates", "Quality over quantity"]
+  },
+  {
+    icon: BarChart3,
+    title: "Advanced Recruitment Analytics",
+    description: "Real-time insights on hiring funnel, candidate quality, time-to-hire, and ROI across all campaigns.",
+    benefits: ["Data-driven decisions", "Optimize hiring process", "Track performance"]
+  },
+  {
+    icon: Zap,
+    title: "Automated Screening & Assessment",
+    description: "Custom tests, video interviews, and AI-powered screening reduce manual work by 70%.",
+    benefits: ["Save 20+ hours/week", "Consistent evaluation", "Objective scoring"]
+  },
+  {
+    icon: MessageCircle,
+    title: "Integrated Communication Hub",
+    description: "Centralized messaging, interview scheduling, and collaboration tools keep your team aligned.",
+    benefits: ["Seamless coordination", "Candidate engagement", "Team collaboration"]
+  },
+  {
+    icon: Shield,
+    title: "Compliance & Security",
+    description: "GDPR compliance, secure data handling, and audit trails ensure regulatory requirements are met.",
+    benefits: ["Risk mitigation", "Legal compliance", "Data protection"]
+  }
+];
 
-  const pricingPlans = [
-    {
-      name: "Starter",
-      price: "$49",
-      period: "per month",
-      description: "Perfect for small teams and startups",
-      features: [
-        "Up to 10 job postings",
-        "Basic test templates",
-        "Email support",
-        "Standard analytics",
-        "50 candidate profiles"
-      ],
-      highlight: false
+const successStories = [
+  {
+    company: "TechStartup Inc.",
+    industry: "Technology",
+    size: "50-200 employees",
+    results: {
+      timeToHire: "65% reduction",
+      qualityHires: "40% increase",
+      costSaving: "$150K annually"
     },
-    {
-      name: "Professional",
-      price: "$99",
-      period: "per month",
-      description: "Ideal for growing companies",
-      features: [
-        "Unlimited job postings",
-        "Custom test creation",
-        "Premium targeting",
-        "Advanced analytics",
-        "500 candidate profiles",
-        "Priority support"
-      ],
-      highlight: true
+    quote: "AutoJobr transformed our hiring process. We're now filling positions 3x faster with much higher quality candidates.",
+    name: "Sarah Johnson",
+    role: "Head of Talent"
+  },
+  {
+    company: "Global Corp",
+    industry: "Financial Services", 
+    size: "1000+ employees",
+    results: {
+      timeToHire: "50% reduction",
+      qualityHires: "60% increase", 
+      costSaving: "$500K annually"
     },
-    {
-      name: "Enterprise",
-      price: "Custom",
-      period: "contact sales",
-      description: "For large organizations",
-      features: [
-        "Everything in Professional",
-        "Custom integrations",
-        "Dedicated account manager",
-        "SLA guarantee",
-        "Unlimited users",
-        "Advanced security"
-      ],
-      highlight: false
-    }
-  ];
+    quote: "The AI matching is incredible. Our hiring managers are consistently impressed with candidate quality.",
+    name: "Michael Chen",
+    role: "VP of Recruitment"
+  },
+  {
+    company: "Innovation Labs",
+    industry: "Healthcare",
+    size: "200-500 employees", 
+    results: {
+      timeToHire: "70% reduction",
+      qualityHires: "45% increase",
+      costSaving: "$200K annually"
+    },
+    quote: "We've eliminated most manual screening. The platform does the heavy lifting so we can focus on building relationships.",
+    name: "Emily Rodriguez",
+    role: "Talent Acquisition Lead"
+  }
+];
 
-  const testimonials = [
-    {
-      name: "David Kim",
-      role: "Head of Talent",
-      company: "TechCorp",
-      content: "AutoJobr's test system helped us reduce hiring time by 60%. The AI scoring is incredibly accurate and the anti-cheating features give us confidence in results.",
-      rating: 5
-    },
-    {
-      name: "Jennifer Walsh",
-      role: "HR Director",
-      company: "FinanceFlow",
-      content: "The multi-candidate assignment feature is a game-changer. We can now test 50+ candidates simultaneously with just a few clicks.",
-      rating: 5
-    },
-    {
-      name: "Michael Rodriguez",
-      role: "Recruitment Lead",
-      company: "StartupX",
-      content: "Premium targeting helped us find exactly the right candidates. The ROI is incredible - we're saving $50k+ annually on recruitment costs.",
-      rating: 5
-    }
-  ];
+const pricingPlans = [
+  {
+    name: "Starter",
+    price: "$99",
+    description: "Perfect for small teams",
+    features: [
+      "Up to 5 job postings/month",
+      "Basic candidate matching",
+      "Standard support",
+      "Core analytics",
+      "Email integration"
+    ],
+    cta: "Start Free Trial",
+    popular: false,
+    savings: "vs $300/month on other platforms"
+  },
+  {
+    name: "Professional", 
+    price: "$299",
+    description: "For growing companies",
+    features: [
+      "Unlimited job postings",
+      "Advanced AI matching",
+      "Premium candidate targeting",
+      "Custom assessments",
+      "Video interviews",
+      "Advanced analytics",
+      "Priority support",
+      "Team collaboration"
+    ],
+    cta: "Start Free Trial",
+    popular: true,
+    savings: "vs $800/month on other platforms"
+  },
+  {
+    name: "Enterprise",
+    price: "Custom",
+    description: "For large organizations",
+    features: [
+      "Everything in Professional",
+      "Custom integrations",
+      "Dedicated account manager",
+      "SLA guarantees",
+      "Advanced security",
+      "Custom reporting",
+      "White-label options",
+      "24/7 phone support"
+    ],
+    cta: "Contact Sales",
+    popular: false,
+    savings: "50-70% cost reduction typical"
+  }
+];
+
+const competitorComparison = [
+  { 
+    feature: "AI-Powered Matching", 
+    autojobr: true, 
+    competitor1: false, 
+    competitor2: true 
+  },
+  { 
+    feature: "Unlimited Job Postings", 
+    autojobr: true, 
+    competitor1: false, 
+    competitor2: false 
+  },
+  { 
+    feature: "Custom Assessments", 
+    autojobr: true, 
+    competitor1: true, 
+    competitor2: false 
+  },
+  { 
+    feature: "Real-time Analytics", 
+    autojobr: true, 
+    competitor1: false, 
+    competitor2: true 
+  },
+  { 
+    feature: "Integrated Communication", 
+    autojobr: true, 
+    competitor1: false, 
+    competitor2: false 
+  },
+  { 
+    feature: "Cost per hire", 
+    autojobr: "$2,500", 
+    competitor1: "$4,200", 
+    competitor2: "$3,800" 
+  }
+];
+
+export default function RecruiterFeaturesPage() {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="bg-background/95 backdrop-blur-sm border-b sticky top-0 z-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-700/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <Building className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">AutoJobr for Recruiters</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}>
+            <Link href="/" className="flex items-center space-x-3">
+              <img src={logoImage} alt="AutoJobr" className="w-8 h-8" />
+              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                AutoJobr
+              </span>
+            </Link>
+            
+            <nav className="hidden md:flex space-x-8">
+              <a href="#features" className="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors">
                 Features
-              </Button>
-              <Button variant="ghost" onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}>
+              </a>
+              <a href="#pricing" className="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors">
                 Pricing
-              </Button>
-              <Button onClick={handleGetStarted} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                Get Started
-              </Button>
+              </a>
+              <a href="#success-stories" className="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors">
+                Success Stories
+              </a>
+              <Link href="/" className="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors">
+                For Job Seekers
+              </Link>
+            </nav>
+            
+            <div className="flex items-center space-x-4">
+              <Link href="/auth">
+                <Button variant="ghost" size="sm">
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/auth">
+                <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg">
+                  Start Free Trial
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
-      </nav>
+      </header>
 
       {/* Hero Section */}
-      <section className="py-20 bg-gradient-to-br from-blue-50 to-purple-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="relative pt-20 pb-32 overflow-hidden">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <Badge className="mb-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-              🚀 New: AI-Powered Test System
-            </Badge>
-            <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Revolutionize Your Recruitment Process
-            </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              The most advanced recruitment platform with AI-powered testing, multi-candidate assignment, 
-              anti-cheating protection, and premium targeting. Find the perfect candidates faster than ever.
-            </p>
-            <div className="flex gap-4 justify-center">
-              <Button 
-                size="lg" 
-                onClick={handleGetStarted}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-8"
-              >
-                Start Free Trial
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button variant="outline" size="lg" onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}>
-                <PlayCircle className="mr-2 h-5 w-5" />
-                Watch Demo
-              </Button>
+            <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+              <Badge className="mb-6 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border-blue-200">
+                <Users className="w-3 h-3 mr-1" />
+                Trusted by 2,500+ Companies
+              </Badge>
+              
+              <h1 className="text-5xl md:text-7xl font-bold text-slate-900 dark:text-white mb-6 leading-tight">
+                Hire Top Talent
+                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent"> 3x Faster</span>
+                <br />
+                with AI
+              </h1>
+              
+              <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-8 max-w-4xl mx-auto leading-relaxed">
+                Transform your recruitment process with AI-powered candidate matching, automated screening, and advanced analytics. Reduce time-to-hire by 60% while improving hire quality.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+                <Link href="/auth">
+                  <Button size="lg" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-lg">
+                    <Rocket className="w-5 h-5 mr-2" />
+                    Start Free 14-Day Trial
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </Link>
+                <Button variant="outline" size="lg" className="border-2 border-slate-300 hover:border-slate-400 px-8 py-4 text-lg">
+                  <Calendar className="w-5 h-5 mr-2" />
+                  Book a Demo
+                </Button>
+              </div>
+              
+              <div className="flex justify-center space-x-8 text-sm text-slate-500 dark:text-slate-400">
+                <div className="flex items-center">
+                  <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                  14-day free trial
+                </div>
+                <div className="flex items-center">
+                  <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                  No setup fees
+                </div>
+                <div className="flex items-center">
+                  <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                  Cancel anytime
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
+      {/* Stats Section */}
+      <section className="py-16 bg-white/50 dark:bg-slate-800/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+              The Results Speak for Themselves
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {recruiterStats.map((stat, index) => {
+              const Icon = stat.icon;
+              return (
+                <div key={index} className="text-center">
+                  <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mb-4">
+                    <Icon className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-4xl font-bold text-slate-900 dark:text-white mb-2">{stat.value}</div>
+                  <div className="text-slate-600 dark:text-slate-300">{stat.label}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
-      <section id="features" className="py-20">
+      <section id="features" className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Everything You Need to Hire Top Talent</h2>
-            <p className="text-xl text-gray-600">Comprehensive tools designed for modern recruitment teams</p>
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
+              Everything You Need to Hire Smarter
+            </h2>
+            <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
+              Advanced recruitment tools designed to streamline your hiring process and deliver exceptional results.
+            </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                      <feature.icon className="w-5 h-5 text-white" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {recruiterFeatures.map((feature, index) => {
+              const Icon = feature.icon;
+              return (
+                <Card key={index} className="group hover:shadow-xl transition-all duration-300 border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur">
+                  <CardContent className="p-8">
+                    <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mb-4 group-hover:scale-110 transition-transform duration-300">
+                      <Icon className="w-6 h-6 text-white" />
                     </div>
-                    <div>
-                      <CardTitle className="text-lg">{feature.title}</CardTitle>
-                      <Badge variant="secondary" className="text-xs">
-                        {feature.highlight}
-                      </Badge>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">{feature.title}</h3>
+                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed mb-4">{feature.description}</p>
+                    <ul className="space-y-2">
+                      {feature.benefits.map((benefit, benefitIndex) => (
+                        <li key={benefitIndex} className="flex items-center text-sm text-slate-600 dark:text-slate-300">
+                          <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                          {benefit}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Platform Demo */}
+      <section className="py-24 bg-slate-900 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                See the Platform in Action
+              </h2>
+              <p className="text-xl text-slate-300 mb-8 leading-relaxed">
+                Our intuitive dashboard gives you complete visibility into your hiring pipeline, candidate quality, and team performance. Make data-driven decisions that accelerate your hiring success.
+              </p>
+              
+              <div className="space-y-4 mb-8">
+                <div className="flex items-center">
+                  <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center mr-3">
+                    <CheckCircle className="w-4 h-4 text-white" />
+                  </div>
+                  <span>AI-powered candidate ranking and scoring</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center mr-3">
+                    <CheckCircle className="w-4 h-4 text-white" />
+                  </div>
+                  <span>Real-time pipeline tracking and analytics</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center mr-3">
+                    <CheckCircle className="w-4 h-4 text-white" />
+                  </div>
+                  <span>Automated screening and assessment tools</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center mr-3">
+                    <CheckCircle className="w-4 h-4 text-white" />
+                  </div>
+                  <span>Integrated communication and scheduling</span>
+                </div>
+              </div>
+              
+              <div className="flex space-x-4">
+                <Link href="/auth">
+                  <Button size="lg" className="bg-white text-slate-900 hover:bg-slate-100">
+                    Try Free for 14 Days
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </Link>
+                <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-slate-900">
+                  <Calendar className="w-5 h-5 mr-2" />
+                  Book Demo
+                </Button>
+              </div>
+            </div>
+            
+            <div className="relative">
+              <img 
+                src={dashboardMockup} 
+                alt="AutoJobr Recruitment Dashboard" 
+                className="rounded-lg shadow-2xl w-full transform hover:scale-105 transition-transform duration-300"
+              />
+              <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full opacity-20 animate-pulse"></div>
+              <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full opacity-20 animate-pulse animation-delay-1000"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Success Stories */}
+      <section id="success-stories" className="py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
+              Companies Love AutoJobr
+            </h2>
+            <p className="text-xl text-slate-600 dark:text-slate-300">
+              See how leading companies are transforming their hiring with our platform
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {successStories.map((story, index) => (
+              <Card key={index} className="border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur">
+                <CardContent className="p-8">
+                  <div className="mb-6">
+                    <h4 className="font-bold text-slate-900 dark:text-white text-lg mb-1">{story.company}</h4>
+                    <p className="text-slate-600 dark:text-slate-300 text-sm mb-1">{story.industry}</p>
+                    <p className="text-slate-500 text-sm">{story.size}</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-3 mb-6">
+                    <div className="flex justify-between items-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                      <span className="text-sm text-slate-600 dark:text-slate-300">Time to Hire</span>
+                      <span className="font-bold text-green-600 dark:text-green-400">{story.results.timeToHire}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <span className="text-sm text-slate-600 dark:text-slate-300">Quality Hires</span>
+                      <span className="font-bold text-blue-600 dark:text-blue-400">{story.results.qualityHires}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                      <span className="text-sm text-slate-600 dark:text-slate-300">Cost Savings</span>
+                      <span className="font-bold text-purple-600 dark:text-purple-400">{story.results.costSaving}</span>
                     </div>
                   </div>
-                  <CardDescription>{feature.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
-                    {feature.details.map((detail, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm">
-                        <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-600">{detail}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  
+                  <blockquote className="text-slate-600 dark:text-slate-300 italic mb-4">
+                    "{story.quote}"
+                  </blockquote>
+                  
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                      {story.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-900 dark:text-white">{story.name}</div>
+                      <div className="text-sm text-slate-500">{story.role}</div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -371,119 +505,214 @@ export default function RecruiterFeatures() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 bg-gray-50">
+      <section id="pricing" className="py-24 bg-slate-50 dark:bg-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Choose Your Plan</h2>
-            <p className="text-xl text-gray-600">Flexible pricing for teams of all sizes</p>
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
+              Simple, Transparent Pricing
+            </h2>
+            <p className="text-xl text-slate-600 dark:text-slate-300">
+              Choose the plan that fits your hiring needs. Start with a free trial, upgrade when ready.
+            </p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
             {pricingPlans.map((plan, index) => (
-              <Card key={index} className={`relative ${plan.highlight ? 'border-blue-500 shadow-lg' : ''}`}>
-                {plan.highlight && (
+              <Card key={index} className={`relative border-0 ${plan.popular ? 'ring-2 ring-blue-500 bg-white dark:bg-slate-900' : 'bg-white/80 dark:bg-slate-800/80'} backdrop-blur`}>
+                {plan.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-gradient-to-r from-blue-600 to-purple-600">
+                    <Badge className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
                       Most Popular
                     </Badge>
                   </div>
                 )}
-                <CardHeader>
-                  <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                  <div className="text-4xl font-bold">
-                    {plan.price}
-                    <span className="text-lg text-gray-500 font-normal">/{plan.period}</span>
+                <CardContent className="p-8">
+                  <div className="text-center mb-8">
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{plan.name}</h3>
+                    <div className="text-4xl font-bold text-slate-900 dark:text-white mb-2">
+                      {plan.price}
+                      {plan.price !== "Custom" && <span className="text-lg text-slate-500">/month</span>}
+                    </div>
+                    <p className="text-slate-600 dark:text-slate-300 mb-2">{plan.description}</p>
+                    <p className="text-sm text-green-600 dark:text-green-400 font-semibold">{plan.savings}</p>
                   </div>
-                  <CardDescription>{plan.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3 mb-6">
-                    {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-500" />
-                        <span className="text-sm">{feature}</span>
+                  
+                  <ul className="space-y-3 mb-8">
+                    {plan.features.map((feature, featureIndex) => (
+                      <li key={featureIndex} className="flex items-center">
+                        <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
+                        <span className="text-slate-600 dark:text-slate-300">{feature}</span>
                       </li>
                     ))}
                   </ul>
-                  <Button 
-                    className={`w-full ${plan.highlight ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700' : ''}`}
-                    variant={plan.highlight ? "default" : "outline"}
-                    onClick={handleGetStarted}
-                  >
-                    Get Started
-                  </Button>
+                  
+                  <Link href="/auth">
+                    <Button 
+                      className={`w-full ${plan.popular 
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white' 
+                        : 'bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600'
+                      }`}
+                      size="lg"
+                    >
+                      {plan.cta}
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             ))}
           </div>
-        </div>
-      </section>
 
-      {/* Testimonials Section */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Trusted by Top Companies</h2>
-            <p className="text-xl text-gray-600">See what recruitment leaders are saying about AutoJobr</p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center gap-1 mb-3">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 text-yellow-500 fill-current" />
-                    ))}
-                  </div>
-                  <CardDescription className="text-gray-600 italic">
-                    "{testimonial.content}"
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                      <span className="text-white font-semibold text-sm">
-                        {testimonial.name.split(' ').map(n => n[0]).join('')}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="font-semibold">{testimonial.name}</div>
-                      <div className="text-sm text-gray-500">{testimonial.role} at {testimonial.company}</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          {/* Comparison Table */}
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-8 shadow-lg">
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 text-center">
+              How We Compare
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700">
+                    <th className="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">Feature</th>
+                    <th className="text-center py-3 px-4 font-semibold text-blue-600">AutoJobr</th>
+                    <th className="text-center py-3 px-4 font-semibold text-slate-500">Competitor A</th>
+                    <th className="text-center py-3 px-4 font-semibold text-slate-500">Competitor B</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {competitorComparison.map((row, index) => (
+                    <tr key={index} className="border-b border-slate-100 dark:border-slate-700">
+                      <td className="py-3 px-4 text-slate-600 dark:text-slate-300">{row.feature}</td>
+                      <td className="py-3 px-4 text-center">
+                        {typeof row.autojobr === 'boolean' ? (
+                          row.autojobr ? (
+                            <CheckCircle className="w-5 h-5 text-green-500 mx-auto" />
+                          ) : (
+                            <div className="w-5 h-5 bg-red-200 rounded-full mx-auto"></div>
+                          )
+                        ) : (
+                          <span className="font-semibold text-blue-600">{row.autojobr}</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {typeof row.competitor1 === 'boolean' ? (
+                          row.competitor1 ? (
+                            <CheckCircle className="w-5 h-5 text-green-500 mx-auto" />
+                          ) : (
+                            <div className="w-5 h-5 bg-red-200 rounded-full mx-auto"></div>
+                          )
+                        ) : (
+                          <span className="text-slate-500">{row.competitor1}</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {typeof row.competitor2 === 'boolean' ? (
+                          row.competitor2 ? (
+                            <CheckCircle className="w-5 h-5 text-green-500 mx-auto" />
+                          ) : (
+                            <div className="w-5 h-5 bg-red-200 rounded-full mx-auto"></div>
+                          )
+                        ) : (
+                          <span className="text-slate-500">{row.competitor2}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-br from-blue-600 to-purple-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl font-bold text-white mb-4">
-            Ready to Transform Your Recruitment?
+      <section className="py-24 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            Ready to Transform Your Hiring?
           </h2>
-          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Join thousands of companies using AutoJobr to find, test, and hire the best talent faster than ever before.
+          <p className="text-xl text-blue-100 mb-8 leading-relaxed">
+            Join 2,500+ companies using AutoJobr to hire faster, smarter, and more effectively. 
+            Start your free trial today - no setup fees, no commitments.
           </p>
-          <div className="flex gap-4 justify-center">
-            <Button 
-              size="lg" 
-              onClick={handleGetStarted}
-              className="bg-white text-blue-600 hover:bg-gray-100 px-8"
-            >
-              Start Free Trial
-              <ArrowRight className="ml-2 h-5 w-5" />
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+            <Link href="/auth">
+              <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 shadow-xl px-8 py-4 text-lg">
+                <Rocket className="w-5 h-5 mr-2" />
+                Start Free 14-Day Trial
+              </Button>
+            </Link>
+            <Button variant="outline" size="lg" className="border-2 border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 text-lg">
+              <Calendar className="w-5 h-5 mr-2" />
+              Schedule Demo
             </Button>
-            <Button variant="outline" size="lg" className="text-white border-white hover:bg-white hover:text-blue-600">
-              <Headphones className="mr-2 h-5 w-5" />
-              Contact Sales
-            </Button>
+          </div>
+          
+          <div className="text-blue-100 text-sm">
+            <CheckCircle className="w-4 h-4 inline mr-2" />
+            14-day free trial • No setup fees • Cancel anytime • Implementation support included
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="bg-slate-900 text-white py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <div className="flex items-center space-x-3 mb-4">
+                <img src={logoImage} alt="AutoJobr" className="w-8 h-8" />
+                <span className="text-xl font-bold">AutoJobr</span>
+              </div>
+              <p className="text-slate-400 mb-4">
+                AI-powered recruitment platform trusted by 2,500+ companies worldwide.
+              </p>
+              <div className="flex space-x-4">
+                <Badge variant="outline" className="text-slate-400 border-slate-600">
+                  SOC 2 Compliant
+                </Badge>
+                <Badge variant="outline" className="text-slate-400 border-slate-600">
+                  GDPR Ready
+                </Badge>
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-4">Platform</h4>
+              <ul className="space-y-2 text-slate-400">
+                <li><Link href="/auth" className="hover:text-white transition-colors">Get Started</Link></li>
+                <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
+                <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">API</a></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-4">Support</h4>
+              <ul className="space-y-2 text-slate-400">
+                <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Live Chat</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Schedule Demo</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Contact Sales</a></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-4">Company</h4>
+              <ul className="space-y-2 text-slate-400">
+                <li><a href="#" className="hover:text-white transition-colors">About</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Press</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Security</a></li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="border-t border-slate-800 pt-8 text-center text-slate-400">
+            <p>&copy; 2025 AutoJobr. All rights reserved. Transforming recruitment with AI.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
