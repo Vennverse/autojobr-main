@@ -1422,11 +1422,17 @@ Additional Information:
       // Get existing resumes count from database
       const existingResumes = await storage.getUserResumes(userId);
       
-      // Check resume limits - Free users: 2 resumes, Premium: unlimited
-      if (user?.planType !== 'premium' && existingResumes.length >= 2) {
+      // Check resume upload limits using premium features service
+      const { premiumFeaturesService } = await import('./premiumFeaturesService');
+      const limitCheck = await premiumFeaturesService.checkFeatureLimit(userId, 'resumeUploads');
+      
+      if (!limitCheck.allowed) {
         return res.status(400).json({ 
-          message: "Free plan allows maximum 2 resumes. Upgrade to Premium for unlimited resumes.",
-          upgradeRequired: true
+          message: `You've reached your resume upload limit of ${limitCheck.limit}. Upgrade to Premium for unlimited resumes.`,
+          upgradeRequired: true,
+          current: limitCheck.current,
+          limit: limitCheck.limit,
+          planType: limitCheck.planType
         });
       }
       
@@ -3549,24 +3555,44 @@ Additional Information:
     try {
       const userId = req.user.id;
       
-      // For now, return a basic subscription structure
-      // In a real app, this would come from your payment provider
+      // Get real user data from database
+      const user = await storage.getUser(userId);
+      const { premiumFeaturesService } = await import('./premiumFeaturesService');
+      
+      const [usage, planType] = await Promise.all([
+        premiumFeaturesService.getUserUsageStats(userId),
+        premiumFeaturesService.getUserPlanType(userId)
+      ]);
+      
+      // Return real subscription data
       const subscriptionData = {
-        planType: 'free',
-        subscriptionStatus: 'active',
-        subscriptionEndDate: null,
+        planType: user?.planType || 'free',
+        subscriptionStatus: user?.subscriptionStatus || 'free',
+        subscriptionEndDate: user?.subscriptionEndDate,
         usage: {
-          jobAnalyses: 0,
-          resumeAnalyses: 0,
-          applications: 0,
-          autoFills: 0
+          jobAnalyses: usage.aiAnalyses || 0,
+          resumeAnalyses: usage.aiAnalyses || 0,
+          applications: usage.jobApplications || 0,
+          autoFills: 0, // Extension feature
+          resumeUploads: usage.resumeUploads || 0,
+          jobPostings: usage.jobPostings || 0
         },
-        limits: {
+        limits: planType === 'premium' || planType === 'enterprise' ? {
+          jobAnalyses: -1, // unlimited
+          resumeAnalyses: -1,
+          applications: -1,
+          autoFills: -1,
+          resumeUploads: -1,
+          jobPostings: -1
+        } : {
           jobAnalyses: 3,
-          resumeAnalyses: 5,
-          applications: 10,
-          autoFills: 5
-        }
+          resumeAnalyses: 3,
+          applications: 50,
+          autoFills: 5,
+          resumeUploads: 2,
+          jobPostings: 2
+        },
+        isPremium: planType === 'premium' || planType === 'enterprise'
       };
       
       res.json(subscriptionData);
@@ -3726,6 +3752,66 @@ Additional Information:
     } catch (error) {
       console.error("Error canceling subscription:", error);
       res.status(500).json({ message: "Failed to cancel subscription" });
+    }
+  });
+
+  // Premium features management endpoints
+  app.get('/api/premium/features', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { premiumFeaturesService } = await import('./premiumFeaturesService');
+      
+      const [planType, usage, access, value] = await Promise.all([
+        premiumFeaturesService.getUserPlanType(userId),
+        premiumFeaturesService.getUserUsageStats(userId),
+        premiumFeaturesService.getPremiumFeatureAccess(userId),
+        premiumFeaturesService.getPremiumValue(userId)
+      ]);
+      
+      res.json({
+        planType,
+        usage,
+        access,
+        value,
+        isPremium: planType === 'premium' || planType === 'enterprise'
+      });
+    } catch (error) {
+      console.error('Error fetching premium features:', error);
+      res.status(500).json({ message: 'Failed to fetch premium features' });
+    }
+  });
+
+  // Check specific feature limits
+  app.get('/api/premium/check/:feature', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const feature = req.params.feature;
+      const { premiumFeaturesService } = await import('./premiumFeaturesService');
+      
+      const limitCheck = await premiumFeaturesService.checkFeatureLimit(userId, feature);
+      const validation = await premiumFeaturesService.validateFeatureUsage(userId, feature);
+      
+      res.json({
+        ...limitCheck,
+        ...validation
+      });
+    } catch (error) {
+      console.error('Error checking feature limit:', error);
+      res.status(500).json({ message: 'Failed to check feature limit' });
+    }
+  });
+
+  // Get premium value proposition
+  app.get('/api/premium/value', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { premiumFeaturesService } = await import('./premiumFeaturesService');
+      
+      const value = await premiumFeaturesService.getPremiumValue(userId);
+      res.json(value);
+    } catch (error) {
+      console.error('Error getting premium value:', error);
+      res.status(500).json({ message: 'Failed to get premium value' });
     }
   });
 
@@ -5688,6 +5774,20 @@ Additional Information:
   app.post('/api/jobs/postings/:jobId/apply', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      
+      // Check job application limits using premium features service
+      const { premiumFeaturesService } = await import('./premiumFeaturesService');
+      const limitCheck = await premiumFeaturesService.checkFeatureLimit(userId, 'jobApplications');
+      
+      if (!limitCheck.allowed) {
+        return res.status(429).json({ 
+          message: `You've reached your job application limit of ${limitCheck.limit}. Upgrade to Premium for unlimited applications.`,
+          upgradeRequired: true,
+          current: limitCheck.current,
+          limit: limitCheck.limit,
+          planType: limitCheck.planType
+        });
+      }
       
       // Handle both "job-X" format and direct integer IDs (same as GET endpoint)
       let jobId;
