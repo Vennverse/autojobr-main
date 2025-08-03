@@ -148,6 +148,12 @@ export function Navbar() {
           current: location === "/jobs"
         },
         {
+          name: "Post Jobs",
+          href: "/post-job",
+          icon: Target,
+          current: location === "/post-job" || location.startsWith("/recruiter/")
+        },
+        {
           name: "Tests",
           href: "/tests",
           icon: Brain,
