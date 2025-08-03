@@ -145,10 +145,10 @@ export default function PremiumTargetingPayment() {
   };
 
   const handlePayment = () => {
-    if (selectedPaymentMethod === 'stripe') {
-      handleStripePayment();
-    } else {
+    if (selectedPaymentMethod === 'paypal') {
       handlePayPalPayment();
+    } else {
+      handlePayPalPayment(); // Default to PayPal for now
     }
   };
 
