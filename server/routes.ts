@@ -168,6 +168,7 @@ import { db } from "./db";
 import * as schema from "@shared/schema";
 import { eq, and, ne, count } from "drizzle-orm";
 import { groqService } from "./groqService";
+import { apiKeyRotationService } from "./apiKeyRotationService";
 import { customNLPService } from "./customNLP";
 import { recruiterAnalytics } from "./recruiterAnalytics.js";
 import { subscriptionService } from "./subscriptionService";
@@ -8984,11 +8985,13 @@ Host: https://autojobr.com`;
         Return ONLY the JSON object, no additional text.
       `;
 
-      const response = await groqService.client.chat.completions.create({
-        model: groqService.getModel ? groqService.getModel(user) : "llama-3.1-8b-instant",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 4000,
-        temperature: 0.7
+      const response = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
+        return await client.chat.completions.create({
+          model: groqService.getModel ? groqService.getModel(user) : "llama-3.1-8b-instant",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 4000,
+          temperature: 0.7
+        });
       });
 
       const analysisText = response.choices[0].message.content;
@@ -9603,11 +9606,13 @@ Host: https://autojobr.com`;
   // Test endpoint to verify Groq AI functionality
   app.get('/api/test-ai', async (req, res) => {
     try {
-      const testCompletion = await groqService.client.chat.completions.create({
-        messages: [{ role: "user", content: "Say 'AI is working' in JSON format: {\"status\": \"working\", \"message\": \"AI is working\"}" }],
-        model: "llama-3.1-8b-instant",
-        temperature: 0.1,
-        max_tokens: 100,
+      const testCompletion = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
+        return await client.chat.completions.create({
+          messages: [{ role: "user", content: "Say 'AI is working' in JSON format: {\"status\": \"working\", \"message\": \"AI is working\"}" }],
+          model: "llama-3.1-8b-instant",
+          temperature: 0.1,
+          max_tokens: 100,
+        });
       });
 
       const response = testCompletion.choices[0]?.message?.content;
