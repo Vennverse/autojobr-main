@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,7 +24,11 @@ import {
   Briefcase,
   Search,
   Filter,
-  Eye
+  Eye,
+  Sparkles,
+  Globe,
+  Layers,
+  ChevronLeft
 } from "lucide-react";
 import logoImage from "@assets/generated_images/AutoJobr_professional_logo_17c702fa.png";
 import heroBackground from "@assets/generated_images/Professional_hero_background_15f13bf2.png";
@@ -110,7 +114,7 @@ const pricingPlans = [
   },
   {
     name: "Premium",
-    price: "$29",
+    price: "$10",
     description: "For serious job seekers",
     features: [
       "Unlimited job applications",
@@ -140,47 +144,201 @@ const pricingPlans = [
   }
 ];
 
+// Animated Counter Component
+const AnimatedCounter = ({ end, duration = 2000, suffix = "" }) => {
+  const [count, setCount] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !isVisible) {
+          setIsVisible(true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, [isVisible]);
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const endValue = parseInt(end.replace(/[^\d]/g, ''));
+    let startTime = null;
+
+    const animate = (currentTime) => {
+      if (!startTime) startTime = currentTime;
+      const progress = Math.min((currentTime - startTime) / duration, 1);
+      
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      setCount(Math.floor(easeOutQuart * endValue));
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [isVisible, end, duration]);
+
+  return (
+    <span ref={ref}>
+      {count}{suffix}
+    </span>
+  );
+};
+
+// Floating Particles Component
+const FloatingParticles = () => {
+  const particles = Array.from({ length: 20 }, (_, i) => ({
+    id: i,
+    size: Math.random() * 4 + 2,
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    duration: Math.random() * 20 + 10,
+    delay: Math.random() * 5,
+  }));
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {particles.map((particle) => (
+        <div
+          key={particle.id}
+          className="absolute rounded-full bg-gradient-to-r from-blue-400/20 to-purple-400/20 animate-float"
+          style={{
+            width: `${particle.size}px`,
+            height: `${particle.size}px`,
+            left: `${particle.x}%`,
+            top: `${particle.y}%`,
+            animationDuration: `${particle.duration}s`,
+            animationDelay: `${particle.delay}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
+// Typing Animation Component
+const TypingAnimation = ({ texts, speed = 100, deleteSpeed = 50, pauseTime = 2000 }) => {
+  const [displayText, setDisplayText] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const currentText = texts[currentIndex];
+    
+    const timeout = setTimeout(() => {
+      if (!isDeleting) {
+        if (displayText.length < currentText.length) {
+          setDisplayText(currentText.slice(0, displayText.length + 1));
+        } else {
+          setTimeout(() => setIsDeleting(true), pauseTime);
+        }
+      } else {
+        if (displayText.length > 0) {
+          setDisplayText(displayText.slice(0, -1));
+        } else {
+          setIsDeleting(false);
+          setCurrentIndex((prev) => (prev + 1) % texts.length);
+        }
+      }
+    }, isDeleting ? deleteSpeed : speed);
+
+    return () => clearTimeout(timeout);
+  }, [displayText, currentIndex, isDeleting, texts, speed, deleteSpeed, pauseTime]);
+
+  return (
+    <span className="inline-block">
+      {displayText}
+      <span className="animate-pulse">|</span>
+    </span>
+  );
+};
+
 export default function LandingPage() {
   const [isVisible, setIsVisible] = useState(false);
+  const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     setIsVisible(true);
+    
+    // Mouse tracking for parallax effects
+    const handleMouseMove = (e) => {
+      setMousePosition({
+        x: (e.clientX / window.innerWidth) * 2 - 1,
+        y: (e.clientY / window.innerHeight) * 2 - 1,
+      });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  // Auto-rotate testimonials
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <FloatingParticles />
+      
+      {/* Morphing Background Gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-400/5 via-purple-400/5 to-pink-400/5 animate-gradient-shift"></div>
+      
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-700/50">
+      <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-700/50 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <img src={logoImage} alt="AutoJobr" className="w-8 h-8" />
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <div className="flex items-center space-x-3 group">
+              <img 
+                src={logoImage} 
+                alt="AutoJobr" 
+                className="w-8 h-8 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" 
+              />
+              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent hover:from-purple-600 hover:to-pink-600 transition-all duration-300">
                 AutoJobr
               </span>
             </div>
             
             <nav className="hidden md:flex space-x-8">
-              <Link href="#features" className="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors">
+              <Link href="#features" className="relative text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-all duration-300 group">
                 Features
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 group-hover:w-full transition-all duration-300"></span>
               </Link>
-              <Link href="#pricing" className="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors">
+              <Link href="#pricing" className="relative text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-all duration-300 group">
                 Pricing
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 group-hover:w-full transition-all duration-300"></span>
               </Link>
-              <Link href="/recruiter-features" className="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors">
+              <Link href="/recruiter-features" className="relative text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-all duration-300 group">
                 For Recruiters
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 group-hover:w-full transition-all duration-300"></span>
               </Link>
             </nav>
             
             <div className="flex items-center space-x-4">
               <Link href="/auth">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-300 hover:scale-105">
                   Sign In
                 </Button>
               </Link>
               <Link href="/auth">
-                <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg">
-                  Get Started Free
+                <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden group">
+                  <span className="relative z-10">Get Started Free</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </Button>
               </Link>
             </div>
@@ -190,41 +348,62 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative pt-20 pb-32 overflow-hidden">
+        {/* Parallax Background */}
         <div 
-          className="absolute inset-0 bg-cover bg-center opacity-5"
-          style={{ backgroundImage: `url(${heroBackground})` }}
+          className="absolute inset-0 bg-cover bg-center opacity-5 transition-transform duration-1000"
+          style={{ 
+            backgroundImage: `url(${heroBackground})`,
+            transform: `translate(${mousePosition.x * 10}px, ${mousePosition.y * 10}px)`
+          }}
         />
+        
+        {/* Floating Geometric Shapes */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-20 left-10 w-20 h-20 bg-gradient-to-r from-blue-400/10 to-purple-400/10 rounded-full animate-bounce-slow"></div>
+          <div className="absolute top-40 right-20 w-16 h-16 bg-gradient-to-r from-purple-400/10 to-pink-400/10 rounded-lg rotate-45 animate-spin-slow"></div>
+          <div className="absolute bottom-40 left-20 w-12 h-12 bg-gradient-to-r from-pink-400/10 to-blue-400/10 rounded-full animate-pulse"></div>
+          <div className="absolute top-60 right-40 w-8 h-8 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full animate-ping"></div>
+        </div>
+        
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-              <Badge className="mb-6 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border-blue-200">
-                <Rocket className="w-3 h-3 mr-1" />
+              <Badge className="mb-6 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border-blue-200 hover:scale-105 transition-transform duration-300 cursor-pointer">
+                <Rocket className="w-3 h-3 mr-1 animate-bounce" />
                 #1 AI-Powered Job Platform
+                <Sparkles className="w-3 h-3 ml-1 animate-pulse" />
               </Badge>
               
               <h1 className="text-5xl md:text-7xl font-bold text-slate-900 dark:text-white mb-6 leading-tight">
                 Land Your
-                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent"> Dream Job</span>
+                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-gradient-x"> Dream Job</span>
                 <br />
-                3x Faster
+                <TypingAnimation 
+                  texts={["5x Faster", "Smarter", "Better", "Easier"]}
+                  speed={150}
+                  deleteSpeed={100}
+                  pauseTime={2000}
+                />
               </h1>
               
               <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-                Join 50,000+ professionals using AI-powered job matching, resume optimization, and career acceleration tools to transform their careers.
+                Transform your job search with AI — built to match you with the right roles, optimize your resume, and accelerate your career.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
                 <Link href="/auth">
-                  <Button size="lg" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-lg">
-                    <Zap className="w-5 h-5 mr-2" />
-                    Start Your Career Journey
-                    <ArrowRight className="w-5 h-5 ml-2" />
+                  <Button size="lg" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 px-8 py-4 text-lg relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <Zap className="w-5 h-5 mr-2 relative z-10 group-hover:animate-pulse" />
+                    <span className="relative z-10">Start Your Career Journey</span>
+                    <ArrowRight className="w-5 h-5 ml-2 relative z-10 group-hover:translate-x-1 transition-transform duration-300" />
                   </Button>
                 </Link>
                 <Link href="/recruiter-features">
-                  <Button variant="outline" size="lg" className="border-2 border-slate-300 hover:border-slate-400 px-8 py-4 text-lg">
-                    <Users className="w-5 h-5 mr-2" />
+                  <Button variant="outline" size="lg" className="border-2 border-slate-300 hover:border-slate-400 px-8 py-4 text-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-300 hover:scale-105 group">
+                    <Users className="w-5 h-5 mr-2 group-hover:animate-bounce" />
                     For Recruiters
+                    <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
                   </Button>
                 </Link>
               </div>
@@ -249,18 +428,20 @@ export default function LandingPage() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-white/50 dark:bg-slate-800/50">
+      <section className="py-16 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => {
               const Icon = stat.icon;
               return (
-                <div key={index} className="text-center">
-                  <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mb-4">
-                    <Icon className="w-6 h-6 text-white" />
+                <div key={index} className="text-center group hover:scale-105 transition-all duration-300">
+                  <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mb-4 group-hover:shadow-lg group-hover:shadow-blue-500/25 transition-all duration-300 group-hover:rotate-12">
+                    <Icon className="w-6 h-6 text-white group-hover:scale-110 transition-transform duration-300" />
                   </div>
-                  <div className="text-3xl font-bold text-slate-900 dark:text-white mb-2">{stat.value}</div>
-                  <div className="text-slate-600 dark:text-slate-300">{stat.label}</div>
+                  <div className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+                    <AnimatedCounter end={stat.value} suffix={stat.value.includes('+') ? '+' : ''} />
+                  </div>
+                  <div className="text-slate-600 dark:text-slate-300 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors duration-300">{stat.label}</div>
                 </div>
               );
             })}
@@ -284,13 +465,30 @@ export default function LandingPage() {
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
-                <Card key={index} className="group hover:shadow-xl transition-all duration-300 border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur">
-                  <CardContent className="p-8">
-                    <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mb-4 group-hover:scale-110 transition-transform duration-300">
-                      <Icon className="w-6 h-6 text-white" />
+                <Card 
+                  key={index} 
+                  className="group hover:shadow-xl transition-all duration-500 border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur hover:bg-white/90 dark:hover:bg-slate-800/90 hover:scale-105 hover:-translate-y-2"
+                  style={{
+                    animationDelay: `${index * 100}ms`,
+                    animation: isVisible ? 'fadeInUp 0.6s ease-out forwards' : 'none'
+                  }}
+                >
+                  <CardContent className="p-8 relative overflow-hidden">
+                    {/* Hover gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    
+                    <div className="relative z-10">
+                      <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mb-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-blue-500/25">
+                        <Icon className="w-6 h-6 text-white group-hover:animate-pulse" />
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">{feature.title}</h3>
+                      <p className="text-slate-600 dark:text-slate-300 leading-relaxed group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors duration-300">{feature.description}</p>
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">{feature.title}</h3>
-                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed">{feature.description}</p>
+                    
+                    {/* Animated border */}
+                    <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ padding: '1px' }}>
+                      <div className="w-full h-full bg-white dark:bg-slate-800 rounded-lg"></div>
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -340,22 +538,36 @@ export default function LandingPage() {
               </Link>
             </div>
             
-            <div className="relative">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg opacity-20 blur-xl group-hover:opacity-30 transition-opacity duration-300"></div>
               <img 
                 src={dashboardMockup} 
                 alt="AutoJobr Dashboard" 
-                className="rounded-lg shadow-2xl w-full transform hover:scale-105 transition-transform duration-300"
+                className="relative rounded-lg shadow-2xl w-full transform hover:scale-105 transition-all duration-500 hover:shadow-3xl"
+                style={{
+                  transform: `perspective(1000px) rotateY(${mousePosition.x * 5}deg) rotateX(${mousePosition.y * -5}deg)`
+                }}
               />
-              <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full opacity-20 animate-pulse"></div>
-              <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full opacity-20 animate-pulse animation-delay-1000"></div>
+              
+              {/* Floating elements around the dashboard */}
+              <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full opacity-20 animate-pulse group-hover:animate-bounce"></div>
+              <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full opacity-20 animate-pulse group-hover:animate-spin-slow" style={{ animationDelay: '1s' }}></div>
+              <div className="absolute top-10 -left-6 w-16 h-16 bg-gradient-to-r from-pink-500 to-blue-500 rounded-lg opacity-15 animate-float group-hover:animate-bounce" style={{ animationDelay: '2s' }}></div>
+              <div className="absolute -top-6 left-1/3 w-12 h-12 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full opacity-25 animate-ping group-hover:animate-pulse"></div>
+              
+              {/* Interactive overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"></div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Testimonials */}
-      <section className="py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-24 relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-900/10 dark:to-purple-900/10"></div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
               Success Stories
@@ -365,29 +577,80 @@ export default function LandingPage() {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <Card key={index} className="border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur">
-                <CardContent className="p-8">
-                  <div className="flex items-center mb-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xl mr-4">
-                      {testimonial.image}
+          {/* Testimonial Carousel */}
+          <div className="relative">
+            <div className="flex justify-center mb-8">
+              <div className="flex space-x-2">
+                {testimonials.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentTestimonial(index)}
+                    className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                      index === currentTestimonial 
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 scale-125' 
+                        : 'bg-slate-300 dark:bg-slate-600 hover:bg-slate-400 dark:hover:bg-slate-500'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {testimonials.map((testimonial, index) => (
+                <Card 
+                  key={index} 
+                  className={`border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur transition-all duration-500 hover:scale-105 hover:shadow-xl ${
+                    index === currentTestimonial 
+                      ? 'ring-2 ring-blue-500 shadow-xl scale-105' 
+                      : 'hover:shadow-lg'
+                  }`}
+                >
+                  <CardContent className="p-8 relative overflow-hidden">
+                    {/* Highlight effect for current testimonial */}
+                    {index === currentTestimonial && (
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5"></div>
+                    )}
+                    
+                    <div className="relative z-10">
+                      <div className="flex items-center mb-4">
+                        <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xl mr-4 hover:scale-110 transition-transform duration-300">
+                          {testimonial.image}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-slate-900 dark:text-white">{testimonial.name}</div>
+                          <div className="text-sm text-slate-600 dark:text-slate-300">{testimonial.role}</div>
+                          <div className="text-sm text-slate-500">{testimonial.company}</div>
+                        </div>
+                      </div>
+                      <div className="flex mb-4">
+                        {[...Array(5)].map((_, i) => (
+                          <Star 
+                            key={i} 
+                            className="w-4 h-4 text-yellow-400 fill-current hover:scale-125 transition-transform duration-200" 
+                            style={{ animationDelay: `${i * 100}ms` }}
+                          />
+                        ))}
+                      </div>
+                      <p className="text-slate-600 dark:text-slate-300 italic leading-relaxed">"{testimonial.quote}"</p>
                     </div>
-                    <div>
-                      <div className="font-semibold text-slate-900 dark:text-white">{testimonial.name}</div>
-                      <div className="text-sm text-slate-600 dark:text-slate-300">{testimonial.role}</div>
-                      <div className="text-sm text-slate-500">{testimonial.company}</div>
-                    </div>
-                  </div>
-                  <div className="flex mb-4">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
-                    ))}
-                  </div>
-                  <p className="text-slate-600 dark:text-slate-300 italic">"{testimonial.quote}"</p>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            
+            {/* Navigation arrows */}
+            <button
+              onClick={() => setCurrentTestimonial((prev) => (prev - 1 + testimonials.length) % testimonials.length)}
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 bg-white dark:bg-slate-800 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-all duration-300 hover:shadow-xl"
+            >
+              <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+            </button>
+            <button
+              onClick={() => setCurrentTestimonial((prev) => (prev + 1) % testimonials.length)}
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 bg-white dark:bg-slate-800 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-all duration-300 hover:shadow-xl"
+            >
+              <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+            </button>
           </div>
         </div>
       </section>
@@ -406,43 +669,76 @@ export default function LandingPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {pricingPlans.map((plan, index) => (
-              <Card key={index} className={`relative border-0 ${plan.popular ? 'ring-2 ring-blue-500 bg-white dark:bg-slate-900' : 'bg-white/80 dark:bg-slate-800/80'} backdrop-blur`}>
+              <Card 
+                key={index} 
+                className={`relative border-0 transition-all duration-500 hover:scale-105 hover:-translate-y-2 group ${
+                  plan.popular 
+                    ? 'ring-2 ring-blue-500 bg-white dark:bg-slate-900 shadow-xl hover:shadow-2xl' 
+                    : 'bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 hover:shadow-xl'
+                } backdrop-blur`}
+              >
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                    <Badge className="bg-gradient-to-r from-blue-500 to-purple-600 text-white animate-pulse hover:animate-bounce">
+                      <Crown className="w-3 h-3 mr-1" />
                       Most Popular
+                      <Sparkles className="w-3 h-3 ml-1" />
                     </Badge>
                   </div>
                 )}
-                <CardContent className="p-8">
+                
+                {/* Hover glow effect */}
+                <div className={`absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                  plan.popular 
+                    ? 'bg-gradient-to-r from-blue-500/10 to-purple-600/10' 
+                    : 'bg-gradient-to-r from-slate-500/5 to-slate-600/5'
+                }`}></div>
+                
+                <CardContent className="p-8 relative z-10">
                   <div className="text-center mb-8">
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{plan.name}</h3>
-                    <div className="text-4xl font-bold text-slate-900 dark:text-white mb-2">
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
+                      {plan.name}
+                    </h3>
+                    <div className="text-4xl font-bold text-slate-900 dark:text-white mb-2 group-hover:scale-110 transition-transform duration-300">
                       {plan.price}
                       {plan.price !== "Custom" && <span className="text-lg text-slate-500">/month</span>}
                     </div>
-                    <p className="text-slate-600 dark:text-slate-300">{plan.description}</p>
+                    <p className="text-slate-600 dark:text-slate-300 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors duration-300">
+                      {plan.description}
+                    </p>
                   </div>
                   
                   <ul className="space-y-3 mb-8">
                     {plan.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-center">
-                        <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                        <span className="text-slate-600 dark:text-slate-300">{feature}</span>
+                      <li 
+                        key={featureIndex} 
+                        className="flex items-center group-hover:translate-x-1 transition-transform duration-300"
+                        style={{ transitionDelay: `${featureIndex * 50}ms` }}
+                      >
+                        <CheckCircle className="w-5 h-5 text-green-500 mr-3 group-hover:scale-110 transition-transform duration-300" />
+                        <span className="text-slate-600 dark:text-slate-300 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors duration-300">
+                          {feature}
+                        </span>
                       </li>
                     ))}
                   </ul>
                   
                   <Link href="/auth">
                     <Button 
-                      className={`w-full ${plan.popular 
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white' 
-                        : 'bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600'
+                      className={`w-full transition-all duration-300 hover:scale-105 relative overflow-hidden group/btn ${
+                        plan.popular 
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl' 
+                          : 'bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600 hover:shadow-lg'
                       }`}
                       size="lg"
                     >
-                      {plan.cta}
-                      <ArrowRight className="w-4 h-4 ml-2" />
+                      {plan.popular && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300"></div>
+                      )}
+                      <span className="relative z-10 flex items-center justify-center">
+                        {plan.cta}
+                        <ArrowRight className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform duration-300" />
+                      </span>
                     </Button>
                   </Link>
                 </CardContent>
@@ -453,34 +749,54 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
-        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+      <section className="py-24 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 relative overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0">
+          <div className="absolute top-10 left-10 w-32 h-32 bg-white/10 rounded-full animate-float"></div>
+          <div className="absolute top-20 right-20 w-24 h-24 bg-white/5 rounded-lg rotate-45 animate-spin-slow"></div>
+          <div className="absolute bottom-20 left-1/4 w-16 h-16 bg-white/10 rounded-full animate-bounce-slow"></div>
+          <div className="absolute bottom-10 right-1/3 w-20 h-20 bg-white/5 rounded-full animate-pulse"></div>
+        </div>
+        
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8 relative z-10">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 animate-fade-in">
             Ready to Transform Your Career?
           </h2>
-          <p className="text-xl text-blue-100 mb-8 leading-relaxed">
+          <p className="text-xl text-blue-100 mb-8 leading-relaxed animate-fade-in-delay">
             Join thousands of professionals who've accelerated their careers with AutoJobr. 
             Start your journey today - it's free!
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
             <Link href="/auth">
-              <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 shadow-xl px-8 py-4 text-lg">
-                <Rocket className="w-5 h-5 mr-2" />
+              <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 shadow-xl px-8 py-4 text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl group">
+                <Rocket className="w-5 h-5 mr-2 group-hover:animate-bounce" />
                 Get Started Free
+                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
               </Button>
             </Link>
             <Link href="/recruiter-features">
-              <Button variant="outline" size="lg" className="border-2 border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 text-lg">
-                <Users className="w-5 h-5 mr-2" />
+              <Button variant="outline" size="lg" className="border-2 border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 text-lg transition-all duration-300 hover:scale-105 group">
+                <Users className="w-5 h-5 mr-2 group-hover:animate-bounce" />
                 For Recruiters
+                <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
               </Button>
             </Link>
           </div>
           
-          <div className="mt-8 text-blue-100 text-sm">
-            <CheckCircle className="w-4 h-4 inline mr-2" />
-            Free forever plan available • No credit card required • Setup in minutes
+          <div className="flex justify-center space-x-8 text-blue-100 text-sm">
+            <div className="flex items-center hover:scale-105 transition-transform duration-300">
+              <CheckCircle className="w-4 h-4 mr-2 animate-pulse" />
+              Free forever plan available
+            </div>
+            <div className="flex items-center hover:scale-105 transition-transform duration-300">
+              <CheckCircle className="w-4 h-4 mr-2 animate-pulse" style={{ animationDelay: '0.5s' }} />
+              No credit card required
+            </div>
+            <div className="flex items-center hover:scale-105 transition-transform duration-300">
+              <CheckCircle className="w-4 h-4 mr-2 animate-pulse" style={{ animationDelay: '1s' }} />
+              Setup in minutes
+            </div>
           </div>
         </div>
       </section>

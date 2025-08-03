@@ -205,10 +205,10 @@ const competitorComparison = [
     competitor2: false 
   },
   { 
-    feature: "Cost per hire", 
-    autojobr: "$2,500", 
-    competitor1: "$4,200", 
-    competitor2: "$3,800" 
+    feature: "Starting price", 
+    autojobr: "From $99/mo", 
+    competitor1: "From $300/mo", 
+    competitor2: "From $250/mo" 
   }
 ];
 

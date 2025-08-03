@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import custom animations */
+@import './styles/animations.css';
+
 /* Performance & SEO Optimizations */
 @layer base {
   /* Improve font loading performance */
