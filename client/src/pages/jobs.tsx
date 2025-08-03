@@ -317,12 +317,12 @@ export default function Jobs() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <Navbar />
       
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Header */}
-        <div className="mb-6">
+      {/* Fixed Header */}
+      <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
@@ -352,11 +352,14 @@ export default function Jobs() {
             </CardContent>
           </Card>
         </div>
+      </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Job List */}
-          <div className="space-y-4">
+      {/* Main Content - Full Height with Independent Scrolling */}
+      <div className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+          {/* Job List - Scrollable */}
+          <div className="h-full">
+            <div className="h-[calc(100vh-240px)] overflow-y-auto pr-2 space-y-4">
             {jobsLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <Card key={i} className="border-0 shadow-sm">
@@ -491,7 +494,7 @@ export default function Jobs() {
             
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-6">
+              <div className="flex items-center justify-between mt-6 pb-4">
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
@@ -549,10 +552,12 @@ export default function Jobs() {
                 </p>
               </div>
             )}
+            </div>
           </div>
 
-          {/* Job Detail Panel */}
-          <div className="lg:sticky lg:top-6 lg:h-fit">
+          {/* Job Detail Panel - Scrollable */}
+          <div className="h-full">
+            <div className="h-[calc(100vh-240px)] overflow-y-auto pl-2">
             {selectedJob ? (
               <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
                 <CardContent className="p-6">
@@ -700,6 +705,7 @@ export default function Jobs() {
                 </CardContent>
               </Card>
             )}
+            </div>
           </div>
         </div>
       </div>
