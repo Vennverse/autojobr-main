@@ -173,6 +173,16 @@ export default function EnhancedDashboard() {
   // Feature cards data
   const featureCards = [
     {
+      title: "Career AI Assistant",
+      description: "Get personalized career guidance, skill gap analysis, and AI-powered career roadmaps",
+      icon: Brain,
+      route: "/career-ai-assistant",
+      stats: "Powered by AI",
+      gradient: "from-orange-500 to-red-500",
+      action: "Get Insights",
+      helpText: "AI analyzes your profile and provides strategic career advice, skill recommendations, and growth pathways"
+    },
+    {
       title: "Smart Job Matching",
       description: "Find perfect jobs with AI matching algorithm that analyzes your skills and preferences",
       icon: Target,

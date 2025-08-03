@@ -55,7 +55,6 @@ export function Navbar() {
       return [
         { href: "/", label: "Dashboard", icon: BarChart3 },
         { href: "/post-job", label: "Post Job", icon: Plus },
-        { href: "/career-ai-assistant", label: "AI Assistant", icon: Brain },
         { href: "/test-assignments", label: "Test Assignments", icon: FileText },
         { href: "/profile", label: "Profile", icon: User },
         { href: "/chat", label: "Messages", icon: MessageCircle },

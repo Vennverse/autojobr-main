@@ -435,7 +435,7 @@ export default function RecruiterDashboard() {
         </Card>
 
         {/* New Features Showcase */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <Card className="border-2 border-blue-200 dark:border-blue-800">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -513,47 +513,6 @@ export default function RecruiterDashboard() {
                   variant="outline"
                 >
                   Assign AI Interview
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2 border-orange-200 dark:border-orange-800">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Brain className="w-5 h-5 text-orange-600" />
-                Career AI Assistant
-              </CardTitle>
-              <CardDescription>
-                AI-powered career analysis and personalized insights for optimization
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Career Path Analysis</span>
-                  <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-                    Strategic
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Skill Gap Insights</span>
-                  <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                    AI-Powered
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Market Timing</span>
-                  <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                    Data-Driven
-                  </Badge>
-                </div>
-                <Button
-                  onClick={() => setLocation("/career-ai-assistant")}
-                  className="w-full mt-4"
-                  variant="outline"
-                >
-                  Get AI Insights
                 </Button>
               </div>
             </CardContent>
