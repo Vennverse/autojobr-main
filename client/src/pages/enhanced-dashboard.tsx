@@ -484,63 +484,7 @@ export default function EnhancedDashboard() {
 
           {/* Main Feature Cards Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Resume Analysis Card */}
-            <motion.div variants={itemVariants}>
-              <Card className="h-full border-0 overflow-hidden relative bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950 dark:to-cyan-950">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-cyan-500 opacity-5" />
-                <CardContent className="p-6 relative">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500">
-                      <Brain className="w-6 h-6 text-white" />
-                    </div>
-                    {resumes && resumes.length > 0 && (
-                      <Badge className="bg-green-500 text-white">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Active
-                      </Badge>
-                    )}
-                  </div>
-                  
-                  <h3 className="text-xl font-semibold mb-2">Resume Analysis</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Upload and optimize your resumes with AI-powered ATS scoring
-                  </p>
-                  
-                  {resumes && resumes.length > 0 ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">ATS Score</span>
-                        <span className="text-lg font-bold text-blue-600">{resumeScore}%</span>
-                      </div>
-                      <Progress value={resumeScore} className="h-2" />
-                      <p className="text-xs text-muted-foreground">
-                        Your resume is optimized for Applicant Tracking Systems. 94% of recruiters use ATS to filter candidates.
-                      </p>
-                      <Button 
-                        size="sm" 
-                        className="w-full"
-                        onClick={() => setLocation("/profile")}
-                      >
-                        View Analysis
-                        <Eye className="w-3 h-3 ml-1" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="text-center">
-                      <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                      <p className="text-sm text-muted-foreground mb-4">Upload your resume to get instant AI analysis</p>
-                      <Button 
-                        className="w-full"
-                        onClick={() => setLocation("/profile")}
-                      >
-                        <Upload className="w-4 h-4 mr-2" />
-                        Upload Resume
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
+
 
             {/* Assigned Tests Card */}
             <motion.div variants={itemVariants}>
