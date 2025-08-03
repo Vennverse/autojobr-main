@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { CheckCircle, Upload, FileText, AlertCircle, Star, TrendingUp } from "lucide-react";
+import { CheckCircle, Upload, FileText, AlertCircle, Star, TrendingUp, Zap, Target } from "lucide-react";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { useLocation } from "wouter";
 
@@ -203,7 +203,54 @@ export default function Onboarding() {
     setFormData((prev: any) => ({ ...prev, [field]: value }));
   };
 
+  // Validation functions for each step
+  const validateStep = (stepId: string): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+    
+    switch (stepId) {
+      case "basic_info":
+        if (!formData.fullName?.trim()) errors.push("Full Name is required");
+        if (!formData.phone?.trim()) errors.push("Phone Number is required");
+        if (!formData.professionalTitle?.trim()) errors.push("Professional Title is required");
+        break;
+        
+      case "work_auth":
+        if (!formData.workAuthorization) errors.push("Work Authorization Status is required");
+        break;
+        
+      case "location":
+        if (!formData.city?.trim()) errors.push("City is required");
+        if (!formData.state?.trim()) errors.push("State is required");
+        break;
+        
+      case "preferences":
+        if (!formData.desiredSalaryMin || formData.desiredSalaryMin <= 0) errors.push("Minimum Salary is required");
+        if (!formData.desiredSalaryMax || formData.desiredSalaryMax <= 0) errors.push("Maximum Salary is required");
+        if (!formData.noticePeriod) errors.push("Notice Period is required");
+        if (!formData.highestDegree) errors.push("Highest Degree is required");
+        break;
+        
+      case "resume":
+        if (!onboardingStatus?.hasResume) errors.push("Please upload your resume to continue");
+        break;
+    }
+    
+    return { isValid: errors.length === 0, errors };
+  };
+
   const handleNext = async () => {
+    const currentStepData = steps[currentStep];
+    const validation = validateStep(currentStepData.id);
+    
+    if (!validation.isValid) {
+      toast({
+        title: "Please complete required fields",
+        description: validation.errors.join(", "),
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (currentStep < steps.length - 1) {
       // Save current step data
       await profileMutation.mutateAsync(formData);
@@ -633,6 +680,68 @@ export default function Onboarding() {
                 placeholder="2020"
               />
             </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: "extension",
+      title: "Get the AutoJobr Extension",
+      description: "Download our browser extension for seamless job applications",
+      content: (
+        <div className="space-y-6 text-center">
+          <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 rounded-xl p-8">
+            <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
+              <Upload className="w-10 h-10 text-white" />
+            </div>
+            <h3 className="text-2xl font-bold mb-4">AutoJobr Browser Extension</h3>
+            <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
+              Install our browser extension to automatically fill job applications using your profile data. 
+              Save hours of repetitive form filling and apply to more jobs faster.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border">
+                <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                <h4 className="font-semibold mb-1">Auto-Fill Forms</h4>
+                <p className="text-sm text-muted-foreground">Instantly populate job applications with your saved data</p>
+              </div>
+              <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border">
+                <Zap className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
+                <h4 className="font-semibold mb-1">Save Time</h4>
+                <p className="text-sm text-muted-foreground">Apply to 10x more jobs in the same amount of time</p>
+              </div>
+              <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border">
+                <Target className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                <h4 className="font-semibold mb-1">Track Applications</h4>
+                <p className="text-sm text-muted-foreground">Automatically track and manage all your applications</p>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <Button 
+                size="lg" 
+                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold px-8 py-3"
+                onClick={() => window.open("https://chrome.google.com/webstore", "_blank")}
+              >
+                <Upload className="w-5 h-5 mr-2" />
+                Download Chrome Extension
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                Available for Chrome, Firefox, and Edge browsers
+              </p>
+            </div>
+          </div>
+          
+          <div className="text-left bg-gray-50 dark:bg-gray-900 rounded-lg p-6">
+            <h4 className="font-semibold mb-3">How to use the extension:</h4>
+            <ol className="space-y-2 text-sm text-muted-foreground">
+              <li>1. Install the extension from your browser's web store</li>
+              <li>2. Sign in with your AutoJobr account</li>
+              <li>3. Navigate to any job application page</li>
+              <li>4. Click the AutoJobr icon to auto-fill the form</li>
+              <li>5. Review and submit your application</li>
+            </ol>
           </div>
         </div>
       )

@@ -44,7 +44,7 @@ export function Navbar() {
     }
   };
 
-  // Define navigation items based on user type
+  // Define navigation items based on user type - simplified like LinkedIn
   const getNavItems = () => {
     if (!user) {
       // For non-authenticated users
@@ -53,27 +53,21 @@ export function Navbar() {
       ];
     } else if (user?.userType === 'recruiter' || user?.userType === 'company') {
       return [
-        { href: "/", label: "Dashboard", icon: BarChart3 },
-        { href: "/post-job", label: "Post Job", icon: Plus },
-        { href: "/test-assignments", label: "Test Assignments", icon: FileText },
-        { href: "/profile", label: "Profile", icon: User },
-        { href: "/chat", label: "Messages", icon: MessageCircle },
-        { href: "/job-seeker-view", label: "View as Job Seeker", icon: Users },
-        { href: "/recruiter-premium", label: "🚀 Upgrade", icon: Crown, premium: true },
+        { href: "/", label: "Home", icon: BarChart3 },
+        { href: "/post-job", label: "Jobs", icon: Briefcase },
+        { href: "/chat", label: "Messaging", icon: MessageCircle },
+        { href: "/notifications", label: "Notifications", icon: Bell, count: totalUnreadCount },
+        { href: "/profile", label: "Me", icon: User },
+        { href: "/recruiter-premium", label: "For Business", icon: Crown, premium: true },
       ];
     } else {
       return [
-        { href: "/", label: "Dashboard", icon: BarChart3 },
-        { href: "/applications", label: "Applications", icon: FileText },
+        { href: "/", label: "Home", icon: BarChart3 },
         { href: "/jobs", label: "Jobs", icon: Briefcase },
-        { href: "/career-ai-assistant", label: "AI Assistant", icon: Brain },
-        { href: "/post-job", label: "Post Job", icon: Plus },
-        { href: "/job-seeker-tests", label: "Tests", icon: FileText },
-        { href: "/ranking-tests", label: "Rankings", icon: Trophy },
-        { href: "/mock-interview", label: "Practice", icon: Code },
-        { href: "/chat", label: "Messages", icon: MessageCircle },
-        { href: "/profile", label: "Profile", icon: User },
-        { href: "/job-seeker-premium", label: "🚀 Upgrade", icon: Crown, premium: true },
+        { href: "/chat", label: "Messaging", icon: MessageCircle },
+        { href: "/notifications", label: "Notifications", icon: Bell, count: totalUnreadCount },
+        { href: "/profile", label: "Me", icon: User },
+        { href: "/job-seeker-premium", label: "Get the app", icon: Crown, premium: true },
       ];
     }
   };
@@ -96,7 +90,7 @@ export function Navbar() {
                 <Crown className="w-4 h-4 text-yellow-500" />
               )}
             </Link>
-            <div className="hidden md:flex space-x-2 lg:space-x-4">
+            <div className="hidden md:flex space-x-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location === item.href;
@@ -104,16 +98,21 @@ export function Navbar() {
                   <Link key={item.href} href={item.href}>
                     <button
                       className={cn(
-                        "flex items-center space-x-2 text-sm font-medium px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105",
+                        "flex flex-col items-center justify-center px-3 py-2 text-xs transition-colors duration-200 min-w-[60px]",
                         item.premium 
-                          ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold hover:from-purple-600 hover:to-pink-600 shadow-lg hover:shadow-xl" 
+                          ? "text-amber-600 hover:text-amber-700 font-medium" 
                           : isActive
-                          ? "text-primary bg-primary/15 shadow-sm border border-primary/20"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                          ? "text-primary"
+                          : "text-muted-foreground hover:text-foreground"
                       )}
                     >
-                      <Icon className={cn("w-4 h-4", item.premium && "text-yellow-200")} />
-                      <span className="hidden lg:inline">{item.label}</span>
+                      <Icon className={cn("w-5 h-5 mb-1", item.premium && "text-amber-600")} />
+                      <span className="text-xs font-medium">{item.label}</span>
+                      {item.count !== undefined && item.count > 0 && (
+                        <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
+                          {item.count > 9 ? '9+' : item.count}
+                        </span>
+                      )}
                     </button>
                   </Link>
                 );
@@ -122,24 +121,7 @@ export function Navbar() {
           </div>
           
           <div className="flex items-center space-x-3">
-            {/* Notifications Bell - only for authenticated users */}
-            {user && (
-              <Link href="/chat">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="hidden sm:flex h-9 w-9 rounded-full hover:bg-muted/80 transition-all duration-200 relative"
-                >
-                  <Bell className="h-4 w-4" />
-                  {totalUnreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
-                      {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
-                    </span>
-                  )}
-                  <span className="sr-only">Messages</span>
-                </Button>
-              </Link>
-            )}
+
 
             {/* Theme toggle with improved styling */}
             <Button
