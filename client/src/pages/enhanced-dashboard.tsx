@@ -293,7 +293,7 @@ export default function EnhancedDashboard() {
   };
 
   // Cover letter generation handler
-  const generateCoverLetter = async (jobDescription: string) => {
+  const generateCoverLetter = async (jobDescription: string, companyName: string, jobTitle: string) => {
     setIsGenerating(true);
     
     try {
@@ -305,8 +305,8 @@ export default function EnhancedDashboard() {
         credentials: 'include',
         body: JSON.stringify({
           jobDescription,
-          jobTitle: 'Software Engineer', // Default title
-          companyName: 'Target Company', // Default company
+          jobTitle,
+          companyName,
         }),
       });
 
@@ -842,6 +842,18 @@ export default function EnhancedDashboard() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <Input
+                        placeholder="Company name..."
+                        className="bg-white/20 border-white/30 text-white placeholder:text-white/70"
+                        id="company-name-input"
+                      />
+                      <Input
+                        placeholder="Job title..."
+                        className="bg-white/20 border-white/30 text-white placeholder:text-white/70"
+                        id="job-title-input"
+                      />
+                    </div>
                     <textarea
                       placeholder="Paste the job description here..."
                       className="w-full p-3 rounded bg-white/20 border border-white/30 text-white placeholder:text-white/70 min-h-[100px] resize-none"
@@ -852,8 +864,11 @@ export default function EnhancedDashboard() {
                       className="w-full bg-white/20 hover:bg-white/30 text-white border-0"
                       onClick={() => {
                         const jobDesc = (document.getElementById('job-description-input') as HTMLTextAreaElement)?.value;
+                        const companyName = (document.getElementById('company-name-input') as HTMLInputElement)?.value || 'The Company';
+                        const jobTitle = (document.getElementById('job-title-input') as HTMLInputElement)?.value || 'The Position';
+                        
                         if (jobDesc.trim()) {
-                          generateCoverLetter(jobDesc);
+                          generateCoverLetter(jobDesc, companyName, jobTitle);
                         } else {
                           toast({
                             title: "Job Description Required",
