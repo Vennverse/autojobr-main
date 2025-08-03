@@ -8,7 +8,7 @@ import PayPalButton from "./PayPalButton";
 interface OneTimePaymentProps {
   amount: number;
   currency: string;
-  purpose: 'test_retake' | 'mock_interview' | 'coding_test' | 'ranking_test';
+  purpose: 'test_retake' | 'mock_interview' | 'coding_test' | 'ranking_test' | 'premium_targeting';
   itemId: string;
   itemName: string;
   onPaymentSuccess?: (data: any) => void;
@@ -69,6 +69,7 @@ export default function OneTimePaymentGateway({
       case 'mock_interview': return 'Mock Interview Retake';
       case 'coding_test': return 'Coding Test Retake';
       case 'ranking_test': return 'Ranking Test Retake';
+      case 'premium_targeting': return 'Premium Candidate Targeting';
       default: return 'Payment';
     }
   };

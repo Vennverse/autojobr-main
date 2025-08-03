@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -80,10 +80,15 @@ export default function PremiumTargetingPage() {
     queryKey: ["/api/candidates/stats"],
   });
 
+  // Auto-calculate reach whenever targeting criteria changes
+  useEffect(() => {
+    calculateReach();
+  }, [targetingCriteria, candidateStats]);
+
   // Calculate estimated reach based on targeting criteria
   const calculateReach = () => {
     // Simplified calculation - in reality this would query the database
-    let baseReach = candidateStats?.totalCandidates || 1000;
+    let baseReach = (candidateStats as any)?.totalCandidates || 1000;
     let reachMultiplier = 1;
 
     // Apply filters to estimate reach
@@ -138,18 +143,20 @@ export default function PremiumTargetingPage() {
       return;
     }
 
-    // Navigate to subscription page with targeting data stored
+    // Store targeting data for after payment
     localStorage.setItem('pendingTargetingJob', JSON.stringify({
       title: jobTitle,
       description: jobDescription,
       targetingCriteria,
       estimatedReach,
       pricingTier,
-      cost: calculatePricing()
+      cost: calculatePricing(),
+      estimatedCost: calculatePricing(),
+      matchQuality: 95
     }));
 
-    // Redirect to subscription page to complete payment
-    window.location.href = '/subscription?upgrade=premium&feature=targeting';
+    // Redirect to existing premium targeting payment page
+    window.location.href = '/premium-targeting-payment';
   };
 
   const addToArray = (category: keyof TargetingCriteria, field: string, value: string) => {
@@ -159,7 +166,7 @@ export default function PremiumTargetingPage() {
       ...prev,
       [category]: {
         ...prev[category],
-        [field]: [...(prev[category][field] as string[]), value.trim()]
+        [field]: [...((prev[category] as any)[field] as string[]), value.trim()]
       }
     }));
   };
@@ -169,7 +176,7 @@ export default function PremiumTargetingPage() {
       ...prev,
       [category]: {
         ...prev[category],
-        [field]: (prev[category][field] as string[]).filter((_, i) => i !== index)
+        [field]: ((prev[category] as any)[field] as string[]).filter((_, i) => i !== index)
       }
     }));
   };
@@ -448,9 +455,10 @@ export default function PremiumTargetingPage() {
               <div className="text-center space-y-2">
                 <div className="text-3xl font-bold text-primary">{estimatedReach.toLocaleString()}</div>
                 <p className="text-sm text-muted-foreground">qualified candidates</p>
-                <Button variant="outline" size="sm" onClick={calculateReach}>
-                  Recalculate
-                </Button>
+                <div className="text-xs text-green-600 flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3" />
+                  Auto-updated
+                </div>
               </div>
               
               <Separator className="my-4" />
@@ -508,11 +516,19 @@ export default function PremiumTargetingPage() {
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <CheckCircle className="h-4 w-4 text-green-500" />
-                    <span>Priority placement</span>
+                    <span>Priority placement in search results</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <CheckCircle className="h-4 w-4 text-green-500" />
-                    <span>Advanced analytics</span>
+                    <span>Advanced candidate analytics</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <span>Direct messaging to candidates</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <span>30-day performance guarantee</span>
                   </div>
                 </div>
               </div>
