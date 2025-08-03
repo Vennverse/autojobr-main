@@ -29,8 +29,8 @@ export default function RankingTests() {
     queryKey: ['/api/ranking-tests/categories'],
     queryFn: async () => {
       try {
-        const res = await apiRequest('GET', '/api/ranking-tests/categories');
-        return res.json();
+        const res = await apiRequest('/api/ranking-tests/categories', 'GET');
+        return res;
       } catch (error) {
         // Fallback data when not authenticated
         console.log('Using fallback categories - authentication required');
@@ -47,8 +47,8 @@ export default function RankingTests() {
     queryKey: ['/api/ranking-tests/history'],
     queryFn: async () => {
       try {
-        const res = await apiRequest('GET', '/api/ranking-tests/history');
-        return res.json();
+        const res = await apiRequest('/api/ranking-tests/history', 'GET');
+        return res;
       } catch (error) {
         console.log('Test history unavailable - authentication required');
         return [];
@@ -62,8 +62,8 @@ export default function RankingTests() {
     queryFn: async () => {
       if (!selectedCategory || !selectedDomain) return [];
       try {
-        const res = await apiRequest('GET', `/api/ranking-tests/leaderboard?category=${selectedCategory}&domain=${selectedDomain}&type=${leaderboardType}&limit=10`);
-        return res.json();
+        const res = await apiRequest(`/api/ranking-tests/leaderboard?category=${selectedCategory}&domain=${selectedDomain}&type=${leaderboardType}&limit=10`, 'GET');
+        return res;
       } catch (error) {
         console.log('Leaderboard unavailable - authentication required');
         return [];
@@ -75,8 +75,8 @@ export default function RankingTests() {
   // Create new test mutation
   const createTestMutation = useMutation({
     mutationFn: async (testData: { category: string; domain: string; difficultyLevel: string }) => {
-      const response = await apiRequest('POST', '/api/ranking-tests/create', testData);
-      return response.json();
+      const response = await apiRequest('/api/ranking-tests/create', 'POST', testData);
+      return response;
     },
     onSuccess: (test) => {
       setCurrentTest(test);
