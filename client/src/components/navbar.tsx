@@ -2,321 +2,498 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/components/theme-provider";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserAvatar } from "@/components/profile-avatar";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Rocket, Moon, Sun, User, Settings, LogOut, BarChart3, FileText, Briefcase, Crown, Menu, X, Plus, MessageCircle, Target, Brain, Users, Trophy, Code, Bell, Upload, Zap, HelpCircle, ChevronDown, TrendingUp } from "lucide-react";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel,
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { 
+  Rocket, 
+  Moon, 
+  Sun, 
+  User, 
+  Settings, 
+  LogOut, 
+  Home,
+  Briefcase, 
+  Crown, 
+  Menu, 
+  X, 
+  MessageCircle, 
+  Brain, 
+  Trophy, 
+  Code, 
+  Bell, 
+  Video,
+  ChevronDown,
+  FileText,
+  BarChart3,
+  TrendingUp,
+  Target,
+  Zap
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 export function Navbar() {
   const [location] = useLocation();
   const { user } = useAuth() as { user: any };
   const { theme, setTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  // Get unread message count
-  const { data: conversations } = useQuery({
+  // Get unread message count (load once per session)
+  const { data: conversations = [] } = useQuery<any[]>({
     queryKey: ['/api/chat/conversations'],
     enabled: !!user?.id,
-    refetchInterval: 30000 // Refresh every 30 seconds
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    // No automatic refresh - updates when user navigates or manually refreshes
   });
 
-  const totalUnreadCount = conversations?.reduce((total: number, conv: any) => 
-    total + (conv.unreadCount || 0), 0) || 0;
+  const totalUnreadCount = conversations.reduce((total: number, conv: any) => 
+    total + (conv.unreadCount || 0), 0);
 
-  const handleLogout = async () => {
-    try {
-      const response = await fetch('/api/auth/signout', {
+  // Logout mutation
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/auth/logout', {
         method: 'POST',
-        credentials: 'include'
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Important for session-based auth
       });
       
-      if (response.ok) {
-        // Redirect to landing page after successful logout
-        window.location.href = '/';
+      if (!response.ok) {
+        throw new Error('Logout failed');
       }
-    } catch (error) {
-      console.error('Logout failed:', error);
-      // Fallback: still redirect to landing page
-      window.location.href = '/';
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      // Clear all cached data
+      queryClient.clear();
+      // Show success message
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of your account.",
+      });
+      // Redirect to auth page
+      window.location.href = '/auth';
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Logout failed",
+        description: error.message || "Failed to logout properly",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const getPlanBadge = (planType: string) => {
+    switch (planType) {
+      case 'premium':
+        return <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white"><Crown className="w-3 h-3 mr-1" />Premium</Badge>;
+      case 'enterprise':
+        return <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white"><Zap className="w-3 h-3 mr-1" />Pro</Badge>;
+      default:
+        return <Badge variant="outline">Free</Badge>;
     }
   };
 
-  // Define navigation items based on user type - simplified like LinkedIn
-  const getNavItems = () => {
+  // Define navigation items based on user type
+  const getNavigationItems = () => {
     if (!user) {
       // For non-authenticated users
       return [
-        { href: "/recruiter-features", label: "For Recruiters", icon: Users },
+        {
+          name: "For Recruiters",
+          href: "/for-recruiters",
+          icon: Target,
+          current: location === "/for-recruiters"
+        }
       ];
     } else if (user?.userType === 'recruiter' || user?.userType === 'company') {
+      // Redirect recruiters to their dedicated navbar
       return [
-        { href: "/", label: "Home", icon: BarChart3 },
-        { href: "/post-job", label: "Jobs", icon: Briefcase },
-        { href: "/chat", label: "Messaging", icon: MessageCircle },
-        { href: "/notifications", label: "Notifications", icon: Bell, count: totalUnreadCount },
-        { href: "/profile", label: "Me", icon: User },
-        { href: "/recruiter-premium", label: "For Business", icon: Crown, premium: true },
+        {
+          name: "Dashboard", 
+          href: "/recruiter/dashboard",
+          icon: Home,
+          current: location === "/recruiter/dashboard"
+        }
       ];
     } else {
+      // Job seeker navigation items
       return [
-        { href: "/", label: "Home", icon: BarChart3 },
-        { href: "/jobs", label: "Jobs", icon: Briefcase },
-        { href: "/chat", label: "Messaging", icon: MessageCircle },
-        { href: "/notifications", label: "Notifications", icon: Bell, count: totalUnreadCount },
-        { href: "/profile", label: "Me", icon: User },
-        { href: "/job-seeker-premium", label: "Get the app", icon: Crown, premium: true },
+        {
+          name: "Dashboard",
+          href: "/dashboard",
+          icon: Home,
+          current: location === "/dashboard" || location === "/"
+        },
+        {
+          name: "Jobs",
+          href: "/jobs",
+          icon: Briefcase,
+          current: location === "/jobs"
+        },
+        {
+          name: "Tests",
+          href: "/tests",
+          icon: Brain,
+          current: location === "/tests" || location.startsWith("/test/"),
+          badge: "New"
+        },
+        {
+          name: "Interviews",
+          href: "/mock-interviews",
+          icon: Video,
+          current: location === "/mock-interviews" || location.startsWith("/interview/")
+        },
+        {
+          name: "Messages",
+          href: "/chat",
+          icon: MessageCircle,
+          current: location === "/chat",
+          badge: totalUnreadCount > 0 ? totalUnreadCount : undefined
+        },
+        {
+          name: "Premium",
+          href: "/job-seeker-premium",
+          icon: Crown,
+          current: location === "/job-seeker-premium",
+          premium: true
+        }
       ];
     }
   };
 
-  const navItems = getNavItems();
+  const navigationItems = getNavigationItems();
+
+  const canAccessFeature = (isPremium: boolean) => {
+    if (!isPremium) return true;
+    return user?.planType === 'premium' || user?.planType === 'enterprise';
+  };
 
   return (
-    <nav className="bg-background/95 backdrop-blur-md border-b border-border/50 sticky top-0 z-50 w-full shadow-sm">
-      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center space-x-2 sm:space-x-4">
-            <Link href="/" className="flex items-center space-x-2 group">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                <Rocket className="w-4 h-4 text-white" />
+    <>
+      <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex">
+              {/* Logo */}
+              <div className="flex-shrink-0 flex items-center">
+                <Link href={user ? "/dashboard" : "/"}>
+                  <div className="flex items-center space-x-2 cursor-pointer">
+                    <Rocket className="h-8 w-8 text-blue-600" />
+                    <span className="font-bold text-xl text-gray-900 dark:text-white">AutoJobr</span>
+                  </div>
+                </Link>
               </div>
-              <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                AutoJobr
-              </span>
-              {user?.planType === 'premium' && (
-                <Crown className="w-4 h-4 text-yellow-500" />
+
+              {/* Desktop Navigation */}
+              {user && (
+                <div className="hidden md:ml-8 md:flex md:space-x-1">
+                  {navigationItems.map((item) => {
+                    const Icon = item.icon;
+                    const canAccess = canAccessFeature(item.premium || false);
+                    
+                    return (
+                      <Link
+                        key={item.name}
+                        href={canAccess ? item.href : "/job-seeker-premium"}
+                        className={`${
+                          item.current
+                            ? "bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 border-blue-500"
+                            : "text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-transparent"
+                        } inline-flex items-center px-4 py-2 border-b-2 text-sm font-medium transition-all duration-200 rounded-t-lg ${
+                          !canAccess ? "opacity-50" : ""
+                        }`}
+                      >
+                        <Icon className="w-4 h-4 mr-2" />
+                        {item.name}
+                        {item.badge && typeof item.badge === 'string' && (
+                          <Badge className="ml-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                            {item.badge}
+                          </Badge>
+                        )}
+                        {item.badge && typeof item.badge === 'number' && (
+                          <Badge className="ml-2 bg-red-500 text-white text-xs px-2 py-1 min-w-[1.25rem] h-5 rounded-full">
+                            {item.badge > 9 ? '9+' : item.badge}
+                          </Badge>
+                        )}
+                        {item.premium && !canAccess && (
+                          <Crown className="w-3 h-3 ml-1 text-amber-500" />
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
               )}
-            </Link>
-            <div className="hidden md:flex space-x-1">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location === item.href;
-                return (
-                  <Link key={item.href} href={item.href}>
-                    <button
-                      className={cn(
-                        "flex flex-col items-center justify-center px-3 py-2 text-xs transition-colors duration-200 min-w-[60px]",
-                        item.premium 
-                          ? "text-amber-600 hover:text-amber-700 font-medium" 
-                          : isActive
-                          ? "text-primary"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      <Icon className={cn("w-5 h-5 mb-1", item.premium && "text-amber-600")} />
-                      <span className="text-xs font-medium">{item.label}</span>
-                      {item.count !== undefined && item.count > 0 && (
-                        <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
-                          {item.count > 9 ? '9+' : item.count}
-                        </span>
-                      )}
-                    </button>
-                  </Link>
-                );
-              })}
             </div>
-          </div>
-          
-          <div className="flex items-center space-x-3">
 
+            {/* Right side */}
+            <div className="hidden md:ml-6 md:flex md:items-center md:space-x-3">
+              
+              {/* Theme toggle */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="h-9 w-9 rounded-full hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200"
+              >
+                <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                <span className="sr-only">Toggle theme</span>
+              </Button>
 
-            {/* Theme toggle with improved styling */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="hidden sm:flex h-9 w-9 rounded-full hover:bg-muted/80 transition-all duration-200"
-            >
-              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-              <span className="sr-only">Toggle theme</span>
-            </Button>
+              {/* Login button for non-authenticated users */}
+              {!user && (
+                <Button 
+                  onClick={() => window.location.href = "/auth"} 
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-sm"
+                >
+                  Sign In
+                </Button>
+              )}
+
+              {/* Upgrade Button for Free Users */}
+              {user && user?.planType === 'free' && (
+                <Link href="/job-seeker-premium">
+                  <Button size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-sm">
+                    <Crown className="w-4 h-4 mr-1" />
+                    Upgrade
+                  </Button>
+                </Link>
+              )}
+              
+              {/* User Profile Dropdown */}
+              {user && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-10 w-auto px-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <Avatar className="h-8 w-8 ring-2 ring-gray-200 dark:ring-gray-600">
+                          <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${user?.firstName} ${user?.lastName}`} />
+                          <AvatarFallback className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold">
+                            {user?.firstName?.[0]}{user?.lastName?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="text-left hidden xl:block">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-32">
+                            {user?.firstName} {user?.lastName}
+                          </p>
+                          <div className="flex items-center gap-1">
+                            {getPlanBadge(user?.planType || 'free')}
+                          </div>
+                        </div>
+                        <ChevronDown className="h-3 w-3 text-gray-400 hidden lg:block" />
+                      </div>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">
+                          {user?.firstName} {user?.lastName}
+                        </p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                          {user?.email}
+                        </p>
+                        <div className="pt-1">
+                          {getPlanBadge(user?.planType || 'free')}
+                        </div>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile" className="w-full flex items-center">
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Profile Settings</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/applications" className="w-full flex items-center">
+                        <FileText className="mr-2 h-4 w-4" />
+                        <span>My Applications</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/resume" className="w-full flex items-center">
+                        <BarChart3 className="mr-2 h-4 w-4" />
+                        <span>Resume & ATS Score</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/job-seeker-premium" className="w-full flex items-center">
+                        <Crown className="mr-2 h-4 w-4" />
+                        <span>Premium Features</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => logoutMutation.mutate()}
+                      disabled={logoutMutation.isPending}
+                      className="text-red-600 focus:text-red-600 cursor-pointer"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>{logoutMutation.isPending ? 'Logging out...' : 'Logout'}</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
 
             {/* Mobile menu button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden"
-            >
-              {isMobileMenuOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
+            <div className="md:hidden flex items-center space-x-2">
+              {user && totalUnreadCount > 0 && (
+                <Link href="/chat">
+                  <button className="relative p-2 text-gray-400 hover:text-gray-500">
+                    <Bell className="h-5 w-5" />
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white">
+                      {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
+                    </span>
+                  </button>
+                </Link>
               )}
-              <span className="sr-only">Toggle menu</span>
-            </Button>
-            
-            {/* Login button for non-authenticated users */}
-            {!user && (
-              <Button 
-                onClick={() => window.location.href = "/auth"} 
-                className="bg-primary hover:bg-primary/90"
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="p-2"
               >
-                Sign In
+                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </Button>
-            )}
-
-            {/* User dropdown for authenticated users */}
-            {user && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild className="hidden md:flex">
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-muted/80 transition-all duration-200 ring-2 ring-transparent hover:ring-primary/20">
-                    <UserAvatar 
-                      user={{
-                        id: user?.id || '',
-                        email: user?.email || '',
-                        firstName: user?.firstName,
-                        lastName: user?.lastName,
-                        profileImageUrl: user?.profileImageUrl
-                      }} 
-                      size="sm" 
-                    />
-                  </Button>
-                </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <div className="flex items-center justify-start gap-2 p-2">
-                  <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">
-                      {user?.firstName && user?.lastName 
-                        ? `${user.firstName} ${user.lastName}` 
-                        : user?.name || user?.email?.split('@')[0] || 'User'
-                      }
-                    </p>
-                    <p className="w-[200px] truncate text-sm text-muted-foreground">
-                      {user?.email}
-                    </p>
-                  </div>
-                </div>
-                <DropdownMenuSeparator />
-                <Link href="/profile">
-                  <DropdownMenuItem>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                  </DropdownMenuItem>
-                </Link>
-                <Link href="/subscription">
-                  <DropdownMenuItem>
-                    <Crown className="mr-2 h-4 w-4" />
-                    <span>Subscription</span>
-                  </DropdownMenuItem>
-                </Link>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <HelpCircle className="mr-2 h-4 w-4" />
-                  <span>Help & Support</span>
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+            </div>
           </div>
         </div>
-        
-        {/* Mobile Navigation Menu */}
+
+        {/* Mobile menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-border/50 bg-background/98 backdrop-blur-md shadow-lg">
-            <div className="px-4 pt-4 pb-6 space-y-2 max-h-screen overflow-y-auto">
-              {navItems.map((item) => {
+          <div className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <div className="px-2 pt-2 pb-3 space-y-1">
+              {user ? navigationItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = location === item.href;
+                const canAccess = canAccessFeature(item.premium || false);
+                
                 return (
-                  <Link key={item.href} href={item.href}>
-                    <button
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className={cn(
-                        "flex items-center space-x-3 w-full text-left px-4 py-3 rounded-lg text-base font-medium transition-all duration-200",
-                        item.premium
-                          ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold shadow-md"
-                          : isActive
-                          ? "text-primary bg-primary/15 shadow-sm border border-primary/20"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                      )}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span>{item.label}</span>
-                    </button>
+                  <Link
+                    key={item.name}
+                    href={canAccess ? item.href : "/job-seeker-premium"}
+                    className={`${
+                      item.current
+                        ? "bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300"
+                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    } group flex items-center px-3 py-3 text-base font-medium rounded-lg transition-colors ${
+                      !canAccess ? "opacity-50" : ""
+                    }`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
+                    <span className="flex-1">{item.name}</span>
+                    {item.badge && typeof item.badge === 'string' && (
+                      <Badge className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                        {item.badge}
+                      </Badge>
+                    )}
+                    {item.badge && typeof item.badge === 'number' && (
+                      <Badge className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                        {item.badge > 9 ? '9+' : item.badge}
+                      </Badge>
+                    )}
+                    {item.premium && !canAccess && (
+                      <Crown className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                    )}
                   </Link>
                 );
-              })}
+              }) : (
+                <Link
+                  href="/for-recruiters"
+                  className="text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 group flex items-center px-3 py-3 text-base font-medium rounded-lg transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Target className="w-5 h-5 mr-3 flex-shrink-0" />
+                  <span className="flex-1">For Recruiters</span>
+                </Link>
+              )}
               
-              {/* Mobile theme toggle */}
-              <button
-                onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-                className="flex items-center space-x-3 w-full text-left px-3 py-2 rounded-md text-base font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              >
-                {theme === "light" ? (
-                  <Moon className="w-5 h-5" />
-                ) : (
-                  <Sun className="w-5 h-5" />
-                )}
-                <span>Toggle {theme === "light" ? "Dark" : "Light"} Mode</span>
-              </button>
-              
+              {/* Mobile User Info */}
+              {user && (
+                <div className="mt-6 px-3 py-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${user?.firstName} ${user?.lastName}`} />
+                      <AvatarFallback className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold">
+                        {user?.firstName?.[0]}{user?.lastName?.[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        {user?.firstName} {user?.lastName}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {getPlanBadge(user?.planType || 'free')}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Link
+                      href="/profile"
+                      className="flex items-center px-2 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700 rounded transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      Profile Settings
+                    </Link>
+                    <Link
+                      href="/job-seeker-premium"
+                      className="flex items-center px-2 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700 rounded transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Crown className="w-4 h-4 mr-2" />
+                      Premium Features
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        logoutMutation.mutate();
+                      }}
+                      disabled={logoutMutation.isPending}
+                      className="flex items-center w-full px-2 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      {logoutMutation.isPending ? 'Logging out...' : 'Logout'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Mobile login button for non-authenticated users */}
               {!user && (
-                <div className="border-t border-border pt-4 mt-4">
+                <div className="px-3 py-4 border-t border-gray-200 dark:border-gray-700">
                   <Button 
                     onClick={() => window.location.href = "/auth"} 
-                    className="w-full bg-primary hover:bg-primary/90"
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
                   >
                     Sign In
                   </Button>
                 </div>
               )}
-
-              {/* Mobile user section */}
-              {user && (
-                <>
-                  <div className="border-t border-border pt-4 mt-4">
-                    <div className="flex items-center px-3 py-2">
-                      <UserAvatar 
-                        user={{
-                          id: user?.id || '',
-                          email: user?.email || '',
-                          firstName: user?.firstName,
-                          lastName: user?.lastName,
-                          profileImageUrl: user?.profileImageUrl
-                        }} 
-                        size="sm" 
-                        className="mr-3"
-                      />
-                      <div>
-                        <p className="text-sm font-medium">
-                          {user?.firstName && user?.lastName 
-                            ? `${user.firstName} ${user.lastName}` 
-                            : user?.name || user?.email?.split('@')[0] || 'User'
-                          }
-                        </p>
-                        <p className="text-xs text-muted-foreground">{user?.email}</p>
-                      </div>
-                    </div>
-                    
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center space-x-3 w-full text-left px-3 py-2 rounded-md text-base font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    >
-                      <LogOut className="w-5 h-5" />
-                      <span>Log out</span>
-                    </button>
-                  </div>
-                </>
-              )}
             </div>
           </div>
         )}
-      </div>
-    </nav>
+      </nav>
+    </>
   );
 }
