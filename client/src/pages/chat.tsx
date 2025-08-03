@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/useAuth';
 
 // WebSocket hook for real-time chat
 const useWebSocket = (user: User | undefined) => {
@@ -49,7 +49,7 @@ const useWebSocket = (user: User | undefined) => {
           
           queryClient.setQueryData(
             ['/api/chat/conversations', message.conversationId, 'messages'],
-            (oldMessages: any[] = []) => [...oldMessages, message.data]
+            (oldMessages: any[] = []) => [...oldMessages, message.message || message.data]
           );
         }
         
@@ -253,9 +253,18 @@ export default function ChatPage() {
     mutationFn: async (conversationId: number) => {
       return apiRequest('POST', `/api/chat/conversations/${conversationId}/read`, {});
     },
-    onSuccess: () => {
-      // Don't invalidate - this was causing the refresh loop
-      console.log('Messages marked as read');
+    onSuccess: (_, conversationId) => {
+      // Update the conversations cache to reset unread count
+      queryClient.setQueryData(
+        ['/api/chat/conversations'],
+        (oldConversations: ChatConversation[] = []) => 
+          oldConversations.map(conv => 
+            conv.id === conversationId 
+              ? { ...conv, unreadCount: 0 }
+              : conv
+          )
+      );
+      console.log('Messages marked as read for conversation:', conversationId);
     },
   });
 
@@ -267,19 +276,19 @@ export default function ChatPage() {
     }
   }, [markAsReadMutation, user?.id]);
 
-  // Track which conversations have been marked as read to prevent duplicate calls
-  const markedConversationsRef = useRef<Set<number>>(new Set());
-
+  // Mark messages as read when conversation is selected and messages exist
   useEffect(() => {
-    // Only mark as read once when conversation is first selected
-    if (selectedConversation && user?.id && !markAsReadMutation.isPending && !markedConversationsRef.current.has(selectedConversation)) {
-      markedConversationsRef.current.add(selectedConversation);
-      const timer = setTimeout(() => {
+    if (selectedConversation && user?.id && conversationMessages.length > 0) {
+      // Check if there are any unread messages from others
+      const hasUnreadMessages = conversationMessages.some(
+        message => !message.isRead && message.senderId !== user.id
+      );
+      
+      if (hasUnreadMessages && !markAsReadMutation.isPending) {
         markAsRead(selectedConversation);
-      }, 500);
-      return () => clearTimeout(timer);
+      }
     }
-  }, [selectedConversation, user?.id]); // Remove markAsRead from dependencies to prevent infinite loops
+  }, [selectedConversation, user?.id, conversationMessages, markAsRead, markAsReadMutation.isPending]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {

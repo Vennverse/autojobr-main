@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/components/theme-provider";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserAvatar } from "@/components/profile-avatar";
@@ -14,6 +15,16 @@ export function Navbar() {
   const { user } = useAuth() as { user: any };
   const { theme, setTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Get unread message count
+  const { data: conversations } = useQuery({
+    queryKey: ['/api/chat/conversations'],
+    enabled: !!user?.id,
+    refetchInterval: 30000 // Refresh every 30 seconds
+  });
+
+  const totalUnreadCount = conversations?.reduce((total: number, conv: any) => 
+    total + (conv.unreadCount || 0), 0) || 0;
 
   const handleLogout = async () => {
     try {
@@ -59,6 +70,7 @@ export function Navbar() {
         { href: "/job-seeker-tests", label: "Tests", icon: FileText },
         { href: "/ranking-tests", label: "Rankings", icon: Trophy },
         { href: "/mock-interview", label: "Practice", icon: Code },
+        { href: "/chat", label: "Messages", icon: MessageCircle },
         { href: "/profile", label: "Profile", icon: User },
         { href: "/job-seeker-premium", label: "🚀 Upgrade", icon: Crown, premium: true },
       ];
@@ -111,17 +123,21 @@ export function Navbar() {
           <div className="flex items-center space-x-3">
             {/* Notifications Bell - only for authenticated users */}
             {user && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="hidden sm:flex h-9 w-9 rounded-full hover:bg-muted/80 transition-all duration-200 relative"
-              >
-                <Bell className="h-4 w-4" />
-                <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
-                  3
-                </span>
-                <span className="sr-only">Notifications</span>
-              </Button>
+              <Link href="/chat">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="hidden sm:flex h-9 w-9 rounded-full hover:bg-muted/80 transition-all duration-200 relative"
+                >
+                  <Bell className="h-4 w-4" />
+                  {totalUnreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
+                      {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
+                    </span>
+                  )}
+                  <span className="sr-only">Messages</span>
+                </Button>
+              </Link>
             )}
 
             {/* Theme toggle with improved styling */}
