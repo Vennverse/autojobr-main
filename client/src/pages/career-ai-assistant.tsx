@@ -83,6 +83,8 @@ export default function CareerAIAssistant() {
   const [aiTier, setAiTier] = useState<'premium' | 'basic'>('basic');
   const [upgradeMessage, setUpgradeMessage] = useState<string>("");
   const [daysLeft, setDaysLeft] = useState<number>(0);
+  const [networkingOpportunities, setNetworkingOpportunities] = useState<any[]>([]);
+  const [marketTiming, setMarketTiming] = useState<any[]>([]);
 
   // Fetch user profile for AI analysis
   const { data: userProfile } = useQuery({
