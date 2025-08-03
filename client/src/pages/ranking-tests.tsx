@@ -45,16 +45,29 @@ export default function RankingTests() {
   // Fetch user's test history
   const { data: testHistory = [], isLoading: historyLoading } = useQuery({
     queryKey: ['/api/ranking-tests/history'],
-    queryFn: () => apiRequest('GET', '/api/ranking-tests/history').then(res => res.json())
+    queryFn: async () => {
+      try {
+        const res = await apiRequest('GET', '/api/ranking-tests/history');
+        return res.json();
+      } catch (error) {
+        console.log('Test history unavailable - authentication required');
+        return [];
+      }
+    }
   });
 
   // Fetch leaderboard
   const { data: leaderboard = [], isLoading: leaderboardLoading } = useQuery({
     queryKey: ['/api/ranking-tests/leaderboard', selectedCategory, selectedDomain, leaderboardType],
-    queryFn: () => {
+    queryFn: async () => {
       if (!selectedCategory || !selectedDomain) return [];
-      return apiRequest('GET', `/api/ranking-tests/leaderboard?category=${selectedCategory}&domain=${selectedDomain}&type=${leaderboardType}&limit=10`)
-        .then(res => res.json());
+      try {
+        const res = await apiRequest('GET', `/api/ranking-tests/leaderboard?category=${selectedCategory}&domain=${selectedDomain}&type=${leaderboardType}&limit=10`);
+        return res.json();
+      } catch (error) {
+        console.log('Leaderboard unavailable - authentication required');
+        return [];
+      }
     },
     enabled: !!selectedCategory && !!selectedDomain
   });
@@ -293,7 +306,7 @@ export default function RankingTests() {
               </CardHeader>
               <CardContent>
                 <div className="mb-4">
-                  <Select value={leaderboardType} onValueChange={setLeaderboardType}>
+                  <Select value={leaderboardType} onValueChange={(value: string) => setLeaderboardType(value as 'weekly' | 'monthly' | 'all-time')}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
