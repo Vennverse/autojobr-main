@@ -122,16 +122,15 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
     {
       name: "Dashboard",
       href: "/recruiter/dashboard",
-      icon: BarChart3,
-      current: location === "/recruiter/dashboard"
+      icon: Home,
+      current: location === "/recruiter/dashboard" || location === "/recruiter/analytics"
     },
     {
-      name: "Job Postings",
+      name: "Jobs",
       href: "/recruiter/jobs",
       icon: Briefcase,
       current: location === "/recruiter/jobs"
     },
-
     {
       name: "Pipeline",
       href: "/recruiter/pipeline",
@@ -146,29 +145,10 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
       badge: unreadCount > 0 ? unreadCount : undefined
     },
     {
-      name: "Interview Assignments",
-      href: "/recruiter/interview-assignments",
-      icon: Video,
-      current: location === "/recruiter/interview-assignments"
-    },
-    {
-      name: "Test Center",
-      href: "/recruiter/tests",
-      icon: FileText,
-      current: location === "/recruiter/tests"
-    },
-    {
-      name: "Premium Targeting",
+      name: "Premium",
       href: "/premium-targeting",
       icon: Target,
       current: location === "/premium-targeting",
-      premium: true
-    },
-    {
-      name: "Analytics",
-      href: "/recruiter/analytics",
-      icon: BarChart3,
-      current: location === "/recruiter/analytics",
       premium: true
     }
   ];
@@ -195,7 +175,7 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
               </div>
 
               {/* Desktop Navigation */}
-              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+              <div className="hidden md:ml-8 md:flex md:space-x-1">
                 {navigationItems.map((item) => {
                   const Icon = item.icon;
                   const canAccess = canAccessFeature(item.premium || false);
@@ -206,16 +186,16 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
                       href={canAccess ? item.href : "/recruiter/premium"}
                       className={`${
                         item.current
-                          ? "border-blue-500 text-gray-900 dark:text-white"
-                          : "border-transparent text-gray-500 dark:text-gray-300 hover:border-gray-300 hover:text-gray-700 dark:hover:text-gray-200"
-                      } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors ${
+                          ? "bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 border-blue-500"
+                          : "text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-transparent"
+                      } inline-flex items-center px-4 py-2 border-b-2 text-sm font-medium transition-all duration-200 rounded-t-lg ${
                         !canAccess ? "opacity-50" : ""
                       }`}
                     >
                       <Icon className="w-4 h-4 mr-2" />
                       {item.name}
                       {item.badge && (
-                        <Badge className="ml-2 bg-red-500 text-white text-xs px-1 py-0 min-w-[1rem] h-5">
+                        <Badge className="ml-2 bg-red-500 text-white text-xs px-2 py-1 min-w-[1.25rem] h-5 rounded-full">
                           {item.badge > 9 ? '9+' : item.badge}
                         </Badge>
                       )}
@@ -229,24 +209,13 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
             </div>
 
             {/* Right side */}
-            <div className="hidden md:ml-6 md:flex md:items-center md:space-x-4">
-              {/* Notifications */}
-              <Link href="/messaging">
-                <button className="relative p-1 text-gray-400 hover:text-gray-500 focus:outline-none">
-                  <Bell className="h-6 w-6" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white ring-2 ring-white">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </button>
-              </Link>
+            <div className="hidden md:ml-6 md:flex md:items-center md:space-x-3">
               
               {/* Upgrade Button for Free Users */}
               {user?.planType === 'free' && (
                 <Link href="/recruiter/premium">
-                  <Button size="sm" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white">
-                    <Zap className="w-4 h-4 mr-2" />
+                  <Button size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-sm">
+                    <Crown className="w-4 h-4 mr-1" />
                     Upgrade
                   </Button>
                 </Link>
@@ -255,23 +224,23 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
               {/* User Profile Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-auto px-3 hover:bg-gray-100 dark:hover:bg-gray-700">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-8 w-8">
+                  <Button variant="ghost" className="relative h-10 w-auto px-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <Avatar className="h-8 w-8 ring-2 ring-gray-200 dark:ring-gray-600">
                         <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${user?.firstName} ${user?.lastName}`} />
-                        <AvatarFallback className="bg-blue-600 text-white">
+                        <AvatarFallback className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold">
                           {user?.firstName?.[0]}{user?.lastName?.[0]}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="text-left hidden lg:block">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      <div className="text-left hidden xl:block">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-32">
                           {user?.firstName} {user?.lastName}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {user?.companyName}
-                        </p>
+                        <div className="flex items-center gap-1">
+                          {getPlanBadge(user?.planType || 'free')}
+                        </div>
                       </div>
-                      <ChevronDown className="h-4 w-4 text-gray-400" />
+                      <ChevronDown className="h-3 w-3 text-gray-400 hidden lg:block" />
                     </div>
                   </Button>
                 </DropdownMenuTrigger>
@@ -322,11 +291,22 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
             </div>
 
             {/* Mobile menu button */}
-            <div className="sm:hidden flex items-center">
+            <div className="md:hidden flex items-center space-x-2">
+              {unreadCount > 0 && (
+                <Link href="/chat">
+                  <button className="relative p-2 text-gray-400 hover:text-gray-500">
+                    <Bell className="h-5 w-5" />
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  </button>
+                </Link>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2"
               >
                 {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </Button>
@@ -336,8 +316,8 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
 
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="sm:hidden border-t border-gray-200 dark:border-gray-700">
-            <div className="pt-2 pb-3 space-y-1">
+          <div className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <div className="px-2 pt-2 pb-3 space-y-1">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
                 const canAccess = canAccessFeature(item.premium || false);
@@ -348,34 +328,50 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
                     href={canAccess ? item.href : "/recruiter/premium"}
                     className={`${
                       item.current
-                        ? "bg-blue-50 dark:bg-blue-900 border-blue-500 text-blue-700 dark:text-blue-200"
-                        : "border-transparent text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 hover:text-gray-700 dark:hover:text-gray-200"
-                    } block pl-3 pr-4 py-2 border-l-4 text-base font-medium transition-colors ${
+                        ? "bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300"
+                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    } group flex items-center px-3 py-3 text-base font-medium rounded-lg transition-colors ${
                       !canAccess ? "opacity-50" : ""
                     }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <div className="flex items-center">
-                      <Icon className="w-4 h-4 mr-3" />
-                      {item.name}
-                      {item.premium && !canAccess && (
-                        <Crown className="w-3 h-3 ml-2 text-amber-500" />
-                      )}
-                    </div>
+                    <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
+                    <span className="flex-1">{item.name}</span>
+                    {item.badge && (
+                      <Badge className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                        {item.badge > 9 ? '9+' : item.badge}
+                      </Badge>
+                    )}
+                    {item.premium && !canAccess && (
+                      <Crown className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                    )}
                   </Link>
                 );
               })}
               
-              {/* Mobile Plan Info */}
-              <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Current Plan:</span>
+              {/* Mobile User Info */}
+              <div className="mt-6 px-3 py-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center space-x-3 mb-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${user?.firstName} ${user?.lastName}`} />
+                    <AvatarFallback className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                      {user?.firstName?.[0]}{user?.lastName?.[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {user?.firstName} {user?.lastName}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {user?.companyName}
+                    </p>
+                  </div>
                   {user && getPlanBadge(user.planType)}
                 </div>
                 {user?.planType === 'free' && (
                   <Link href="/recruiter/premium">
-                    <Button className="w-full mt-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white">
-                      <Zap className="w-4 h-4 mr-2" />
+                    <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+                      <Crown className="w-4 h-4 mr-2" />
                       Upgrade to Premium
                     </Button>
                   </Link>
