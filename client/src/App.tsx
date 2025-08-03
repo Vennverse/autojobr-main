@@ -58,6 +58,7 @@ import VirtualInterview from "@/pages/VirtualInterview";
 import VirtualInterviewFeedback from "@/pages/VirtualInterviewFeedback";
 import InterviewAssignments from "@/pages/InterviewAssignments";
 import PipelineManagement from "@/pages/PipelineManagement";
+import ApplicantsPage from "@/pages/modern-recruiter-dashboard";
 import SubscriptionSuccess from "@/pages/subscription/Success";
 import SubscriptionCancel from "@/pages/subscription/Cancel";
 
@@ -114,6 +115,7 @@ function Router() {
               <Route path="/recruiter/question-bank" component={QuestionBank} />
               <Route path="/admin/question-bank" component={QuestionBankAdmin} />
               <Route path="/recruiter/interview-assignments" component={InterviewAssignments} />
+              <Route path="/recruiter/applicants" component={ApplicantsPage} />
               <Route path="/recruiter/pipeline" component={PipelineManagement} />
               <Route path="/jobs/:id" component={ViewJob} />
               <Route path="/profile" component={Profile} />

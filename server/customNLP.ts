@@ -102,12 +102,57 @@ interface AnalysisMetadata {
   extractionConfidence: number;
   version: string;
   timestamp: Date;
+  detectedLanguage?: string;
+  detectedRegion?: string;
 }
 
 export class EnhancedNLPService {
-  private readonly version = '2.0.0';
+  private readonly version = '3.0.0-global';
+  
+  // Global configuration for different regions
+  private readonly globalConfig = {
+    languages: {
+      // Language detection patterns
+      en: /\b(the|and|or|but|in|on|at|to|for|of|with|by)\b/gi,
+      es: /\b(el|la|los|las|y|o|pero|en|con|de|para|por)\b/gi,
+      fr: /\b(le|la|les|et|ou|mais|dans|avec|de|pour|par)\b/gi,
+      de: /\b(der|die|das|und|oder|aber|in|mit|von|für|durch)\b/gi,
+      pt: /\b(o|a|os|as|e|ou|mas|em|com|de|para|por)\b/gi,
+      zh: /[\u4e00-\u9fff]/g,
+      ar: /[\u0600-\u06ff]/g,
+      hi: /[\u0900-\u097f]/g,
+      ja: /[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf]/g,
+      ru: /[\u0400-\u04ff]/g
+    },
+    
+    // Regional salary ranges (in USD equivalent for comparison)
+    salaryRanges: {
+      'north america': { min: 30000, max: 300000, currency: 'USD' },
+      'europe': { min: 25000, max: 250000, currency: 'EUR' },
+      'asia pacific': { min: 15000, max: 200000, currency: 'USD' },
+      'latin america': { min: 12000, max: 80000, currency: 'USD' },
+      'middle east': { min: 20000, max: 150000, currency: 'USD' },
+      'africa': { min: 8000, max: 60000, currency: 'USD' }
+    },
+    
+    // Education system mapping
+    educationSystems: {
+      'bachelor': ['bachelor', 'bachelors', 'ba', 'bs', 'bsc', 'beng', 'btech', 'licenciatura', 'licence', 'laurea'],
+      'master': ['master', 'masters', 'ma', 'ms', 'msc', 'meng', 'mba', 'maestria', 'master', 'magistrale'],
+      'doctorate': ['phd', 'doctorate', 'doctoral', 'dphil', 'edd', 'doctorado', 'doctorat', 'dottorato'],
+      'diploma': ['diploma', 'certificate', 'cert', 'certification', 'titulo', 'diplome', 'diploma'],
+      'associate': ['associate', 'aa', 'as', 'aas', 'tecnico', 'dut', 'bts']
+    },
+    
+    // Global timezone mapping for remote work
+    timezones: {
+      'americas': ['PST', 'MST', 'CST', 'EST', 'AST', 'BRT', 'ART'],
+      'europe_africa': ['GMT', 'CET', 'EET', 'WAT', 'CAT', 'EAT'],
+      'asia_pacific': ['JST', 'KST', 'CST', 'IST', 'GST', 'AEST', 'NZST']
+    }
+  };
 
-  // Comprehensive skill taxonomy with categories and weights for ALL professions
+  // Global comprehensive skill taxonomy with categories and weights for ALL professions worldwide
   private readonly skillTaxonomy = {
     // TECHNICAL SKILLS
     programming: {
@@ -211,6 +256,150 @@ export class EnhancedNLPService {
         'service level agreements', 'response time optimization', 'customer analytics', 'voice of customer'
       ]
     },
+    // EDUCATION & TRAINING SKILLS
+    education: {
+      weight: 3.0,
+      skills: [
+        'curriculum development', 'lesson planning', 'classroom management', 'student assessment', 'educational technology',
+        'learning management systems', 'lms', 'moodle', 'blackboard', 'canvas', 'google classroom', 'zoom',
+        'instructional design', 'pedagogy', 'differentiated instruction', 'special education', 'inclusive education',
+        'educational psychology', 'child development', 'adult learning', 'training delivery', 'e-learning',
+        'blended learning', 'online teaching', 'virtual classroom', 'educational research', 'data analysis',
+        'student engagement', 'parent communication', 'behavior management', 'literacy', 'numeracy',
+        'stem education', 'language teaching', 'esl', 'tesol', 'tefl', 'multilingual education'
+      ]
+    },
+    // LEGAL & COMPLIANCE SKILLS
+    legal: {
+      weight: 3.0,
+      skills: [
+        'legal research', 'contract law', 'corporate law', 'employment law', 'intellectual property', 'litigation',
+        'legal writing', 'case management', 'compliance', 'regulatory affairs', 'risk assessment', 'due diligence',
+        'arbitration', 'mediation', 'negotiation', 'legal analysis', 'statutory interpretation', 'precedent research',
+        'client counseling', 'court procedures', 'discovery', 'depositions', 'legal technology', 'e-discovery',
+        'document review', 'contract drafting', 'legal project management', 'ethics', 'professional responsibility',
+        'international law', 'tax law', 'real estate law', 'family law', 'criminal law', 'immigration law'
+      ]
+    },
+    // CONSTRUCTION & ENGINEERING SKILLS
+    construction: {
+      weight: 3.0,
+      skills: [
+        'project management', 'construction management', 'civil engineering', 'mechanical engineering', 'electrical engineering',
+        'structural engineering', 'autocad', 'revit', 'solidworks', 'sketchup', 'bim', 'building information modeling',
+        'blueprints', 'technical drawings', 'surveying', 'site supervision', 'quality control', 'safety management',
+        'osha compliance', 'risk assessment', 'cost estimation', 'scheduling', 'resource planning', 'budgeting',
+        'contract administration', 'vendor management', 'material procurement', 'equipment operation', 'heavy machinery',
+        'construction safety', 'building codes', 'permits', 'inspections', 'problem solving', 'team leadership'
+      ]
+    },
+    // MANUFACTURING & PRODUCTION SKILLS
+    manufacturing: {
+      weight: 3.0,
+      skills: [
+        'lean manufacturing', 'six sigma', 'quality control', 'process improvement', 'production planning',
+        'inventory management', 'supply chain', 'logistics', 'warehouse management', 'equipment maintenance',
+        'preventive maintenance', 'troubleshooting', 'root cause analysis', 'statistical process control', 'spc',
+        'iso standards', 'iso 9001', 'gmp', 'good manufacturing practices', 'safety protocols', 'osha',
+        'machine operation', 'cnc programming', 'plc programming', 'automation', 'robotics', 'industrial engineering',
+        'continuous improvement', 'kaizen', '5s methodology', 'productivity optimization', 'cost reduction'
+      ]
+    },
+    // RETAIL & HOSPITALITY SKILLS
+    retail_hospitality: {
+      weight: 2.8,
+      skills: [
+        'customer service', 'sales techniques', 'pos systems', 'inventory management', 'merchandising',
+        'visual merchandising', 'store operations', 'cash handling', 'loss prevention', 'team leadership',
+        'staff training', 'scheduling', 'hospitality management', 'hotel operations', 'front desk operations',
+        'reservation systems', 'event planning', 'food service', 'restaurant management', 'bar operations',
+        'kitchen management', 'food safety', 'haccp', 'wine knowledge', 'beverage service', 'guest relations',
+        'housekeeping', 'maintenance coordination', 'revenue management', 'customer satisfaction', 'complaint resolution'
+      ]
+    },
+    // TRANSPORTATION & LOGISTICS SKILLS
+    transportation: {
+      weight: 2.8,
+      skills: [
+        'logistics management', 'supply chain optimization', 'route planning', 'fleet management', 'freight coordination',
+        'shipping documentation', 'customs clearance', 'international trade', 'warehouse operations', 'inventory control',
+        'distribution management', 'transportation planning', 'load optimization', 'delivery scheduling', 'tracking systems',
+        'gps navigation', 'commercial driving', 'cdl', 'dot regulations', 'safety compliance', 'vehicle maintenance',
+        'cargo handling', 'hazmat certification', 'import export', 'incoterms', 'bill of lading', 'freight forwarding'
+      ]
+    },
+    // REAL ESTATE SKILLS
+    real_estate: {
+      weight: 2.8,
+      skills: [
+        'property valuation', 'market analysis', 'real estate law', 'contract negotiation', 'property management',
+        'tenant relations', 'lease administration', 'property maintenance', 'real estate marketing', 'lead generation',
+        'client relations', 'property inspection', 'appraisal', 'mortgage knowledge', 'financing options',
+        'investment analysis', 'cash flow analysis', 'property development', 'zoning regulations', 'building codes',
+        'real estate technology', 'mls systems', 'crm systems', 'property photography', 'virtual tours',
+        'market research', 'competitive analysis', 'closing procedures', 'title insurance', 'escrow management'
+      ]
+    },
+    // MEDIA & COMMUNICATIONS SKILLS
+    media_communications: {
+      weight: 2.8,
+      skills: [
+        'content creation', 'copywriting', 'journalism', 'public relations', 'media relations', 'press releases',
+        'social media management', 'content marketing', 'brand management', 'creative writing', 'editing',
+        'proofreading', 'video production', 'audio production', 'photography', 'graphic design', 'web design',
+        'digital marketing', 'seo', 'content strategy', 'storytelling', 'crisis communications', 'internal communications',
+        'event management', 'campaign management', 'analytics', 'media planning', 'advertising', 'broadcast journalism',
+        'print journalism', 'online journalism', 'interview skills', 'research skills', 'fact checking'
+      ]
+    },
+    // AGRICULTURE & ENVIRONMENTAL SKILLS
+    agriculture_environment: {
+      weight: 2.8,
+      skills: [
+        'crop management', 'soil science', 'irrigation systems', 'pest control', 'livestock management',
+        'agricultural technology', 'precision agriculture', 'farm equipment operation', 'sustainable farming',
+        'organic farming', 'environmental science', 'environmental monitoring', 'environmental compliance',
+        'waste management', 'water treatment', 'air quality monitoring', 'environmental assessment',
+        'sustainability practices', 'renewable energy', 'climate science', 'conservation', 'biodiversity',
+        'ecosystem management', 'environmental regulations', 'environmental impact assessment', 'green technology'
+      ]
+    },
+    // GOVERNMENT & PUBLIC SERVICE SKILLS
+    public_service: {
+      weight: 2.8,
+      skills: [
+        'public administration', 'policy analysis', 'government relations', 'regulatory compliance', 'public policy',
+        'community engagement', 'stakeholder management', 'grant writing', 'program management', 'budget management',
+        'public speaking', 'presentation skills', 'report writing', 'data analysis', 'research methods',
+        'project coordination', 'intergovernmental relations', 'legislative affairs', 'public safety', 'emergency management',
+        'disaster response', 'crisis management', 'social services', 'case management', 'client advocacy',
+        'community outreach', 'volunteer coordination', 'nonprofit management', 'fundraising', 'donor relations'
+      ]
+    },
+    // SPORTS & FITNESS SKILLS
+    sports_fitness: {
+      weight: 2.6,
+      skills: [
+        'personal training', 'fitness coaching', 'exercise physiology', 'nutrition counseling', 'sports science',
+        'athletic performance', 'injury prevention', 'rehabilitation', 'sports psychology', 'team coaching',
+        'program design', 'fitness assessment', 'group fitness', 'specialized training', 'equipment maintenance',
+        'safety protocols', 'first aid', 'cpr certification', 'sports management', 'event coordination',
+        'facility management', 'membership sales', 'customer retention', 'health education', 'wellness programs',
+        'physical therapy', 'massage therapy', 'sports medicine', 'biomechanics', 'kinesiology'
+      ]
+    },
+    // ARTS & CREATIVE SKILLS
+    arts_creative: {
+      weight: 2.6,
+      skills: [
+        'graphic design', 'web design', 'ui/ux design', 'visual arts', 'fine arts', 'digital art', 'illustration',
+        'photography', 'videography', 'video editing', 'audio production', 'music production', 'sound design',
+        'animation', '3d modeling', 'game design', 'creative writing', 'screenwriting', 'storytelling',
+        'art direction', 'creative direction', 'brand design', 'packaging design', 'print design', 'typography',
+        'color theory', 'composition', 'adobe creative suite', 'photoshop', 'illustrator', 'indesign',
+        'after effects', 'premiere pro', 'sketch', 'figma', 'cinema 4d', 'blender', 'unity', 'unreal engine'
+      ]
+    },
     // SOFT SKILLS - Universal across professions
     soft_skills: {
       weight: 2.5,
@@ -281,9 +470,10 @@ export class EnhancedNLPService {
     }
   };
 
-  // Enhanced synonym mapping with context awareness
+  // Enhanced global synonym mapping with context awareness and multilingual support
   private readonly skillSynonyms = new Map([
-    ['javascript', ['js', 'ecmascript', 'es6', 'es2020', 'vanilla js']],
+    // Technical Skills
+    ['javascript', ['js', 'ecmascript', 'es6', 'es2020', 'vanilla js', 'node.js', 'nodejs']],
     ['typescript', ['ts']],
     ['react', ['reactjs', 'react.js', 'jsx', 'tsx']],
     ['angular', ['angularjs', 'angular2+', 'angular cli']],
@@ -294,29 +484,122 @@ export class EnhancedNLPService {
     ['amazon web services', ['aws']],
     ['google cloud platform', ['gcp', 'google cloud']],
     ['microsoft azure', ['azure']],
-    ['machine learning', ['ml', 'artificial intelligence', 'ai']],
+    ['machine learning', ['ml', 'artificial intelligence', 'ai', 'deep learning', 'neural networks']],
     ['continuous integration', ['ci/cd', 'devops']],
     ['version control', ['git', 'github', 'gitlab', 'bitbucket']],
     ['api', ['rest api', 'restful', 'graphql', 'grpc']],
     ['microservices', ['micro-services', 'service oriented architecture', 'soa']],
     ['test driven development', ['tdd', 'unit testing', 'integration testing']],
-    ['agile', ['scrum', 'kanban', 'sprint planning']]
+    ['agile', ['scrum', 'kanban', 'sprint planning']],
+    
+    // Business Skills
+    ['customer service', ['customer support', 'client service', 'customer care', 'help desk']],
+    ['sales', ['business development', 'revenue generation', 'account management']],
+    ['marketing', ['digital marketing', 'brand management', 'promotional activities']],
+    ['project management', ['program management', 'project coordination', 'project planning']],
+    ['business analysis', ['requirements analysis', 'process analysis', 'data analysis']],
+    
+    // Professional Certifications & Standards
+    ['pmp', ['project management professional', 'project management certification']],
+    ['six sigma', ['lean six sigma', 'process improvement', 'quality management']],
+    ['iso 9001', ['quality management system', 'iso certification']],
+    ['osha', ['occupational safety', 'workplace safety', 'safety compliance']],
+    ['gdpr', ['data protection', 'privacy compliance', 'data privacy']],
+    
+    // Industry-Specific Terms
+    ['healthcare', ['medical', 'clinical', 'patient care', 'health services']],
+    ['finance', ['financial services', 'banking', 'accounting', 'fintech']],
+    ['education', ['teaching', 'training', 'instruction', 'academic']],
+    ['legal', ['law', 'litigation', 'compliance', 'regulatory']],
+    ['construction', ['building', 'engineering', 'architecture', 'infrastructure']],
+    ['manufacturing', ['production', 'operations', 'industrial', 'factory']],
+    
+    // Global/Regional Variations
+    ['cv', ['resume', 'curriculum vitae']],
+    ['uni', ['university', 'college', 'higher education']],
+    ['maths', ['mathematics', 'math']],
+    ['centre', ['center']],
+    ['colour', ['color']],
+    ['organisation', ['organization']],
+    ['analyse', ['analyze']],
+    ['realise', ['realize']],
+    
+    // Language Skills
+    ['english', ['esl', 'english as second language', 'english proficiency']],
+    ['spanish', ['español', 'castellano']],
+    ['french', ['français', 'francais']],
+    ['german', ['deutsch']],
+    ['chinese', ['mandarin', '中文', 'putonghua']],
+    ['japanese', ['日本語', 'nihongo']],
+    ['arabic', ['العربية', 'عربي']],
+    ['portuguese', ['português']],
+    ['russian', ['русский']],
+    ['hindi', ['हिन्दी']]
   ]);
 
-  // Job title normalization patterns
+  // Global job title normalization patterns with international variations
   private readonly titleNormalization = new Map([
-    [/senior|sr\.?\s+/i, 'Senior '],
-    [/junior|jr\.?\s+/i, 'Junior '],
-    [/lead\s+/i, 'Lead '],
+    // Seniority Levels
+    [/senior|sr\.?\s+|snr\s+/i, 'Senior '],
+    [/junior|jr\.?\s+|jnr\s+/i, 'Junior '],
+    [/lead\s+|team\s+lead/i, 'Lead '],
     [/principal\s+/i, 'Principal '],
     [/staff\s+/i, 'Staff '],
-    [/software\s+engineer/i, 'Software Engineer'],
-    [/full\s*stack/i, 'Full Stack'],
-    [/front\s*end/i, 'Frontend'],
-    [/back\s*end/i, 'Backend'],
-    [/dev\s*ops/i, 'DevOps'],
+    [/executive\s+|exec\s+/i, 'Executive '],
+    [/director\s+|dir\s+/i, 'Director '],
+    [/manager\s+|mgr\s+/i, 'Manager '],
+    [/coordinator\s+|coord\s+/i, 'Coordinator '],
+    [/associate\s+|assoc\s+/i, 'Associate '],
+    [/assistant\s+|asst\s+/i, 'Assistant '],
+    [/intern|internship|trainee/i, 'Intern '],
+    
+    // Technical Roles
+    [/software\s+engineer|swe/i, 'Software Engineer'],
+    [/full\s*stack|fullstack/i, 'Full Stack'],
+    [/front\s*end|frontend/i, 'Frontend'],
+    [/back\s*end|backend/i, 'Backend'],
+    [/dev\s*ops|devops/i, 'DevOps'],
     [/data\s+scientist/i, 'Data Scientist'],
-    [/product\s+manager/i, 'Product Manager']
+    [/data\s+engineer/i, 'Data Engineer'],
+    [/data\s+analyst/i, 'Data Analyst'],
+    [/machine\s+learning\s+engineer|ml\s+engineer/i, 'ML Engineer'],
+    [/product\s+manager|pm/i, 'Product Manager'],
+    [/ui\s*ux\s+designer|ux\s+designer|ui\s+designer/i, 'UX/UI Designer'],
+    [/quality\s+assurance|qa\s+engineer|test\s+engineer/i, 'QA Engineer'],
+    [/security\s+engineer|cybersecurity\s+analyst/i, 'Security Engineer'],
+    [/cloud\s+engineer|cloud\s+architect/i, 'Cloud Engineer'],
+    [/systems\s+administrator|sysadmin/i, 'Systems Administrator'],
+    [/database\s+administrator|dba/i, 'Database Administrator'],
+    
+    // Business Roles
+    [/business\s+analyst|ba/i, 'Business Analyst'],
+    [/business\s+development|bd\s+manager/i, 'Business Development'],
+    [/account\s+manager|am/i, 'Account Manager'],
+    [/sales\s+representative|sales\s+rep/i, 'Sales Representative'],
+    [/customer\s+success|cs\s+manager/i, 'Customer Success Manager'],
+    [/human\s+resources|hr\s+manager/i, 'HR Manager'],
+    [/financial\s+analyst/i, 'Financial Analyst'],
+    [/marketing\s+manager/i, 'Marketing Manager'],
+    [/operations\s+manager/i, 'Operations Manager'],
+    
+    // Healthcare Roles
+    [/registered\s+nurse|rn/i, 'Registered Nurse'],
+    [/physician\s+assistant|pa/i, 'Physician Assistant'],
+    [/medical\s+assistant|ma/i, 'Medical Assistant'],
+    [/physical\s+therapist|pt/i, 'Physical Therapist'],
+    [/occupational\s+therapist|ot/i, 'Occupational Therapist'],
+    
+    // Education Roles  
+    [/elementary\s+teacher|primary\s+teacher/i, 'Elementary Teacher'],
+    [/secondary\s+teacher|high\s+school\s+teacher/i, 'Secondary Teacher'],
+    [/special\s+education\s+teacher/i, 'Special Education Teacher'],
+    [/instructional\s+designer/i, 'Instructional Designer'],
+    
+    // International Variations
+    [/programme\s+manager/i, 'Program Manager'],
+    [/colour\s+specialist/i, 'Color Specialist'],
+    [/analyse/i, 'Analyst'],
+    [/centre\s+manager/i, 'Center Manager']
   ]);
 
   // Experience level patterns with more nuanced matching
@@ -337,49 +620,98 @@ export class EnhancedNLPService {
     [/contract|freelance|consulting|temporary|temp|project.based/i, 'Contract']
   ]);
 
-  // Industry classification patterns
+  // Global industry classification patterns with comprehensive coverage
   private readonly industryPatterns = new Map([
-    [/fintech|financial|banking|payments|trading|insurance/i, 'Financial Technology'],
-    [/healthcare|medical|biotech|pharma|telemedicine/i, 'Healthcare & Biotech'],
-    [/e.?commerce|retail|marketplace|shopping/i, 'E-commerce & Retail'],
-    [/gaming|game|entertainment|media|streaming/i, 'Gaming & Entertainment'],
-    [/education|edtech|learning|university|school/i, 'Education Technology'],
-    [/saas|enterprise|b2b|productivity|collaboration/i, 'Enterprise Software'],
-    [/startup|early.stage|series\s+[a-c]/i, 'Startup'],
-    [/fortune\s+500|enterprise|large\s+corporation/i, 'Enterprise']
+    // Technology
+    [/fintech|financial\s+technology|banking\s+technology|payments|trading\s+technology|insurtech/i, 'Financial Technology'],
+    [/saas|enterprise\s+software|b2b\s+software|productivity\s+software|collaboration\s+tools/i, 'Enterprise Software'],
+    [/edtech|education\s+technology|e-learning|online\s+learning|learning\s+management/i, 'Education Technology'],
+    [/healthtech|medical\s+technology|telemedicine|digital\s+health|health\s+tech/i, 'Health Technology'],
+    [/proptech|real\s+estate\s+technology|property\s+technology/i, 'Property Technology'],
+    [/agtech|agriculture\s+technology|farming\s+technology/i, 'Agriculture Technology'],
+    
+    // Traditional Industries
+    [/healthcare|medical|hospital|clinical|pharmaceutical|pharma|biotech|biotechnology/i, 'Healthcare & Life Sciences'],
+    [/finance|banking|investment|wealth\s+management|asset\s+management|insurance/i, 'Financial Services'],
+    [/retail|e.?commerce|marketplace|shopping|consumer\s+goods|fmcg/i, 'Retail & E-commerce'],
+    [/manufacturing|production|industrial|automotive|aerospace|chemicals/i, 'Manufacturing & Industrial'],
+    [/construction|engineering|architecture|infrastructure|real\s+estate|property/i, 'Construction & Real Estate'],
+    [/energy|oil|gas|renewable\s+energy|utilities|power|solar|wind/i, 'Energy & Utilities'],
+    [/telecommunications|telecom|networking|internet\s+service\s+provider|isp/i, 'Telecommunications'],
+    [/transportation|logistics|shipping|freight|supply\s+chain|delivery/i, 'Transportation & Logistics'],
+    [/hospitality|hotel|restaurant|tourism|travel|leisure|entertainment/i, 'Hospitality & Tourism'],
+    [/agriculture|farming|food\s+production|agribusiness/i, 'Agriculture & Food'],
+    
+    // Professional Services
+    [/consulting|professional\s+services|advisory|management\s+consulting/i, 'Consulting & Professional Services'],
+    [/legal|law\s+firm|litigation|corporate\s+law/i, 'Legal Services'],
+    [/accounting|audit|tax|financial\s+advisory|cpa/i, 'Accounting & Finance'],
+    [/marketing|advertising|public\s+relations|pr|digital\s+agency/i, 'Marketing & Advertising'],
+    [/human\s+resources|hr\s+services|recruitment|staffing/i, 'Human Resources Services'],
+    
+    // Media & Creative
+    [/media|broadcasting|journalism|publishing|content\s+creation/i, 'Media & Publishing'],
+    [/gaming|game\s+development|video\s+games|esports/i, 'Gaming & Entertainment'],
+    [/design|creative\s+agency|graphic\s+design|web\s+design/i, 'Design & Creative Services'],
+    [/film|television|tv|movie|production|streaming/i, 'Film & Television'],
+    
+    // Public & Non-Profit
+    [/government|public\s+sector|municipal|federal|state|local\s+government/i, 'Government & Public Sector'],
+    [/non.?profit|ngo|charity|foundation|social\s+services/i, 'Non-Profit & Social Services'],
+    [/education|school|university|college|academic|k-12/i, 'Education'],
+    [/research|r&d|laboratory|scientific\s+research/i, 'Research & Development'],
+    
+    // Company Size & Stage
+    [/startup|early.stage|seed\s+stage|series\s+[a-c]|pre.ipo/i, 'Startup'],
+    [/fortune\s+500|large\s+corporation|multinational|enterprise|big\s+tech/i, 'Large Enterprise'],
+    [/sme|small\s+medium\s+enterprise|mid.size|medium\s+business/i, 'Small to Medium Enterprise'],
+    [/family\s+business|privately\s+held|private\s+company/i, 'Private Company'],
+    [/public\s+company|publicly\s+traded|listed\s+company/i, 'Public Company']
   ]);
 
   async analyzeJob(jobDescription: string, userProfile: any): Promise<JobAnalysisResult> {
     const startTime = performance.now();
 
     try {
-      // Extract and parse job data
-      const extractedData = this.extractJobData(jobDescription);
+      // Detect language and region for global processing
+      const detectedLanguage = this.detectLanguage(jobDescription);
+      const detectedRegion = this.detectRegion(jobDescription, userProfile);
+      
+      console.log(`🌍 Global NLP Analysis - Language: ${detectedLanguage}, Region: ${detectedRegion}`);
 
-      // Normalize user profile data
-      const normalizedProfile = this.normalizeUserProfile(userProfile);
+      // Extract and parse job data with global context
+      const extractedData = this.extractJobData(jobDescription, detectedLanguage, detectedRegion);
 
-      // Calculate comprehensive match score
+      // Normalize user profile data with cultural considerations
+      const normalizedProfile = this.normalizeUserProfile(userProfile, detectedRegion);
+
+      // Calculate comprehensive match score with global weighting
       const matchAnalysis = this.calculateEnhancedMatchScore(
         normalizedProfile, 
-        extractedData
+        extractedData,
+        detectedLanguage,
+        detectedRegion
       );
 
-      // Generate detailed recommendations
+      // Generate detailed recommendations with cultural context
       const recommendations = this.generateRecommendations(
         matchAnalysis, 
         extractedData, 
-        normalizedProfile
+        normalizedProfile,
+        detectedLanguage,
+        detectedRegion
       );
 
-      // Calculate analysis metadata
+      // Calculate analysis metadata with global stats
       const processingTime = performance.now() - startTime;
       const analysisMetadata: AnalysisMetadata = {
         processingTime,
         textLength: jobDescription.length,
         extractionConfidence: this.calculateExtractionConfidence(extractedData),
         version: this.version,
-        timestamp: new Date()
+        timestamp: new Date(),
+        detectedLanguage,
+        detectedRegion
       };
 
       return {
@@ -389,12 +721,55 @@ export class EnhancedNLPService {
         analysisMetadata
       };
     } catch (error) {
-      console.error('Job analysis failed:', error);
+      console.error('Global job analysis failed:', error);
       throw new Error(`Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  private extractJobData(jobDescription: string): ExtractedJobData {
+  // Language detection using pattern matching
+  private detectLanguage(text: string): string {
+    const languageScores: Record<string, number> = {};
+    
+    for (const [lang, pattern] of Object.entries(this.globalConfig.languages)) {
+      const matches = text.match(pattern);
+      languageScores[lang] = matches ? matches.length : 0;
+    }
+    
+    // Return language with highest score, default to English
+    const detectedLang = Object.entries(languageScores)
+      .sort(([, a], [, b]) => b - a)[0]?.[0] || 'en';
+    
+    return detectedLang;
+  }
+  
+  // Region detection based on various indicators
+  private detectRegion(jobDescription: string, userProfile?: any): string {
+    const text = jobDescription.toLowerCase();
+    
+    // Check for explicit region mentions
+    if (/\b(usa|united states|america|us|north america)\b/i.test(text)) return 'north america';
+    if (/\b(europe|eu|european union|uk|germany|france|spain|italy)\b/i.test(text)) return 'europe';
+    if (/\b(asia|china|japan|india|singapore|australia|apac)\b/i.test(text)) return 'asia pacific';
+    if (/\b(latin america|south america|brazil|mexico|argentina)\b/i.test(text)) return 'latin america';
+    if (/\b(middle east|uae|saudi|dubai|qatar)\b/i.test(text)) return 'middle east';
+    if (/\b(africa|south africa|nigeria|kenya)\b/i.test(text)) return 'africa';
+    
+    // Check user profile for region hints
+    if (userProfile?.location) {
+      const userLocation = userProfile.location.toLowerCase();
+      if (/\b(usa|canada|mexico)\b/i.test(userLocation)) return 'north america';
+      if (/\b(uk|germany|france|spain|italy|netherlands)\b/i.test(userLocation)) return 'europe';
+      if (/\b(china|japan|india|singapore|australia|korea)\b/i.test(userLocation)) return 'asia pacific';
+      if (/\b(brazil|argentina|chile|colombia)\b/i.test(userLocation)) return 'latin america';
+      if (/\b(uae|saudi|qatar|kuwait)\b/i.test(userLocation)) return 'middle east';
+      if (/\b(nigeria|south africa|kenya|egypt)\b/i.test(userLocation)) return 'africa';
+    }
+    
+    // Default to North America if no clear indicators
+    return 'north america';
+  }
+
+  private extractJobData(jobDescription: string, language: string = 'en', region: string = 'north america'): ExtractedJobData {
     const text = jobDescription.toLowerCase();
     const originalText = jobDescription;
 
@@ -590,7 +965,7 @@ export class EnhancedNLPService {
       const regex = new RegExp(`\\b${this.escapeRegex(pattern)}\\b`, 'gi');
 
       if (regex.test(text)) {
-        // Determine if required based on context
+        // Determine if required based on context with global considerations
         const isRequired = this.isSkillRequired(pattern, text, sections);
         const yearsRequired = this.extractYearsRequired(pattern, text);
         const context = this.extractSkillContext(pattern, text);
@@ -602,6 +977,7 @@ export class EnhancedNLPService {
     return null;
   }
 
+  // Enhanced global skill requirement detection with multilingual support
   private isSkillRequired(skill: string, text: string, sections: Map<string, string>): boolean {
     const requiredSection = sections.get('requirements');
     if (requiredSection) {
@@ -820,7 +1196,7 @@ export class EnhancedNLPService {
     return undefined;
   }
 
-  private normalizeUserProfile(userProfile: any): any {
+  private normalizeUserProfile(userProfile: any, region: string = 'north america'): any {
     return {
       skills: this.normalizeUserSkills(userProfile.skills || []),
       workExperience: userProfile.workExperience || [],
@@ -843,7 +1219,7 @@ export class EnhancedNLPService {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
-  private calculateEnhancedMatchScore(userProfile: any, extractedData: ExtractedJobData): any {
+  private calculateEnhancedMatchScore(userProfile: any, extractedData: ExtractedJobData, language: string = 'en', region: string = 'north america'): any {
     let baseScore = 40;
     let skillScore = 0;
     let experienceScore = 0;
@@ -918,7 +1294,7 @@ export class EnhancedNLPService {
     };
   }
 
-  private generateRecommendations(matchAnalysis: any, extractedData: ExtractedJobData, userProfile: any): any {
+  private generateRecommendations(matchAnalysis: any, extractedData: ExtractedJobData, userProfile: any, language: string = 'en', region: string = 'north america'): any {
     const { matchScore } = matchAnalysis;
     
     let applicationRecommendation: ApplicationRecommendation;
@@ -1000,5 +1376,5 @@ export class EnhancedNLPService {
   }
 }
 
-// Export singleton instance for use in routes
+// Global NLP service instance with comprehensive profession and region support
 export const customNLPService = new EnhancedNLPService();

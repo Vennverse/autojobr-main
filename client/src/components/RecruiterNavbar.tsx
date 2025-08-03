@@ -132,6 +132,12 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
       current: location === "/recruiter/jobs"
     },
     {
+      name: "Applicants",
+      href: "/recruiter/applicants",
+      icon: Users,
+      current: location === "/recruiter/applicants"
+    },
+    {
       name: "Pipeline",
       href: "/recruiter/pipeline",
       icon: GitBranch,
