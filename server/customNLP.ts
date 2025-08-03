@@ -842,6 +842,162 @@ export class EnhancedNLPService {
   private escapeRegex(string: string): string {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
+
+  private calculateEnhancedMatchScore(userProfile: any, extractedData: ExtractedJobData): any {
+    let baseScore = 40;
+    let skillScore = 0;
+    let experienceScore = 0;
+    const matchingSkills: SkillMatch[] = [];
+    const missingSkills: SkillGap[] = [];
+
+    // Calculate skill matching score
+    const userSkills = userProfile.skills || [];
+    const jobSkills = extractedData.requiredSkills || [];
+
+    if (jobSkills.length > 0 && userSkills.length > 0) {
+      let skillMatches = 0;
+      
+      for (const jobSkill of jobSkills) {
+        const skillName = typeof jobSkill === 'string' ? jobSkill : jobSkill.name;
+        const userMatch = userSkills.find((userSkill: string) => 
+          userSkill.toLowerCase().includes(skillName.toLowerCase()) ||
+          skillName.toLowerCase().includes(userSkill.toLowerCase())
+        );
+
+        if (userMatch) {
+          skillMatches++;
+          matchingSkills.push({
+            skill: skillName,
+            userSkill: userMatch,
+            matchType: 'exact',
+            relevance: 'high'
+          });
+        } else {
+          missingSkills.push({
+            skill: skillName,
+            category: 'technical',
+            priority: 'important',
+            learningTime: '1-3 months'
+          });
+        }
+      }
+
+      skillScore = (skillMatches / jobSkills.length) * 40;
+    }
+
+    // Calculate experience score
+    const jobExperience = extractedData.qualifications?.find(q => q.type === 'experience')?.value || 0;
+    const userExperience = userProfile.yearsExperience || 0;
+
+    if (jobExperience > 0) {
+      if (userExperience >= jobExperience) {
+        experienceScore = 20;
+      } else if (userExperience >= jobExperience * 0.7) {
+        experienceScore = 15;
+      } else if (userExperience >= jobExperience * 0.5) {
+        experienceScore = 10;
+      } else {
+        experienceScore = 5;
+      }
+    } else {
+      experienceScore = 15; // Default if no experience requirement
+    }
+
+    const finalScore = Math.min(100, Math.round(baseScore + skillScore + experienceScore));
+
+    return {
+      matchScore: finalScore,
+      confidenceLevel: finalScore >= 80 ? 'high' : finalScore >= 60 ? 'medium' : 'low',
+      matchingSkills,
+      missingSkills,
+      skillGaps: {
+        critical: missingSkills.filter(s => s.priority === 'critical'),
+        important: missingSkills.filter(s => s.priority === 'important'),
+        nice_to_have: missingSkills.filter(s => s.priority === 'nice_to_have')
+      }
+    };
+  }
+
+  private generateRecommendations(matchAnalysis: any, extractedData: ExtractedJobData, userProfile: any): any {
+    const { matchScore } = matchAnalysis;
+    
+    let applicationRecommendation: ApplicationRecommendation;
+    const tailoringAdvice: string[] = [];
+    const interviewPrepTips: string[] = [];
+
+    if (matchScore >= 80) {
+      applicationRecommendation = {
+        action: 'strongly_recommended',
+        reasoning: ['High skill match', 'Experience level appropriate'],
+        timeline: 'Apply immediately'
+      };
+    } else if (matchScore >= 65) {
+      applicationRecommendation = {
+        action: 'recommended',
+        reasoning: ['Good overall match', 'Some skill gaps can be filled'],
+        timeline: 'Apply within 1 week'
+      };
+    } else if (matchScore >= 50) {
+      applicationRecommendation = {
+        action: 'consider_with_preparation',
+        reasoning: ['Moderate match', 'Requires skill development'],
+        timeline: 'Prepare for 2-4 weeks before applying'
+      };
+    } else {
+      applicationRecommendation = {
+        action: 'needs_development',
+        reasoning: ['Significant skill gaps', 'Experience requirements not met'],
+        timeline: 'Develop skills for 3-6 months'
+      };
+    }
+
+    // Generate tailoring advice
+    tailoringAdvice.push('Highlight relevant experience in your resume');
+    if (matchAnalysis.matchingSkills.length > 0) {
+      tailoringAdvice.push('Emphasize your matching skills: ' + matchAnalysis.matchingSkills.slice(0, 3).map((s: any) => s.skill).join(', '));
+    }
+
+    // Generate interview prep tips
+    interviewPrepTips.push('Research the company culture and values');
+    interviewPrepTips.push('Prepare examples that demonstrate your relevant skills');
+    if (extractedData.industry) {
+      interviewPrepTips.push(`Study ${extractedData.industry} industry trends`);
+    }
+
+    return {
+      seniorityLevel: this.extractSeniorityLevel(extractedData.title),
+      workMode: extractedData.isRemote ? 'Remote' : 'On-site',
+      jobType: 'Full-time', // Default
+      roleComplexity: matchScore >= 70 ? 'Suitable' : 'Challenging',
+      careerProgression: 'Good growth opportunity',
+      industryFit: extractedData.industry || 'Technology',
+      cultureFit: 'Research company culture',
+      applicationRecommendation,
+      tailoringAdvice,
+      interviewPrepTips,
+      riskFactors: matchScore < 60 ? ['Skill gaps may impact performance'] : [],
+      growthOpportunities: ['Professional development', 'Skill enhancement']
+    };
+  }
+
+  private extractSeniorityLevel(title: string): string {
+    const titleLower = title.toLowerCase();
+    if (titleLower.includes('senior') || titleLower.includes('lead')) return 'Senior Level';
+    if (titleLower.includes('junior') || titleLower.includes('associate')) return 'Junior Level';
+    if (titleLower.includes('mid') || titleLower.includes('intermediate')) return 'Mid Level';
+    return 'Mid Level';
+  }
+
+  private calculateExtractionConfidence(extractedData: ExtractedJobData): number {
+    let confidence = 50;
+    
+    if (extractedData.title && extractedData.title.length > 5) confidence += 15;
+    if (extractedData.company && extractedData.company.length > 2) confidence += 10;
+    if (extractedData.requiredSkills && extractedData.requiredSkills.length > 0) confidence += 15;
+    if (extractedData.qualifications && extractedData.qualifications.length > 0) confidence += 10;
+    
+    return Math.min(100, confidence);
+  }
 }
 
 // Export singleton instance for use in routes

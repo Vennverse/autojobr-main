@@ -43,6 +43,7 @@ import {
   deduplicationMiddleware, 
   rateLimitMiddleware 
 } from "./optimizedMiddleware.js";
+import { customNLPService } from "./customNLP.js";
 
 // OPTIMIZATION: Enhanced in-memory cache with better performance
 const cache = new Map();
@@ -1261,7 +1262,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             benefits: job.benefits || ''
           };
           
-          const matchAnalysis = await groqService.analyzeJobMatch(jobData, profile);
+          // Use custom NLP service for better job matching
+          const customAnalysis = await customNLPService.analyzeJob(job.description, profile);
           
           recommendations.push({
             id: `job-${job.id}`, // Use actual job ID
@@ -1270,7 +1272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             location: job.location || 'Remote',
             description: job.description.substring(0, 200) + '...',
             requirements: job.requirements ? job.requirements.split('\n').slice(0, 3) : [],
-            matchScore: matchAnalysis.matchScore || 75,
+            matchScore: customAnalysis.matchScore || 75,
             salaryRange: job.salaryRange || 'Competitive',
             workMode: job.workMode || 'Not specified',
             postedDate: job.createdAt,
@@ -1278,8 +1280,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             benefits: job.benefits ? job.benefits.split('\n').slice(0, 3) : [],
             isBookmarked: false
           });
-        } catch (aiError) {
-          // Fallback without AI scoring
+        } catch (analysisError) {
+          console.log("Custom NLP analysis failed, using fallback:", analysisError);
+          // Fallback with basic scoring
           recommendations.push({
             id: `job-${job.id}`,
             title: job.title,
@@ -1287,7 +1290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             location: job.location || 'Remote',
             description: job.description.substring(0, 200) + '...',
             requirements: job.requirements ? job.requirements.split('\n').slice(0, 3) : [],
-            matchScore: 75, // Default score
+            matchScore: 65, // More realistic default score
             salaryRange: job.salaryRange || 'Competitive',
             workMode: job.workMode || 'Not specified',
             postedDate: job.createdAt,
@@ -2868,7 +2871,7 @@ Additional Information:
       }
       
       // Analyze job match with custom NLP (no external AI dependency)
-      const analysis = customNLPService.analyzeJob(jobData.description, userProfile);
+      const analysis = await customNLPService.analyzeJob(jobData.description, userProfile);
       console.log("Job analysis result:", analysis);
 
       // Store the analysis in database for persistence
@@ -5685,7 +5688,19 @@ Additional Information:
   app.post('/api/jobs/postings/:jobId/apply', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const jobId = parseInt(req.params.jobId);
+      
+      // Handle both "job-X" format and direct integer IDs (same as GET endpoint)
+      let jobId;
+      if (req.params.jobId.startsWith('job-')) {
+        jobId = parseInt(req.params.jobId.replace('job-', ''));
+      } else {
+        jobId = parseInt(req.params.jobId);
+      }
+      
+      if (isNaN(jobId)) {
+        return res.status(400).json({ message: "Invalid job ID format" });
+      }
+      
       const { resumeId, coverLetter } = req.body;
       const user = await storage.getUser(userId);
       

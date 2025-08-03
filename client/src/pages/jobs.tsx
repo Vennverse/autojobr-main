@@ -235,37 +235,50 @@ export default function Jobs() {
 
   // Calculate job compatibility score
   const calculateCompatibility = (job: any) => {
-    if (!userProfile) return 65; // Default score if no profile
-    
-    let score = 50; // Base score
-    
-    // Skills matching
-    const userSkills = userProfile.skills || [];
-    const jobSkills = job.requiredSkills || [];
-    const skillsMatch = jobSkills.filter((skill: string) => 
-      userSkills.some((userSkill: string) => 
-        userSkill.toLowerCase().includes(skill.toLowerCase())
-      )
-    ).length;
-    
-    if (skillsMatch > 0) {
-      score += Math.min(30, (skillsMatch / jobSkills.length) * 30);
+    // Use backend AI analysis score if available (from recommendations)
+    if (job.matchScore && job.matchScore > 0) {
+      return job.matchScore;
     }
     
-    // Experience level matching
+    if (!userProfile) return 75; // Default score if no profile
+    
+    let score = 60; // Better base score
+    
+    // Skills matching (enhanced)
+    const userSkills = userProfile.skills || [];
+    const jobSkills = job.requiredSkills || [];
+    
+    if (jobSkills.length > 0 && userSkills.length > 0) {
+      const skillsMatch = jobSkills.filter((skill: string) => 
+        userSkills.some((userSkill: string) => 
+          userSkill.toLowerCase().includes(skill.toLowerCase()) ||
+          skill.toLowerCase().includes(userSkill.toLowerCase())
+        )
+      ).length;
+      
+      const skillMatchPercentage = skillsMatch / jobSkills.length;
+      score += Math.min(25, skillMatchPercentage * 25);
+    }
+    
+    // Experience level matching (enhanced)
     if (userProfile.experienceLevel && job.experienceLevel) {
       const levels = ['entry', 'junior', 'mid', 'senior', 'lead'];
       const userLevelIndex = levels.indexOf(userProfile.experienceLevel.toLowerCase());
       const jobLevelIndex = levels.indexOf(job.experienceLevel.toLowerCase());
       
-      if (Math.abs(userLevelIndex - jobLevelIndex) <= 1) {
-        score += 15;
+      if (userLevelIndex !== -1 && jobLevelIndex !== -1) {
+        const levelDiff = Math.abs(userLevelIndex - jobLevelIndex);
+        if (levelDiff === 0) score += 10; // Perfect match
+        else if (levelDiff === 1) score += 5; // Close match
       }
     }
     
     // Location preference
     if (userProfile.preferredLocation && job.location) {
-      if (job.location.toLowerCase().includes(userProfile.preferredLocation.toLowerCase())) {
+      const userLocation = userProfile.preferredLocation.toLowerCase();
+      const jobLocation = job.location.toLowerCase();
+      
+      if (jobLocation.includes(userLocation) || userLocation.includes(jobLocation) || jobLocation.includes('remote')) {
         score += 5;
       }
     }
