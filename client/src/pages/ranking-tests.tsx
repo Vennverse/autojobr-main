@@ -27,7 +27,19 @@ export default function RankingTests() {
   // Fetch available test categories and domains
   const { data: categories = { categories: [], domains: [] } } = useQuery({
     queryKey: ['/api/ranking-tests/categories'],
-    queryFn: () => apiRequest('GET', '/api/ranking-tests/categories').then(res => res.json())
+    queryFn: async () => {
+      try {
+        const res = await apiRequest('GET', '/api/ranking-tests/categories');
+        return res.json();
+      } catch (error) {
+        // Fallback data when not authenticated
+        console.log('Using fallback categories - authentication required');
+        return {
+          categories: ["technical", "behavioral", "general"],
+          domains: ["general", "technical", "finance", "marketing", "sales", "hr", "accounting"]
+        };
+      }
+    }
   });
 
   // Fetch user's test history
