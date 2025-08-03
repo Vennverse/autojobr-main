@@ -401,6 +401,116 @@ export default function EnhancedDashboard() {
             )}
           </motion.div>
 
+          {/* Resume Analysis Featured Card */}
+          <motion.div variants={itemVariants} className="mb-8">
+            <Card className="border-0 overflow-hidden relative bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 shadow-xl">
+              <div className="absolute inset-0 bg-black/5" />
+              <CardContent className="p-8 relative text-white">
+                <div className="flex items-start justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-4 rounded-2xl bg-white/20 backdrop-blur-sm">
+                      <Upload className="w-8 h-8 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold mb-1">AI Resume Analysis</h2>
+                      <p className="text-emerald-100 text-base">
+                        Upload and optimize your resumes with AI-powered ATS scoring
+                      </p>
+                    </div>
+                  </div>
+                  <Badge className="bg-white/20 text-white border-white/30 font-medium px-3 py-1">
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                    Active
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Upload Status */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-emerald-100 font-medium">Resumes uploaded:</span>
+                      <span className="text-xl font-bold">
+                        {(resumes as any)?.length || 0}/{user?.planType === 'premium' ? '∞' : '2'}
+                      </span>
+                    </div>
+                    
+                    {((resumes as any)?.length || 0) >= 2 && user?.planType !== 'premium' && (
+                      <div className="bg-white/10 rounded-xl p-4 border border-white/20">
+                        <p className="text-sm font-medium mb-3">Upload limit reached</p>
+                        <Button 
+                          className="w-full bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-gray-900 font-semibold shadow-lg"
+                          onClick={() => setLocation("/pricing")}
+                        >
+                          <Crown className="w-4 h-4 mr-2" />
+                          Upgrade for Unlimited
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Latest Analysis */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-emerald-100">Latest Resume Analysis:</h3>
+                    
+                    {resumes && (resumes as any).length > 0 ? (
+                      <div className="bg-white/10 rounded-xl p-4 border border-white/20 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-emerald-100">
+                            📄 {(resumes as any)[0]?.name || 'Resume'}
+                          </span>
+                          <Badge className="bg-gradient-to-r from-yellow-400 to-orange-400 text-gray-900 font-bold">
+                            ATS: {resumeScore}%
+                          </Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-3 gap-3 text-center">
+                          <div>
+                            <div className="text-xl font-bold text-green-300">
+                              {(resumes as any)[0]?.analysis?.content?.strengthsFound?.length || 1}
+                            </div>
+                            <div className="text-xs text-emerald-200">Strengths</div>
+                          </div>
+                          <div>
+                            <div className="text-xl font-bold text-orange-300">
+                              {(resumes as any)[0]?.analysis?.recommendations?.length || 4}
+                            </div>
+                            <div className="text-xs text-emerald-200">Tips</div>
+                          </div>
+                          <div>
+                            <div className="text-xl font-bold text-red-300">
+                              {(resumes as any)[0]?.analysis?.keywordOptimization?.missingKeywords?.length || 2}
+                            </div>
+                            <div className="text-xs text-emerald-200">Missing</div>
+                          </div>
+                        </div>
+                        
+                        <Button 
+                          className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm"
+                          onClick={() => setLocation("/resumes")}
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          View Full Analysis
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="bg-white/10 rounded-xl p-4 border border-white/20 text-center">
+                        <Upload className="w-8 h-8 mx-auto mb-3 text-emerald-200" />
+                        <p className="text-sm text-emerald-100 mb-3">Upload your resume to get instant AI analysis</p>
+                        <Button 
+                          className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30"
+                          onClick={() => setLocation("/resumes")}
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload Resume
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
           {/* Stats Overview */}
           <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0">
