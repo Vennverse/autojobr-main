@@ -66,6 +66,7 @@ export function Navbar() {
         { href: "/", label: "Dashboard", icon: BarChart3 },
         { href: "/applications", label: "Applications", icon: FileText },
         { href: "/jobs", label: "Jobs", icon: Briefcase },
+        { href: "/career-ai-assistant", label: "AI Assistant", icon: Brain },
         { href: "/post-job", label: "Post Job", icon: Plus },
         { href: "/job-seeker-tests", label: "Tests", icon: FileText },
         { href: "/ranking-tests", label: "Rankings", icon: Trophy },
