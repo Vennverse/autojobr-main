@@ -153,6 +153,28 @@ export default function EnhancedDashboard() {
   const [showAchievements, setShowAchievements] = useState(false);
   const [showExitModal, setShowExitModal] = useState(false);
   const [showInsightsPaywall, setShowInsightsPaywall] = useState(false);
+  
+  // Usage tracking for freemium limits - moved to top to avoid hoisting issues
+  const [dailyUsage, setDailyUsage] = useState({
+    aiCoachQuestions: 2, // Free users get 3 per day
+    jobApplications: 8, // Free users get 10 per day
+    resumeAnalyses: 1, // Free users get 2 per day
+    interviewPractices: 1, // Free users get 2 per day
+  });
+
+  // Define key variables early to avoid hoisting issues
+  const userName = user?.firstName || user?.name || "Job Seeker";
+  const isPremium = user?.planType === 'premium';
+  
+  // Freemium limits - moved to top to avoid hoisting issues
+  const freemiumLimits = {
+    aiCoachQuestions: { free: 3, premium: 'unlimited' },
+    jobApplications: { free: 10, premium: 'unlimited' },
+    resumeAnalyses: { free: 2, premium: 'unlimited' },
+    interviewPractices: { free: 2, premium: 'unlimited' },
+    advancedInsights: { free: false, premium: true },
+    prioritySupport: { free: false, premium: true },
+  };
 
   // Show loading while checking authentication
   if (isLoading) {
@@ -233,8 +255,6 @@ export default function EnhancedDashboard() {
     retry: false,
   });
 
-  const userName = user?.firstName || user?.name || "Job Seeker";
-  const isPremium = user?.planType === 'premium';
   const profileCompletion = profile?.profileCompletion || 0;
   const resumeScore = resumes?.[0]?.atsScore || 0;
   const totalApplications = applications?.length || 0;
@@ -314,22 +334,7 @@ export default function EnhancedDashboard() {
   const unlockedAchievements = achievements.filter(a => a.unlocked);
   const nextAchievement = achievements.find(a => !a.unlocked);
 
-  // Usage tracking for freemium limits
-  const [dailyUsage, setDailyUsage] = useState({
-    aiCoachQuestions: 2, // Free users get 3 per day
-    jobApplications: 8, // Free users get 10 per day
-    resumeAnalyses: 1, // Free users get 2 per day
-    interviewPractices: 1, // Free users get 2 per day
-  });
-
-  const freemiumLimits = {
-    aiCoachQuestions: { free: 3, premium: 'unlimited' },
-    jobApplications: { free: 10, premium: 'unlimited' },
-    resumeAnalyses: { free: 2, premium: 'unlimited' },
-    interviewPractices: { free: 2, premium: 'unlimited' },
-    advancedInsights: { free: false, premium: true },
-    prioritySupport: { free: false, premium: true },
-  };
+  // Usage tracking and freemium limits moved to top to avoid hoisting issues
 
   // Smart recommendations with premium upselling
   const getSmartRecommendations = () => {
@@ -518,52 +523,54 @@ export default function EnhancedDashboard() {
       role: "Product Manager",
       company: "Microsoft",
       avatar: "👨‍💼",
-      story: "AI interview practice helped me ace my dream job interview.",
-      improvement: "Landed dream job",
-      timeframe: "1 month"
+      story: "Premium insights helped me identify skill gaps and land my dream job!",
+      improvement: "5x more responses",
+      timeframe: "3 weeks"
     },
     {
-      name: "Elena Rodriguez",
+      name: "Emily Rodriguez",
       role: "Data Scientist",
       company: "Netflix",
       avatar: "👩‍🔬",
-      story: "Premium features got me 5x more recruiter responses.",
-      improvement: "5x more responses",
-      timeframe: "3 weeks"
+      story: "AI interview practice boosted my confidence and success rate!",
+      improvement: "85% interview success",
+      timeframe: "1 month"
     }
   ];
 
-  // Premium value propositions with ROI
+  // Premium benefits for comparison
   const premiumBenefits = [
     {
-      feature: "Unlimited AI Coach",
-      freeLimit: "3 questions/day",
+      feature: "AI Coach Questions",
+      freeLimit: "3/day",
       premiumValue: "Unlimited",
-      roi: "Save $200/month on career coaching",
+      roi: "Save $200/month",
       icon: Brain
     },
     {
-      feature: "Advanced Analytics",
-      freeLimit: "Basic stats",
-      premiumValue: "Deep insights",
-      roi: "Increase success rate by 300%",
+      feature: "Job Applications",
+      freeLimit: "10/day",
+      premiumValue: "Unlimited",
+      roi: "Apply 5x more",
+      icon: Briefcase
+    },
+    {
+      feature: "Resume Analysis",
+      freeLimit: "2/day",
+      premiumValue: "Unlimited",
+      roi: "Perfect ATS score",
+      icon: FileText
+    },
+    {
+      feature: "Career Insights",
+      freeLimit: "None",
+      premiumValue: "Full access",
+      roi: "3x better results",
       icon: BarChart3
-    },
-    {
-      feature: "Priority Support",
-      freeLimit: "Community support",
-      premiumValue: "24/7 expert help",
-      roi: "Get hired 2x faster",
-      icon: Headphones
-    },
-    {
-      feature: "Exclusive Job Alerts",
-      freeLimit: "Public jobs",
-      premiumValue: "Hidden opportunities",
-      roi: "Access to 70% more jobs",
-      icon: Bell
     }
   ];
+
+  // Duplicate removed - using the one defined above
 
   // Enhanced feature cards with usage tracking
   const featureCards = [
