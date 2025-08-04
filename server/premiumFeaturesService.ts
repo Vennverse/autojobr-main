@@ -230,6 +230,47 @@ export class PremiumFeaturesService {
     return displayNames[feature] || feature;
   }
 
+  // Add missing methods that the routes expect
+  async checkFeatureAccess(userId: string, feature: string): Promise<{
+    allowed: boolean;
+    current?: number;
+    limit?: number | 'unlimited';
+    remaining?: number | 'unlimited';
+    planType?: string;
+  }> {
+    try {
+      const planType = await this.getUserPlanType(userId);
+      const limits = PLAN_LIMITS[planType] || PLAN_LIMITS.free;
+      
+      // Map feature names to our schema
+      const featureMap: Record<string, keyof PremiumLimits> = {
+        'customTests': 'customTests',
+        'resumeUploads': 'resumeUploads',
+        'jobApplications': 'jobApplications',
+        'aiAnalyses': 'aiAnalyses',
+        'jobPostings': 'jobPostings',
+        'candidateSearches': 'candidateSearches',
+        'resumeDownloads': 'resumeDownloads',
+        'bulkMessages': 'bulkMessages'
+      };
+      
+      const mappedFeature = featureMap[feature];
+      if (!mappedFeature) {
+        return { allowed: false };
+      }
+      
+      return await this.checkFeatureLimit(userId, mappedFeature);
+    } catch (error) {
+      console.error('Error checking feature access:', error);
+      return { allowed: false };
+    }
+  }
+
+  async getUsageStats(userId: string): Promise<PremiumUsageStats> {
+    return await this.getUserUsageStats(userId);
+  }
+  }
+
   async getPremiumValue(userId: string): Promise<{
     totalSavings: number;
     featuresUsed: string[];

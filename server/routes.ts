@@ -44,6 +44,13 @@ import {
   rateLimitMiddleware 
 } from "./optimizedMiddleware.js";
 import { customNLPService } from "./customNLP.js";
+import { PremiumFeaturesService } from "./premiumFeaturesService.js";
+import { SubscriptionService } from "./subscriptionService.js";
+import { rankingTestService } from "./rankingTestService.js";
+
+// Initialize services
+const premiumFeaturesService = new PremiumFeaturesService();
+const subscriptionService = new SubscriptionService();
 
 // OPTIMIZATION: Enhanced in-memory cache with better performance
 const cache = new Map();
@@ -862,7 +869,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           currentRole: freshUser.currentRole,
           emailVerified: freshUser.emailVerified,
           onboardingCompleted: true, // Assume completed for existing users
-          companyName: freshUser.companyName
+          companyName: freshUser.companyName,
+          planType: freshUser.planType || 'free',
+          subscriptionStatus: freshUser.subscriptionStatus || 'free',
+          aiModelTier: freshUser.aiModelTier || 'premium'
         };
         res.json(userResponse);
       } else {
@@ -871,6 +881,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching fresh user data:', error);
       res.json(req.user);
+    }
+  }));
+
+  // MISSING PREMIUM API ENDPOINTS - CRITICAL FOR FRONTEND
+
+  // 1. Usage Monitoring Endpoint
+  app.get('/api/usage/report', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const userId = req.user.id;
+      const report = await usageMonitoringService.generateUsageReport(userId);
+      res.json(report);
+    } catch (error) {
+      console.error('Error generating usage report:', error);
+      res.status(500).json({ message: 'Failed to generate usage report' });
+    }
+  }));
+
+  // 2. Current Subscription Endpoint
+  app.get('/api/subscription/current', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const userId = req.user.id;
+      const subscription = await subscriptionService.getUserSubscription(userId);
+      res.json(subscription);
+    } catch (error) {
+      console.error('Error fetching subscription:', error);
+      res.status(500).json({ message: 'Failed to fetch subscription data' });
+    }
+  }));
+
+  // 3. Ranking Test Usage Endpoint
+  app.get('/api/ranking-tests/usage', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const userId = req.user.id;
+      const usage = await rankingTestService.getUserUsage(userId);
+      res.json(usage);
+    } catch (error) {
+      console.error('Error fetching ranking test usage:', error);
+      res.status(500).json({ message: 'Failed to fetch ranking test usage' });
+    }
+  }));
+
+  // 4. Create Ranking Test Endpoint
+  app.post('/api/ranking-tests/create', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const userId = req.user.id;
+      const { testData } = req.body;
+      
+      // Check if user can create ranking tests
+      const canCreate = await premiumFeaturesService.checkFeatureAccess(userId, 'customTests');
+      if (!canCreate.allowed) {
+        return res.status(403).json({ 
+          message: 'Premium subscription required for custom ranking tests',
+          upgradeRequired: true 
+        });
+      }
+
+      const test = await rankingTestService.createCustomTest(userId, testData);
+      res.json(test);
+    } catch (error) {
+      console.error('Error creating ranking test:', error);
+      res.status(500).json({ message: 'Failed to create ranking test' });
+    }
+  }));
+
+  // 5. Premium Feature Access Check Endpoint
+  app.get('/api/premium/access/:feature', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const userId = req.user.id;
+      const { feature } = req.params;
+      
+      const access = await premiumFeaturesService.checkFeatureAccess(userId, feature);
+      res.json(access);
+    } catch (error) {
+      console.error('Error checking premium access:', error);
+      res.status(500).json({ message: 'Failed to check premium access' });
+    }
+  }));
+
+  // 6. Premium Usage Stats Endpoint
+  app.get('/api/premium/usage', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const userId = req.user.id;
+      const stats = await premiumFeaturesService.getUsageStats(userId);
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching premium usage stats:', error);
+      res.status(500).json({ message: 'Failed to fetch usage stats' });
     }
   }));
 

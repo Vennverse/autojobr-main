@@ -487,6 +487,92 @@ class RankingTestService {
       .set({ contacted: true, contactedAt: new Date(), notes })
       .where(eq(recruiterRankingAccess.id, accessId));
   }
+
+  // Add missing methods that the routes expect
+  async getUserUsage(userId: string): Promise<{
+    totalTests: number;
+    completedTests: number;
+    averageScore: number;
+    bestScore: number;
+    weeklyRank?: number;
+    monthlyRank?: number;
+    canCreateCustom: boolean;
+    customTestsUsed: number;
+    customTestsLimit: number;
+  }> {
+    try {
+      const tests = await this.getUserTestHistory(userId);
+      const completedTests = tests.filter(t => t.status === 'completed');
+      
+      const averageScore = completedTests.length > 0 
+        ? completedTests.reduce((sum, t) => sum + (t.percentageScore || 0), 0) / completedTests.length
+        : 0;
+      
+      const bestScore = completedTests.length > 0
+        ? Math.max(...completedTests.map(t => t.percentageScore || 0))
+        : 0;
+
+      // Get user plan to determine limits
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      const planType = user?.planType || 'free';
+      
+      let customTestsLimit = 0;
+      let canCreateCustom = false;
+      
+      if (planType === 'premium') {
+        customTestsLimit = 50;
+        canCreateCustom = true;
+      } else if (planType === 'enterprise') {
+        customTestsLimit = -1; // unlimited
+        canCreateCustom = true;
+      }
+
+      return {
+        totalTests: tests.length,
+        completedTests: completedTests.length,
+        averageScore: Math.round(averageScore * 100) / 100,
+        bestScore: Math.round(bestScore * 100) / 100,
+        canCreateCustom,
+        customTestsUsed: 0, // TODO: Track custom tests
+        customTestsLimit
+      };
+    } catch (error) {
+      console.error('Error getting user usage:', error);
+      return {
+        totalTests: 0,
+        completedTests: 0,
+        averageScore: 0,
+        bestScore: 0,
+        canCreateCustom: false,
+        customTestsUsed: 0,
+        customTestsLimit: 0
+      };
+    }
+  }
+
+  async createCustomTest(userId: string, testData: any): Promise<any> {
+    try {
+      // For now, create a standard test with custom parameters
+      const test = await this.createRankingTest(
+        userId,
+        testData.category || 'general',
+        testData.domain || 'general',
+        testData.difficulty || 'hard'
+      );
+      
+      return {
+        id: test.id,
+        testTitle: test.testTitle,
+        category: test.category,
+        domain: test.domain,
+        status: test.status,
+        createdAt: test.createdAt
+      };
+    } catch (error) {
+      console.error('Error creating custom test:', error);
+      throw error;
+    }
+  }
 }
 
 export const rankingTestService = new RankingTestService();
