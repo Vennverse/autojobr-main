@@ -3,94 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
-
-// WebSocket hook for real-time chat
-const useWebSocket = (user: User | undefined) => {
-  const [socket, setSocket] = useState<WebSocket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    if (!user?.id) return;
-
-    // Determine WebSocket URL
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    
-    console.log('Connecting to WebSocket:', wsUrl);
-    const ws = new WebSocket(wsUrl);
-
-    ws.onopen = () => {
-      console.log('WebSocket connected');
-      setIsConnected(true);
-      
-      // Authenticate the connection
-      ws.send(JSON.stringify({
-        type: 'auth',
-        userId: user.id
-      }));
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        console.log('WebSocket message received:', message);
-        
-        if (message.type === 'new_message') {
-          // OPTIMIZATION: Update cache directly instead of invalidating
-          queryClient.setQueryData(
-            ['/api/chat/conversations'],
-            (oldConversations: any[] = []) => oldConversations.map(conv => 
-              conv.id === message.conversationId 
-                ? { ...conv, unreadCount: (conv.unreadCount || 0) + 1 }
-                : conv
-            )
-          );
-          
-          queryClient.setQueryData(
-            ['/api/chat/conversations', message.conversationId, 'messages'],
-            (oldMessages: any[] = []) => [...oldMessages, message.message || message.data]
-          );
-        }
-        
-        if (message.type === 'typing') {
-          // Handle typing indicators
-          console.log('User typing:', message);
-        }
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
-      }
-    };
-
-    ws.onclose = () => {
-      console.log('WebSocket disconnected');
-      setIsConnected(false);
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      setIsConnected(false);
-    };
-
-    setSocket(ws);
-
-    return () => {
-      ws.close();
-    };
-  }, [user?.id, queryClient]);
-
-  const sendTyping = useCallback((conversationId: number, isTyping: boolean) => {
-    if (socket && isConnected) {
-      socket.send(JSON.stringify({
-        type: 'typing',
-        conversationId,
-        isTyping
-      }));
-    }
-  }, [socket, isConnected]);
-
-  return { socket, isConnected, sendTyping };
-};
+import { useChatWebSocket, ChatMessage, ChatConversation } from '@/hooks/useChatWebSocket';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -98,34 +11,26 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { Send, MessageCircle, Users, Clock, CheckCheck, ArrowLeft, Menu, Search, MoreVertical, Phone, Video } from 'lucide-react';
+import {
+  Send,
+  MessageCircle,
+  Users,
+  Clock,
+  CheckCheck,
+  ArrowLeft,
+  Menu,
+  Search,
+  MoreVertical,
+  Phone,
+  Video,
+  Wifi,
+  WifiOff,
+  AlertCircle,
+  Loader2,
+  Check
+} from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-
-interface ChatMessage {
-  id: number;
-  conversationId: number;
-  senderId: string;
-  message: string;
-  messageType: string;
-  isRead: boolean;
-  createdAt: string;
-}
-
-interface ChatConversation {
-  id: number;
-  recruiterId: string;
-  jobSeekerId: string;
-  jobPostingId?: number;
-  applicationId?: number;
-  lastMessageAt: string;
-  isActive: boolean;
-  createdAt: string;
-  jobTitle?: string;
-  recruiterName?: string;
-  jobSeekerName?: string;
-  unreadCount?: number;
-}
 
 interface User {
   id: string;
@@ -136,6 +41,11 @@ interface User {
   profileImageUrl?: string;
 }
 
+interface MessageWithStatus extends ChatMessage {
+  status?: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
+  tempId?: string;
+}
+
 export default function ChatPage() {
   const [selectedConversation, setSelectedConversation] = useState<number | null>(null);
   const [newMessage, setNewMessage] = useState('');
@@ -143,10 +53,14 @@ export default function ChatPage() {
   const [showConversationList, setShowConversationList] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [pendingMessages, setPendingMessages] = useState<MessageWithStatus[]>([]);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const [location] = useLocation();
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<number | null>(null);
+  const messageInputRef = useRef<HTMLInputElement>(null);
 
   // Parse URL parameters for direct user chat
   const [targetUserId, setTargetUserId] = useState<string | null>(null);
@@ -159,21 +73,38 @@ export default function ChatPage() {
     setTargetUserId(userId);
   }, [location]);
 
-  // Get current user with proper typing - use the auth hook instead to avoid duplicating queries
+  // Get current user
   const { user } = useAuth();
 
-  // Initialize WebSocket connection with correct parameters
-  const { isConnected, sendTyping } = useWebSocket({
+  // Initialize WebSocket connection
+  const {
+    connectionState,
+    isConnected,
+    onlineUsers,
+    typingUsers,
+    sendTyping,
+    markAsRead,
+    reconnect
+  } = useChatWebSocket({
     userId: user?.id,
-    onMessage: (message: any) => {
-      console.log('WebSocket message received:', message);
-      // Handle real-time message updates
-      if (message.type === 'new_message') {
-        queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations', selectedConversation, 'messages'] });
-      }
-    }
+    enabled: !!user?.id,
+    maxRetries: 5,
+    retryDelay: 1000
   });
+
+  // Handle online/offline status
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Handle mobile responsiveness
   useEffect(() => {
@@ -190,13 +121,15 @@ export default function ChatPage() {
     return () => window.removeEventListener('resize', checkMobileView);
   }, []);
 
-  // Get conversations - disable auto-refetch since WebSocket handles real-time updates
-  const { data: conversations = [], isLoading: conversationsLoading } = useQuery<ChatConversation[]>({
+  // Get conversations with optimized caching
+  const { data: conversations = [], isLoading: conversationsLoading, refetch: refetchConversations } = useQuery<ChatConversation[]>({
     queryKey: ['/api/chat/conversations'],
-    enabled: !!user?.id, // Only fetch if user is authenticated
+    enabled: !!user?.id,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
-    refetchInterval: false, // Disable auto-refetch completely since WebSocket handles updates
+    refetchInterval: false, // WebSocket handles real-time updates
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   // Create conversation mutation for direct user chat
@@ -227,24 +160,70 @@ export default function ChatPage() {
     },
   });
 
-  // Get messages for selected conversation - disable auto-refetch since WebSocket handles real-time updates
-  const { data: conversationMessages = [] } = useQuery<ChatMessage[]>({
+  // Get messages for selected conversation with optimizations
+  const {
+    data: conversationMessages = [],
+    isLoading: messagesLoading,
+    refetch: refetchMessages
+  } = useQuery<ChatMessage[]>({
     queryKey: ['/api/chat/conversations', selectedConversation, 'messages'],
-    enabled: !!selectedConversation && !!user?.id, // Only fetch if user is authenticated and conversation selected
+    enabled: !!selectedConversation && !!user?.id,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
-    refetchInterval: false, // Disable auto-refetch completely since WebSocket handles updates
+    refetchInterval: false,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    select: (data: ChatMessage[]) => {
+      // Merge with pending messages
+      const allMessages = [...data, ...pendingMessages];
+      return allMessages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    }
   });
 
-  // Send message mutation
+  // Send message mutation with optimistic updates
   const sendMessageMutation = useMutation({
-    mutationFn: async (messageData: { message: string }) => {
-      return apiRequest('POST', `/api/chat/conversations/${selectedConversation}/messages`, { message: messageData.message });
+    mutationFn: async (messageData: { message: string; tempId: string }) => {
+      if (isOffline) {
+        throw new Error('You are offline. Message will be sent when connection is restored.');
+      }
+      return apiRequest('POST', `/api/chat/conversations/${selectedConversation}/messages`, {
+        message: messageData.message
+      });
     },
-    onSuccess: () => {
+    onMutate: async (messageData: { message: string; tempId: string }) => {
+      // Optimistic update
+      const tempMessage: MessageWithStatus = {
+        id: Date.now(), // Temporary ID
+        tempId: messageData.tempId,
+        conversationId: selectedConversation!,
+        senderId: user!.id,
+        message: messageData.message,
+        messageType: 'text',
+        isRead: false,
+        isDelivered: false,
+        createdAt: new Date().toISOString(),
+        status: 'sending'
+      };
+
+      setPendingMessages((prev: MessageWithStatus[]) => [...prev, tempMessage]);
+      return { tempMessage };
+    },
+    onSuccess: (data: any, variables: { message: string; tempId: string }, context: any) => {
+      // Remove from pending and add real message
+      setPendingMessages((prev: MessageWithStatus[]) => prev.filter((msg: MessageWithStatus) => msg.tempId !== variables.tempId));
       queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations', selectedConversation, 'messages'] });
       queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
       setNewMessage('');
+    },
+    onError: (error: any, variables: { message: string; tempId: string }, context: any) => {
+      // Mark message as failed
+      setPendingMessages((prev: MessageWithStatus[]) =>
+        prev.map((msg: MessageWithStatus) =>
+          msg.tempId === variables.tempId
+            ? { ...msg, status: 'failed' as const }
+            : msg
+        )
+      );
+      console.error('Failed to send message:', error);
     },
   });
 
@@ -253,42 +232,35 @@ export default function ChatPage() {
     mutationFn: async (conversationId: number) => {
       return apiRequest('POST', `/api/chat/conversations/${conversationId}/read`, {});
     },
-    onSuccess: (_, conversationId) => {
+    onSuccess: (_: any, conversationId: number) => {
       // Update the conversations cache to reset unread count
       queryClient.setQueryData(
         ['/api/chat/conversations'],
-        (oldConversations: ChatConversation[] = []) => 
-          oldConversations.map(conv => 
-            conv.id === conversationId 
+        (oldConversations: ChatConversation[] = []) =>
+          oldConversations.map(conv =>
+            conv.id === conversationId
               ? { ...conv, unreadCount: 0 }
               : conv
           )
       );
-      console.log('Messages marked as read for conversation:', conversationId);
+      
+      // Also mark via WebSocket
+      markAsRead(conversationId);
     },
   });
 
-  // Mark messages as read when selecting conversation (with debounce)
-  const markAsRead = useCallback((conversationId: number) => {
-    // Only mark as read if user is authenticated and not pending
-    if (user?.id && !markAsReadMutation.isPending) {
-      markAsReadMutation.mutate(conversationId);
-    }
-  }, [markAsReadMutation, user?.id]);
-
-  // Mark messages as read when conversation is selected and messages exist
+  // Mark messages as read when conversation is selected
   useEffect(() => {
     if (selectedConversation && user?.id && conversationMessages.length > 0) {
-      // Check if there are any unread messages from others
       const hasUnreadMessages = conversationMessages.some(
-        message => !message.isRead && message.senderId !== user.id
+        (message: ChatMessage) => !message.isRead && message.senderId !== user.id
       );
       
       if (hasUnreadMessages && !markAsReadMutation.isPending) {
-        markAsRead(selectedConversation);
+        markAsReadMutation.mutate(selectedConversation);
       }
     }
-  }, [selectedConversation, user?.id, conversationMessages, markAsRead, markAsReadMutation.isPending]);
+  }, [selectedConversation, user?.id, conversationMessages, markAsReadMutation]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -333,20 +305,50 @@ export default function ChatPage() {
     }
   }, [targetUserId, user, conversations, conversationsLoading]);
 
-  const handleSendMessage = () => {
+  // Handle typing indicators
+  const handleTyping = useCallback(() => {
+    if (!selectedConversation || !isConnected) return;
+
+    if (!isTyping) {
+      setIsTyping(true);
+      sendTyping(selectedConversation, true);
+    }
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Set new timeout to stop typing indicator
+    typingTimeoutRef.current = window.setTimeout(() => {
+      setIsTyping(false);
+      sendTyping(selectedConversation, false);
+    }, 1000);
+  }, [selectedConversation, isConnected, isTyping, sendTyping]);
+
+  const handleSendMessage = useCallback(() => {
     if (!newMessage.trim() || !selectedConversation || sendMessageMutation.isPending) {
       return;
     }
 
-    sendMessageMutation.mutate({ message: newMessage });
-  };
+    const tempId = `temp_${Date.now()}_${Math.random()}`;
+    sendMessageMutation.mutate({ message: newMessage, tempId });
+    
+    // Stop typing indicator
+    if (isTyping) {
+      setIsTyping(false);
+      sendTyping(selectedConversation, false);
+    }
+  }, [newMessage, selectedConversation, sendMessageMutation, isTyping, sendTyping]);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+    } else {
+      handleTyping();
     }
-  };
+  }, [handleSendMessage, handleTyping]);
 
   const getUserDisplayName = (conversation: ChatConversation) => {
     if (!user) return 'Unknown User';
@@ -366,7 +368,7 @@ export default function ChatPage() {
     return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
   };
 
-  const filteredConversations = conversations.filter(conv => {
+  const filteredConversations = conversations.filter((conv: ChatConversation) => {
     const displayName = getUserDisplayName(conv);
     const jobTitle = conv.jobTitle || '';
     return displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -379,17 +381,25 @@ export default function ChatPage() {
     return `${displayName}${jobTitle}`;
   };
 
-  const handleConversationSelect = (conversationId: number) => {
+  const handleConversationSelect = useCallback((conversationId: number) => {
     setSelectedConversation(conversationId);
     if (isMobileView) {
       setShowConversationList(false);
     }
-  };
+  }, [isMobileView]);
 
-  const handleBackToList = () => {
+  const handleBackToList = useCallback(() => {
     setShowConversationList(true);
     setSelectedConversation(null);
-  };
+  }, []);
+
+  const retryFailedMessage = useCallback((tempId: string) => {
+    const failedMessage = pendingMessages.find((msg: MessageWithStatus) => msg.tempId === tempId);
+    if (failedMessage) {
+      setPendingMessages((prev: MessageWithStatus[]) => prev.filter((msg: MessageWithStatus) => msg.tempId !== tempId));
+      sendMessageMutation.mutate({ message: failedMessage.message, tempId });
+    }
+  }, [pendingMessages, sendMessageMutation]);
 
   // LinkedIn-style conversation list
   const ConversationList = () => (
