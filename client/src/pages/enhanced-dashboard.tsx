@@ -50,7 +50,19 @@ import {
   Globe,
   Flame,
   TrendingDown,
-  Copy
+  Copy,
+  Gift,
+  Compass,
+  Shield,
+  Gauge,
+  TrendingUp as TrendUp,
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
+  Timer,
+  Layers,
+  Megaphone,
+  Handshake
 } from "lucide-react";
 
 const containerVariants = {
@@ -88,6 +100,43 @@ const cardHoverVariants = {
   }
 };
 
+const pulseVariants = {
+  rest: { scale: 1 },
+  pulse: {
+    scale: [1, 1.05, 1],
+    transition: {
+      duration: 2,
+      repeat: Infinity,
+      ease: "easeInOut"
+    }
+  }
+};
+
+const slideInVariants = {
+  hidden: { x: -20, opacity: 0 },
+  visible: {
+    x: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 15
+    }
+  }
+};
+
+const bounceVariants = {
+  rest: { y: 0 },
+  bounce: {
+    y: [-2, 2, -2],
+    transition: {
+      duration: 1.5,
+      repeat: Infinity,
+      ease: "easeInOut"
+    }
+  }
+};
+
 export default function EnhancedDashboard() {
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -96,6 +145,10 @@ export default function EnhancedDashboard() {
   const [isUploadingResume, setIsUploadingResume] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [coverLetterResult, setCoverLetterResult] = useState("");
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [completedTasks, setCompletedTasks] = useState<string[]>([]);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [showAchievements, setShowAchievements] = useState(false);
 
   // Show loading while checking authentication
   if (isLoading) {
@@ -170,7 +223,142 @@ export default function EnhancedDashboard() {
   const pendingTests = testAssignments?.length || 0;
   const interviewsPending = mockInterviewStats?.totalSessions || 0;
 
-  // Feature cards data
+  // Calculate user progress and achievements
+  const hasUploadedResume = (resumes?.length || 0) > 0;
+  const hasAppliedToJobs = totalApplications > 0;
+  const hasCompletedInterview = interviewsPending > 0;
+  const hasCompletedTests = (rankingTestHistory?.length || 0) > 0;
+  const hasGoodResumeScore = resumeScore >= 70;
+  const hasCompleteProfile = profileCompletion >= 80;
+
+  // Calculate overall progress
+  const progressTasks = [
+    { id: 'profile', completed: hasCompleteProfile, label: 'Complete Profile', points: 20 },
+    { id: 'resume', completed: hasUploadedResume, label: 'Upload Resume', points: 15 },
+    { id: 'resume_score', completed: hasGoodResumeScore, label: 'Achieve 70+ ATS Score', points: 25 },
+    { id: 'apply', completed: hasAppliedToJobs, label: 'Apply to Jobs', points: 20 },
+    { id: 'interview', completed: hasCompletedInterview, label: 'Complete Interview', points: 30 },
+    { id: 'test', completed: hasCompletedTests, label: 'Take Skill Test', points: 25 }
+  ];
+
+  const completedTasksCount = progressTasks.filter(task => task.completed).length;
+  const totalProgress = Math.round((completedTasksCount / progressTasks.length) * 100);
+  const totalPoints = progressTasks.filter(task => task.completed).reduce((sum, task) => sum + task.points, 0);
+
+  // User level calculation
+  const userLevel = Math.floor(totalPoints / 50) + 1;
+  const pointsToNextLevel = (userLevel * 50) - totalPoints;
+
+  // Achievements
+  const achievements = [
+    { 
+      id: 'first_resume', 
+      title: 'Resume Rookie', 
+      description: 'Upload your first resume', 
+      icon: Upload, 
+      unlocked: hasUploadedResume,
+      rarity: 'common'
+    },
+    { 
+      id: 'ats_master', 
+      title: 'ATS Master', 
+      description: 'Achieve 80+ ATS score', 
+      icon: Target, 
+      unlocked: resumeScore >= 80,
+      rarity: 'rare'
+    },
+    { 
+      id: 'job_hunter', 
+      title: 'Job Hunter', 
+      description: 'Apply to 5+ jobs', 
+      icon: Briefcase, 
+      unlocked: totalApplications >= 5,
+      rarity: 'common'
+    },
+    { 
+      id: 'interview_ace', 
+      title: 'Interview Ace', 
+      description: 'Complete 3+ interviews', 
+      icon: Video, 
+      unlocked: interviewsPending >= 3,
+      rarity: 'epic'
+    },
+    { 
+      id: 'skill_champion', 
+      title: 'Skill Champion', 
+      description: 'Complete 5+ skill tests', 
+      icon: Trophy, 
+      unlocked: (rankingTestHistory?.length || 0) >= 5,
+      rarity: 'legendary'
+    }
+  ];
+
+  const unlockedAchievements = achievements.filter(a => a.unlocked);
+  const nextAchievement = achievements.find(a => !a.unlocked);
+
+  // Smart recommendations based on user progress
+  const getSmartRecommendations = () => {
+    const recommendations = [];
+    
+    if (!hasUploadedResume) {
+      recommendations.push({
+        title: "Upload Your Resume",
+        description: "Start your journey by uploading your resume for AI analysis",
+        action: () => setLocation("/profile"),
+        priority: "high",
+        icon: Upload,
+        color: "red"
+      });
+    } else if (resumeScore < 70) {
+      recommendations.push({
+        title: "Improve Resume Score",
+        description: `Current ATS score: ${resumeScore}%. Let's get it to 70+!`,
+        action: () => setLocation("/resumes"),
+        priority: "high",
+        icon: TrendUp,
+        color: "orange"
+      });
+    }
+    
+    if (profileCompletion < 80) {
+      recommendations.push({
+        title: "Complete Your Profile",
+        description: `${profileCompletion}% complete. Finish for better job matches`,
+        action: () => setLocation("/profile"),
+        priority: "medium",
+        icon: Target,
+        color: "blue"
+      });
+    }
+    
+    if (!hasAppliedToJobs && hasUploadedResume) {
+      recommendations.push({
+        title: "Apply to Your First Job",
+        description: "Your resume is ready! Start applying to positions",
+        action: () => setLocation("/jobs"),
+        priority: "high",
+        icon: Briefcase,
+        color: "green"
+      });
+    }
+    
+    if (!hasCompletedInterview) {
+      recommendations.push({
+        title: "Practice Interview Skills",
+        description: "Boost confidence with AI-powered interview practice",
+        action: () => setLocation("/virtual-interview/new"),
+        priority: "medium",
+        icon: Video,
+        color: "purple"
+      });
+    }
+    
+    return recommendations.slice(0, 3); // Show top 3 recommendations
+  };
+
+  const smartRecommendations = getSmartRecommendations();
+
+  // Enhanced feature cards with usage tracking
   const featureCards = [
     {
       title: "Career AI Assistant",
@@ -180,7 +368,10 @@ export default function EnhancedDashboard() {
       stats: "Powered by AI",
       gradient: "from-orange-500 to-red-500",
       action: "Get Insights",
-      helpText: "AI analyzes your profile and provides strategic career advice, skill recommendations, and growth pathways"
+      helpText: "AI analyzes your profile and provides strategic career advice, skill recommendations, and growth pathways",
+      isNew: true,
+      usageCount: 0,
+      successRate: "95%"
     },
     {
       title: "Smart Job Matching",
@@ -190,7 +381,10 @@ export default function EnhancedDashboard() {
       stats: `${jobPostings?.length || 0} Jobs Available`,
       gradient: "from-purple-500 to-pink-500",
       action: "Browse Jobs",
-      helpText: "AI matches you with jobs based on skills, experience, and career goals - increasing your success rate by 3x"
+      helpText: "AI matches you with jobs based on skills, experience, and career goals - increasing your success rate by 3x",
+      isPopular: true,
+      usageCount: totalApplications,
+      successRate: "78%"
     },
     {
       title: "Virtual Interviews",
@@ -200,7 +394,10 @@ export default function EnhancedDashboard() {
       stats: `${interviewsPending} Completed`,
       gradient: "from-green-500 to-emerald-500",
       action: "Start Interview",
-      helpText: "Practice realistic interviews with AI that simulates real hiring managers - 85% of users improve within 3 sessions"
+      helpText: "Practice realistic interviews with AI that simulates real hiring managers - 85% of users improve within 3 sessions",
+      isRecommended: !hasCompletedInterview,
+      usageCount: interviewsPending,
+      successRate: "85%"
     },
     {
       title: "Ranking Tests",
@@ -210,7 +407,10 @@ export default function EnhancedDashboard() {
       stats: `${rankingTestHistory?.length || 0} Completed`,
       gradient: "from-yellow-500 to-orange-500",
       action: "Join Ranking",
-      helpText: "Stand out by ranking in top 10% - recruiters actively seek high-performing candidates from our leaderboards"
+      helpText: "Stand out by ranking in top 10% - recruiters actively seek high-performing candidates from our leaderboards",
+      isCompetitive: true,
+      usageCount: rankingTestHistory?.length || 0,
+      successRate: "72%"
     },
     {
       title: "Mock Interviews",
@@ -220,7 +420,10 @@ export default function EnhancedDashboard() {
       stats: `${mockInterviewStats?.averageScore || 0}% Avg Score`,
       gradient: "from-indigo-500 to-purple-500",
       action: "Practice Now",
-      helpText: "Master behavioral questions with AI feedback - users report 40% better performance in real interviews"
+      helpText: "Master behavioral questions with AI feedback - users report 40% better performance in real interviews",
+      isImproving: (mockInterviewStats?.averageScore || 0) > 0,
+      usageCount: mockInterviewStats?.totalSessions || 0,
+      successRate: "89%"
     }
   ];
 
@@ -354,45 +557,161 @@ export default function EnhancedDashboard() {
           animate="visible"
           className="space-y-8"
         >
-          {/* Welcome Header */}
-          <motion.div variants={itemVariants} className="text-center space-y-2">
-            <div className="flex items-center justify-center gap-2">
-              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Welcome back, {userName}!
-              </h1>
-              {isPremium && <Crown className="w-6 h-6 text-yellow-500 animate-pulse" />}
+          {/* Enhanced Welcome Header with Progress */}
+          <motion.div variants={itemVariants} className="space-y-6">
+            {/* Main Welcome */}
+            <div className="text-center space-y-3">
+              <div className="flex items-center justify-center gap-3">
+                <motion.h1 
+                  variants={slideInVariants}
+                  className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent"
+                >
+                  Welcome back, {userName}!
+                </motion.h1>
+                {isPremium && (
+                  <motion.div variants={bounceVariants} initial="rest" animate="bounce">
+                    <Crown className="w-8 h-8 text-yellow-500" />
+                  </motion.div>
+                )}
+              </div>
+              
+              {/* User Level & Progress */}
+              <div className="flex items-center justify-center gap-4 flex-wrap">
+                <Badge className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 text-sm font-semibold">
+                  <Star className="w-4 h-4 mr-1" />
+                  Level {userLevel}
+                </Badge>
+                <Badge variant="outline" className="px-4 py-2 text-sm">
+                  <Trophy className="w-4 h-4 mr-1 text-yellow-500" />
+                  {totalPoints} XP
+                </Badge>
+                <Badge variant="outline" className="px-4 py-2 text-sm">
+                  <Flame className="w-4 h-4 mr-1 text-orange-500" />
+                  {unlockedAchievements.length} Achievements
+                </Badge>
+              </div>
+
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Your AI-powered career journey • {totalProgress}% Complete
+              </p>
             </div>
-            <p className="text-md text-muted-foreground max-w-xl mx-auto">
-              Your AI-powered career platform
-            </p>
-            
+
+            {/* Progress Overview Card */}
+            <Card className="border-0 overflow-hidden relative bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-950 dark:via-purple-950 dark:to-pink-950">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 opacity-5" />
+              <CardContent className="p-6 relative">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500">
+                      <Gauge className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold">Career Progress</h3>
+                      <p className="text-sm text-muted-foreground">Complete tasks to unlock features and earn XP</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAchievements(!showAchievements)}
+                    className="gap-2"
+                  >
+                    <Award className="w-4 h-4" />
+                    Achievements
+                  </Button>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">Overall Progress</span>
+                    <span className="text-muted-foreground">{completedTasksCount}/{progressTasks.length} tasks</span>
+                  </div>
+                  <Progress value={totalProgress} className="h-3" />
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Getting Started</span>
+                    <span>Career Ready</span>
+                  </div>
+                </div>
+
+                {/* Quick Progress Tasks */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {progressTasks.map((task, index) => (
+                    <motion.div
+                      key={task.id}
+                      variants={slideInVariants}
+                      initial="hidden"
+                      animate="visible"
+                      transition={{ delay: index * 0.1 }}
+                      className={`p-3 rounded-lg border transition-all duration-200 ${
+                        task.completed 
+                          ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' 
+                          : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-primary/30'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-full ${
+                          task.completed 
+                            ? 'bg-green-500 text-white' 
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-500'
+                        }`}>
+                          {task.completed ? (
+                            <CheckCircle2 className="w-4 h-4" />
+                          ) : (
+                            <Timer className="w-4 h-4" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{task.label}</p>
+                          <p className="text-xs text-muted-foreground">+{task.points} XP</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Next Level Progress */}
+                {pointsToNextLevel > 0 && (
+                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-2 text-sm">
+                      <TrendUp className="w-4 h-4 text-blue-500" />
+                      <span className="font-medium">Next Level:</span>
+                      <span className="text-blue-600 dark:text-blue-400">{pointsToNextLevel} XP to Level {userLevel + 1}</span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Premium CTA for non-premium users */}
             {!isPremium && (
               <motion.div 
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="mx-auto max-w-md"
+                variants={pulseVariants}
+                initial="rest"
+                animate="pulse"
+                className="mx-auto max-w-2xl"
               >
-                <Card className="border-2 border-yellow-300 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-yellow-500 rounded-full">
-                        <Rocket className="w-4 h-4 text-white" />
+                <Card className="border-2 border-yellow-300 bg-gradient-to-r from-yellow-50 via-orange-50 to-pink-50 dark:from-yellow-950 dark:via-orange-950 dark:to-pink-950 shadow-lg">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full">
+                        <Rocket className="w-6 h-6 text-white" />
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
-                          Unlock Premium Features
-                        </p>
-                        <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                          Get unlimited applications, AI interviews & more
+                        <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200">
+                          🚀 Unlock Premium Features
+                        </h3>
+                        <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                          Get unlimited applications, AI interviews, priority support & exclusive features
                         </p>
                       </div>
                       <Button 
-                        size="sm" 
-                        className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                        size="lg"
+                        className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-semibold shadow-lg"
                         onClick={() => setLocation("/job-seeker-premium")}
                       >
-                        Upgrade
-                        <Sparkles className="w-3 h-3 ml-1" />
+                        Upgrade Now
+                        <Sparkles className="w-4 h-4 ml-2" />
                       </Button>
                     </div>
                   </CardContent>
@@ -400,6 +719,174 @@ export default function EnhancedDashboard() {
               </motion.div>
             )}
           </motion.div>
+
+          {/* Smart Recommendations */}
+          {smartRecommendations.length > 0 && (
+            <motion.div variants={itemVariants}>
+              <Card className="border-0 overflow-hidden relative bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950 dark:via-indigo-950 dark:to-purple-950">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500 opacity-5" />
+                <CardContent className="p-6 relative">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500">
+                      <Compass className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold">Smart Recommendations</h3>
+                      <p className="text-sm text-muted-foreground">Personalized next steps to boost your career</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {smartRecommendations.map((rec, index) => (
+                      <motion.div
+                        key={rec.title}
+                        variants={slideInVariants}
+                        initial="hidden"
+                        animate="visible"
+                        transition={{ delay: index * 0.1 }}
+                        className="cursor-pointer"
+                        onClick={rec.action}
+                      >
+                        <Card className={`h-full border-2 transition-all duration-200 hover:shadow-lg ${
+                          rec.priority === 'high' 
+                            ? 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950' 
+                            : 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950'
+                        }`}>
+                          <CardContent className="p-4">
+                            <div className="flex items-start gap-3">
+                              <div className={`p-2 rounded-lg bg-gradient-to-br ${
+                                rec.color === 'red' ? 'from-red-500 to-red-600' :
+                                rec.color === 'orange' ? 'from-orange-500 to-orange-600' :
+                                rec.color === 'blue' ? 'from-blue-500 to-blue-600' :
+                                rec.color === 'green' ? 'from-green-500 to-green-600' :
+                                'from-purple-500 to-purple-600'
+                              }`}>
+                                <rec.icon className="w-5 h-5 text-white" />
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="font-semibold text-sm">{rec.title}</h4>
+                                  {rec.priority === 'high' && (
+                                    <Badge className="bg-red-500 text-white text-xs px-2 py-0">
+                                      High Priority
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground">{rec.description}</p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Achievements Modal */}
+          <AnimatePresence>
+            {showAchievements && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+                onClick={() => setShowAchievements(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="bg-white dark:bg-gray-900 rounded-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500">
+                        <Trophy className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold">Your Achievements</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {unlockedAchievements.length} of {achievements.length} unlocked
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowAchievements(false)}
+                    >
+                      <XCircle className="w-5 h-5" />
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {achievements.map((achievement) => (
+                      <Card
+                        key={achievement.id}
+                        className={`transition-all duration-200 ${
+                          achievement.unlocked
+                            ? 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border-green-200 dark:border-green-800'
+                            : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 opacity-60'
+                        }`}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <div className={`p-3 rounded-xl ${
+                              achievement.unlocked
+                                ? 'bg-gradient-to-br from-green-500 to-emerald-500'
+                                : 'bg-gray-300 dark:bg-gray-700'
+                            }`}>
+                              <achievement.icon className={`w-6 h-6 ${
+                                achievement.unlocked ? 'text-white' : 'text-gray-500'
+                              }`} />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="font-semibold">{achievement.title}</h4>
+                                <Badge
+                                  className={`text-xs px-2 py-0 ${
+                                    achievement.rarity === 'legendary' ? 'bg-purple-500 text-white' :
+                                    achievement.rarity === 'epic' ? 'bg-orange-500 text-white' :
+                                    achievement.rarity === 'rare' ? 'bg-blue-500 text-white' :
+                                    'bg-gray-500 text-white'
+                                  }`}
+                                >
+                                  {achievement.rarity}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                              {achievement.unlocked && (
+                                <div className="flex items-center gap-1 mt-2 text-xs text-green-600 dark:text-green-400">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  Unlocked!
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {nextAchievement && (
+                    <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-center gap-3">
+                        <Lightbulb className="w-5 h-5 text-blue-500" />
+                        <div>
+                          <p className="font-medium text-sm">Next Achievement:</p>
+                          <p className="text-sm text-muted-foreground">{nextAchievement.title} - {nextAchievement.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Resume Analysis Featured Card */}
           <motion.div variants={itemVariants} className="mb-8">
@@ -562,12 +1049,24 @@ export default function EnhancedDashboard() {
             </Card>
           </motion.div>
 
-          {/* Quick Actions */}
+          {/* Enhanced Quick Actions */}
           <motion.div variants={itemVariants}>
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <Zap className="w-6 h-6 text-yellow-500" />
-              Quick Actions
-            </h2>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-yellow-500 to-orange-500">
+                  <Zap className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold">Quick Actions</h2>
+                  <p className="text-sm text-muted-foreground">Jump into your career journey</p>
+                </div>
+              </div>
+              <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-3 py-1">
+                <Timer className="w-3 h-3 mr-1" />
+                Fast Track
+              </Badge>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {quickActions.map((action, index) => (
                 <motion.div
@@ -578,13 +1077,31 @@ export default function EnhancedDashboard() {
                   className="cursor-pointer"
                   onClick={action.action}
                 >
-                  <Card className="h-full border-2 border-transparent hover:border-primary/20 transition-all duration-200">
+                  <Card className="h-full border-2 border-transparent hover:border-primary/20 transition-all duration-200 shadow-md hover:shadow-lg">
                     <CardContent className="p-6 text-center">
-                      <div className={`w-12 h-12 mx-auto mb-4 rounded-full bg-${action.color}-100 dark:bg-${action.color}-900 flex items-center justify-center`}>
-                        <action.icon className={`w-6 h-6 text-${action.color}-600`} />
-                      </div>
+                      <motion.div 
+                        variants={pulseVariants}
+                        initial="rest"
+                        whileHover="pulse"
+                        className={`w-14 h-14 mx-auto mb-4 rounded-full bg-gradient-to-br ${
+                          action.color === 'blue' ? 'from-blue-500 to-blue-600' :
+                          action.color === 'green' ? 'from-green-500 to-green-600' :
+                          action.color === 'purple' ? 'from-purple-500 to-purple-600' :
+                          'from-orange-500 to-orange-600'
+                        } flex items-center justify-center shadow-lg`}
+                      >
+                        <action.icon className="w-7 h-7 text-white" />
+                      </motion.div>
                       <h3 className="font-semibold mb-2">{action.title}</h3>
-                      <p className="text-sm text-muted-foreground">{action.description}</p>
+                      <p className="text-sm text-muted-foreground mb-3">{action.description}</p>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="w-full group hover:bg-primary hover:text-primary-foreground"
+                      >
+                        Get Started
+                        <ArrowRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
+                      </Button>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -660,12 +1177,24 @@ export default function EnhancedDashboard() {
             </motion.div>
           </div>
 
-          {/* Advanced Features */}
+          {/* Enhanced Feature Cards */}
           <motion.div variants={itemVariants}>
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <Sparkles className="w-6 h-6 text-purple-500" />
-              Advanced Features
-            </h2>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold">AI-Powered Features</h2>
+                  <p className="text-sm text-muted-foreground">Discover tools that accelerate your career</p>
+                </div>
+              </div>
+              <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1">
+                <Zap className="w-3 h-3 mr-1" />
+                AI Enhanced
+              </Badge>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {featureCards.map((feature, index) => (
                 <motion.div
@@ -676,29 +1205,80 @@ export default function EnhancedDashboard() {
                   className="cursor-pointer"
                   onClick={() => setLocation(feature.route)}
                 >
-                  <Card className="h-full border-0 overflow-hidden relative">
+                  <Card className="h-full border-0 overflow-hidden relative shadow-lg hover:shadow-xl transition-all duration-300">
                     <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-5`} />
                     <CardContent className="p-6 relative">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className={`p-3 rounded-xl bg-gradient-to-br ${feature.gradient}`}>
+                      {/* Feature badges */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className={`p-3 rounded-xl bg-gradient-to-br ${feature.gradient} shadow-lg`}>
                           <feature.icon className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex gap-2">
+                          {feature.isNew && (
+                            <Badge className="bg-green-500 text-white text-xs px-2 py-1">
+                              <Sparkles className="w-3 h-3 mr-1" />
+                              New
+                            </Badge>
+                          )}
+                          {feature.isPopular && (
+                            <Badge className="bg-orange-500 text-white text-xs px-2 py-1">
+                              <Flame className="w-3 h-3 mr-1" />
+                              Popular
+                            </Badge>
+                          )}
+                          {feature.isRecommended && (
+                            <Badge className="bg-blue-500 text-white text-xs px-2 py-1">
+                              <Star className="w-3 h-3 mr-1" />
+                              Recommended
+                            </Badge>
+                          )}
+                          {feature.isCompetitive && (
+                            <Badge className="bg-purple-500 text-white text-xs px-2 py-1">
+                              <Trophy className="w-3 h-3 mr-1" />
+                              Competitive
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       
                       <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
                       <p className="text-sm text-muted-foreground mb-3">{feature.description}</p>
+                      
+                      {/* Usage stats */}
+                      <div className="flex items-center gap-4 mb-3 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Activity className="w-3 h-3" />
+                          <span>Used {feature.usageCount} times</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <TrendUp className="w-3 h-3" />
+                          <span>{feature.successRate} success rate</span>
+                        </div>
+                      </div>
+                      
                       <p className="text-xs text-blue-600 dark:text-blue-400 mb-4 italic">{feature.helpText}</p>
                       
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-primary">{feature.stats}</span>
                         <Button 
                           size="sm" 
-                          className="group"
+                          className={`group bg-gradient-to-r ${feature.gradient} hover:shadow-lg transition-all duration-200`}
                         >
                           {feature.action}
                           <ChevronRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
                         </Button>
                       </div>
+
+                      {/* Progress indicator for features with usage */}
+                      {feature.usageCount > 0 && (
+                        <div className="mt-3 pt-3 border-t border-border/50">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                            <span>Your Progress</span>
+                            <span>{Math.min(feature.usageCount * 20, 100)}%</span>
+                          </div>
+                          <Progress value={Math.min(feature.usageCount * 20, 100)} className="h-1" />
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -987,56 +1567,128 @@ export default function EnhancedDashboard() {
             </motion.div>
           </div>
 
-          {/* Premium CTA (if not premium) */}
+          {/* Enhanced Premium CTA (if not premium) */}
           {!isPremium && (
             <motion.div variants={itemVariants}>
-              <Card className="border-2 border-yellow-300 bg-gradient-to-r from-yellow-50 via-orange-50 to-pink-50 dark:from-yellow-950 dark:via-orange-950 dark:to-pink-950">
-                <CardContent className="p-8 text-center">
-                  <div className="flex items-center justify-center gap-2 mb-4">
-                    <Crown className="w-8 h-8 text-yellow-500" />
-                    <h3 className="text-2xl font-bold bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent">
-                      Unlock Your Full Potential
-                    </h3>
+              <Card className="border-0 overflow-hidden relative bg-gradient-to-br from-yellow-500 via-orange-500 to-pink-500 shadow-2xl">
+                <div className="absolute inset-0 bg-black/10" />
+                <CardContent className="p-8 relative text-white">
+                  <div className="text-center mb-8">
+                    <motion.div 
+                      variants={bounceVariants}
+                      initial="rest"
+                      animate="bounce"
+                      className="flex items-center justify-center gap-3 mb-4"
+                    >
+                      <Crown className="w-10 h-10 text-yellow-200" />
+                      <h3 className="text-3xl font-bold">
+                        Unlock Your Full Potential
+                      </h3>
+                      <Crown className="w-10 h-10 text-yellow-200" />
+                    </motion.div>
+                    
+                    <p className="text-lg text-yellow-100 mb-2 max-w-3xl mx-auto">
+                      Join thousands of successful job seekers who landed their dream jobs with our premium features.
+                    </p>
+                    <p className="text-yellow-200 text-sm">
+                      🚀 Get unlimited applications, AI interviews, priority support & exclusive features
+                    </p>
                   </div>
                   
-                  <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-                    Join thousands of successful job seekers who landed their dream jobs with our premium features.
-                    Get unlimited applications, AI interviews, and priority support.
-                  </p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="text-center">
-                      <div className="w-12 h-12 mx-auto mb-2 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center">
-                        <Flame className="w-6 h-6 text-yellow-600" />
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <motion.div 
+                      variants={slideInVariants}
+                      initial="hidden"
+                      animate="visible"
+                      transition={{ delay: 0.1 }}
+                      className="text-center"
+                    >
+                      <div className="w-16 h-16 mx-auto mb-3 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                        <Flame className="w-8 h-8 text-yellow-200" />
                       </div>
-                      <h4 className="font-semibold">Unlimited Applications</h4>
-                      <p className="text-sm text-muted-foreground">Apply to as many jobs as you want</p>
+                      <h4 className="font-semibold text-lg mb-1">Unlimited Applications</h4>
+                      <p className="text-sm text-yellow-100">Apply to as many jobs as you want</p>
+                    </motion.div>
+                    
+                    <motion.div 
+                      variants={slideInVariants}
+                      initial="hidden"
+                      animate="visible"
+                      transition={{ delay: 0.2 }}
+                      className="text-center"
+                    >
+                      <div className="w-16 h-16 mx-auto mb-3 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                        <Video className="w-8 h-8 text-purple-200" />
+                      </div>
+                      <h4 className="font-semibold text-lg mb-1">AI Virtual Interviews</h4>
+                      <p className="text-sm text-yellow-100">Practice with advanced AI interviewer</p>
+                    </motion.div>
+                    
+                    <motion.div 
+                      variants={slideInVariants}
+                      initial="hidden"
+                      animate="visible"
+                      transition={{ delay: 0.3 }}
+                      className="text-center"
+                    >
+                      <div className="w-16 h-16 mx-auto mb-3 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                        <Trophy className="w-8 h-8 text-green-200" />
+                      </div>
+                      <h4 className="font-semibold text-lg mb-1">Priority Rankings</h4>
+                      <p className="text-sm text-yellow-100">Get featured in ranking tests</p>
+                    </motion.div>
+                    
+                    <motion.div 
+                      variants={slideInVariants}
+                      initial="hidden"
+                      animate="visible"
+                      transition={{ delay: 0.4 }}
+                      className="text-center"
+                    >
+                      <div className="w-16 h-16 mx-auto mb-3 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                        <Shield className="w-8 h-8 text-blue-200" />
+                      </div>
+                      <h4 className="font-semibold text-lg mb-1">Priority Support</h4>
+                      <p className="text-sm text-yellow-100">Get help when you need it most</p>
+                    </motion.div>
+                  </div>
+
+                  {/* Success stats */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 p-6 bg-white/10 backdrop-blur-sm rounded-xl">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-white mb-1">3x</div>
+                      <div className="text-sm text-yellow-100">Higher Success Rate</div>
                     </div>
                     <div className="text-center">
-                      <div className="w-12 h-12 mx-auto mb-2 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center">
-                        <Video className="w-6 h-6 text-purple-600" />
-                      </div>
-                      <h4 className="font-semibold">AI Virtual Interviews</h4>
-                      <p className="text-sm text-muted-foreground">Practice with advanced AI interviewer</p>
+                      <div className="text-2xl font-bold text-white mb-1">85%</div>
+                      <div className="text-sm text-yellow-100">Interview Improvement</div>
                     </div>
                     <div className="text-center">
-                      <div className="w-12 h-12 mx-auto mb-2 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-                        <Trophy className="w-6 h-6 text-green-600" />
-                      </div>
-                      <h4 className="font-semibold">Priority Rankings</h4>
-                      <p className="text-sm text-muted-foreground">Get featured in ranking tests</p>
+                      <div className="text-2xl font-bold text-white mb-1">10k+</div>
+                      <div className="text-sm text-yellow-100">Success Stories</div>
                     </div>
                   </div>
                   
-                  <Button 
-                    size="lg"
-                    className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-semibold px-8"
-                    onClick={() => setLocation("/job-seeker-premium")}
-                  >
-                    <Crown className="w-5 h-5 mr-2" />
-                    Upgrade to Premium
-                    <Sparkles className="w-5 h-5 ml-2" />
-                  </Button>
+                  <div className="text-center">
+                    <motion.div
+                      variants={pulseVariants}
+                      initial="rest"
+                      animate="pulse"
+                    >
+                      <Button 
+                        size="lg"
+                        className="bg-white text-orange-600 hover:bg-gray-100 font-bold px-12 py-4 text-lg shadow-xl hover:shadow-2xl transition-all duration-300"
+                        onClick={() => setLocation("/job-seeker-premium")}
+                      >
+                        <Crown className="w-6 h-6 mr-3" />
+                        Upgrade to Premium Now
+                        <Sparkles className="w-6 h-6 ml-3" />
+                      </Button>
+                    </motion.div>
+                    <p className="text-xs text-yellow-200 mt-3">
+                      ⚡ Limited time offer • 30-day money-back guarantee
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
