@@ -269,7 +269,6 @@ export class PremiumFeaturesService {
   async getUsageStats(userId: string): Promise<PremiumUsageStats> {
     return await this.getUserUsageStats(userId);
   }
-  }
 
   async getPremiumValue(userId: string): Promise<{
     totalSavings: number;

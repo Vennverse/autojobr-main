@@ -178,7 +178,7 @@ import { groqService } from "./groqService";
 import { apiKeyRotationService } from "./apiKeyRotationService";
 import { customNLPService } from "./customNLP";
 import { recruiterAnalytics } from "./recruiterAnalytics.js";
-import { subscriptionService } from "./subscriptionService";
+// subscriptionService is already initialized above
 import { generateVerificationEmail } from "./emailService";
 import { testService } from "./testService";
 import { paymentService } from "./paymentService";
