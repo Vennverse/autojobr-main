@@ -432,21 +432,19 @@ export class TestService {
   async processRetakePayment(
     assignmentId: number,
     userId: string,
-    paymentProvider: 'stripe' | 'paypal' | 'razorpay',
+    paymentProvider: 'paypal' | 'amazon_pay',
     paymentIntentId: string
   ): Promise<boolean> {
     try {
       let paymentVerified = false;
 
       switch (paymentProvider) {
-        case 'stripe':
-          paymentVerified = await paymentService.verifyStripePayment(paymentIntentId);
-          break;
         case 'paypal':
           paymentVerified = await paymentService.verifyPayPalOrder(paymentIntentId);
           break;
-        case 'razorpay':
-          paymentVerified = paymentService.verifyRazorpayPayment(paymentIntentId, '5', 'usd');
+        case 'amazon_pay':
+          // Mock Amazon Pay verification for now
+          paymentVerified = paymentIntentId.startsWith('AMAZON_PAY_');
           break;
       }
 

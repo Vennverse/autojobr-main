@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -12,6 +14,7 @@ import {
   CreditCard, 
   CheckCircle, 
   TrendingUp, 
+  Clock, 
   Trophy,
   AlertTriangle,
   ArrowLeft,
@@ -20,6 +23,7 @@ import {
   Target,
   Brain
 } from "lucide-react";
+import OneTimePaymentGateway from "@/components/OneTimePaymentGateway";
 
 export default function TestRetakePayment() {
   const params = useParams<{ id: string }>();
@@ -95,11 +99,6 @@ export default function TestRetakePayment() {
     }
   };
 
-  // Calculate passing score and gap
-  const passingScore = assignment?.testTemplate?.passingScore || 75;
-  const currentScore = assignment?.score || 0;
-  const scoreGap = Math.max(0, passingScore - currentScore);
-
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -113,17 +112,17 @@ export default function TestRetakePayment() {
     );
   }
 
-  if (!assignment || assignment.status === 'passed' || !assignment.retakeAllowed) {
+  if (!assignment) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Card>
           <CardContent className="text-center py-12">
             <AlertTriangle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Test Assignment Not Available</h3>
+            <h3 className="text-lg font-semibold mb-2">Test Assignment Not Found</h3>
             <p className="text-gray-600 mb-4">
-              This test assignment doesn't exist, you've already passed it, or retakes are not allowed.
+              The test assignment you're looking for doesn't exist or you don't have access to it.
             </p>
-            <Button onClick={() => setLocation('/tests')}>
+            <Button onClick={() => setLocation('/job-seeker/tests')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Tests
             </Button>
@@ -133,18 +132,26 @@ export default function TestRetakePayment() {
     );
   }
 
-  // Only show retake payment if user failed the test and retakes are allowed
-  if (assignment.score >= passingScore) {
+  const passingScore = assignment.testTemplate?.passingScore || 70;
+  const scoreGap = passingScore - assignment.score;
+  const canRetake = assignment.status === 'completed' && assignment.score < passingScore && !assignment.retakeAllowed;
+
+  if (!canRetake) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Card>
           <CardContent className="text-center py-12">
             <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">You've Already Passed!</h3>
+            <h3 className="text-lg font-semibold mb-2">Retake Not Available</h3>
             <p className="text-gray-600 mb-4">
-              Your score of {assignment.score}% meets the passing requirement of {passingScore}%.
+              {assignment.retakeAllowed 
+                ? "You already have retake access for this test."
+                : assignment.score >= passingScore
+                ? "You've already passed this test!"
+                : "This test is not eligible for retake."
+              }
             </p>
-            <Button onClick={() => setLocation('/tests')}>
+            <Button onClick={() => setLocation('/job-seeker/tests')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Tests
             </Button>
@@ -155,13 +162,13 @@ export default function TestRetakePayment() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
       {/* Header */}
-      <div className="text-center mb-12">
+      <div className="mb-8">
         <Button 
           variant="ghost" 
-          onClick={() => setLocation('/tests')} 
-          className="mb-6 hover:bg-gray-100"
+          onClick={() => setLocation('/job-seeker/tests')}
+          className="mb-4"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Tests
@@ -188,16 +195,16 @@ export default function TestRetakePayment() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-blue-600" />
-                {assignment.testTemplate?.title || 'Skills Assessment'}
+                {assignment.testTemplate?.title}
               </CardTitle>
               <CardDescription>
-                {assignment.recruiter?.companyName || 'Test'} • {assignment.recruiter?.firstName} {assignment.recruiter?.lastName}
+                {assignment.recruiter?.companyName} • {assignment.recruiter?.firstName} {assignment.recruiter?.lastName}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div className="p-3 bg-red-50 rounded-lg">
-                  <div className="text-2xl font-bold text-red-600">{currentScore}%</div>
+                  <div className="text-2xl font-bold text-red-600">{assignment.score}%</div>
                   <div className="text-sm text-gray-600">Your Score</div>
                 </div>
                 <div className="p-3 bg-green-50 rounded-lg">
@@ -306,9 +313,30 @@ export default function TestRetakePayment() {
               
               {/* Payment Method Selection */}
               <div className="space-y-4">
-                <div className="text-sm font-medium">Payment Method</div>
+                <Label className="text-sm font-medium">Payment Method</Label>
                 
                 <div className="space-y-2">
+                  <div 
+                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                      paymentMethod === 'stripe' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                    }`}
+                    onClick={() => setPaymentMethod('stripe')}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="radio" 
+                        checked={paymentMethod === 'stripe'} 
+                        onChange={() => setPaymentMethod('stripe')}
+                        className="text-blue-600"
+                      />
+                      <CreditCard className="w-5 h-5 text-gray-600" />
+                      <div>
+                        <div className="font-medium text-sm">Credit/Debit Card</div>
+                        <div className="text-xs text-gray-600">Visa, Mastercard, American Express</div>
+                      </div>
+                    </div>
+                  </div>
+                  
                   <div 
                     className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                       paymentMethod === 'paypal' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
@@ -316,32 +344,38 @@ export default function TestRetakePayment() {
                     onClick={() => setPaymentMethod('paypal')}
                   >
                     <div className="flex items-center gap-3">
-                      <CreditCard className="w-5 h-5 text-blue-600" />
+                      <input 
+                        type="radio" 
+                        checked={paymentMethod === 'paypal'} 
+                        onChange={() => setPaymentMethod('paypal')}
+                        className="text-blue-600"
+                      />
+                      <div className="w-5 h-5 bg-blue-600 rounded text-white text-xs flex items-center justify-center font-bold">P</div>
                       <div>
-                        <div className="font-medium">PayPal</div>
-                        <div className="text-sm text-gray-500">Secure online payments</div>
+                        <div className="font-medium text-sm">PayPal</div>
+                        <div className="text-xs text-gray-600">Pay with your PayPal account</div>
                       </div>
-                      {paymentMethod === 'paypal' && (
-                        <CheckCircle className="w-4 h-4 text-blue-600 ml-auto" />
-                      )}
                     </div>
                   </div>
                   
                   <div 
                     className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                      paymentMethod === 'amazon_pay' ? 'border-orange-500 bg-orange-50' : 'border-gray-200'
+                      paymentMethod === 'razorpay' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
                     }`}
-                    onClick={() => setPaymentMethod('amazon_pay')}
+                    onClick={() => setPaymentMethod('razorpay')}
                   >
                     <div className="flex items-center gap-3">
-                      <CreditCard className="w-5 h-5 text-orange-600" />
+                      <input 
+                        type="radio" 
+                        checked={paymentMethod === 'razorpay'} 
+                        onChange={() => setPaymentMethod('razorpay')}
+                        className="text-blue-600"
+                      />
+                      <div className="w-5 h-5 bg-purple-600 rounded text-white text-xs flex items-center justify-center font-bold">R</div>
                       <div>
-                        <div className="font-medium">Amazon Pay</div>
-                        <div className="text-sm text-gray-500">Amazon payment methods</div>
+                        <div className="font-medium text-sm">Razorpay</div>
+                        <div className="text-xs text-gray-600">UPI, Net Banking, Wallets</div>
                       </div>
-                      {paymentMethod === 'amazon_pay' && (
-                        <CheckCircle className="w-4 h-4 text-orange-600 ml-auto" />
-                      )}
                     </div>
                   </div>
                 </div>
@@ -349,25 +383,38 @@ export default function TestRetakePayment() {
               
               <Button 
                 onClick={handlePayment}
-                disabled={isProcessing}
+                disabled={isProcessing || processPaymentMutation.isPending}
                 className="w-full mt-6 bg-blue-600 hover:bg-blue-700"
                 size="lg"
               >
-                {isProcessing ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                    Processing Payment...
-                  </div>
+                {isProcessing || processPaymentMutation.isPending ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Processing...
+                  </>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="w-4 h-4" />
-                    Pay $5 & Unlock Retake
-                  </div>
+                  <>
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Pay $5 & Start Retake
+                  </>
                 )}
               </Button>
               
-              <p className="text-xs text-gray-500 text-center mt-3">
-                Secure payment processing. Money-back guarantee if technical issues occur.
+              <p className="text-xs text-gray-500 text-center mt-4">
+                Secure payment powered by industry-leading encryption. 
+                Your payment information is never stored on our servers.
+              </p>
+            </CardContent>
+          </Card>
+          
+          {/* Money Back Guarantee */}
+          <Card className="bg-green-50 border-green-200">
+            <CardContent className="pt-6 text-center">
+              <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-3" />
+              <h4 className="font-semibold text-green-900 mb-2">100% Satisfaction Guarantee</h4>
+              <p className="text-sm text-green-700">
+                If you experience technical issues during your retake, 
+                we'll refund your payment immediately.
               </p>
             </CardContent>
           </Card>

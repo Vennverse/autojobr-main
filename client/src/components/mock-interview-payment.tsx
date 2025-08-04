@@ -26,7 +26,7 @@ interface MockInterviewPaymentProps {
 
 export function MockInterviewPayment({ onSuccess, onCancel }: MockInterviewPaymentProps) {
   const { toast } = useToast();
-  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'razorpay' | 'paypal'>('stripe');
+  const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'amazon_pay'>('paypal');
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Create payment intent mutation
@@ -62,49 +62,22 @@ export function MockInterviewPayment({ onSuccess, onCancel }: MockInterviewPayme
     setIsProcessing(true);
     
     try {
-      if (paymentMethod === 'stripe') {
-        // Handle Stripe payment
-        const response = await createPaymentMutation.mutateAsync('stripe');
-        if (response.clientSecret) {
-          // Redirect to Stripe checkout or handle client-side Stripe
-          window.location.href = `/payment/stripe?client_secret=${response.clientSecret}&type=mock_interview`;
-        }
-      } else if (paymentMethod === 'razorpay') {
-        // Handle Razorpay payment
-        const response = await createPaymentMutation.mutateAsync('razorpay');
-        if (response.orderId) {
-          // Initialize Razorpay checkout
-          const options = {
-            key: response.keyId,
-            amount: response.amount,
-            currency: response.currency,
-            name: 'AutoJobr',
-            description: 'Mock Interview Practice',
-            order_id: response.orderId,
-            handler: function (response: any) {
-              toast({
-                title: "Payment Successful!",
-                description: "You can now start your mock interview.",
-              });
-              onSuccess?.();
-            },
-            prefill: {
-              email: response.email,
-              contact: response.phone
-            },
-            theme: {
-              color: '#3B82F6'
-            }
-          };
-          const rzp = new (window as any).Razorpay(options);
-          rzp.open();
-        }
-      } else if (paymentMethod === 'paypal') {
+      if (paymentMethod === 'paypal') {
         // Handle PayPal payment
         const response = await createPaymentMutation.mutateAsync('paypal');
         if (response.approvalUrl) {
           // Redirect to PayPal
           window.location.href = response.approvalUrl;
+        }
+      } else if (paymentMethod === 'amazon_pay') {
+        // Handle Amazon Pay payment
+        const response = await createPaymentMutation.mutateAsync('amazon_pay');
+        if (response.orderId) {
+          toast({
+            title: "Amazon Pay Payment",
+            description: "Amazon Pay integration coming soon. Please use PayPal for now.",
+            variant: "destructive",
+          });
         }
       }
     } catch (error) {
@@ -182,31 +155,10 @@ export function MockInterviewPayment({ onSuccess, onCancel }: MockInterviewPayme
 
         {/* Payment Method Selection */}
         <Tabs value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)} className="mb-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="stripe">Stripe</TabsTrigger>
-            <TabsTrigger value="razorpay">Razorpay</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="paypal">PayPal</TabsTrigger>
+            <TabsTrigger value="amazon_pay">Amazon Pay</TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="stripe" className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-              <Shield className="w-4 h-4" />
-              <span>Secure payment with Stripe</span>
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Supports all major credit cards, Apple Pay, Google Pay
-            </p>
-          </TabsContent>
-          
-          <TabsContent value="razorpay" className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-              <Shield className="w-4 h-4" />
-              <span>Pay with Razorpay</span>
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              UPI, Net Banking, Cards, and Wallet payments
-            </p>
-          </TabsContent>
           
           <TabsContent value="paypal" className="space-y-2">
             <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
@@ -215,6 +167,16 @@ export function MockInterviewPayment({ onSuccess, onCancel }: MockInterviewPayme
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400">
               PayPal balance, bank account, or credit card
+            </p>
+          </TabsContent>
+          
+          <TabsContent value="amazon_pay" className="space-y-2">
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <Shield className="w-4 h-4" />
+              <span>Pay with Amazon Pay</span>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Amazon account payment methods (coming soon)
             </p>
           </TabsContent>
         </Tabs>

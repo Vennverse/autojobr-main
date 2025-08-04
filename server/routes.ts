@@ -192,6 +192,26 @@ import { z } from "zod";
 import { rankingTestService } from "./rankingTestService";
 import { mockInterviewRoutes } from "./mockInterviewRoutes";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
+// Payment credentials check routes
+const paymentCredentialsRouter = (app: Express) => {
+  // Check PayPal credentials availability
+  app.get('/api/payment/paypal/check-credentials', (req, res) => {
+    const available = !!(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET);
+    res.json({ 
+      available,
+      message: available ? 'PayPal payment is available' : 'PayPal credentials not configured yet'
+    });
+  });
+
+  // Check Amazon Pay credentials availability
+  app.get('/api/payment/amazon-pay/check-credentials', (req, res) => {
+    const available = !!(process.env.AMAZON_PAY_CLIENT_ID && process.env.AMAZON_PAY_CLIENT_SECRET);
+    res.json({ 
+      available,
+      message: available ? 'Amazon Pay is available' : 'Amazon Pay integration is not configured yet'
+    });
+  });
+};
 import { aiDetectionService } from "./aiDetectionService";
 import { subscriptionPaymentService } from "./subscriptionPaymentService";
 import { usageMonitoringService } from "./usageMonitoringService";
@@ -493,6 +513,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/paypal/order/:orderID/capture", async (req, res) => {
     await capturePaypalOrder(req, res);
+  });
+
+  // Payment credentials check routes
+  paymentCredentialsRouter(app);
+
+  // Test retake payment endpoint
+  app.post('/api/test-assignments/:id/retake/payment', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const assignmentId = parseInt(req.params.id);
+      const { paymentProvider, paymentIntentId } = req.body;
+
+      if (!paymentProvider || !paymentIntentId) {
+        return res.status(400).json({ message: 'Payment details required' });
+      }
+
+      // Process the retake payment
+      const success = await testService.processRetakePayment(
+        assignmentId,
+        userId,
+        paymentProvider,
+        paymentIntentId
+      );
+
+      if (success) {
+        res.json({ success: true, message: 'Retake payment processed successfully' });
+      } else {
+        res.status(400).json({ message: 'Payment verification failed' });
+      }
+    } catch (error) {
+      console.error('Test retake payment error:', error);
+      res.status(500).json({ message: 'Failed to process retake payment' });
+    }
   });
 
   // Subscription Payment Routes - Consolidated

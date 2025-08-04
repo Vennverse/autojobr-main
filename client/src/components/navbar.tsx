@@ -38,7 +38,9 @@ import {
   BarChart3,
   TrendingUp,
   Target,
-  Zap
+  Zap,
+  Users,
+  Star
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -148,23 +150,36 @@ export function Navbar() {
           current: location === "/jobs"
         },
         {
-          name: "Post Jobs",
-          href: "/post-job",
-          icon: Target,
-          current: location === "/post-job" || location.startsWith("/recruiter/")
-        },
-        {
-          name: "Tests",
-          href: "/tests",
+          name: "AI Analysis",
+          href: "/career-ai",
           icon: Brain,
-          current: location === "/tests" || location.startsWith("/test/"),
-          badge: "New"
+          current: location === "/career-ai" || location.startsWith("/career-analysis"),
+          badge: "AI"
         },
         {
-          name: "Interviews",
+          name: "Skills Tests",
+          href: "/tests",
+          icon: Trophy,
+          current: location === "/tests" || location.startsWith("/test/")
+        },
+        {
+          name: "Mock Interviews",
           href: "/mock-interviews",
           icon: Video,
           current: location === "/mock-interviews" || location.startsWith("/interview/")
+        },
+        {
+          name: "Virtual Interviews",
+          href: "/virtual-interviews",
+          icon: Users,
+          current: location === "/virtual-interviews" || location.startsWith("/virtual-interview/")
+        },
+        {
+          name: "Ranking Tests",
+          href: "/ranking-tests",
+          icon: Star,
+          current: location === "/ranking-tests" || location.startsWith("/ranking-test/"),
+          badge: "Popular"
         },
         {
           name: "Messages",
