@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/components/theme-provider";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -150,29 +150,35 @@ export function Navbar() {
           current: location === "/jobs"
         },
         {
-          name: "AI Analysis",
-          href: "/career-ai",
+          name: "Applications",
+          href: "/applications",
+          icon: FileText,
+          current: location === "/applications"
+        },
+        {
+          name: "AI Career Assistant",
+          href: "/career-ai-assistant",
           icon: Brain,
-          current: location === "/career-ai" || location.startsWith("/career-analysis"),
+          current: location === "/career-ai-assistant",
           badge: "AI"
         },
         {
           name: "Skills Tests",
-          href: "/tests",
+          href: "/job-seeker-tests",
           icon: Trophy,
-          current: location === "/tests" || location.startsWith("/test/")
+          current: location === "/job-seeker-tests" || location.startsWith("/test/")
         },
         {
           name: "Mock Interviews",
-          href: "/mock-interviews",
+          href: "/mock-interview",
           icon: Video,
-          current: location === "/mock-interviews" || location.startsWith("/interview/")
+          current: location === "/mock-interview" || location.startsWith("/mock-interview")
         },
         {
           name: "Virtual Interviews",
-          href: "/virtual-interviews",
+          href: "/virtual-interview/new",
           icon: Users,
-          current: location === "/virtual-interviews" || location.startsWith("/virtual-interview/")
+          current: location.startsWith("/virtual-interview")
         },
         {
           name: "Ranking Tests",
