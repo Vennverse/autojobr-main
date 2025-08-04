@@ -48,21 +48,24 @@ export class InterviewAssignmentService {
       status: "assigned"
     };
 
-    // Use raw SQL to bypass schema validation issues
-    const result = await db.execute(sql`
-      INSERT INTO virtual_interviews (
-        user_id, session_id, interview_type, role, company, 
-        difficulty, duration, interviewer_personality, job_description, status,
-        assigned_by, assigned_at, due_date
-      ) VALUES (
-        ${data.candidateId}, ${sessionId}, ${data.interviewType}, ${data.role}, 
-        ${data.company}, ${data.difficulty}, ${data.duration}, 
-        ${data.interviewerPersonality}, ${data.jobDescription}, 'assigned',
-        ${data.recruiterId}, NOW(), ${data.dueDate.toISOString()}
-      ) RETURNING *
-    `);
-    
-    const interview = result.rows[0];
+    // Use Drizzle ORM to insert virtual interview assignment
+    const [interview] = await db.insert(virtualInterviews).values({
+      userId: data.candidateId,
+      sessionId: sessionId,
+      interviewType: data.interviewType,
+      role: data.role,
+      company: data.company || '',
+      difficulty: data.difficulty,
+      duration: data.duration,
+      interviewerPersonality: data.interviewerPersonality,
+      jobDescription: data.jobDescription || '',
+      status: 'assigned',
+      assignedBy: data.recruiterId,
+      assignedAt: new Date(),
+      dueDate: data.dueDate,
+      jobPostingId: data.jobPostingId || null,
+      assignmentType: 'recruiter_assigned'
+    }).returning();
 
     // Send email notification to candidate
     await this.sendAssignmentEmail(
@@ -75,10 +78,10 @@ export class InterviewAssignmentService {
       data.company
     );
 
-    // Mark email as sent using raw SQL
-    await db.execute(sql`
-      UPDATE virtual_interviews SET email_sent = true WHERE id = ${interview.id}
-    `);
+    // Mark email as sent using Drizzle ORM
+    await db.update(virtualInterviews)
+      .set({ emailSent: true })
+      .where(eq(virtualInterviews.id, interview.id));
 
     return interview;
   }
