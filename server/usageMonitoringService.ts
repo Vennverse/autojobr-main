@@ -1,20 +1,52 @@
 import { db } from './db';
-import { eq } from 'drizzle-orm';
-import { users, subscriptions } from '../shared/schema';
+import { eq, count, and } from 'drizzle-orm';
+import { 
+  users, 
+  jobPostings, 
+  jobPostingApplications, 
+  testAssignments, 
+  virtualInterviews, 
+  mockInterviews,
+  chatMessages 
+} from '@shared/schema';
+import { SubscriptionService } from './subscriptionService';
 
 interface UsageReport {
   subscription: {
     isActive: boolean;
     planType: string;
   };
-  usage: Record<string, number>;
-  limits: Record<string, number>;
+  usage: {
+    jobPostings: number;
+    applicantsTotal: number;
+    testInterviewAssignments: number;
+    chatMessagesUsed: number;
+  };
+  limits: {
+    jobPostings: number;
+    applicantsPerJob: number;
+    testInterviewAssignments: number;
+    chatMessages: boolean;
+  };
   percentages: Record<string, number>;
   upgradeRecommended: boolean;
   isFreeTier: boolean;
+  features: {
+    resumeViewing: boolean;
+    basicAIScore: boolean;
+    advancedResumeAnalytics: boolean;
+    chatMessages: boolean;
+    basicAnalytics: boolean;
+    advancedAnalytics: boolean;
+    premiumTargeting: boolean;
+    apiAccess: boolean;
+    backgroundChecks: boolean;
+  };
 }
 
 class UsageMonitoringService {
+  private subscriptionService = new SubscriptionService();
+
   async generateUsageReport(userId: string): Promise<UsageReport> {
     try {
       // Get user subscription data
@@ -23,75 +55,82 @@ class UsageMonitoringService {
         throw new Error('User not found');
       }
 
-      const subscription = await db.select().from(subscriptions)
-        .where(eq(subscriptions.userId, userId))
-        .limit(1);
+      const userData = user[0];
+      const planType = userData.planType || 'free';
+      const hasActiveSubscription = userData.subscriptionStatus === 'active';
+      const userType = userData.userType || 'job_seeker';
 
-      const hasActiveSubscription = subscription.length > 0 && subscription[0].status === 'active';
-      const planType = hasActiveSubscription ? subscription[0].planType : 'free';
+      // Get subscription limits
+      const subscription = await this.subscriptionService.getUserSubscription(userId);
+      const limits = subscription.limits;
 
-      // Mock usage data based on user type for demonstration
-      const userType = user[0].userType || 'jobseeker';
-      let usage: Record<string, number> = {};
-      let limits: Record<string, number> = {};
+      let usage: UsageReport['usage'];
+      let percentages: Record<string, number> = {};
 
       if (userType === 'recruiter') {
+        // Get real recruiter usage data
+        const jobPostingsResult = await db
+          .select({ count: count() })
+          .from(jobPostings)
+          .where(and(eq(jobPostings.recruiterId, userId), eq(jobPostings.isActive, true)));
+
+        const totalApplicantsResult = await db
+          .select({ count: count() })
+          .from(jobPostingApplications)
+          .innerJoin(jobPostings, eq(jobPostingApplications.jobPostingId, jobPostings.id))
+          .where(eq(jobPostings.recruiterId, userId));
+
+        const testAssignmentsResult = await db
+          .select({ count: count() })
+          .from(testAssignments)
+          .where(eq(testAssignments.recruiterId, userId));
+
+        const virtualInterviewsResult = await db
+          .select({ count: count() })
+          .from(virtualInterviews)
+          .where(eq(virtualInterviews.assignedBy, userId));
+
+        const mockInterviewsResult = await db
+          .select({ count: count() })
+          .from(mockInterviews)
+          .where(eq(mockInterviews.assignedBy, userId));
+
+        const chatMessagesResult = await db
+          .select({ count: count() })
+          .from(chatMessages)
+          .where(eq(chatMessages.senderId, userId));
+
         usage = {
-          jobPostings: 3,
-          interviews: 8,
-          candidates: 15,
-          analytics: 12
+          jobPostings: jobPostingsResult[0]?.count || 0,
+          applicantsTotal: totalApplicantsResult[0]?.count || 0,
+          testInterviewAssignments: 
+            (testAssignmentsResult[0]?.count || 0) + 
+            (virtualInterviewsResult[0]?.count || 0) + 
+            (mockInterviewsResult[0]?.count || 0),
+          chatMessagesUsed: chatMessagesResult[0]?.count || 0
         };
-        
-        if (hasActiveSubscription) {
-          limits = {
-            jobPostings: -1, // unlimited
-            interviews: -1,
-            candidates: -1,
-            analytics: -1
-          };
+
+        // Calculate percentages for numeric limits
+        if (limits.jobPostings > 0) {
+          percentages.jobPostings = Math.round((usage.jobPostings / limits.jobPostings) * 100);
         } else {
-          limits = {
-            jobPostings: 5,
-            interviews: 10,
-            candidates: 20,
-            analytics: 15
-          };
+          percentages.jobPostings = 0; // Unlimited
+        }
+
+        if (limits.testInterviewAssignments > 0) {
+          percentages.testInterviewAssignments = Math.round((usage.testInterviewAssignments / limits.testInterviewAssignments) * 100);
+        } else {
+          percentages.testInterviewAssignments = 0; // Unlimited
         }
       } else {
+        // Job seeker usage (simplified for now)
         usage = {
-          applications: 12,
-          resumeAnalyses: 8,
-          autoFills: 25,
-          jobAnalyses: 5
+          jobPostings: 0,
+          applicantsTotal: 0,
+          testInterviewAssignments: 0,
+          chatMessagesUsed: 0
         };
-        
-        if (hasActiveSubscription) {
-          limits = {
-            applications: -1,
-            resumeAnalyses: -1,
-            autoFills: -1,
-            jobAnalyses: -1
-          };
-        } else {
-          limits = {
-            applications: 15,
-            resumeAnalyses: 10,
-            autoFills: 30,
-            jobAnalyses: 8
-          };
-        }
       }
-
-      // Calculate percentages
-      const percentages: Record<string, number> = {};
-      Object.keys(usage).forEach(key => {
-        if (limits[key] > 0) {
-          percentages[key] = Math.round((usage[key] / limits[key]) * 100);
-        } else {
-          percentages[key] = 0; // Unlimited
-        }
-      });
 
       // Determine if upgrade is recommended
       const upgradeRecommended = !hasActiveSubscription && 
@@ -103,10 +142,26 @@ class UsageMonitoringService {
           planType
         },
         usage,
-        limits,
+        limits: {
+          jobPostings: limits.jobPostings,
+          applicantsPerJob: limits.applicantsPerJob,
+          testInterviewAssignments: limits.testInterviewAssignments,
+          chatMessages: limits.chatMessages
+        },
         percentages,
         upgradeRecommended,
-        isFreeTier: !hasActiveSubscription
+        isFreeTier: !hasActiveSubscription,
+        features: {
+          resumeViewing: limits.resumeViewing,
+          basicAIScore: limits.basicAIScore,
+          advancedResumeAnalytics: limits.advancedResumeAnalytics,
+          chatMessages: limits.chatMessages,
+          basicAnalytics: limits.basicAnalytics,
+          advancedAnalytics: limits.advancedAnalytics,
+          premiumTargeting: limits.premiumTargeting,
+          apiAccess: limits.apiAccess,
+          backgroundChecks: limits.backgroundChecks
+        }
       };
     } catch (error) {
       console.error('Error generating usage report:', error);
@@ -117,11 +172,32 @@ class UsageMonitoringService {
           isActive: false,
           planType: 'free'
         },
-        usage: {},
-        limits: {},
+        usage: {
+          jobPostings: 0,
+          applicantsTotal: 0,
+          testInterviewAssignments: 0,
+          chatMessagesUsed: 0
+        },
+        limits: {
+          jobPostings: 2,
+          applicantsPerJob: 20,
+          testInterviewAssignments: 10,
+          chatMessages: false
+        },
         percentages: {},
         upgradeRecommended: false,
-        isFreeTier: true
+        isFreeTier: true,
+        features: {
+          resumeViewing: true,
+          basicAIScore: true,
+          advancedResumeAnalytics: false,
+          chatMessages: false,
+          basicAnalytics: true,
+          advancedAnalytics: false,
+          premiumTargeting: false,
+          apiAccess: false,
+          backgroundChecks: false
+        }
       };
     }
   }

@@ -47,6 +47,15 @@ import { customNLPService } from "./customNLP.js";
 import { PremiumFeaturesService } from "./premiumFeaturesService.js";
 import { SubscriptionService } from "./subscriptionService.js";
 import { rankingTestService } from "./rankingTestService.js";
+import { 
+  checkJobPostingLimit,
+  checkApplicantLimit,
+  checkTestInterviewLimit,
+  checkChatAccess,
+  checkResumeAccess,
+  checkPremiumTargetingAccess
+} from "./subscriptionLimitMiddleware.js";
+import { subscriptionEnforcementService } from "./subscriptionEnforcementService.js";
 
 // Initialize services
 const premiumFeaturesService = new PremiumFeaturesService();
@@ -942,6 +951,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error creating ranking test:', error);
       res.status(500).json({ message: 'Failed to create ranking test' });
+    }
+  }));
+
+  // 5. Comprehensive Subscription Limits Status Endpoint
+  app.get('/api/subscription/limits-status', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter') {
+        return res.status(403).json({ message: 'This endpoint is for recruiters only' });
+      }
+
+      const { subscriptionEnforcementService } = await import('./subscriptionEnforcementService');
+      const limitsStatus = await subscriptionEnforcementService.enforceAllLimits(userId);
+      
+      res.json({
+        success: true,
+        planType: user.planType || 'free',
+        subscriptionStatus: user.subscriptionStatus || 'free',
+        limits: limitsStatus,
+        upgradeUrl: '/subscription'
+      });
+    } catch (error) {
+      console.error('Error fetching subscription limits status:', error);
+      res.status(500).json({ message: 'Failed to fetch subscription limits status' });
     }
   }));
 
@@ -4877,8 +4912,8 @@ Additional Information:
   // Interview Assignment Routes
   // ========================================
 
-  // Assign virtual interview to candidate
-  app.post('/api/interviews/virtual/assign', isAuthenticated, async (req: any, res) => {
+  // Assign virtual interview to candidate - WITH SUBSCRIPTION LIMITS
+  app.post('/api/interviews/virtual/assign', isAuthenticated, checkTestInterviewLimit, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
@@ -4921,8 +4956,8 @@ Additional Information:
     }
   });
 
-  // Assign mock interview to candidate
-  app.post('/api/interviews/mock/assign', isAuthenticated, async (req: any, res) => {
+  // Assign mock interview to candidate - WITH SUBSCRIPTION LIMITS
+  app.post('/api/interviews/mock/assign', isAuthenticated, checkTestInterviewLimit, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
@@ -5176,10 +5211,25 @@ Additional Information:
     }
   });
 
-  // Send message
+  // Send message - WITH CHAT ACCESS LIMITS FOR RECRUITERS
   app.post('/api/chat/conversations/:id/messages', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      // Check chat access for recruiters (job seekers have unlimited chat)
+      if (user?.userType === 'recruiter') {
+        const subscriptionService = new SubscriptionService();
+        const canChat = await subscriptionService.canAccessFeature(userId, 'chatMessages');
+        if (!canChat) {
+          return res.status(403).json({
+            error: 'Chat access restricted',
+            message: 'Chat functionality is available with Premium plans. Upgrade to start messaging candidates.',
+            upgradeRequired: true
+          });
+        }
+      }
+      
       const conversationId = parseInt(req.params.id);
       const { message } = req.body;
       
@@ -5620,7 +5670,7 @@ Additional Information:
     }
   });
 
-  app.post('/api/recruiter/jobs', isAuthenticated, async (req: any, res) => {
+  app.post('/api/recruiter/jobs', isAuthenticated, checkJobPostingLimit, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
@@ -5904,12 +5954,12 @@ Additional Information:
     }
   });
 
-  // Apply to a job posting
-  app.post('/api/jobs/postings/:jobId/apply', isAuthenticated, async (req: any, res) => {
+  // Apply to a job posting - WITH APPLICANT PER JOB LIMIT ENFORCEMENT
+  app.post('/api/jobs/postings/:jobId/apply', isAuthenticated, checkApplicantLimit, async (req: any, res) => {
     try {
       const userId = req.user.id;
       
-      // Check job application limits using premium features service
+      // Check job application limits using premium features service (for job seeker side)
       const { premiumFeaturesService } = await import('./premiumFeaturesService');
       const limitCheck = await premiumFeaturesService.checkFeatureLimit(userId, 'jobApplications');
       
@@ -8265,8 +8315,8 @@ Host: https://autojobr.com`;
     }
   });
 
-  // Assign test to job seeker
-  app.post('/api/test-assignments', isAuthenticated, async (req: any, res) => {
+  // Assign test to job seeker - WITH SUBSCRIPTION LIMITS
+  app.post('/api/test-assignments', isAuthenticated, checkTestInterviewLimit, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
       

@@ -27,7 +27,7 @@ AutoJobr is a comprehensive job application platform designed to connect job see
 ### Recent Updates (August 2025)
 - **Platform Migration**: ✅ COMPLETED - Successfully migrated from Replit Agent to standard Replit environment with PostgreSQL database integration, session-based authentication, and GROQ API integration for AI features. All critical premium API endpoints added: `/api/user` (with planType), `/api/usage/report`, `/api/subscription/current`, `/api/ranking-tests/usage`, `/api/ranking-tests/create`, `/api/premium/access/:feature`, `/api/premium/usage`. Premium feature handling fully implemented.
 - **Jobs Page Redesign**: Completely redesigned jobs page with LinkedIn-style UI/UX, featuring proper compatibility scoring (65-95% range), pagination (25 jobs per page), and side-by-side job detail view.
-- **Analysis Score Fix**: Fixed calculation issues that were showing static scores (55/75) - now uses dynamic compatibility algorithm based on user profile skills, experience level, and location preferences.
+- **Analysis Score Fix**: Fixed calculation issues that were showing static scores (55/75) - now uses dynamic compatibility algorithm based user profile skills, experience level, and location preferences.
 - **Enhanced Navigation**: Implemented comprehensive job browsing with search, filters, save functionality, and seamless job detail navigation with proper pagination controls.
 - **Question Bank Enhancement**: Successfully populated database with 15 premium difficulty questions covering general aptitude, verbal reasoning, technical coding, case studies, behavioral scenarios, and domain-specific content.
 - **Test Template System**: Fixed initialization issues and enabled "Initialize Platform Templates" functionality for recruiters.
@@ -37,6 +37,12 @@ AutoJobr is a comprehensive job application platform designed to connect job see
 - **Landing Page Enhancement**: Created professional landing page and /for-recruiters page with compelling CTAs, generated professional logo and hero assets, implemented LinkedIn-style design with pricing sections, testimonials, and conversion optimization features.
 - **Recruiter Applicants Page Migration**: Successfully replaced all mock/demo data with real API integration, connected functional recruiter tools (messaging, email, pipeline navigation), implemented proper loading states, empty states, and status update functionality for real-world applicant management.
 - **Interview Assignment System**: Fixed SQL syntax errors in virtual interview assignment service, replaced raw SQL with proper Drizzle ORM operations, and verified functionality through `/recruiter/interview-assignments` page.
+- **✅ COMPREHENSIVE SUBSCRIPTION LIMITS SYSTEM**: Implemented complete subscription enforcement across all recruiter features with detailed plan restrictions:
+  - **Free Tier Limits**: Max 2 active job posts, 20 applicants per job, 10 combined test/interview assignments, 1 pre-built test template, basic AI scoring only, no chat access, basic analytics only
+  - **Premium Tier Benefits**: Unlimited jobs and applicants, unlimited tests/interviews, full test library + custom tests, unlimited chat, advanced AI analytics, premium targeting, API integrations, background checks
+  - **Middleware Integration**: Added subscription checking to all critical API endpoints (`/api/recruiter/jobs`, `/api/test-assignments`, `/api/interviews/*/assign`) with proper error messages and upgrade prompts
+  - **Real-time Usage Monitoring**: Comprehensive usage tracking with live limit checking and remaining quota display
+  - **Automatic Upgrade Flow**: Once recruiters purchase premium, they immediately get full system access with all restrictions removed
 
 ### Technical Implementation
 - **Backend**: Express.js with TypeScript, session-based authentication using Passport.js, AI integration via Groq SDK, payment processing with Stripe and PayPal, email services with Resend and Nodemailer. Enhanced with LRU caching system using dependency tracking for reduced compute usage and improved performance.
@@ -47,15 +53,18 @@ AutoJobr is a comprehensive job application platform designed to connect job see
 
 ### Feature Specifications
 - Resume upload and AI-powered ATS scoring with compression for storage optimization.
-- Job posting and application management for recruiters with enhanced caching system.
-- Real-time messaging between recruiters and candidates.
+- Job posting and application management for recruiters with enhanced caching system and subscription limits.
+- Real-time messaging between recruiters and candidates (premium feature for recruiters).
 - Payment processing for premium features and services (e.g., test retakes, job promotion).
-- Virtual AI interviews and coding tests with AI detection.
+- Virtual AI interviews and coding tests with AI detection (limited by subscription tier).
 - Comprehensive application tracking and analytics for job seekers.
 - Role-based access and consistent user type management (job seeker, recruiter).
 - Advanced API key rotation system for Groq and Resend.
-- Resume viewing functionality with new tab opening for recruiters.
+- Resume viewing functionality with new tab opening for recruiters (with AI scoring restrictions).
 - LRU-based caching system with dependency tracking for improved performance.
+- **Comprehensive Subscription Enforcement System**: All recruiter features properly gated by subscription limits with automatic premium access after payment.
+- **Two-Tier Plan Structure**: Free tier with specific limits (2 jobs, 20 applicants per job, 10 test assignments, basic features only) and Premium tier with unlimited access to all features.
+- **Real-time Limit Checking**: API routes validate current usage against subscription limits before allowing actions, with informative error messages and upgrade prompts.
 
 ## External Dependencies
 - **Database**: Neon PostgreSQL
