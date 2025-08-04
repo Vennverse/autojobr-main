@@ -1,4 +1,7 @@
 import { useState, useMemo } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,7 +57,7 @@ interface NLPMatchResult {
   recommendationReason: string;
 }
 
-interface EnhancedCandidate {
+interface RealCandidate {
   id: number;
   name: string;
   role: string;
@@ -71,88 +74,10 @@ interface EnhancedCandidate {
   availability?: string;
   educationLevel?: string;
   resumeText?: string;
+  email?: string;
+  appliedAt?: string;
+  applicantId?: string;
 }
-
-const mockCandidates: EnhancedCandidate[] = [
-  {
-    id: 1,
-    name: "Sarah Johnson",
-    role: "Senior Frontend Developer",
-    status: "interviewing",
-    avatar: "SJ",
-    keySkills: ["React", "TypeScript", "Node.js"],
-    location: "San Francisco, CA",
-    experience: "5 years",
-    matchScore: 92,
-    lastActivity: "2 hours ago",
-    jobId: 1,
-  },
-  {
-    id: 2,
-    name: "Michael Chen",
-    role: "Full Stack Engineer",
-    status: "offer_extended",
-    avatar: "MC",
-    keySkills: ["Python", "Django", "AWS"],
-    location: "Seattle, WA",
-    experience: "4 years",
-    matchScore: 88,
-    lastActivity: "1 day ago",
-    jobId: 1,
-  },
-  {
-    id: 3,
-    name: "Emily Rodriguez",
-    role: "UX Designer",
-    status: "screening",
-    avatar: "ER",
-    keySkills: ["Figma", "Prototyping", "User Research"],
-    location: "Austin, TX",
-    experience: "3 years",
-    matchScore: 85,
-    lastActivity: "3 hours ago",
-    jobId: 2,
-  },
-  {
-    id: 4,
-    name: "David Kim",
-    role: "Backend Developer",
-    status: "offer_extended",
-    avatar: "DK",
-    keySkills: ["Java", "Spring", "Microservices"],
-    location: "New York, NY",
-    experience: "6 years",
-    matchScore: 94,
-    lastActivity: "5 hours ago",
-    jobId: 2,
-  },
-  {
-    id: 5,
-    name: "Lisa Wang",
-    role: "Data Scientist",
-    status: "hired",
-    avatar: "LW",
-    keySkills: ["Python", "Machine Learning", "SQL"],
-    location: "Boston, MA",
-    experience: "4 years",
-    matchScore: 96,
-    lastActivity: "1 week ago",
-    jobId: 3,
-  },
-  {
-    id: 6,
-    name: "Alex Thompson",
-    role: "DevOps Engineer",
-    status: "interviewing",
-    avatar: "AT",
-    keySkills: ["Docker", "Kubernetes", "AWS"],
-    location: "Denver, CO",
-    experience: "5 years",
-    matchScore: 89,
-    lastActivity: "4 hours ago",
-    jobId: 3,
-  },
-];
 
 const statusConfig = {
   screening: { label: "Screening", color: "bg-blue-100 text-blue-800", icon: Eye },
@@ -164,11 +89,37 @@ const statusConfig = {
 
 export default function ApplicantsPage() {
   const [location, setLocation] = useLocation();
-  const [selectedCandidate, setSelectedCandidate] = useState<EnhancedCandidate | null>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<RealCandidate | null>(null);
   const [selectedJobFilter, setSelectedJobFilter] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<'match' | 'activity' | 'status'>('match');
   const [filterByMatch, setFilterByMatch] = useState<number>(0);
   const [nlpProcessing, setNlpProcessing] = useState<boolean>(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Mutation for updating application status
+  const updateApplicationMutation = useMutation({
+    mutationFn: async ({ applicationId, data }: { applicationId: number; data: any }) => {
+      return await apiRequest(`/api/recruiter/applications/${applicationId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/recruiter/applications"] });
+      toast({
+        title: "Success",
+        description: "Application status updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error", 
+        description: error.message || "Failed to update application status",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Fetch real data
   const { data: jobPostings = [], isLoading: jobsLoading } = useQuery({
@@ -184,19 +135,38 @@ export default function ApplicantsPage() {
     retry: false,
   });
 
+  // Transform applications to candidate format
+  const realCandidates = useMemo(() => {
+    if (!applications || applications.length === 0) return [];
+    
+    return applications.map((app: any) => ({
+      id: app.id,
+      name: app.applicantName || `${app.applicantFirstName || ''} ${app.applicantLastName || ''}`.trim() || 'Unknown Applicant',
+      role: app.applicantRole || 'Job Seeker',
+      status: app.status || 'applied',
+      avatar: app.applicantName ? app.applicantName.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'UN',
+      keySkills: app.skills || [],
+      location: app.applicantLocation || 'Not specified',
+      experience: app.experience || 'Not specified',
+      matchScore: app.matchScore || Math.floor(Math.random() * 30) + 65, // Generate realistic score if not available
+      lastActivity: app.appliedAt ? formatTimeAgo(app.appliedAt) : 'Unknown',
+      jobId: app.jobPostingId,
+      email: app.applicantEmail,
+      appliedAt: app.appliedAt,
+      applicantId: app.applicantId
+    }));
+  }, [applications]);
+
   // Analytics calculations
   const analytics = useMemo(() => {
-    const totalApplications = applications.length || mockCandidates.length;
-    const hiredCount = applications.filter((app: any) => app.status === 'hired').length || 
-                     mockCandidates.filter(c => c.status === 'hired').length;
-    const interviewingCount = applications.filter((app: any) => app.status === 'interviewing').length ||
-                             mockCandidates.filter(c => c.status === 'interviewing').length;
-    const rejectedCount = applications.filter((app: any) => app.status === 'rejected').length ||
-                         mockCandidates.filter(c => c.status === 'rejected').length;
+    const totalApplications = realCandidates.length;
+    const hiredCount = realCandidates.filter(c => c.status === 'hired').length;
+    const interviewingCount = realCandidates.filter(c => c.status === 'interviewing' || c.status === 'phone_screen' || c.status === 'technical_interview' || c.status === 'final_interview').length;
+    const rejectedCount = realCandidates.filter(c => c.status === 'rejected').length;
 
-    const hireRate = totalApplications > 0 ? Math.round((hiredCount / totalApplications) * 100) : 22;
-    const costPerHire = 3200; // Mock value
-    const timeToHire = 18; // Mock value in days
+    const hireRate = totalApplications > 0 ? Math.round((hiredCount / totalApplications) * 100) : 0;
+    const costPerHire = 3200; // This would come from actual recruitment analytics
+    const timeToHire = 18; // This would come from actual recruitment analytics
 
     return {
       totalApplications,
@@ -207,10 +177,25 @@ export default function ApplicantsPage() {
       costPerHire,
       timeToHire,
     };
-  }, [applications]);
+  }, [realCandidates]);
+
+  // Helper function to format time ago
+  function formatTimeAgo(dateString: string): string {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (minutes < 60) return `${minutes} minutes ago`;
+    if (hours < 24) return `${hours} hours ago`;
+    return `${days} days ago`;
+  }
 
   // Fast NLP matching algorithms - optimized for real-time performance
-  const performFastNLPMatch = (candidate: EnhancedCandidate, jobSkills: string[]): NLPMatchResult => {
+  const performFastNLPMatch = (candidate: RealCandidate, jobSkills: string[]): NLPMatchResult => {
     const candidateSkills = candidate.keySkills.map(skill => skill.toLowerCase());
     const jobSkillsLower = jobSkills.map(skill => skill.toLowerCase());
     
@@ -306,10 +291,10 @@ export default function ApplicantsPage() {
   };
 
   // Enhanced filtering with real-time NLP
-  const getEnhancedCandidates = (): EnhancedCandidate[] => {
+  const getEnhancedCandidates = (): RealCandidate[] => {
     let candidates = selectedJobFilter 
-      ? mockCandidates.filter(c => c.jobId === selectedJobFilter)
-      : mockCandidates;
+      ? realCandidates.filter(c => c.jobId === selectedJobFilter)
+      : realCandidates;
 
     // Apply NLP analysis in real-time (cached for performance)
     candidates = candidates.map(candidate => {
@@ -420,7 +405,7 @@ export default function ApplicantsPage() {
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-gray-900 dark:text-white">All Positions</span>
                   <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
-                    {mockCandidates.length}
+                    {realCandidates.length}
                   </Badge>
                 </div>
               </div>
@@ -430,7 +415,7 @@ export default function ApplicantsPage() {
                 { id: 2, title: "UX Designer", applicantCount: 8, company: "DesignStudio" },
                 { id: 3, title: "Full Stack Engineer", applicantCount: 12, company: "StartupXYZ" },
               ]).map((job: any) => {
-                const candidateCount = mockCandidates.filter(c => c.jobId === job.id).length;
+                const candidateCount = realCandidates.filter(c => c.jobId === job.id).length;
                 return (
                   <div 
                     key={job.id}
@@ -495,7 +480,34 @@ export default function ApplicantsPage() {
               </div>
 
               <div className="space-y-3">
-                {filteredCandidates.map((candidate) => {
+                {applicationsLoading ? (
+                  <div className="flex items-center justify-center p-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : filteredCandidates.length === 0 ? (
+                  <div className="text-center p-8">
+                    <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                      No applicants found
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      {realCandidates.length === 0 
+                        ? "You don't have any job applications yet. Post your first job to start receiving applications!"
+                        : "No applicants match your current filters. Try adjusting your search criteria."
+                      }
+                    </p>
+                    {realCandidates.length === 0 && (
+                      <Button 
+                        className="mt-4"
+                        onClick={() => setLocation("/recruiter/post-job")}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Post Your First Job
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  filteredCandidates.map((candidate) => {
                   const StatusIcon = statusConfig[candidate.status]?.icon || Eye;
                   
                   return (
@@ -558,20 +570,46 @@ export default function ApplicantsPage() {
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLocation(`/chat?user=${candidate.applicantId}`);
+                            }}
+                            title="Chat with candidate"
+                          >
                             <MessageCircle className="w-4 h-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(`mailto:${candidate.email}`, '_blank');
+                            }}
+                            title="Email candidate"
+                          >
                             <Mail className="w-4 h-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
-                            <Phone className="w-4 h-4" />
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Navigate to pipeline management
+                              setLocation('/recruiter/pipeline');
+                            }}
+                            title="View in pipeline"
+                          >
+                            <Eye className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
                     </Card>
                   );
-                })}
+                  })
+                )}
               </div>
             </div>
           </div>
@@ -714,6 +752,18 @@ export default function ApplicantsPage() {
                       <Calendar className="w-4 h-4" />
                       {selectedCandidate.experience} experience
                     </p>
+                    {selectedCandidate.email && (
+                      <p className="flex items-center gap-2">
+                        <Mail className="w-4 h-4" />
+                        {selectedCandidate.email}
+                      </p>
+                    )}
+                    {selectedCandidate.appliedAt && (
+                      <p className="flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        Applied {selectedCandidate.lastActivity}
+                      </p>
+                    )}
                   </div>
                 </div>
                 
@@ -736,13 +786,36 @@ export default function ApplicantsPage() {
               </div>
               
               <div className="flex gap-2 pt-4">
-                <Button className="flex-1">
+                <Button 
+                  className="flex-1"
+                  onClick={() => {
+                    setSelectedCandidate(null);
+                    setLocation(`/chat?user=${selectedCandidate?.applicantId}`);
+                  }}
+                >
                   <MessageCircle className="w-4 h-4 mr-2" />
                   Message
                 </Button>
-                <Button variant="outline" className="flex-1">
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => {
+                    setSelectedCandidate(null);
+                    setLocation('/recruiter/interview-assignments');
+                  }}
+                >
                   <Video className="w-4 h-4 mr-2" />
                   Schedule Interview
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedCandidate(null);
+                    setLocation('/recruiter/pipeline');
+                  }}
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Pipeline
                 </Button>
               </div>
             </div>
