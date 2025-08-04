@@ -11,8 +11,8 @@ export interface MockInterviewUsage {
 }
 
 export class MockInterviewPaymentService {
-  private readonly FREE_INTERVIEWS_LIMIT = 10; // 10 free interviews for all users
-  private readonly PREMIUM_FREE_LIMIT = 25; // 25 free interviews for premium users
+  private readonly FREE_INTERVIEWS_LIMIT = 1; // 1 free interview for all users
+  private readonly PREMIUM_FREE_LIMIT = 5; // 5 free interviews for premium users
   private readonly INTERVIEW_COST = 5; // $5 per interview after free limit
 
   async checkUsageAndPayment(userId: string): Promise<MockInterviewUsage> {
@@ -32,7 +32,7 @@ export class MockInterviewPaymentService {
       });
 
       if (!userStats) {
-        // Create initial stats record
+        // Create initial stats record - ensure new users get their free interviews
         const [newStats] = await db.insert(userInterviewStats).values({
           userId,
           totalMockInterviews: 0,
@@ -63,8 +63,8 @@ export class MockInterviewPaymentService {
         freeInterviewsRemaining: 0,
         cost: this.INTERVIEW_COST,
         message: isPremium 
-          ? `You've used all ${this.PREMIUM_FREE_LIMIT} free mock interviews. Pay $${this.INTERVIEW_COST} via PayPal or Razorpay for additional interviews.`
-          : `You've used your ${this.FREE_INTERVIEWS_LIMIT} free mock interview. Upgrade to premium for ${this.PREMIUM_FREE_LIMIT} free interviews or pay $${this.INTERVIEW_COST} per interview via PayPal or Razorpay.`
+          ? `You've used all ${this.PREMIUM_FREE_LIMIT} free mock interviews. Pay $${this.INTERVIEW_COST} via PayPal or Amazon Pay for additional interviews.`
+          : `You've used your ${this.FREE_INTERVIEWS_LIMIT} free mock interview. Upgrade to premium for ${this.PREMIUM_FREE_LIMIT} free interviews or pay $${this.INTERVIEW_COST} per interview via PayPal or Amazon Pay.`
       };
 
     } catch (error) {

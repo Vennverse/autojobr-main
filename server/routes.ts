@@ -4884,7 +4884,7 @@ Additional Information:
       const { interviewId } = req.params;
       const { paymentProvider, amount } = req.body;
 
-      if (!['stripe', 'paypal', 'razorpay'].includes(paymentProvider)) {
+      if (!['stripe', 'paypal', 'amazon_pay'].includes(paymentProvider)) {
         return res.status(400).json({ message: 'Invalid payment provider' });
       }
 
@@ -4909,7 +4909,7 @@ Additional Information:
       const { interviewId } = req.params;
       const { paymentProvider, amount } = req.body;
 
-      if (!['stripe', 'paypal', 'razorpay'].includes(paymentProvider)) {
+      if (!['stripe', 'paypal', 'amazon_pay'].includes(paymentProvider)) {
         return res.status(400).json({ message: 'Invalid payment provider' });
       }
 

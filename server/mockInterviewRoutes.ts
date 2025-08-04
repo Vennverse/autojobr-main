@@ -125,18 +125,18 @@ router.post('/start', isAuthenticated, async (req: any, res) => {
       if (!isPaid || !paymentVerificationId) {
         return res.status(402).json({
           error: 'Payment verification required',
-          message: 'You must complete payment through PayPal or Razorpay to start this mock interview.',
+          message: 'You must complete payment through PayPal or Amazon Pay to start this mock interview.',
           requiresPayment: true,
           cost: usageInfo.cost,
-          paymentMethods: ['PayPal', 'Razorpay']
+          paymentMethods: ['PayPal', 'Amazon Pay']
         });
       }
       
       // Verify payment transaction was actually processed
-      if (!paymentVerificationId.startsWith('PAYPAL_') && !paymentVerificationId.startsWith('RAZORPAY_')) {
+      if (!paymentVerificationId.startsWith('PAYPAL_') && !paymentVerificationId.startsWith('AMAZON_PAY_')) {
         return res.status(402).json({
           error: 'Invalid payment verification',
-          message: 'Payment verification failed. Please complete payment through PayPal or Razorpay and try again.',
+          message: 'Payment verification failed. Please complete payment through PayPal or Amazon Pay and try again.',
           requiresPayment: true,
           cost: usageInfo.cost
         });
