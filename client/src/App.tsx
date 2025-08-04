@@ -8,7 +8,6 @@ import { useAuth } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import EnhancedDashboard from "@/pages/enhanced-dashboard";
-import ModernJobSeekerDashboard from "@/pages/modern-job-seeker-dashboard";
 import Profile from "@/pages/profile";
 import Applications from "@/pages/applications";
 import Jobs from "@/pages/jobs";
@@ -138,8 +137,7 @@ function Router() {
               ) : (
                 <>
                   {/* Main dashboard routes for completed job seekers */}
-                  <Route path="/" component={ModernJobSeekerDashboard} />
-                  <Route path="/dashboard" component={ModernJobSeekerDashboard} />
+                  <Route path="/" component={EnhancedDashboard} />
                   <Route path="/onboarding" component={Onboarding} />
                   <Route path="/profile" component={Profile} />
                   <Route path="/resumes" component={ResumesPage} />
