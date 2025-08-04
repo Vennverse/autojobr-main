@@ -308,7 +308,11 @@ export default function JobSeekerPremium() {
                         title: "Subscription Activated!",
                         description: "Your premium features are now active.",
                       });
+                      // Invalidate all relevant queries to update premium status
                       queryClient.invalidateQueries({ queryKey: ['/api/subscription/current'] });
+                      queryClient.invalidateQueries({ queryKey: ['/api/user'] }); // Update user planType
+                      queryClient.invalidateQueries({ queryKey: ['/api/usage/report'] }); // Update usage limits
+                      queryClient.invalidateQueries({ queryKey: ['/api/ranking-tests/usage'] }); // Update ranking test usage
                     }}
                     onPaymentError={(error) => {
                       toast({

@@ -6,9 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Trophy, Star, Clock, Users, Crown, Target, CheckCircle, XCircle, CreditCard } from 'lucide-react';
+import { Trophy, Star, Clock, Users, Crown, Target, CheckCircle, XCircle, CreditCard, Gift, Calendar } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
+import { useRankingTestUsage } from '@/hooks/useRankingTestUsage';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
@@ -21,8 +23,18 @@ export default function RankingTests() {
   const [showPayment, setShowPayment] = useState(false);
   const [currentTest, setCurrentTest] = useState<any>(null);
   const [paymentProvider, setPaymentProvider] = useState<'stripe' | 'paypal'>('stripe');
+  const [useFreeTest, setUseFreeTest] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { 
+    canUseFreeTest, 
+    remainingFreeTests, 
+    nextResetDate, 
+    isPremium,
+    usage,
+    refetch: refetchUsage 
+  } = useRankingTestUsage();
 
   // Fetch available test categories and domains
   const { data: categories = { categories: [], domains: [] } } = useQuery({
@@ -74,17 +86,30 @@ export default function RankingTests() {
 
   // Create new test mutation
   const createTestMutation = useMutation({
-    mutationFn: async (testData: { category: string; domain: string; difficultyLevel: string }) => {
+    mutationFn: async (testData: { category: string; domain: string; difficultyLevel: string; useFreeTest?: boolean }) => {
       const response = await apiRequest('/api/ranking-tests/create', 'POST', testData);
       return response;
     },
     onSuccess: (test) => {
       setCurrentTest(test);
-      setShowPayment(true);
-      toast({
-        title: "Test Created",
-        description: "Your ranking test has been created. Complete payment to start.",
-      });
+      
+      // If using free test, skip payment and start directly
+      if (useFreeTest && canUseFreeTest) {
+        // Refetch usage to update the count
+        refetchUsage();
+        toast({
+          title: "Free Test Started!",
+          description: "Your monthly free ranking test has started. Good luck!",
+        });
+        // Redirect to test taking page
+        window.location.href = `/test/${test.id}`;
+      } else {
+        setShowPayment(true);
+        toast({
+          title: "Test Created",
+          description: "Your ranking test has been created. Complete payment to start.",
+        });
+      }
     },
     onError: (error: any) => {
       toast({
@@ -95,7 +120,7 @@ export default function RankingTests() {
     }
   });
 
-  const handleCreateTest = () => {
+  const handleCreateTest = (useFreeTrial = false) => {
     if (!selectedCategory || !selectedDomain) {
       toast({
         title: "Missing Information",
@@ -105,10 +130,24 @@ export default function RankingTests() {
       return;
     }
 
+    // Check if trying to use free test but not eligible
+    if (useFreeTrial && !canUseFreeTest) {
+      toast({
+        title: "Free Test Not Available",
+        description: isPremium 
+          ? "You've already used your monthly free test. Next reset: " + nextResetDate?.toLocaleDateString()
+          : "Free tests are only available for Premium users.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUseFreeTest(useFreeTrial);
     createTestMutation.mutate({
       category: selectedCategory,
       domain: selectedDomain,
-      difficultyLevel: 'expert'
+      difficultyLevel: 'expert',
+      useFreeTest: useFreeTrial
     });
   };
 
@@ -204,6 +243,30 @@ export default function RankingTests() {
                   </p>
                 </div>
                 
+                {/* Premium Benefits */}
+                {isPremium && (
+                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Crown className="w-4 h-4 text-purple-600" />
+                      <span className="font-medium text-purple-900">Premium Benefits</span>
+                    </div>
+                    <div className="text-sm text-purple-800 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span>Monthly Free Tests:</span>
+                        <Badge className="bg-purple-100 text-purple-800">
+                          {remainingFreeTests} remaining
+                        </Badge>
+                      </div>
+                      {nextResetDate && (
+                        <div className="flex items-center gap-1 text-xs">
+                          <Calendar className="w-3 h-3" />
+                          <span>Resets: {nextResetDate.toLocaleDateString()}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <Trophy className="w-4 h-4 text-blue-600" />
@@ -213,17 +276,55 @@ export default function RankingTests() {
                     <li>• Weekly top 10 performers get shared with recruiters</li>
                     <li>• Monthly top 5 performers get additional exposure</li>
                     <li>• All rankings are public and competitive</li>
-                    <li>• Each test attempt costs $1</li>
+                    <li>• Each test attempt costs $1 {isPremium ? '(or use monthly free)' : ''}</li>
                   </ul>
                 </div>
                 
-                <Button 
-                  onClick={handleCreateTest}
-                  disabled={!selectedCategory || !selectedDomain || createTestMutation.isPending}
-                  className="w-full"
-                >
-                  {createTestMutation.isPending ? 'Starting Test...' : 'Take Test ($1)'}
-                </Button>
+                {/* Test Buttons */}
+                <div className="space-y-3">
+                  {/* Free Test Button for Premium Users */}
+                  {isPremium && canUseFreeTest && (
+                    <Button 
+                      onClick={() => handleCreateTest(true)}
+                      disabled={!selectedCategory || !selectedDomain || createTestMutation.isPending}
+                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                    >
+                      <Gift className="w-4 h-4 mr-2" />
+                      {createTestMutation.isPending && useFreeTest ? 'Starting Free Test...' : `Use Monthly Free Test (${remainingFreeTests} left)`}
+                    </Button>
+                  )}
+                  
+                  {/* Paid Test Button */}
+                  <Button 
+                    onClick={() => handleCreateTest(false)}
+                    disabled={!selectedCategory || !selectedDomain || createTestMutation.isPending}
+                    className="w-full"
+                    variant={isPremium && canUseFreeTest ? "outline" : "default"}
+                  >
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    {createTestMutation.isPending && !useFreeTest ? 'Starting Test...' : 'Take Paid Test ($1)'}
+                  </Button>
+                  
+                  {/* Upgrade Prompt for Free Users */}
+                  {!isPremium && (
+                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-3 rounded-lg border border-amber-200">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Crown className="w-4 h-4 text-amber-600" />
+                        <span className="font-medium text-amber-900 text-sm">Premium Benefit</span>
+                      </div>
+                      <p className="text-xs text-amber-800 mb-2">
+                        Premium users get 1 free ranking test every month!
+                      </p>
+                      <Button 
+                        size="sm" 
+                        className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+                        onClick={() => window.location.href = '/job-seeker-premium'}
+                      >
+                        Upgrade to Premium
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
 

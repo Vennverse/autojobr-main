@@ -139,9 +139,9 @@ export function Navbar() {
       return [
         {
           name: "Dashboard",
-          href: "/dashboard",
+          href: "/",
           icon: Home,
-          current: location === "/dashboard" || location === "/"
+          current: location === "/"
         },
         {
           name: "Jobs",
@@ -150,36 +150,30 @@ export function Navbar() {
           current: location === "/jobs"
         },
         {
-          name: "AI Analysis",
-          href: "/career-ai",
+          name: "AI Coach",
+          href: "/career-ai-assistant",
           icon: Brain,
-          current: location === "/career-ai" || location.startsWith("/career-analysis"),
+          current: location === "/career-ai-assistant" || location.startsWith("/career-analysis"),
           badge: "AI"
         },
         {
-          name: "Skills Tests",
-          href: "/tests",
-          icon: Trophy,
-          current: location === "/tests" || location.startsWith("/test/")
-        },
-        {
-          name: "Mock Interviews",
-          href: "/mock-interviews",
+          name: "Mock Interview",
+          href: "/mock-interview",
           icon: Video,
-          current: location === "/mock-interviews" || location.startsWith("/interview/")
+          current: location === "/mock-interview" || location.startsWith("/mock-interview/")
         },
         {
-          name: "Virtual Interviews",
-          href: "/virtual-interviews",
+          name: "Live Interview",
+          href: "/virtual-interview/new",
           icon: Users,
-          current: location === "/virtual-interviews" || location.startsWith("/virtual-interview/")
+          current: location.startsWith("/virtual-interview/")
         },
         {
           name: "Ranking Tests",
           href: "/ranking-tests",
-          icon: Star,
+          icon: Trophy,
           current: location === "/ranking-tests" || location.startsWith("/ranking-test/"),
-          badge: "Popular"
+          badge: "New"
         },
         {
           name: "Messages",
@@ -214,7 +208,7 @@ export function Navbar() {
             <div className="flex">
               {/* Logo */}
               <div className="flex-shrink-0 flex items-center">
-                <Link href={user ? "/dashboard" : "/"}>
+                <Link href="/">
                   <div className="flex items-center space-x-2 cursor-pointer">
                     <Rocket className="h-8 w-8 text-blue-600" />
                     <span className="font-bold text-xl text-gray-900 dark:text-white">AutoJobr</span>
@@ -224,7 +218,7 @@ export function Navbar() {
 
               {/* Desktop Navigation */}
               {user && (
-                <div className="hidden md:ml-8 md:flex md:space-x-1">
+                <div className="hidden md:ml-10 md:flex md:space-x-2">
                   {navigationItems.map((item) => {
                     const Icon = item.icon;
                     const canAccess = canAccessFeature(item.premium || false);
@@ -237,24 +231,24 @@ export function Navbar() {
                           item.current
                             ? "bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 border-blue-500"
                             : "text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-transparent"
-                        } inline-flex items-center px-4 py-2 border-b-2 text-sm font-medium transition-all duration-200 rounded-t-lg ${
+                        } inline-flex items-center px-3 py-2 border-b-2 text-sm font-medium transition-all duration-200 rounded-t-lg relative ${
                           !canAccess ? "opacity-50" : ""
                         }`}
                       >
-                        <Icon className="w-4 h-4 mr-2" />
-                        {item.name}
+                        <Icon className="w-4 h-4 mr-2 flex-shrink-0" />
+                        <span className="whitespace-nowrap">{item.name}</span>
                         {item.badge && typeof item.badge === 'string' && (
-                          <Badge className="ml-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                          <Badge className="ml-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">
                             {item.badge}
                           </Badge>
                         )}
                         {item.badge && typeof item.badge === 'number' && (
-                          <Badge className="ml-2 bg-red-500 text-white text-xs px-2 py-1 min-w-[1.25rem] h-5 rounded-full">
+                          <Badge className="ml-2 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs px-1.5 py-0.5 min-w-[1.25rem] h-5 rounded-full font-medium flex items-center justify-center">
                             {item.badge > 9 ? '9+' : item.badge}
                           </Badge>
                         )}
                         {item.premium && !canAccess && (
-                          <Crown className="w-3 h-3 ml-1 text-amber-500" />
+                          <Crown className="w-3 h-3 ml-1 text-amber-500 flex-shrink-0" />
                         )}
                       </Link>
                     );
@@ -402,7 +396,7 @@ export function Navbar() {
         {/* Mobile menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-            <div className="px-2 pt-2 pb-3 space-y-1">
+            <div className="px-4 pt-4 pb-3 space-y-2">
               {user ? navigationItems.map((item) => {
                 const Icon = item.icon;
                 const canAccess = canAccessFeature(item.premium || false);
@@ -415,7 +409,7 @@ export function Navbar() {
                       item.current
                         ? "bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300"
                         : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    } group flex items-center px-3 py-3 text-base font-medium rounded-lg transition-colors ${
+                    } group flex items-center px-4 py-3 text-base font-medium rounded-xl transition-colors ${
                       !canAccess ? "opacity-50" : ""
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
