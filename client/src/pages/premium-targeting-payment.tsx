@@ -30,7 +30,7 @@ export default function PremiumTargetingPayment() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [targetingJob, setTargetingJob] = useState<TargetingJob | null>(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'paypal' | 'cashfree' | 'razorpay'>('paypal');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'paypal' | 'amazon_pay'>('paypal');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   useEffect(() => {

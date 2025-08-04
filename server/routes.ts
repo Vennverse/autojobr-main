@@ -556,9 +556,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
 
-    // For other payment methods (Cashfree, Razorpay) - return not available for now
+    // For other payment methods (Amazon Pay) - return not available for now
     return res.status(400).json({ 
-      error: `${paymentMethod} integration is coming soon. Please use PayPal for now.` 
+      error: `${paymentMethod} integration is coming soon. Please use PayPal for monthly subscriptions.` 
     });
   }));
 
@@ -4267,7 +4267,7 @@ Additional Information:
     try {
       const userId = req.user.id;
       const testId = parseInt(req.params.testId);
-      const { paymentProvider = 'stripe' } = req.body;
+      const { paymentProvider = 'paypal' } = req.body;
       
       // Verify the test belongs to the user
       const userTests = await rankingTestService.getUserTestHistory(userId);
@@ -4281,27 +4281,10 @@ Additional Information:
         return res.status(400).json({ message: 'Test already paid for' });
       }
       
-      if (paymentProvider === 'stripe') {
-        const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-        const paymentIntent = await stripe.paymentIntents.create({
-          amount: 100, // $1 in cents
-          currency: 'usd',
-          payment_method_types: ['card', 'link', 'us_bank_account'], // Enable cards, Stripe Link, and US bank accounts
-          metadata: {
-            userId,
-            testId: testId.toString(),
-            type: 'ranking_test'
-          }
-        });
-        
-        res.json({
-          clientSecret: paymentIntent.client_secret,
-          paymentIntentId: paymentIntent.id
-        });
-      } else if (paymentProvider === 'paypal') {
+      if (paymentProvider === 'paypal') {
         // Check if PayPal credentials are configured
         if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET) {
-          return res.status(400).json({ message: 'PayPal payment is not configured yet. Please use Stripe or contact support to add PayPal credentials.' });
+          return res.status(400).json({ message: 'PayPal payment is not configured yet. Please contact support to add PayPal credentials.' });
         }
 
         // Get PayPal access token
@@ -4317,7 +4300,7 @@ Additional Information:
         if (!authResponse.ok) {
           const errorData = await authResponse.text();
           console.error('PayPal auth error:', errorData);
-          return res.status(400).json({ message: 'PayPal authentication failed. Please use Stripe instead.' });
+          return res.status(400).json({ message: 'PayPal authentication failed. Please try again later.' });
         }
 
         const authData = await authResponse.json();

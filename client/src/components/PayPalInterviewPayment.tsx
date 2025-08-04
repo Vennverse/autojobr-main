@@ -20,7 +20,7 @@ export default function PayPalInterviewPayment({
   isProcessing = false 
 }: PayPalInterviewPaymentProps) {
   const [isPayPalLoading, setIsPayPalLoading] = useState(false);
-  const [isRazorpayLoading, setIsRazorpayLoading] = useState(false);
+  const [isAmazonPayLoading, setIsAmazonPayLoading] = useState(false);
   const { toast } = useToast();
 
   const handlePayPalPayment = async () => {
@@ -49,29 +49,29 @@ export default function PayPalInterviewPayment({
     }
   };
 
-  const handleRazorpayPayment = async () => {
-    setIsRazorpayLoading(true);
+  const handleAmazonPayPayment = async () => {
+    setIsAmazonPayLoading(true);
     try {
-      // Simulate Razorpay payment flow
+      // Simulate Amazon Pay payment flow
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Generate mock Razorpay transaction ID
-      const paymentVerificationId = `RAZORPAY_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // Generate mock Amazon Pay transaction ID
+      const paymentVerificationId = `AMAZON_PAY_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       toast({
         title: "Payment Successful!",
-        description: "Your Razorpay payment has been processed.",
+        description: "Your Amazon Pay payment has been processed.",
       });
       
       onPaymentComplete(paymentVerificationId);
     } catch (error) {
       toast({
         title: "Payment Failed",
-        description: "Razorpay payment could not be processed. Please try again.",
+        description: "Amazon Pay payment could not be processed. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsRazorpayLoading(false);
+      setIsAmazonPayLoading(false);
     }
   };
 
@@ -113,7 +113,7 @@ export default function PayPalInterviewPayment({
         {/* PayPal Button */}
         <Button
           onClick={handlePayPalPayment}
-          disabled={isPayPalLoading || isRazorpayLoading || isProcessing}
+          disabled={isPayPalLoading || isAmazonPayLoading || isProcessing}
           className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-white relative"
           size="lg"
         >
@@ -130,22 +130,22 @@ export default function PayPalInterviewPayment({
           )}
         </Button>
 
-        {/* Razorpay Button */}
+        {/* Amazon Pay Button */}
         <Button
-          onClick={handleRazorpayPayment}
-          disabled={isPayPalLoading || isRazorpayLoading || isProcessing}
-          className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white relative"
+          onClick={handleAmazonPayPayment}
+          disabled={isPayPalLoading || isAmazonPayLoading || isProcessing}
+          className="w-full h-14 bg-orange-500 hover:bg-orange-600 text-white relative"
           size="lg"
         >
-          {isRazorpayLoading ? (
+          {isAmazonPayLoading ? (
             <>
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3" />
-              Processing Razorpay Payment...
+              Processing Amazon Pay Payment...
             </>
           ) : (
             <>
               <CreditCard className="h-5 w-5 mr-3" />
-              Pay ${cost} with Razorpay
+              Pay ${cost} with Amazon Pay
             </>
           )}
         </Button>
@@ -166,7 +166,7 @@ export default function PayPalInterviewPayment({
       <Button
         variant="outline"
         onClick={onCancel}
-        disabled={isPayPalLoading || isRazorpayLoading || isProcessing}
+        disabled={isPayPalLoading || isAmazonPayLoading || isProcessing}
         className="w-full"
       >
         Cancel

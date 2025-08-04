@@ -44,7 +44,7 @@ export default function RecruiterPremium() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'cashfree' | 'razorpay'>('paypal');
+  const [paymentMethod, setPaymentMethod] = useState<'paypal'>('paypal');
   const [showPayment, setShowPayment] = useState(false);
 
   // Fetch only recruiter subscription tiers

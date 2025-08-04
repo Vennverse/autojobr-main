@@ -32,7 +32,7 @@ export default function TestRetakePayment() {
   const queryClient = useQueryClient();
   
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal' | 'razorpay'>('stripe');
+  const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'amazon_pay'>('paypal');
 
   // Fetch test assignment details
   const { data: assignment, isLoading } = useQuery({
@@ -43,7 +43,7 @@ export default function TestRetakePayment() {
   // Process retake payment mutation
   const processPaymentMutation = useMutation({
     mutationFn: async (paymentData: any) => {
-      // In a real implementation, this would integrate with Stripe/PayPal/Razorpay
+      // In a real implementation, this would integrate with PayPal/Amazon Pay
       // For demo purposes, we'll simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
       

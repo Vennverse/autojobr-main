@@ -121,15 +121,15 @@ class PaymentService {
     return await orderResponse.json();
   }
 
-  // Create Razorpay order
-  async createRazorpayOrder(amount: number, currency: string = 'USD') {
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-      throw new Error('Razorpay credentials not configured');
+  // Create Amazon Pay order
+  async createAmazonPayOrder(amount: number, currency: string = 'USD') {
+    if (!process.env.AMAZON_PAY_PUBLIC_KEY_ID || !process.env.AMAZON_PAY_PRIVATE_KEY) {
+      throw new Error('Amazon Pay credentials not configured');
     }
 
-    // For now, return a mock order since Razorpay integration would need API setup
+    // For now, return a mock order since Amazon Pay integration would need API setup
     return {
-      id: `razorpay_order_${Date.now()}`,
+      id: `amazon_pay_order_${Date.now()}`,
       amount,
       currency,
       status: 'created'

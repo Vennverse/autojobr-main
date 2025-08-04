@@ -94,7 +94,7 @@ export class SubscriptionService {
     stripeCustomerId?: string;
     stripeSubscriptionId?: string;
     paypalSubscriptionId?: string;
-    razorpayPaymentId?: string;
+    amazonPayPaymentId?: string;
     subscriptionStartDate?: Date;
     subscriptionEndDate?: Date;
   }) {
@@ -108,7 +108,7 @@ export class SubscriptionService {
 
   async processSuccessfulPayment(userId: string, paymentData: {
     planType: string;
-    paymentProvider: 'stripe' | 'paypal' | 'razorpay';
+    paymentProvider: 'paypal' | 'amazon_pay';
     paymentId: string;
     billingCycle: 'monthly' | 'annual';
     amount: number;
@@ -129,14 +129,11 @@ export class SubscriptionService {
     };
 
     switch (paymentData.paymentProvider) {
-      case 'stripe':
-        updates.stripeSubscriptionId = paymentData.paymentId;
-        break;
       case 'paypal':
         updates.paypalSubscriptionId = paymentData.paymentId;
         break;
-      case 'razorpay':
-        updates.razorpayPaymentId = paymentData.paymentId;
+      case 'amazon_pay':
+        updates.amazonPayPaymentId = paymentData.paymentId;
         break;
     }
 

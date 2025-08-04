@@ -47,8 +47,8 @@ export const users = pgTable("users", {
   stripeSubscriptionId: varchar("stripe_subscription_id"),
   paypalSubscriptionId: varchar("paypal_subscription_id"),
   paypalOrderId: varchar("paypal_order_id"),
-  razorpayPaymentId: varchar("razorpay_payment_id"),
-  razorpayOrderId: varchar("razorpay_order_id"),
+  amazonPayPaymentId: varchar("amazon_pay_payment_id"),
+  amazonPayOrderId: varchar("amazon_pay_order_id"),
   paymentProvider: varchar("payment_provider"), // stripe, paypal, razorpay
   subscriptionStatus: varchar("subscription_status").default("free"), // free, active, canceled, past_due
   planType: varchar("plan_type").default("free"), // free, premium, enterprise
@@ -1426,6 +1426,27 @@ export const careerAiAnalysesRelations = relations(careerAiAnalyses, ({ one }) =
     references: [users.id],
   }),
 }));
+
+// One-time payments table (for mock interviews, virtual interviews, ranking tests, retakes, premium targeting)
+export const oneTimePayments = pgTable("one_time_payments", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  serviceType: varchar("service_type").notNull(), // mock_interview, virtual_interview, ranking_test, test_retake, premium_targeting
+  serviceId: varchar("service_id"), // ID of the specific service instance
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency").default("USD").notNull(),
+  paymentProvider: varchar("payment_provider").notNull(), // paypal, amazon_pay
+  paymentId: varchar("payment_id").notNull(), // Provider's payment/order ID
+  status: varchar("status").default("pending").notNull(), // pending, completed, failed, cancelled
+  description: text("description"),
+  transactionData: jsonb("transaction_data"), // Provider-specific transaction details
+  createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+}, (table) => [
+  index("one_time_payments_user_idx").on(table.userId),
+  index("one_time_payments_service_idx").on(table.serviceType, table.serviceId),
+  index("one_time_payments_payment_idx").on(table.paymentId),
+]);
 
 // Insert schemas
 export const insertUserProfileSchema = createInsertSchema(userProfiles).omit({
