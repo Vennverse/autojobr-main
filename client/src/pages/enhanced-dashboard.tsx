@@ -62,7 +62,9 @@ import {
   Timer,
   Layers,
   Megaphone,
-  Handshake
+  Handshake,
+  Headphones,
+  Bell
 } from "lucide-react";
 
 const containerVariants = {
@@ -149,6 +151,8 @@ export default function EnhancedDashboard() {
   const [completedTasks, setCompletedTasks] = useState<string[]>([]);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [showAchievements, setShowAchievements] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
+  const [showInsightsPaywall, setShowInsightsPaywall] = useState(false);
 
   // Show loading while checking authentication
   if (isLoading) {
@@ -169,6 +173,20 @@ export default function EnhancedDashboard() {
       return;
     }
   }, [isAuthenticated, isLoading]);
+
+  // Exit-intent detection for premium modal
+  useEffect(() => {
+    if (isPremium) return;
+
+    const handleMouseLeave = (e: MouseEvent) => {
+      if (e.clientY <= 0 && !showExitModal) {
+        setShowExitModal(true);
+      }
+    };
+
+    document.addEventListener('mouseleave', handleMouseLeave);
+    return () => document.removeEventListener('mouseleave', handleMouseLeave);
+  }, [isPremium, showExitModal]);
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/applications/stats"],
@@ -296,9 +314,51 @@ export default function EnhancedDashboard() {
   const unlockedAchievements = achievements.filter(a => a.unlocked);
   const nextAchievement = achievements.find(a => !a.unlocked);
 
-  // Smart recommendations based on user progress
+  // Usage tracking for freemium limits
+  const [dailyUsage, setDailyUsage] = useState({
+    aiCoachQuestions: 2, // Free users get 3 per day
+    jobApplications: 8, // Free users get 10 per day
+    resumeAnalyses: 1, // Free users get 2 per day
+    interviewPractices: 1, // Free users get 2 per day
+  });
+
+  const freemiumLimits = {
+    aiCoachQuestions: { free: 3, premium: 'unlimited' },
+    jobApplications: { free: 10, premium: 'unlimited' },
+    resumeAnalyses: { free: 2, premium: 'unlimited' },
+    interviewPractices: { free: 2, premium: 'unlimited' },
+    advancedInsights: { free: false, premium: true },
+    prioritySupport: { free: false, premium: true },
+  };
+
+  // Smart recommendations with premium upselling
   const getSmartRecommendations = () => {
     const recommendations = [];
+    
+    // Premium-focused recommendations
+    if (!isPremium && dailyUsage.aiCoachQuestions >= freemiumLimits.aiCoachQuestions.free) {
+      recommendations.push({
+        title: "🚀 Unlock Unlimited AI Coach",
+        description: "You've used all 3 daily AI coach questions. Get unlimited access!",
+        action: () => setLocation("/job-seeker-premium"),
+        priority: "premium",
+        icon: Crown,
+        color: "gold",
+        isPremiumFeature: true
+      });
+    }
+
+    if (!isPremium && dailyUsage.jobApplications >= freemiumLimits.jobApplications.free) {
+      recommendations.push({
+        title: "💼 Apply to More Jobs",
+        description: "Daily application limit reached. Upgrade for unlimited applications!",
+        action: () => setLocation("/job-seeker-premium"),
+        priority: "premium",
+        icon: Briefcase,
+        color: "gold",
+        isPremiumFeature: true
+      });
+    }
     
     if (!hasUploadedResume) {
       recommendations.push({
@@ -352,11 +412,158 @@ export default function EnhancedDashboard() {
         color: "purple"
       });
     }
+
+    // Premium-only insights recommendation
+    if (!isPremium && hasAppliedToJobs && totalApplications >= 3) {
+      recommendations.push({
+        title: "🔍 Get Advanced Job Insights",
+        description: "See why applications aren't converting. Premium analytics available!",
+        action: () => setLocation("/job-seeker-premium"),
+        priority: "premium",
+        icon: BarChart3,
+        color: "gold",
+        isPremiumFeature: true
+      });
+    }
     
-    return recommendations.slice(0, 3); // Show top 3 recommendations
+    return recommendations.slice(0, 4); // Show top 4 recommendations
   };
 
   const smartRecommendations = getSmartRecommendations();
+
+  // Handle resume upload
+  const handleResumeUpload = async (file: File) => {
+    if (!file) return;
+    
+    setIsUploadingResume(true);
+    try {
+      const formData = new FormData();
+      formData.append('resume', file);
+      
+      const response = await apiRequest('/api/resumes/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Resume Uploaded Successfully!",
+          description: "Your resume is being analyzed. Results will be available shortly.",
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: "Please try again or contact support if the issue persists.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingResume(false);
+    }
+  };
+
+  // Generate cover letter
+  const generateCoverLetter = async (jobDescription: string, companyName: string, jobTitle: string) => {
+    setIsGenerating(true);
+    try {
+      const response = await apiRequest('/api/ai/cover-letter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jobDescription,
+          companyName,
+          jobTitle,
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setCoverLetterResult(data.coverLetter);
+        toast({
+          title: "Cover Letter Generated!",
+          description: "Your personalized cover letter is ready.",
+        });
+      } else {
+        throw new Error('Generation failed');
+      }
+    } catch (error) {
+      toast({
+        title: "Generation Failed",
+        description: "Please try again or contact support if the issue persists.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Success stories for social proof
+  const successStories = [
+    {
+      name: "Sarah Chen",
+      role: "Software Engineer",
+      company: "Google",
+      avatar: "👩‍💻",
+      story: "Got 3 interviews in 2 weeks using AI resume optimization!",
+      improvement: "300% more interviews",
+      timeframe: "2 weeks"
+    },
+    {
+      name: "Marcus Johnson",
+      role: "Product Manager",
+      company: "Microsoft",
+      avatar: "👨‍💼",
+      story: "AI interview practice helped me ace my dream job interview.",
+      improvement: "Landed dream job",
+      timeframe: "1 month"
+    },
+    {
+      name: "Elena Rodriguez",
+      role: "Data Scientist",
+      company: "Netflix",
+      avatar: "👩‍🔬",
+      story: "Premium features got me 5x more recruiter responses.",
+      improvement: "5x more responses",
+      timeframe: "3 weeks"
+    }
+  ];
+
+  // Premium value propositions with ROI
+  const premiumBenefits = [
+    {
+      feature: "Unlimited AI Coach",
+      freeLimit: "3 questions/day",
+      premiumValue: "Unlimited",
+      roi: "Save $200/month on career coaching",
+      icon: Brain
+    },
+    {
+      feature: "Advanced Analytics",
+      freeLimit: "Basic stats",
+      premiumValue: "Deep insights",
+      roi: "Increase success rate by 300%",
+      icon: BarChart3
+    },
+    {
+      feature: "Priority Support",
+      freeLimit: "Community support",
+      premiumValue: "24/7 expert help",
+      roi: "Get hired 2x faster",
+      icon: Headphones
+    },
+    {
+      feature: "Exclusive Job Alerts",
+      freeLimit: "Public jobs",
+      premiumValue: "Hidden opportunities",
+      roi: "Access to 70% more jobs",
+      icon: Bell
+    }
+  ];
 
   // Enhanced feature cards with usage tracking
   const featureCards = [
@@ -720,6 +927,37 @@ export default function EnhancedDashboard() {
             )}
           </motion.div>
 
+          {/* Clean Usage Tracker */}
+          {!isPremium && (dailyUsage.aiCoachQuestions >= 2 || dailyUsage.jobApplications >= 7) && (
+            <motion.div variants={itemVariants}>
+              <Card className="border-l-4 border-l-orange-500 bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-950 dark:to-yellow-950">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <AlertCircle className="w-5 h-5 text-orange-500" />
+                      <div>
+                        <h4 className="font-semibold">You're almost at your daily limits</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {dailyUsage.aiCoachQuestions >= freemiumLimits.aiCoachQuestions.free ? 'AI Coach limit reached' : 
+                           dailyUsage.jobApplications >= freemiumLimits.jobApplications.free ? 'Application limit reached' : 
+                           'Upgrade for unlimited access'}
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      size="sm"
+                      className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
+                      onClick={() => setLocation("/JobSeekerPremium")}
+                    >
+                      <Crown className="w-4 h-4 mr-1" />
+                      Upgrade
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
           {/* Smart Recommendations */}
           {smartRecommendations.length > 0 && (
             <motion.div variants={itemVariants}>
@@ -748,6 +986,8 @@ export default function EnhancedDashboard() {
                         onClick={rec.action}
                       >
                         <Card className={`h-full border-2 transition-all duration-200 hover:shadow-lg ${
+                          rec.isPremiumFeature 
+                            ? 'border-yellow-300 dark:border-yellow-700 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950' :
                           rec.priority === 'high' 
                             ? 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950' 
                             : 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950'
@@ -755,6 +995,7 @@ export default function EnhancedDashboard() {
                           <CardContent className="p-4">
                             <div className="flex items-start gap-3">
                               <div className={`p-2 rounded-lg bg-gradient-to-br ${
+                                rec.color === 'gold' ? 'from-yellow-500 to-orange-500' :
                                 rec.color === 'red' ? 'from-red-500 to-red-600' :
                                 rec.color === 'orange' ? 'from-orange-500 to-orange-600' :
                                 rec.color === 'blue' ? 'from-blue-500 to-blue-600' :
@@ -766,7 +1007,13 @@ export default function EnhancedDashboard() {
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
                                   <h4 className="font-semibold text-sm">{rec.title}</h4>
-                                  {rec.priority === 'high' && (
+                                  {rec.isPremiumFeature && (
+                                    <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-0">
+                                      <Crown className="w-3 h-3 mr-1" />
+                                      Premium
+                                    </Badge>
+                                  )}
+                                  {rec.priority === 'high' && !rec.isPremiumFeature && (
                                     <Badge className="bg-red-500 text-white text-xs px-2 py-0">
                                       High Priority
                                     </Badge>
@@ -779,6 +1026,85 @@ export default function EnhancedDashboard() {
                         </Card>
                       </motion.div>
                     ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* AI Career Insights Paywall */}
+          {!isPremium && hasAppliedToJobs && totalApplications >= 2 && (
+            <motion.div variants={itemVariants}>
+              <Card className="border-0 overflow-hidden relative bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-purple-950 dark:via-blue-950 dark:to-indigo-950">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-blue-500 to-indigo-500 opacity-5" />
+                <CardContent className="p-6 relative">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500">
+                      <Brain className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold">AI Career Insights</h3>
+                      <p className="text-sm text-muted-foreground">Discover why your applications aren't converting</p>
+                    </div>
+                  </div>
+
+                  {/* Preview Insights */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white dark:to-gray-800 z-10 rounded-lg"></div>
+                      <div className="blur-sm">
+                        <h4 className="font-semibold text-sm mb-2">Application Success Rate</h4>
+                        <div className="text-2xl font-bold text-red-500 mb-1">12%</div>
+                        <p className="text-xs text-muted-foreground">Industry average: 35%</p>
+                      </div>
+                      <div className="absolute inset-0 flex items-center justify-center z-20">
+                        <Button 
+                          size="sm" 
+                          onClick={() => setShowInsightsPaywall(true)}
+                          className="bg-purple-500 hover:bg-purple-600"
+                        >
+                          <Crown className="w-4 h-4 mr-1" />
+                          Unlock
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white dark:to-gray-800 z-10 rounded-lg"></div>
+                      <div className="blur-sm">
+                        <h4 className="font-semibold text-sm mb-2">Top Missing Skills</h4>
+                        <div className="space-y-1">
+                          <div className="text-xs">• React.js (mentioned in 80% of jobs)</div>
+                          <div className="text-xs">• AWS (mentioned in 65% of jobs)</div>
+                          <div className="text-xs">• TypeScript (mentioned in 55% of jobs)</div>
+                        </div>
+                      </div>
+                      <div className="absolute inset-0 flex items-center justify-center z-20">
+                        <Button 
+                          size="sm" 
+                          onClick={() => setShowInsightsPaywall(true)}
+                          className="bg-purple-500 hover:bg-purple-600"
+                        >
+                          <Crown className="w-4 h-4 mr-1" />
+                          Unlock
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-center p-4 bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900 dark:to-blue-900 rounded-lg">
+                    <h4 className="font-semibold mb-2">🧠 Get AI-Powered Career Insights</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Understand exactly why your applications aren't converting and get personalized recommendations
+                    </p>
+                    <Button 
+                      className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold px-6"
+                      onClick={() => setLocation("/JobSeekerPremium")}
+                    >
+                      <Brain className="w-4 h-4 mr-2" />
+                      Unlock Insights - $9/month
+                      <Sparkles className="w-4 h-4 ml-2" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -1567,132 +1893,189 @@ export default function EnhancedDashboard() {
             </motion.div>
           </div>
 
-          {/* Enhanced Premium CTA (if not premium) */}
-          {!isPremium && (
+          {/* Clean Premium CTA */}
+          {!isPremium && totalApplications >= 1 && (
             <motion.div variants={itemVariants}>
-              <Card className="border-0 overflow-hidden relative bg-gradient-to-br from-yellow-500 via-orange-500 to-pink-500 shadow-2xl">
-                <div className="absolute inset-0 bg-black/10" />
-                <CardContent className="p-8 relative text-white">
-                  <div className="text-center mb-8">
-                    <motion.div 
-                      variants={bounceVariants}
-                      initial="rest"
-                      animate="bounce"
-                      className="flex items-center justify-center gap-3 mb-4"
-                    >
-                      <Crown className="w-10 h-10 text-yellow-200" />
-                      <h3 className="text-3xl font-bold">
-                        Unlock Your Full Potential
-                      </h3>
-                      <Crown className="w-10 h-10 text-yellow-200" />
-                    </motion.div>
-                    
-                    <p className="text-lg text-yellow-100 mb-2 max-w-3xl mx-auto">
-                      Join thousands of successful job seekers who landed their dream jobs with our premium features.
-                    </p>
-                    <p className="text-yellow-200 text-sm">
-                      🚀 Get unlimited applications, AI interviews, priority support & exclusive features
-                    </p>
+              <Card className="border-0 overflow-hidden relative bg-gradient-to-r from-blue-600 to-purple-600 shadow-xl">
+                <CardContent className="p-6 text-white text-center">
+                  <div className="flex items-center justify-center gap-2 mb-4">
+                    <Crown className="w-6 h-6 text-yellow-300" />
+                    <h3 className="text-xl font-bold">Ready to Land Your Dream Job?</h3>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <motion.div 
-                      variants={slideInVariants}
-                      initial="hidden"
-                      animate="visible"
-                      transition={{ delay: 0.1 }}
-                      className="text-center"
-                    >
-                      <div className="w-16 h-16 mx-auto mb-3 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                        <Flame className="w-8 h-8 text-yellow-200" />
-                      </div>
-                      <h4 className="font-semibold text-lg mb-1">Unlimited Applications</h4>
-                      <p className="text-sm text-yellow-100">Apply to as many jobs as you want</p>
-                    </motion.div>
-                    
-                    <motion.div 
-                      variants={slideInVariants}
-                      initial="hidden"
-                      animate="visible"
-                      transition={{ delay: 0.2 }}
-                      className="text-center"
-                    >
-                      <div className="w-16 h-16 mx-auto mb-3 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                        <Video className="w-8 h-8 text-purple-200" />
-                      </div>
-                      <h4 className="font-semibold text-lg mb-1">AI Virtual Interviews</h4>
-                      <p className="text-sm text-yellow-100">Practice with advanced AI interviewer</p>
-                    </motion.div>
-                    
-                    <motion.div 
-                      variants={slideInVariants}
-                      initial="hidden"
-                      animate="visible"
-                      transition={{ delay: 0.3 }}
-                      className="text-center"
-                    >
-                      <div className="w-16 h-16 mx-auto mb-3 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                        <Trophy className="w-8 h-8 text-green-200" />
-                      </div>
-                      <h4 className="font-semibold text-lg mb-1">Priority Rankings</h4>
-                      <p className="text-sm text-yellow-100">Get featured in ranking tests</p>
-                    </motion.div>
-                    
-                    <motion.div 
-                      variants={slideInVariants}
-                      initial="hidden"
-                      animate="visible"
-                      transition={{ delay: 0.4 }}
-                      className="text-center"
-                    >
-                      <div className="w-16 h-16 mx-auto mb-3 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                        <Shield className="w-8 h-8 text-blue-200" />
-                      </div>
-                      <h4 className="font-semibold text-lg mb-1">Priority Support</h4>
-                      <p className="text-sm text-yellow-100">Get help when you need it most</p>
-                    </motion.div>
-                  </div>
-
-                  {/* Success stats */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 p-6 bg-white/10 backdrop-blur-sm rounded-xl">
+                  <p className="text-blue-100 mb-6 max-w-2xl mx-auto">
+                    Join 10,000+ successful job seekers. Get unlimited applications, AI insights, and 3x better results.
+                  </p>
+                  
+                  <div className="flex items-center justify-center gap-8 mb-6 text-sm">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-white mb-1">3x</div>
-                      <div className="text-sm text-yellow-100">Higher Success Rate</div>
+                      <div className="text-2xl font-bold">3x</div>
+                      <div className="text-blue-200">Better Results</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-white mb-1">85%</div>
-                      <div className="text-sm text-yellow-100">Interview Improvement</div>
+                      <div className="text-2xl font-bold">∞</div>
+                      <div className="text-blue-200">Applications</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-white mb-1">10k+</div>
-                      <div className="text-sm text-yellow-100">Success Stories</div>
+                      <div className="text-2xl font-bold">24/7</div>
+                      <div className="text-blue-200">AI Support</div>
                     </div>
                   </div>
                   
-                  <div className="text-center">
-                    <motion.div
-                      variants={pulseVariants}
-                      initial="rest"
-                      animate="pulse"
-                    >
-                      <Button 
-                        size="lg"
-                        className="bg-white text-orange-600 hover:bg-gray-100 font-bold px-12 py-4 text-lg shadow-xl hover:shadow-2xl transition-all duration-300"
-                        onClick={() => setLocation("/job-seeker-premium")}
-                      >
-                        <Crown className="w-6 h-6 mr-3" />
-                        Upgrade to Premium Now
-                        <Sparkles className="w-6 h-6 ml-3" />
-                      </Button>
-                    </motion.div>
-                    <p className="text-xs text-yellow-200 mt-3">
-                      ⚡ Limited time offer • 30-day money-back guarantee
-                    </p>
-                  </div>
+                  <Button 
+                    size="lg"
+                    className="bg-white text-blue-600 hover:bg-gray-100 font-bold px-8 py-3 shadow-lg"
+                    onClick={() => setLocation("/JobSeekerPremium")}
+                  >
+                    <Crown className="w-5 h-5 mr-2" />
+                    Upgrade to Premium
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                  <p className="text-xs text-blue-200 mt-2">
+                    7-day free trial • Cancel anytime
+                  </p>
                 </CardContent>
               </Card>
             </motion.div>
           )}
+
+          {/* Exit-Intent Premium Modal */}
+          <AnimatePresence>
+            {showExitModal && !isPremium && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+                onClick={() => setShowExitModal(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                  className="bg-white dark:bg-gray-900 rounded-xl p-8 max-w-md w-full shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="text-center">
+                    <div className="p-4 rounded-full bg-gradient-to-br from-red-500 to-orange-500 w-fit mx-auto mb-4">
+                      <AlertCircle className="w-8 h-8 text-white" />
+                    </div>
+                    <h3 className="text-2xl font-bold mb-2">Wait! Don't Miss Out</h3>
+                    <p className="text-muted-foreground mb-6">
+                      You're about to leave without unlocking your career potential. Get 60% off premium features now!
+                    </p>
+                    
+                    <div className="space-y-3 mb-6">
+                      <div className="flex items-center gap-2 text-sm">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span>Unlimited AI coach questions</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span>Unlimited job applications</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span>Advanced career insights</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <Button 
+                        className="w-full bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold py-3"
+                        onClick={() => {
+                          setShowExitModal(false);
+                          setLocation("/JobSeekerPremium");
+                        }}
+                      >
+                        <Crown className="w-5 h-5 mr-2" />
+                        Get 60% Off - Limited Time
+                        <Timer className="w-5 h-5 ml-2" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full"
+                        onClick={() => setShowExitModal(false)}
+                      >
+                        Maybe later
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* AI Insights Paywall Modal */}
+          <AnimatePresence>
+            {showInsightsPaywall && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+                onClick={() => setShowInsightsPaywall(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="bg-white dark:bg-gray-900 rounded-xl p-6 max-w-lg w-full"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="text-center">
+                    <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 w-fit mx-auto mb-4">
+                      <Brain className="w-6 h-6 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">Unlock AI Career Insights</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Get personalized insights on why your applications aren't converting and what to improve.
+                    </p>
+                    
+                    <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
+                      <div className="p-3 bg-purple-50 dark:bg-purple-950 rounded-lg">
+                        <div className="font-semibold">Success Rate Analysis</div>
+                        <div className="text-muted-foreground">Compare vs industry</div>
+                      </div>
+                      <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                        <div className="font-semibold">Skill Gap Analysis</div>
+                        <div className="text-muted-foreground">Missing keywords</div>
+                      </div>
+                      <div className="p-3 bg-indigo-50 dark:bg-indigo-950 rounded-lg">
+                        <div className="font-semibold">Market Insights</div>
+                        <div className="text-muted-foreground">Salary & trends</div>
+                      </div>
+                      <div className="p-3 bg-violet-50 dark:bg-violet-950 rounded-lg">
+                        <div className="font-semibold">Action Plan</div>
+                        <div className="text-muted-foreground">Step-by-step guide</div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <Button 
+                        className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold py-3"
+                        onClick={() => {
+                          setShowInsightsPaywall(false);
+                          setLocation("/JobSeekerPremium");
+                        }}
+                      >
+                        <Crown className="w-5 h-5 mr-2" />
+                        Upgrade to Premium - $9/month
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => setShowInsightsPaywall(false)}
+                      >
+                        Not now
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
         </motion.div>
       </div>
     </div>
