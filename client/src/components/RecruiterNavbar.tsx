@@ -140,9 +140,9 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
     },
     {
       name: "Pipeline",
-      href: "/recruiter/enhanced-pipeline-management",
+      href: "/recruiter/pipeline",
       icon: GitBranch,
-      current: location.includes("/recruiter/pipeline") || location.includes("/recruiter/enhanced-pipeline")
+      current: location === "/recruiter/pipeline"
     },
     {
       name: "Messages",
