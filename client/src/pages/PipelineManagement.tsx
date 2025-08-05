@@ -710,9 +710,11 @@ export default function PipelineManagement() {
       });
     },
     onSuccess: () => {
+      // Force immediate refetch of applications data
       queryClient.invalidateQueries({ queryKey: ["/api/recruiter/applications"] });
+      queryClient.refetchQueries({ queryKey: ["/api/recruiter/applications"] });
       toast({
-        title: "Application Updated",
+        title: "Application Updated", 
         description: "Application stage updated successfully",
       });
     },
