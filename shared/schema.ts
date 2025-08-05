@@ -505,7 +505,7 @@ export const jobPostingApplications = pgTable("job_posting_applications", {
   resumeId: integer("resume_id").references(() => resumes.id), // Which resume was used
   resumeData: jsonb("resume_data"), // Complete resume data for recruiter access
   coverLetter: text("cover_letter"), // Custom cover letter for this application
-  status: varchar("status").default("pending"), // pending, reviewed, shortlisted, interviewed, hired, rejected
+  status: varchar("status").default("applied"), // applied, reviewed, shortlisted, interviewed, hired, rejected
   matchScore: integer("match_score"), // AI-calculated compatibility score
   recruiterNotes: text("recruiter_notes"), // Private notes from recruiter
   appliedAt: timestamp("applied_at").defaultNow(),

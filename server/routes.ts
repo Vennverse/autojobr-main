@@ -6045,7 +6045,7 @@ Additional Information:
         resumeId: resumeId || null,
         resumeData: resumeData, // Include full resume data
         coverLetter: coverLetter || null,
-        status: 'pending'
+        status: 'applied'
       });
 
       // Application created successfully
