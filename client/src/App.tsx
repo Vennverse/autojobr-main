@@ -59,6 +59,10 @@ import VirtualInterviewFeedback from "@/pages/VirtualInterviewFeedback";
 import InterviewAssignments from "@/pages/InterviewAssignments";
 import PipelineManagement from "@/pages/PipelineManagement";
 import ApplicantsPage from "@/pages/modern-recruiter-dashboard";
+import EnhancedPipelineManagement from "@/pages/enhanced-pipeline-management";
+import AdvancedAnalyticsDashboard from "@/pages/advanced-analytics-dashboard";
+import BackgroundCheckIntegration from "@/pages/background-check-integration";
+import SSOConfiguration from "@/pages/sso-configuration";
 import SubscriptionSuccess from "@/pages/subscription/Success";
 import SubscriptionCancel from "@/pages/subscription/Cancel";
 
@@ -117,6 +121,10 @@ function Router() {
               <Route path="/recruiter/interview-assignments" component={InterviewAssignments} />
               <Route path="/recruiter/applicants" component={ApplicantsPage} />
               <Route path="/recruiter/pipeline" component={PipelineManagement} />
+              <Route path="/recruiter/enhanced-pipeline" component={EnhancedPipelineManagement} />
+              <Route path="/recruiter/advanced-analytics" component={AdvancedAnalyticsDashboard} />
+              <Route path="/recruiter/background-checks" component={BackgroundCheckIntegration} />
+              <Route path="/admin/sso-configuration" component={SSOConfiguration} />
               <Route path="/jobs/:id" component={ViewJob} />
               <Route path="/profile" component={Profile} />
               <Route path="/subscription" component={RecruiterSubscription} />
