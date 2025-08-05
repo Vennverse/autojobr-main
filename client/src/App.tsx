@@ -121,7 +121,7 @@ function Router() {
               <Route path="/recruiter/interview-assignments" component={InterviewAssignments} />
               <Route path="/recruiter/applicants" component={ApplicantsPage} />
               <Route path="/recruiter/pipeline" component={PipelineManagement} />
-              <Route path="/recruiter/enhanced-pipeline" component={EnhancedPipelineManagement} />
+              <Route path="/recruiter/enhanced-pipeline-management" component={EnhancedPipelineManagement} />
               <Route path="/recruiter/advanced-analytics" component={AdvancedAnalyticsDashboard} />
               <Route path="/recruiter/background-checks" component={BackgroundCheckIntegration} />
               <Route path="/admin/sso-configuration" component={SSOConfiguration} />
