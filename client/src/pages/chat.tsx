@@ -162,6 +162,26 @@ export default function ChatPage() {
   // Get current user with proper typing - use the auth hook instead to avoid duplicating queries
   const { user } = useAuth();
 
+  // Mark messages as read mutation
+  const markAsReadMutation = useMutation({
+    mutationFn: async (conversationId: number) => {
+      return apiRequest('POST', `/api/chat/conversations/${conversationId}/read`, {});
+    },
+    onSuccess: (_, conversationId) => {
+      // Update the conversations cache to reset unread count
+      queryClient.setQueryData(
+        ['/api/chat/conversations'],
+        (oldConversations: ChatConversation[] = []) => 
+          oldConversations.map(conv => 
+            conv.id === conversationId 
+              ? { ...conv, unreadCount: 0 }
+              : conv
+          )
+      );
+      console.log('Messages marked as read for conversation:', conversationId);
+    },
+  });
+
   // Initialize WebSocket connection with correct parameters
   const { isConnected, sendTyping } = useWebSocket({
     userId: user?.id,
@@ -169,6 +189,12 @@ export default function ChatPage() {
       console.log('WebSocket message received:', message);
       // Handle real-time message updates
       if (message.type === 'new_message') {
+        // If the message is for the currently selected conversation, mark as read immediately
+        if (selectedConversation && message.conversationId === selectedConversation && message.senderId !== user?.id) {
+          // Mark as read since user is viewing this conversation
+          markAsReadMutation.mutate(selectedConversation);
+        }
+        
         queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
         queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations', selectedConversation, 'messages'] });
       }
@@ -248,26 +274,6 @@ export default function ChatPage() {
     },
   });
 
-  // Mark messages as read mutation
-  const markAsReadMutation = useMutation({
-    mutationFn: async (conversationId: number) => {
-      return apiRequest('POST', `/api/chat/conversations/${conversationId}/read`, {});
-    },
-    onSuccess: (_, conversationId) => {
-      // Update the conversations cache to reset unread count
-      queryClient.setQueryData(
-        ['/api/chat/conversations'],
-        (oldConversations: ChatConversation[] = []) => 
-          oldConversations.map(conv => 
-            conv.id === conversationId 
-              ? { ...conv, unreadCount: 0 }
-              : conv
-          )
-      );
-      console.log('Messages marked as read for conversation:', conversationId);
-    },
-  });
-
   // Mark messages as read when selecting conversation (with debounce)
   const markAsRead = useCallback((conversationId: number) => {
     // Only mark as read if user is authenticated and not pending
@@ -276,19 +282,18 @@ export default function ChatPage() {
     }
   }, [markAsReadMutation, user?.id]);
 
-  // Mark messages as read when conversation is selected and messages exist
+  // Mark messages as read when conversation is selected
   useEffect(() => {
-    if (selectedConversation && user?.id && conversationMessages.length > 0) {
-      // Check if there are any unread messages from others
-      const hasUnreadMessages = conversationMessages.some(
-        message => !message.isRead && message.senderId !== user.id
-      );
+    if (selectedConversation && user?.id && !markAsReadMutation.isPending) {
+      // Find the conversation and check if it has unread messages
+      const conversation = conversations.find(conv => conv.id === selectedConversation);
       
-      if (hasUnreadMessages && !markAsReadMutation.isPending) {
+      if (conversation && conversation.unreadCount && conversation.unreadCount > 0) {
+        console.log('Marking conversation as read:', selectedConversation, 'Unread count:', conversation.unreadCount);
         markAsRead(selectedConversation);
       }
     }
-  }, [selectedConversation, user?.id, conversationMessages, markAsRead, markAsReadMutation.isPending]);
+  }, [selectedConversation, user?.id, conversations, markAsRead, markAsReadMutation.isPending]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
