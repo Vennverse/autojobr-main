@@ -67,6 +67,7 @@ interface RawApplication {
 interface Application {
   id: number;
   userId: string;
+  applicantId: string;
   jobPostingId: number;
   status: string;
   appliedAt: string;
@@ -680,9 +681,10 @@ export default function PipelineManagement() {
             company: app.jobPostingCompany || "Unknown",
             location: app.jobPostingLocation || "",
           },
-          stage: app.stage || "applied",
+          stage: app.status || "applied",
           lastActivity: app.updatedAt || app.appliedAt,
           userId: app.applicantId,
+          applicantId: app.applicantId,
           appliedAt: app.appliedAt,
         };
       });
@@ -690,10 +692,10 @@ export default function PipelineManagement() {
       const updatedStages = defaultStages.map((stage) => ({
         ...stage,
         applications: transformedApplications.filter((app: Application) =>
-          app.stage === stage.id || (!app.stage && stage.id === "applied")
+          app.status === stage.id || (!app.status && stage.id === "applied")
         ),
         count: transformedApplications.filter((app: Application) =>
-          app.stage === stage.id || (!app.stage && stage.id === "applied")
+          app.status === stage.id || (!app.status && stage.id === "applied")
         ).length,
       }));
       setPipelineStages(updatedStages);

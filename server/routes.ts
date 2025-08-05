@@ -4880,17 +4880,28 @@ Additional Information:
       const applicationId = parseInt(req.params.id);
       const { stage, notes } = req.body;
 
-      // Validate stage
-      const validStages = ['applied', 'phone_screen', 'technical_interview', 'final_interview', 'offer_extended', 'hired', 'rejected'];
-      if (!validStages.includes(stage)) {
+      // Validate stage - map frontend stage names to database status values
+      const stageToStatusMap: { [key: string]: string } = {
+        'applied': 'applied',
+        'phone_screen': 'phone_screen',
+        'technical_interview': 'technical_interview',
+        'final_interview': 'final_interview',
+        'offer_extended': 'offer_extended',
+        'hired': 'hired',
+        'rejected': 'rejected'
+      };
+      
+      if (!stageToStatusMap[stage]) {
         return res.status(400).json({ message: 'Invalid stage' });
       }
+      
+      const statusValue = stageToStatusMap[stage];
 
       // Update application stage
       const updatedApplication = await db
         .update(schema.jobPostingApplications)
         .set({ 
-          status: stage,
+          status: statusValue,
           recruiterNotes: notes || '',
           updatedAt: new Date()
         })
