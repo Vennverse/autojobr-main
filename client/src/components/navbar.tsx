@@ -57,8 +57,9 @@ export function Navbar() {
   const { data: conversations = [] } = useQuery<any[]>({
     queryKey: ['/api/chat/conversations'],
     enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-    // No automatic refresh - updates when user navigates or manually refreshes
+    staleTime: 0, // Always fresh - will update when cache is invalidated by chat page
+    refetchOnWindowFocus: false, // Prevent unnecessary refetches
+    refetchOnMount: false, // Use cached data on mount
   });
 
   const totalUnreadCount = conversations.reduce((total: number, conv: any) => 
