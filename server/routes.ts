@@ -49,6 +49,7 @@ import { SubscriptionService } from "./subscriptionService.js";
 import { rankingTestService } from "./rankingTestService.js";
 import { setupSimpleChatRoutes } from "./simpleChatRoutes.js";
 import { simpleWebSocketService } from "./simpleWebSocketService.js";
+import { simplePromotionalEmailService } from "./simplePromotionalEmailService.js";
 import crypto from 'crypto';
 import { 
   checkJobPostingLimit,
@@ -460,6 +461,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error sending test email:', error);
       res.status(500).json({ message: 'Failed to send test email' });
+    }
+  });
+
+  // Promotional Email Service API endpoints
+  app.get('/api/admin/promotional-email/status', async (req: any, res) => {
+    try {
+      const status = simplePromotionalEmailService.getServiceStatus();
+      res.json(status);
+    } catch (error) {
+      console.error('Error getting promotional email status:', error);
+      res.status(500).json({ message: 'Failed to get promotional email status' });
     }
   });
 

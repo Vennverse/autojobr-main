@@ -92,6 +92,7 @@ export interface IStorage {
   // User operations (IMPORTANT) these user operations are mandatory for Replit Auth.
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getAllUsers(): Promise<User[]>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserRole(userId: string, role: string): Promise<User>;
   
@@ -159,6 +160,7 @@ export interface IStorage {
   // Recruiter operations
   // Job postings
   getJobPostings(recruiterId?: string): Promise<JobPosting[]>;
+  getAllJobs(): Promise<JobPosting[]>;
   getJobPosting(id: number): Promise<JobPosting | undefined>;
   createJobPosting(jobPosting: InsertJobPosting): Promise<JobPosting>;
   updateJobPosting(id: number, jobPosting: Partial<InsertJobPosting>): Promise<JobPosting>;
@@ -249,6 +251,12 @@ export class DatabaseStorage implements IStorage {
       const [user] = await db.select().from(users).where(eq(users.email, email));
       return user;
     }, undefined);
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await handleDbOperation(async () => {
+      return await db.select().from(users);
+    }, []);
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
@@ -705,6 +713,12 @@ export class DatabaseStorage implements IStorage {
         return await db.select().from(jobPostings).where(eq(jobPostings.recruiterId, recruiterId)).orderBy(desc(jobPostings.createdAt));
       }
       return await db.select().from(jobPostings).where(eq(jobPostings.isActive, true)).orderBy(desc(jobPostings.createdAt));
+    }, []);
+  }
+
+  async getAllJobs(): Promise<JobPosting[]> {
+    return await handleDbOperation(async () => {
+      return await db.select().from(jobPostings).orderBy(desc(jobPostings.createdAt));
     }, []);
   }
 
