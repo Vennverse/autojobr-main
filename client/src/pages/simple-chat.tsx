@@ -718,18 +718,15 @@ export default function SimpleChatPage() {
                       message.senderId === user.id
                         ? 'bg-blue-600 text-white'
                         : 'bg-white text-gray-900 border border-gray-200'
-                    } ${message.isPending ? 'opacity-70' : ''}`}>
+                    }`}>
                       <p className="text-sm">{message.message}</p>
-                      <p className={`text-xs mt-1 flex items-center ${
+                      <p className={`text-xs mt-1 ${
                         message.senderId === user.id ? 'text-blue-100' : 'text-gray-500'
                       }`}>
                         {new Date(message.createdAt).toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit'
                         })}
-                        {message.isPending && (
-                          <span className="ml-2 text-xs">Sending...</span>
-                        )}
                       </p>
                     </div>
                   </div>
