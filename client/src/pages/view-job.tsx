@@ -385,103 +385,79 @@ export default function ViewJob() {
 
               {/* Action Buttons */}
               {!user ? (
-                // Unauthenticated user - enhanced call-to-action
+                // Clean, professional application card for unauthenticated users
                 <>
-                  <Card className="border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <CardTitle className="text-green-800 dark:text-green-200">Apply Now - Limited Time!</CardTitle>
-                      </div>
-                      <CardDescription className="text-green-700 dark:text-green-300">
-                        {job.applicationsCount > 50 ? 'High competition - Act fast!' : 
-                         job.applicationsCount > 20 ? 'Popular position - Apply soon!' : 
-                         'Early applicants have the best chance!'}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-xl">Interested in this position?</CardTitle>
+                      <CardDescription>
+                        Create a free account to apply and get matched with relevant opportunities.
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium">Application Status</span>
-                          <span className="text-xs text-gray-500">{job.applicationsCount || 0} applied</span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
-                          <div 
-                            className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-500" 
-                            style={{width: `${Math.min((job.applicationsCount || 0) * 2, 100)}%`}}
-                          ></div>
-                        </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
-                          Join {job.applicationsCount || 0} other candidates competing for this role
-                        </p>
-                      </div>
-
                       <div className="space-y-3">
-                        <div className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="w-4 h-4 text-green-500" />
-                          <span>Free account creation</span>
+                        <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                          <CheckCircle className="w-4 h-4 text-blue-600" />
+                          <span>Quick application process</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="w-4 h-4 text-green-500" />
-                          <span>AI-powered resume analysis</span>
+                        <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                          <CheckCircle className="w-4 h-4 text-blue-600" />
+                          <span>Get personalized job recommendations</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="w-4 h-4 text-green-500" />
-                          <span>Access to 1000+ more jobs</span>
+                        <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                          <CheckCircle className="w-4 h-4 text-blue-600" />
+                          <span>Track all your applications in one place</span>
                         </div>
                       </div>
 
                       <Button 
-                        className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 shadow-lg transform transition-all duration-200 hover:scale-105" 
+                        className="w-full h-11 font-medium bg-blue-600 hover:bg-blue-700 text-white" 
                         onClick={() => setLocation(`/auth?redirect=/jobs/${jobId}&action=apply`)}
                       >
-                        🚀 Start Your Journey - Apply Free!
+                        Apply for this Position
                       </Button>
                       
                       <Button 
                         variant="outline" 
-                        className="w-full border-2 border-gray-300 hover:border-blue-500 hover:text-blue-600"
+                        className="w-full"
                         onClick={() => setLocation(`/auth?redirect=/jobs/${jobId}`)}
                       >
                         Already have an account? Sign In
                       </Button>
 
-                      <div className="text-center">
+                      <div className="text-center pt-2">
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Join 50,000+ job seekers already using AutoJobr
+                          Free to join • No spam • Secure platform
                         </p>
                       </div>
                     </CardContent>
                   </Card>
 
-                  {/* Social Proof Card */}
+                  {/* Platform Features Card */}
                   <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                        Why Choose AutoJobr?
-                      </CardTitle>
+                    <CardHeader>
+                      <CardTitle className="text-base">About AutoJobr</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="flex items-start gap-3">
-                        <TrendingUp className="w-5 h-5 text-blue-500 mt-0.5" />
+                        <Target className="w-5 h-5 text-blue-600 mt-0.5" />
                         <div>
-                          <p className="text-sm font-medium">3x Higher Success Rate</p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">AI-optimized applications get noticed</p>
+                          <p className="text-sm font-medium">Smart Matching</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">Find positions that match your skills and experience</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
-                        <Zap className="w-5 h-5 text-yellow-500 mt-0.5" />
+                        <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5" />
                         <div>
-                          <p className="text-sm font-medium">Instant Application</p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">Apply in under 2 minutes</p>
+                          <p className="text-sm font-medium">Application Tracking</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">Keep track of all your job applications</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
-                        <Target className="w-5 h-5 text-green-500 mt-0.5" />
+                        <Briefcase className="w-5 h-5 text-blue-600 mt-0.5" />
                         <div>
-                          <p className="text-sm font-medium">Perfect Match Scoring</p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">Know your compatibility before applying</p>
+                          <p className="text-sm font-medium">Career Tools</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">Resume analysis and interview preparation</p>
                         </div>
                       </div>
                     </CardContent>
