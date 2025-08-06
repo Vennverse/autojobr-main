@@ -16,15 +16,52 @@ export default function ViewJob() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: job, isLoading } = useQuery({
+  const { data: job, isLoading, error } = useQuery({
     queryKey: [`/api/jobs/postings/${jobId}`],
     enabled: !!jobId,
+    queryFn: async () => {
+      const response = await fetch(`/api/jobs/postings/${jobId}`, {
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Job not found');
+        }
+        throw new Error(`Failed to fetch job: ${response.status}`);
+      }
+      
+      return response.json();
+    }
   });
+
+  console.log('ViewJob - jobId:', jobId, 'job:', job, 'error:', error);
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            {error.message === 'Job not found' ? 'Job Not Found' : 'Error Loading Job'}
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            {error.message === 'Job not found' 
+              ? "The job posting you're looking for doesn't exist or may have been removed."
+              : `Failed to load job details: ${error.message}`
+            }
+          </p>
+          <Button onClick={() => setLocation(user?.userType === 'recruiter' ? '/recruiter-dashboard' : '/')}>
+            Go Back
+          </Button>
+        </div>
       </div>
     );
   }
@@ -35,7 +72,9 @@ export default function ViewJob() {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Job Not Found</h2>
           <p className="text-gray-600 dark:text-gray-400 mb-4">The job posting you're looking for doesn't exist.</p>
-          <Button onClick={() => setLocation('/')}>Go Back</Button>
+          <Button onClick={() => setLocation(user?.userType === 'recruiter' ? '/recruiter-dashboard' : '/')}>
+            Go Back
+          </Button>
         </div>
       </div>
     );
