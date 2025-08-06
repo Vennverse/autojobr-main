@@ -328,6 +328,31 @@ export class SimpleChatService {
       throw new Error('Failed to get user directory');
     }
   }
+
+  /**
+   * Get conversation by ID (for participant verification)
+   */
+  async getConversationById(conversationId: number, userId: string) {
+    try {
+      const conversation = await db.select()
+        .from(conversations)
+        .where(
+          and(
+            eq(conversations.id, conversationId),
+            or(
+              eq(conversations.participant1Id, userId),
+              eq(conversations.participant2Id, userId)
+            )
+          )
+        )
+        .limit(1);
+
+      return conversation.length > 0 ? conversation[0] : null;
+    } catch (error) {
+      console.error('Error getting conversation by ID:', error);
+      return null;
+    }
+  }
 }
 
 export const simpleChatService = new SimpleChatService();

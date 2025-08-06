@@ -77,13 +77,13 @@ export default function EnhancedChatPage() {
 
   // Get conversations
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery<ChatConversation[]>({
-    queryKey: ['/api/chat/conversations'],
+    queryKey: ['/api/simple-chat/conversations'],
     refetchInterval: 30000,
   });
 
   // Get messages for selected conversation
   const { data: conversationMessages = [] } = useQuery<ChatMessage[]>({
-    queryKey: ['/api/chat/conversations', selectedConversation, 'messages'],
+    queryKey: ['/api/simple-chat/messages', selectedConversation],
     enabled: !!selectedConversation,
     refetchInterval: 5000,
   });
@@ -91,11 +91,11 @@ export default function EnhancedChatPage() {
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (messageData: { message: string }) => {
-      return apiRequest('POST', `/api/chat/conversations/${selectedConversation}/messages`, messageData);
+      return apiRequest('POST', `/api/simple-chat/conversations/${selectedConversation}/messages`, messageData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations', selectedConversation, 'messages'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/messages', selectedConversation] });
+      queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/conversations'] });
       setNewMessage('');
     },
   });
@@ -103,10 +103,10 @@ export default function EnhancedChatPage() {
   // Mark messages as read mutation
   const markAsReadMutation = useMutation({
     mutationFn: async (conversationId: number) => {
-      return apiRequest('POST', `/api/chat/conversations/${conversationId}/read`, {});
+      return apiRequest('POST', `/api/simple-chat/conversations/${conversationId}/read`, {});
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/conversations'] });
     },
   });
 

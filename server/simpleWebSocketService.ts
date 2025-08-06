@@ -24,7 +24,7 @@ export class SimpleWebSocketService {
         try {
           const message = JSON.parse(data.toString());
           
-          if (message.type === 'auth') {
+          if (message.type === 'authenticate') {
             // Authenticate WebSocket connection
             userId = message.userId;
             if (userId) {
@@ -104,9 +104,9 @@ export class SimpleWebSocketService {
    */
   getConnectionCount(): number {
     let total = 0;
-    for (const userConnections of this.connections.values()) {
+    this.connections.forEach(userConnections => {
       total += userConnections.size;
-    }
+    });
     return total;
   }
 

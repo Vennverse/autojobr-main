@@ -1,6 +1,7 @@
 import { Express } from "express";
 import { simpleChatService } from "./simpleChatService";
 import { isAuthenticated } from "./auth";
+import { simpleWebSocketService } from "./simpleWebSocketService";
 
 /**
  * Simple LinkedIn-style Chat API Routes
@@ -111,6 +112,17 @@ export function setupSimpleChatRoutes(app: Express) {
       }
 
       const newMessage = await simpleChatService.sendMessage(conversationId, req.user.id, message.trim());
+      
+      // Get conversation to find the other participant for WebSocket notification
+      const conversation = await simpleChatService.getConversationById(conversationId, req.user.id);
+      if (conversation) {
+        const otherUserId = conversation.participant1Id === req.user.id ? 
+          conversation.participant2Id : conversation.participant1Id;
+        
+        // Broadcast new message to other participant via WebSocket
+        simpleWebSocketService.broadcastNewMessage(req.user.id, otherUserId, newMessage);
+      }
+      
       res.json(newMessage);
     } catch (error) {
       console.error('Error sending message:', error instanceof Error ? error.message : String(error));
