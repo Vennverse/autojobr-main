@@ -6019,6 +6019,7 @@ Additional Information:
       const messageData = {
         conversationId,
         senderId: userId,
+        content: message,
         encryptedContent: message, // For now, store as plain text, can add encryption later
         messageHash: Buffer.from(message).toString('base64'), // Simple hash for now
         messageType: 'text',
