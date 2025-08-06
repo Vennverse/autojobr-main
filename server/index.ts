@@ -3,6 +3,7 @@ import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import compression from "compression";
+import { simpleWebSocketService } from "./simpleWebSocketService.js";
 
 // Database URL should be provided via environment variables
 if (!process.env.DATABASE_URL) {
@@ -106,6 +107,9 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+  
+  // Initialize WebSocket service for real-time chat
+  simpleWebSocketService.initialize(server);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

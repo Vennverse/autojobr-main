@@ -27,10 +27,7 @@ import ViewJob from "@/pages/view-job";
 import EditJob from "@/pages/edit-job";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
-import ChatPage from "@/pages/chat";
 import SimpleChatPage from "@/pages/simple-chat";
-import PremiumChatPage from "@/pages/premium-chat";
-import MessagingPage from "@/pages/messaging";
 import ResumesPage from "@/pages/resumes";
 import JobDiscoveryPage from "@/pages/job-discovery-simple";
 import PremiumTargetingPage from "@/pages/premium-targeting";
@@ -130,8 +127,7 @@ function Router() {
               <Route path="/subscription" component={RecruiterSubscription} />
               <Route path="/recruiter-premium" component={RecruiterPremium} />
               <Route path="/chat" component={SimpleChatPage} />
-              <Route path="/chat-old" component={ChatPage} />
-              <Route path="/messages" component={MessagingPage} />
+              <Route path="/messaging" component={SimpleChatPage} />
               <Route path="/job-seeker-view" component={Dashboard} />
             </>
           ) : user?.userType === 'job_seeker' ? (
@@ -171,8 +167,7 @@ function Router() {
                   <Route path="/subscription" component={Subscription} />
                   <Route path="/job-seeker-premium" component={JobSeekerPremium} />
                   <Route path="/chat" component={SimpleChatPage} />
-                  <Route path="/chat-old" component={ChatPage} />
-                  <Route path="/messages" component={MessagingPage} />
+                  <Route path="/messaging" component={SimpleChatPage} />
                 </>
               )}
             </>
@@ -192,8 +187,8 @@ function Router() {
               <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
               <Route path="/virtual-interview/:sessionId/feedback" component={VirtualInterviewFeedback} />
               <Route path="/subscription" component={Subscription} />
-              <Route path="/chat" component={ChatPage} />
-              <Route path="/messages" component={MessagingPage} />
+              <Route path="/chat" component={SimpleChatPage} />
+              <Route path="/messaging" component={SimpleChatPage} />
             </>
           )}
         </>

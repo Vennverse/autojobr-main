@@ -1,43 +1,53 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Send, MessageCircle } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { Search, Send, Users, MessageCircle, ArrowLeft } from 'lucide-react';
+import { WebSocketServer, WebSocket } from 'ws';
 
-interface ChatMessage {
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  userType: string;
+  companyName?: string;
+  profileImageUrl?: string;
+}
+
+interface Conversation {
   id: number;
-  conversationId: number;
+  otherUserId: string;
+  otherUserName: string;
+  otherUserType: string;
+  otherUserCompany?: string;
+  lastMessagePreview: string;
+  lastMessageAt: string;
+  createdAt: string;
+}
+
+interface Message {
+  id: number;
   senderId: string;
+  senderName: string;
   message: string;
   messageType: string;
   isRead: boolean;
   createdAt: string;
 }
 
-interface ChatConversation {
-  id: number;
-  recruiterId: string;
-  jobSeekerId: string;
-  lastMessageAt: string;
-  recruiterName?: string;
-  jobSeekerName?: string;
-  unreadCount?: number;
-}
-
-export default function SimpleChatPage() {
-  const { user, isAuthenticated } = useAuth();
-  const [selectedConversation, setSelectedConversation] = useState<number | null>(null);
-  const [newMessage, setNewMessage] = useState('');
+// Simple WebSocket hook for real-time messaging
+const useWebSocket = (user: User | undefined) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
-  // WebSocket connection
   useEffect(() => {
     if (!user?.id) return;
 
@@ -45,41 +55,27 @@ export default function SimpleChatPage() {
     const wsUrl = `${protocol}//${window.location.host}/ws`;
     
     console.log('Connecting to WebSocket:', wsUrl);
-    
     const ws = new WebSocket(wsUrl);
-    
+
     ws.onopen = () => {
       console.log('WebSocket connected');
       setIsConnected(true);
+      
       ws.send(JSON.stringify({
-        type: 'authenticate',
+        type: 'auth',
         userId: user.id
       }));
     };
 
     ws.onmessage = (event) => {
       try {
-        const message = JSON.parse(event.data);
-        console.log('WebSocket message received:', message);
+        const data = JSON.parse(event.data);
+        console.log('WebSocket message received:', data);
         
-        if (message.type === 'new_message') {
-          // OPTIMIZATION: Update cache directly instead of invalidating
-          if (selectedConversation && message.conversationId === selectedConversation) {
-            queryClient.setQueryData(
-              [`/api/chat/conversations/${selectedConversation}/messages`],
-              (oldMessages: any[] = []) => [...oldMessages, message.data]
-            );
-          }
-          
-          // OPTIMIZATION: Update conversation unread count directly
-          queryClient.setQueryData(
-            ['/api/chat/conversations'],
-            (oldConversations: any[] = []) => oldConversations.map(conv => 
-              conv.id === message.conversationId 
-                ? { ...conv, unreadCount: (conv.unreadCount || 0) + 1 }
-                : conv
-            )
-          );
+        if (data.type === 'new_message') {
+          // Refresh conversations and messages
+          queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/conversations'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/messages'] });
         }
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);
@@ -101,210 +97,402 @@ export default function SimpleChatPage() {
     return () => {
       ws.close();
     };
-  }, [user?.id, selectedConversation, queryClient]);
+  }, [user?.id, queryClient]);
 
-  // Get conversations - only fetch once
-  const { data: conversations = [], isLoading: conversationsLoading } = useQuery<ChatConversation[]>({
-    queryKey: ['/api/chat/conversations'],
+  return { socket, isConnected };
+};
+
+export default function SimpleChatPage() {
+  const { user } = useAuth();
+  const [selectedConversation, setSelectedConversation] = useState<number | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [newMessage, setNewMessage] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [view, setView] = useState<'conversations' | 'users' | 'chat'>('conversations');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
+
+  // WebSocket connection
+  const { isConnected } = useWebSocket(user);
+
+  // Get all conversations
+  const { data: conversations = [], isLoading: conversationsLoading } = useQuery<Conversation[]>({
+    queryKey: ['/api/simple-chat/conversations'],
     enabled: !!user?.id,
-    refetchOnWindowFocus: false,
-    refetchInterval: false,
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+  });
+
+  // Get all users for directory
+  const { data: allUsers = [], isLoading: usersLoading } = useQuery<User[]>({
+    queryKey: ['/api/simple-chat/users'],
+    enabled: !!user?.id && view === 'users',
   });
 
   // Get messages for selected conversation
-  const { data: messages = [] } = useQuery<ChatMessage[]>({
-    queryKey: [`/api/chat/conversations/${selectedConversation}/messages`],
+  const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
+    queryKey: ['/api/simple-chat/messages', selectedConversation],
     enabled: !!selectedConversation,
-    refetchOnWindowFocus: false,
-    refetchInterval: false,
-    staleTime: 30 * 1000, // Consider messages fresh for 30 seconds
   });
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: async (messageData: { message: string }) => {
-      return apiRequest(`/api/chat/conversations/${selectedConversation}/messages`, 'POST', { 
-        message: messageData.message 
-      });
+    mutationFn: async (data: { conversationId?: number; otherUserId?: string; message: string }) => {
+      if (data.conversationId) {
+        return apiRequest('POST', `/api/simple-chat/conversations/${data.conversationId}/messages`, {
+          message: data.message
+        });
+      } else {
+        return apiRequest('POST', '/api/simple-chat/conversations', {
+          otherUserId: data.otherUserId,
+          message: data.message
+        });
+      }
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/conversations'] });
+      if (selectedConversation) {
+        queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/messages', selectedConversation] });
+      } else if (response?.conversationId) {
+        setSelectedConversation(response.conversationId);
+        setView('chat');
+      }
       setNewMessage('');
-      // Immediately invalidate queries to show the message
-      queryClient.invalidateQueries({ 
-        queryKey: [`/api/chat/conversations/${selectedConversation}/messages`] 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['/api/chat/conversations'] 
-      });
     },
   });
 
-  // Auto-scroll to bottom
+  // Mark messages as read
+  const markAsReadMutation = useMutation({
+    mutationFn: async (conversationId: number) => {
+      return apiRequest('POST', `/api/simple-chat/conversations/${conversationId}/read`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/conversations'] });
+    },
+  });
+
+  // Auto-scroll to bottom of messages
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Mark messages as read when conversation is opened
+  useEffect(() => {
+    if (selectedConversation) {
+      markAsReadMutation.mutate(selectedConversation);
+    }
+  }, [selectedConversation]);
+
   const handleSendMessage = () => {
-    if (!newMessage.trim() || !selectedConversation) return;
-    sendMessageMutation.mutate({ message: newMessage });
-  };
+    if (!newMessage.trim()) return;
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+    if (selectedConversation) {
+      sendMessageMutation.mutate({
+        conversationId: selectedConversation,
+        message: newMessage
+      });
+    } else if (selectedUser) {
+      sendMessageMutation.mutate({
+        otherUserId: selectedUser.id,
+        message: newMessage
+      });
     }
   };
 
-  const getUserDisplayName = (conversation: ChatConversation) => {
-    if (!user) return 'Unknown User';
-    
-    if (user.userType === 'recruiter') {
-      return conversation.jobSeekerName || 'Job Seeker';
-    } else {
-      return conversation.recruiterName || 'Recruiter';
+  const startNewConversation = (user: User) => {
+    setSelectedUser(user);
+    setSelectedConversation(null);
+    setView('chat');
+  };
+
+  const openConversation = (conversation: Conversation) => {
+    setSelectedConversation(conversation.id);
+    setSelectedUser(null);
+    setView('chat');
+  };
+
+  const goBack = () => {
+    if (view === 'chat') {
+      setView('conversations');
+      setSelectedConversation(null);
+      setSelectedUser(null);
     }
   };
+
+  const filteredUsers = allUsers.filter(u => 
+    u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    u.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredConversations = conversations.filter(conv =>
+    conv.otherUserName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const getInitials = (name: string) => {
-    return name.split(' ').map(n => n.charAt(0).toUpperCase()).join('').slice(0, 2);
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
   };
 
-  if (!isAuthenticated) {
+  if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p>Please log in to access chat.</p>
+      <div className="flex items-center justify-center h-screen">
+        <Card className="p-6">
+          <p>Please log in to access chat.</p>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4 h-screen flex">
-      {/* Conversations List */}
-      <Card className="w-1/3 mr-4 overflow-hidden">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageCircle className="h-5 w-5" />
-            Conversations
-            {isConnected && (
-              <span className="text-xs text-green-500 ml-auto">● Connected</span>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
-            {conversationsLoading ? (
-              <div className="p-4 text-center">Loading conversations...</div>
-            ) : conversations.length === 0 ? (
-              <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                No conversations yet
-              </div>
-            ) : (
-              conversations.map((conversation) => (
-                <div
-                  key={conversation.id}
-                  className={`p-4 border-b cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 ${
-                    selectedConversation === conversation.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                  }`}
-                  onClick={() => setSelectedConversation(conversation.id)}
-                >
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarFallback>
-                        {getInitials(getUserDisplayName(conversation))}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900 dark:text-white">{getUserDisplayName(conversation)}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {new Date(conversation.lastMessageAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    {conversation.unreadCount && conversation.unreadCount > 0 && (
-                      <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-1">
-                        {conversation.unreadCount}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
+    <div className="h-screen bg-gray-50 flex">
+      {/* Sidebar - Conversations or Users List */}
+      {view !== 'chat' && (
+        <div className="w-1/3 bg-white border-r border-gray-200 flex flex-col">
+          {/* Header */}
+          <div className="p-4 border-b border-gray-200">
+            <div className="flex space-x-2 mb-4">
+              <Button
+                variant={view === 'conversations' ? 'default' : 'ghost'}
+                onClick={() => setView('conversations')}
+                className="flex-1"
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Chats
+              </Button>
+              <Button
+                variant={view === 'users' ? 'default' : 'ghost'}
+                onClick={() => setView('users')}
+                className="flex-1"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                People
+              </Button>
+            </div>
+            
+            {/* Search */}
+            <div className="relative">
+              <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Input
+                placeholder={view === 'conversations' ? 'Search conversations...' : 'Search people...'}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Chat Messages */}
-      <Card className="flex-1 overflow-hidden">
-        {selectedConversation ? (
-          <>
-            <CardHeader>
-              <CardTitle>
-                Chat with {conversations.find(c => c.id === selectedConversation) ? 
-                  getUserDisplayName(conversations.find(c => c.id === selectedConversation)!) : 
-                  'User'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col h-[calc(100vh-200px)]">
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto mb-4 space-y-2">
-                {messages.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500 dark:text-gray-400">No messages yet. Start the conversation!</p>
+          {/* Connection Status */}
+          <div className="px-4 py-2 bg-gray-50">
+            <div className="flex items-center space-x-2">
+              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-gray-400'}`} />
+              <span className="text-sm text-gray-600">
+                {isConnected ? 'Connected' : 'Connecting...'}
+              </span>
+            </div>
+          </div>
+
+          {/* List */}
+          <ScrollArea className="flex-1">
+            {view === 'conversations' && (
+              <div className="p-2">
+                {conversationsLoading ? (
+                  <div className="p-4 text-center text-gray-500">Loading conversations...</div>
+                ) : filteredConversations.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">
+                    {searchQuery ? 'No conversations found' : 'No conversations yet. Start chatting with someone!'}
                   </div>
                 ) : (
-                  messages.map((message) => (
+                  filteredConversations.map((conversation) => (
+                    <div
+                      key={conversation.id}
+                      onClick={() => openConversation(conversation)}
+                      className="p-3 rounded-lg hover:bg-gray-100 cursor-pointer mb-2"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Avatar>
+                          <AvatarFallback className="bg-blue-600 text-white">
+                            {getInitials(conversation.otherUserName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start">
+                            <p className="font-medium text-sm text-gray-900 truncate">
+                              {conversation.otherUserName}
+                            </p>
+                            <span className="text-xs text-gray-500">
+                              {new Date(conversation.lastMessageAt).toLocaleTimeString([], { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-gray-500 truncate">
+                              {conversation.lastMessagePreview || 'No messages yet'}
+                            </p>
+                            {conversation.otherUserType && (
+                              <Badge variant="secondary" className="ml-2 text-xs">
+                                {conversation.otherUserType.replace('_', ' ')}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {view === 'users' && (
+              <div className="p-2">
+                {usersLoading ? (
+                  <div className="p-4 text-center text-gray-500">Loading people...</div>
+                ) : filteredUsers.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">
+                    {searchQuery ? 'No people found' : 'No other users available'}
+                  </div>
+                ) : (
+                  filteredUsers.map((chatUser) => (
+                    <div
+                      key={chatUser.id}
+                      onClick={() => startNewConversation(chatUser)}
+                      className="p-3 rounded-lg hover:bg-gray-100 cursor-pointer mb-2"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Avatar>
+                          <AvatarFallback className="bg-green-600 text-white">
+                            {getInitials(chatUser.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <p className="font-medium text-sm text-gray-900">{chatUser.name}</p>
+                          <p className="text-xs text-gray-500">{chatUser.email}</p>
+                          {chatUser.companyName && (
+                            <p className="text-xs text-gray-400">{chatUser.companyName}</p>
+                          )}
+                        </div>
+                        <Badge variant="outline">
+                          {chatUser.userType.replace('_', ' ')}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </ScrollArea>
+        </div>
+      )}
+
+      {/* Chat Area */}
+      {view === 'chat' && (selectedConversation || selectedUser) && (
+        <div className="flex-1 flex flex-col">
+          {/* Chat Header */}
+          <div className="bg-white border-b border-gray-200 p-4">
+            <div className="flex items-center space-x-3">
+              <Button variant="ghost" size="sm" onClick={goBack}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <Avatar>
+                <AvatarFallback className="bg-blue-600 text-white">
+                  {selectedUser 
+                    ? getInitials(selectedUser.name)
+                    : getInitials(conversations.find(c => c.id === selectedConversation)?.otherUserName || '')
+                  }
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h2 className="font-semibold text-gray-900">
+                  {selectedUser?.name || conversations.find(c => c.id === selectedConversation)?.otherUserName}
+                </h2>
+                <p className="text-sm text-gray-500">
+                  {isConnected ? 'Online' : 'Offline'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <ScrollArea className="flex-1 p-4 bg-gray-50">
+            {messagesLoading ? (
+              <div className="flex justify-center items-center h-full">
+                <p className="text-gray-500">Loading messages...</p>
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="flex justify-center items-center h-full">
+                <div className="text-center">
+                  <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">No messages yet</p>
+                  <p className="text-sm text-gray-400 mt-1">Start the conversation!</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex ${
-                      message.senderId === user?.id ? 'justify-end' : 'justify-start'
-                    }`}
+                    className={`flex ${message.senderId === user.id ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div
-                      className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                        message.senderId === user?.id
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white'
-                      }`}
-                    >
+                    <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                      message.senderId === user.id
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white text-gray-900 border border-gray-200'
+                    }`}>
                       <p className="text-sm">{message.message}</p>
-                      <p className="text-xs opacity-70 mt-1">
-                        {new Date(message.createdAt).toLocaleTimeString()}
+                      <p className={`text-xs mt-1 ${
+                        message.senderId === user.id ? 'text-blue-100' : 'text-gray-500'
+                      }`}>
+                        {new Date(message.createdAt).toLocaleTimeString([], { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
                       </p>
                     </div>
                   </div>
-                  ))
-                )}
+                ))}
                 <div ref={messagesEndRef} />
               </div>
+            )}
+          </ScrollArea>
 
-              {/* Message Input */}
-              <div className="flex gap-2">
-                <Input
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Type your message..."
-                  disabled={sendMessageMutation.isPending}
-                />
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={!newMessage.trim() || sendMessageMutation.isPending}
-                  size="icon"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </>
-        ) : (
-          <CardContent className="flex items-center justify-center h-full">
-            <p className="text-gray-500 dark:text-gray-400">Select a conversation to start chatting</p>
-          </CardContent>
-        )}
-      </Card>
+          {/* Message Input */}
+          <div className="bg-white border-t border-gray-200 p-4">
+            <div className="flex space-x-2">
+              <Input
+                placeholder="Type your message..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                className="flex-1"
+                disabled={sendMessageMutation.isPending}
+              />
+              <Button
+                onClick={handleSendMessage}
+                disabled={!newMessage.trim() || sendMessageMutation.isPending}
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Default View - Welcome */}
+      {view === 'conversations' && (
+        <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <MessageCircle className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-700 mb-2">
+              Welcome to Simple Chat
+            </h2>
+            <p className="text-gray-500 mb-4">
+              Connect with job seekers and recruiters instantly
+            </p>
+            <Button onClick={() => setView('users')}>
+              <Users className="h-4 w-4 mr-2" />
+              Find People to Chat
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

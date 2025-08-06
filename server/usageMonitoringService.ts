@@ -7,7 +7,7 @@ import {
   testAssignments, 
   virtualInterviews, 
   mockInterviews,
-  chatMessages 
+  messages 
 } from '@shared/schema';
 import { SubscriptionService } from './subscriptionService';
 
@@ -20,13 +20,13 @@ interface UsageReport {
     jobPostings: number;
     applicantsTotal: number;
     testInterviewAssignments: number;
-    chatMessagesUsed: number;
+    messagesUsed: number;
   };
   limits: {
     jobPostings: number;
     applicantsPerJob: number;
     testInterviewAssignments: number;
-    chatMessages: boolean;
+    messages: boolean;
   };
   percentages: Record<string, number>;
   upgradeRecommended: boolean;
@@ -35,7 +35,7 @@ interface UsageReport {
     resumeViewing: boolean;
     basicAIScore: boolean;
     advancedResumeAnalytics: boolean;
-    chatMessages: boolean;
+    messages: boolean;
     basicAnalytics: boolean;
     advancedAnalytics: boolean;
     premiumTargeting: boolean;
@@ -95,10 +95,10 @@ class UsageMonitoringService {
           .from(mockInterviews)
           .where(eq(mockInterviews.assignedBy, userId));
 
-        const chatMessagesResult = await db
+        const messagesResult = await db
           .select({ count: count() })
-          .from(chatMessages)
-          .where(eq(chatMessages.senderId, userId));
+          .from(messages)
+          .where(eq(messages.senderId, userId));
 
         usage = {
           jobPostings: jobPostingsResult[0]?.count || 0,
@@ -107,7 +107,7 @@ class UsageMonitoringService {
             (testAssignmentsResult[0]?.count || 0) + 
             (virtualInterviewsResult[0]?.count || 0) + 
             (mockInterviewsResult[0]?.count || 0),
-          chatMessagesUsed: chatMessagesResult[0]?.count || 0
+          messagesUsed: messagesResult[0]?.count || 0
         };
 
         // Calculate percentages for numeric limits
@@ -128,7 +128,7 @@ class UsageMonitoringService {
           jobPostings: 0,
           applicantsTotal: 0,
           testInterviewAssignments: 0,
-          chatMessagesUsed: 0
+          messagesUsed: 0
         };
       }
 
@@ -146,7 +146,7 @@ class UsageMonitoringService {
           jobPostings: limits.jobPostings,
           applicantsPerJob: limits.applicantsPerJob,
           testInterviewAssignments: limits.testInterviewAssignments,
-          chatMessages: limits.chatMessages
+          messages: limits.messages
         },
         percentages,
         upgradeRecommended,
@@ -155,7 +155,7 @@ class UsageMonitoringService {
           resumeViewing: limits.resumeViewing,
           basicAIScore: limits.basicAIScore,
           advancedResumeAnalytics: limits.advancedResumeAnalytics,
-          chatMessages: limits.chatMessages,
+          messages: limits.messages,
           basicAnalytics: limits.basicAnalytics,
           advancedAnalytics: limits.advancedAnalytics,
           premiumTargeting: limits.premiumTargeting,
@@ -176,13 +176,13 @@ class UsageMonitoringService {
           jobPostings: 0,
           applicantsTotal: 0,
           testInterviewAssignments: 0,
-          chatMessagesUsed: 0
+          messagesUsed: 0
         },
         limits: {
           jobPostings: 2,
           applicantsPerJob: 20,
           testInterviewAssignments: 10,
-          chatMessages: false
+          messages: false
         },
         percentages: {},
         upgradeRecommended: false,
@@ -191,7 +191,7 @@ class UsageMonitoringService {
           resumeViewing: true,
           basicAIScore: true,
           advancedResumeAnalytics: false,
-          chatMessages: false,
+          messages: false,
           basicAnalytics: true,
           advancedAnalytics: false,
           premiumTargeting: false,

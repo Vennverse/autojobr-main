@@ -516,37 +516,49 @@ export const jobPostingApplications = pgTable("job_posting_applications", {
   index("job_posting_applications_applicant_idx").on(table.applicantId),
 ]);
 
-// Chat system between recruiters and job seekers
-export const chatConversations = pgTable("chat_conversations", {
+// Simple LinkedIn-style Chat System - All users can chat with each other
+export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
-  recruiterId: varchar("recruiter_id").references(() => users.id).notNull(),
-  jobSeekerId: varchar("job_seeker_id").references(() => users.id).notNull(),
-  jobPostingId: integer("job_posting_id").references(() => jobPostings.id), // Context of the conversation
-  applicationId: integer("application_id").references(() => jobPostingApplications.id), // Related application
+  // Participants - any two users can chat
+  participant1Id: varchar("participant1_id").references(() => users.id).notNull(),
+  participant2Id: varchar("participant2_id").references(() => users.id).notNull(),
+  
+  // Conversation metadata
   lastMessageAt: timestamp("last_message_at").defaultNow(),
-  lastEmailNotificationAt: timestamp("last_email_notification_at"), // Last email notification sent
+  lastMessagePreview: text("last_message_preview"), // Encrypted preview for list view
+  
+  // Status
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
-  index("chat_conversations_recruiter_idx").on(table.recruiterId),
-  index("chat_conversations_job_seeker_idx").on(table.jobSeekerId),
-  index("chat_conversations_last_message_idx").on(table.lastMessageAt),
+  index("conversations_participant1_idx").on(table.participant1Id),
+  index("conversations_participant2_idx").on(table.participant2Id),
+  index("conversations_last_message_idx").on(table.lastMessageAt),
 ]);
 
-export const chatMessages = pgTable("chat_messages", {
+export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
-  conversationId: integer("conversation_id").references(() => chatConversations.id).notNull(),
+  conversationId: integer("conversation_id").references(() => conversations.id).notNull(),
   senderId: varchar("sender_id").references(() => users.id).notNull(),
-  message: text("message").notNull(),
+  
+  // Encrypted and compressed content
+  encryptedContent: text("encrypted_content").notNull(), // AES-256 encrypted message
+  messageHash: varchar("message_hash").notNull(), // SHA-256 hash for integrity
+  compressionType: varchar("compression_type").default("gzip"), // gzip, deflate, none
+  
+  // Message metadata
   messageType: varchar("message_type").default("text"), // text, file, system
   isRead: boolean("is_read").default(false),
-  isDelivered: boolean("is_delivered").default(true), // Message delivery status
-  readAt: timestamp("read_at"), // When message was read
+  readAt: timestamp("read_at"),
+  
+  // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
-  index("chat_messages_conversation_idx").on(table.conversationId),
-  index("chat_messages_sender_idx").on(table.senderId),
-  index("chat_messages_read_idx").on(table.isRead),
+  index("messages_conversation_idx").on(table.conversationId),
+  index("messages_sender_idx").on(table.senderId),
+  index("messages_created_at_idx").on(table.createdAt),
 ]);
 
 // Email verification tokens for users
@@ -1200,9 +1212,9 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   // Recruiter relations
   jobPostings: many(jobPostings),
   jobPostingApplications: many(jobPostingApplications),
-  recruiterConversations: many(chatConversations, { relationName: "recruiterChats" }),
-  jobSeekerConversations: many(chatConversations, { relationName: "jobSeekerChats" }),
-  sentMessages: many(chatMessages),
+  conversations1: many(conversations, { relationName: "participant1Conversations" }),
+  conversations2: many(conversations, { relationName: "participant2Conversations" }),
+  sentMessages: many(messages),
   emailVerificationTokens: many(emailVerificationTokens),
   // Test system relations
   createdTestTemplates: many(testTemplates),
@@ -1221,7 +1233,7 @@ export const jobPostingsRelations = relations(jobPostings, ({ one, many }) => ({
     references: [users.id],
   }),
   applications: many(jobPostingApplications),
-  conversations: many(chatConversations),
+
 }));
 
 export const jobPostingApplicationsRelations = relations(jobPostingApplications, ({ one }) => ({
@@ -1239,35 +1251,27 @@ export const jobPostingApplicationsRelations = relations(jobPostingApplications,
   }),
 }));
 
-export const chatConversationsRelations = relations(chatConversations, ({ one, many }) => ({
-  recruiter: one(users, {
-    fields: [chatConversations.recruiterId],
+export const conversationsRelations = relations(conversations, ({ one, many }) => ({
+  participant1: one(users, {
+    fields: [conversations.participant1Id],
     references: [users.id],
-    relationName: "recruiterChats",
+    relationName: "participant1Conversations",
   }),
-  jobSeeker: one(users, {
-    fields: [chatConversations.jobSeekerId],
+  participant2: one(users, {
+    fields: [conversations.participant2Id],
     references: [users.id],
-    relationName: "jobSeekerChats",
+    relationName: "participant2Conversations",
   }),
-  jobPosting: one(jobPostings, {
-    fields: [chatConversations.jobPostingId],
-    references: [jobPostings.id],
-  }),
-  application: one(jobPostingApplications, {
-    fields: [chatConversations.applicationId],
-    references: [jobPostingApplications.id],
-  }),
-  messages: many(chatMessages),
+  messages: many(messages),
 }));
 
-export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
-  conversation: one(chatConversations, {
-    fields: [chatMessages.conversationId],
-    references: [chatConversations.id],
+export const messagesRelations = relations(messages, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [messages.conversationId],
+    references: [conversations.id],
   }),
   sender: one(users, {
-    fields: [chatMessages.senderId],
+    fields: [messages.senderId],
     references: [users.id],
   }),
 }));
@@ -1536,15 +1540,17 @@ export const insertJobPostingApplicationSchema = createInsertSchema(jobPostingAp
   updatedAt: true,
 });
 
-export const insertChatConversationSchema = createInsertSchema(chatConversations).omit({
+export const insertConversationSchema = createInsertSchema(conversations).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
   lastMessageAt: true,
 });
 
-export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+export const insertMessageSchema = createInsertSchema(messages).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
 });
 
 export const insertEmailVerificationTokenSchema = createInsertSchema(emailVerificationTokens).omit({
@@ -1615,10 +1621,10 @@ export type InsertJobPosting = z.infer<typeof insertJobPostingSchema>;
 export type JobPosting = typeof jobPostings.$inferSelect;
 export type InsertJobPostingApplication = z.infer<typeof insertJobPostingApplicationSchema>;
 export type JobPostingApplication = typeof jobPostingApplications.$inferSelect;
-export type InsertChatConversation = z.infer<typeof insertChatConversationSchema>;
-export type ChatConversation = typeof chatConversations.$inferSelect;
-export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
-export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertConversation = z.infer<typeof insertConversationSchema>;
+export type Conversation = typeof conversations.$inferSelect;
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type Message = typeof messages.$inferSelect;
 export type InsertEmailVerificationToken = z.infer<typeof insertEmailVerificationTokenSchema>;
 export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
 export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;

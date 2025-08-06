@@ -47,6 +47,8 @@ import { customNLPService } from "./customNLP.js";
 import { PremiumFeaturesService } from "./premiumFeaturesService.js";
 import { SubscriptionService } from "./subscriptionService.js";
 import { rankingTestService } from "./rankingTestService.js";
+import { setupSimpleChatRoutes } from "./simpleChatRoutes.js";
+import { simpleWebSocketService } from "./simpleWebSocketService.js";
 import crypto from 'crypto';
 import { 
   checkJobPostingLimit,
@@ -5108,265 +5110,13 @@ Additional Information:
   });
 
   // ========================================
-  // CHAT SYSTEM WITH WEBSOCKET
+  // SIMPLE LINKEDIN-STYLE CHAT SYSTEM
   // ========================================
   
-  // Chat conversations endpoint
-  app.get('/api/chat/conversations', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      console.log('Fetching conversations for user:', userId);
-      
-      const conversations = await storage.getChatConversations(userId);
-      console.log('Found conversations:', conversations.length);
-      
-      // Add additional user details for each conversation
-      const enrichedConversations = await Promise.all(
-        conversations.map(async (conv) => {
-          const otherUserId = conv.recruiterId === userId ? conv.jobSeekerId : conv.recruiterId;
-          const otherUser = await storage.getUser(otherUserId);
-          
-          // Get unread message count
-          const unreadMessages = await db
-            .select({ count: count() })
-            .from(schema.chatMessages)
-            .where(
-              and(
-                eq(schema.chatMessages.conversationId, conv.id),
-                eq(schema.chatMessages.isRead, false),
-                ne(schema.chatMessages.senderId, userId)
-              )
-            );
-          
-          return {
-            ...conv,
-            recruiterName: conv.recruiterId === otherUserId ? 
-              `${otherUser?.firstName || ''} ${otherUser?.lastName || ''}`.trim() || otherUser?.email : 
-              null,
-            jobSeekerName: conv.jobSeekerId === otherUserId ? 
-              `${otherUser?.firstName || ''} ${otherUser?.lastName || ''}`.trim() || otherUser?.email : 
-              null,
-            unreadCount: unreadMessages[0]?.count || 0
-          };
-        })
-      );
+  // Setup new simple chat routes
+  setupSimpleChatRoutes(app);
 
-      res.json(enrichedConversations);
-    } catch (error) {
-      console.error('Error fetching conversations:', error);
-      res.status(500).json({ message: 'Failed to fetch conversations' });
-    }
-  });
 
-  // Create conversation endpoint
-  app.post('/api/chat/conversations', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const { otherUserId } = req.body;
-      
-      if (!otherUserId) {
-        return res.status(400).json({ message: 'Other user ID is required' });
-      }
-
-      // Check if conversation already exists
-      const existingConversations = await storage.getChatConversations(userId);
-      const existingConv = existingConversations.find(conv => 
-        (conv.recruiterId === userId && conv.jobSeekerId === otherUserId) ||
-        (conv.jobSeekerId === userId && conv.recruiterId === otherUserId)
-      );
-
-      if (existingConv) {
-        return res.json({ conversationId: existingConv.id, id: existingConv.id });
-      }
-
-      // Get current user to determine role assignment
-      const currentUser = await storage.getUser(userId);
-      const otherUser = await storage.getUser(otherUserId);
-
-      if (!currentUser || !otherUser) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-
-      // Create new conversation with proper role assignment
-      const conversationData = {
-        recruiterId: currentUser.userType === 'recruiter' ? userId : otherUserId,
-        jobSeekerId: currentUser.userType === 'job_seeker' ? userId : otherUserId,
-        jobPostingId: null,
-        applicationId: null
-      };
-
-      const conversation = await storage.createChatConversation(conversationData);
-      res.json({ conversationId: conversation.id, id: conversation.id });
-    } catch (error) {
-      console.error('Error creating conversation:', error);
-      res.status(500).json({ message: 'Failed to create conversation' });
-    }
-  });
-
-  // Get messages for a conversation
-  app.get('/api/chat/conversations/:id/messages', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const conversationId = parseInt(req.params.id);
-      
-      // Verify user has access to this conversation
-      const conversation = await storage.getChatConversation(conversationId);
-      if (!conversation || (conversation.recruiterId !== userId && conversation.jobSeekerId !== userId)) {
-        return res.status(403).json({ message: 'Access denied' });
-      }
-
-      const messages = await storage.getChatMessages(conversationId);
-      res.json(messages);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-      res.status(500).json({ message: 'Failed to fetch messages' });
-    }
-  });
-
-  // Send message - WITH CHAT ACCESS LIMITS FOR RECRUITERS
-  app.post('/api/chat/conversations/:id/messages', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      // Check chat access for recruiters (job seekers have unlimited chat)
-      if (user?.userType === 'recruiter') {
-        const subscriptionService = new SubscriptionService();
-        const canChat = await subscriptionService.canAccessFeature(userId, 'chatMessages');
-        if (!canChat) {
-          return res.status(403).json({
-            error: 'Chat access restricted',
-            message: 'Chat functionality is available with Premium plans. Upgrade to start messaging candidates.',
-            upgradeRequired: true
-          });
-        }
-      }
-      
-      const conversationId = parseInt(req.params.id);
-      const { message } = req.body;
-      
-      if (!message || !message.trim()) {
-        return res.status(400).json({ message: 'Message content is required' });
-      }
-
-      // Verify user has access to this conversation
-      const conversation = await storage.getChatConversation(conversationId);
-      if (!conversation || (conversation.recruiterId !== userId && conversation.jobSeekerId !== userId)) {
-        return res.status(403).json({ message: 'Access denied' });
-      }
-
-      // Create message
-      const messageData = {
-        conversationId,
-        senderId: userId,
-        message: message.trim(),
-        messageType: 'text'
-      };
-
-      const newMessage = await storage.createChatMessage(messageData);
-      
-      // Broadcast to WebSocket connections
-      const otherUserId = conversation.recruiterId === userId ? conversation.jobSeekerId : conversation.recruiterId;
-      broadcastToUser(otherUserId, {
-        type: 'new_message',
-        conversationId,
-        message: newMessage
-      });
-
-      res.json(newMessage);
-    } catch (error) {
-      console.error('Error sending message:', error);
-      res.status(500).json({ message: 'Failed to send message' });
-    }
-  });
-
-  // Mark messages as read
-  app.post('/api/chat/conversations/:id/read', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const conversationId = parseInt(req.params.id);
-      
-      // Verify user has access to this conversation
-      const conversation = await storage.getChatConversation(conversationId);
-      if (!conversation || (conversation.recruiterId !== userId && conversation.jobSeekerId !== userId)) {
-        return res.status(403).json({ message: 'Access denied' });
-      }
-
-      await storage.markMessagesAsRead(conversationId, userId);
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Error marking messages as read:', error);
-      res.status(500).json({ message: 'Failed to mark messages as read' });
-    }
-  });
-
-  const httpServer = createServer(app);
-  
-  // Setup WebSocket server for real-time chat
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
-
-  wss.on('connection', (ws, req) => {
-    let userId: string | null = null;
-    
-    ws.on('message', async (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-        
-        if (message.type === 'auth') {
-          // Authenticate WebSocket connection
-          userId = message.userId;
-          if (userId) {
-            if (!wsConnections.has(userId)) {
-              wsConnections.set(userId, new Set());
-            }
-            wsConnections.get(userId)!.add(ws);
-            
-            // Send confirmation
-            ws.send(JSON.stringify({ 
-              type: 'auth_success', 
-              message: 'WebSocket authenticated successfully' 
-            }));
-          }
-        }
-        
-        if (message.type === 'typing') {
-          // Broadcast typing indicator
-          const { conversationId, isTyping } = message;
-          if (userId && conversationId) {
-            // Get conversation to find other user
-            const conversation = await storage.getChatConversation(conversationId);
-            if (conversation) {
-              const otherUserId = conversation.recruiterId === userId ? 
-                conversation.jobSeekerId : conversation.recruiterId;
-              
-              broadcastToUser(otherUserId, {
-                type: 'typing',
-                conversationId,
-                isTyping,
-                userId
-              });
-            }
-          }
-        }
-      } catch (error) {
-        console.error('WebSocket message error:', error);
-      }
-    });
-
-    ws.on('close', () => {
-      // Remove connection from user's connection set
-      if (userId && wsConnections.has(userId)) {
-        wsConnections.get(userId)!.delete(ws);
-        if (wsConnections.get(userId)!.size === 0) {
-          wsConnections.delete(userId);
-        }
-      }
-    });
-
-    ws.on('error', (error) => {
-      console.error('WebSocket error:', error);
-    });
-  });
 
   // Note: Job search route moved to bottom of file to be public (no authentication required)
 
@@ -10924,5 +10674,7 @@ Report types supported:
     }
   });
 
+  // Create HTTP server for WebSocket integration
+  const httpServer = createServer(app);
   return httpServer;
 }
