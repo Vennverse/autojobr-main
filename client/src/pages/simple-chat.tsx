@@ -454,39 +454,44 @@ export default function SimpleChatPage() {
 
     const clientTempId = Date.now();
 
+    // Clear input FIRST for instant feedback
+    setNewMessage('');
+
+    // Create optimistic message that will appear instantly
+    const createOptimisticMessage = () => ({
+      id: clientTempId,
+      senderId: user?.id || '',
+      senderName: 'You',
+      message: messageToSend,
+      messageType: 'text',
+      isRead: false,
+      createdAt: new Date().toISOString(),
+      isPending: true,
+      clientTempId
+    });
+
     // Immediate local optimistic insert BEFORE kicking off the mutation to guarantee visibility
     if (selectedConversation) {
       queryClient.setQueryData<Message[]>(
         ['/api/simple-chat/messages', selectedConversation],
-        (oldMessages = []) => {
-          const optimisticMessage: Message & { clientTempId: number } = {
-            id: clientTempId,
-            senderId: user?.id || '',
-            senderName: 'You',
-            message: messageToSend,
-            messageType: 'text',
-            isRead: false,
-            createdAt: new Date().toISOString(),
-            isPending: true,
-            // @ts-ignore client only
-            clientTempId
-          };
-          return [...oldMessages, optimisticMessage as unknown as Message];
-        }
+        (oldMessages = []) => [...oldMessages, createOptimisticMessage() as unknown as Message]
       );
-    }
-
-    // Clear input immediately for snappier UX
-    setNewMessage('');
-
-    // Kick off mutation
-    if (selectedConversation) {
+      
+      // Kick off mutation
       sendMessageMutation.mutate({
         conversationId: selectedConversation,
         message: messageToSend,
         clientTempId
       });
     } else if (selectedUser) {
+      // For new conversations, also add optimistic message
+      const tempConvId = clientTempId; // Use as temp conversation ID
+      queryClient.setQueryData<Message[]>(
+        ['/api/simple-chat/messages', tempConvId],
+        () => [createOptimisticMessage() as unknown as Message]
+      );
+      
+      // Kick off mutation
       sendMessageMutation.mutate({
         otherUserId: selectedUser.id,
         message: messageToSend,
