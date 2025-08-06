@@ -275,7 +275,32 @@ export default function ViewJob() {
               </Card>
 
               {/* Action Buttons */}
-              {user?.userType === 'recruiter' ? (
+              {!user ? (
+                // Unauthenticated user - show sign up to apply
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Ready to Apply?</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Create your free account to apply for this position and access thousands more jobs.
+                    </p>
+                    <Button 
+                      className="w-full" 
+                      onClick={() => setLocation(`/auth?redirect=/jobs/${jobId}&action=apply`)}
+                    >
+                      Sign Up & Apply
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => setLocation(`/auth?redirect=/jobs/${jobId}`)}
+                    >
+                      Sign In
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : user?.userType === 'recruiter' ? (
                 <Card>
                   <CardHeader>
                     <CardTitle>Manage Job</CardTitle>

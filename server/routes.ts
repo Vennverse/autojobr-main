@@ -5687,8 +5687,8 @@ Additional Information:
     }
   });
 
-  // Get a single job posting by ID for job seekers
-  app.get('/api/jobs/postings/:id', isAuthenticated, async (req: any, res) => {
+  // Get a single job posting by ID for job seekers (no authentication required for discovery)
+  app.get('/api/jobs/postings/:id', async (req: any, res) => {
     try {
       let jobId: number;
       

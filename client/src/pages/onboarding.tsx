@@ -115,9 +115,19 @@ export default function Onboarding() {
   }, [profile]);
 
   // Redirect if onboarding is already completed
+  // Get redirect URL from query params
+  const getRedirectUrl = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirect = urlParams.get('redirect');
+    if (redirect) {
+      return decodeURIComponent(redirect);
+    }
+    return '/';
+  };
+
   useEffect(() => {
     if (onboardingStatus?.onboardingCompleted) {
-      setLocation("/");
+      setLocation(getRedirectUrl());
     }
   }, [onboardingStatus, setLocation]);
 
@@ -274,7 +284,7 @@ export default function Onboarding() {
       
       // Small delay to ensure all queries are updated before redirect
       setTimeout(() => {
-        setLocation("/");
+        setLocation(getRedirectUrl());
       }, 1000);
     }
   };
