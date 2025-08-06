@@ -61,7 +61,6 @@ export class SimpleChatService {
         .values({
           conversationId,
           senderId,
-          content: messageText, // Store plain text directly
           encryptedContent: messageText, // Store as plain text for now
           messageHash: Buffer.from(messageText).toString('base64'), // Simple hash
           messageType: 'text',
@@ -185,7 +184,7 @@ export class SimpleChatService {
       const conversationMessages = await db.select({
         id: messages.id,
         senderId: messages.senderId,
-        content: messages.content, // Use 'content' instead of 'encryptedContent'
+        encryptedContent: messages.encryptedContent, // Use correct field name
         messageType: messages.messageType,
         isRead: messages.isRead,
         createdAt: messages.createdAt,
@@ -211,7 +210,7 @@ export class SimpleChatService {
           id: msg.id,
           senderId: msg.senderId,
           senderName,
-          message: msg.content || '', // Use content directly
+          message: msg.encryptedContent || '', // Use encryptedContent directly
           messageType: msg.messageType,
           isRead: msg.isRead,
           createdAt: msg.createdAt,
