@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Building, MapPin, DollarSign, Users, Clock, Briefcase, Eye, Calendar } from "lucide-react";
+import { ArrowLeft, Building, MapPin, DollarSign, Users, Clock, Briefcase, Eye, Calendar, Share2, Copy, ExternalLink, CheckCircle, Star, TrendingUp, Zap, Target, AlertCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,6 +15,53 @@ export default function ViewJob() {
   const [location, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Share functionality
+  const shareJob = async (platform?: string) => {
+    const jobUrl = `${window.location.origin}/jobs/${jobId}`;
+    const shareText = `Check out this ${job?.title} position at ${job?.companyName}!`;
+    
+    if (platform === 'copy') {
+      try {
+        await navigator.clipboard.writeText(jobUrl);
+        toast({
+          title: "Link Copied!",
+          description: "Job link has been copied to your clipboard.",
+        });
+      } catch (error) {
+        // Fallback for browsers that don't support clipboard API
+        const textArea = document.createElement('textarea');
+        textArea.value = jobUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        toast({
+          title: "Link Copied!",
+          description: "Job link has been copied to your clipboard.",
+        });
+      }
+    } else if (platform === 'linkedin') {
+      window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(jobUrl)}`, '_blank');
+    } else if (platform === 'twitter') {
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(jobUrl)}`, '_blank');
+    } else if (platform === 'facebook') {
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(jobUrl)}`, '_blank');
+    } else if (navigator.share) {
+      // Native share API for mobile devices
+      try {
+        await navigator.share({
+          title: `${job?.title} - ${job?.companyName}`,
+          text: shareText,
+          url: jobUrl,
+        });
+      } catch (error) {
+        console.log('Share canceled');
+      }
+    } else {
+      shareJob('copy');
+    }
+  };
 
   const { data: job, isLoading, error } = useQuery({
     queryKey: [`/api/jobs/postings/${jobId}`],
@@ -85,23 +132,85 @@ export default function ViewJob() {
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setLocation(user?.userType === 'recruiter' ? '/recruiter-dashboard' : '/')}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Briefcase className="w-8 h-8 text-blue-600" />
-                {job.title}
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                {job.companyName}
-              </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocation(user?.userType === 'recruiter' ? '/recruiter-dashboard' : '/')}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Briefcase className="w-8 h-8 text-blue-600" />
+                  {job.title}
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400 mt-1">
+                  {job.companyName}
+                </p>
+              </div>
+            </div>
+            
+            {/* Share Button */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => shareJob()}
+                className="hidden sm:flex"
+              >
+                <Share2 className="w-4 h-4 mr-2" />
+                Share Job
+              </Button>
+              
+              {/* Share Dropdown for Desktop */}
+              <div className="relative hidden md:block group">
+                <Button variant="ghost" size="sm" className="p-2">
+                  <Share2 className="w-4 h-4" />
+                </Button>
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                  <div className="p-2 space-y-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => shareJob('copy')}
+                      className="w-full justify-start text-left"
+                    >
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy Link
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => shareJob('linkedin')}
+                      className="w-full justify-start text-left text-blue-600"
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      LinkedIn
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => shareJob('twitter')}
+                      className="w-full justify-start text-left text-blue-400"
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Twitter
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => shareJob('facebook')}
+                      className="w-full justify-start text-left text-blue-800"
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Facebook
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -276,30 +385,150 @@ export default function ViewJob() {
 
               {/* Action Buttons */}
               {!user ? (
-                // Unauthenticated user - show sign up to apply
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Ready to Apply?</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Create your free account to apply for this position and access thousands more jobs.
-                    </p>
-                    <Button 
-                      className="w-full" 
-                      onClick={() => setLocation(`/auth?redirect=/jobs/${jobId}&action=apply`)}
-                    >
-                      Sign Up & Apply
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full"
-                      onClick={() => setLocation(`/auth?redirect=/jobs/${jobId}`)}
-                    >
-                      Sign In
-                    </Button>
-                  </CardContent>
-                </Card>
+                // Unauthenticated user - enhanced call-to-action
+                <>
+                  <Card className="border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <CardTitle className="text-green-800 dark:text-green-200">Apply Now - Limited Time!</CardTitle>
+                      </div>
+                      <CardDescription className="text-green-700 dark:text-green-300">
+                        {job.applicationsCount > 50 ? 'High competition - Act fast!' : 
+                         job.applicationsCount > 20 ? 'Popular position - Apply soon!' : 
+                         'Early applicants have the best chance!'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium">Application Status</span>
+                          <span className="text-xs text-gray-500">{job.applicationsCount || 0} applied</span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
+                          <div 
+                            className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-500" 
+                            style={{width: `${Math.min((job.applicationsCount || 0) * 2, 100)}%`}}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          Join {job.applicationsCount || 0} other candidates competing for this role
+                        </p>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <span>Free account creation</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <span>AI-powered resume analysis</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <span>Access to 1000+ more jobs</span>
+                        </div>
+                      </div>
+
+                      <Button 
+                        className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 shadow-lg transform transition-all duration-200 hover:scale-105" 
+                        onClick={() => setLocation(`/auth?redirect=/jobs/${jobId}&action=apply`)}
+                      >
+                        🚀 Start Your Journey - Apply Free!
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        className="w-full border-2 border-gray-300 hover:border-blue-500 hover:text-blue-600"
+                        onClick={() => setLocation(`/auth?redirect=/jobs/${jobId}`)}
+                      >
+                        Already have an account? Sign In
+                      </Button>
+
+                      <div className="text-center">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Join 50,000+ job seekers already using AutoJobr
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Social Proof Card */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                        Why Choose AutoJobr?
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <TrendingUp className="w-5 h-5 text-blue-500 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium">3x Higher Success Rate</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">AI-optimized applications get noticed</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <Zap className="w-5 h-5 text-yellow-500 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium">Instant Application</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">Apply in under 2 minutes</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <Target className="w-5 h-5 text-green-500 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium">Perfect Match Scoring</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">Know your compatibility before applying</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Share This Job Card */}
+                  <Card className="md:hidden">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Share2 className="w-4 h-4 text-blue-500" />
+                        Share This Job
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => shareJob('copy')}
+                        className="w-full justify-start"
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copy Link
+                      </Button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => shareJob('linkedin')}
+                          className="text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                        >
+                          <ExternalLink className="w-4 h-4 mr-1" />
+                          LinkedIn
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => shareJob('twitter')}
+                          className="text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                        >
+                          <ExternalLink className="w-4 h-4 mr-1" />
+                          Twitter
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              
               ) : user?.userType === 'recruiter' ? (
                 <Card>
                   <CardHeader>
