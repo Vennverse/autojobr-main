@@ -85,8 +85,8 @@ export function setupSimpleChatRoutes(app: Express) {
       const messages = await simpleChatService.getConversationMessages(conversationId, req.user.id, page, limit);
       res.json(messages);
     } catch (error) {
-      console.error('Error getting messages:', error);
-      if (error.message === 'Conversation not found or access denied') {
+      console.error('Error getting messages:', error instanceof Error ? error.message : String(error));
+      if (error instanceof Error && error.message === 'Conversation not found or access denied') {
         return res.status(403).json({ message: error.message });
       }
       res.status(500).json({ message: 'Failed to get messages' });
@@ -113,7 +113,7 @@ export function setupSimpleChatRoutes(app: Express) {
       const newMessage = await simpleChatService.sendMessage(conversationId, req.user.id, message.trim());
       res.json(newMessage);
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error sending message:', error instanceof Error ? error.message : String(error));
       res.status(500).json({ message: 'Failed to send message' });
     }
   });
@@ -133,8 +133,8 @@ export function setupSimpleChatRoutes(app: Express) {
       await simpleChatService.markMessagesAsRead(conversationId, req.user.id);
       res.json({ success: true });
     } catch (error) {
-      console.error('Error marking messages as read:', error);
-      if (error.message === 'Conversation not found or access denied') {
+      console.error('Error marking messages as read:', error instanceof Error ? error.message : String(error));
+      if (error instanceof Error && error.message === 'Conversation not found or access denied') {
         return res.status(403).json({ message: error.message });
       }
       res.status(500).json({ message: 'Failed to mark messages as read' });

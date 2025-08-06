@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/use-auth';
+import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -10,7 +11,6 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Search, Send, Users, MessageCircle, ArrowLeft } from 'lucide-react';
-import { WebSocketServer, WebSocket } from 'ws';
 
 interface ChatUser {
   id: string;
@@ -44,7 +44,7 @@ interface Message {
 
 // Simple WebSocket hook for real-time messaging  
 const useWebSocket = (user: { id: string } | null | undefined) => {
-  const [socket, setSocket] = useState<WebSocket | null>(null);
+  const [socket, setSocket] = useState<globalThis.WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const queryClient = useQueryClient();
 
@@ -55,7 +55,7 @@ const useWebSocket = (user: { id: string } | null | undefined) => {
     const wsUrl = `${protocol}//${window.location.host}/ws`;
     
     console.log('Connecting to WebSocket:', wsUrl);
-    const ws = new WebSocket(wsUrl);
+    const ws = new globalThis.WebSocket(wsUrl);
 
     ws.onopen = () => {
       console.log('WebSocket connected');
@@ -104,6 +104,7 @@ const useWebSocket = (user: { id: string } | null | undefined) => {
 
 export default function SimpleChatPage() {
   const { user } = useAuth();
+  const [location] = useLocation();
   const [selectedConversation, setSelectedConversation] = useState<number | null>(null);
   const [selectedUser, setSelectedUser] = useState<ChatUser | null>(null);
   const [newMessage, setNewMessage] = useState('');
@@ -111,6 +112,13 @@ export default function SimpleChatPage() {
   const [view, setView] = useState<'conversations' | 'users' | 'chat'>('conversations');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+
+  // Parse URL parameters
+  const urlParams = new URLSearchParams(location.split('?')[1] || '');
+  const targetUserId = urlParams.get('user');
+  const preloadApplicantId = urlParams.get('applicant');
+  const preloadJobId = urlParams.get('job');
+  const applicationId = urlParams.get('application');
 
   // WebSocket connection
   const { isConnected } = useWebSocket(user);
@@ -180,6 +188,43 @@ export default function SimpleChatPage() {
       markAsReadMutation.mutate(selectedConversation);
     }
   }, [selectedConversation]);
+
+  // Handle URL parameters - initiate chat with specific user
+  useEffect(() => {
+    if (!user?.id || !targetUserId || !allUsers.length) return;
+
+    // Find the target user
+    const targetUser = allUsers.find(u => u.id === targetUserId);
+    if (targetUser) {
+      // Check if conversation already exists
+      const existingConversation = conversations.find(conv => conv.otherUserId === targetUserId);
+      if (existingConversation) {
+        setSelectedConversation(existingConversation.id);
+        setView('chat');
+      } else {
+        // Start new conversation
+        setSelectedUser(targetUser);
+        setView('chat');
+      }
+    }
+  }, [user?.id, targetUserId, allUsers, conversations]);
+
+  // Handle preload for applicant chat (from job application context)
+  useEffect(() => {
+    if (!user?.id || !preloadApplicantId || !allUsers.length) return;
+
+    const applicantUser = allUsers.find(u => u.id === preloadApplicantId);
+    if (applicantUser) {
+      const existingConversation = conversations.find(conv => conv.otherUserId === preloadApplicantId);
+      if (existingConversation) {
+        setSelectedConversation(existingConversation.id);
+        setView('chat');
+      } else {
+        setSelectedUser(applicantUser);
+        setView('chat');
+      }
+    }
+  }, [user?.id, preloadApplicantId, allUsers, conversations]);
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
