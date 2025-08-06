@@ -184,21 +184,25 @@ export default function SimpleChatPage() {
   });
 
   // Get messages for selected conversation
-  const { data: messages = [], isLoading: messagesLoading, refetch: refetchMessages } = useQuery<Message[]>({
+  const { data: messages = [], isLoading: messagesLoading, refetch: refetchMessages, error: messagesError } = useQuery<Message[]>({
     queryKey: ['/api/simple-chat/messages', selectedConversation],
     enabled: !!selectedConversation,
-    refetchInterval: false, // Disable auto refetch, we'll control it manually
-    refetchOnWindowFocus: false,
+    refetchInterval: 2000, // Refetch every 2 seconds to ensure real-time updates
+    refetchOnWindowFocus: true,
     queryFn: async () => {
+      console.log(`Fetching messages for conversation ${selectedConversation}`);
       const response = await fetch(`/api/simple-chat/messages/${selectedConversation}`, {
         credentials: 'include',
       });
       
       if (!response.ok) {
+        console.error(`Failed to fetch messages: ${response.status} ${response.statusText}`);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      return response.json();
+      const data = await response.json();
+      console.log(`Fetched ${data.length} messages for conversation ${selectedConversation}`);
+      return data;
     }
   });
 
@@ -268,12 +272,15 @@ export default function SimpleChatPage() {
       
       // Force immediate refresh of current conversation messages
       if (selectedConversation) {
+        console.log('Immediately refreshing messages after sending');
         queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/messages', selectedConversation] });
         // Force immediate refetch to ensure message appears instantly
-        queryClient.refetchQueries({ 
-          queryKey: ['/api/simple-chat/messages', selectedConversation],
-          exact: true
-        });
+        setTimeout(() => {
+          queryClient.refetchQueries({ 
+            queryKey: ['/api/simple-chat/messages', selectedConversation],
+            exact: true
+          });
+        }, 100); // Small delay to ensure message is saved
       } else if (response?.conversationId) {
         setSelectedConversation(response.conversationId);
         setView('chat');
@@ -614,6 +621,7 @@ export default function SimpleChatPage() {
                     <p>Messages array length: {messages.length}</p>
                     <p>Messages loading: {messagesLoading ? 'Yes' : 'No'}</p>
                     <p>Query enabled: {!!selectedConversation ? 'Yes' : 'No'}</p>
+                    {messagesError && <p className="text-red-500">Error: {String(messagesError)}</p>}
                   </div>
                 </div>
               </div>
