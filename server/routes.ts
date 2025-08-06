@@ -78,23 +78,47 @@ const ONLINE_THRESHOLD = 5 * 60 * 1000; // 5 minutes - user is considered online
 // Initialize file storage service
 const fileStorage = new FileStorageService();
 
-const getCached = (key: string) => {
-  const item = cache.get(key);
+// SECURITY FIX: Ensure all cache keys are properly scoped by user ID
+const ensureUserScopedKey = (key: string, userId?: string): string => {
+  if (!userId) {
+    console.warn(`[CACHE_SECURITY] Cache key "${key}" used without user ID scoping`);
+    return key;
+  }
+  
+  // If key already contains user ID, return as is
+  if (key.includes(`_${userId}_`) || key.startsWith(`${userId}_`) || key.endsWith(`_${userId}`)) {
+    return key;
+  }
+  
+  // Add user ID scoping to prevent cross-user data leakage
+  return `user_${userId}_${key}`;
+};
+
+const getCached = (key: string, userId?: string) => {
+  const scopedKey = ensureUserScopedKey(key, userId);
+  const item = cache.get(scopedKey);
   if (item && Date.now() - item.timestamp < (item.ttl || CACHE_TTL)) {
     return item.data;
   }
-  cache.delete(key);
+  cache.delete(scopedKey);
   return null;
 };
 
-const setCache = (key: string, data: any, ttl?: number) => {
+const setCache = (key: string, data: any, ttl?: number, userId?: string) => {
+  const scopedKey = ensureUserScopedKey(key, userId);
+  
   // Prevent cache from growing too large
   if (cache.size >= MAX_CACHE_SIZE) {
     // Remove oldest entries (simple LRU)
     const oldestKey = cache.keys().next().value;
     cache.delete(oldestKey);
   }
-  cache.set(key, { data, timestamp: Date.now(), ttl: ttl || CACHE_TTL });
+  cache.set(scopedKey, { 
+    data, 
+    timestamp: Date.now(), 
+    ttl: ttl || CACHE_TTL,
+    userId: userId // Track which user owns this cache entry
+  });
 };
 
 // Helper function to invalidate user-specific cache
@@ -1416,8 +1440,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const cacheKey = `recommendations_${userId}`;
       
-      // Check cache first
-      const cachedRecommendations = getCached(cacheKey);
+      // Check cache first (user-scoped)
+      const cachedRecommendations = getCached(cacheKey, userId);
       if (cachedRecommendations) {
         // Serving cached recommendations
         return res.json(cachedRecommendations);
@@ -1492,8 +1516,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Cache for 1 hour
-      setCache(cacheKey, recommendations, 3600000);
+      // Cache for 1 hour (user-scoped)
+      setCache(cacheKey, recommendations, 3600000, userId);
       
       res.json(recommendations);
     } catch (error) {
@@ -1768,8 +1792,8 @@ Additional Information:
       const userId = req.user.id;
       const cacheKey = `resumes_${userId}`;
       
-      // Check cache first
-      const cachedResumes = getCached(cacheKey);
+      // Check cache first (user-scoped)
+      const cachedResumes = getCached(cacheKey, userId);
       if (cachedResumes) {
         return res.json(cachedResumes);
       }
@@ -1779,8 +1803,8 @@ Additional Information:
       // Use the database storage service to get resumes
       const resumes = await storage.getUserResumes(userId);
       
-      // Cache resumes for 1 minute
-      setCache(cacheKey, resumes, 60000);
+      // Cache resumes for 1 minute (user-scoped)
+      setCache(cacheKey, resumes, 60000, userId);
       
       // Returning resumes for user
       res.json(resumes);
@@ -2153,8 +2177,8 @@ Additional Information:
       
       const profile = await storage.getUserProfile(userId);
       
-      // Cache the result
-      setCache(cacheKey, profile);
+      // Cache the result (user-scoped)
+      setCache(cacheKey, profile, undefined, userId);
       res.json(profile);
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -2605,8 +2629,8 @@ Additional Information:
       const userId = req.user.id;
       const cacheKey = `applications_${userId}`;
       
-      // Check cache first
-      const cached = getCached(cacheKey);
+      // Check cache first (user-scoped)
+      const cached = getCached(cacheKey, userId);
       if (cached) {
         return res.json(cached);
       }
@@ -2661,8 +2685,8 @@ Additional Information:
       const allApplications = [...formattedJobPostingApps, ...formattedExtensionApps]
         .sort((a, b) => new Date(b.appliedDate).getTime() - new Date(a.appliedDate).getTime());
       
-      // Cache the result
-      setCache(cacheKey, allApplications);
+      // Cache the result (user-scoped)
+      setCache(cacheKey, allApplications, undefined, userId);
       res.json(allApplications);
     } catch (error) {
       console.error("Error fetching applications:", error);
@@ -2736,8 +2760,8 @@ Additional Information:
       const userId = req.user.id;
       const cacheKey = `app_stats_${userId}`;
       
-      // Check cache first
-      const cached = getCached(cacheKey);
+      // Check cache first (user-scoped)
+      const cached = getCached(cacheKey, userId);
       if (cached) {
         return res.json(cached);
       }
@@ -2780,8 +2804,8 @@ Additional Information:
         }
       };
       
-      // Cache the result
-      setCache(cacheKey, statsResult);
+      // Cache the result (user-scoped)
+      setCache(cacheKey, statsResult, undefined, userId);
       res.json(statsResult);
     } catch (error) {
       console.error("Error fetching application stats:", error);
