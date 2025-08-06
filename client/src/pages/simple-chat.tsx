@@ -96,6 +96,7 @@ const useWebSocket = (user: { id: string } | null | undefined) => {
           // Force immediate refresh of current messages if this is the active conversation
           const currentConversationId = data.conversationId;
           if (currentConversationId) {
+            console.log('Force refetching messages for conversation:', currentConversationId);
             queryClient.refetchQueries({ 
               queryKey: ['/api/simple-chat/messages', currentConversationId],
               exact: true
@@ -183,9 +184,11 @@ export default function SimpleChatPage() {
   });
 
   // Get messages for selected conversation
-  const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
+  const { data: messages = [], isLoading: messagesLoading, refetch: refetchMessages } = useQuery<Message[]>({
     queryKey: ['/api/simple-chat/messages', selectedConversation],
     enabled: !!selectedConversation,
+    refetchInterval: false, // Disable auto refetch, we'll control it manually
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const response = await fetch(`/api/simple-chat/messages/${selectedConversation}`, {
         credentials: 'include',
@@ -259,13 +262,25 @@ export default function SimpleChatPage() {
     },
     onSuccess: (response) => {
       console.log('Message sent successfully:', response); // Debug log
+      
+      // Always refresh conversations list
       queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/conversations'] });
+      
+      // Force immediate refresh of current conversation messages
       if (selectedConversation) {
         queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/messages', selectedConversation] });
+        // Force immediate refetch to ensure message appears instantly
+        queryClient.refetchQueries({ 
+          queryKey: ['/api/simple-chat/messages', selectedConversation],
+          exact: true
+        });
       } else if (response?.conversationId) {
         setSelectedConversation(response.conversationId);
         setView('chat');
+        // Refresh messages for the new conversation
+        queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/messages', response.conversationId] });
       }
+      
       setNewMessage('');
     },
     onError: (error) => {
