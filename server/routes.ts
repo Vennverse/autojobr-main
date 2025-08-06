@@ -6019,10 +6019,10 @@ Additional Information:
       const messageData = {
         conversationId,
         senderId: userId,
-        message,
+        encryptedContent: message, // For now, store as plain text, can add encryption later
+        messageHash: Buffer.from(message).toString('base64'), // Simple hash for now
         messageType: 'text',
         isRead: false,
-        isDelivered: true,
       };
 
       const newMessage = await storage.createChatMessage(messageData);

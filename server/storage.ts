@@ -175,11 +175,11 @@ export interface IStorage {
   deleteJobPostingApplication(id: number): Promise<void>;
   
   // Chat system
-  getChatConversations(userId: string): Promise<ChatConversation[]>;
-  getChatConversation(id: number): Promise<ChatConversation | undefined>;
-  createChatConversation(conversation: InsertChatConversation): Promise<ChatConversation>;
-  getChatMessages(conversationId: number): Promise<ChatMessage[]>;
-  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  getChatConversations(userId: string): Promise<Conversation[]>;
+  getChatConversation(id: number): Promise<Conversation | undefined>;
+  createChatConversation(conversation: InsertConversation): Promise<Conversation>;
+  getChatMessages(conversationId: number): Promise<Message[]>;
+  createChatMessage(message: InsertMessage): Promise<Message>;
   markMessagesAsRead(conversationId: number, userId: string): Promise<void>;
   
   // Email verification
