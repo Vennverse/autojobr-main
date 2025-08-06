@@ -114,13 +114,22 @@ export function setupSimpleChatRoutes(app: Express) {
       const newMessage = await simpleChatService.sendMessage(conversationId, req.user.id, message.trim());
       
       // Get conversation to find the other participant for WebSocket notification
-      const conversation = await simpleChatService.getConversationById(conversationId, req.user.id);
-      if (conversation) {
-        const otherUserId = conversation.participant1Id === req.user.id ? 
-          conversation.participant2Id : conversation.participant1Id;
-        
-        // Broadcast new message to other participant via WebSocket
-        simpleWebSocketService.broadcastNewMessage(req.user.id, otherUserId, newMessage);
+      try {
+        const conversation = await simpleChatService.getConversationById(conversationId, req.user.id);
+        if (conversation) {
+          const otherUserId = conversation.participant1Id === req.user.id ? 
+            conversation.participant2Id : conversation.participant1Id;
+          
+          console.log(`Sending WebSocket notification from ${req.user.id} to ${otherUserId} for conversation ${conversationId}`);
+          
+          // Broadcast new message to other participant via WebSocket
+          simpleWebSocketService.broadcastNewMessage(req.user.id, otherUserId, conversationId, newMessage);
+        } else {
+          console.log('Conversation not found for WebSocket notification');
+        }
+      } catch (wsError) {
+        console.error('WebSocket notification error:', wsError);
+        // Don't fail the request if WebSocket fails
       }
       
       res.json(newMessage);

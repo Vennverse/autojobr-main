@@ -62,7 +62,7 @@ const useWebSocket = (user: { id: string } | null | undefined) => {
       setIsConnected(true);
       
       ws.send(JSON.stringify({
-        type: 'auth',
+        type: 'authenticate',
         userId: user.id
       }));
     };
@@ -73,9 +73,34 @@ const useWebSocket = (user: { id: string } | null | undefined) => {
         console.log('WebSocket message received:', data);
         
         if (data.type === 'new_message') {
-          // Refresh conversations and messages
+          console.log('Processing new message for real-time update:', data);
+          
+          // Refresh conversations list to update previews and timestamps
           queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/conversations'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/messages'] });
+          
+          // Refresh messages for the specific conversation
+          if (data.conversationId) {
+            console.log('Invalidating messages for conversation:', data.conversationId);
+            queryClient.invalidateQueries({ 
+              queryKey: ['/api/simple-chat/messages', data.conversationId] 
+            });
+          }
+          
+          // Also refresh all message queries to ensure no messages are missed
+          queryClient.invalidateQueries({ 
+            predicate: (query) => {
+              return query.queryKey[0] === '/api/simple-chat/messages';
+            }
+          });
+          
+          // Force immediate refresh of current messages if this is the active conversation
+          const currentConversationId = data.conversationId;
+          if (currentConversationId) {
+            queryClient.refetchQueries({ 
+              queryKey: ['/api/simple-chat/messages', currentConversationId],
+              exact: true
+            });
+          }
         }
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);

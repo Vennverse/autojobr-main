@@ -312,6 +312,9 @@ export class SimpleChatService {
   /**
    * Get conversation by ID (for participant verification)
    */
+  /**
+   * Get conversation by ID with participant verification
+   */
   async getConversationById(conversationId: number, userId: string) {
     try {
       const conversation = await db.select()

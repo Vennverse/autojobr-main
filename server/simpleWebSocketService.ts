@@ -90,11 +90,22 @@ export class SimpleWebSocketService {
   /**
    * Broadcast new message notification to conversation participants
    */
-  broadcastNewMessage(senderId: string, otherUserId: string, messageData: any) {
+  broadcastNewMessage(senderId: string, otherUserId: string, conversationId: number, messageData: any) {
+    console.log(`Broadcasting new message from ${senderId} to ${otherUserId} for conversation ${conversationId}`);
+    
     // Notify the other participant about the new message
     this.broadcastToUser(otherUserId, {
       type: 'new_message',
       senderId,
+      conversationId,
+      data: messageData
+    });
+    
+    // Also notify the sender for their other sessions
+    this.broadcastToUser(senderId, {
+      type: 'new_message',
+      senderId,
+      conversationId,
       data: messageData
     });
   }
