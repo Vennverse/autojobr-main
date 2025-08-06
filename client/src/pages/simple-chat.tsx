@@ -306,45 +306,48 @@ export default function SimpleChatPage() {
       // Always refresh conversations list
       queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/conversations'] });
 
-      const convId = context?.conversationId ?? variables.conversationId;
+      const convId = context?.conversationId ?? variables.conversationId ?? response?.conversationId;
 
-      // If we are in an existing conversation, try to reconcile the optimistic message
-      if (selectedConversation && convId === selectedConversation) {
-        const replaceWithServerMessage = (serverMessage: any) => {
-          queryClient.setQueryData<Message[]>(
-            ['/api/simple-chat/messages', selectedConversation],
-            (oldMessages = []) => {
-              // Prefer matching by clientTempId; fallback to text match
-              return oldMessages.map((msg: any) => {
-                const isOptimistic = msg.isPending === true;
-                const tempIdMatches = context?.clientTempId != null && msg.clientTempId === context.clientTempId;
-                const textMatches = msg.message === (context?.messageText ?? variables.message) && isOptimistic;
-                if (isOptimistic && (tempIdMatches || textMatches)) {
-                  return { ...serverMessage, isPending: false };
-                }
-                return msg;
-              });
-            }
-          );
-        };
-
-        // Server may return the message in different shapes. Handle robustly.
-        if (response?.message) {
-          replaceWithServerMessage(response.message);
-        } else if (response?.id && response?.message) {
-          replaceWithServerMessage(response);
-        } else {
-          // If we don't have the concrete message payload, refetch and keep optimistic until list arrives
-          queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/messages', selectedConversation] });
-        }
+      // If we are in an existing conversation, reconcile the optimistic message immediately
+      if (selectedConversation && (convId === selectedConversation || response?.message)) {
+        const serverMessage = response?.message || response;
+        
+        // Immediately replace the optimistic message with server message
+        queryClient.setQueryData<Message[]>(
+          ['/api/simple-chat/messages', selectedConversation],
+          (oldMessages = []) => {
+            return oldMessages.map((msg: any) => {
+              const isOptimistic = msg.isPending === true;
+              const tempIdMatches = context?.clientTempId != null && msg.clientTempId === context.clientTempId;
+              const textMatches = msg.message === (context?.messageText ?? variables.message) && isOptimistic;
+              
+              if (isOptimistic && (tempIdMatches || textMatches)) {
+                // Replace with server message, ensuring isPending is false
+                return { 
+                  ...serverMessage, 
+                  isPending: false,
+                  // Ensure we remove clientTempId from the final message
+                  clientTempId: undefined
+                };
+              }
+              return msg;
+            });
+          }
+        );
       } else if (response?.conversationId) {
         // New conversation just created on first message
         setSelectedConversation(response.conversationId);
         setView('chat');
+        // Force refresh the new conversation messages
         queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/messages', response.conversationId] });
       }
 
-      setNewMessage('');
+      // Force a refresh to ensure we have the latest state
+      setTimeout(() => {
+        if (selectedConversation) {
+          queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/messages', selectedConversation] });
+        }
+      }, 100);
     },
     onError: (error: unknown, variables: { conversationId?: number; otherUserId?: string; message: string; clientTempId?: number }, context: { previousMessages?: Message[]; clientTempId?: number } | undefined) => {
       console.error('Failed to send message:', error); // Debug log
@@ -357,12 +360,8 @@ export default function SimpleChatPage() {
         );
       }
     },
-    onSettled: (_data, _err, _vars, _ctx) => {
-      // Instead of blindly invalidating (which can wipe the optimistic state before reconcile),
-      // do a gentle refetch only if a conversation is selected.
-      if (selectedConversation) {
-        queryClient.refetchQueries({ queryKey: ['/api/simple-chat/messages', selectedConversation], exact: true });
-      }
+    onSettled: () => {
+      // Cleanup is now handled in onSuccess/onError
     }
   });
 
@@ -457,41 +456,14 @@ export default function SimpleChatPage() {
     // Clear input FIRST for instant feedback
     setNewMessage('');
 
-    // Create optimistic message that will appear instantly
-    const createOptimisticMessage = () => ({
-      id: clientTempId,
-      senderId: user?.id || '',
-      senderName: 'You',
-      message: messageToSend,
-      messageType: 'text',
-      isRead: false,
-      createdAt: new Date().toISOString(),
-      isPending: true,
-      clientTempId
-    });
-
-    // Immediate local optimistic insert BEFORE kicking off the mutation to guarantee visibility
+    // Kick off mutation - optimistic update is handled in onMutate
     if (selectedConversation) {
-      queryClient.setQueryData<Message[]>(
-        ['/api/simple-chat/messages', selectedConversation],
-        (oldMessages = []) => [...oldMessages, createOptimisticMessage() as unknown as Message]
-      );
-      
-      // Kick off mutation
       sendMessageMutation.mutate({
         conversationId: selectedConversation,
         message: messageToSend,
         clientTempId
       });
     } else if (selectedUser) {
-      // For new conversations, also add optimistic message
-      const tempConvId = clientTempId; // Use as temp conversation ID
-      queryClient.setQueryData<Message[]>(
-        ['/api/simple-chat/messages', tempConvId],
-        () => [createOptimisticMessage() as unknown as Message]
-      );
-      
-      // Kick off mutation
       sendMessageMutation.mutate({
         otherUserId: selectedUser.id,
         message: messageToSend,
