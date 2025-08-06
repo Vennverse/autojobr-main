@@ -184,7 +184,7 @@ export class SimpleChatService {
       const conversationMessages = await db.select({
         id: messages.id,
         senderId: messages.senderId,
-        encryptedContent: messages.encryptedContent, // Use correct field name
+        encryptedContent: messages.encryptedContent, // Use correct field name from schema
         messageType: messages.messageType,
         isRead: messages.isRead,
         createdAt: messages.createdAt,
