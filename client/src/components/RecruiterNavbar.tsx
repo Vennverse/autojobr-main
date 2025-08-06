@@ -60,7 +60,7 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
 
   // Get unread message count for notifications - sync with chat page updates
   const { data: conversations = [] } = useQuery<any[]>({
-    queryKey: ['/api/chat/conversations'],
+    queryKey: ['/api/simple-chat/conversations'],
     enabled: !!user?.id,
     staleTime: 0, // Always fresh - will update when cache is invalidated by chat page
     refetchOnWindowFocus: false, // Prevent unnecessary refetches

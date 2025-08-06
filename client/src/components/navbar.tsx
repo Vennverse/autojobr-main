@@ -55,7 +55,7 @@ export function Navbar() {
 
   // Get unread message count (load once per session)
   const { data: conversations = [] } = useQuery<any[]>({
-    queryKey: ['/api/chat/conversations'],
+    queryKey: ['/api/simple-chat/conversations'],
     enabled: !!user?.id,
     staleTime: 0, // Always fresh - will update when cache is invalidated by chat page
     refetchOnWindowFocus: false, // Prevent unnecessary refetches

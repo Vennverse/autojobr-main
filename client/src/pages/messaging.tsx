@@ -76,24 +76,24 @@ export default function MessagingPage() {
 
   // Get conversations (manual refresh only)
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery<ChatConversation[]>({
-    queryKey: ['/api/chat/conversations'],
+    queryKey: ['/api/simple-chat/conversations'],
     // No automatic refresh - user refreshes page when needed
   });
 
   // Create conversation mutation
   const createConversationMutation = useMutation({
-    mutationFn: async (data: { jobSeekerId: string; recruiterId: string; jobPostingId?: string; applicationId?: string }) => {
-      return apiRequest('POST', '/api/chat/conversations', data);
+    mutationFn: async (data: { otherUserId: string; message?: string }) => {
+      return apiRequest('POST', '/api/simple-chat/conversations', data);
     },
-    onSuccess: (conversation: any) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
-      setSelectedConversation(conversation.id);
+    onSuccess: (result: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/conversations'] });
+      setSelectedConversation(result.conversationId || result.conversation?.id);
     },
   });
 
   // Get messages for selected conversation (manual refresh)
   const { data: conversationMessages = [], isLoading: messagesLoading, error: messagesError } = useQuery<ChatMessage[]>({
-    queryKey: [`/api/chat/conversations/${selectedConversation}/messages`],
+    queryKey: [`/api/simple-chat/messages/${selectedConversation}`],
     enabled: !!selectedConversation,
     // No automatic refresh - messages load once when conversation selected
   });
@@ -105,11 +105,11 @@ export default function MessagingPage() {
   // Simple send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (messageData: { message: string }) => {
-      return apiRequest('POST', `/api/chat/conversations/${selectedConversation}/messages`, messageData);
+      return apiRequest('POST', `/api/simple-chat/conversations/${selectedConversation}/messages`, messageData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/chat/conversations/${selectedConversation}/messages`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/simple-chat/messages/${selectedConversation}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/conversations'] });
       setNewMessage('');
     },
   });
@@ -117,10 +117,10 @@ export default function MessagingPage() {
   // Mark messages as read
   const markAsReadMutation = useMutation({
     mutationFn: async (conversationId: number) => {
-      return apiRequest('POST', `/api/chat/conversations/${conversationId}/read`, {});
+      return apiRequest('POST', `/api/simple-chat/conversations/${conversationId}/read`, {});
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/conversations'] });
     },
   });
 
@@ -134,10 +134,10 @@ export default function MessagingPage() {
   // Simple message refresh button instead of real-time updates
   const refreshMessages = () => {
     queryClient.invalidateQueries({ 
-      queryKey: [`/api/chat/conversations/${selectedConversation}/messages`] 
+      queryKey: [`/api/simple-chat/messages/${selectedConversation}`] 
     });
     queryClient.invalidateQueries({ 
-      queryKey: ['/api/chat/conversations'] 
+      queryKey: ['/api/simple-chat/conversations'] 
     });
   };
 
@@ -154,10 +154,8 @@ export default function MessagingPage() {
       } else if (user.userType === 'recruiter') {
         // Create new conversation as recruiter
         createConversationMutation.mutate({
-          jobSeekerId: preloadApplicantId,
-          recruiterId: user.id,
-          jobPostingId: preloadJobId || undefined,
-          applicationId: preloadApplicationId || undefined,
+          otherUserId: preloadApplicantId,
+          message: "Hello! I'm interested in discussing your profile."
         });
       }
     } else if (conversations.length > 0 && !selectedConversation) {

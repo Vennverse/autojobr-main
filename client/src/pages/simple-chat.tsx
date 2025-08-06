@@ -69,7 +69,7 @@ const useWebSocket = (user: User | undefined) => {
 
     ws.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data);
+        const data = JSON.parse(event.data as string);
         console.log('WebSocket message received:', data);
         
         if (data.type === 'new_message') {
@@ -113,7 +113,7 @@ export default function SimpleChatPage() {
   const queryClient = useQueryClient();
 
   // WebSocket connection
-  const { isConnected } = useWebSocket(user);
+  const { isConnected } = useWebSocket(user || undefined);
 
   // Get all conversations
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery<Conversation[]>({
