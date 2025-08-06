@@ -40,6 +40,7 @@ interface Message {
   messageType: string;
   isRead: boolean;
   createdAt: string;
+  isPending?: boolean; // For optimistic updates
 }
 
 // Simple WebSocket hook for real-time messaging  
@@ -220,11 +221,11 @@ export default function SimpleChatPage() {
     console.log('======================');
   }, [user, selectedConversation, conversations, messages, view, targetUserId, messagesLoading]);
 
-  // Send message mutation
+  // Send message mutation with robust optimistic updates
   const sendMessageMutation = useMutation({
-    mutationFn: async (data: { conversationId?: number; otherUserId?: string; message: string }) => {
+    mutationFn: async (data: { conversationId?: number; otherUserId?: string; message: string; clientTempId?: number }) => {
       console.log('Sending message:', data); // Debug log
-      
+
       if (data.conversationId) {
         // Send message to existing conversation
         const response = await fetch(`/api/simple-chat/conversations/${data.conversationId}/messages`, {
@@ -237,11 +238,11 @@ export default function SimpleChatPage() {
             message: data.message
           })
         });
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         return response.json();
       } else {
         // Create new conversation with first message
@@ -256,43 +257,113 @@ export default function SimpleChatPage() {
             message: data.message
           })
         });
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         return response.json();
       }
     },
-    onSuccess: (response) => {
+    onMutate: async (variables: { conversationId?: number; otherUserId?: string; message: string; clientTempId?: number }) => {
+      // Cancel any outgoing refetches to prevent overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ['/api/simple-chat/messages', selectedConversation] });
+
+      // Snapshot the previous value
+      const previousMessages = queryClient.getQueryData<Message[]>(['/api/simple-chat/messages', selectedConversation]);
+
+      // Create deterministic client temp id and attach to variables for later reconciliation
+      const clientTempId = variables.clientTempId ?? Date.now();
+
+      // Create optimistic message
+      const optimisticMessage: Message & { clientTempId: number } = {
+        id: clientTempId, // Temporary ID for React key
+        senderId: user?.id || '',
+        senderName: 'You',
+        message: variables.message,
+        messageType: 'text',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+        isPending: true,
+        // @ts-ignore - augmenting for client only
+        clientTempId
+      };
+
+      // Optimistically update to the new value
+      if (selectedConversation) {
+        queryClient.setQueryData<Message[]>(
+          ['/api/simple-chat/messages', selectedConversation],
+          (oldMessages = []) => [...oldMessages, optimisticMessage as unknown as Message]
+        );
+      }
+
+      // Return a context object with the snapshot and temp id
+      return { previousMessages, clientTempId, messageText: variables.message, conversationId: variables.conversationId };
+    },
+    onSuccess: (response: any, variables: { conversationId?: number; otherUserId?: string; message: string; clientTempId?: number }, context: { previousMessages?: Message[]; clientTempId?: number; messageText?: string; conversationId?: number } | undefined) => {
       console.log('Message sent successfully:', response); // Debug log
-      
+
       // Always refresh conversations list
       queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/conversations'] });
-      
-      // Force immediate refresh of current conversation messages
-      if (selectedConversation) {
-        console.log('Immediately refreshing messages after sending');
-        queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/messages', selectedConversation] });
-        // Force immediate refetch to ensure message appears instantly
-        setTimeout(() => {
-          queryClient.refetchQueries({ 
-            queryKey: ['/api/simple-chat/messages', selectedConversation],
-            exact: true
-          });
-        }, 100); // Small delay to ensure message is saved
+
+      const convId = context?.conversationId ?? variables.conversationId;
+
+      // If we are in an existing conversation, try to reconcile the optimistic message
+      if (selectedConversation && convId === selectedConversation) {
+        const replaceWithServerMessage = (serverMessage: any) => {
+          queryClient.setQueryData<Message[]>(
+            ['/api/simple-chat/messages', selectedConversation],
+            (oldMessages = []) => {
+              // Prefer matching by clientTempId; fallback to text match
+              return oldMessages.map((msg: any) => {
+                const isOptimistic = msg.isPending === true;
+                const tempIdMatches = context?.clientTempId != null && msg.clientTempId === context.clientTempId;
+                const textMatches = msg.message === (context?.messageText ?? variables.message) && isOptimistic;
+                if (isOptimistic && (tempIdMatches || textMatches)) {
+                  return { ...serverMessage, isPending: false };
+                }
+                return msg;
+              });
+            }
+          );
+        };
+
+        // Server may return the message in different shapes. Handle robustly.
+        if (response?.message) {
+          replaceWithServerMessage(response.message);
+        } else if (response?.id && response?.message) {
+          replaceWithServerMessage(response);
+        } else {
+          // If we don't have the concrete message payload, refetch and keep optimistic until list arrives
+          queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/messages', selectedConversation] });
+        }
       } else if (response?.conversationId) {
+        // New conversation just created on first message
         setSelectedConversation(response.conversationId);
         setView('chat');
-        // Refresh messages for the new conversation
         queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/messages', response.conversationId] });
       }
-      
+
       setNewMessage('');
     },
-    onError: (error) => {
+    onError: (error: unknown, variables: { conversationId?: number; otherUserId?: string; message: string; clientTempId?: number }, context: { previousMessages?: Message[]; clientTempId?: number } | undefined) => {
       console.error('Failed to send message:', error); // Debug log
+
+      // Rollback to the previous value
+      if (context?.previousMessages && selectedConversation) {
+        queryClient.setQueryData<Message[]>(
+          ['/api/simple-chat/messages', selectedConversation],
+          context.previousMessages
+        );
+      }
     },
+    onSettled: (_data, _err, _vars, _ctx) => {
+      // Instead of blindly invalidating (which can wipe the optimistic state before reconcile),
+      // do a gentle refetch only if a conversation is selected.
+      if (selectedConversation) {
+        queryClient.refetchQueries({ queryKey: ['/api/simple-chat/messages', selectedConversation], exact: true });
+      }
+    }
   });
 
   // Mark messages as read
@@ -318,10 +389,13 @@ export default function SimpleChatPage() {
     },
   });
 
-  // Auto-scroll to bottom of messages
+  // Auto-scroll to bottom of messages or when send mutation state changes
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, sendMessageMutation.isPending]);
+
+  // Ensure user's just-typed message appears immediately in UI even before mutation starts
+  // by inserting an optimistic bubble synchronously when pressing Enter/Send.
 
   // Mark messages as read when conversation is opened
   useEffect(() => {
@@ -375,17 +449,48 @@ export default function SimpleChatPage() {
   }, [user?.id, preloadApplicantId, allUsers, conversations]);
 
   const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
+    const messageToSend = newMessage.trim();
+    if (!messageToSend) return;
 
+    const clientTempId = Date.now();
+
+    // Immediate local optimistic insert BEFORE kicking off the mutation to guarantee visibility
+    if (selectedConversation) {
+      queryClient.setQueryData<Message[]>(
+        ['/api/simple-chat/messages', selectedConversation],
+        (oldMessages = []) => {
+          const optimisticMessage: Message & { clientTempId: number } = {
+            id: clientTempId,
+            senderId: user?.id || '',
+            senderName: 'You',
+            message: messageToSend,
+            messageType: 'text',
+            isRead: false,
+            createdAt: new Date().toISOString(),
+            isPending: true,
+            // @ts-ignore client only
+            clientTempId
+          };
+          return [...oldMessages, optimisticMessage as unknown as Message];
+        }
+      );
+    }
+
+    // Clear input immediately for snappier UX
+    setNewMessage('');
+
+    // Kick off mutation
     if (selectedConversation) {
       sendMessageMutation.mutate({
         conversationId: selectedConversation,
-        message: newMessage
+        message: messageToSend,
+        clientTempId
       });
     } else if (selectedUser) {
       sendMessageMutation.mutate({
         otherUserId: selectedUser.id,
-        message: newMessage
+        message: messageToSend,
+        clientTempId
       });
     }
   };
@@ -636,15 +741,18 @@ export default function SimpleChatPage() {
                       message.senderId === user.id
                         ? 'bg-blue-600 text-white'
                         : 'bg-white text-gray-900 border border-gray-200'
-                    }`}>
+                    } ${message.isPending ? 'opacity-70' : ''}`}>
                       <p className="text-sm">{message.message}</p>
-                      <p className={`text-xs mt-1 ${
+                      <p className={`text-xs mt-1 flex items-center ${
                         message.senderId === user.id ? 'text-blue-100' : 'text-gray-500'
                       }`}>
-                        {new Date(message.createdAt).toLocaleTimeString([], { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
+                        {new Date(message.createdAt).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit'
                         })}
+                        {message.isPending && (
+                          <span className="ml-2 text-xs">Sending...</span>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -661,7 +769,12 @@ export default function SimpleChatPage() {
                 placeholder="Type your message..."
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
                 className="flex-1"
                 disabled={sendMessageMutation.isPending}
               />

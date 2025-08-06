@@ -58,10 +58,13 @@ export function setupSimpleChatRoutes(app: Express) {
         newMessage = await simpleChatService.sendMessage(conversation.id, req.user.id, message.trim());
       }
 
+      // Wrap normalized message shape consistently
       res.json({
         conversation,
-        message: newMessage,
-        conversationId: conversation.id
+        conversationId: conversation.id,
+        message: newMessage ? {
+          ...newMessage
+        } : null
       });
     } catch (error) {
       console.error('Error creating conversation:', error);
@@ -117,13 +120,15 @@ export function setupSimpleChatRoutes(app: Express) {
       try {
         const conversation = await simpleChatService.getConversationById(conversationId, req.user.id);
         if (conversation) {
-          const otherUserId = conversation.participant1Id === req.user.id ? 
+          const otherUserId = conversation.participant1Id === req.user.id ?
             conversation.participant2Id : conversation.participant1Id;
           
           console.log(`Sending WebSocket notification from ${req.user.id} to ${otherUserId} for conversation ${conversationId}`);
           
-          // Broadcast new message to other participant via WebSocket
-          simpleWebSocketService.broadcastNewMessage(req.user.id, otherUserId, conversationId, newMessage);
+          // Broadcast new message to both participants via WebSocket with normalized payload
+          simpleWebSocketService.broadcastNewMessage(req.user.id, otherUserId, conversationId, {
+            ...newMessage
+          });
         } else {
           console.log('Conversation not found for WebSocket notification');
         }
@@ -132,7 +137,8 @@ export function setupSimpleChatRoutes(app: Express) {
         // Don't fail the request if WebSocket fails
       }
       
-      res.json(newMessage);
+      // Respond with consistent wrapped shape
+      res.json({ message: { ...newMessage } });
     } catch (error) {
       console.error('Error sending message:', error instanceof Error ? error.message : String(error));
       res.status(500).json({ message: 'Failed to send message' });

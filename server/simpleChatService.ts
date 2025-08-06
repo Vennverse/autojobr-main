@@ -52,32 +52,76 @@ export class SimpleChatService {
   }
 
   /**
+   * Normalize a raw DB message row to client-facing shape
+   */
+  private async normalizeMessageRow(row: any) {
+    try {
+      // fetch sender name
+      const sender = await db.select({
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+      }).from(users).where(eq(users.id, row.senderId)).limit(1);
+
+      const senderName = sender[0]?.firstName && sender[0]?.lastName
+        ? `${sender[0].firstName} ${sender[0].lastName}`
+        : sender[0]?.email || 'Unknown User';
+
+      return {
+        id: row.id,
+        conversationId: row.conversationId,
+        senderId: row.senderId,
+        senderName,
+        message: row.encryptedContent || '',
+        messageType: row.messageType,
+        isRead: row.isRead,
+        createdAt: row.createdAt,
+      };
+    } catch (e) {
+      // best-effort fallback
+      return {
+        id: row.id,
+        conversationId: row.conversationId,
+        senderId: row.senderId,
+        senderName: 'Unknown User',
+        message: row.encryptedContent || '',
+        messageType: row.messageType,
+        isRead: row.isRead,
+        createdAt: row.createdAt,
+      };
+    }
+  }
+
+  /**
    * Send a message in a conversation
    */
   async sendMessage(conversationId: number, senderId: string, messageText: string) {
     try {
-      // For now, store plain text (simplified chat)
-      const newMessage = await db.insert(messages)
+      // Store plaintext as-is to match current schema usage
+      const inserted = await db.insert(messages)
         .values({
           conversationId,
           senderId,
-          encryptedContent: messageText, // Store as plain text for now
-          messageHash: Buffer.from(messageText).toString('base64'), // Simple hash
+          encryptedContent: messageText,
+          messageHash: Buffer.from(messageText).toString('base64'),
           messageType: 'text',
           isRead: false,
         })
         .returning();
 
-      // Update conversation's last message  
+      const saved = inserted[0];
+
+      // Update conversation metadata with preview (plain substring for now)
       await db.update(conversations)
         .set({
           lastMessageAt: new Date(),
-          lastMessagePreview: messageText.substring(0, 100), // Simple preview
+          lastMessagePreview: messageText.substring(0, 100),
           updatedAt: new Date(),
         })
         .where(eq(conversations.id, conversationId));
 
-      return newMessage[0];
+      // Return normalized message object
+      return await this.normalizeMessageRow(saved);
     } catch (error) {
       console.error('Error sending message:', error);
       throw new Error('Failed to send message');
@@ -200,7 +244,7 @@ export class SimpleChatService {
       .offset(offset)
       .limit(limit);
 
-      // Return messages (simplified - no encryption for now)
+      // Return messages normalized and including conversationId for consistency
       return conversationMessages.map(msg => {
         const senderName = msg.senderFirstName && msg.senderLastName
           ? `${msg.senderFirstName} ${msg.senderLastName}`
@@ -208,9 +252,10 @@ export class SimpleChatService {
 
         return {
           id: msg.id,
+          conversationId,
           senderId: msg.senderId,
           senderName,
-          message: msg.encryptedContent || '', // Use encryptedContent directly
+          message: msg.encryptedContent || '',
           messageType: msg.messageType,
           isRead: msg.isRead,
           createdAt: msg.createdAt,
