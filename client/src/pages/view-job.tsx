@@ -350,26 +350,19 @@ export default function ViewJob() {
                 <CardContent className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm">Applications</span>
-                    </div>
-                    <span className="font-semibold">{job.applicationsCount || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Eye className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm">Views</span>
-                    </div>
-                    <span className="font-semibold">{job.viewsCount || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-gray-500" />
                       <span className="text-sm">Posted</span>
                     </div>
                     <span className="font-semibold text-sm">
                       {new Date(job.createdAt).toLocaleDateString()}
                     </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm">Location</span>
+                    </div>
+                    <span className="font-semibold text-sm">{job.location}</span>
                   </div>
                   {job.experienceLevel && (
                     <div className="flex items-center justify-between">
@@ -378,6 +371,15 @@ export default function ViewJob() {
                         <span className="text-sm">Experience</span>
                       </div>
                       <span className="font-semibold text-sm">{job.experienceLevel}</span>
+                    </div>
+                  )}
+                  {job.workMode && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Building className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm">Work Mode</span>
+                      </div>
+                      <span className="font-semibold text-sm capitalize">{job.workMode}</span>
                     </div>
                   )}
                 </CardContent>
