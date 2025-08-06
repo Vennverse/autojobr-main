@@ -56,31 +56,21 @@ export class SimpleChatService {
    */
   async sendMessage(conversationId: number, senderId: string, messageText: string) {
     try {
-      // Encrypt and compress the message
-      const { encryptedContent, messageHash, compressionType } = 
-        chatEncryptionService.encryptMessage(messageText);
-
-      // Create encrypted preview
-      const lastMessagePreview = chatEncryptionService.createPreview(messageText);
-
-      // Insert the message
+      // For now, store plain text (simplified chat)
       const newMessage = await db.insert(messages)
         .values({
           conversationId,
           senderId,
-          encryptedContent,
-          messageHash,
-          compressionType,
-          messageType: 'text',
+          content: messageText, // Store plain text directly
           isRead: false,
         })
         .returning();
 
-      // Update conversation's last message
+      // Update conversation's last message  
       await db.update(conversations)
         .set({
           lastMessageAt: new Date(),
-          lastMessagePreview,
+          lastMessagePreview: messageText.substring(0, 100), // Simple preview
           updatedAt: new Date(),
         })
         .where(eq(conversations.id, conversationId));
@@ -192,8 +182,7 @@ export class SimpleChatService {
       const conversationMessages = await db.select({
         id: messages.id,
         senderId: messages.senderId,
-        encryptedContent: messages.encryptedContent,
-        messageHash: messages.messageHash,
+        content: messages.content, // Use 'content' instead of 'encryptedContent'
         messageType: messages.messageType,
         isRead: messages.isRead,
         createdAt: messages.createdAt,
@@ -209,19 +198,8 @@ export class SimpleChatService {
       .offset(offset)
       .limit(limit);
 
-      // Decrypt messages
+      // Return messages (simplified - no encryption for now)
       return conversationMessages.map(msg => {
-        let decryptedContent = '';
-        try {
-          decryptedContent = chatEncryptionService.decryptMessage(
-            msg.encryptedContent, 
-            msg.messageHash
-          );
-        } catch (error) {
-          console.error('Message decryption failed:', error);
-          decryptedContent = '[Message could not be decrypted]';
-        }
-
         const senderName = msg.senderFirstName && msg.senderLastName
           ? `${msg.senderFirstName} ${msg.senderLastName}`
           : msg.senderEmail || 'Unknown User';
@@ -230,7 +208,7 @@ export class SimpleChatService {
           id: msg.id,
           senderId: msg.senderId,
           senderName,
-          message: decryptedContent,
+          message: msg.content || '', // Use content directly
           messageType: msg.messageType,
           isRead: msg.isRead,
           createdAt: msg.createdAt,
