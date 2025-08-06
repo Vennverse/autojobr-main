@@ -127,43 +127,109 @@ export default function SimpleChatPage() {
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery<Conversation[]>({
     queryKey: ['/api/simple-chat/conversations'],
     enabled: !!user?.id,
+    queryFn: async () => {
+      const response = await fetch('/api/simple-chat/conversations', {
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return response.json();
+    }
   });
 
   // Get all users for directory
   const { data: allUsers = [], isLoading: usersLoading } = useQuery<ChatUser[]>({
     queryKey: ['/api/simple-chat/users'],
-    enabled: !!user?.id && view === 'users',
+    enabled: !!user?.id, // Remove view dependency - we need users for URL routing
+    queryFn: async () => {
+      const response = await fetch('/api/simple-chat/users', {
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return response.json();
+    }
   });
 
   // Get messages for selected conversation
   const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
     queryKey: ['/api/simple-chat/messages', selectedConversation],
     enabled: !!selectedConversation,
+    queryFn: async () => {
+      const response = await fetch(`/api/simple-chat/messages/${selectedConversation}`, {
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return response.json();
+    }
   });
 
-  // Debug logs
-  console.log('Current user:', user);
-  console.log('Selected conversation:', selectedConversation);
-  console.log('Conversations:', conversations);
-  console.log('Messages:', messages);
-  console.log('View:', view);
-  console.log('Target user ID from URL:', targetUserId);
-  console.log('Messages loading:', messagesLoading);
-  console.log('Messages query enabled:', !!selectedConversation);
+  // Debug logs - Remove after testing
+  useEffect(() => {
+    console.log('=== CHAT DEBUG INFO ===');
+    console.log('Current user:', user?.id);
+    console.log('Selected conversation:', selectedConversation);
+    console.log('Conversations count:', conversations.length);
+    console.log('Messages count:', messages.length);
+    console.log('View:', view);
+    console.log('Target user ID from URL:', targetUserId);
+    console.log('Messages loading:', messagesLoading);
+    console.log('Messages query enabled:', !!selectedConversation);
+    console.log('======================');
+  }, [user, selectedConversation, conversations, messages, view, targetUserId, messagesLoading]);
 
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (data: { conversationId?: number; otherUserId?: string; message: string }) => {
       console.log('Sending message:', data); // Debug log
+      
       if (data.conversationId) {
-        return apiRequest('POST', `/api/simple-chat/conversations/${data.conversationId}/messages`, {
-          message: data.message
+        // Send message to existing conversation
+        const response = await fetch(`/api/simple-chat/conversations/${data.conversationId}/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            message: data.message
+          })
         });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return response.json();
       } else {
-        return apiRequest('POST', '/api/simple-chat/conversations', {
-          otherUserId: data.otherUserId,
-          message: data.message
+        // Create new conversation with first message
+        const response = await fetch('/api/simple-chat/conversations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            otherUserId: data.otherUserId,
+            message: data.message
+          })
         });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return response.json();
       }
     },
     onSuccess: (response) => {
@@ -185,7 +251,20 @@ export default function SimpleChatPage() {
   // Mark messages as read
   const markAsReadMutation = useMutation({
     mutationFn: async (conversationId: number) => {
-      return apiRequest('POST', `/api/simple-chat/conversations/${conversationId}/read`, {});
+      const response = await fetch(`/api/simple-chat/conversations/${conversationId}/read`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({})
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/conversations'] });
