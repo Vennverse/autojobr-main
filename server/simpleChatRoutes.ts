@@ -1,19 +1,12 @@
 import { Express } from "express";
 import { simpleChatService } from "./simpleChatService";
+import { isAuthenticated } from "./auth";
 
 /**
  * Simple LinkedIn-style Chat API Routes
  * Clean, minimal API for encrypted messaging
  */
 export function setupSimpleChatRoutes(app: Express) {
-  
-  // Middleware to check authentication
-  const isAuthenticated = (req: any, res: any, next: any) => {
-    if (!req.user?.id) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
-    next();
-  };
 
   /**
    * GET /api/simple-chat/users

@@ -842,50 +842,50 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Chat system
-  async getChatConversations(userId: string): Promise<ChatConversation[]> {
+  async getChatConversations(userId: string): Promise<Conversation[]> {
     return await handleDbOperation(async () => {
       return await db
         .select()
-        .from(chatConversations)
+        .from(conversations)
         .where(
           or(
-            eq(chatConversations.recruiterId, userId),
-            eq(chatConversations.jobSeekerId, userId)
+            eq(conversations.participant1Id, userId),
+            eq(conversations.participant2Id, userId)
           )
         )
-        .orderBy(desc(chatConversations.lastMessageAt));
+        .orderBy(desc(conversations.lastMessageAt));
     }, []);
   }
 
-  async getChatConversation(id: number): Promise<ChatConversation | undefined> {
+  async getChatConversation(id: number): Promise<Conversation | undefined> {
     return await handleDbOperation(async () => {
-      const [conversation] = await db.select().from(chatConversations).where(eq(chatConversations.id, id));
+      const [conversation] = await db.select().from(conversations).where(eq(conversations.id, id));
       return conversation;
     });
   }
 
-  async createChatConversation(conversationData: InsertChatConversation): Promise<ChatConversation> {
+  async createChatConversation(conversationData: InsertConversation): Promise<Conversation> {
     return await handleDbOperation(async () => {
-      const [conversation] = await db.insert(chatConversations).values(conversationData).returning();
+      const [conversation] = await db.insert(conversations).values(conversationData).returning();
       return conversation;
     });
   }
 
-  async getChatMessages(conversationId: number): Promise<ChatMessage[]> {
+  async getChatMessages(conversationId: number): Promise<Message[]> {
     return await handleDbOperation(async () => {
-      return await db.select().from(chatMessages).where(eq(chatMessages.conversationId, conversationId)).orderBy(chatMessages.createdAt);
+      return await db.select().from(messages).where(eq(messages.conversationId, conversationId)).orderBy(messages.createdAt);
     }, []);
   }
 
-  async createChatMessage(messageData: InsertChatMessage): Promise<ChatMessage> {
+  async createChatMessage(messageData: InsertMessage): Promise<Message> {
     return await handleDbOperation(async () => {
-      const [message] = await db.insert(chatMessages).values(messageData).returning();
+      const [message] = await db.insert(messages).values(messageData).returning();
       
       // Update conversation's last message timestamp
       await db
-        .update(chatConversations)
+        .update(conversations)
         .set({ lastMessageAt: new Date() })
-        .where(eq(chatConversations.id, messageData.conversationId));
+        .where(eq(conversations.id, messageData.conversationId));
       
       return message;
     });
@@ -894,15 +894,15 @@ export class DatabaseStorage implements IStorage {
   async markMessagesAsRead(conversationId: number, userId: string): Promise<void> {
     return await handleDbOperation(async () => {
       await db
-        .update(chatMessages)
+        .update(messages)
         .set({ 
           isRead: true,
           readAt: new Date()
         })
         .where(
           and(
-            eq(chatMessages.conversationId, conversationId),
-            ne(chatMessages.senderId, userId)
+            eq(messages.conversationId, conversationId),
+            ne(messages.senderId, userId)
           )
         );
     });
@@ -911,9 +911,9 @@ export class DatabaseStorage implements IStorage {
   async updateConversationLastMessage(conversationId: number): Promise<void> {
     return await handleDbOperation(async () => {
       await db
-        .update(chatConversations)
+        .update(conversations)
         .set({ lastMessageAt: new Date() })
-        .where(eq(chatConversations.id, conversationId));
+        .where(eq(conversations.id, conversationId));
     });
   }
 

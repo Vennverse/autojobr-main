@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Send, Users, MessageCircle, ArrowLeft } from 'lucide-react';
 import { WebSocketServer, WebSocket } from 'ws';
 
-interface User {
+interface ChatUser {
   id: string;
   name: string;
   email: string;
@@ -42,8 +42,8 @@ interface Message {
   createdAt: string;
 }
 
-// Simple WebSocket hook for real-time messaging
-const useWebSocket = (user: User | undefined) => {
+// Simple WebSocket hook for real-time messaging  
+const useWebSocket = (user: { id: string } | null | undefined) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const queryClient = useQueryClient();
@@ -105,7 +105,7 @@ const useWebSocket = (user: User | undefined) => {
 export default function SimpleChatPage() {
   const { user } = useAuth();
   const [selectedConversation, setSelectedConversation] = useState<number | null>(null);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<ChatUser | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [view, setView] = useState<'conversations' | 'users' | 'chat'>('conversations');
@@ -113,7 +113,7 @@ export default function SimpleChatPage() {
   const queryClient = useQueryClient();
 
   // WebSocket connection
-  const { isConnected } = useWebSocket(user || undefined);
+  const { isConnected } = useWebSocket(user);
 
   // Get all conversations
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery<Conversation[]>({
@@ -122,7 +122,7 @@ export default function SimpleChatPage() {
   });
 
   // Get all users for directory
-  const { data: allUsers = [], isLoading: usersLoading } = useQuery<User[]>({
+  const { data: allUsers = [], isLoading: usersLoading } = useQuery<ChatUser[]>({
     queryKey: ['/api/simple-chat/users'],
     enabled: !!user?.id && view === 'users',
   });
@@ -197,7 +197,7 @@ export default function SimpleChatPage() {
     }
   };
 
-  const startNewConversation = (user: User) => {
+  const startNewConversation = (user: ChatUser) => {
     setSelectedUser(user);
     setSelectedConversation(null);
     setView('chat');
