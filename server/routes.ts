@@ -59,8 +59,10 @@ import {
   checkPremiumTargetingAccess
 } from "./subscriptionLimitMiddleware.js";
 import { subscriptionEnforcementService } from "./subscriptionEnforcementService.js";
+import { ResumeParser } from "./resumeParser.js";
 
 // Initialize services
+const resumeParser = new ResumeParser();
 const premiumFeaturesService = new PremiumFeaturesService();
 const subscriptionService = new SubscriptionService();
 
@@ -1534,8 +1536,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No file uploaded" });
       }
       
-      // Create resume content for AI analysis based on uploaded file
-      const resumeText = `
+      // Parse resume content using free NLP parser
+      let resumeText = '';
+      let parsedData = null;
+      
+      try {
+        // Use free NLP parser to extract structured data from resume
+        parsedData = await resumeParser.parseResumeFile(file.buffer, file.mimetype);
+        console.log('Parsed resume data:', parsedData);
+        
+        // Create structured resume text for analysis
+        resumeText = `
+Resume Document: ${file.originalname}
+File Type: ${file.mimetype}
+Size: ${(file.size / 1024).toFixed(1)} KB
+
+${parsedData.fullName ? `Name: ${parsedData.fullName}` : ''}
+${parsedData.email ? `Email: ${parsedData.email}` : ''}
+${parsedData.phone ? `Phone: ${parsedData.phone}` : ''}
+${parsedData.professionalTitle ? `Professional Title: ${parsedData.professionalTitle}` : ''}
+${parsedData.yearsExperience ? `Years of Experience: ${parsedData.yearsExperience}` : ''}
+${parsedData.city || parsedData.state ? `Location: ${[parsedData.city, parsedData.state].filter(Boolean).join(', ')}` : ''}
+
+${parsedData.summary ? `Professional Summary:\n${parsedData.summary}` : ''}
+
+${parsedData.workExperience && parsedData.workExperience.length > 0 ? 
+  `Work Experience:\n${parsedData.workExperience.map(exp => 
+    `• ${exp.title || 'Position'} at ${exp.company || 'Company'} ${exp.duration ? `(${exp.duration})` : ''}`
+  ).join('\n')}` : 
+  'Work Experience:\n• Professional experience details from resume'}
+
+${parsedData.skills && parsedData.skills.length > 0 ? 
+  `Skills & Technologies:\n${parsedData.skills.map(skill => `• ${skill}`).join('\n')}` : 
+  'Skills & Technologies:\n• Technical and professional skills from resume'}
+
+${parsedData.education && parsedData.education.length > 0 ? 
+  `Education:\n${parsedData.education.map(edu => 
+    `• ${edu.degree || 'Degree'} ${edu.institution ? `from ${edu.institution}` : ''} ${edu.year ? `(${edu.year})` : ''}`
+  ).join('\n')}` : 
+  'Education:\n• Academic qualifications and degrees'}
+
+${parsedData.linkedinUrl ? `LinkedIn: ${parsedData.linkedinUrl}` : ''}
+        `.trim();
+      } catch (parseError) {
+        console.error('Resume parsing error:', parseError);
+        // Fallback to basic resume text
+        resumeText = `
 Resume Document: ${file.originalname}
 File Type: ${file.mimetype}
 Size: ${(file.size / 1024).toFixed(1)} KB
@@ -1563,7 +1609,8 @@ Additional Information:
 • Professional achievements and recognition
 • Relevant projects and contributions
 • Industry involvement and networking
-      `.trim();
+        `.trim();
+      }
       
       // Get user profile for better analysis
       let userProfile;
@@ -1655,7 +1702,8 @@ Additional Information:
         analysis: analysis,
         fileName: file.originalname,
         message: "Resume uploaded and analyzed successfully",
-        resume: newResume 
+        resume: newResume,
+        parsedData: parsedData // Include parsed data for auto-filling onboarding form
       });
     } catch (error) {
       console.error("=== RESUME UPLOAD ERROR ===");

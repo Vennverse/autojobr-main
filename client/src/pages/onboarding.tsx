@@ -168,16 +168,16 @@ export default function Onboarding() {
     },
   });
 
-  // Resume upload function
+  // Resume upload function with auto-fill
   const handleResumeUpload = async (file: File) => {
     setIsUploadingResume(true);
     try {
-      const formData = new FormData();
-      formData.append('resume', file);
+      const uploadFormData = new FormData();
+      uploadFormData.append('resume', file);
 
       const response = await fetch('/api/resumes/upload', {
         method: 'POST',
-        body: formData,
+        body: uploadFormData,
         credentials: 'include',
       });
 
@@ -188,10 +188,54 @@ export default function Onboarding() {
 
       const result = await response.json();
       
-      toast({
-        title: "Resume Analyzed",
-        description: `ATS Score: ${result.analysis.atsScore}/100`,
-      });
+      // Auto-fill form data from parsed resume if available
+      if (result.parsedData) {
+        const parsedData = result.parsedData;
+        const newFormData = { ...formData };
+        
+        // Auto-fill basic information
+        if (parsedData.fullName) newFormData.fullName = parsedData.fullName;
+        if (parsedData.email) newFormData.email = parsedData.email;
+        if (parsedData.phone) newFormData.phone = parsedData.phone;
+        if (parsedData.professionalTitle) newFormData.professionalTitle = parsedData.professionalTitle;
+        if (parsedData.yearsExperience) newFormData.yearsExperience = parsedData.yearsExperience;
+        if (parsedData.summary) newFormData.summary = parsedData.summary;
+        if (parsedData.linkedinUrl) newFormData.linkedinUrl = parsedData.linkedinUrl;
+        
+        // Auto-fill location
+        if (parsedData.city) newFormData.city = parsedData.city;
+        if (parsedData.state) newFormData.state = parsedData.state;
+        
+        // Auto-fill education if available
+        if (parsedData.education && parsedData.education.length > 0) {
+          const highestDegree = parsedData.education[0];
+          if (highestDegree.degree) {
+            const degreeMap: {[key: string]: string} = {
+              'bachelor': 'bachelors',
+              'master': 'masters',
+              'phd': 'phd',
+              'doctorate': 'phd',
+              'associate': 'associates',
+              'diploma': 'other',
+              'certificate': 'other'
+            };
+            const mappedDegree = degreeMap[highestDegree.degree.toLowerCase()] || 'other';
+            newFormData.highestDegree = mappedDegree;
+          }
+        }
+        
+        setFormData(newFormData);
+        
+        toast({
+          title: "Resume Analyzed & Profile Auto-filled",
+          description: `ATS Score: ${result.resume?.atsScore || 'N/A'}/100. Please review the auto-filled information.`,
+        });
+      } else {
+        toast({
+          title: "Resume Uploaded Successfully",
+          description: `ATS Score: ${result.resume?.atsScore || 'Analyzing...'}/100 - Your resume has been analyzed and optimized.`,
+        });
+      }
 
       // Refresh queries
       queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
@@ -199,6 +243,17 @@ export default function Onboarding() {
       queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
       
     } catch (error: any) {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
       toast({
         title: "Upload Failed",
         description: error.message,
@@ -310,9 +365,95 @@ export default function Onboarding() {
 
   const steps = [
     {
+      id: "resume_upload",
+      title: "Upload Your Resume",
+      description: "Let us analyze your resume and auto-fill your profile",
+      content: (
+        <div className="space-y-6">
+          {!onboardingStatus?.hasResume ? (
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+              <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium mb-2">Upload Your Resume</h3>
+              <p className="text-gray-600 mb-4">
+                Upload a PDF file and we'll automatically fill your profile information
+              </p>
+              <Input
+                type="file"
+                accept=".pdf"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setResumeFile(file);
+                    handleResumeUpload(file);
+                  }
+                }}
+                disabled={isUploadingResume}
+                className="max-w-xs mx-auto"
+                data-testid="input-resume-upload"
+              />
+              {isUploadingResume && (
+                <div className="mt-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="text-sm text-gray-600 mt-2">Analyzing resume and auto-filling profile...</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-green-600">
+                <CheckCircle className="w-5 h-5" />
+                <span className="font-medium">Resume uploaded and analyzed</span>
+              </div>
+              
+              {resumeAnalysis && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Star className="w-5 h-5 text-yellow-500" />
+                      <span className="font-medium">ATS Score:</span>
+                      <Badge variant={(onboardingStatus?.atsScore || 0) >= 80 ? "default" : (onboardingStatus?.atsScore || 0) >= 60 ? "secondary" : "destructive"}>
+                        {onboardingStatus?.atsScore || 'N/A'}/100
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded">
+                    Profile information has been auto-filled from your resume. Please review and complete any missing fields in the next steps.
+                  </div>
+                </div>
+              )}
+              
+              <div className="text-center">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.pdf';
+                    input.onchange = (e) => {
+                      const file = (e.target as HTMLInputElement).files?.[0];
+                      if (file) {
+                        setResumeFile(file);
+                        handleResumeUpload(file);
+                      }
+                    };
+                    input.click();
+                  }}
+                  disabled={isUploadingResume}
+                  data-testid="button-upload-new-resume"
+                >
+                  Upload New Resume
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
       id: "basic_info",
       title: "Basic Information",
-      description: "Tell us about yourself",
+      description: "Review and complete your profile details",
       content: (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
