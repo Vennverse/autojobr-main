@@ -141,9 +141,20 @@ export default function SimpleChatPage() {
     enabled: !!selectedConversation,
   });
 
+  // Debug logs
+  console.log('Current user:', user);
+  console.log('Selected conversation:', selectedConversation);
+  console.log('Conversations:', conversations);
+  console.log('Messages:', messages);
+  console.log('View:', view);
+  console.log('Target user ID from URL:', targetUserId);
+  console.log('Messages loading:', messagesLoading);
+  console.log('Messages query enabled:', !!selectedConversation);
+
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (data: { conversationId?: number; otherUserId?: string; message: string }) => {
+      console.log('Sending message:', data); // Debug log
       if (data.conversationId) {
         return apiRequest('POST', `/api/simple-chat/conversations/${data.conversationId}/messages`, {
           message: data.message
@@ -156,6 +167,7 @@ export default function SimpleChatPage() {
       }
     },
     onSuccess: (response) => {
+      console.log('Message sent successfully:', response); // Debug log
       queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/conversations'] });
       if (selectedConversation) {
         queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/messages', selectedConversation] });
@@ -164,6 +176,9 @@ export default function SimpleChatPage() {
         setView('chat');
       }
       setNewMessage('');
+    },
+    onError: (error) => {
+      console.error('Failed to send message:', error); // Debug log
     },
   });
 
@@ -193,19 +208,26 @@ export default function SimpleChatPage() {
   useEffect(() => {
     if (!user?.id || !targetUserId || !allUsers.length) return;
 
+    console.log('Processing URL target user:', targetUserId);
+    
     // Find the target user
     const targetUser = allUsers.find(u => u.id === targetUserId);
     if (targetUser) {
+      console.log('Found target user:', targetUser);
       // Check if conversation already exists
       const existingConversation = conversations.find(conv => conv.otherUserId === targetUserId);
       if (existingConversation) {
+        console.log('Found existing conversation:', existingConversation);
         setSelectedConversation(existingConversation.id);
         setView('chat');
       } else {
+        console.log('No existing conversation, starting new one');
         // Start new conversation
         setSelectedUser(targetUser);
         setView('chat');
       }
+    } else {
+      console.log('Target user not found in allUsers');
     }
   }, [user?.id, targetUserId, allUsers, conversations]);
 
@@ -467,6 +489,13 @@ export default function SimpleChatPage() {
                   <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500">No messages yet</p>
                   <p className="text-sm text-gray-400 mt-1">Start the conversation!</p>
+                  {/* Debug info */}
+                  <div className="mt-4 text-xs text-gray-400">
+                    <p>Conversation ID: {selectedConversation}</p>
+                    <p>Messages array length: {messages.length}</p>
+                    <p>Messages loading: {messagesLoading ? 'Yes' : 'No'}</p>
+                    <p>Query enabled: {!!selectedConversation ? 'Yes' : 'No'}</p>
+                  </div>
                 </div>
               </div>
             ) : (
