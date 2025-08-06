@@ -62,6 +62,9 @@ export class SimpleChatService {
           conversationId,
           senderId,
           content: messageText, // Store plain text directly
+          encryptedContent: messageText, // Store as plain text for now
+          messageHash: Buffer.from(messageText).toString('base64'), // Simple hash
+          messageType: 'text',
           isRead: false,
         })
         .returning();
