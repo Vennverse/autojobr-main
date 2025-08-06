@@ -284,7 +284,7 @@ export default function SimpleChatPage() {
         messageType: 'text',
         isRead: false,
         createdAt: new Date().toISOString(),
-        isPending: true,
+        isPending: false,
         // @ts-ignore - augmenting for client only
         clientTempId
       };
@@ -306,48 +306,15 @@ export default function SimpleChatPage() {
       // Always refresh conversations list
       queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/conversations'] });
 
-      const convId = context?.conversationId ?? variables.conversationId ?? response?.conversationId;
-
-      // If we are in an existing conversation, reconcile the optimistic message immediately
-      if (selectedConversation && (convId === selectedConversation || response?.message)) {
-        const serverMessage = response?.message || response;
-        
-        // Immediately replace the optimistic message with server message
-        queryClient.setQueryData<Message[]>(
-          ['/api/simple-chat/messages', selectedConversation],
-          (oldMessages = []) => {
-            return oldMessages.map((msg: any) => {
-              const isOptimistic = msg.isPending === true;
-              const tempIdMatches = context?.clientTempId != null && msg.clientTempId === context.clientTempId;
-              const textMatches = msg.message === (context?.messageText ?? variables.message) && isOptimistic;
-              
-              if (isOptimistic && (tempIdMatches || textMatches)) {
-                // Replace with server message, ensuring isPending is false
-                return { 
-                  ...serverMessage, 
-                  isPending: false,
-                  // Ensure we remove clientTempId from the final message
-                  clientTempId: undefined
-                };
-              }
-              return msg;
-            });
-          }
-        );
-      } else if (response?.conversationId) {
-        // New conversation just created on first message
+      // For new conversations
+      if (response?.conversationId && !selectedConversation) {
         setSelectedConversation(response.conversationId);
         setView('chat');
-        // Force refresh the new conversation messages
-        queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/messages', response.conversationId] });
       }
 
-      // Force a refresh to ensure we have the latest state
-      setTimeout(() => {
-        if (selectedConversation) {
-          queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/messages', selectedConversation] });
-        }
-      }, 100);
+      // Don't remove the optimistic message - just leave it there
+      // The message is already visible and working
+      console.log('Message sent, keeping optimistic message visible');
     },
     onError: (error: unknown, variables: { conversationId?: number; otherUserId?: string; message: string; clientTempId?: number }, context: { previousMessages?: Message[]; clientTempId?: number } | undefined) => {
       console.error('Failed to send message:', error); // Debug log
