@@ -91,6 +91,9 @@ function Router() {
       {/* Post Job route - accessible to everyone, handles verification internally */}
       <Route path="/post-job" component={PostJob} />
       
+      {/* Public job viewing - accessible to everyone for discovery */}
+      <Route path="/jobs/:id" component={ViewJob} />
+      
       {isAuthenticated ? (
         <>
           {/* Handle different user types */}
