@@ -76,33 +76,11 @@ const useWebSocket = (user: { id: string } | null | undefined) => {
         if (data.type === 'new_message') {
           console.log('Processing new message for real-time update:', data);
           
-          // Refresh conversations list to update previews and timestamps
+          // Only refresh conversations list to update previews and timestamps
           queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/conversations'] });
           
-          // Refresh messages for the specific conversation
-          if (data.conversationId) {
-            console.log('Invalidating messages for conversation:', data.conversationId);
-            queryClient.invalidateQueries({ 
-              queryKey: ['/api/simple-chat/messages', data.conversationId] 
-            });
-          }
-          
-          // Also refresh all message queries to ensure no messages are missed
-          queryClient.invalidateQueries({ 
-            predicate: (query) => {
-              return query.queryKey[0] === '/api/simple-chat/messages';
-            }
-          });
-          
-          // Force immediate refresh of current messages if this is the active conversation
-          const currentConversationId = data.conversationId;
-          if (currentConversationId) {
-            console.log('Force refetching messages for conversation:', currentConversationId);
-            queryClient.refetchQueries({ 
-              queryKey: ['/api/simple-chat/messages', currentConversationId],
-              exact: true
-            });
-          }
+          // DON'T invalidate messages - this causes sent messages to disappear!
+          // The optimistic update and onSuccess handler will manage message display
         }
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);
@@ -188,7 +166,7 @@ export default function SimpleChatPage() {
   const { data: messages = [], isLoading: messagesLoading, refetch: refetchMessages, error: messagesError } = useQuery<Message[]>({
     queryKey: ['/api/simple-chat/messages', selectedConversation],
     enabled: !!selectedConversation,
-    refetchInterval: 2000, // Refetch every 2 seconds to ensure real-time updates
+    refetchInterval: false, // Disabled - using WebSocket for real-time updates
     refetchOnWindowFocus: true,
     queryFn: async () => {
       console.log(`Fetching messages for conversation ${selectedConversation}`);
@@ -303,7 +281,22 @@ export default function SimpleChatPage() {
     onSuccess: (response: any, variables: { conversationId?: number; otherUserId?: string; message: string; clientTempId?: number }, context: { previousMessages?: Message[]; clientTempId?: number; messageText?: string; conversationId?: number } | undefined) => {
       console.log('Message sent successfully:', response); // Debug log
 
-      // Always refresh conversations list
+      // Add the server message to ensure it persists
+      if (selectedConversation && response?.message) {
+        queryClient.setQueryData<Message[]>(
+          ['/api/simple-chat/messages', selectedConversation],
+          (oldMessages = []) => {
+            // Remove any duplicates and add server message
+            const filteredMessages = oldMessages.filter(msg => 
+              !(msg.message === variables.message && msg.senderId === user?.id && 
+                Math.abs(new Date(msg.createdAt).getTime() - Date.now()) < 10000)
+            );
+            return [...filteredMessages, response.message];
+          }
+        );
+      }
+
+      // Refresh conversations list WITHOUT invalidating messages
       queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/conversations'] });
 
       // For new conversations
@@ -311,10 +304,6 @@ export default function SimpleChatPage() {
         setSelectedConversation(response.conversationId);
         setView('chat');
       }
-
-      // Don't remove the optimistic message - just leave it there
-      // The message is already visible and working
-      console.log('Message sent, keeping optimistic message visible');
     },
     onError: (error: unknown, variables: { conversationId?: number; otherUserId?: string; message: string; clientTempId?: number }, context: { previousMessages?: Message[]; clientTempId?: number } | undefined) => {
       console.error('Failed to send message:', error); // Debug log
@@ -328,7 +317,7 @@ export default function SimpleChatPage() {
       }
     },
     onSettled: () => {
-      // Cleanup is now handled in onSuccess/onError
+      // DON'T invalidate messages here - it causes the message to disappear!
     }
   });
 
