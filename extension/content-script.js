@@ -351,8 +351,36 @@ class AutoJobrContentScript {
     document.getElementById('autojobr-cover-letter')?.addEventListener('click', () => this.handleCoverLetter());
 
     // Widget controls
-    document.getElementById('autojobr-close')?.addEventListener('click', () => this.hideWidget());
-    document.getElementById('autojobr-minimize')?.addEventListener('click', () => this.minimizeWidget());
+    // Enhanced close button with better event handling
+    const closeBtn = document.getElementById('autojobr-close');
+    const minimizeBtn = document.getElementById('autojobr-minimize');
+    
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.hideWidget();
+      });
+      // Add touch event for mobile
+      closeBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.hideWidget();
+      });
+    }
+    
+    if (minimizeBtn) {
+      minimizeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.minimizeWidget();
+      });
+      minimizeBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.minimizeWidget();
+      });
+    }
 
     // Feature toggles
     document.getElementById('smart-fill')?.addEventListener('change', (e) => {
@@ -556,9 +584,23 @@ class AutoJobrContentScript {
     const jobCompany = document.getElementById('autojobr-job-company');
     
     if (jobInfo && jobTitle && jobCompany) {
-      jobTitle.textContent = jobData.title || 'Job Title';
-      jobCompany.textContent = jobData.company || 'Company';
+      // Use extracted data with better fallbacks
+      const title = jobData.title || jobData.role || jobData.position || 'Job detected';
+      const company = jobData.company || jobData.companyName || jobData.employer || 'Company detected';
+      
+      jobTitle.textContent = title;
+      jobCompany.textContent = company;
       jobInfo.style.display = 'block';
+      
+      // Store the enhanced data for cover letter generation
+      this.currentJobData = {
+        ...jobData,
+        title: title,
+        company: company,
+        extractedAt: new Date().toISOString()
+      };
+      
+      console.log('Updated job info with extracted data:', { title, company });
     }
   }
 
@@ -591,7 +633,7 @@ class AutoJobrContentScript {
       widget.style.transform = 'translateX(100%)';
       
       setTimeout(() => {
-        widget.style.display = 'none';
+        widget.remove(); // Completely remove from DOM instead of just hiding
       }, 300);
     }
   }

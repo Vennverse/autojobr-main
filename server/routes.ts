@@ -5287,20 +5287,88 @@ Additional Information:
     }
   });
 
+  // Cover letter usage check endpoint
+  app.get("/api/cover-letter/usage-check", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      
+      // Get user's subscription
+      const subscription = await subscriptionService.getCurrentSubscription(userId);
+      const isPremium = subscription?.isActive && subscription?.planType?.includes('premium');
+      
+      // Free users get 2 cover letters per day, premium users get unlimited
+      const dailyLimit = isPremium ? -1 : 2; // -1 means unlimited
+      
+      if (isPremium) {
+        return res.json({ 
+          limitReached: false, 
+          used: 0, 
+          limit: 'unlimited',
+          isPremium: true 
+        });
+      }
+      
+      // Check daily usage for free users
+      const today = new Date().toISOString().split('T')[0];
+      const cacheKey = `cover_letter_usage_${today}`;
+      const dailyUsage = getCached(cacheKey, userId) || 0;
+      
+      const limitReached = dailyUsage >= dailyLimit;
+      
+      res.json({ 
+        limitReached, 
+        used: dailyUsage, 
+        limit: dailyLimit,
+        isPremium: false 
+      });
+    } catch (error) {
+      console.error("Cover letter usage check error:", error);
+      res.status(500).json({ message: "Failed to check usage" });
+    }
+  });
+
   // Cover letter generation endpoint (for extension)
   app.post("/api/generate-cover-letter", isAuthenticated, async (req, res) => {
     try {
-      const { jobDescription, companyName, jobTitle } = req.body;
+      const { jobData, userProfile, extractedData } = req.body;
       const userId = req.user?.id;
 
-      // Make company name and job title optional with defaults
-      const company = companyName || "The Company";
-      const title = jobTitle || "The Position";
+      // Get user's subscription
+      const subscription = await subscriptionService.getCurrentSubscription(userId);
+      const isPremium = subscription?.isActive && subscription?.planType?.includes('premium');
       
-      console.log("Extension cover letter request:", { company, title, hasJobDescription: !!jobDescription });
+      // Check daily limits for free users
+      if (!isPremium) {
+        const today = new Date().toISOString().split('T')[0];
+        const cacheKey = `cover_letter_usage_${today}`;
+        const dailyUsage = getCached(cacheKey, userId) || 0;
+        const dailyLimit = 2;
+        
+        if (dailyUsage >= dailyLimit) {
+          return res.status(429).json({ 
+            error: "You have used your daily limit of 2 cover letters. Please upgrade to Premium for unlimited access.",
+            limitReached: true,
+            used: dailyUsage,
+            limit: dailyLimit
+          });
+        }
+      }
 
-      // Get user profile
-      const profile = await storage.getUserProfile(userId);
+      // Extract job data with fallbacks
+      const company = jobData?.company || jobData?.companyName || extractedData?.company || "the company";
+      const title = jobData?.title || jobData?.role || jobData?.position || extractedData?.role || "this position";
+      const description = jobData?.description || "";
+      
+      console.log("Enhanced cover letter request:", { 
+        company, 
+        title, 
+        hasJobDescription: !!description,
+        extractedData: !!extractedData,
+        isPremium 
+      });
+
+      // Get user profile (fallback to provided userProfile)
+      const profile = userProfile || await storage.getUserProfile(userId);
       
       if (!profile) {
         return res.status(404).json({ message: "Please complete your profile first" });
@@ -5308,12 +5376,28 @@ Additional Information:
 
       // Use groqService method for consistent behavior
       const coverLetter = await groqService.generateCoverLetter(
-        { title, company, description: jobDescription },
+        { title, company, description },
         profile,
         req.user
       );
 
-      res.json({ coverLetter });
+      // Track usage for free users
+      if (!isPremium) {
+        const today = new Date().toISOString().split('T')[0];
+        const cacheKey = `cover_letter_usage_${today}`;
+        const currentUsage = getCached(cacheKey, userId) || 0;
+        setCache(cacheKey, currentUsage + 1, 24 * 60 * 60 * 1000, userId); // Cache for 24 hours
+      }
+
+      const response = {
+        coverLetter,
+        usageInfo: !isPremium ? {
+          used: (getCached(`cover_letter_usage_${new Date().toISOString().split('T')[0]}`, userId) || 0),
+          limit: 2
+        } : null
+      };
+
+      res.json(response);
     } catch (error) {
       console.error("Extension cover letter generation error:", error);
       res.status(500).json({ message: "Failed to generate cover letter" });

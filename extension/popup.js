@@ -820,20 +820,58 @@ class AutoJobrPopup {
       return;
     }
 
+    // Check daily usage limit for free users
+    try {
+      const usageCheck = await this.makeApiRequest('/api/cover-letter/usage-check', {
+        method: 'GET'
+      });
+
+      if (usageCheck.limitReached) {
+        this.showError('You have used your daily limit of 2 cover letters. Please upgrade to Premium for unlimited access.');
+        return;
+      }
+    } catch (error) {
+      console.warn('Failed to check usage limits:', error);
+    }
+
     this.showLoading(true);
 
     try {
+      // Enhanced cover letter generation with extracted job data
+      const coverLetterData = {
+        jobData: {
+          ...this.jobData,
+          // Ensure we're using the extracted company and role
+          company: this.jobData.company || this.jobData.companyName || 'the company',
+          title: this.jobData.title || this.jobData.role || this.jobData.position || 'this position',
+          location: this.jobData.location,
+          description: this.jobData.description,
+          requirements: this.jobData.requirements,
+          url: window.location.href
+        },
+        userProfile: this.userProfile,
+        extractedData: {
+          company: this.jobData.company,
+          role: this.jobData.title,
+          extractedAt: new Date().toISOString()
+        }
+      };
+
       const result = await this.makeApiRequest('/api/generate-cover-letter', {
         method: 'POST',
-        body: JSON.stringify({
-          jobData: this.jobData,
-          userProfile: this.userProfile
-        })
+        body: JSON.stringify(coverLetterData)
       });
 
       if (result && !result.error) {
         await navigator.clipboard.writeText(result.coverLetter);
         this.showNotification('✅ Cover letter generated and copied!', 'success');
+        
+        // Show usage information
+        if (result.usageInfo) {
+          setTimeout(() => {
+            this.showNotification(`Daily usage: ${result.usageInfo.used}/${result.usageInfo.limit}`, 'info');
+          }, 2000);
+        }
         
         // Try to fill cover letter field
         chrome.tabs.sendMessage(this.currentTab.id, {
@@ -846,7 +884,13 @@ class AutoJobrPopup {
       }
     } catch (error) {
       console.error('Cover letter error:', error);
-      this.showError('Failed to generate cover letter. Please try again.');
+      
+      // Handle specific error cases
+      if (error.message.includes('daily limit')) {
+        this.showError('You have used your daily limit of 2 cover letters. Please upgrade to Premium for unlimited access.');
+      } else {
+        this.showError('Failed to generate cover letter. Please try again.');
+      }
     } finally {
       this.showLoading(false);
     }
