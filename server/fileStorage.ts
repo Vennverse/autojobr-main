@@ -34,25 +34,30 @@ export class FileStorageService {
   ];
 
   constructor() {
-    // Use local storage for development, can be configured for cloud storage in production
-    this.baseDir = process.env.NODE_ENV === 'production' 
-      ? '/tmp/autojobr-files' 
-      : './uploads';
+    // Use persistent storage for both development and production
+    // In VM deployments, ensure this directory persists across restarts
+    this.baseDir = process.env.RESUME_STORAGE_PATH || './uploads';
     this.resumesDir = path.join(this.baseDir, 'resumes');
+    
+    console.log(`📁 FileStorage initialized: ${this.resumesDir}`);
     this.ensureDirectories();
   }
 
   private async ensureDirectories(): Promise<void> {
     try {
       await access(this.baseDir);
+      console.log(`✅ Base directory exists: ${this.baseDir}`);
     } catch {
       await mkdir(this.baseDir, { recursive: true });
+      console.log(`📂 Created base directory: ${this.baseDir}`);
     }
 
     try {
       await access(this.resumesDir);
+      console.log(`✅ Resumes directory exists: ${this.resumesDir}`);
     } catch {
       await mkdir(this.resumesDir, { recursive: true });
+      console.log(`📂 Created resumes directory: ${this.resumesDir}`);
     }
   }
 

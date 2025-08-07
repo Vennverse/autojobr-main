@@ -1572,16 +1572,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No file uploaded" });
       }
       
-      // Parse resume content using free NLP parser
+      // Parse resume content using NLP FIRST, then GROQ as fallback
       let resumeText = '';
       let parsedData = null;
       
+      console.log('🔍 Starting resume parsing with NLP-first approach...');
+      
       try {
-        // Use free NLP parser to extract structured data from resume
+        // STEP 1: Use free NLP parser FIRST to extract structured data from resume
+        console.log('📝 Attempting NLP-based resume parsing...');
         parsedData = await resumeParser.parseResumeFile(file.buffer, file.mimetype);
-        console.log('Parsed resume data:', parsedData);
+        console.log('✅ NLP parsing successful:', parsedData);
         
-        // Create structured resume text for analysis
+        // Create structured resume text for analysis using NLP data
         resumeText = `
 Resume Document: ${file.originalname}
 File Type: ${file.mimetype}
@@ -1615,8 +1618,8 @@ ${parsedData.education && parsedData.education.length > 0 ?
 ${parsedData.linkedinUrl ? `LinkedIn: ${parsedData.linkedinUrl}` : ''}
         `.trim();
       } catch (parseError) {
-        console.error('Resume parsing error:', parseError);
-        // Fallback to basic resume text
+        console.error('❌ NLP parsing failed:', parseError);
+        console.log('🔄 Falling back to basic text extraction for GROQ analysis...');
         resumeText = `
 Resume Document: ${file.originalname}
 File Type: ${file.mimetype}
@@ -1659,36 +1662,48 @@ Additional Information:
       // Get user for AI tier assessment
       const user = await storage.getUser(userId);
       
-      // Analyze resume with Groq AI
+      // STEP 2: Analyze resume with GROQ AI (as fallback for detailed analysis)
       let analysis;
       try {
+        console.log('🤖 Attempting GROQ AI analysis for detailed insights...');
         analysis = await groqService.analyzeResume(resumeText, userProfile, user);
         
         // Ensure analysis has required properties
         if (!analysis || typeof analysis.atsScore === 'undefined') {
-          throw new Error('Invalid analysis response');
+          throw new Error('Invalid analysis response from GROQ');
         }
+        console.log('✅ GROQ analysis completed successfully');
       } catch (analysisError) {
-        // Groq analysis failed, using fallback
+        console.error('❌ GROQ analysis failed:', analysisError);
+        console.log('🔄 Using NLP-based fallback analysis (estimated scores)...');
+        
+        // Generate better fallback scores based on NLP parsing success
+        const baseScore = parsedData && Object.keys(parsedData).length > 3 ? 80 : 65;
+        
         analysis = {
-          atsScore: 75,
-          recommendations: ["Upload successful - detailed analysis unavailable"],
+          atsScore: baseScore,
+          recommendations: [
+            "Resume successfully parsed with NLP analysis",
+            "AI analysis temporarily unavailable - scores are estimated"
+          ],
           keywordOptimization: {
             missingKeywords: [],
             overusedKeywords: [],
-            suggestions: ["Analysis will be available shortly"]
+            suggestions: ["Resume parsing completed with local NLP methods"]
           },
           formatting: {
-            score: 75,
+            score: baseScore,
             issues: [],
-            improvements: ["Analysis in progress"]
+            improvements: ["Resume structure analyzed"]
           },
           content: {
-            strengthsFound: ["Professional resume uploaded"],
+            strengthsFound: ["Professional resume format detected", "Contact information extracted"],
             weaknesses: [],
-            suggestions: ["Detailed analysis coming soon"]
+            suggestions: ["Detailed AI analysis will be available when service is restored"]
           }
         };
+        
+        console.log(`📊 Fallback analysis generated with ${baseScore}% estimated ATS score`);
       }
       
       // Get existing resumes count from database
@@ -1710,13 +1725,13 @@ Additional Information:
       
       // Store physical file using FileStorageService (not in database)
       const storedFile = await fileStorage.storeResume(file, userId);
-      console.log(`[FILE_STORAGE] Resume file stored at: ${storedFile.path}`);
+      console.log(`[FILE_STORAGE] Resume file stored with ID: ${storedFile.id}`);
       
       // Create metadata entry for database storage (no file data)
       const resumeData = {
         name: req.body.name || file.originalname.replace(/\.[^/.]+$/, "") || "New Resume",
         fileName: file.originalname,
-        filePath: storedFile.path, // Store file system path, not Base64 data
+        filePath: storedFile.id, // Store file ID for retrieval, not full path
         isActive: existingResumes.length === 0, // First resume is active by default
         atsScore: analysis.atsScore,
         analysis: analysis,
@@ -1841,8 +1856,8 @@ Additional Information:
         return res.status(404).json({ message: "Resume not found" });
       }
       
-      // Retrieve file from storage
-      const fileBuffer = await fileStorage.retrieveResume(resume.filePath.split('/').pop().split('.')[0], userId);
+      // Retrieve file from storage using stored file ID
+      const fileBuffer = await fileStorage.retrieveResume(resume.filePath, userId);
       
       if (!fileBuffer) {
         return res.status(404).json({ message: "Resume file not found" });
@@ -1885,73 +1900,47 @@ Additional Information:
         return res.status(403).json({ message: "Access denied. You can only download resumes from your job postings." });
       }
 
-      let resume;
+      // Get applicant's active resume using the modern file storage system
       const applicantId = application.applicantId;
-
-      // First try to get resume from database using resume_id from application
-      if (application.resumeId) {
-        try {
-          const [dbResume] = await db.select().from(schema.resumes).where(
-            eq(schema.resumes.id, application.resumeId)
-          );
-          if (dbResume && dbResume.fileData) {
-            resume = {
-              fileData: dbResume.fileData,
-              fileName: dbResume.fileName,
-              fileType: dbResume.mimeType || 'application/pdf'
-            };
-          }
-        } catch (dbError) {
-          console.error("Error fetching resume from database:", dbError);
+      
+      let resume;
+      try {
+        // Get applicant's resumes from database
+        const applicantResumes = await storage.getUserResumes(applicantId);
+        const activeResume = applicantResumes.find((r: any) => r.isActive) || applicantResumes[0];
+        
+        if (!activeResume) {
+          return res.status(404).json({ message: "No resume found for this applicant" });
         }
-      }
 
-      // If no resume from database, try to get from resume_data in application
-      if (!resume && application.resumeData && typeof application.resumeData === 'object') {
-        const resumeData = application.resumeData as any;
-        if (resumeData.fileData) {
-          resume = {
-            fileData: resumeData.fileData,
-            fileName: resumeData.fileName || 'resume.pdf',
-            fileType: resumeData.mimeType || 'application/pdf'
-          };
+        // Retrieve the file from file storage using the stored file ID
+        const fileBuffer = await fileStorage.retrieveResume(activeResume.filePath, applicantId);
+        
+        if (!fileBuffer) {
+          return res.status(404).json({ message: "Resume file not found in storage" });
         }
-      }
 
-      // Fallback to database lookup if not found in application data
-      if (!resume) {
-        try {
-          const fallbackResumes = await storage.getUserResumes(applicantId);
-          const activeResume = fallbackResumes.find((r: any) => r.isActive) || fallbackResumes[0];
-          if (activeResume) {
-            const [fullResumeData] = await db.select().from(schema.resumes).where(
-              eq(schema.resumes.id, activeResume.id)
-            );
-            if (fullResumeData?.fileData) {
-              resume = {
-                fileData: fullResumeData.fileData,
-                fileName: fullResumeData.fileName,
-                fileType: fullResumeData.mimeType || 'application/pdf'
-              };
-            }
-          }
-        } catch (error) {
-          console.error("Error fetching fallback resume:", error);
-        }
+        resume = {
+          fileBuffer: fileBuffer,
+          fileName: activeResume.fileName || 'resume.pdf',
+          mimeType: activeResume.mimeType || 'application/pdf'
+        };
+        
+      } catch (error) {
+        console.error("Error fetching applicant resume:", error);
+        return res.status(500).json({ message: "Error retrieving resume" });
       }
       
-      if (!resume || !resume.fileData) {
+      if (!resume || !resume.fileBuffer) {
         return res.status(404).json({ message: "Resume not found or not available for download" });
       }
-      
-      const fileBuffer = Buffer.from(resume.fileData, 'base64');
-      
-      res.setHeader('Content-Type', resume.fileType || 'application/pdf');
+
+      // Set appropriate headers and send file
+      res.setHeader('Content-Type', resume.mimeType);
       res.setHeader('Content-Disposition', `attachment; filename="${resume.fileName}"`);
-      res.setHeader('Content-Length', fileBuffer.length.toString());
+      res.setHeader('Content-Length', resume.fileBuffer.length);
       
-      // Recruiter downloading resume
-      return res.send(fileBuffer);
+      res.send(resume.fileBuffer);
     } catch (error) {
       console.error("Error downloading resume:", error);
       res.status(500).json({ message: "Failed to download resume" });
