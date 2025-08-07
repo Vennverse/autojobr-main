@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { Navbar } from "@/components/navbar";
@@ -356,10 +356,10 @@ export default function Jobs() {
 
       {/* Main Content - Full Height with Independent Scrolling */}
       <div className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-          {/* Job List - Scrollable */}
+        <div className="grid grid-cols-1 gap-6 h-full">
+          {/* Enhanced Job List - Full Width with Comprehensive Details */}
           <div className="h-full">
-            <div className="h-[calc(100vh-240px)] overflow-y-auto pr-2 space-y-4">
+            <div className="space-y-6">
             {jobsLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <Card key={i} className="border-0 shadow-sm">
@@ -448,15 +448,137 @@ export default function Jobs() {
                         )}
                       </div>
                       
-                      <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 mb-3">
-                        {job.description}
-                      </p>
+                      {/* Comprehensive Job Description */}
+                      <div className="space-y-3 mb-4">
+                        <div>
+                          <h4 className="font-medium text-gray-900 dark:text-white mb-2">About the job</h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap line-clamp-4">
+                            {job.description}
+                          </p>
+                        </div>
+                        
+                        {/* Salary Information */}
+                        {(job.minSalary || job.maxSalary) && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <DollarSign className="w-4 h-4 text-green-600" />
+                            <span className="font-medium text-green-600">
+                              {job.minSalary && job.maxSalary 
+                                ? `$${job.minSalary.toLocaleString()} - $${job.maxSalary.toLocaleString()} ${job.currency || 'USD'}`
+                                : job.minSalary 
+                                ? `$${job.minSalary.toLocaleString()}+ ${job.currency || 'USD'}`
+                                : `Up to $${job.maxSalary?.toLocaleString()} ${job.currency || 'USD'}`
+                              }
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Required Skills */}
+                        {job.requiredSkills && job.requiredSkills.length > 0 && (
+                          <div>
+                            <h5 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Required Skills</h5>
+                            <div className="flex flex-wrap gap-1">
+                              {job.requiredSkills.slice(0, 6).map((skill: string, index: number) => (
+                                <Badge key={index} variant="outline" className="text-xs px-2 py-0">
+                                  {skill}
+                                </Badge>
+                              ))}
+                              {job.requiredSkills.length > 6 && (
+                                <Badge variant="outline" className="text-xs px-2 py-0">
+                                  +{job.requiredSkills.length - 6} more
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Benefits */}
+                        {job.benefits && job.benefits.length > 0 && (
+                          <div>
+                            <h5 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Benefits</h5>
+                            <div className="flex flex-wrap gap-1">
+                              {job.benefits.slice(0, 4).map((benefit: string, index: number) => (
+                                <Badge key={index} variant="secondary" className="text-xs px-2 py-0">
+                                  {benefit}
+                                </Badge>
+                              ))}
+                              {job.benefits.length > 4 && (
+                                <Badge variant="secondary" className="text-xs px-2 py-0">
+                                  +{job.benefits.length - 4} more
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Job Requirements */}
+                        {job.requirements && (
+                          <div>
+                            <h5 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Requirements</h5>
+                            <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
+                              {job.requirements}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {/* Responsibilities */}
+                        {job.responsibilities && (
+                          <div>
+                            <h5 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Responsibilities</h5>
+                            <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
+                              {job.responsibilities}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Job Stats and Metadata */}
+                      <div className="space-y-2 mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div className="grid grid-cols-2 gap-4 text-xs">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-3 h-3 text-gray-500" />
+                            <span className="text-gray-600 dark:text-gray-300">
+                              Posted {new Date(job.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          {job.applicationsCount !== undefined && (
+                            <div className="flex items-center gap-2">
+                              <Users className="w-3 h-3 text-gray-500" />
+                              <span className="text-gray-600 dark:text-gray-300">
+                                {job.applicationsCount} applicants
+                              </span>
+                            </div>
+                          )}
+                          {job.recruiterName && (
+                            <div className="flex items-center gap-2">
+                              <User className="w-3 h-3 text-gray-500" />
+                              <span className="text-gray-600 dark:text-gray-300">
+                                {job.recruiterName}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <Eye className="w-3 h-3 text-gray-500" />
+                            <span className="text-gray-600 dark:text-gray-300">
+                              View details
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                       
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">
-                          {new Date(job.createdAt).toLocaleDateString()}
-                        </span>
                         <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLocation(`/jobs/${job.id}`);
+                            }}
+                            className="text-blue-600 hover:text-blue-700 text-xs"
+                          >
+                            <ExternalLink className="w-3 h-3 mr-1" />
+                            View Full Details
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -464,12 +586,16 @@ export default function Jobs() {
                               e.stopPropagation();
                               handleSaveJob(job.id);
                             }}
-                            className="text-gray-600 hover:text-yellow-600"
+                            className="text-gray-600 hover:text-yellow-600 text-xs"
                           >
+                            <Bookmark className="w-3 h-3 mr-1" />
                             Save
                           </Button>
+                        </div>
+                        <div className="flex items-center gap-2">
                           {isApplied ? (
                             <Badge className="bg-green-100 text-green-800">
+                              <CheckCircle className="w-3 h-3 mr-1" />
                               Applied
                             </Badge>
                           ) : (
@@ -481,6 +607,7 @@ export default function Jobs() {
                               }}
                               className="bg-blue-600 hover:bg-blue-700 text-white"
                             >
+                              <Send className="w-3 h-3 mr-1" />
                               Easy Apply
                             </Button>
                           )}
@@ -551,159 +678,6 @@ export default function Jobs() {
                   Page {currentPage} of {totalPages}
                 </p>
               </div>
-            )}
-            </div>
-          </div>
-
-          {/* Job Detail Panel - Scrollable */}
-          <div className="h-full">
-            <div className="h-[calc(100vh-240px)] overflow-y-auto pl-2">
-            {selectedJob ? (
-              <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
-                <CardContent className="p-6">
-                  <div className="mb-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                          {selectedJob.title}
-                        </h2>
-                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 mb-3">
-                          <Building2 className="w-4 h-4" />
-                          <span className="font-medium">{selectedJob.companyName}</span>
-                          {selectedJob.location && (
-                            <>
-                              <span>•</span>
-                              <MapPin className="w-4 h-4" />
-                              <span>{selectedJob.location}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <Badge 
-                        className={`${
-                          calculateCompatibility(selectedJob) >= 90 ? 'bg-green-100 text-green-800' :
-                          calculateCompatibility(selectedJob) >= 80 ? 'bg-blue-100 text-blue-800' :
-                          calculateCompatibility(selectedJob) >= 70 ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {calculateCompatibility(selectedJob)}% match
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex items-center gap-3 mb-6">
-                      {appliedJobIds.includes(selectedJob.id) ? (
-                        <Badge className="bg-green-100 text-green-800">
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Applied
-                        </Badge>
-                      ) : (
-                        <Button
-                          onClick={() => handleApply(selectedJob.id)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
-                        >
-                          Easy Apply
-                        </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        onClick={() => handleSaveJob(selectedJob.id)}
-                        disabled={savedJobs.has(selectedJob.id)}
-                      >
-                        <Bookmark className="w-4 h-4 mr-2" />
-                        {savedJobs.has(selectedJob.id) ? 'Saved' : 'Save'}
-                      </Button>
-                      <Button variant="outline" size="icon">
-                        <Share2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-6">
-                    {/* Job Details */}
-                    <div className="grid grid-cols-2 gap-4">
-                      {selectedJob.workMode && (
-                        <div>
-                          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Work Mode</span>
-                          <p className="text-gray-900 dark:text-white">{selectedJob.workMode}</p>
-                        </div>
-                      )}
-                      {selectedJob.jobType && (
-                        <div>
-                          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Job Type</span>
-                          <p className="text-gray-900 dark:text-white">{selectedJob.jobType}</p>
-                        </div>
-                      )}
-                      {selectedJob.experienceLevel && (
-                        <div>
-                          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Experience Level</span>
-                          <p className="text-gray-900 dark:text-white">{selectedJob.experienceLevel}</p>
-                        </div>
-                      )}
-                      {(selectedJob.minSalary || selectedJob.maxSalary) && (
-                        <div>
-                          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Salary Range</span>
-                          <p className="text-gray-900 dark:text-white">
-                            ${selectedJob.minSalary || 0}k - ${selectedJob.maxSalary || 0}k
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* About the job */}
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                        About the job
-                      </h3>
-                      <div className="prose dark:prose-invert max-w-none">
-                        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                          {selectedJob.description}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {/* Required Skills */}
-                    {selectedJob.requiredSkills && selectedJob.requiredSkills.length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                          Required Skills
-                        </h3>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedJob.requiredSkills.map((skill: string) => (
-                            <Badge key={skill} variant="outline">
-                              {skill}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Application Details */}
-                    <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Posted {new Date(selectedJob.createdAt).toLocaleDateString()}
-                      </p>
-                      {selectedJob.applicationsCount && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {selectedJob.applicationsCount} applicants
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
-                <CardContent className="p-8 text-center">
-                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                    Select a job to view details
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-300">
-                    Click on any job from the list to see more information
-                  </p>
-                </CardContent>
-              </Card>
             )}
             </div>
           </div>
