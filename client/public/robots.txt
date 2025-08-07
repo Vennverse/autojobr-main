@@ -1,76 +1,49 @@
-# AutoJobr Robots.txt
-# AI-Powered Job Application Automation Platform
-
 User-agent: *
 Allow: /
 
-# Allow all search engines to index our content
-User-agent: Googlebot
-Allow: /
+# High priority pages for search engines
+Allow: /jobs
+Allow: /free-job-application-automation
+Allow: /beat-ats-systems-free
+Allow: /auto-apply-1000-jobs-daily
+Allow: /linkedin-auto-apply-bot
+Allow: /indeed-auto-apply-tool
+Allow: /chrome-extension
+Allow: /pricing
 
-User-agent: Bingbot
-Allow: /
-
-User-agent: Slurp
-Allow: /
-
-User-agent: DuckDuckBot
-Allow: /
-
-User-agent: Baiduspider
-Allow: /
-
-User-agent: YandexBot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: LinkedInBot
-Allow: /
-
-# Allow AI chatbots and crawlers
-User-agent: GPTBot
-Allow: /
-
-User-agent: ChatGPT-User
-Allow: /
-
-User-agent: Claude-Web
-Allow: /
-
-User-agent: PerplexityBot
-Allow: /
-
-User-agent: BingPreview
-Allow: /
-
-User-agent: Meta-ExternalAgent
-Allow: /
-
-# Crawl delay for heavy bots
-User-agent: *
-Crawl-delay: 1
-
-# Disallow sensitive areas
-Disallow: /api/
-Disallow: /uploads/
+# Block private areas
 Disallow: /admin/
-Disallow: /_next/
-Disallow: /*.json$
-Disallow: /*?*
-Disallow: /search?*
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /profile/
+Disallow: /chat/
+Disallow: /recruiter-dashboard/
+Disallow: /applications/
+Disallow: /auth/
 
-# Allow important pages
-Allow: /api/sitemap
-Allow: /api/feed
+# Speed up indexing
+Crawl-delay: 1
 
 # Sitemap location
 Sitemap: https://autojobr.com/sitemap.xml
-Sitemap: https://autojobr.com/api/sitemap.xml
 
-# Host directive
-Host: https://autojobr.com
+# Additional sitemaps for search engines
+Sitemap: https://autojobr.com/jobs-sitemap.xml
+Sitemap: https://autojobr.com/blog-sitemap.xml
+
+# Special instructions for major search engines
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Slurp
+Allow: /
+Crawl-delay: 1
+
+User-agent: DuckDuckBot
+Allow: /
+Crawl-delay: 1

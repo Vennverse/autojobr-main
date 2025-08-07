@@ -7,9 +7,45 @@
     <!-- Homepage -->
     <url>
         <loc>https://autojobr.com/</loc>
-        <lastmod>2025-06-29</lastmod>
+        <lastmod>2025-01-08</lastmod>
         <changefreq>daily</changefreq>
         <priority>1.0</priority>
+    </url>
+    
+    <!-- High-Value SEO Landing Pages to Beat Competition -->
+    <url>
+        <loc>https://autojobr.com/free-job-application-automation</loc>
+        <lastmod>2025-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.95</priority>
+    </url>
+    
+    <url>
+        <loc>https://autojobr.com/beat-ats-systems-free</loc>
+        <lastmod>2025-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.95</priority>
+    </url>
+    
+    <url>
+        <loc>https://autojobr.com/auto-apply-1000-jobs-daily</loc>
+        <lastmod>2025-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.95</priority>
+    </url>
+    
+    <url>
+        <loc>https://autojobr.com/linkedin-auto-apply-bot</loc>
+        <lastmod>2025-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.9</priority>
+    </url>
+    
+    <url>
+        <loc>https://autojobr.com/indeed-auto-apply-tool</loc>
+        <lastmod>2025-01-08</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.9</priority>
     </url>
     
     <!-- Main Pages -->

@@ -63,6 +63,9 @@ import SSOConfiguration from "@/pages/sso-configuration";
 import SubscriptionSuccess from "@/pages/subscription/Success";
 import SubscriptionCancel from "@/pages/subscription/Cancel";
 
+// SEO Landing Pages to Beat Competition
+import FreeJobApplicationAutomation from "@/pages/seo/FreeJobApplicationAutomation";
+
 
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -87,6 +90,13 @@ function Router() {
       {/* Subscription success/cancel routes */}
       <Route path="/subscription/success" component={SubscriptionSuccess} />
       <Route path="/subscription/cancel" component={SubscriptionCancel} />
+      
+      {/* High-Value SEO Landing Pages to Beat Competition */}
+      <Route path="/free-job-application-automation" component={FreeJobApplicationAutomation} />
+      <Route path="/beat-ats-systems-free" component={FreeJobApplicationAutomation} />
+      <Route path="/auto-apply-1000-jobs-daily" component={FreeJobApplicationAutomation} />
+      <Route path="/linkedin-auto-apply-bot" component={FreeJobApplicationAutomation} />
+      <Route path="/indeed-auto-apply-tool" component={FreeJobApplicationAutomation} />
       
       {/* Post Job route - accessible to everyone, handles verification internally */}
       <Route path="/post-job" component={PostJob} />
