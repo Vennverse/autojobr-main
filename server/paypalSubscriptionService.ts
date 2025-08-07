@@ -205,8 +205,8 @@ export class PayPalSubscriptionService {
             payer_selected: "PAYPAL",
             payee_preferred: "IMMEDIATE_PAYMENT_REQUIRED"
           },
-          return_url: `${process.env.CLIENT_URL || 'http://localhost:5000'}/subscription/success?userId=${userId}`,
-          cancel_url: `${process.env.CLIENT_URL || 'http://localhost:5000'}/subscription/cancel`
+          return_url: `https://autojobr.com/subscription/success?userId=${userId}`,
+          cancel_url: `https://autojobr.com/subscription/cancel`
         }
       };
 

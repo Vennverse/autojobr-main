@@ -151,9 +151,7 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
       if (params.html.includes('verify-email?token=')) {
         const tokenMatch = params.html.match(/verify-email\?token=([^"]+)/);
         if (tokenMatch) {
-          const baseUrl = process.env.NODE_ENV === 'production' 
-            ? `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}`
-            : 'http://localhost:5000';
+          const baseUrl = 'https://autojobr.com';
           console.log('MANUAL VERIFICATION URL:', `${baseUrl}/verify-email?token=${tokenMatch[1]}`);
         }
       }
@@ -206,7 +204,7 @@ export async function testEmailConfiguration(): Promise<{ provider: string; stat
 }
 
 export function generatePasswordResetEmail(token: string, userEmail: string): string {
-  const resetUrl = `${process.env.NODE_ENV === 'production' ? 'https://' : 'http://'}${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}/reset-password?token=${token}`;
+  const resetUrl = `https://autojobr.com/reset-password?token=${token}`;
   
   return `
     <!DOCTYPE html>
@@ -266,7 +264,7 @@ export function generatePasswordResetEmail(token: string, userEmail: string): st
 }
 
 export function generateVerificationEmail(token: string, nameOrCompany: string, userType: string = 'job_seeker'): string {
-  const verificationUrl = `${process.env.NODE_ENV === 'production' ? 'https://' : 'http://'}${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}/verify-email?token=${token}`;
+  const verificationUrl = `${process.env.NODE_ENV === 'production' ? 'https://' : 'https://'}autojobr.com/verify-email?token=${token}`;
   
   if (userType === 'recruiter') {
     return `

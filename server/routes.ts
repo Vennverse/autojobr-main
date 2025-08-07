@@ -8195,7 +8195,7 @@ Host: https://autojobr.com`;
       });
 
       // Send email notification
-      const testUrl = `${process.env.CLIENT_URL || 'http://localhost:5000'}/test/${assignment.id}`;
+      const testUrl = `https://autojobr.com/test/${assignment.id}`;
       
       await testService.sendTestAssignmentEmail(
         jobSeeker.email!,
