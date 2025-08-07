@@ -177,9 +177,7 @@ class SimplePromotionalEmailService {
 
   private generateJobSeekerEmail(user: User): { subject: string; html: string } {
     const userName = user.firstName || user.email.split('@')[0];
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}`
-      : 'http://localhost:5000';
+    const baseUrl = 'https://autojobr.com';
 
     // Random statistics for promotional content - showing only 4-5 job matches
     const randomJobCount = Math.floor(Math.random() * 2) + 4; // 4-5 jobs
@@ -320,9 +318,7 @@ class SimplePromotionalEmailService {
 
   private generateRecruiterEmail(user: User): { subject: string; html: string } {
     const recruiterName = user.firstName || user.companyName || user.email.split('@')[0];
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}`
-      : 'http://localhost:5000';
+    const baseUrl = 'https://autojobr.com';
 
     // Random statistics for promotional content
     const randomCandidates = Math.floor(Math.random() * 50) + 30; // 30-80 candidates

@@ -135,7 +135,7 @@ export async function setupAuth(app: Express) {
       }
     } else {
       // For OAuth providers, redirect to their auth URLs
-      const baseUrl = process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS}` : 'http://localhost:5000';
+      const baseUrl = 'https://autojobr.com';
       
       if (provider === 'google' && authConfig.providers.google.enabled) {
         const authUrl = `https://accounts.google.com/oauth2/v2/auth?client_id=${authConfig.providers.google.clientId}&redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/callback/google`)}&scope=openid%20email%20profile&response_type=code`;
@@ -574,7 +574,7 @@ export async function setupAuth(app: Express) {
       }
 
       // Exchange code for tokens
-      const baseUrl = process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS}` : 'http://localhost:5000';
+      const baseUrl = 'https://autojobr.com';
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: {
@@ -759,7 +759,7 @@ export async function setupAuth(app: Express) {
       }
 
       // Exchange code for tokens
-      const baseUrl = process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS}` : 'http://localhost:5000';
+      const baseUrl = 'https://autojobr.com';
       const tokenResponse = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
         method: 'POST',
         headers: {
