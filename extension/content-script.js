@@ -2497,7 +2497,7 @@ class AutoJobrContentScript {
   async getApiUrl() {
     return new Promise((resolve) => {
       chrome.runtime.sendMessage({ action: 'getApiUrl' }, (response) => {
-        resolve(response?.apiUrl || 'https://474e72d5-d02a-4881-a1b1-207472132974-00-13rhdq6o0h8j1.worf.replit.dev');
+        resolve(response?.apiUrl || 'https://autojobr.com');
       });
     });
   }
