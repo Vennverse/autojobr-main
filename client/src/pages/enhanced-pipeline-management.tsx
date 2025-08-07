@@ -69,6 +69,20 @@ interface Application {
   appliedAt: string;
   recruiterNotes?: string;
   matchScore?: number;
+  // Enhanced NLP fields from original pipeline
+  fitScore?: number;
+  seniorityLevel?: string;
+  totalExperience?: number;
+  highestDegree?: string;
+  educationScore?: number;
+  companyPrestige?: number;
+  matchedSkills?: string[];
+  topSkills?: string[];
+  strengths?: string[];
+  riskFactors?: string[];
+  interviewFocus?: string[];
+  nlpInsights?: string;
+  jobMatchHighlights?: string[];
   candidate: {
     id: string;
     name: string;
@@ -124,6 +138,7 @@ export default function EnhancedPipelineManagement() {
   const queryClient = useQueryClient();
   
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [selectedNlpApplication, setSelectedNlpApplication] = useState<Application | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedJob, setSelectedJob] = useState<string>("all");
   const [selectedStage, setSelectedStage] = useState<string>("all");
@@ -576,7 +591,7 @@ export default function EnhancedPipelineManagement() {
 
         {/* Pipeline View */}
         {viewMode === "kanban" ? (
-          <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {pipelineStages.map((stage) => {
               const StageIcon = stage.icon;
               return (
@@ -675,80 +690,66 @@ export default function EnhancedPipelineManagement() {
                             <span className="text-xs text-gray-500 dark:text-gray-400">
                               {new Date(application.appliedAt).toLocaleDateString()}
                             </span>
-                            <div className="flex gap-1">
-                              {/* AI Analysis Tools */}
+                            {/* Enhanced Action Buttons from Original Pipeline */}
+                            <div className="flex gap-1 flex-wrap mt-2">
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700"
+                                className="h-7 px-2 text-xs text-blue-600 hover:bg-blue-50"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  // NLP Analysis
-                                  toast({
-                                    title: "NLP Analysis",
-                                    description: "Analyzing candidate with AI...",
-                                  });
+                                  setSelectedNlpApplication(application);
                                 }}
-                                title="NLP Analysis"
+                                title="View AI NLP Insights"
                               >
-                                <BarChart3 className="w-3 h-3" />
+                                <BarChart3 className="w-3 h-3 mr-1" />
+                                NLP
                               </Button>
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-6 w-6 p-0 text-green-600 hover:text-green-700"
+                                className="h-7 px-2 text-xs text-green-600 hover:bg-green-50"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  // AI Resume Scoring
+                                  // Open resume in new tab for analysis
+                                  if (application.candidate.resumeUrl) {
+                                    window.open(application.candidate.resumeUrl, '_blank');
+                                  }
                                   toast({
-                                    title: "AI Resume Scoring",
-                                    description: "Generating ATS compatibility score...",
+                                    title: "Resume Analysis",
+                                    description: "Opening resume for ATS scoring...",
                                   });
                                 }}
-                                title="AI Resume Scoring"
+                                title="Resume & ATS Score"
                               >
-                                <Target className="w-3 h-3" />
+                                <FileText className="w-3 h-3 mr-1" />
+                                Resume
                               </Button>
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-6 w-6 p-0 text-purple-600 hover:text-purple-700"
+                                className="h-7 px-2 text-xs text-purple-600 hover:bg-purple-50"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  // AI Interview Chat
                                   window.open(`/chat?user=${application.candidate.id}`, '_blank');
                                 }}
-                                title="AI Chat"
+                                title="Start AI Chat"
                               >
-                                <MessageCircle className="w-3 h-3" />
+                                <MessageCircle className="w-3 h-3 mr-1" />
+                                Chat
                               </Button>
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // Send Interview Invite
-                                  toast({
-                                    title: "Interview Invite",
-                                    description: "Sending interview invitation...",
-                                  });
-                                }}
-                                title="Send Interview Invite"
-                              >
-                                <Video className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-6 w-6 p-0"
+                                className="h-7 px-2 text-xs text-orange-600 hover:bg-orange-50"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setSelectedApplication(application);
                                 }}
-                                data-testid={`button-view-${application.id}`}
+                                title="Send Interview Invite"
                               >
-                                <Eye className="w-3 h-3" />
+                                <Video className="w-3 h-3 mr-1" />
+                                Interview
                               </Button>
                             </div>
                           </div>
@@ -874,10 +875,7 @@ export default function EnhancedPipelineManagement() {
                               className="h-8 w-8 p-0 text-blue-600 border-blue-200"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toast({
-                                  title: "NLP Analysis",
-                                  description: "Analyzing candidate with AI...",
-                                });
+                                setSelectedNlpApplication(application);
                               }}
                               title="NLP Analysis"
                             >
@@ -1279,6 +1277,208 @@ export default function EnhancedPipelineManagement() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Enhanced NLP Analysis Dialog from Original Pipeline */}
+        {selectedNlpApplication && (
+          <Dialog open={!!selectedNlpApplication} onOpenChange={() => setSelectedNlpApplication(null)}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Star className="h-5 w-5 text-yellow-500" />
+                  AutoJobr AI Candidate Analysis
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6">
+                {/* Candidate Header */}
+                <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg">
+                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                    {selectedNlpApplication.candidate?.name?.charAt(0) || "?"}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                      {selectedNlpApplication.candidate?.name || "Unknown Candidate"}
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      {selectedNlpApplication.candidate?.email || "No email provided"}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      {selectedNlpApplication.seniorityLevel && (
+                        <Badge variant="secondary">{selectedNlpApplication.seniorityLevel}</Badge>
+                      )}
+                      {selectedNlpApplication.totalExperience && (
+                        <Badge variant="outline">{selectedNlpApplication.totalExperience} years exp</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex flex-col items-end">
+                      <div className="text-3xl font-bold text-emerald-600">{selectedNlpApplication.fitScore || 0}%</div>
+                      <div className="w-32 mt-2">
+                        <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                          <div
+                            className="h-2 rounded-full bg-emerald-500"
+                            style={{ width: `${selectedNlpApplication.fitScore || 0}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">Overall Match</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Score Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2">
+                        <GraduationCap className="h-4 w-4 text-blue-500" />
+                        <span className="font-medium">Education</span>
+                      </div>
+                      <div className="mt-2">
+                        <div className="text-xl font-bold">{selectedNlpApplication.educationScore || 0}/100</div>
+                        <div className="text-sm text-gray-600">{selectedNlpApplication.highestDegree || "Not specified"}</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-4 w-4 text-green-500" />
+                        <span className="font-medium">Experience</span>
+                      </div>
+                      <div className="mt-2">
+                        <div className="text-xl font-bold">{selectedNlpApplication.totalExperience || 0} years</div>
+                        <div className="text-sm text-gray-600">{selectedNlpApplication.seniorityLevel || "Entry-Level"}</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2">
+                        <Building className="h-4 w-4 text-purple-500" />
+                        <span className="font-medium">Company Prestige</span>
+                      </div>
+                      <div className="mt-2">
+                        <div className="text-xl font-bold">{selectedNlpApplication.companyPrestige || 0}/100</div>
+                        <div className="text-sm text-gray-600">Background Score</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Strengths and Risk Factors */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {selectedNlpApplication.strengths && selectedNlpApplication.strengths.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-green-600">
+                          <CheckCircle className="h-5 w-5" />
+                          Key Strengths
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {selectedNlpApplication.strengths.map((strength, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <div className="w-2 h-2 rounded-full bg-green-500 mt-2 flex-shrink-0"></div>
+                              <span className="text-sm">{strength}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
+                  {selectedNlpApplication.riskFactors && selectedNlpApplication.riskFactors.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-orange-600">
+                          <AlertCircle className="h-5 w-5" />
+                          Risk Factors
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {selectedNlpApplication.riskFactors.map((risk, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <div className="w-2 h-2 rounded-full bg-orange-500 mt-2 flex-shrink-0"></div>
+                              <span className="text-sm">{risk}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+
+                {/* Matched Skills */}
+                {selectedNlpApplication.matchedSkills && selectedNlpApplication.matchedSkills.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Code className="h-5 w-5 text-blue-500" />
+                        Matched Skills ({selectedNlpApplication.matchedSkills.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedNlpApplication.matchedSkills.map((skill, i) => (
+                          <Badge key={i} variant="secondary" className="bg-blue-100 text-blue-800">
+                            {skill}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Interview Focus Areas */}
+                {selectedNlpApplication.interviewFocus && selectedNlpApplication.interviewFocus.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Target className="h-5 w-5 text-purple-500" />
+                        Interview Focus Areas
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-3">
+                        {selectedNlpApplication.interviewFocus.map((focus, i) => (
+                          <li key={i} className="flex items-start gap-3 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                            <div className="w-6 h-6 rounded-full bg-purple-500 text-white text-xs flex items-center justify-center font-bold">
+                              {i + 1}
+                            </div>
+                            <span className="text-sm">{focus}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Job Match Highlights */}
+                {selectedNlpApplication.jobMatchHighlights && selectedNlpApplication.jobMatchHighlights.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5 text-emerald-500" />
+                        Detailed Analysis
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {selectedNlpApplication.jobMatchHighlights.map((highlight, i) => (
+                          <div key={i} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <span className="text-sm">{highlight}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </div>
   );
