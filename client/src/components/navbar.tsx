@@ -204,7 +204,7 @@ export function Navbar() {
   return (
     <>
       <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-full mx-auto px-2 sm:px-4 lg:px-6">
           <div className="flex justify-between h-16">
             <div className="flex">
               {/* Logo */}
@@ -219,7 +219,7 @@ export function Navbar() {
 
               {/* Desktop Navigation */}
               {user && (
-                <div className="hidden md:ml-10 md:flex md:space-x-2">
+                <div className="hidden md:ml-4 md:flex md:space-x-1">
                   {navigationItems.map((item) => {
                     const Icon = item.icon;
                     const canAccess = canAccessFeature(item.premium || false);
@@ -232,19 +232,19 @@ export function Navbar() {
                           item.current
                             ? "bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 border-blue-500"
                             : "text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-transparent"
-                        } inline-flex items-center px-3 py-2 border-b-2 text-sm font-medium transition-all duration-200 rounded-t-lg relative ${
+                        } inline-flex items-center px-2.5 py-2 border-b-2 text-sm font-medium transition-all duration-200 rounded-t-lg relative ${
                           !canAccess ? "opacity-50" : ""
                         }`}
                       >
-                        <Icon className="w-4 h-4 mr-2 flex-shrink-0" />
+                        <Icon className="w-4 h-4 mr-1.5 flex-shrink-0" />
                         <span className="whitespace-nowrap">{item.name}</span>
                         {item.badge && typeof item.badge === 'string' && (
-                          <Badge className="ml-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                          <Badge className="ml-1.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">
                             {item.badge}
                           </Badge>
                         )}
                         {item.badge && typeof item.badge === 'number' && (
-                          <Badge className="ml-2 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs px-1.5 py-0.5 min-w-[1.25rem] h-5 rounded-full font-medium flex items-center justify-center">
+                          <Badge className="ml-1.5 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs px-1.5 py-0.5 min-w-[1.25rem] h-5 rounded-full font-medium flex items-center justify-center">
                             {item.badge > 9 ? '9+' : item.badge}
                           </Badge>
                         )}
@@ -259,7 +259,7 @@ export function Navbar() {
             </div>
 
             {/* Right side */}
-            <div className="hidden md:ml-6 md:flex md:items-center md:space-x-3">
+            <div className="hidden md:ml-4 md:flex md:items-center md:space-x-2">
               
               {/* Theme toggle */}
               <Button
