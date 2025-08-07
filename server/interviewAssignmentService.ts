@@ -441,7 +441,7 @@ export class InterviewAssignmentService {
           mi.assigned_by as "assignedBy",
           mi.feedback as "interviewFeedback",
           mi.questions_asked as "questionsAsked",
-          mi.answers_given as "answersGiven",
+          mi.answers_given as "answersGiven", 
           mi.performance_metrics as "performanceMetrics",
           u.first_name as "candidateName",
           u.email as "candidateEmail"
