@@ -264,7 +264,7 @@ export class InterviewAssignmentService {
           .where(eq(interviewRetakePayments.id, payment.id));
         break;
       case 'razorpay':
-        paymentResult = await paymentService.createRazorpayOrder(data.amount || 500, 'USD');
+        paymentResult = await paymentService.createRazorpayOrderV2(data.amount || 500);
         await db
           .update(interviewRetakePayments)
           .set({ razorpayOrderId: paymentResult.id })
@@ -333,7 +333,7 @@ export class InterviewAssignmentService {
           .where(eq(interviewRetakePayments.id, payment.id));
         break;
       case 'razorpay':
-        paymentResult = await paymentService.createRazorpayOrder(data.amount || 500, 'USD');
+        paymentResult = await paymentService.createRazorpayOrderV2(data.amount || 500);
         await db
           .update(interviewRetakePayments)
           .set({ razorpayOrderId: paymentResult.id })
@@ -458,7 +458,7 @@ export class InterviewAssignmentService {
       // Parse performance metrics if available
       let performanceData = null;
       try {
-        performanceData = interview.performanceMetrics ? JSON.parse(interview.performanceMetrics) : null;
+        performanceData = interview.performanceMetrics ? JSON.parse(String(interview.performanceMetrics)) : null;
       } catch (e) {
         console.log('Could not parse performance metrics:', e);
       }
@@ -473,8 +473,8 @@ export class InterviewAssignmentService {
         // Enhanced feedback structure for mock interviews
         detailedAnalysis: (interview.interviewFeedback || performanceData) ? {
           performanceSummary: interview.interviewFeedback || "Mock interview completed with recorded responses",
-          questionsAsked: interview.questionsAsked ? JSON.parse(interview.questionsAsked) : [],
-          answersGiven: interview.answersGiven ? JSON.parse(interview.answersGiven) : [],
+          questionsAsked: interview.questionsAsked ? JSON.parse(String(interview.questionsAsked)) : [],
+          answersGiven: interview.answersGiven ? JSON.parse(String(interview.answersGiven)) : [],
           performanceMetrics: performanceData,
           overallScore: interview.overallScore,
           skillScores: performanceData ? {
@@ -623,7 +623,7 @@ export class InterviewAssignmentService {
           email: users.email,
           userType: users.userType,
           createdAt: users.createdAt,
-          isActive: users.isActive
+          // isActive: users.isActive // Field doesn't exist in schema
         })
         .from(users)
         .where(eq(users.userType, 'jobSeeker'))
@@ -636,7 +636,7 @@ export class InterviewAssignmentService {
         email: candidate.email,
         userType: candidate.userType,
         createdAt: candidate.createdAt,
-        isActive: candidate.isActive
+        // isActive: candidate.isActive // Field doesn't exist
       }));
     } catch (error) {
       console.error('Error fetching candidates:', error);

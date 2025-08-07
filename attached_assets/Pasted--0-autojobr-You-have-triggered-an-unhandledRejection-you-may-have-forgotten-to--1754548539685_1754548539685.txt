@@ -1,0 +1,48 @@
+)
+0|autojobr | You have triggered an unhandledRejection, you may have forgotten to                                                                                                              catch a Promise rejection:
+0|autojobr | Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'xmldom' imported                                                                                                              from /home/ubuntu/autojobr-main/dist/index.js
+0|autojobr |     at packageResolve (node:internal/modules/esm/resolve:873:9)
+0|autojobr |     at moduleResolve (node:internal/modules/esm/resolve:946:18)
+0|autojobr |     at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+0|autojobr |     at ModuleLoader.defaultResolve (node:internal/modules/esm/loade                                                                                                             r:642:12)
+0|autojobr |     at #cachedDefaultResolve (node:internal/modules/esm/loader:591:                                                                                                             25)
+0|autojobr |     at ModuleLoader.resolve (node:internal/modules/esm/loader:574:3                                                                                                             8)
+0|autojobr |     at ModuleLoader.getModuleJobForImport (node:internal/modules/es                                                                                                             m/loader:236:38)
+0|autojobr |     at ModuleJob._link (node:internal/modules/esm/module_job:130:49                                                                                                             )
+0|autojobr | 2025-08-06T15:02:15: (node:105722) [DEP0106] DeprecationWarning: cr                                                                                                             ypto.createDecipher is deprecated.
+0|autojobr | (Use `node --trace-deprecation ...` to show where the warning was c                                                                                                             reated)
+0|autojobr | 2025-08-06T16:18:59: Error fetching candidates: TypeError: Cannot c                                                                                                             onvert undefined or null to object
+0|autojobr |     at Function.entries (<anonymous>)
+0|autojobr |     at orderSelectedFields (file:///home/ubuntu/autojobr-main/node_                                                                                                             modules/drizzle-orm/utils.js:53:17)
+0|autojobr |     at file:///home/ubuntu/autojobr-main/node_modules/drizzle-orm/u                                                                                                             tils.js:63:22
+0|autojobr |     at Array.reduce (<anonymous>)
+0|autojobr |     at orderSelectedFields (file:///home/ubuntu/autojobr-main/node_                                                                                                             modules/drizzle-orm/utils.js:53:33)
+0|autojobr |     at file:///home/ubuntu/autojobr-main/node_modules/drizzle-orm/p                                                                                                             g-core/query-builders/select.js:684:26
+0|autojobr |     at Object.startActiveSpan (file:///home/ubuntu/autojobr-main/no                                                                                                             de_modules/drizzle-orm/tracing.js:8:14)
+0|autojobr |     at PgSelectBase._prepare (file:///home/ubuntu/autojobr-main/nod                                                                                                             e_modules/drizzle-orm/pg-core/query-builders/select.js:683:19)
+0|autojobr |     at file:///home/ubuntu/autojobr-main/node_modules/drizzle-orm/p                                                                                                             g-core/query-builders/select.js:708:19
+0|autojobr |     at Object.startActiveSpan (file:///home/ubuntu/autojobr-main/no                                                                                                             de_modules/drizzle-orm/tracing.js:8:14)
+0|autojobr | 2025-08-06T16:19:05: Error fetching partial results: error: column                                                                                                              mi.questions_asked does not exist
+0|autojobr |     at /home/ubuntu/autojobr-main/node_modules/pg-pool/index.js:45:                                                                                                             11
+0|autojobr |     at process.processTicksAndRejections (node:internal/process/tas                                                                                                             k_queues:95:5)
+0|autojobr |     at async InterviewAssignmentService.getPartialResultsForRecruit                                                                                                             er (file:///home/ubuntu/autojobr-main/dist/index.js:17111:22)
+0|autojobr |     at async file:///home/ubuntu/autojobr-main/dist/index.js:21251:                                                                                                             23 {
+0|autojobr |   length: 117,
+0|autojobr |   severity: 'ERROR',
+0|autojobr |   code: '42703',
+0|autojobr |   detail: undefined,
+0|autojobr |   hint: undefined,
+0|autojobr |   position: '479',
+0|autojobr |   internalPosition: undefined,
+0|autojobr |   internalQuery: undefined,
+0|autojobr |   where: undefined,
+0|autojobr |   schema: undefined,
+0|autojobr |   table: undefined,
+0|autojobr |   column: undefined,
+0|autojobr |   dataType: undefined,
+0|autojobr |   constraint: undefined,
+0|autojobr |   file: 'parse_relation.c',
+0|autojobr |   line: '3716',
+0|autojobr |   routine: 'errorMissingColumn'
+0|autojobr | }
+0|autojobr | 2025-08-07T06:21:26: 🐌 SLOW REQUEST: POST /api/virtual-interview/v                                                                                                             irtual_assigned_1754547575433_0k6m3l2ja/start 200 …

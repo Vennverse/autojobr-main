@@ -90,8 +90,8 @@ class ChatEncryptionService {
       const authTag = combined.slice(16, 32);
       const encrypted = combined.slice(32);
       
-      // Create decipher with IV
-      const decipher = crypto.createDecipher(this.algorithm, this.encryptionKey);
+      // Create decipher with IV (using modern approach)
+      const decipher = crypto.createDecipheriv(this.algorithm, this.encryptionKey, iv);
       if (this.algorithm.includes('gcm')) {
         decipher.setAuthTag(authTag);
       }
@@ -144,7 +144,7 @@ class ChatEncryptionService {
       const authTag = combined.slice(16, 32);
       const encrypted = combined.slice(32);
       
-      const decipher = crypto.createDecipher(this.algorithm, this.encryptionKey);
+      const decipher = crypto.createDecipheriv(this.algorithm, this.encryptionKey, iv);
       if (this.algorithm.includes('gcm')) {
         decipher.setAuthTag(authTag);
       }
