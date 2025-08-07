@@ -320,46 +320,46 @@ export default function Jobs() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <Navbar />
       
-      {/* Fixed Header */}
+      {/* Mobile-Optimized Header */}
       <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
+          <div className="flex flex-col gap-3 sm:gap-4">
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+              <h1 className="text-lg sm:text-2xl font-semibold text-gray-900 dark:text-white leading-tight">
                 Top job picks for you
               </h1>
-              <p className="text-gray-600 dark:text-gray-300">
-                Based on your profile, preferences, and activity like applies, searches, and saves
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1">
+                Based on your profile and activity
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
                 {totalJobs} results
               </p>
             </div>
-          </div>
           
-          {/* Search Bar */}
-          <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
-            <CardContent className="p-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <Input
-                  placeholder="Search by title, company, or keywords"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 h-12 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </CardContent>
-          </Card>
+            {/* Mobile-Optimized Search Bar */}
+            <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
+              <CardContent className="p-3 sm:p-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                  <Input
+                    placeholder="Search jobs..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 sm:pl-10 h-10 sm:h-12 text-sm sm:text-base border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 touch-manipulation"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
-      {/* Main Content - Full Height with Independent Scrolling */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-          {/* Job List - Scrollable */}
+      {/* Main Content - Mobile Optimized */}
+      <div className="flex-1 max-w-7xl mx-auto w-full px-2 sm:px-4 py-4 sm:py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6 h-full">
+          {/* Job List - Mobile Optimized */}
           <div className="h-full">
-            <div className="h-[calc(100vh-240px)] overflow-y-auto pr-2 space-y-4">
+            <div className="h-[calc(100vh-200px)] sm:h-[calc(100vh-240px)] overflow-y-auto pr-1 lg:pr-2 space-y-3 lg:space-y-4">
             {jobsLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <Card key={i} className="border-0 shadow-sm">
@@ -392,67 +392,68 @@ export default function Jobs() {
                 return (
                   <Card 
                     key={job.id} 
-                    className={`border-0 shadow-sm hover:shadow-md transition-all cursor-pointer ${
+                    className={`border-0 shadow-sm hover:shadow-md transition-all cursor-pointer touch-manipulation ${
                       isSelected ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-gray-800'
                     }`}
                     onClick={() => handleJobClick(job)}
                   >
-                    <CardContent className="p-4">
+                    <CardContent className="p-3 sm:p-4">
                       <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-900 dark:text-white text-lg mb-1 truncate">
+                        <div className="flex-1 min-w-0 pr-2">
+                          <h3 className="font-semibold text-gray-900 dark:text-white text-base sm:text-lg mb-1 line-clamp-2">
                             {job.title}
                           </h3>
-                          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 mb-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm text-gray-600 dark:text-gray-300 mb-2">
                             <span className="font-medium">{job.companyName}</span>
                             {job.location && (
-                              <>
-                                <span>•</span>
-                                <span>{job.location}</span>
-                              </>
+                              <div className="flex items-center gap-1">
+                                <span className="hidden sm:inline">•</span>
+                                <MapPin className="w-3 h-3 sm:hidden" />
+                                <span className="text-xs sm:text-sm">{job.location}</span>
+                              </div>
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 ml-4">
+                        <div className="flex flex-col items-end gap-2 ml-2">
                           <Badge 
-                            className={`${
+                            className={`text-xs ${
                               compatibility >= 90 ? 'bg-green-100 text-green-800' :
                               compatibility >= 80 ? 'bg-blue-100 text-blue-800' :
                               compatibility >= 70 ? 'bg-yellow-100 text-yellow-800' :
                               'bg-gray-100 text-gray-800'
                             }`}
                           >
-                            {compatibility}% match
+                            {compatibility}%
                           </Badge>
                           {savedJobs.has(job.id) && (
-                            <Bookmark className="w-4 h-4 text-yellow-500 fill-current" />
+                            <Bookmark className="w-3 h-3 text-yellow-500 fill-current" />
                           )}
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-3">
                         {job.workMode && (
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary" className="text-xs px-2 py-1">
                             {job.workMode}
                           </Badge>
                         )}
                         {job.jobType && (
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary" className="text-xs px-2 py-1">
                             {job.jobType}
                           </Badge>
                         )}
                         {job.experienceLevel && (
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="text-xs px-2 py-1">
                             {job.experienceLevel}
                           </Badge>
                         )}
                       </div>
                       
-                      <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 mb-3">
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-2 mb-3">
                         {job.description}
                       </p>
                       
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <span className="text-xs text-gray-500">
                           {new Date(job.createdAt).toLocaleDateString()}
                         </span>
@@ -464,12 +465,14 @@ export default function Jobs() {
                               e.stopPropagation();
                               handleSaveJob(job.id);
                             }}
-                            className="text-gray-600 hover:text-yellow-600"
+                            className="text-gray-600 hover:text-yellow-600 text-xs h-8 px-2 touch-manipulation"
                           >
+                            <Bookmark className="w-3 h-3 mr-1" />
                             Save
                           </Button>
                           {isApplied ? (
-                            <Badge className="bg-green-100 text-green-800">
+                            <Badge className="bg-green-100 text-green-800 text-xs px-2">
+                              <CheckCircle className="w-3 h-3 mr-1" />
                               Applied
                             </Badge>
                           ) : (
@@ -479,9 +482,9 @@ export default function Jobs() {
                                 e.stopPropagation();
                                 handleApply(job.id);
                               }}
-                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                              className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-8 px-3 touch-manipulation"
                             >
-                              Easy Apply
+                              Apply
                             </Button>
                           )}
                         </div>
@@ -616,32 +619,34 @@ export default function Jobs() {
             </div>
           </div>
 
-          {/* Enhanced Job Detail Panel - Comprehensive Information */}
+          {/* Enhanced Job Detail Panel - Mobile Optimized */}
           <div className="h-full">
-            <div className="h-[calc(100vh-240px)] overflow-y-auto pl-2">
+            <div className="h-[calc(100vh-200px)] sm:h-[calc(100vh-240px)] overflow-y-auto pl-1 lg:pl-2">
             {selectedJob ? (
               <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="mb-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-4 gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2 leading-tight">
                           {selectedJob.title}
                         </h2>
-                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 mb-3">
-                          <Building2 className="w-4 h-4" />
-                          <span className="font-medium">{selectedJob.companyName}</span>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm sm:text-base text-gray-600 dark:text-gray-300 mb-3">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 flex-shrink-0" />
+                            <span className="font-medium">{selectedJob.companyName}</span>
+                          </div>
                           {selectedJob.location && (
-                            <>
-                              <span>•</span>
-                              <MapPin className="w-4 h-4" />
+                            <div className="flex items-center gap-2">
+                              <span className="hidden sm:inline">•</span>
+                              <MapPin className="w-4 h-4 flex-shrink-0 sm:hidden" />
                               <span>{selectedJob.location}</span>
-                            </>
+                            </div>
                           )}
                         </div>
                       </div>
                       <Badge 
-                        className={`${
+                        className={`flex-shrink-0 text-xs sm:text-sm ${
                           calculateCompatibility(selectedJob) >= 90 ? 'bg-green-100 text-green-800' :
                           calculateCompatibility(selectedJob) >= 80 ? 'bg-blue-100 text-blue-800' :
                           calculateCompatibility(selectedJob) >= 70 ? 'bg-yellow-100 text-yellow-800' :
@@ -652,16 +657,16 @@ export default function Jobs() {
                       </Badge>
                     </div>
                     
-                    <div className="flex items-center gap-3 mb-6">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-6">
                       {appliedJobIds.includes(selectedJob.id) ? (
-                        <Badge className="bg-green-100 text-green-800">
+                        <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">
                           <CheckCircle className="w-4 h-4 mr-1" />
                           Applied
                         </Badge>
                       ) : (
                         <Button
                           onClick={() => handleApply(selectedJob.id)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                          className="bg-blue-600 hover:bg-blue-700 text-white text-sm h-9 px-4 touch-manipulation"
                         >
                           Easy Apply
                         </Button>
@@ -670,14 +675,16 @@ export default function Jobs() {
                         variant="outline"
                         onClick={() => handleSaveJob(selectedJob.id)}
                         disabled={savedJobs.has(selectedJob.id)}
+                        className="text-sm h-9 px-3 touch-manipulation"
                       >
                         <Bookmark className="w-4 h-4 mr-2" />
-                        {savedJobs.has(selectedJob.id) ? 'Saved' : 'Save'}
+                        <span className="hidden sm:inline">{savedJobs.has(selectedJob.id) ? 'Saved' : 'Save'}</span>
                       </Button>
                       <Button 
                         variant="outline" 
                         size="icon"
                         onClick={() => setLocation(`/jobs/${selectedJob.id}`)}
+                        className="h-9 w-9 touch-manipulation"
                       >
                         <ExternalLink className="w-4 h-4" />
                       </Button>
@@ -686,7 +693,7 @@ export default function Jobs() {
                   
                   <div className="space-y-6">
                     {/* Job Details Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       {selectedJob.workMode && (
                         <div>
                           <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Work Mode</span>
@@ -722,11 +729,11 @@ export default function Jobs() {
                     
                     {/* About the job */}
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3">
                         About the job
                       </h3>
-                      <div className="prose dark:prose-invert max-w-none">
-                        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                      <div className="prose dark:prose-invert max-w-none text-sm sm:text-base">
+                        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                           {selectedJob.description}
                         </p>
                       </div>
@@ -792,10 +799,10 @@ export default function Jobs() {
                     
                     {/* Job Statistics */}
                     <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3">
                         Job Statistics
                       </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div className="flex items-center gap-3">
                           <Calendar className="w-5 h-5 text-gray-500" />
                           <div>
@@ -846,13 +853,13 @@ export default function Jobs() {
               </Card>
             ) : (
               <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
-                <CardContent className="p-8 text-center">
-                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                <CardContent className="p-6 sm:p-8 text-center">
+                  <FileText className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-2">
                     Select a job to view details
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300">
-                    Click on any job from the list to see comprehensive information including requirements, responsibilities, benefits, and more
+                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-relaxed">
+                    Tap on any job from the list to see comprehensive information including requirements, responsibilities, benefits, and more
                   </p>
                 </CardContent>
               </Card>
