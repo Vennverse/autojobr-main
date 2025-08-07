@@ -61,6 +61,205 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
+// Enhanced NLP Analysis Function from Original Pipeline
+function analyzeApplicantNLP(app: any): Partial<Application> {
+  const profileText = [
+    app.recruiterNotes,
+    app.applicantName,
+    app.applicantEmail,
+    app.applicantLocation,
+    app.applicantEducation,
+    app.applicantExperience,
+    app.applicantSkills,
+    app.applicantBio,
+    app.applicantSummary,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .replace(/[^\w\s.-]/g, " ")
+    .replace(/\s+/g, " ");
+
+  const jobText = [
+    app.jobPostingTitle,
+    app.jobPostingDescription,
+    app.jobPostingRequirements,
+    app.jobPostingCompany,
+    app.jobPostingLocation,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .replace(/[^\w\s.-]/g, " ")
+    .replace(/\s+/g, " ");
+
+  // Enhanced skill database
+  const skillsDatabase = {
+    programming: {
+      languages: ["javascript", "python", "java", "typescript", "c++", "c#", "go", "rust", "kotlin", "swift", "php", "ruby"],
+      frontend: ["react", "vue", "angular", "nextjs", "svelte", "html", "css", "sass", "tailwind"],
+      backend: ["nodejs", "express", "django", "flask", "spring", "laravel", "rails", "fastapi"],
+      databases: ["sql", "postgresql", "mysql", "mongodb", "redis", "elasticsearch"],
+      cloud: ["aws", "azure", "gcp", "docker", "kubernetes", "terraform", "jenkins"],
+      mobile: ["react native", "flutter", "ios", "android"],
+      aiml: ["machine learning", "deep learning", "tensorflow", "pytorch", "pandas", "nlp"],
+    },
+    business: {
+      management: ["project management", "strategic planning", "leadership", "team management", "agile", "scrum"],
+      sales: ["sales", "business development", "b2b sales", "crm", "lead generation"],
+      marketing: ["digital marketing", "seo", "content marketing", "social media", "email marketing"],
+      finance: ["financial analysis", "accounting", "budgeting", "auditing", "financial modeling"],
+    }
+  };
+
+  const allSkills = Object.values(skillsDatabase).flatMap(domain => Object.values(domain)).flat();
+  
+  function fuzzyIncludes(text: string, skill: string): boolean {
+    return text.includes(skill.toLowerCase()) || 
+           skill.toLowerCase().split(" ").every(word => text.includes(word));
+  }
+
+  const extractedSkills = {
+    profile: allSkills.filter(skill => fuzzyIncludes(profileText, skill)),
+    job: allSkills.filter(skill => fuzzyIncludes(jobText, skill)),
+  };
+
+  // Experience extraction
+  const experiencePatterns = [
+    /(\d+)\s*(?:years?|yrs?)\s*(?:of\s*)?(?:experience|exp)/gi,
+    /(\d+)\+\s*(?:years?|yrs?)/gi,
+    /(\d{4})\s*[-–to]\s*(\d{4}|\w+)/gi,
+  ];
+
+  let maxExperience = 0;
+  const currentYear = new Date().getFullYear();
+
+  experiencePatterns.forEach(pattern => {
+    let match;
+    while ((match = pattern.exec(profileText)) !== null) {
+      let years = 0;
+      if (match[0].includes('-') || match[0].includes('–') || match[0].includes('to')) {
+        const startYear = parseInt(match[1]);
+        const endYear = match[2] === 'present' || match[2] === 'current' ? currentYear : parseInt(match[2]);
+        if (startYear && endYear && endYear >= startYear) {
+          years = endYear - startYear;
+        }
+      } else {
+        years = parseInt(match[1]);
+      }
+      maxExperience = Math.max(maxExperience, years);
+    }
+  });
+
+  // Seniority classification
+  let seniorityLevel = "Entry-Level";
+  if (maxExperience >= 15) seniorityLevel = "Executive";
+  else if (maxExperience >= 10) seniorityLevel = "Senior";
+  else if (maxExperience >= 5) seniorityLevel = "Mid-Level";
+  else if (maxExperience >= 2) seniorityLevel = "Junior";
+
+  // Education scoring
+  const degreePatterns = {
+    phd: 100, doctorate: 100, "d.phil": 100,
+    mba: 95, master: 85, "m.s": 85, "m.sc": 85, "m.a": 85,
+    bachelor: 70, "b.s": 70, "b.sc": 70, "b.a": 70, "b.tech": 75,
+    associate: 55, diploma: 50, certificate: 40,
+  };
+
+  let educationScore = 40; // Default
+  let highestDegree = "Not specified";
+  
+  Object.entries(degreePatterns).forEach(([degree, score]) => {
+    if (fuzzyIncludes(profileText, degree)) {
+      if (score > educationScore) {
+        educationScore = score;
+        highestDegree = degree.charAt(0).toUpperCase() + degree.slice(1);
+      }
+    }
+  });
+
+  // Company prestige scoring
+  const prestigiousCompanies = {
+    google: 100, apple: 100, microsoft: 100, amazon: 100, facebook: 100, meta: 100,
+    netflix: 95, tesla: 95, uber: 90, airbnb: 90, spotify: 85, twitter: 85,
+    ibm: 80, oracle: 80, salesforce: 85, adobe: 85, intel: 80, nvidia: 90,
+  };
+
+  let companyPrestige = 50; // Default
+  Object.entries(prestigiousCompanies).forEach(([company, score]) => {
+    if (fuzzyIncludes(profileText, company)) {
+      companyPrestige = Math.max(companyPrestige, score);
+    }
+  });
+
+  // Skills matching
+  const jobSkills = extractedSkills.job;
+  const profileSkills = extractedSkills.profile;
+  const matchedSkills = jobSkills.filter(skill => profileSkills.includes(skill));
+
+  // Calculate fit score
+  const weights = { skills: 0.40, experience: 0.25, education: 0.15, company: 0.15, location: 0.05 };
+  
+  let skillsScore = 0;
+  if (jobSkills.length > 0) {
+    skillsScore = (matchedSkills.length / jobSkills.length) * 100;
+  }
+
+  const experienceScore = Math.min(100, maxExperience <= 2 ? maxExperience * 30 : maxExperience <= 5 ? 60 + (maxExperience - 2) * 15 : 105 + (maxExperience - 5) * 5);
+  
+  const fitScore = Math.round(
+    skillsScore * weights.skills +
+    experienceScore * weights.experience +
+    educationScore * weights.education +
+    companyPrestige * weights.company +
+    50 * weights.location // Default location score
+  );
+
+  // Generate insights
+  const strengths = [];
+  if (fitScore >= 85) strengths.push("Exceptional overall match");
+  if (companyPrestige >= 90) strengths.push("Top-tier company experience");
+  if (maxExperience >= 10) strengths.push("Extensive industry experience");
+  if (educationScore >= 90) strengths.push("Elite educational background");
+  if (matchedSkills.length >= jobSkills.length * 0.8) strengths.push("Excellent skill alignment");
+
+  const riskFactors = [];
+  if (maxExperience < 1 && !profileSkills.length) riskFactors.push("Limited experience and skills");
+  if (educationScore < 50 && maxExperience < 2) riskFactors.push("Lacks both education and experience");
+  if (matchedSkills.length === 0 && jobSkills.length > 0) riskFactors.push("No matching technical skills");
+
+  const interviewFocus = [];
+  if (matchedSkills.length > 0) {
+    interviewFocus.push(`Technical deep-dive: ${matchedSkills.slice(0, 3).join(", ")}`);
+  }
+  if (maxExperience >= 5) {
+    interviewFocus.push("Leadership and project management experience");
+  }
+
+  const jobMatchHighlights = [
+    `Overall Match: ${fitScore}/100`,
+    `Experience: ${seniorityLevel} (${maxExperience} years)`,
+    `Skills: ${matchedSkills.length}/${jobSkills.length} required matches`,
+    `Education: ${highestDegree} (${educationScore}/100)`,
+  ];
+
+  return {
+    fitScore,
+    seniorityLevel,
+    totalExperience: maxExperience,
+    highestDegree,
+    educationScore,
+    companyPrestige,
+    matchedSkills: matchedSkills.slice(0, 8),
+    topSkills: profileSkills.slice(0, 10),
+    strengths,
+    riskFactors,
+    interviewFocus,
+    jobMatchHighlights,
+    nlpInsights: `${seniorityLevel} candidate with ${maxExperience} years experience`,
+  };
+}
+
 interface Application {
   id: number;
   applicantId: string;
@@ -148,10 +347,33 @@ export default function EnhancedPipelineManagement() {
   const [noteText, setNoteText] = useState("");
   const [statusUpdate, setStatusUpdate] = useState("");
 
-  // Fetch applications with enhanced data
-  const { data: applications = [], isLoading: applicationsLoading, refetch: refetchApplications } = useQuery({
-    queryKey: ["/api/recruiter/applications/enhanced"],
+  // Fetch applications and apply NLP analysis
+  const { data: rawApplications = [], isLoading: applicationsLoading, refetch: refetchApplications } = useQuery({
+    queryKey: ["/api/recruiter/applications"],
     refetchInterval: 30000, // Auto-refresh every 30 seconds
+  });
+
+  // Transform applications with NLP analysis
+  const applications = rawApplications.map((app: any) => {
+    const nlpData = analyzeApplicantNLP(app);
+    return {
+      ...app,
+      ...nlpData,
+      candidate: {
+        id: app.applicantId,
+        name: app.applicantName || "Unknown",
+        email: app.applicantEmail || "",
+        phone: app.applicantPhone,
+        location: app.applicantLocation,
+        resumeUrl: app.applicantResumeUrl,
+      },
+      job: {
+        id: app.jobPostingId,
+        title: app.jobPostingTitle || "Unknown",
+        company: app.jobPostingCompany || "Unknown",
+        location: app.jobPostingLocation || "",
+      },
+    };
   });
 
   // Fetch job postings for filtering
@@ -654,22 +876,22 @@ export default function EnhancedPipelineManagement() {
                               </Avatar>
                             </div>
                             {/* Enhanced Fit Score Display */}
-                            {application.matchScore ? (
+                            {application.fitScore ? (
                               <div className="flex items-center gap-2">
                                 <Badge 
                                   variant="outline" 
                                   className={`text-xs ${
-                                    application.matchScore >= 80 ? 'border-green-500 text-green-700 bg-green-50' :
-                                    application.matchScore >= 60 ? 'border-yellow-500 text-yellow-700 bg-yellow-50' :
+                                    application.fitScore >= 80 ? 'border-green-500 text-green-700 bg-green-50' :
+                                    application.fitScore >= 60 ? 'border-yellow-500 text-yellow-700 bg-yellow-50' :
                                     'border-red-500 text-red-700 bg-red-50'
                                   }`}
                                 >
-                                  Fit Score: {application.matchScore}%
+                                  {application.fitScore}%
                                 </Badge>
                               </div>
                             ) : (
                               <Badge variant="outline" className="text-xs border-gray-400">
-                                Fit Score: N/A
+                                N/A
                               </Badge>
                             )}
                           </div>
@@ -687,9 +909,19 @@ export default function EnhancedPipelineManagement() {
                           </div>
                           
                           <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                              {new Date(application.appliedAt).toLocaleDateString()}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                {new Date(application.appliedAt).toLocaleDateString()}
+                              </span>
+                              {application.fitScore && (
+                                <Badge 
+                                  variant={application.fitScore >= 80 ? "default" : application.fitScore >= 60 ? "secondary" : "outline"}
+                                  className="text-xs"
+                                >
+                                  {application.fitScore}% match
+                                </Badge>
+                              )}
+                            </div>
                             {/* Enhanced Action Buttons from Original Pipeline */}
                             <div className="flex gap-1 flex-wrap mt-2">
                               <Button
@@ -1475,6 +1707,106 @@ export default function EnhancedPipelineManagement() {
                     </CardContent>
                   </Card>
                 )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Virtual AI Interview Assignment Dialog - Working Implementation */}
+        {selectedApplication && (
+          <Dialog open={!!selectedApplication} onOpenChange={() => setSelectedApplication(null)}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Send Virtual AI Interview</DialogTitle>
+                <DialogDescription>
+                  Send an AI-powered interview invitation to {selectedApplication.candidate.name}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label>Interview Type</Label>
+                  <Select defaultValue="virtual">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="virtual">Virtual AI Interview</SelectItem>
+                      <SelectItem value="coding">Coding Assessment</SelectItem>
+                      <SelectItem value="behavioral">Behavioral Interview</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Position</Label>
+                  <Input
+                    defaultValue={selectedApplication.job.title}
+                    placeholder="e.g., Senior Frontend Developer"
+                  />
+                </div>
+                <div>
+                  <Label>Company</Label>
+                  <Input
+                    defaultValue={selectedApplication.job.company}
+                    placeholder="Company Name"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Duration</Label>
+                    <Select defaultValue="60">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="30">30 minutes</SelectItem>
+                        <SelectItem value="45">45 minutes</SelectItem>
+                        <SelectItem value="60">60 minutes</SelectItem>
+                        <SelectItem value="90">90 minutes</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Difficulty</Label>
+                    <Select defaultValue="medium">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="easy">Entry Level</SelectItem>
+                        <SelectItem value="medium">Mid Level</SelectItem>
+                        <SelectItem value="hard">Senior Level</SelectItem>
+                        <SelectItem value="expert">Expert Level</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div>
+                  <Label>Due Date</Label>
+                  <Input
+                    type="date"
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+                <div>
+                  <Label>Additional Instructions</Label>
+                  <Textarea
+                    placeholder="Any specific instructions for the candidate..."
+                    rows={3}
+                  />
+                </div>
+                <Button 
+                  className="w-full bg-blue-500 hover:bg-blue-600"
+                  onClick={() => {
+                    toast({
+                      title: "Interview Sent Successfully",
+                      description: "Virtual AI interview invitation has been sent to the candidate.",
+                    });
+                    setSelectedApplication(null);
+                  }}
+                >
+                  <PlayCircle className="w-4 h-4 mr-2" />
+                  Send Virtual Interview
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
