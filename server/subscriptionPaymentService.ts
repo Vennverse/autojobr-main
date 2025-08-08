@@ -27,71 +27,74 @@ export interface SubscriptionTier {
 export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
   // Job Seeker Plans
   {
-    id: 'jobseeker_basic_monthly',
-    name: 'Basic Monthly',
+    id: 'jobseeker_premium_monthly',
+    name: 'Premium Monthly',
     price: 9.99,
     currency: 'USD',
     billingCycle: 'monthly',
     userType: 'jobseeker',
     features: [
       'AI Resume Analysis',
-      'Job Matching',
+      'Job Matching', 
       'Chrome Extension with Auto-fill',
       'Basic Support',
-      '2 Free Cover Letter Generations'
+      'Unlimited Cover Letter Generations',
+      'Advanced Analytics'
     ],
     limits: {
-      jobAnalyses: 50,
-      resumeAnalyses: 10,
+      jobAnalyses: 100,
+      resumeAnalyses: 25,
       applications: -1, // Unlimited applications
       autoFills: -1, // Unlimited auto-fills
-      coverLetters: 2 // 2 free cover letters
+      coverLetters: -1 // Unlimited cover letters
     }
   },
   {
-    id: 'jobseeker_premium_monthly',
-    name: 'Premium Monthly',
+    id: 'jobseeker_ultra_premium_monthly',
+    name: 'Ultra Premium Monthly',
     price: 19.99,
     currency: 'USD',
     billingCycle: 'monthly',
     userType: 'jobseeker',
     features: [
-      'Everything in Basic',
+      'Everything in Premium',
       'Virtual AI Interviews',
       'Coding Tests',
       'Advanced Analytics',
       'Priority Support',
-      'Unlimited Cover Letter Generations'
+      'Chat with Recruiters',
+      'Background Checks',
+      'API Access'
     ],
     limits: {
-      jobAnalyses: 200,
-      resumeAnalyses: 50,
+      jobAnalyses: -1, // Unlimited
+      resumeAnalyses: -1, // Unlimited
       applications: -1, // Unlimited applications
       autoFills: -1, // Unlimited auto-fills
-      interviews: 20,
+      interviews: -1, // Unlimited
       coverLetters: -1 // Unlimited cover letters
     }
   },
   {
-    id: 'jobseeker_premium_yearly',
-    name: 'Premium Yearly',
+    id: 'jobseeker_ultra_premium_yearly',
+    name: 'Ultra Premium Yearly',
     price: 199.99,
     currency: 'USD',
     billingCycle: 'yearly',
     userType: 'jobseeker',
     features: [
-      'Everything in Premium Monthly',
+      'Everything in Ultra Premium Monthly',
       '2 months free',
       'Career Coaching Session',
       'Resume Writing Service',
-      'Unlimited Cover Letter Generations'
+      'Dedicated Account Manager'
     ],
     limits: {
-      jobAnalyses: 2400,
-      resumeAnalyses: 600,
+      jobAnalyses: -1, // Unlimited
+      resumeAnalyses: -1, // Unlimited
       applications: -1, // Unlimited applications
       autoFills: -1, // Unlimited auto-fills
-      interviews: 240,
+      interviews: -1, // Unlimited
       coverLetters: -1 // Unlimited cover letters
     }
   },
