@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,28 @@ export default function TestTaking() {
   const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   
+  // Enhanced anti-cheating state
+  const [deviceFingerprint, setDeviceFingerprint] = useState<any>(null);
+  const [behavioralData, setBehavioralData] = useState<any>({
+    keystrokes: [],
+    mouseMovements: [],
+    mouseClicks: [],
+    scrollEvents: [],
+    responses: [],
+    focusEvents: [],
+    pageViews: [],
+    interactions: []
+  });
+  const [environmentData, setEnvironmentData] = useState<any>({});
+  const [proctoringSummary, setProctoringSummary] = useState<any>(null);
+  const [advancedViolations, setAdvancedViolations] = useState<any[]>([]);
+  const [riskScore, setRiskScore] = useState<number>(0);
+  
+  // Mouse and keyboard tracking
+  const [lastMousePosition, setLastMousePosition] = useState<{x: number, y: number}>({ x: 0, y: 0 });
+  const [keystrokeBuffer, setKeystrokeBuffer] = useState<any[]>([]);
+  const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
+  
   // Authentication state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -56,6 +78,240 @@ export default function TestTaking() {
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [testResults, setTestResults] = useState<any>(null);
 
+  // Enhanced device fingerprinting
+  const generateDeviceFingerprint = useCallback(async () => {
+    const fingerprint = {
+      userAgent: navigator.userAgent,
+      screen: {
+        width: screen.width,
+        height: screen.height,
+        colorDepth: screen.colorDepth
+      },
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      language: navigator.language,
+      hardwareConcurrency: navigator.hardwareConcurrency,
+      maxTouchPoints: navigator.maxTouchPoints,
+      cookieEnabled: navigator.cookieEnabled,
+      doNotTrack: navigator.doNotTrack,
+      platform: navigator.platform,
+      plugins: Array.from(navigator.plugins).map(p => p.name),
+      webGL: getWebGLFingerprint(),
+      canvas: getCanvasFingerprint(),
+      audioContext: getAudioFingerprint(),
+      fonts: await detectFonts(),
+      connection: (navigator as any).connection?.effectiveType,
+      deviceMemory: (navigator as any).deviceMemory,
+      cpuClass: (navigator as any).cpuClass,
+      brightness: await getBrightness(),
+      motionLevel: 0,
+      timestamp: Date.now()
+    };
+    
+    setDeviceFingerprint(fingerprint);
+    
+    // Send to backend for analysis
+    try {
+      await apiRequest('POST', `/api/test-assignments/${assignmentId}/device-fingerprint`, fingerprint);
+    } catch (error) {
+      console.error('Failed to send device fingerprint:', error);
+    }
+    
+    return fingerprint;
+  }, [assignmentId]);
+  
+  // Enhanced behavioral tracking
+  const trackKeystroke = useCallback((event: KeyboardEvent) => {
+    const keystroke = {
+      key: event.key,
+      timestamp: Date.now(),
+      duration: 0, // Will be calculated on keyup
+      interval: 0
+    };
+    
+    setKeystrokeBuffer(prev => {
+      const newBuffer = [...prev, keystroke];
+      // Keep only last 100 keystrokes for performance
+      return newBuffer.slice(-100);
+    });
+    
+    setBehavioralData(prev => ({
+      ...prev,
+      keystrokes: [...prev.keystrokes, keystroke]
+    }));
+  }, []);
+  
+  const trackMouseMovement = useCallback((event: MouseEvent) => {
+    const now = Date.now();
+    const movement = {
+      x: event.clientX,
+      y: event.clientY,
+      timestamp: now,
+      velocity: 0,
+      acceleration: 0
+    };
+    
+    // Calculate velocity
+    if (lastMousePosition) {
+      const dx = movement.x - lastMousePosition.x;
+      const dy = movement.y - lastMousePosition.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      movement.velocity = distance; // Simplified velocity
+    }
+    
+    setLastMousePosition({ x: movement.x, y: movement.y });
+    
+    setBehavioralData(prev => ({
+      ...prev,
+      mouseMovements: [...prev.mouseMovements.slice(-50), movement] // Keep last 50
+    }));
+  }, [lastMousePosition]);
+  
+  const trackMouseClick = useCallback((event: MouseEvent) => {
+    const click = {
+      x: event.clientX,
+      y: event.clientY,
+      timestamp: Date.now(),
+      button: event.button,
+      element: (event.target as Element)?.tagName || 'unknown'
+    };
+    
+    setBehavioralData(prev => ({
+      ...prev,
+      mouseClicks: [...prev.mouseClicks, click]
+    }));
+  }, []);
+  
+  const trackScrollEvent = useCallback((event: Event) => {
+    const wheelEvent = event as WheelEvent;
+    const scroll = {
+      deltaX: wheelEvent.deltaX,
+      deltaY: wheelEvent.deltaY,
+      timestamp: Date.now()
+    };
+    
+    setBehavioralData(prev => ({
+      ...prev,
+      scrollEvents: [...prev.scrollEvents, scroll]
+    }));
+  }, []);
+  
+  const trackFocusEvent = useCallback((type: 'focus' | 'blur') => {
+    const focusEvent = {
+      type,
+      timestamp: Date.now(),
+      target: document.activeElement?.tagName || 'unknown'
+    };
+    
+    setBehavioralData(prev => ({
+      ...prev,
+      focusEvents: [...prev.focusEvents, focusEvent]
+    }));
+  }, []);
+  
+  // Advanced violation detection
+  const detectAdvancedViolation = useCallback(async (type: string, data: any) => {
+    const violation = {
+      type,
+      timestamp: Date.now(),
+      data,
+      severity: determineSeverity(type, data),
+      sessionId: assignmentId
+    };
+    
+    setAdvancedViolations(prev => [...prev, violation]);
+    
+    // Send to backend for processing
+    try {
+      await apiRequest('POST', `/api/test-assignments/${assignmentId}/violation`, violation);
+    } catch (error) {
+      console.error('Failed to report violation:', error);
+    }
+    
+    // Update risk score
+    calculateRiskScore([...advancedViolations, violation]);
+  }, [assignmentId, advancedViolations]);
+  
+  const determineSeverity = (type: string, data: any): 'low' | 'medium' | 'high' | 'critical' => {
+    const severityMap: {[key: string]: string} = {
+      'tab_switch': 'medium',
+      'copy_attempt': 'high',
+      'dev_tools': 'critical',
+      'multiple_faces': 'critical',
+      'no_face': 'high',
+      'suspicious_network': 'high',
+      'external_device': 'medium',
+      'rapid_responses': 'high'
+    };
+    
+    return (severityMap[type] || 'medium') as 'low' | 'medium' | 'high' | 'critical';
+  };
+  
+  const calculateRiskScore = (violations: any[]) => {
+    const weights = {
+      low: 5,
+      medium: 15,
+      high: 30,
+      critical: 50
+    };
+    
+    const score = violations.reduce((total, violation) => 
+      total + weights[violation.severity as keyof typeof weights], 0
+    );
+    
+    setRiskScore(Math.min(100, score));
+  };
+  
+  // Helper functions for device fingerprinting
+  const getWebGLFingerprint = (): string => {
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      if (!gl) return '';
+      
+      const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+      return debugInfo ? 
+        gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) + '|' + 
+        gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : '';
+    } catch (e) {
+      return '';
+    }
+  };
+  
+  const getCanvasFingerprint = (): string => {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return '';
+      
+      ctx.textBaseline = 'top';
+      ctx.font = '14px Arial';
+      ctx.fillText('Fingerprint test 🎯', 2, 2);
+      return canvas.toDataURL();
+    } catch (e) {
+      return '';
+    }
+  };
+  
+  const getAudioFingerprint = (): string => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      return audioContext.sampleRate.toString();
+    } catch (e) {
+      return '';
+    }
+  };
+  
+  const detectFonts = async (): Promise<string[]> => {
+    // Simplified font detection
+    const testFonts = ['Arial', 'Times New Roman', 'Courier New', 'Helvetica', 'Georgia'];
+    return testFonts; // In real implementation, would test font availability
+  };
+  
+  const getBrightness = async (): Promise<number> => {
+    // Simplified brightness detection using camera if available
+    return 0.8; // Default brightness
+  };
+  
   // Camera monitoring functions
   const startCamera = async () => {
     try {
@@ -128,17 +384,104 @@ export default function TestTaking() {
     },
   });
 
-  // Anti-cheating measures
+  // Initialize advanced anti-cheating on test start
+  useEffect(() => {
+    if (testStarted && !deviceFingerprint) {
+      generateDeviceFingerprint();
+    }
+  }, [testStarted, deviceFingerprint, generateDeviceFingerprint]);
+  
+  // Enhanced behavioral tracking
+  useEffect(() => {
+    if (!testStarted || isSubmitting || showResultsModal) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => trackKeystroke(e);
+    const handleMouseMove = (e: MouseEvent) => trackMouseMovement(e);
+    const handleMouseClick = (e: MouseEvent) => trackMouseClick(e);
+    const handleScroll = (e: Event) => trackScrollEvent(e);
+    const handleFocus = () => trackFocusEvent('focus');
+    const handleBlur = () => trackFocusEvent('blur');
+    
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('click', handleMouseClick);
+    document.addEventListener('wheel', handleScroll);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('click', handleMouseClick);
+      document.removeEventListener('wheel', handleScroll);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [testStarted, isSubmitting, showResultsModal, trackKeystroke, trackMouseMovement, trackMouseClick, trackScrollEvent, trackFocusEvent]);
+  
+  // Enhanced network monitoring
+  useEffect(() => {
+    if (!testStarted) return;
+    
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const [url] = args;
+      
+      // Check for suspicious external requests
+      if (typeof url === 'string' && !url.includes(window.location.hostname)) {
+        await detectAdvancedViolation('suspicious_network', {
+          url,
+          timestamp: Date.now()
+        });
+      }
+      
+      return originalFetch(...args);
+    };
+    
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, [testStarted, detectAdvancedViolation]);
+  
+  // Developer tools detection
+  useEffect(() => {
+    if (!testStarted) return;
+    
+    const detectDevTools = () => {
+      const threshold = 160;
+      if (window.outerHeight - window.innerHeight > threshold || 
+          window.outerWidth - window.innerWidth > threshold) {
+        detectAdvancedViolation('dev_tools', {
+          outerDimensions: { width: window.outerWidth, height: window.outerHeight },
+          innerDimensions: { width: window.innerWidth, height: window.innerHeight }
+        });
+      }
+    };
+    
+    const interval = setInterval(detectDevTools, 1000);
+    return () => clearInterval(interval);
+  }, [testStarted, detectAdvancedViolation]);
+  
+  // Anti-cheating measures (enhanced)
   useEffect(() => {
     if (!testStarted || isSubmitting || showResultsModal) return;
 
     const handleVisibilityChange = () => {
       if (document.hidden && !isSubmitting && !showResultsModal) {
-        setTabSwitchCount(prev => prev + 1);
+        const newCount = tabSwitchCount + 1;
+        setTabSwitchCount(newCount);
         setWarningCount(prev => prev + 1);
+        
+        // Enhanced violation tracking
+        detectAdvancedViolation('tab_switch', {
+          count: newCount,
+          timestamp: Date.now(),
+          duration: 0 // Could track how long they were away
+        });
+        
         toast({
           title: "Warning: Tab Switch Detected",
-          description: `You've switched tabs ${tabSwitchCount + 1} times. Multiple violations may result in test cancellation.`,
+          description: `You've switched tabs ${newCount} times. Multiple violations may result in test cancellation.`,
           variant: "destructive"
         });
       }
@@ -147,11 +490,20 @@ export default function TestTaking() {
     const handleCopy = (e: ClipboardEvent) => {
       if (isSubmitting || showResultsModal) return;
       e.preventDefault();
-      setCopyAttempts(prev => prev + 1);
+      const newCount = copyAttempts + 1;
+      setCopyAttempts(newCount);
       setWarningCount(prev => prev + 1);
+      
+      // Enhanced violation tracking
+      detectAdvancedViolation('copy_attempt', {
+        count: newCount,
+        selection: window.getSelection()?.toString() || '',
+        element: (e.target as Element)?.tagName
+      });
+      
       toast({
         title: "Warning: Copy Attempt Detected",
-        description: `Copy/paste is disabled. Attempt ${copyAttempts + 1} recorded.`,
+        description: `Copy/paste is disabled. Attempt ${newCount} recorded.`,
         variant: "destructive"
       });
     };
@@ -284,13 +636,44 @@ export default function TestTaking() {
   };
 
   const handleAnswerChange = (questionId: string, answer: any) => {
+    const now = Date.now();
+    
+    // Track response timing for behavioral analysis
+    if (!responseStartTime) {
+      setResponseStartTime(now);
+    }
+    
+    // Record response data for analysis
+    const responseData = {
+      questionId,
+      answer,
+      timestamp: now,
+      responseTime: responseStartTime ? now - responseStartTime : 0,
+      keystrokes: keystrokeBuffer,
+      wordCount: answer?.toString().split(' ').length || 0
+    };
+    
+    setBehavioralData(prev => ({
+      ...prev,
+      responses: [...prev.responses, responseData]
+    }));
+    
+    // Check for suspiciously fast responses
+    if (responseStartTime && (now - responseStartTime) < 5000 && answer?.toString().length > 50) {
+      detectAdvancedViolation('rapid_responses', {
+        responseTime: now - responseStartTime,
+        answerLength: answer.toString().length,
+        questionId
+      });
+    }
+    
     setAnswers(prev => ({
       ...prev,
       [questionId]: answer
     }));
   };
 
-  const handleSubmitTest = () => {
+  const handleSubmitTest = async () => {
     if (isSubmitting || showResultsModal) return;
     
     setIsSubmitting(true);
@@ -299,12 +682,33 @@ export default function TestTaking() {
     
     const timeSpent = startTimeRef.current ? Math.round((new Date().getTime() - startTimeRef.current.getTime()) / 1000) : 0;
     
+    // Generate comprehensive proctoring summary
+    try {
+      const summary = await apiRequest('POST', `/api/test-assignments/${assignmentId}/proctoring-summary`, {
+        behavioralData,
+        violations: advancedViolations,
+        deviceFingerprint,
+        environmentData,
+        riskScore
+      });
+      
+      setProctoringSummary(summary);
+    } catch (error) {
+      console.error('Failed to generate proctoring summary:', error);
+    }
+    
     submitTestMutation.mutate({
       answers,
       timeSpent,
       warningCount,
       tabSwitchCount,
       copyAttempts,
+      // Enhanced data
+      behavioralData,
+      violations: advancedViolations,
+      deviceFingerprint,
+      riskScore,
+      proctoringSummary
     });
   };
 

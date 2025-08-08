@@ -1,6 +1,9 @@
 import Groq from 'groq-sdk';
 import { aiDetectionService } from './aiDetectionService';
 import { behavioralQuestionService, BehavioralQuestion } from './behavioralQuestions';
+import { proctorService } from './proctorService';
+import { behavioralAnalyzer } from './behavioralAnalyzer';
+import { cameraProctorService } from './cameraProctorService';
 
 // Using Groq AI for all virtual interview functionality - optimized for token usage
 const DEFAULT_MODEL_STR = "llama-3.1-8b-instant"; // Faster, cheaper model
@@ -32,6 +35,20 @@ interface MessageAnalysis {
   aiDetection?: any; // AI detection results
   finalScore?: number; // Score after AI penalty
   partialResultsOnly?: boolean;
+  behavioralAnalysis?: any; // Behavioral analysis results
+  proctoringSummary?: any; // Proctoring summary
+  riskLevel?: 'low' | 'medium' | 'high' | 'critical';
+}
+
+interface InterviewSession {
+  sessionId: string;
+  userId: string;
+  startTime: number;
+  deviceFingerprint?: any;
+  behavioralData?: any;
+  violations?: any[];
+  riskScore?: number;
+  cameraMonitoring?: boolean;
 }
 
 export class VirtualInterviewService {
@@ -549,6 +566,506 @@ Return JSON with:
         "Work on confident delivery"
       ]
     };
+  }
+
+  // ===============================
+  // INDUSTRY-LEADING ANTI-CHEATING METHODS
+  // ===============================
+  
+  async initializeInterviewSession(sessionId: string, userId: string): Promise<InterviewSession> {
+    console.log(`🔒 Initializing secure virtual interview session: ${sessionId}`);
+    
+    const session: InterviewSession = {
+      sessionId,
+      userId,
+      startTime: Date.now(),
+      violations: [],
+      riskScore: 0,
+      cameraMonitoring: false
+    };
+    
+    try {
+      // Initialize comprehensive proctoring services
+      await proctorService.initializeSession(sessionId, userId, {
+        sessionType: 'virtual_interview',
+        securityLevel: 'high',
+        enableDeviceFingerprinting: true,
+        enableEnvironmentValidation: true,
+        enableBrowserSecurity: true
+      });
+      
+      await cameraProctorService.initializeSession(sessionId, {
+        faceDetection: true,
+        eyeTracking: true,
+        environmentMonitoring: true,
+        multiplePersonDetection: true
+      });
+      
+      session.cameraMonitoring = true;
+      console.log(`✅ Virtual interview security initialized for session ${sessionId}`);
+    } catch (error) {
+      console.error('Error initializing interview security:', error);
+      // Continue with reduced security features
+    }
+    
+    return session;
+  }
+  
+  async processDeviceFingerprint(sessionId: string, deviceData: any): Promise<any> {
+    try {
+      console.log(`🔍 Processing device fingerprint for virtual interview ${sessionId}`);
+      
+      const fingerprint = await proctorService.generateDeviceFingerprint(deviceData);
+      const environmentValidation = await proctorService.validateEnvironment(deviceData);
+      const browserSecurity = await proctorService.analyzeBrowserSecurity(deviceData);
+      
+      const securityReport = {
+        fingerprint,
+        environmentValidation,
+        browserSecurity,
+        riskLevel: this.assessEnvironmentRisk(environmentValidation, browserSecurity),
+        recommendations: this.generateSecurityRecommendations(environmentValidation, browserSecurity)
+      };
+      
+      console.log(`📊 Device security analysis completed - Risk: ${securityReport.riskLevel}`);
+      
+      return securityReport;
+    } catch (error) {
+      console.error('Error processing device fingerprint:', error);
+      return {
+        fingerprint: null,
+        environmentValidation: { isSecure: false, warning: 'Analysis failed' },
+        browserSecurity: { securityLevel: 'unknown' },
+        riskLevel: 'medium'
+      };
+    }
+  }
+  
+  async processViolation(sessionId: string, violation: any): Promise<void> {
+    try {
+      console.log(`🚨 Virtual interview violation detected: ${violation.type} in session ${sessionId}`);
+      
+      // Record violation with comprehensive context
+      await proctorService.recordViolation({
+        ...violation,
+        sessionType: 'virtual_interview',
+        timestamp: Date.now(),
+        severity: this.calculateViolationSeverity(violation.type, violation.data),
+        context: {
+          interviewPhase: violation.interviewPhase || 'unknown',
+          questionType: violation.questionType || 'unknown'
+        }
+      });
+      
+      // If critical violation, trigger immediate response
+      if (violation.severity === 'critical') {
+        await this.handleCriticalViolation(sessionId, violation);
+      }
+      
+    } catch (error) {
+      console.error('Error recording interview violation:', error);
+    }
+  }
+  
+  async analyzeVideoFrame(sessionId: string, frameData: any): Promise<any> {
+    try {
+      const analysis = await cameraProctorService.analyzeVideoFrame(sessionId, frameData);
+      
+      // Enhanced analysis specific to interview context
+      const interviewSpecificAnalysis = {
+        ...analysis,
+        attentionScore: this.calculateAttentionScore(analysis),
+        engagementLevel: this.assessEngagementLevel(analysis),
+        interviewReadiness: this.assessInterviewReadiness(analysis)
+      };
+      
+      // Auto-detect concerning patterns
+      if (analysis.facesCount > 1) {
+        await this.processViolation(sessionId, {
+          type: 'multiple_people_detected',
+          severity: 'critical',
+          data: { facesCount: analysis.facesCount }
+        });
+      }
+      
+      if (analysis.facesCount === 0) {
+        await this.processViolation(sessionId, {
+          type: 'candidate_not_visible',
+          severity: 'high',
+          data: { timestamp: Date.now() }
+        });
+      }
+      
+      return interviewSpecificAnalysis;
+    } catch (error) {
+      console.error('Error analyzing video frame:', error);
+      return { facesCount: 1, confidence: 0.5, suspiciousActivity: [] };
+    }
+  }
+  
+  async enhancedAnalyzeResponse(
+    question: string,
+    userResponse: string,
+    expectedKeywords: string[],
+    questionCategory: string,
+    sessionData?: any,
+    behavioralData?: any
+  ): Promise<MessageAnalysis> {
+    console.log(`🔬 Enhanced response analysis for virtual interview session: ${sessionData?.sessionId}`);
+    
+    try {
+      // 1. Enhanced AI Detection with behavioral context
+      const aiDetection = await aiDetectionService.detectAIUsage(userResponse, question, behavioralData);
+      
+      // 2. Comprehensive Behavioral Analysis
+      let behavioralAnalysis = null;
+      if (behavioralData) {
+        behavioralAnalysis = behavioralAnalyzer.generateBehavioralProfile({
+          ...behavioralData,
+          sessionId: sessionData?.sessionId || 'unknown',
+          userId: sessionData?.userId || 'unknown',
+          context: 'virtual_interview'
+        });
+      }
+      
+      // 3. Response Pattern Analysis
+      const responsePatterns = this.analyzeResponsePatterns(userResponse, behavioralData);
+      
+      // 4. Interview-specific Analysis
+      const interviewAnalysis = this.analyzeInterviewSpecificPatterns(userResponse, questionCategory, behavioralData);
+      
+      // 5. Calculate comprehensive risk score
+      const riskScore = this.calculateInterviewRiskScore(aiDetection, behavioralAnalysis, responsePatterns, interviewAnalysis);
+      
+      // 6. Get base analysis (use existing method)
+      const baseAnalysis = await this.analyzeResponse(question, userResponse, expectedKeywords, questionCategory);
+      
+      // 7. Apply enhanced penalties and adjustments
+      const finalScore = this.applyEnhancedPenalties(baseAnalysis.finalScore || baseAnalysis.responseQuality * 10, riskScore, aiDetection);
+      
+      return {
+        ...baseAnalysis,
+        behavioralAnalysis,
+        proctoringSummary: {
+          riskScore,
+          responsePatterns,
+          interviewAnalysis
+        },
+        riskLevel: this.determineRiskLevel(riskScore),
+        finalScore,
+        partialResultsOnly: riskScore > 50 || aiDetection.isAIGenerated
+      };
+      
+    } catch (error) {
+      console.error('Error in enhanced response analysis:', error);
+      // Fallback to standard analysis
+      return await this.analyzeResponse(question, userResponse, expectedKeywords, questionCategory);
+    }
+  }
+  
+  async generateInterviewSummary(sessionId: string): Promise<any> {
+    try {
+      console.log(`📊 Generating comprehensive interview security summary for session: ${sessionId}`);
+      
+      const proctoringSummary = await proctorService.generateProctoringSummary(sessionId);
+      const cameraSummary = await cameraProctorService.generateSummary(sessionId);
+      
+      const overallRisk = this.calculateOverallRisk(proctoringSummary, cameraSummary);
+      const recommendation = this.generateSecurityRecommendation(overallRisk);
+      
+      const comprehensiveSummary = {
+        sessionId,
+        timestamp: new Date().toISOString(),
+        sessionType: 'virtual_interview',
+        security: {
+          proctoringSummary,
+          cameraSummary,
+          overallRisk,
+          recommendation
+        },
+        reliability: this.assessResultReliability(overallRisk),
+        nextSteps: this.generateNextSteps(overallRisk)
+      };
+      
+      console.log(`✅ Interview security summary generated - Overall Risk: ${overallRisk}`);
+      return comprehensiveSummary;
+      
+    } catch (error) {
+      console.error('Error generating interview summary:', error);
+      return {
+        sessionId,
+        overallRisk: 'medium',
+        recommendation: 'Manual review recommended due to analysis errors',
+        reliability: 'uncertain'
+      };
+    }
+  }
+  
+  // Private helper methods for enhanced security
+  
+  private analyzeResponsePatterns(response: string, behavioralData?: any): any {
+    const patterns = {
+      unusualSpeed: false,
+      consistentTiming: false,
+      humanLikeVariation: true,
+      suspiciousPatterns: []
+    };
+    
+    if (behavioralData?.responseTime) {
+      const wordsPerMinute = (response.split(' ').length / (behavioralData.responseTime / 60000));
+      if (wordsPerMinute > 120 || wordsPerMinute < 10) {
+        patterns.unusualSpeed = true;
+        patterns.suspiciousPatterns.push(`Unusual typing speed: ${Math.round(wordsPerMinute)} WPM`);
+      }
+    }
+    
+    if (behavioralData?.keystrokes && behavioralData.keystrokes.length > 10) {
+      const keystrokeVariation = this.calculateKeystrokeVariation(behavioralData.keystrokes);
+      patterns.humanLikeVariation = keystrokeVariation > 0.3;
+      if (!patterns.humanLikeVariation) {
+        patterns.suspiciousPatterns.push('Robotic typing patterns detected');
+      }
+    }
+    
+    return patterns;
+  }
+  
+  private analyzeInterviewSpecificPatterns(response: string, questionCategory: string, behavioralData?: any): any {
+    const analysis = {
+      responseLength: response.length,
+      complexity: this.calculateResponseComplexity(response),
+      interviewAppropriate: true,
+      concerns: []
+    };
+    
+    // Check for overly perfect responses
+    if (analysis.complexity > 0.8 && response.length > 500) {
+      analysis.concerns.push('Unusually complex and lengthy response');
+    }
+    
+    // Check for copy-paste indicators in behavioral data
+    if (behavioralData?.violations) {
+      const copyPasteAttempts = behavioralData.violations.filter((v: any) => v.type === 'copy_attempt').length;
+      if (copyPasteAttempts > 0) {
+        analysis.concerns.push(`${copyPasteAttempts} copy/paste attempts detected`);
+      }
+    }
+    
+    return analysis;
+  }
+  
+  private calculateResponseComplexity(response: string): number {
+    const words = response.split(' ').filter(word => word.length > 0);
+    const avgWordLength = words.reduce((sum, word) => sum + word.length, 0) / words.length;
+    const sentences = response.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    const avgSentenceLength = words.length / sentences.length;
+    
+    // Normalize complexity score (0-1)
+    const complexity = (avgWordLength / 10 + avgSentenceLength / 30) / 2;
+    return Math.min(1, Math.max(0, complexity));
+  }
+  
+  private calculateKeystrokeVariation(keystrokes: any[]): number {
+    if (keystrokes.length < 10) return 0.5;
+    
+    const intervals = keystrokes.slice(1).map((keystroke, i) => 
+      keystroke.timestamp - keystrokes[i].timestamp
+    ).filter(interval => interval > 0 && interval < 2000); // Filter reasonable intervals
+    
+    if (intervals.length === 0) return 0;
+    
+    const mean = intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length;
+    const variance = intervals.reduce((sum, interval) => sum + Math.pow(interval - mean, 2), 0) / intervals.length;
+    const standardDeviation = Math.sqrt(variance);
+    
+    return mean > 0 ? standardDeviation / mean : 0;
+  }
+  
+  private calculateInterviewRiskScore(aiDetection: any, behavioralAnalysis: any, responsePatterns: any, interviewAnalysis: any): number {
+    let riskScore = 0;
+    
+    // AI detection risk (40% weight)
+    if (aiDetection.isAIGenerated) {
+      riskScore += aiDetection.confidence * 0.4;
+    }
+    
+    // Behavioral analysis risk (30% weight)
+    if (behavioralAnalysis && behavioralAnalysis.overallAuthenticity < 50) {
+      riskScore += (100 - behavioralAnalysis.overallAuthenticity) * 0.3;
+    }
+    
+    // Response patterns risk (20% weight)
+    if (responsePatterns.unusualSpeed) riskScore += 20;
+    if (!responsePatterns.humanLikeVariation) riskScore += 15;
+    
+    // Interview-specific concerns (10% weight)
+    if (interviewAnalysis.concerns.length > 0) {
+      riskScore += interviewAnalysis.concerns.length * 5;
+    }
+    
+    return Math.min(100, riskScore);
+  }
+  
+  private applyEnhancedPenalties(baseScore: number, riskScore: number, aiDetection: any): number {
+    let finalScore = baseScore;
+    
+    // Progressive penalty system
+    if (riskScore >= 80) {
+      finalScore *= 0.1; // 90% penalty for critical risk
+    } else if (riskScore >= 60) {
+      finalScore *= 0.3; // 70% penalty for high risk
+    } else if (riskScore >= 40) {
+      finalScore *= 0.6; // 40% penalty for medium risk
+    } else if (riskScore >= 20) {
+      finalScore *= 0.8; // 20% penalty for low risk
+    }
+    
+    return Math.round(Math.max(0, finalScore));
+  }
+  
+  private determineRiskLevel(riskScore: number): 'low' | 'medium' | 'high' | 'critical' {
+    if (riskScore >= 80) return 'critical';
+    if (riskScore >= 60) return 'high';
+    if (riskScore >= 40) return 'medium';
+    return 'low';
+  }
+  
+  private assessEnvironmentRisk(environmentValidation: any, browserSecurity: any): 'low' | 'medium' | 'high' | 'critical' {
+    if (environmentValidation.isVirtualMachine || environmentValidation.isRemoteDesktop) {
+      return 'critical';
+    }
+    
+    if (browserSecurity.hasDevToolsOpen || environmentValidation.suspiciousProcesses?.length > 0) {
+      return 'high';
+    }
+    
+    if (environmentValidation.screenSharingDetected || !browserSecurity.isSecureBrowser) {
+      return 'medium';
+    }
+    
+    return 'low';
+  }
+  
+  private generateSecurityRecommendations(environmentValidation: any, browserSecurity: any): string[] {
+    const recommendations = [];
+    
+    if (environmentValidation.isVirtualMachine) {
+      recommendations.push('Virtual machine detected - interview should be conducted on physical hardware');
+    }
+    
+    if (browserSecurity.hasDevToolsOpen) {
+      recommendations.push('Developer tools detected - close all development tools');
+    }
+    
+    if (environmentValidation.screenSharingDetected) {
+      recommendations.push('Screen sharing detected - disable all screen sharing applications');
+    }
+    
+    return recommendations;
+  }
+  
+  private calculateOverallRisk(proctoringSummary: any, cameraSummary: any): 'low' | 'medium' | 'high' | 'critical' {
+    const risks = [
+      proctoringSummary?.riskLevel || 'low', 
+      cameraSummary?.riskLevel || 'low'
+    ];
+    
+    if (risks.includes('critical')) return 'critical';
+    if (risks.includes('high')) return 'high';
+    if (risks.includes('medium')) return 'medium';
+    return 'low';
+  }
+  
+  private generateSecurityRecommendation(riskLevel: string): string {
+    const recommendations = {
+      low: 'Interview conducted with excellent security compliance. Results are highly reliable.',
+      medium: 'Some security concerns detected. Results should be reviewed with additional context.',
+      high: 'Significant security violations detected. Manual review strongly recommended before making decisions.',
+      critical: 'Critical security breaches detected. Interview results should be considered unreliable and require immediate review.'
+    };
+    
+    return recommendations[riskLevel as keyof typeof recommendations] || recommendations.medium;
+  }
+  
+  private assessResultReliability(riskLevel: string): 'high' | 'medium' | 'low' | 'unreliable' {
+    const reliability = {
+      low: 'high',
+      medium: 'medium',
+      high: 'low',
+      critical: 'unreliable'
+    };
+    
+    return reliability[riskLevel as keyof typeof reliability] as any || 'medium';
+  }
+  
+  private generateNextSteps(riskLevel: string): string[] {
+    const nextSteps = {
+      low: ['Proceed with interview evaluation', 'Results can be used confidently'],
+      medium: ['Review behavioral patterns', 'Consider additional verification questions'],
+      high: ['Conduct manual security review', 'Consider rescheduling under better conditions', 'Request additional verification'],
+      critical: ['Do not use results for decision making', 'Investigate security violations', 'Require supervised re-interview']
+    };
+    
+    return nextSteps[riskLevel as keyof typeof nextSteps] || nextSteps.medium;
+  }
+  
+  private calculateViolationSeverity(violationType: string, data: any): 'low' | 'medium' | 'high' | 'critical' {
+    const severityMap: {[key: string]: string} = {
+      'tab_switch': 'medium',
+      'copy_attempt': 'high',
+      'dev_tools': 'critical',
+      'multiple_people_detected': 'critical',
+      'candidate_not_visible': 'high',
+      'suspicious_network': 'high',
+      'external_device': 'medium',
+      'rapid_responses': 'high',
+      'ai_assistance': 'critical'
+    };
+    
+    return (severityMap[violationType] || 'medium') as any;
+  }
+  
+  private calculateAttentionScore(analysis: any): number {
+    if (!analysis.primaryFace) return 0;
+    
+    return analysis.primaryFace.isLookingAtScreen ? 
+      analysis.primaryFace.attentionLevel * 100 : 20;
+  }
+  
+  private assessEngagementLevel(analysis: any): 'low' | 'medium' | 'high' {
+    const attentionScore = this.calculateAttentionScore(analysis);
+    
+    if (attentionScore > 70) return 'high';
+    if (attentionScore > 40) return 'medium';
+    return 'low';
+  }
+  
+  private assessInterviewReadiness(analysis: any): 'ready' | 'needs_adjustment' | 'not_ready' {
+    if (analysis.facesCount !== 1) return 'not_ready';
+    if (!analysis.primaryFace?.isLookingAtScreen) return 'needs_adjustment';
+    return 'ready';
+  }
+  
+  private async handleCriticalViolation(sessionId: string, violation: any): Promise<void> {
+    console.log(`🚨 CRITICAL VIOLATION in virtual interview ${sessionId}: ${violation.type}`);
+    
+    // In a production system, this would:
+    // 1. Send immediate alerts to supervisors
+    // 2. Potentially pause the interview
+    // 3. Log detailed violation data
+    // 4. Trigger additional security measures
+    
+    // For now, we log the critical violation
+    try {
+      await proctorService.recordViolation({
+        ...violation,
+        severity: 'critical',
+        requiresImmedateAction: true,
+        sessionType: 'virtual_interview'
+      });
+    } catch (error) {
+      console.error('Error handling critical violation:', error);
+    }
   }
 }
 

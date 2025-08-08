@@ -4,6 +4,10 @@ import { apiKeyRotationService } from "./apiKeyRotationService";
 import { pistonService } from "./pistonService";
 import { MockInterview, MockInterviewQuestion, InsertMockInterview, InsertMockInterviewQuestion } from "@shared/schema";
 import { QUESTION_BANK, getRandomQuestions, getQuestionsByType } from "./questionBank";
+import { aiDetectionService } from "./aiDetectionService";
+import { proctorService } from "./proctorService";
+import { behavioralAnalyzer } from "./behavioralAnalyzer";
+import { cameraProctorService } from "./cameraProctorService";
 
 interface InterviewQuestion {
   question: string;
@@ -25,6 +29,27 @@ interface InterviewConfiguration {
   interviewType: 'technical' | 'behavioral' | 'system_design';
   language: string;
   totalQuestions: number;
+}
+
+interface MockInterviewSession {
+  sessionId: string;
+  userId: string;
+  startTime: number;
+  deviceFingerprint?: any;
+  behavioralData?: any;
+  violations?: any[];
+  riskScore?: number;
+  cameraMonitoring?: boolean;
+}
+
+interface EnhancedAnalysis {
+  score: number;
+  feedback: string;
+  aiDetection?: any;
+  behavioralAnalysis?: any;
+  riskLevel?: 'low' | 'medium' | 'high' | 'critical';
+  finalScore?: number;
+  partialResultsOnly?: boolean;
 }
 
 export class MockInterviewService {
@@ -586,6 +611,441 @@ Return only the numeric score (0-100).`;
     }
 
     return updatedInterview;
+  }
+
+  // ===============================
+  // INDUSTRY-LEADING ANTI-CHEATING METHODS FOR MOCK INTERVIEWS
+  // ===============================
+  
+  async initializeMockInterviewSession(sessionId: string, userId: string): Promise<MockInterviewSession> {
+    console.log(`🔒 Initializing secure mock interview session: ${sessionId}`);
+    
+    const session: MockInterviewSession = {
+      sessionId,
+      userId,
+      startTime: Date.now(),
+      violations: [],
+      riskScore: 0,
+      cameraMonitoring: false
+    };
+    
+    try {
+      // Initialize comprehensive proctoring services for mock interviews
+      await proctorService.initializeSession(sessionId, userId, {
+        sessionType: 'mock_interview',
+        securityLevel: 'high',
+        enableDeviceFingerprinting: true,
+        enableEnvironmentValidation: true,
+        enableBrowserSecurity: true,
+        enableCodeAnalysis: true // Special for coding interviews
+      });
+      
+      await cameraProctorService.initializeSession(sessionId, {
+        faceDetection: true,
+        eyeTracking: true,
+        environmentMonitoring: true,
+        multiplePersonDetection: true,
+        screenRecording: true // Mock interviews might need recording
+      });
+      
+      session.cameraMonitoring = true;
+      console.log(`✅ Mock interview security initialized for session ${sessionId}`);
+    } catch (error) {
+      console.error('Error initializing mock interview security:', error);
+      // Continue with reduced security features
+    }
+    
+    return session;
+  }
+  
+  async enhancedSubmitAnswer(
+    questionId: number, 
+    answer: string, 
+    code?: string, 
+    behavioralData?: any, 
+    sessionData?: any
+  ): Promise<EnhancedAnalysis> {
+    const question = await storage.getMockInterviewQuestion(questionId);
+    if (!question) throw new Error('Question not found');
+    
+    console.log(`🔬 Enhanced answer analysis for mock interview question ${questionId}`);
+    
+    try {
+      // 1. AI Detection with enhanced context
+      const aiDetection = await aiDetectionService.detectAIUsage(
+        answer + (code ? `\n\nCode:\n${code}` : ''), 
+        question.question, 
+        behavioralData
+      );
+      
+      // 2. Behavioral Analysis if available
+      let behavioralAnalysis = null;
+      if (behavioralData) {
+        behavioralAnalysis = behavioralAnalyzer.generateBehavioralProfile({
+          ...behavioralData,
+          sessionId: sessionData?.sessionId || `mock_${questionId}`,
+          userId: sessionData?.userId || 'unknown',
+          context: 'mock_interview'
+        });
+      }
+      
+      // 3. Code-specific analysis for technical questions
+      let codeAnalysis = null;
+      if (code && question.questionType === 'coding') {
+        codeAnalysis = await this.analyzeCode(code, question, behavioralData);
+      }
+      
+      // 4. Generate enhanced feedback and scoring
+      const baseScore = await this.calculateScore(question, answer, code);
+      const baseFeedback = await this.generateFeedback(question, answer, code);
+      
+      // 5. Calculate comprehensive risk score
+      const riskScore = this.calculateMockInterviewRiskScore(
+        aiDetection, 
+        behavioralAnalysis, 
+        codeAnalysis,
+        { answer, code }
+      );
+      
+      // 6. Apply enhanced penalties
+      const finalScore = this.applyMockInterviewPenalties(baseScore, riskScore, aiDetection);
+      
+      // 7. Generate comprehensive feedback
+      const enhancedFeedback = this.generateEnhancedFeedback(
+        baseFeedback, 
+        aiDetection, 
+        behavioralAnalysis, 
+        codeAnalysis,
+        riskScore
+      );
+      
+      // 8. Update question with enhanced results
+      await storage.updateMockInterviewQuestion(questionId, {
+        userAnswer: answer,
+        userCode: code,
+        feedback: enhancedFeedback,
+        score: finalScore,
+        timeSpent: behavioralData?.responseTime || 0
+      });
+      
+      const result: EnhancedAnalysis = {
+        score: finalScore,
+        feedback: enhancedFeedback,
+        aiDetection,
+        behavioralAnalysis,
+        riskLevel: this.determineMockRiskLevel(riskScore),
+        finalScore,
+        partialResultsOnly: riskScore > 50 || aiDetection.isAIGenerated
+      };
+      
+      console.log(`✅ Enhanced analysis completed - Risk: ${result.riskLevel}, Score: ${finalScore}`);
+      return result;
+      
+    } catch (error) {
+      console.error('Error in enhanced answer analysis:', error);
+      
+      // Fallback to standard analysis
+      await this.submitAnswer(questionId, answer, code);
+      const fallbackQuestion = await storage.getMockInterviewQuestion(questionId);
+      
+      return {
+        score: fallbackQuestion?.score || 50,
+        feedback: fallbackQuestion?.feedback || 'Analysis completed with basic methods.',
+        riskLevel: 'medium'
+      };
+    }
+  }
+  
+  async generateMockInterviewSummary(sessionId: string): Promise<any> {
+    try {
+      console.log(`📊 Generating comprehensive mock interview security summary for session: ${sessionId}`);
+      
+      const proctoringSummary = await proctorService.generateProctoringSummary(sessionId);
+      const cameraSummary = await cameraProctorService.generateSummary(sessionId);
+      
+      // Get interview and questions for additional context
+      const interviewData = await this.getInterviewWithQuestions(sessionId);
+      
+      const overallRisk = this.calculateMockOverallRisk(proctoringSummary, cameraSummary);
+      const recommendation = this.generateMockSecurityRecommendation(overallRisk, interviewData);
+      
+      const comprehensiveSummary = {
+        sessionId,
+        timestamp: new Date().toISOString(),
+        sessionType: 'mock_interview',
+        interviewInfo: interviewData ? {
+          role: interviewData.interview.role,
+          difficulty: interviewData.interview.difficulty,
+          questionsCount: interviewData.questions.length
+        } : null,
+        security: {
+          proctoringSummary,
+          cameraSummary,
+          overallRisk,
+          recommendation
+        },
+        performance: this.calculatePerformanceMetrics(interviewData?.questions || []),
+        reliability: this.assessMockResultReliability(overallRisk),
+        nextSteps: this.generateMockNextSteps(overallRisk, interviewData)
+      };
+      
+      console.log(`✅ Mock interview security summary generated - Overall Risk: ${overallRisk}`);
+      return comprehensiveSummary;
+      
+    } catch (error) {
+      console.error('Error generating mock interview summary:', error);
+      return {
+        sessionId,
+        overallRisk: 'medium',
+        recommendation: 'Manual review recommended due to analysis errors',
+        reliability: 'uncertain'
+      };
+    }
+  }
+  
+  // Private helper methods for enhanced mock interview security
+  
+  private async analyzeCode(code: string, question: MockInterviewQuestion, behavioralData?: any): Promise<any> {
+    const analysis = {
+      complexity: this.calculateCodeComplexity(code),
+      quality: this.assessCodeQuality(code),
+      patterns: this.detectCodePatterns(code),
+      suspiciousIndicators: []
+    };
+    
+    // Check for copy-paste indicators
+    if (behavioralData?.violations) {
+      const copyPasteAttempts = behavioralData.violations.filter((v: any) => v.type === 'copy_attempt').length;
+      if (copyPasteAttempts > 0) {
+        analysis.suspiciousIndicators.push(`${copyPasteAttempts} copy/paste attempts during coding`);
+      }
+    }
+    
+    // Check for unusually perfect code
+    if (analysis.quality > 0.9 && analysis.complexity > 0.8) {
+      analysis.suspiciousIndicators.push('Code quality unusually high for time constraints');
+    }
+    
+    // Check for rapid code completion
+    if (behavioralData?.responseTime && code.length > 200 && behavioralData.responseTime < 120000) { // 2 minutes
+      analysis.suspiciousIndicators.push('Code completed unusually quickly');
+    }
+    
+    return analysis;
+  }
+  
+  private calculateCodeComplexity(code: string): number {
+    const lines = code.split('\n').filter(line => line.trim().length > 0);
+    const functions = (code.match(/function|=>|def |class /g) || []).length;
+    const loops = (code.match(/for|while|forEach/g) || []).length;
+    const conditions = (code.match(/if|switch|case/g) || []).length;
+    
+    // Normalize complexity (0-1)
+    const complexity = (functions * 0.3 + loops * 0.3 + conditions * 0.2 + lines.length * 0.01) / 10;
+    return Math.min(1, Math.max(0, complexity));
+  }
+  
+  private assessCodeQuality(code: string): number {
+    let quality = 0.5; // Base quality
+    
+    // Check for good practices
+    if (/\/\*|\*\/|\/\//.test(code)) quality += 0.1; // Comments
+    if (/const|let/.test(code)) quality += 0.1; // Modern variable declarations
+    if (/function\s+\w+|\w+\s*=>/.test(code)) quality += 0.1; // Function definitions
+    if (/try|catch/.test(code)) quality += 0.1; // Error handling
+    if (!/var /.test(code)) quality += 0.1; // Avoids old var declarations
+    
+    // Check for bad practices
+    if (/console\.log/.test(code)) quality -= 0.05; // Console logs in solution
+    if (/eval\(/.test(code)) quality -= 0.2; // Dangerous eval
+    if (/alert\(/.test(code)) quality -= 0.1; // Alerts
+    
+    return Math.min(1, Math.max(0, quality));
+  }
+  
+  private detectCodePatterns(code: string): any {
+    return {
+      hasComments: /\/\*|\*\/|\/\//.test(code),
+      hasErrorHandling: /try|catch|throw/.test(code),
+      usesModernJS: /const|let|=>/.test(code),
+      hasLoops: /for|while|forEach/.test(code),
+      hasConditionals: /if|switch|case/.test(code),
+      lineCount: code.split('\n').length
+    };
+  }
+  
+  private calculateMockInterviewRiskScore(
+    aiDetection: any, 
+    behavioralAnalysis: any, 
+    codeAnalysis: any,
+    responseData: any
+  ): number {
+    let riskScore = 0;
+    
+    // AI detection risk (35% weight)
+    if (aiDetection.isAIGenerated) {
+      riskScore += aiDetection.confidence * 0.35;
+    }
+    
+    // Behavioral analysis risk (25% weight)
+    if (behavioralAnalysis && behavioralAnalysis.overallAuthenticity < 50) {
+      riskScore += (100 - behavioralAnalysis.overallAuthenticity) * 0.25;
+    }
+    
+    // Code analysis risk (25% weight) - for coding questions
+    if (codeAnalysis) {
+      if (codeAnalysis.suspiciousIndicators.length > 0) {
+        riskScore += codeAnalysis.suspiciousIndicators.length * 8; // 8 points per indicator
+      }
+      
+      // Perfect code might be suspicious
+      if (codeAnalysis.quality > 0.95 && codeAnalysis.complexity > 0.8) {
+        riskScore += 15;
+      }
+    }
+    
+    // Response pattern risk (15% weight)
+    if (responseData.answer && responseData.answer.length > 1000 && responseData.code && responseData.code.length > 500) {
+      riskScore += 10; // Unusually comprehensive responses
+    }
+    
+    return Math.min(100, riskScore);
+  }
+  
+  private applyMockInterviewPenalties(baseScore: number, riskScore: number, aiDetection: any): number {
+    let finalScore = baseScore;
+    
+    // Progressive penalty system for mock interviews
+    if (riskScore >= 80) {
+      finalScore *= 0.05; // 95% penalty for critical risk
+    } else if (riskScore >= 60) {
+      finalScore *= 0.2; // 80% penalty for high risk
+    } else if (riskScore >= 40) {
+      finalScore *= 0.5; // 50% penalty for medium risk
+    } else if (riskScore >= 20) {
+      finalScore *= 0.75; // 25% penalty for low risk
+    }
+    
+    // Additional penalties for specific AI patterns
+    if (aiDetection.confidence > 90) {
+      finalScore *= 0.5; // Additional 50% penalty for very confident AI detection
+    }
+    
+    return Math.round(Math.max(0, finalScore));
+  }
+  
+  private generateEnhancedFeedback(
+    baseFeedback: string, 
+    aiDetection: any, 
+    behavioralAnalysis: any, 
+    codeAnalysis: any,
+    riskScore: number
+  ): string {
+    let enhancedFeedback = baseFeedback;
+    
+    if (riskScore > 50) {
+      enhancedFeedback += "\n\n⚠️ Security Analysis:\n";
+      
+      if (aiDetection.isAIGenerated) {
+        enhancedFeedback += `• AI assistance detected (${aiDetection.confidence}% confidence)\n`;
+      }
+      
+      if (behavioralAnalysis && behavioralAnalysis.overallAuthenticity < 50) {
+        enhancedFeedback += `• Unusual behavioral patterns detected\n`;
+      }
+      
+      if (codeAnalysis && codeAnalysis.suspiciousIndicators.length > 0) {
+        enhancedFeedback += `• Code analysis concerns: ${codeAnalysis.suspiciousIndicators.join(', ')}\n`;
+      }
+      
+      enhancedFeedback += "\nNote: Results adjusted based on security analysis. Focus on authentic problem-solving approach.";
+    }
+    
+    return enhancedFeedback;
+  }
+  
+  private determineMockRiskLevel(riskScore: number): 'low' | 'medium' | 'high' | 'critical' {
+    if (riskScore >= 80) return 'critical';
+    if (riskScore >= 60) return 'high';
+    if (riskScore >= 40) return 'medium';
+    return 'low';
+  }
+  
+  private calculateMockOverallRisk(proctoringSummary: any, cameraSummary: any): 'low' | 'medium' | 'high' | 'critical' {
+    const risks = [
+      proctoringSummary?.riskLevel || 'low', 
+      cameraSummary?.riskLevel || 'low'
+    ];
+    
+    if (risks.includes('critical')) return 'critical';
+    if (risks.includes('high')) return 'high';
+    if (risks.includes('medium')) return 'medium';
+    return 'low';
+  }
+  
+  private generateMockSecurityRecommendation(riskLevel: string, interviewData?: any): string {
+    const recommendations = {
+      low: 'Mock interview completed with excellent security compliance. Results are highly reliable for skill assessment.',
+      medium: 'Some security concerns detected during mock interview. Results should be reviewed with additional context.',
+      high: 'Significant security violations detected. Consider supplementary assessment methods to validate skills.',
+      critical: 'Critical security breaches detected. Mock interview results should not be used for skill evaluation without further investigation.'
+    };
+    
+    let recommendation = recommendations[riskLevel as keyof typeof recommendations] || recommendations.medium;
+    
+    // Add context-specific recommendations
+    if (interviewData?.interview?.interviewType === 'technical' && riskLevel !== 'low') {
+      recommendation += ' Consider live coding session with screenshare for technical validation.';
+    }
+    
+    return recommendation;
+  }
+  
+  private calculatePerformanceMetrics(questions: MockInterviewQuestion[]): any {
+    if (questions.length === 0) return { averageScore: 0, questionsAnswered: 0 };
+    
+    const answeredQuestions = questions.filter(q => q.userAnswer);
+    const totalScore = answeredQuestions.reduce((sum, q) => sum + (q.score || 0), 0);
+    
+    return {
+      questionsAnswered: answeredQuestions.length,
+      totalQuestions: questions.length,
+      averageScore: answeredQuestions.length > 0 ? Math.round(totalScore / answeredQuestions.length) : 0,
+      completionRate: Math.round((answeredQuestions.length / questions.length) * 100)
+    };
+  }
+  
+  private assessMockResultReliability(riskLevel: string): 'high' | 'medium' | 'low' | 'unreliable' {
+    const reliability = {
+      low: 'high',
+      medium: 'medium', 
+      high: 'low',
+      critical: 'unreliable'
+    };
+    
+    return reliability[riskLevel as keyof typeof reliability] as any || 'medium';
+  }
+  
+  private generateMockNextSteps(riskLevel: string, interviewData?: any): string[] {
+    const baseSteps = {
+      low: ['Use results for skill assessment', 'Consider for hiring decisions', 'Provide detailed feedback to candidate'],
+      medium: ['Review responses manually', 'Consider follow-up questions', 'Validate key technical concepts'],
+      high: ['Conduct additional assessment', 'Schedule live technical interview', 'Review security violations'],
+      critical: ['Do not use results for assessment', 'Investigate security violations', 'Require supervised re-assessment']
+    };
+    
+    const steps = [...(baseSteps[riskLevel as keyof typeof baseSteps] || baseSteps.medium)];
+    
+    // Add context-specific steps
+    if (interviewData?.interview?.interviewType === 'coding' && riskLevel !== 'low') {
+      steps.push('Consider pair programming session');
+    }
+    
+    if (interviewData?.interview?.difficulty === 'hard' && riskLevel === 'low') {
+      steps.push('Candidate shows strong problem-solving skills');
+    }
+    
+    return steps;
   }
 
   private async generateOverallFeedback(interview: MockInterview, questions: MockInterviewQuestion[]): Promise<string> {

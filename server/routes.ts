@@ -237,6 +237,7 @@ import {
 import { z } from "zod";
 import { rankingTestService } from "./rankingTestService";
 import { mockInterviewRoutes } from "./mockInterviewRoutes";
+import { proctoring } from "./routes/proctoring";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 // Payment credentials check routes
 const paymentCredentialsRouter = (app: Express) => {
@@ -9737,6 +9738,9 @@ Host: https://autojobr.com`;
   // Mock Interview Routes
   app.use('/api/mock-interview', mockInterviewRoutes);
   app.use('/api/virtual-interview', virtualInterviewRoutes);
+  
+  // Advanced Proctoring Routes
+  app.use('/api', proctoring);
   
   // Interview assignment and results routes
   app.get('/api/interviews/:interviewType/:id/partial-results', isAuthenticated, async (req: any, res) => {
