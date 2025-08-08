@@ -562,39 +562,7 @@ class RankingTestService {
     }
   }
 
-  async createCustomTest(userId: string, testData: any): Promise<any> {
-    try {
-      // Validate testData to prevent undefined access
-      if (!testData) {
-        throw new Error('Test data is required');
-      }
 
-      // For now, create a standard test with custom parameters
-      const test = await this.createRankingTest(
-        userId,
-        testData.category || 'general',
-        testData.domain || 'general',
-        testData.difficulty || 'hard'
-      );
-      
-      // Validate test was created successfully
-      if (!test) {
-        throw new Error('Failed to create ranking test');
-      }
-      
-      return {
-        id: test.id,
-        testTitle: test.testTitle,
-        category: test.category,
-        domain: test.domain,
-        status: test.status,
-        createdAt: test.createdAt
-      };
-    } catch (error) {
-      console.error('Error creating custom test:', error);
-      throw error;
-    }
-  }
 }
 
 export const rankingTestService = new RankingTestService();

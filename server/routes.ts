@@ -973,28 +973,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }));
 
-  // 4. Create Ranking Test Endpoint
-  app.post('/api/ranking-tests/create', isAuthenticated, asyncHandler(async (req: any, res: any) => {
-    try {
-      const userId = req.user.id;
-      const { testData } = req.body;
-      
-      // Check if user can create ranking tests
-      const canCreate = await premiumFeaturesService.checkFeatureAccess(userId, 'customTests');
-      if (!canCreate.allowed) {
-        return res.status(403).json({ 
-          message: 'Premium subscription required for custom ranking tests',
-          upgradeRequired: true 
-        });
-      }
 
-      const test = await rankingTestService.createCustomTest(userId, testData);
-      res.json(test);
-    } catch (error) {
-      console.error('Error creating ranking test:', error);
-      res.status(500).json({ message: 'Failed to create ranking test' });
-    }
-  }));
 
   // 5. Comprehensive Subscription Limits Status Endpoint
   app.get('/api/subscription/limits-status', isAuthenticated, asyncHandler(async (req: any, res: any) => {
