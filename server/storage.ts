@@ -555,12 +555,21 @@ export class DatabaseStorage implements IStorage {
     subscriptionStartDate?: Date;
     subscriptionEndDate?: Date;
   }): Promise<User> {
+    // Check if user is becoming premium and needs free ranking tests
+    const updateData: any = {
+      ...subscriptionData,
+      updatedAt: new Date(),
+    };
+
+    // Grant free ranking tests for premium users
+    if (subscriptionData.planType === 'premium' && subscriptionData.subscriptionStatus === 'active') {
+      updateData.freeRankingTestsRemaining = 1;
+      console.log(`✅ Granted 1 free ranking test to premium user ${userId}`);
+    }
+
     const [user] = await db
       .update(users)
-      .set({
-        ...subscriptionData,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(users.id, userId))
       .returning();
     return user;
@@ -1446,17 +1455,20 @@ export class DatabaseStorage implements IStorage {
   // Question bank operations
   async getQuestionBankQuestions(filters?: { type?: string; difficulty?: string; limit?: number }): Promise<any[]> {
     return await handleDbOperation(async () => {
-      let query = db.select().from(questionBank).where(eq(questionBank.isActive, true));
+      const conditions = [eq(questionBank.isActive, true)];
       
       // Apply filters if provided
       if (filters?.type) {
-        query = query.where(eq(questionBank.type, filters.type));
+        conditions.push(eq(questionBank.type, filters.type));
       }
       if (filters?.difficulty) {
-        query = query.where(eq(questionBank.difficulty, filters.difficulty));
+        conditions.push(eq(questionBank.difficulty, filters.difficulty));
       }
       
-      let results = await query.orderBy(sql`RANDOM()`);
+      let results = await db.select()
+        .from(questionBank)
+        .where(and(...conditions))
+        .orderBy(sql`RANDOM()`);
       
       if (filters?.limit) {
         results = results.slice(0, filters.limit);

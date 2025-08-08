@@ -31,6 +31,18 @@ class RankingTestService {
     let isFreeTest = false;
     let paymentStatus = "pending";
 
+    // Grant free test for premium users if they don't have any
+    if (user && user.planType === 'premium' && user.subscriptionStatus === 'active' && user.freeRankingTestsRemaining === 0) {
+      await db.update(users)
+        .set({ 
+          freeRankingTestsRemaining: 1
+        })
+        .where(eq(users.id, userId));
+      
+      console.log(`🎁 Auto-granted 1 free ranking test to premium user ${userId}`);
+      user.freeRankingTestsRemaining = 1;
+    }
+
     if (user && user.freeRankingTestsRemaining > 0) {
       // User has free tests remaining
       isFreeTest = true;

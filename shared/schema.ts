@@ -60,7 +60,7 @@ export const users = pgTable("users", {
   premiumTrialEndDate: timestamp("premium_trial_end_date").defaultNow(),
   hasUsedPremiumTrial: boolean("has_used_premium_trial").default(false),
   // Ranking test limits for free users
-  freeRankingTestsRemaining: integer("freeRankingTestsRemaining").default(0).notNull(),
+  freeRankingTestsRemaining: integer("freeRankingTestsRemaining").default(1).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
