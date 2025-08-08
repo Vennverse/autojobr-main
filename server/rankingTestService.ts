@@ -564,6 +564,11 @@ class RankingTestService {
 
   async createCustomTest(userId: string, testData: any): Promise<any> {
     try {
+      // Validate testData to prevent undefined access
+      if (!testData) {
+        throw new Error('Test data is required');
+      }
+
       // For now, create a standard test with custom parameters
       const test = await this.createRankingTest(
         userId,
@@ -571,6 +576,11 @@ class RankingTestService {
         testData.domain || 'general',
         testData.difficulty || 'hard'
       );
+      
+      // Validate test was created successfully
+      if (!test) {
+        throw new Error('Failed to create ranking test');
+      }
       
       return {
         id: test.id,
