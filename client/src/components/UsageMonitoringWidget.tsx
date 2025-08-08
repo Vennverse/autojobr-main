@@ -107,17 +107,22 @@ export default function UsageMonitoringWidget() {
 
   const formatUsageItem = (key: string) => {
     const labels: Record<string, string> = {
-      jobAnalyses: "Job Analyses",
-      resumeAnalyses: "Resume Analyses", 
-      applications: "Applications",
-      autoFills: "Auto-fills",
+      // Job seeker metrics
+      resumeUploads: "Resume Uploads",
+      jobApplications: "Job Applications",
+      testAssignmentsReceived: "Test Assignments",
+      messagesUsed: "Messages Sent",
+      // Recruiter metrics
       jobPostings: "Job Postings",
+      applicantsTotal: "Total Applicants",
+      testInterviewAssignments: "Test/Interview Assignments",
+      // Common metrics
       interviews: "Interviews",
       candidates: "Candidates",
       rankingTests: "Ranking Tests (Paid)",
       freeRankingTests: "Free Ranking Tests"
     };
-    return labels[key] || key;
+    return labels[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
   };
 
   return (

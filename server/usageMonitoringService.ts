@@ -7,27 +7,47 @@ import {
   testAssignments, 
   virtualInterviews, 
   mockInterviews,
-  messages 
+  messages,
+  resumes,
+  jobApplications
 } from '@shared/schema';
 import { SubscriptionService } from './subscriptionService';
+
+interface RecruiterUsage {
+  jobPostings: number;
+  applicantsTotal: number;
+  testInterviewAssignments: number;
+  messagesUsed: number;
+}
+
+interface JobSeekerUsage {
+  resumeUploads: number;
+  jobApplications: number;
+  testAssignmentsReceived: number;
+  messagesUsed: number;
+}
+
+interface RecruiterLimits {
+  jobPostings: number;
+  applicantsPerJob: number;
+  testInterviewAssignments: number;
+  messages: boolean;
+}
+
+interface JobSeekerLimits {
+  resumeUploads: number;
+  jobApplications: number;
+  testAssignmentsReceived: number;
+  messages: boolean;
+}
 
 interface UsageReport {
   subscription: {
     isActive: boolean;
     planType: string;
   };
-  usage: {
-    jobPostings: number;
-    applicantsTotal: number;
-    testInterviewAssignments: number;
-    messagesUsed: number;
-  };
-  limits: {
-    jobPostings: number;
-    applicantsPerJob: number;
-    testInterviewAssignments: number;
-    messages: boolean;
-  };
+  usage: RecruiterUsage | JobSeekerUsage;
+  limits: RecruiterLimits | JobSeekerLimits;
   percentages: Record<string, number>;
   upgradeRecommended: boolean;
   isFreeTier: boolean;
@@ -64,7 +84,7 @@ class UsageMonitoringService {
       const subscription = await this.subscriptionService.getUserSubscription(userId);
       const limits = subscription.limits;
 
-      let usage: UsageReport['usage'];
+      let usage: RecruiterUsage | JobSeekerUsage;
       let percentages: Record<string, number> = {};
 
       if (userType === 'recruiter') {
@@ -123,13 +143,45 @@ class UsageMonitoringService {
           percentages.testInterviewAssignments = 0; // Unlimited
         }
       } else {
-        // Job seeker usage (simplified for now)
+        // Job seeker usage - track relevant metrics for job seekers
+        const resumesResult = await db
+          .select({ count: count() })
+          .from(resumes)
+          .where(eq(resumes.userId, userId));
+
+        const applicationsResult = await db
+          .select({ count: count() })
+          .from(jobApplications)
+          .where(eq(jobApplications.userId, userId));
+
+        const testAssignmentsReceivedResult = await db
+          .select({ count: count() })
+          .from(testAssignments)
+          .where(eq(testAssignments.jobSeekerId, userId));
+
+        const messagesResult = await db
+          .select({ count: count() })
+          .from(messages)
+          .where(eq(messages.senderId, userId));
+
         usage = {
-          jobPostings: 0,
-          applicantsTotal: 0,
-          testInterviewAssignments: 0,
-          messagesUsed: 0
+          resumeUploads: resumesResult[0]?.count || 0,
+          jobApplications: applicationsResult[0]?.count || 0,
+          testAssignmentsReceived: testAssignmentsReceivedResult[0]?.count || 0,
+          messagesUsed: messagesResult[0]?.count || 0
         };
+
+        // Calculate percentages for job seeker limits (access properties from subscription limits)
+        const subscriptionLimits = subscription.limits as any;
+        const jobSeekerUsage = usage as JobSeekerUsage;
+        
+        if (subscriptionLimits.resumeUploads && subscriptionLimits.resumeUploads > 0) {
+          percentages.resumeUploads = Math.round((jobSeekerUsage.resumeUploads / subscriptionLimits.resumeUploads) * 100);
+        }
+
+        if (subscriptionLimits.jobApplications && subscriptionLimits.jobApplications > 0) {
+          percentages.jobApplications = Math.round((jobSeekerUsage.jobApplications / subscriptionLimits.jobApplications) * 100);
+        }
       }
 
       // Determine if upgrade is recommended
@@ -142,11 +194,16 @@ class UsageMonitoringService {
           planType
         },
         usage,
-        limits: {
+        limits: userType === 'recruiter' ? {
           jobPostings: limits.jobPostings,
           applicantsPerJob: limits.applicantsPerJob,
           testInterviewAssignments: limits.testInterviewAssignments,
-          messages: limits.messages
+          messages: (limits as any).chatMessages || false
+        } : {
+          resumeUploads: (limits as any).resumeUploads || 3,
+          jobApplications: (limits as any).jobApplications || 50,
+          testAssignmentsReceived: -1, // Unlimited for job seekers
+          messages: (limits as any).chatMessages || false
         },
         percentages,
         upgradeRecommended,
@@ -208,8 +265,8 @@ class UsageMonitoringService {
     limit: number;
   }> {
     const report = await this.generateUsageReport(userId);
-    const currentUsage = report.usage[feature] || 0;
-    const limit = report.limits[feature] || 0;
+    const currentUsage = (report.usage as any)[feature] || 0;
+    const limit = (report.limits as any)[feature] || 0;
     
     return {
       allowed: limit === -1 || currentUsage < limit,
