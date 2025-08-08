@@ -180,8 +180,13 @@ export default function RankingTests() {
             Ranking Test System
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Take paid ranking tests ($1 per attempt) to compete for top positions. 
-            Top performers get their profiles shared with recruiters automatically.
+            Take ranking tests ($1 per attempt) to compete for top positions. 
+            {isPremium && (
+              <span className="text-purple-600 font-medium">
+                {" "}Premium users get 1 free monthly test!
+              </span>
+            )}
+            {" "}Top performers get their profiles shared with recruiters automatically.
           </p>
         </div>
 
@@ -243,27 +248,45 @@ export default function RankingTests() {
                   </p>
                 </div>
                 
-                {/* Premium Benefits */}
-                {isPremium && (
+                {/* Premium Benefits & Free Test Info */}
+                {isPremium ? (
                   <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Crown className="w-4 h-4 text-purple-600" />
+                    <div className="flex items-center gap-2 mb-3">
+                      <Crown className="w-5 h-5 text-purple-600" />
                       <span className="font-medium text-purple-900">Premium Benefits</span>
                     </div>
-                    <div className="text-sm text-purple-800 space-y-1">
+                    <div className="text-sm text-purple-800 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span>Monthly Free Tests:</span>
-                        <Badge className="bg-purple-100 text-purple-800">
-                          {remainingFreeTests} remaining
+                        <span>Monthly Free Test:</span>
+                        <Badge className={`${canUseFreeTest ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                          {canUseFreeTest ? '✓ Available' : '✗ Used'}
                         </Badge>
                       </div>
                       {nextResetDate && (
-                        <div className="flex items-center gap-1 text-xs">
+                        <div className="flex items-center gap-2 text-xs text-purple-700">
                           <Calendar className="w-3 h-3" />
-                          <span>Resets: {nextResetDate.toLocaleDateString()}</span>
+                          <span>Next free test: {nextResetDate.toLocaleDateString()}</span>
+                        </div>
+                      )}
+                      {canUseFreeTest && (
+                        <div className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                          💡 You have 1 free monthly test available this month!
                         </div>
                       )}
                     </div>
+                  </div>
+                ) : (
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Star className="w-4 h-4 text-blue-600" />
+                      <span className="font-medium text-blue-900">Upgrade to Premium</span>
+                    </div>
+                    <p className="text-sm text-blue-800">
+                      Get 1 free monthly ranking test + unlimited features. 
+                      <a href="/subscription" className="text-blue-600 hover:text-blue-800 font-medium ml-1">
+                        Upgrade now →
+                      </a>
+                    </p>
                   </div>
                 )}
 
@@ -290,7 +313,7 @@ export default function RankingTests() {
                       className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                     >
                       <Gift className="w-4 h-4 mr-2" />
-                      {createTestMutation.isPending && useFreeTest ? 'Starting Free Test...' : `Use Monthly Free Test (${remainingFreeTests} left)`}
+                      {createTestMutation.isPending && useFreeTest ? 'Starting Free Test...' : 'Use Monthly Free Test'}
                     </Button>
                   )}
                   

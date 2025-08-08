@@ -511,6 +511,13 @@ class RankingTestService {
     canCreateCustom: boolean;
     customTestsUsed: number;
     customTestsLimit: number;
+    // Monthly free test data for premium users
+    monthlyFreeUsed: number;
+    monthlyFreeLimit: number;
+    currentMonth: string;
+    isPremium: boolean;
+    canUseFree: boolean;
+    nextResetDate: string;
   }> {
     try {
       const tests = await this.getUserTestHistory(userId);
@@ -524,9 +531,10 @@ class RankingTestService {
         ? Math.max(...completedTests.map(t => t.percentageScore || 0))
         : 0;
 
-      // Get user plan to determine limits
+      // Get user plan to determine limits and free test availability
       const [user] = await db.select().from(users).where(eq(users.id, userId));
       const planType = user?.planType || 'free';
+      const subscriptionStatus = user?.subscriptionStatus || 'free';
       
       let customTestsLimit = 0;
       let canCreateCustom = false;
@@ -539,6 +547,38 @@ class RankingTestService {
         canCreateCustom = true;
       }
 
+      // Calculate monthly free test data
+      const isPremium = (planType === 'premium' || planType === 'enterprise') && subscriptionStatus === 'active';
+      const currentDate = new Date();
+      const currentMonth = currentDate.toISOString().substring(0, 7); // YYYY-MM format
+      
+      // Monthly free test limits for premium users
+      const monthlyFreeLimit = isPremium ? 1 : 0; // 1 free test per month for premium users
+      
+      // Count free tests used this month
+      const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const freeTestsThisMonth = tests.filter(test => 
+        test.paymentId === 'free_practice_test' && 
+        new Date(test.createdAt) >= monthStart
+      ).length;
+
+      // Calculate next reset date (first day of next month)
+      const nextResetDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+      
+      // Check if user can use free test (premium user with available free tests)
+      const canUseFree = isPremium && freeTestsThisMonth < monthlyFreeLimit;
+      
+      // Auto-grant free test for premium users at month start if they don't have any
+      if (isPremium && user?.freeRankingTestsRemaining === 0 && canUseFree) {
+        await db.update(users)
+          .set({ 
+            freeRankingTestsRemaining: 1
+          })
+          .where(eq(users.id, userId));
+          
+        console.log(`🎁 Auto-granted monthly free test to premium user ${userId}`);
+      }
+
       return {
         totalTests: tests.length,
         completedTests: completedTests.length,
@@ -546,7 +586,14 @@ class RankingTestService {
         bestScore: Math.round(bestScore * 100) / 100,
         canCreateCustom,
         customTestsUsed: 0, // TODO: Track custom tests
-        customTestsLimit
+        customTestsLimit,
+        // Monthly free test data
+        monthlyFreeUsed: freeTestsThisMonth,
+        monthlyFreeLimit,
+        currentMonth,
+        isPremium,
+        canUseFree,
+        nextResetDate: nextResetDate.toISOString()
       };
     } catch (error) {
       console.error('Error getting user usage:', error);
@@ -557,7 +604,13 @@ class RankingTestService {
         bestScore: 0,
         canCreateCustom: false,
         customTestsUsed: 0,
-        customTestsLimit: 0
+        customTestsLimit: 0,
+        monthlyFreeUsed: 0,
+        monthlyFreeLimit: 0,
+        currentMonth: new Date().toISOString().substring(0, 7),
+        isPremium: false,
+        canUseFree: false,
+        nextResetDate: new Date().toISOString()
       };
     }
   }

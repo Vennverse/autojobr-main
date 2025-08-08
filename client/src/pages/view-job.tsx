@@ -105,7 +105,7 @@ export default function ViewJob() {
               : `Failed to load job details: ${error.message}`
             }
           </p>
-          <Button onClick={() => setLocation(user?.userType === 'recruiter' ? '/recruiter-dashboard' : '/')}>
+          <Button onClick={() => setLocation(user?.currentRole === 'recruiter' ? '/recruiter-dashboard' : '/')}>
             Go Back
           </Button>
         </div>
@@ -119,7 +119,7 @@ export default function ViewJob() {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Job Not Found</h2>
           <p className="text-gray-600 dark:text-gray-400 mb-4">The job posting you're looking for doesn't exist.</p>
-          <Button onClick={() => setLocation(user?.userType === 'recruiter' ? '/recruiter-dashboard' : '/')}>
+          <Button onClick={() => setLocation(user?.currentRole === 'recruiter' ? '/recruiter-dashboard' : '/')}>
             Go Back
           </Button>
         </div>
@@ -137,7 +137,7 @@ export default function ViewJob() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setLocation(user?.userType === 'recruiter' ? '/recruiter-dashboard' : '/')}
+                onClick={() => setLocation(user?.currentRole === 'recruiter' ? '/recruiter-dashboard' : '/')}
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
@@ -507,7 +507,7 @@ export default function ViewJob() {
                   </Card>
                 </>
               
-              ) : user?.userType === 'recruiter' ? (
+              ) : user?.currentRole === 'recruiter' ? (
                 <Card>
                   <CardHeader>
                     <CardTitle>Manage Job</CardTitle>

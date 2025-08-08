@@ -125,7 +125,7 @@ export function Navbar() {
           current: location === "/for-recruiters"
         }
       ];
-    } else if (user?.userType === 'recruiter' || user?.userType === 'company') {
+    } else if (user?.currentRole === 'recruiter' || user?.currentRole === 'company') {
       // Redirect recruiters to their dedicated navbar
       return [
         {
