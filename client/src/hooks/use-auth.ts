@@ -10,6 +10,8 @@ interface User {
   lastName?: string;
   onboardingCompleted?: boolean;
   planType?: string;
+  subscriptionStatus?: string;
+  freeRankingTestsRemaining?: number;
   userType?: string;
   currentRole?: string;
   availableRoles?: string;

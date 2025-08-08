@@ -176,8 +176,25 @@ export async function setupAuth(app: Express) {
       // For real users, fetch from database
       try {
         const { storage } = await import("./storage");
-        const fullUser = await storage.getUser(sessionUser.id);
+        let fullUser = await storage.getUser(sessionUser.id);
+        
         if (fullUser) {
+          // Auto-grant monthly free test for premium users if needed
+          if (fullUser.planType === 'premium' && 
+              fullUser.subscriptionStatus === 'active' && 
+              (fullUser.freeRankingTestsRemaining === null || fullUser.freeRankingTestsRemaining === 0)) {
+            
+            console.log(`🎁 Auto-granting monthly free ranking test to premium user ${fullUser.id}`);
+            
+            // Grant the monthly free test
+            const updatedUser = await storage.upsertUser({
+              ...fullUser,
+              freeRankingTestsRemaining: 1
+            });
+            
+            fullUser = updatedUser;
+          }
+          
           return res.json({
             id: fullUser.id,
             email: fullUser.email,
@@ -185,9 +202,14 @@ export async function setupAuth(app: Express) {
             firstName: fullUser.firstName,
             lastName: fullUser.lastName,
             userType: fullUser.userType,
+            currentRole: fullUser.currentRole,
+            availableRoles: fullUser.availableRoles,
             emailVerified: fullUser.emailVerified,
             companyName: fullUser.companyName,
             companyWebsite: fullUser.companyWebsite,
+            planType: fullUser.planType,
+            subscriptionStatus: fullUser.subscriptionStatus,
+            freeRankingTestsRemaining: fullUser.freeRankingTestsRemaining,
             onboardingCompleted,
           });
         }
