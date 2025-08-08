@@ -20,6 +20,14 @@ export interface SubscriptionLimits {
   jobPostings: number; // -1 for unlimited
   applicantsPerJob: number; // -1 for unlimited
   
+  // Job seeker specific limits
+  jobApplications: number; // -1 for unlimited applications
+  resumeUploads: number; // -1 for unlimited resume uploads
+  coverLetterGenerations: number; // -1 for unlimited cover letter generations
+  
+  // Extension features
+  chromeExtensionAutoFill: boolean; // Chrome extension auto-fill access
+  
   // Testing & interviews
   testInterviewAssignments: number; // Combined virtual/mock/test assignments
   preBuiltTestTemplates: number; // Access to pre-built templates
@@ -52,6 +60,14 @@ export const SUBSCRIPTION_LIMITS: Record<string, SubscriptionLimits> = {
     jobPostings: 2, // Max 2 active job posts
     applicantsPerJob: 20, // Max 20 applicants per job
     
+    // Job seeker specific limits - FREE TIER
+    jobApplications: -1, // Unlimited job applications for everyone
+    resumeUploads: 3, // Max 3 resume uploads for free tier
+    coverLetterGenerations: 2, // 2 free cover letter generations
+    
+    // Extension features - FREE FOR ALL
+    chromeExtensionAutoFill: true, // Chrome extension auto-fill free for all
+    
     // Testing & interviews - FREE TIER LIMITS
     testInterviewAssignments: 10, // Max 10 combined test/interview assignments
     preBuiltTestTemplates: 1, // Allow 1 pre-built test template
@@ -81,6 +97,14 @@ export const SUBSCRIPTION_LIMITS: Record<string, SubscriptionLimits> = {
     // Job management - PREMIUM UNLIMITED
     jobPostings: -1, // Unlimited jobs
     applicantsPerJob: -1, // Unlimited applicants
+    
+    // Job seeker specific limits - PREMIUM UNLIMITED
+    jobApplications: -1, // Unlimited job applications
+    resumeUploads: -1, // Unlimited resume uploads
+    coverLetterGenerations: -1, // Unlimited cover letter generations
+    
+    // Extension features - FREE FOR ALL
+    chromeExtensionAutoFill: true, // Chrome extension auto-fill free for all
     
     // Testing & interviews - PREMIUM UNLIMITED
     testInterviewAssignments: -1, // Unlimited tests/interviews

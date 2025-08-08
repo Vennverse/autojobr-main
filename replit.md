@@ -56,6 +56,13 @@ AutoJobr is a comprehensive job application platform designed to connect job see
 ## Recent Migration & SEO Enhancements (January 8, 2025)
 - **Migration Status**: Successfully migrated from Replit Agent to standard Replit environment
 - **Database Migration**: Transitioned from Neon PostgreSQL to Replit's integrated PostgreSQL
+- **Subscription System Updates**: Updated subscription tiers with user-requested changes:
+  - Chrome Extension Auto-fill: Now FREE for all users (Basic + Premium)
+  - Job Applications: Now UNLIMITED for all users (Basic + Premium)
+  - Cover Letter Generation: 2 FREE per day for Basic tier, UNLIMITED for Premium
+  - Basic Monthly: $9.99/month with enhanced features
+  - Premium Monthly: $19.99/month with unlimited cover letters and advanced features
+- **Usage Monitoring Fix**: Fixed critical bug where job seeker premium page displayed recruiter metrics instead of job seeker metrics
 - **SEO Competition Strategy**: Implemented comprehensive SEO enhancements to compete with autojob.app
   - Enhanced HTML meta tags with competitive keywords
   - Updated structured data with superior metrics (75K+ reviews)

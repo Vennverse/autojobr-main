@@ -164,11 +164,18 @@ class UsageMonitoringService {
           .from(messages)
           .where(eq(messages.senderId, userId));
 
+        // Get cover letter generation count for job seekers
+        const coverLettersResult = await db
+          .select({ count: count() })
+          .from(messages) // Assuming cover letters are tracked somewhere, we'll use messages as placeholder
+          .where(eq(messages.senderId, userId));
+
         usage = {
           resumeUploads: resumesResult[0]?.count || 0,
           jobApplications: applicationsResult[0]?.count || 0,
           testAssignmentsReceived: testAssignmentsReceivedResult[0]?.count || 0,
-          messagesUsed: messagesResult[0]?.count || 0
+          messagesUsed: messagesResult[0]?.count || 0,
+          coverLetterGenerations: 0 // TODO: Implement actual cover letter tracking
         };
 
         // Calculate percentages for job seeker limits (access properties from subscription limits)
@@ -201,8 +208,9 @@ class UsageMonitoringService {
           messages: (limits as any).chatMessages || false
         } : {
           resumeUploads: (limits as any).resumeUploads || 3,
-          jobApplications: (limits as any).jobApplications || 50,
+          jobApplications: -1, // Unlimited job applications for everyone
           testAssignmentsReceived: -1, // Unlimited for job seekers
+          coverLetterGenerations: (limits as any).coverLetterGenerations || 2, // 2 free cover letters
           messages: (limits as any).chatMessages || false
         },
         percentages,

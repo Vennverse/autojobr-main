@@ -20,6 +20,7 @@ export interface SubscriptionTier {
     jobPostings?: number;
     interviews?: number;
     candidates?: number;
+    coverLetters?: number;
   };
 }
 
@@ -35,14 +36,16 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
     features: [
       'AI Resume Analysis',
       'Job Matching',
-      'Chrome Extension',
-      'Basic Support'
+      'Chrome Extension with Auto-fill',
+      'Basic Support',
+      '2 Free Cover Letter Generations'
     ],
     limits: {
       jobAnalyses: 50,
       resumeAnalyses: 10,
-      applications: 100,
-      autoFills: 50
+      applications: -1, // Unlimited applications
+      autoFills: -1, // Unlimited auto-fills
+      coverLetters: 2 // 2 free cover letters
     }
   },
   {
@@ -57,14 +60,16 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
       'Virtual AI Interviews',
       'Coding Tests',
       'Advanced Analytics',
-      'Priority Support'
+      'Priority Support',
+      'Unlimited Cover Letter Generations'
     ],
     limits: {
       jobAnalyses: 200,
       resumeAnalyses: 50,
-      applications: 500,
-      autoFills: 200,
-      interviews: 20
+      applications: -1, // Unlimited applications
+      autoFills: -1, // Unlimited auto-fills
+      interviews: 20,
+      coverLetters: -1 // Unlimited cover letters
     }
   },
   {
@@ -78,14 +83,16 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
       'Everything in Premium Monthly',
       '2 months free',
       'Career Coaching Session',
-      'Resume Writing Service'
+      'Resume Writing Service',
+      'Unlimited Cover Letter Generations'
     ],
     limits: {
       jobAnalyses: 2400,
       resumeAnalyses: 600,
-      applications: 6000,
-      autoFills: 2400,
-      interviews: 240
+      applications: -1, // Unlimited applications
+      autoFills: -1, // Unlimited auto-fills
+      interviews: 240,
+      coverLetters: -1 // Unlimited cover letters
     }
   },
 
