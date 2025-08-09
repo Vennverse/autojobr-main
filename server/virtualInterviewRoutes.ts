@@ -492,8 +492,23 @@ router.post("/:sessionId/message", isAuthenticated, async (req: any, res) => {
       return res.status(404).json({ error: 'Interview session not found' });
     }
 
-    if (interview.status !== 'active') {
-      return res.status(400).json({ error: 'Interview session is not active' });
+    // Allow continued interaction if there are still questions to ask, even if marked completed prematurely
+    const remainingQuestions = (interview.totalQuestions || 5) - (interview.questionsAsked || 0);
+    
+    if (interview.status !== 'active' && remainingQuestions <= 0) {
+      return res.status(400).json({ 
+        error: 'Interview session is not active',
+        status: interview.status,
+        canRetake: interview.retakeAllowed || false,
+        redirectTo: '/virtual-interview/' + sessionId + '/feedback'
+      });
+    }
+    
+    // Reactivate interview if there are still questions remaining
+    if (interview.status === 'completed' && remainingQuestions > 0) {
+      await db.update(virtualInterviews)
+        .set({ status: 'active' })
+        .where(eq(virtualInterviews.id, interview.id));
     }
 
     // Get current message count

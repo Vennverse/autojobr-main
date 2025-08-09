@@ -167,6 +167,13 @@ export default function VirtualInterview() {
       if (context?.previousData) {
         queryClient.setQueryData([`/api/virtual-interview/${sessionId}`], context.previousData);
       }
+      
+      // Handle specific error cases
+      if (error.redirectTo) {
+        setLocation(error.redirectTo);
+        return;
+      }
+      
       toast({
         title: "Error",
         description: error.message || "Failed to send message",
@@ -479,13 +486,13 @@ export default function VirtualInterview() {
                         {getMessageIcon(message.sender, message.messageType)}
                       </div>
                       
-                      <div className={`flex-1 max-w-[80%] ${message.sender === 'candidate' ? 'text-right' : ''}`}>
-                        <div className={`inline-block p-3 rounded-lg ${
+                      <div className={`flex-1 ${message.sender === 'candidate' ? 'text-right' : ''}`}>
+                        <div className={`inline-block p-3 rounded-lg max-w-[calc(100%-2rem)] break-words ${
                           message.sender === 'interviewer' 
                             ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100' 
                             : 'bg-blue-500 text-white'
                         }`}>
-                          <p className="whitespace-pre-wrap">{message.content}</p>
+                          <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere">{message.content}</p>
                           
                           {message.messageType === 'question' && (
                             <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
