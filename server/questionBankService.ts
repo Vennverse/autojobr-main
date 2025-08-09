@@ -98,7 +98,7 @@ export class QuestionBankService {
     }
   }
   
-  // Get questions by category with filtering - OPTIMIZED
+  // Get questions by category with filtering - OPTIMIZED and MCQ-prioritized
   async getQuestionsByCategory(
     category: string,
     tags: string[] = [],
@@ -112,12 +112,37 @@ export class QuestionBankService {
         inArray(questionBank.difficulty, difficulty)
       ];
       
-      // OPTIMIZATION: Use database-level randomization instead of fetching 2x data
-      const questions = await db.select()
+      let questions: any[] = [];
+      
+      // First, try to get MCQ questions (prioritize multiple choice)
+      const mcqConditions = [...whereConditions, 
+        inArray(questionBank.type, ['multiple_choice', 'mcq'])
+      ];
+      
+      const mcqQuestions = await db.select()
         .from(questionBank)
-        .where(and(...whereConditions))
-        .orderBy(sql`RANDOM()`) // Database-level randomization
-        .limit(limit); // Fetch only what we need
+        .where(and(...mcqConditions))
+        .orderBy(sql`RANDOM()`)
+        .limit(limit);
+      
+      questions.push(...mcqQuestions);
+      
+      // If we need more questions, get other types
+      if (questions.length < limit) {
+        const remaining = limit - questions.length;
+        const otherQuestions = await db.select()
+          .from(questionBank)
+          .where(and(...whereConditions))
+          .orderBy(sql`RANDOM()`)
+          .limit(remaining * 2); // Get more to ensure we have enough after filtering duplicates
+        
+        // Add non-duplicate questions
+        const existingIds = new Set(questions.map(q => q.id));
+        const newQuestions = otherQuestions.filter(q => !existingIds.has(q.id));
+        questions.push(...newQuestions.slice(0, remaining));
+      }
+      
+      console.log(`[DEBUG] Generated ${questions.length} questions for category ${category}, ${questions.filter(q => ['multiple_choice', 'mcq'].includes(q.type)).length} are MCQ`);
       
       // OPTIMIZATION: Minimal processing, only parse when needed
       return questions.map(q => ({

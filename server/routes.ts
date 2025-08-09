@@ -8565,16 +8565,42 @@ Host: https://autojobr.com`;
       console.log(`[DEBUG] Template questions sample:`, JSON.stringify(template.questions).slice(0, 200));
       console.log(`[DEBUG] Answers:`, Object.keys(answers || {}));
 
-      // Calculate base score - simplified approach for migration
+      // Calculate base score using actual question count
       let score = 0;
       console.log(`[DEBUG] Calculating score for ${Object.keys(answers || {}).length} answers`);
       
-      // Simple scoring: give points for each answer provided
-      const answersProvided = Object.keys(answers || {}).length;
-      const totalQuestions = 10; // Default assumption for basic scoring
-      score = Math.round((answersProvided / totalQuestions) * 100); // 100% for all answers
+      // Get actual questions to calculate score properly
+      const questions = Array.isArray(template.questions) ? template.questions : 
+                       (typeof template.questions === 'string' ? JSON.parse(template.questions) : []);
       
-      console.log(`[DEBUG] Basic score calculation: ${answersProvided}/${totalQuestions} = ${score}%`);
+      const totalQuestions = questions.length;
+      const answersProvided = Object.keys(answers || {}).length;
+      
+      if (totalQuestions > 0) {
+        // Calculate score based on correct answers for MCQ questions
+        let correctAnswers = 0;
+        
+        questions.forEach((question: any) => {
+          const userAnswer = answers[question.id];
+          if (userAnswer !== undefined && userAnswer !== null) {
+            if (question.type === 'multiple_choice') {
+              // For MCQ, check if the answer index matches the correct answer
+              if (parseInt(userAnswer) === question.correctAnswer) {
+                correctAnswers++;
+              }
+            } else {
+              // For other types, just count as answered (basic scoring)
+              correctAnswers++;
+            }
+          }
+        });
+        
+        score = Math.round((correctAnswers / totalQuestions) * 100);
+        console.log(`[DEBUG] Detailed score calculation: ${correctAnswers}/${totalQuestions} correct = ${score}%`);
+      } else {
+        console.log(`[DEBUG] No questions found, using basic calculation`);
+        score = Math.round((answersProvided / Math.max(answersProvided, 1)) * 100);
+      }
       
       // Apply penalties for violations (reduce score by 5% per violation, max 50% reduction)
       const totalViolations = (warningCount || 0) + (tabSwitchCount || 0) + (copyAttempts || 0);
