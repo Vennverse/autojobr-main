@@ -86,6 +86,17 @@ export default function VirtualInterview() {
 
   const interview: VirtualInterview | undefined = sessionData?.interview;
   const messages: VirtualInterviewMessage[] = sessionData?.messages || [];
+  
+  // Debug logging
+  console.log('[DEBUG] VirtualInterview component:', {
+    sessionId,
+    hasSessionData: !!sessionData,
+    hasInterview: !!interview,
+    messagesCount: messages.length,
+    interviewStatus: interview?.status,
+    questionsAsked: interview?.questionsAsked,
+    totalQuestions: interview?.totalQuestions
+  });
 
   // Start interview mutation for assigned interviews
   const startInterviewMutation = useMutation({

@@ -283,6 +283,8 @@ router.get("/:sessionId", isAuthenticated, async (req: any, res) => {
       }
     }
 
+    console.log(`[DEBUG] API Response - Session: ${sessionId}, Messages: ${messages.length}, Status: ${interview.status}, Questions: ${interview.questionsAsked}/${interview.totalQuestions}`);
+    
     res.json({
       interview: {
         ...interview,
