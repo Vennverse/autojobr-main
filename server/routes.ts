@@ -8622,6 +8622,7 @@ Host: https://autojobr.com`;
       }
 
       // Update assignment with results including violations tracking
+      // SECURITY FIX: Reset retakeAllowed flag to prevent unauthorized retakes
       const updatedAssignment = await storage.updateTestAssignment(assignmentId, {
         status: 'completed',
         completedAt: new Date(),
@@ -8636,6 +8637,7 @@ Host: https://autojobr.com`;
           }
         },
         timeSpent: timeSpent || 0,
+        retakeAllowed: false, // Always reset after completion to prevent unauthorized retakes
       });
       
       res.json({

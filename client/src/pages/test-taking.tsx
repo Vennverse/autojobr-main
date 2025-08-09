@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +32,7 @@ export default function TestTaking() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [timeLeft, setTimeLeft] = useState(0);
@@ -370,6 +371,11 @@ export default function TestTaking() {
       console.log('onSuccess called with response:', response);
       exitFullscreen();
       setIsSubmitting(false);
+      
+      // CRITICAL: Invalidate cache to prevent retaking completed tests
+      queryClient.invalidateQueries({ queryKey: [`/api/test-assignments/${assignmentId}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/jobseeker/test-assignments'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/test-assignments/${assignmentId}/questions`] });
       
       // Store test results and show modal for all completions
       const timeSpent = startTimeRef.current ? Math.round((new Date().getTime() - startTimeRef.current.getTime()) / 1000) : 0;
