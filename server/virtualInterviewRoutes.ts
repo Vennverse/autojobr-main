@@ -503,127 +503,32 @@ router.post("/:sessionId/message", isAuthenticated, async (req: any, res) => {
 
     const nextIndex = messageCount.length + 1;
 
-    // Insert candidate's message
+    // Insert candidate's message immediately
     const [candidateMessage] = await db.insert(virtualInterviewMessages).values({
       interviewId: interview.id,
       sender: 'candidate',
       messageType,
       content,
       messageIndex: nextIndex,
-      responseTime: Math.floor(Math.random() * 30) + 10 // Mock response time for now
+      responseTime: Math.floor(Math.random() * 30) + 10
     }).returning();
 
-    // Get previous messages for context
-    const recentMessages = await db.query.virtualInterviewMessages.findMany({
-      where: eq(virtualInterviewMessages.interviewId, interview.id),
-      orderBy: [desc(virtualInterviewMessages.messageIndex)],
-      limit: 5
-    });
-
-    // Analyze the response if it's an answer to a question
-    const lastInterviewerMessage = recentMessages.find(m => m.sender === 'interviewer' && m.messageType === 'question');
-    let analysis = null;
-    
-    if (lastInterviewerMessage && messageType === 'answer') {
-      // Quick analysis for faster response
-      analysis = {
-        responseQuality: Math.min(10, Math.max(1, Math.floor(content.length / 20) + 4)),
-        technicalAccuracy: 75,
-        clarityScore: 70,
-        depthScore: 65,
-        keywordsMatched: [],
-        sentiment: 'positive' as const,
-        confidence: 80,
-        finalScore: 75
-      };
-
-      // Update the candidate message with analysis
-      await db.update(virtualInterviewMessages)
-        .set({
-          responseQuality: analysis.responseQuality,
-          technicalAccuracy: analysis.technicalAccuracy,
-          clarityScore: analysis.clarityScore,
-          depthScore: analysis.depthScore,
-          keywordsMatched: analysis.keywordsMatched,
-          sentiment: analysis.sentiment,
-          confidence: analysis.confidence
-        })
-        .where(eq(virtualInterviewMessages.id, candidateMessage.id));
-    }
-
-    // Generate AI response
-    let aiResponse = '';
-    let aiMessageType = 'text';
-
-    if ((interview.questionsAsked || 0) < (interview.totalQuestions || 5)) {
-      // Generate next question
-      const previousResponses = recentMessages
-        .filter(m => m.sender === 'candidate')
-        .map(m => m.content);
-
-      const question = await virtualInterviewService.generateQuestion(
-        interview.interviewType,
-        interview.difficulty,
-        interview.role,
-        (interview.questionsAsked || 0) + 1,
-        previousResponses,
-        interview.resumeContext || undefined
-      );
-
-      aiResponse = question.question;
-      aiMessageType = 'question';
-
-      // Update interview progress
-      await db.update(virtualInterviews)
-        .set({ 
-          questionsAsked: (interview.questionsAsked || 0) + 1,
-          currentStep: ((interview.questionsAsked || 0) + 1) >= (interview.totalQuestions || 5) ? 'conclusion' : 'main_questions'
-        })
-        .where(eq(virtualInterviews.id, interview.id));
-
-    } else if (analysis && lastInterviewerMessage) {
-      // Generate follow-up or closing
-      aiResponse = await virtualInterviewService.generateFollowUp(
-        lastInterviewerMessage.content,
-        content,
-        analysis,
-        interview.interviewerPersonality
-      );
-      
-      // Mark interview as completed
-      await db.update(virtualInterviews)
-        .set({ 
-          status: 'completed',
-          endTime: new Date(),
-          currentStep: 'conclusion',
-          retakeAllowed: false // SECURITY FIX: Reset retakeAllowed flag to prevent unauthorized retakes
-        })
-        .where(eq(virtualInterviews.id, interview.id));
-
-    } else {
-      aiResponse = "Thank you for your response. Let me ask you another question.";
-    }
-
-    // Insert AI response
-    await db.insert(virtualInterviewMessages).values({
-      interviewId: interview.id,
-      sender: 'interviewer',
-      messageType: aiMessageType,
-      content: aiResponse,
-      messageIndex: nextIndex + 1,
-      questionCategory: aiMessageType === 'question' ? interview.interviewType : undefined,
-      difficulty: interview.difficulty
-    });
-
+    // Send immediate response with user's message
     res.json({
       success: true,
       candidateMessage,
-      aiResponse: {
-        content: aiResponse,
-        type: aiMessageType
-      },
-      analysis,
+      aiResponse: null, // Will be generated in background
+      analysis: null,
       interviewStatus: interview.status
+    });
+
+    // Process AI response and analysis in background (no await)
+    setImmediate(async () => {
+      try {
+        await processBackgroundAnalysis(interview, candidateMessage, content, messageType, nextIndex);
+      } catch (error) {
+        console.error('Background processing error:', error);
+      }
     });
 
   } catch (error) {
@@ -631,6 +536,112 @@ router.post("/:sessionId/message", isAuthenticated, async (req: any, res) => {
     res.status(500).json({ error: 'Failed to process message' });
   }
 });
+
+// Background processing function
+async function processBackgroundAnalysis(interview: any, candidateMessage: any, content: string, messageType: string, nextIndex: number) {
+
+  // Get previous messages for context
+  const recentMessages = await db.query.virtualInterviewMessages.findMany({
+    where: eq(virtualInterviewMessages.interviewId, interview.id),
+    orderBy: [desc(virtualInterviewMessages.messageIndex)],
+    limit: 5
+  });
+
+  // Analyze the response if it's an answer to a question
+  const lastInterviewerMessage = recentMessages.find(m => m.sender === 'interviewer' && m.messageType === 'question');
+  let analysis = null;
+  
+  if (lastInterviewerMessage && messageType === 'answer') {
+    // Quick analysis
+    analysis = {
+      responseQuality: Math.min(10, Math.max(1, Math.floor(content.length / 20) + 4)),
+      technicalAccuracy: 75,
+      clarityScore: 70,
+      depthScore: 65,
+      keywordsMatched: [],
+      sentiment: 'positive' as const,
+      confidence: 80,
+      finalScore: 75
+    };
+
+    // Update the candidate message with analysis
+    await db.update(virtualInterviewMessages)
+      .set({
+        responseQuality: analysis.responseQuality,
+        technicalAccuracy: analysis.technicalAccuracy,
+        clarityScore: analysis.clarityScore,
+        depthScore: analysis.depthScore,
+        keywordsMatched: analysis.keywordsMatched,
+        sentiment: analysis.sentiment,
+        confidence: analysis.confidence
+      })
+      .where(eq(virtualInterviewMessages.id, candidateMessage.id));
+  }
+
+  // Generate AI response
+  let aiResponse = '';
+  let aiMessageType = 'text';
+
+  if ((interview.questionsAsked || 0) < (interview.totalQuestions || 5)) {
+    // Generate next question
+    const previousResponses = recentMessages
+      .filter(m => m.sender === 'candidate')
+      .map(m => m.content);
+
+    const question = await virtualInterviewService.generateQuestion(
+      interview.interviewType,
+      interview.difficulty,
+      interview.role,
+      (interview.questionsAsked || 0) + 1,
+      previousResponses,
+      interview.resumeContext || undefined
+    );
+
+    aiResponse = question.question;
+    aiMessageType = 'question';
+
+    // Update interview progress
+    await db.update(virtualInterviews)
+      .set({ 
+        questionsAsked: (interview.questionsAsked || 0) + 1,
+        currentStep: ((interview.questionsAsked || 0) + 1) >= (interview.totalQuestions || 5) ? 'conclusion' : 'main_questions'
+      })
+      .where(eq(virtualInterviews.id, interview.id));
+
+  } else if (analysis && lastInterviewerMessage) {
+    // Generate follow-up or closing
+    aiResponse = await virtualInterviewService.generateFollowUp(
+      lastInterviewerMessage.content,
+      content,
+      analysis,
+      interview.interviewerPersonality
+    );
+    
+    // Mark interview as completed
+    await db.update(virtualInterviews)
+      .set({ 
+        status: 'completed',
+        endTime: new Date(),
+        currentStep: 'conclusion',
+        retakeAllowed: false
+      })
+      .where(eq(virtualInterviews.id, interview.id));
+
+  } else {
+    aiResponse = "Thank you for your response. Let me ask you another question.";
+  }
+
+  // Insert AI response
+  await db.insert(virtualInterviewMessages).values({
+    interviewId: interview.id,
+    sender: 'interviewer',
+    messageType: aiMessageType,
+    content: aiResponse,
+    messageIndex: nextIndex + 1,
+    questionCategory: aiMessageType === 'question' ? interview.interviewType : undefined,
+    difficulty: interview.difficulty
+  });
+}
 
 // Complete interview and generate feedback
 router.post("/:sessionId/complete", isAuthenticated, async (req: any, res) => {

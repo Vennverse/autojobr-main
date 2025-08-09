@@ -119,17 +119,54 @@ export default function VirtualInterview() {
     },
   });
 
-  // Send message mutation
+  // Send message mutation with optimistic updates
   const sendMessageMutation = useMutation({
     mutationFn: async (data: { content: string; messageType: string }) => {
       return await apiRequest(`/api/virtual-interview/${sessionId}/message`, 'POST', data);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/virtual-interview/${sessionId}`] });
+    onMutate: async (data) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: [`/api/virtual-interview/${sessionId}`] });
+      
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData([`/api/virtual-interview/${sessionId}`]);
+      
+      // Optimistically update to show user's message immediately
+      if (previousData) {
+        const newMessage = {
+          id: Date.now(), // Temporary ID
+          sender: 'candidate',
+          messageType: data.messageType,
+          content: data.content,
+          messageIndex: (previousData as any).messages.length + 1,
+          timestamp: new Date().toISOString(),
+          responseQuality: null,
+          technicalAccuracy: null,
+          clarityScore: null
+        };
+        
+        queryClient.setQueryData([`/api/virtual-interview/${sessionId}`], {
+          ...(previousData as any),
+          messages: [...(previousData as any).messages, newMessage]
+        });
+      }
+      
+      // Clear input immediately
       setCurrentMessage("");
+      setIsTyping(true); // Show AI is typing
+      
+      return { previousData };
+    },
+    onSuccess: () => {
+      // Refetch to get the actual response and next question
+      queryClient.invalidateQueries({ queryKey: [`/api/virtual-interview/${sessionId}`] });
       setIsTyping(false);
     },
-    onError: (error: any) => {
+    onError: (error: any, variables, context) => {
+      // Rollback on error
+      if (context?.previousData) {
+        queryClient.setQueryData([`/api/virtual-interview/${sessionId}`], context.previousData);
+      }
       toast({
         title: "Error",
         description: error.message || "Failed to send message",
@@ -445,15 +482,15 @@ export default function VirtualInterview() {
                       <div className={`flex-1 max-w-[80%] ${message.sender === 'candidate' ? 'text-right' : ''}`}>
                         <div className={`inline-block p-3 rounded-lg ${
                           message.sender === 'interviewer' 
-                            ? 'bg-gray-100 text-gray-900' 
+                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100' 
                             : 'bg-blue-500 text-white'
                         }`}>
                           <p className="whitespace-pre-wrap">{message.content}</p>
                           
                           {message.messageType === 'question' && (
-                            <div className="mt-2 pt-2 border-t border-gray-200">
+                            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
                               <Badge variant="outline" className="text-xs">
-                                Question {index + 1}
+                                Question {messages.filter(m => m.messageType === 'question' && m.messageIndex <= message.messageIndex).length}
                               </Badge>
                             </div>
                           )}
@@ -471,7 +508,7 @@ export default function VirtualInterview() {
                           </div>
                         )}
                         
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           {new Date(message.timestamp).toLocaleTimeString()}
                         </p>
                       </div>
@@ -520,9 +557,9 @@ export default function VirtualInterview() {
                     </Button>
                   </div>
                   
-                  <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
+                  <div className="flex justify-between items-center mt-2 text-xs text-gray-500 dark:text-gray-400">
                     <span>Press Enter to send • Shift+Enter for new line</span>
-                    {sendMessageMutation.isPending && <span>Sending...</span>}
+                    {sendMessageMutation.isPending && <span className="text-blue-500">Sending...</span>}
                   </div>
                 </div>
               )}
