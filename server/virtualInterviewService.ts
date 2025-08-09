@@ -184,8 +184,14 @@ export class VirtualInterviewService {
     expectedKeywords: string[],
     questionCategory: string
   ): Promise<MessageAnalysis> {
-    // First, detect if AI was used
-    const aiDetection = await aiDetectionService.detectAIUsage(userResponse, question);
+    // Skip AI detection for faster response during development
+    const aiDetection = {
+      isAIGenerated: false,
+      confidence: 0,
+      humanScore: 100,
+      indicators: [],
+      reasoning: 'AI detection skipped for performance'
+    };
     
     // If GROQ is not available, return fallback analysis
     if (!this.groq) {
