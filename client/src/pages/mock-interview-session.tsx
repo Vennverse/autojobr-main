@@ -166,6 +166,10 @@ export default function MockInterviewSession() {
       return await apiRequest(`/api/mock-interview/complete/${sessionId}`, 'POST');
     },
     onSuccess: () => {
+      // SECURITY FIX: Clear cache to prevent stale retakeAllowed data
+      queryClient.removeQueries({ queryKey: [`/api/mock-interview/session/${sessionId}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/mock-interview'] });
+      
       toast({
         title: "Interview Completed!",
         description: "Redirecting to results...",

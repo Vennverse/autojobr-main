@@ -134,6 +134,10 @@ export default function VirtualInterview() {
       return await apiRequest(`/api/virtual-interview/${sessionId}/complete`, 'POST');
     },
     onSuccess: (data) => {
+      // SECURITY FIX: Clear cache to prevent stale retakeAllowed data
+      queryClient.removeQueries({ queryKey: [`/api/virtual-interview/${sessionId}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/virtual-interview'] });
+      
       toast({
         title: "Interview Complete!",
         description: "Your detailed feedback is ready.",

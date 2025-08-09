@@ -348,7 +348,8 @@ async function forceCompleteInterview(interviewId: number, userId: string) {
         strengths: fallbackFeedback.keyStrengths,
         weaknesses: fallbackFeedback.areasForImprovement,
         recommendations: fallbackFeedback.nextSteps,
-        detailedFeedback: fallbackFeedback.performanceSummary
+        detailedFeedback: fallbackFeedback.performanceSummary,
+        retakeAllowed: false // SECURITY FIX: Reset retakeAllowed flag to prevent unauthorized retakes
       })
       .where(eq(virtualInterviews.id, interviewId));
 
@@ -582,7 +583,8 @@ router.post("/:sessionId/message", isAuthenticated, async (req: any, res) => {
         .set({ 
           status: 'completed',
           endTime: new Date(),
-          currentStep: 'conclusion'
+          currentStep: 'conclusion',
+          retakeAllowed: false // SECURITY FIX: Reset retakeAllowed flag to prevent unauthorized retakes
         })
         .where(eq(virtualInterviews.id, interview.id));
 
@@ -663,7 +665,8 @@ router.post("/:sessionId/complete", isAuthenticated, async (req: any, res) => {
         strengths: feedback.keyStrengths,
         weaknesses: feedback.areasForImprovement,
         recommendations: feedback.nextSteps,
-        detailedFeedback: feedback.performanceSummary
+        detailedFeedback: feedback.performanceSummary,
+        retakeAllowed: false // SECURITY FIX: Reset retakeAllowed flag to prevent unauthorized retakes
       })
       .where(eq(virtualInterviews.id, interview.id));
 

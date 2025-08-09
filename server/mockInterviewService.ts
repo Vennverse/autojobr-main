@@ -599,7 +599,8 @@ Return only the numeric score (0-100).`;
       status: 'completed',
       endTime: new Date(),
       score: averageScore,
-      feedback: overallFeedback
+      feedback: overallFeedback,
+      retakeAllowed: false // SECURITY FIX: Reset retakeAllowed flag to prevent unauthorized retakes
     });
 
     // Update user interview stats
