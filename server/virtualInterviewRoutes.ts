@@ -111,6 +111,9 @@ router.post("/start", isAuthenticated, async (req: any, res) => {
       jobDescription,
       resumeContext,
       timeRemaining: (duration || 30) * 60, // Convert to seconds
+      questionsAsked: 0,
+      totalQuestions: 5,
+      currentStep: 'greeting'
     }).returning();
 
     // Generate and send greeting message
@@ -170,11 +173,13 @@ router.post("/:sessionId/start", isAuthenticated, async (req: any, res) => {
       return res.json({ message: 'Interview already started', interview });
     }
 
-    // Activate the interview
+    // Activate the interview and ensure proper initialization
     await db.update(virtualInterviews)
       .set({
         status: 'active',
         startTime: new Date(),
+        questionsAsked: interview.questionsAsked || 0,
+        totalQuestions: interview.totalQuestions || 5,
         currentStep: 'interviewing',
         updatedAt: new Date()
       })
@@ -543,7 +548,7 @@ router.post("/:sessionId/message", isAuthenticated, async (req: any, res) => {
     let aiResponse = '';
     let aiMessageType = 'text';
 
-    if (interview.questionsAsked < interview.totalQuestions) {
+    if ((interview.questionsAsked || 0) < (interview.totalQuestions || 5)) {
       // Generate next question
       const previousResponses = recentMessages
         .filter(m => m.sender === 'candidate')
@@ -553,7 +558,7 @@ router.post("/:sessionId/message", isAuthenticated, async (req: any, res) => {
         interview.interviewType,
         interview.difficulty,
         interview.role,
-        interview.questionsAsked + 1,
+        (interview.questionsAsked || 0) + 1,
         previousResponses,
         interview.resumeContext || undefined
       );
@@ -564,8 +569,8 @@ router.post("/:sessionId/message", isAuthenticated, async (req: any, res) => {
       // Update interview progress
       await db.update(virtualInterviews)
         .set({ 
-          questionsAsked: interview.questionsAsked + 1,
-          currentStep: interview.questionsAsked + 1 >= interview.totalQuestions ? 'conclusion' : 'main_questions'
+          questionsAsked: (interview.questionsAsked || 0) + 1,
+          currentStep: ((interview.questionsAsked || 0) + 1) >= (interview.totalQuestions || 5) ? 'conclusion' : 'main_questions'
         })
         .where(eq(virtualInterviews.id, interview.id));
 

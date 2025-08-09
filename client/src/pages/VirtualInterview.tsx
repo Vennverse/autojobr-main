@@ -283,7 +283,7 @@ export default function VirtualInterview() {
     );
   }
 
-  const progress = (interview.questionsAsked / interview.totalQuestions) * 100;
+  const progress = ((interview.questionsAsked || 0) / (interview.totalQuestions || 5)) * 100;
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-6xl">
@@ -321,7 +321,7 @@ export default function VirtualInterview() {
                 <h3 className="font-semibold text-sm text-gray-600 uppercase tracking-wide mb-2">Progress</h3>
                 <Progress value={progress} className="mb-2" />
                 <p className="text-sm text-gray-600">
-                  Question {interview.questionsAsked} of {interview.totalQuestions}
+                  Question {interview.questionsAsked || 0} of {interview.totalQuestions || 5}
                 </p>
               </div>
 
@@ -489,7 +489,7 @@ export default function VirtualInterview() {
               <Separator />
               
               {/* Input Area - Show as long as interview is not explicitly completed and user can still answer */}
-              {interview && (interview.status === 'active' || interview.status === 'paused' || (interview.questionsAsked <= interview.totalQuestions && interview.status !== 'completed')) && (
+              {interview && (interview.status === 'active' || interview.status === 'paused' || ((interview.questionsAsked || 0) <= (interview.totalQuestions || 5) && interview.status !== 'completed')) && (
                 <div className="p-4">
                   <div className="flex gap-2">
                     <Input
