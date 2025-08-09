@@ -1,34 +1,22 @@
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import pkg from 'pg';
-import ws from "ws";
-
-const { Pool: PgPool } = pkg;
 import * as schema from "@shared/schema";
 
-// Configure database based on environment
-const isProduction = process.env.NODE_ENV === 'production';
-const hasReplitDb = process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('localhost');
-const hasExternalDb = process.env.DATABASE_URL && 
-  (process.env.DATABASE_URL.includes('neon') || 
-   process.env.DATABASE_URL.includes('supabase') ||
-   process.env.DATABASE_URL.includes('planetscale'));
+const { Pool } = pkg;
 
-let db: ReturnType<typeof drizzle> | ReturnType<typeof drizzlePg>;
-
-// Use the database URL from environment variable
-console.log('Using database from environment variable');
+// Use Replit's PostgreSQL database
+console.log('Using Replit PostgreSQL database');
 const DATABASE_URL = process.env.DATABASE_URL;
 
 if (!DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is required');
 }
 
-// Configure pool based on database type
+// Configure pool for Replit PostgreSQL
 const poolConfig = {
   connectionString: DATABASE_URL,
-  ssl: { rejectUnauthorized: false }, // External databases need SSL
+  // Replit PostgreSQL doesn't need SSL
+  ssl: false,
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
@@ -38,7 +26,7 @@ const poolConfig = {
   keepAliveInitialDelayMillis: 10000,
 };
 
-const pgPool = new PgPool(poolConfig);
+const pgPool = new Pool(poolConfig);
 
 // Test connection on startup
 pgPool.on('connect', () => {
@@ -49,7 +37,7 @@ pgPool.on('error', (err) => {
   console.error('❌ Database connection error:', err.message);
 });
 
-db = drizzlePg(pgPool, { schema });
-console.log('Using PostgreSQL driver for external database');
+const db = drizzle(pgPool, { schema });
+console.log('Using PostgreSQL driver for Replit database');
 
 export { db };
