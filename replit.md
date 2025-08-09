@@ -53,9 +53,13 @@ AutoJobr is a comprehensive job application platform designed to connect job see
 - **Authentication**: Passport.js
 - **Cloud Hosting**: Replit
 
-## Recent Migration & SEO Enhancements (January 8, 2025)
+## Recent Migration & SEO Enhancements (January 9, 2025)
 - **Migration Status**: Successfully migrated from Replit Agent to standard Replit environment
 - **Database Migration**: Transitioned from Neon PostgreSQL to Replit's integrated PostgreSQL
+- **Critical Bug Fix**: Fixed test retaking vulnerability where users could retake completed tests
+  - Added React Query cache invalidation after test submission
+  - Implemented backend security to reset retakeAllowed flag after completion
+  - Ensured proper test completion status checking
 - **Subscription System Updates**: Updated subscription tiers with corrected naming and features:
   - Chrome Extension Auto-fill: FREE for all users (including free tier)
   - Job Applications: UNLIMITED for all users (including free tier)
