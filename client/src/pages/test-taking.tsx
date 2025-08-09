@@ -419,29 +419,35 @@ export default function TestTaking() {
     };
   }, [testStarted, isSubmitting, showResultsModal, trackKeystroke, trackMouseMovement, trackMouseClick, trackScrollEvent, trackFocusEvent]);
   
-  // Enhanced network monitoring
+  // Enhanced network monitoring - disabled to prevent infinite loops
   useEffect(() => {
-    if (!testStarted) return;
+    if (!testStarted || isSubmitting) return;
     
-    const originalFetch = window.fetch;
-    window.fetch = async (...args) => {
-      const [url] = args;
-      
-      // Check for suspicious external requests
-      if (typeof url === 'string' && !url.includes(window.location.hostname)) {
-        await detectAdvancedViolation('suspicious_network', {
-          url,
-          timestamp: Date.now()
-        });
-      }
-      
-      return originalFetch(...args);
-    };
-    
-    return () => {
-      window.fetch = originalFetch;
-    };
-  }, [testStarted, detectAdvancedViolation]);
+    // Network monitoring temporarily disabled to prevent API call loops
+    // const originalFetch = window.fetch;
+    // window.fetch = async (...args) => {
+    //   const [url] = args;
+    //   
+    //   // Check for suspicious external requests, but exclude our own API calls
+    //   if (typeof url === 'string' && 
+    //       !url.includes(window.location.hostname) && 
+    //       !url.includes('/api/') && 
+    //       !url.startsWith('/api/') &&
+    //       !url.includes('localhost') &&
+    //       !url.includes('127.0.0.1')) {
+    //     await detectAdvancedViolation('suspicious_network', {
+    //       url,
+    //       timestamp: Date.now()
+    //     });
+    //   }
+    //   
+    //   return originalFetch(...args);
+    // };
+    // 
+    // return () => {
+    //   window.fetch = originalFetch;
+    // };
+  }, [testStarted, isSubmitting, detectAdvancedViolation]);
   
   // Developer tools detection
   useEffect(() => {
