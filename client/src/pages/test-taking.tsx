@@ -134,7 +134,7 @@ export default function TestTaking() {
       return newBuffer.slice(-100);
     });
     
-    setBehavioralData(prev => ({
+    setBehavioralData((prev: any) => ({
       ...prev,
       keystrokes: [...prev.keystrokes, keystroke]
     }));
@@ -160,7 +160,7 @@ export default function TestTaking() {
     
     setLastMousePosition({ x: movement.x, y: movement.y });
     
-    setBehavioralData(prev => ({
+    setBehavioralData((prev: any) => ({
       ...prev,
       mouseMovements: [...prev.mouseMovements.slice(-50), movement] // Keep last 50
     }));
@@ -175,7 +175,7 @@ export default function TestTaking() {
       element: (event.target as Element)?.tagName || 'unknown'
     };
     
-    setBehavioralData(prev => ({
+    setBehavioralData((prev: any) => ({
       ...prev,
       mouseClicks: [...prev.mouseClicks, click]
     }));
@@ -189,7 +189,7 @@ export default function TestTaking() {
       timestamp: Date.now()
     };
     
-    setBehavioralData(prev => ({
+    setBehavioralData((prev: any) => ({
       ...prev,
       scrollEvents: [...prev.scrollEvents, scroll]
     }));
@@ -202,7 +202,7 @@ export default function TestTaking() {
       target: document.activeElement?.tagName || 'unknown'
     };
     
-    setBehavioralData(prev => ({
+    setBehavioralData((prev: any) => ({
       ...prev,
       focusEvents: [...prev.focusEvents, focusEvent]
     }));
@@ -653,7 +653,7 @@ export default function TestTaking() {
       wordCount: answer?.toString().split(' ').length || 0
     };
     
-    setBehavioralData(prev => ({
+    setBehavioralData((prev: any) => ({
       ...prev,
       responses: [...prev.responses, responseData]
     }));
