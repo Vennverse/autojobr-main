@@ -113,7 +113,7 @@ export default function TestRetakePayment() {
     );
   }
 
-  if (!assignment || assignment.status === 'passed' || !assignment.retakeAllowed) {
+  if (!assignment || assignment.status === 'passed') {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Card>
@@ -133,7 +133,28 @@ export default function TestRetakePayment() {
     );
   }
 
-  // Only show retake payment if user failed the test and retakes are allowed
+  // If user has already paid and retake is allowed, redirect them to test
+  if (assignment.retakeAllowed) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <Card>
+          <CardContent className="text-center py-12">
+            <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Retake Already Available!</h3>
+            <p className="text-gray-600 mb-4">
+              You've already paid for a retake. You can start the test again now.
+            </p>
+            <Button onClick={() => setLocation(`/test/${params.id}`)}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Start Test Retake
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Only show retake payment if user failed the test
   if (assignment.score >= passingScore) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">

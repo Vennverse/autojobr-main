@@ -866,8 +866,8 @@ export default function TestTaking() {
     );
   }
 
-  // Check if test is already completed - prevent retaking
-  if (assignment?.status === 'completed') {
+  // Check if test is already completed - prevent retaking unless retake is allowed after payment
+  if (assignment?.status === 'completed' && !assignment.retakeAllowed) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-4">
