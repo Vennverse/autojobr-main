@@ -8408,9 +8408,8 @@ Host: https://autojobr.com`;
         console.log(`[DEBUG] Generating questions from question bank for template: ${template.title}`);
         
         try {
-          // Import question bank service dynamically
-          const { QuestionBankService } = await import('./questionBankService');
-          const questionBankService = new QuestionBankService();
+          // Import question bank service
+          const { questionBankService } = await import('./questionBankService');
           
           // Get tags for question generation
           const tags = template.tags || ['general'];
