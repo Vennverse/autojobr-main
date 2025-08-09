@@ -111,7 +111,7 @@ export default function TestTaking() {
     
     // Send to backend for analysis
     try {
-      await apiRequest('POST', `/api/test-assignments/${assignmentId}/device-fingerprint`, fingerprint);
+      await apiRequest(`/api/test-assignments/${assignmentId}/device-fingerprint`, 'POST', fingerprint);
     } catch (error) {
       console.error('Failed to send device fingerprint:', error);
     }
@@ -222,7 +222,7 @@ export default function TestTaking() {
     
     // Send to backend for processing
     try {
-      await apiRequest('POST', `/api/test-assignments/${assignmentId}/violation`, violation);
+      await apiRequest(`/api/test-assignments/${assignmentId}/violation`, 'POST', violation);
     } catch (error) {
       console.error('Failed to report violation:', error);
     }
@@ -355,7 +355,7 @@ export default function TestTaking() {
   });
 
   const submitTestMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", `/api/test-assignments/${assignmentId}/submit`, data),
+    mutationFn: (data: any) => apiRequest(`/api/test-assignments/${assignmentId}/submit`, "POST", data),
     onSuccess: (response: any) => {
       exitFullscreen();
       setIsSubmitting(false);
@@ -684,7 +684,7 @@ export default function TestTaking() {
     
     // Generate comprehensive proctoring summary
     try {
-      const summary = await apiRequest('POST', `/api/test-assignments/${assignmentId}/proctoring-summary`, {
+      const summary = await apiRequest(`/api/test-assignments/${assignmentId}/proctoring-summary`, 'POST', {
         behavioralData,
         violations: advancedViolations,
         deviceFingerprint,
@@ -724,7 +724,7 @@ export default function TestTaking() {
     setIsLoggingIn(true);
     
     try {
-      const response = await apiRequest("POST", "/api/auth/email/login", {
+      const response = await apiRequest("/api/auth/email/login", "POST", {
         email,
         password,
       });
