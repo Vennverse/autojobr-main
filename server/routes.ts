@@ -8582,9 +8582,11 @@ Host: https://autojobr.com`;
         questions.forEach((question: any) => {
           const userAnswer = answers[question.id];
           if (userAnswer !== undefined && userAnswer !== null) {
-            if (question.type === 'multiple_choice') {
+            if (question.type === 'multiple_choice' || question.type === 'mcq') {
               // For MCQ, check if the answer index matches the correct answer
-              if (parseInt(userAnswer) === question.correctAnswer) {
+              const correctIndex = typeof question.correctAnswer === 'string' ? 
+                                 parseInt(question.correctAnswer) : question.correctAnswer;
+              if (parseInt(userAnswer) === correctIndex) {
                 correctAnswers++;
               }
             } else {
