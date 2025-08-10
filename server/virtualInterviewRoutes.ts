@@ -289,7 +289,10 @@ router.get('/:sessionId/question', isAuthenticated, async (req: any, res) => {
     }
 
     const currentInterview = interview[0];
-    const questionNumber = (currentInterview.questionsAsked || 0) + 1;
+    const questionsAsked = currentInterview.questionsAsked || 0;
+    const questionNumber = questionsAsked + 1;
+    
+    console.log(`[VIRTUAL_INTERVIEW_DEBUG] Session: ${sessionId}, Questions Asked: ${questionsAsked}, Current Question Number: ${questionNumber}`);
 
     if (questionNumber > (currentInterview.totalQuestions || 5)) {
       return res.status(400).json({ message: 'Interview completed' });
@@ -402,6 +405,8 @@ router.post('/:sessionId/response', isAuthenticated, async (req: any, res) => {
 
     // Update interview progress - increment questions asked
     const newQuestionsAsked = (currentInterview.questionsAsked || 0) + 1;
+    console.log(`[VIRTUAL_INTERVIEW_DEBUG] Updating interview progress - Old: ${currentInterview.questionsAsked}, New: ${newQuestionsAsked}`);
+    
     await db.update(virtualInterviews)
       .set({ 
         questionsAsked: newQuestionsAsked
@@ -414,7 +419,7 @@ router.post('/:sessionId/response', isAuthenticated, async (req: any, res) => {
     res.json({
       success: true,
       isComplete,
-      nextQuestionNumber: isComplete ? null : (currentInterview.questionsAsked || 0) + 2
+      nextQuestionNumber: isComplete ? null : newQuestionsAsked + 1
     });
   } catch (error) {
     console.error('Error submitting response:', error);

@@ -84,12 +84,17 @@ export default function VirtualInterview() {
       // Set the timer
       setTimeRemaining(response.timeRemaining || 1800); // Default 30 minutes
 
-      // Add interviewer question to messages
-      setMessages(prev => [...prev, {
-        sender: 'interviewer',
-        content: response.question,
-        timestamp: new Date().toISOString()
-      }]);
+      // Add interviewer question to messages (clear duplicate if reloading same question)
+      setMessages(prev => {
+        const filteredMessages = prev.filter(msg => 
+          !(msg.sender === 'interviewer' && msg.content === response.question)
+        );
+        return [...filteredMessages, {
+          sender: 'interviewer',
+          content: response.question,
+          timestamp: new Date().toISOString()
+        }];
+      });
 
       setStartTime(Date.now());
     } catch (error: any) {
