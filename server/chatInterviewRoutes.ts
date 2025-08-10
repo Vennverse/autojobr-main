@@ -3,7 +3,7 @@ import { db } from './db.js';
 import { virtualInterviews, virtualInterviewMessages } from '../shared/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { chatInterviewService } from './chatInterviewService.js';
-import { isAuthenticated } from './replitAuth.js';
+import { isAuthenticated } from './auth.js';
 import crypto from 'crypto';
 
 const router = express.Router();
