@@ -53,10 +53,28 @@ export class CodeExecutionService {
         const testCases = ${JSON.stringify(testCases)};
         const results = [];
         
-        // Helper function to safely stringify values for comparison
-        function safeStringify(value) {
+        // Helper function to safely serialize values
+        function safeSerialize(value) {
           try {
-            return JSON.stringify(value);
+            if (value === null || value === undefined) {
+              return value;
+            }
+            if (typeof value === 'function') {
+              return '[Function]';
+            }
+            if (typeof value === 'object') {
+              if (Array.isArray(value)) {
+                return value.map(safeSerialize);
+              }
+              const obj = {};
+              for (let key in value) {
+                if (value.hasOwnProperty(key)) {
+                  obj[key] = safeSerialize(value[key]);
+                }
+              }
+              return obj;
+            }
+            return value;
           } catch (e) {
             return String(value);
           }
@@ -105,16 +123,16 @@ export class CodeExecutionService {
             const result = solution(...inputArgs);
             
             results.push({
-              input: testCase.input,
-              expected: testCase.expected,
-              actual: result,
+              input: safeSerialize(testCase.input),
+              expected: safeSerialize(testCase.expected),
+              actual: safeSerialize(result),
               passed: deepEqual(result, testCase.expected),
               description: testCase.description || ''
             });
           } catch (error) {
             results.push({
-              input: testCase.input,
-              expected: testCase.expected,
+              input: safeSerialize(testCase.input),
+              expected: safeSerialize(testCase.expected),
               actual: null,
               passed: false,
               error: error.message,
@@ -164,9 +182,17 @@ export class CodeExecutionService {
       };
 
     } catch (error: any) {
+      console.error('JavaScript execution error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stdout: error.stdout?.toString(),
+        stderr: error.stderr?.toString(),
+        status: error.status
+      });
+      
       return {
         success: false,
-        error: error.message || 'Code execution failed'
+        error: `Code execution failed: ${error.message || 'Unknown error'}`
       };
     } finally {
       // Clean up
