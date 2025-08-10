@@ -61,6 +61,7 @@ import {
 } from "./subscriptionLimitMiddleware.js";
 import { subscriptionEnforcementService } from "./subscriptionEnforcementService.js";
 import { ResumeParser } from "./resumeParser.js";
+import virtualInterviewRoutes from "./virtualInterviewRoutes.js";
 
 // Initialize services
 const resumeParser = new ResumeParser();
@@ -210,12 +211,7 @@ const processResumeUpload = async (file: any, userId: string, resumeText: string
 // Dynamic import for pdf-parse to avoid startup issues
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
-import { db } from "./db";
-import * as schema from "@shared/schema";
-import { eq, and, ne, count } from "drizzle-orm";
 import { groqService } from "./groqService";
-import { apiKeyRotationService } from "./apiKeyRotationService";
-import { customNLPService } from "./customNLP";
 import { recruiterAnalytics } from "./recruiterAnalytics.js";
 // subscriptionService is already initialized above
 import { generateVerificationEmail } from "./emailService";
@@ -223,7 +219,6 @@ import { testService } from "./testService";
 import { paymentService } from "./paymentService";
 import { setupPaymentRoutes } from "./paymentRoutes";
 import { requirePremium, requireEnterprise, checkUsageLimit as checkSubscriptionUsageLimit } from "./middleware/subscriptionMiddleware";
-import crypto from "crypto";
 import { 
   insertUserProfileSchema,
   insertUserSkillSchema,
@@ -235,7 +230,6 @@ import {
   companyEmailVerifications
 } from "@shared/schema";
 import { z } from "zod";
-import { rankingTestService } from "./rankingTestService";
 import { mockInterviewRoutes } from "./mockInterviewRoutes";
 import { proctoring } from "./routes/proctoring";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
@@ -261,7 +255,6 @@ const paymentCredentialsRouter = (app: Express) => {
 };
 import { aiDetectionService } from "./aiDetectionService";
 import { subscriptionPaymentService } from "./subscriptionPaymentService";
-import { usageMonitoringService } from "./usageMonitoringService";
 import virtualInterviewRoutes from "./virtualInterviewRoutes";
 import { interviewAssignmentService } from "./interviewAssignmentService";
 import { mockInterviewService } from "./mockInterviewService";
@@ -5168,6 +5161,9 @@ Additional Information:
   
   // Setup new simple chat routes
   setupSimpleChatRoutes(app);
+
+  // Mount virtual interview routes
+  app.use('/api/virtual-interview', virtualInterviewRoutes);
 
 
 

@@ -1,451 +1,427 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
+import { Separator } from "@/components/ui/separator";
 import { 
-  Bot, 
-  Briefcase, 
+  Play, 
   Clock, 
-  Settings, 
-  Zap,
-  Brain,
-  MessageCircle,
-  Target,
-  TrendingUp,
-  Award,
-  Play,
-  Lock,
-  CreditCard,
-  AlertCircle
+  Users, 
+  Target, 
+  Brain, 
+  MessageSquare,
+  CheckCircle,
+  ArrowRight,
+  Star,
+  Loader2
 } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import PayPalInterviewPayment from "@/components/PayPalInterviewPayment";
+import { useToast } from "@/hooks/use-toast";
+
+interface InterviewConfig {
+  interviewType: string;
+  role: string;
+  company?: string;
+  difficulty: string;
+  duration: number;
+  interviewerPersonality: string;
+}
 
 export default function VirtualInterviewStart() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   
-  const [formData, setFormData] = useState({
+  const [config, setConfig] = useState<InterviewConfig>({
     interviewType: 'technical',
     role: 'software_engineer',
     company: '',
     difficulty: 'medium',
     duration: 30,
-    personality: 'professional',
-    style: 'conversational',
-    jobDescription: ''
+    interviewerPersonality: 'professional'
   });
 
-  // Check usage limits
-  const { data: usageInfo, refetch: refetchUsage } = useQuery({
-    queryKey: ['/api/virtual-interview/usage'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/virtual-interview/usage');
-      return response.json();
-    },
-  });
-
+  // Start interview mutation
   const startInterviewMutation = useMutation({
-    mutationFn: async (data: typeof formData & { isPaid?: boolean; paymentVerificationId?: string }) => {
-      const response = await apiRequest('POST', '/api/virtual-interview/start', data);
-      if (response.status === 402) {
-        const errorData = await response.json();
-        throw new Error(JSON.stringify({ requiresPayment: true, ...errorData }));
-      }
-      return response.json();
-    },
+    mutationFn: (data: InterviewConfig) => apiRequest('POST', '/api/virtual-interview/start', data),
     onSuccess: (data) => {
+      // Store session data in localStorage for the interview page
+      localStorage.setItem(`interview_session_${data.sessionId}`, JSON.stringify(data));
+      
       toast({
-        title: "Interview Started!",
-        description: "Your virtual AI interviewer is ready.",
+        title: "Interview Started",
+        description: "Your virtual interview session has begun!",
       });
-      setLocation(`/virtual-interview/${data.interview.sessionId}`);
-      refetchUsage(); // Refresh usage info
+      
+      // Navigate to the interview page
+      setLocation(`/virtual-interview/${data.sessionId}`);
     },
     onError: (error: any) => {
-      try {
-        const errorData = JSON.parse(error.message);
-        if (errorData.requiresPayment) {
-          setShowPaymentDialog(true);
-          return;
-        }
-      } catch {}
-      
       toast({
         title: "Error",
         description: error.message || "Failed to start interview session",
-        variant: "destructive",
+        variant: "destructive"
       });
-    },
+    }
   });
 
-  const handleStart = () => {
-    // Check usage limits first - STRICT ENFORCEMENT
-    if (usageInfo && usageInfo.requiresPayment) {
-      setShowPaymentDialog(true);
+  const handleStartInterview = () => {
+    if (!config.role) {
+      toast({
+        title: "Missing Information",
+        description: "Please select a role for the interview",
+        variant: "destructive"
+      });
       return;
     }
     
-    // Only allow if user has explicit permission and no payment required
-    if (usageInfo && usageInfo.canStartInterview && !usageInfo.requiresPayment) {
-      startInterviewMutation.mutate(formData);
-    } else {
-      setShowPaymentDialog(true);
-    }
-  };
-
-  const handlePaymentComplete = (paymentVerificationId: string) => {
-    startInterviewMutation.mutate({ 
-      ...formData, 
-      isPaid: true, 
-      paymentVerificationId 
-    });
-    setShowPaymentDialog(false);
-  };
-
-  const handlePaymentCancel = () => {
-    setShowPaymentDialog(false);
+    startInterviewMutation.mutate(config);
   };
 
   const interviewTypes = [
-    { value: 'technical', label: 'Technical Interview', icon: '💻', description: 'Coding, algorithms, system design' },
-    { value: 'behavioral', label: 'Behavioral Interview', icon: '🤝', description: 'Teamwork, leadership, experiences' },
-    { value: 'mixed', label: 'Mixed Interview', icon: '🎯', description: 'Combination of technical and behavioral' },
-    { value: 'system_design', label: 'System Design', icon: '🏗️', description: 'Architecture and scalability' }
+    { value: 'technical', label: 'Technical Interview', description: 'Code challenges and technical questions' },
+    { value: 'behavioral', label: 'Behavioral Interview', description: 'Situational and experience-based questions' },
+    { value: 'mixed', label: 'Mixed Interview', description: 'Combination of technical and behavioral' },
+    { value: 'system_design', label: 'System Design', description: 'Architecture and design questions' }
   ];
 
   const roles = [
-    'software_engineer', 'frontend_developer', 'backend_developer', 'fullstack_developer',
-    'data_scientist', 'product_manager', 'ui_ux_designer', 'devops_engineer',
-    'mobile_developer', 'machine_learning_engineer', 'senior_software_engineer',
-    'tech_lead', 'engineering_manager'
-  ];
-
-  const personalities = [
-    { value: 'friendly', label: 'Friendly & Encouraging', description: 'Supportive and warm interviewer' },
-    { value: 'professional', label: 'Professional & Structured', description: 'Business-like and organized' },
-    { value: 'challenging', label: 'Challenging & Probing', description: 'Pushes you to think deeper' }
+    { value: 'software_engineer', label: 'Software Engineer' },
+    { value: 'frontend_developer', label: 'Frontend Developer' },
+    { value: 'backend_developer', label: 'Backend Developer' },
+    { value: 'fullstack_developer', label: 'Full Stack Developer' },
+    { value: 'data_scientist', label: 'Data Scientist' },
+    { value: 'product_manager', label: 'Product Manager' },
+    { value: 'devops_engineer', label: 'DevOps Engineer' },
+    { value: 'mobile_developer', label: 'Mobile Developer' },
+    { value: 'qa_engineer', label: 'QA Engineer' },
+    { value: 'ui_ux_designer', label: 'UI/UX Designer' }
   ];
 
   const difficulties = [
-    { value: 'easy', label: 'Entry Level', color: 'bg-green-500' },
-    { value: 'medium', label: 'Mid Level', color: 'bg-yellow-500' },
-    { value: 'hard', label: 'Senior Level', color: 'bg-red-500' }
+    { value: 'easy', label: 'Easy', description: 'Entry-level questions' },
+    { value: 'medium', label: 'Medium', description: 'Mid-level questions' },
+    { value: 'hard', label: 'Hard', description: 'Senior-level questions' }
+  ];
+
+  const personalities = [
+    { value: 'friendly', label: 'Friendly', description: 'Encouraging and supportive' },
+    { value: 'professional', label: 'Professional', description: 'Structured and thorough' },
+    { value: 'challenging', label: 'Challenging', description: 'Rigorous and demanding' }
   ];
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="text-center mb-8">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <div className="p-3 bg-blue-100 rounded-full">
-            <Bot className="h-8 w-8 text-blue-600" />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
+              <Brain className="w-8 h-8 text-blue-600 dark:text-blue-300" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Virtual Interview Practice
+            </h1>
           </div>
-          <h1 className="text-4xl font-bold">Real Interview Simulation</h1>
+          <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+            Practice your interview skills with AI-powered virtual interviews. 
+            Get personalized feedback and improve your performance.
+          </p>
         </div>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Experience realistic interview conversations with our AI interviewer. Get real-time feedback, 
-          improve your communication skills, and build confidence for actual interviews.
-        </p>
-        
-        {/* Usage Information */}
-        {usageInfo && (
-          <div className="mt-6 max-w-md mx-auto">
-            <Card className="border-blue-200 bg-blue-50">
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <h3 className="font-semibold text-blue-800 mb-2">Interview Usage</h3>
-                  {usageInfo.freeInterviewsRemaining > 0 && (
-                    <p className="text-sm text-blue-700">
-                      🎉 {usageInfo.freeInterviewsRemaining} free interview{usageInfo.freeInterviewsRemaining === 1 ? '' : 's'} remaining
+
+        <div className="grid gap-8 lg:grid-cols-3">
+          {/* Configuration Form */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Interview Type */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="w-5 h-5" />
+                  Interview Configuration
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-3">
+                  <Label>Interview Type</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {interviewTypes.map((type) => (
+                      <div
+                        key={type.value}
+                        onClick={() => setConfig(prev => ({ ...prev, interviewType: type.value }))}
+                        className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                          config.interviewType === type.value
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                            : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+                        }`}
+                      >
+                        <div className="font-medium text-sm">{type.label}</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          {type.description}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Role</Label>
+                    <Select value={config.role} onValueChange={(value) => setConfig(prev => ({ ...prev, role: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roles.map((role) => (
+                          <SelectItem key={role.value} value={role.value}>
+                            {role.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="company">Company (Optional)</Label>
+                    <Input
+                      id="company"
+                      placeholder="e.g., Google, Microsoft"
+                      value={config.company}
+                      onChange={(e) => setConfig(prev => ({ ...prev, company: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Difficulty Level</Label>
+                    <div className="space-y-2">
+                      {difficulties.map((difficulty) => (
+                        <div
+                          key={difficulty.value}
+                          onClick={() => setConfig(prev => ({ ...prev, difficulty: difficulty.value }))}
+                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                            config.difficulty === difficulty.value
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                              : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+                          }`}
+                        >
+                          <div className="font-medium text-sm">{difficulty.label}</div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                            {difficulty.description}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Interviewer Personality</Label>
+                    <div className="space-y-2">
+                      {personalities.map((personality) => (
+                        <div
+                          key={personality.value}
+                          onClick={() => setConfig(prev => ({ ...prev, interviewerPersonality: personality.value }))}
+                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                            config.interviewerPersonality === personality.value
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                              : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+                          }`}
+                        >
+                          <div className="font-medium text-sm">{personality.label}</div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                            {personality.description}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="duration">Duration (minutes)</Label>
+                  <Select 
+                    value={config.duration.toString()} 
+                    onValueChange={(value) => setConfig(prev => ({ ...prev, duration: parseInt(value) }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="15">15 minutes</SelectItem>
+                      <SelectItem value="30">30 minutes</SelectItem>
+                      <SelectItem value="45">45 minutes</SelectItem>
+                      <SelectItem value="60">60 minutes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Start Button */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-lg">Ready to Start?</h3>
+                    <p className="text-gray-600 dark:text-gray-300 text-sm">
+                      Your virtual interview will begin immediately
                     </p>
-                  )}
-                  {usageInfo.monthlyInterviewsRemaining > 0 && (
-                    <p className="text-sm text-blue-700">
-                      ⭐ {usageInfo.monthlyInterviewsRemaining} premium interview{usageInfo.monthlyInterviewsRemaining === 1 ? '' : 's'} remaining this month
-                    </p>
-                  )}
-                  {usageInfo.requiresPayment && (
-                    <p className="text-sm text-orange-700 flex items-center justify-center gap-2">
-                      <CreditCard className="h-4 w-4" />
-                      Next interview: ${usageInfo.cost || 2}
-                    </p>
-                  )}
+                  </div>
+                  <Button 
+                    onClick={handleStartInterview}
+                    disabled={startInterviewMutation.isPending}
+                    className="bg-blue-600 hover:bg-blue-700 px-8"
+                    data-testid="start-interview"
+                  >
+                    {startInterviewMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : (
+                      <Play className="w-4 h-4 mr-2" />
+                    )}
+                    Start Interview
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           </div>
-        )}
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Configuration Form */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Interview Configuration
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              
-              {/* Interview Type */}
-              <div>
-                <Label className="text-sm font-medium mb-3 block">Interview Type</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {interviewTypes.map((type) => (
-                    <div
-                      key={type.value}
-                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                        formData.interviewType === type.value
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => setFormData({ ...formData, interviewType: type.value })}
-                    >
-                      <div className="flex items-start gap-3">
-                        <span className="text-2xl">{type.icon}</span>
-                        <div>
-                          <h3 className="font-semibold">{type.label}</h3>
-                          <p className="text-sm text-gray-600">{type.description}</p>
-                        </div>
+          {/* Sidebar Info */}
+          <div className="space-y-6">
+            {/* Features */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">What to Expect</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <MessageSquare className="w-5 h-5 text-blue-500 mt-0.5" />
+                    <div>
+                      <div className="font-medium text-sm">AI-Powered Questions</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        Dynamic questions tailored to your role and experience
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Role and Company */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="role">Role</Label>
-                  <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roles.map((role) => (
-                        <SelectItem key={role} value={role}>
-                          {role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="company">Company (Optional)</Label>
-                  <Input
-                    id="company"
-                    value={formData.company}
-                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                    placeholder="e.g., Google, Microsoft"
-                  />
-                </div>
-              </div>
-
-              {/* Difficulty */}
-              <div>
-                <Label className="text-sm font-medium mb-3 block">Difficulty Level</Label>
-                <div className="grid grid-cols-3 gap-3">
-                  {difficulties.map((diff) => (
-                    <div
-                      key={diff.value}
-                      className={`p-3 border rounded-lg cursor-pointer transition-colors text-center ${
-                        formData.difficulty === diff.value
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => setFormData({ ...formData, difficulty: diff.value })}
-                    >
-                      <div className={`w-4 h-4 rounded-full ${diff.color} mx-auto mb-2`}></div>
-                      <p className="font-semibold">{diff.label}</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Clock className="w-5 h-5 text-green-500 mt-0.5" />
+                    <div>
+                      <div className="font-medium text-sm">Real-time Feedback</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        Instant analysis of your responses and communication
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Duration */}
-              <div>
-                <Label className="text-sm font-medium mb-3 block">
-                  Duration: {formData.duration} minutes
-                </Label>
-                <Slider
-                  value={[formData.duration]}
-                  onValueChange={(value) => setFormData({ ...formData, duration: value[0] })}
-                  max={60}
-                  min={10}
-                  step={5}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>10 min</span>
-                  <span>30 min</span>
-                  <span>60 min</span>
-                </div>
-              </div>
-
-              {/* Interviewer Personality */}
-              <div>
-                <Label className="text-sm font-medium mb-3 block">Interviewer Personality</Label>
-                <div className="space-y-2">
-                  {personalities.map((personality) => (
-                    <div
-                      key={personality.value}
-                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                        formData.personality === personality.value
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => setFormData({ ...formData, personality: personality.value })}
-                    >
-                      <h3 className="font-semibold">{personality.label}</h3>
-                      <p className="text-sm text-gray-600">{personality.description}</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Star className="w-5 h-5 text-yellow-500 mt-0.5" />
+                    <div>
+                      <div className="font-medium text-sm">Performance Scoring</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        Detailed breakdown of strengths and areas to improve
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Job Description */}
-              <div>
-                <Label htmlFor="jobDescription">Job Description (Optional)</Label>
-                <Textarea
-                  id="jobDescription"
-                  value={formData.jobDescription}
-                  onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
-                  placeholder="Paste the job description here for more tailored questions..."
-                  rows={4}
-                />
-              </div>
-
-              <Button 
-                onClick={handleStart}
-                disabled={startInterviewMutation.isPending}
-                className="w-full h-12 text-lg"
-              >
-                {startInterviewMutation.isPending ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Starting Interview...
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-5 w-5 mr-2" />
-                    Start Virtual Interview
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Benefits Sidebar */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Award className="h-5 w-5" />
-                What You'll Get
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-start gap-3">
-                <Brain className="h-5 w-5 text-blue-500 mt-1" />
-                <div>
-                  <h3 className="font-semibold">AI-Powered Analysis</h3>
-                  <p className="text-sm text-gray-600">Real-time assessment of your responses</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <MessageCircle className="h-5 w-5 text-green-500 mt-1" />
-                <div>
-                  <h3 className="font-semibold">Natural Conversation</h3>
-                  <p className="text-sm text-gray-600">Chat-based interface like real interviews</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <Target className="h-5 w-5 text-purple-500 mt-1" />
-                <div>
-                  <h3 className="font-semibold">Personalized Questions</h3>
-                  <p className="text-sm text-gray-600">Tailored to your role and experience</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <TrendingUp className="h-5 w-5 text-orange-500 mt-1" />
-                <div>
-                  <h3 className="font-semibold">Detailed Feedback</h3>
-                  <p className="text-sm text-gray-600">Comprehensive analysis and improvement tips</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <Zap className="h-5 w-5 text-yellow-500 mt-1" />
-                <div>
-                  <h3 className="font-semibold">Instant Results</h3>
-                  <p className="text-sm text-gray-600">Get feedback immediately after completion</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="mt-6">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <Clock className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-                <h3 className="font-semibold mb-2">Quick Practice Session</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Perfect for last-minute interview preparation or skill building
-                </p>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div>
-                    <p className="text-2xl font-bold text-blue-500">5+</p>
-                    <p className="text-xs text-gray-600">Questions</p>
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-green-500">Live</p>
-                    <p className="text-xs text-gray-600">Feedback</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-purple-500">AI</p>
-                    <p className="text-xs text-gray-600">Powered</p>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-purple-500 mt-0.5" />
+                    <div>
+                      <div className="font-medium text-sm">Practice Recommendations</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        Personalized suggestions for interview improvement
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+
+            {/* Interview Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Interview Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-300">Type:</span>
+                    <Badge variant="outline" className="capitalize">
+                      {config.interviewType.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-300">Role:</span>
+                    <span className="font-medium capitalize">
+                      {config.role.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                  {config.company && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-300">Company:</span>
+                      <span className="font-medium">{config.company}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-300">Difficulty:</span>
+                    <Badge 
+                      variant="outline" 
+                      className={`capitalize ${
+                        config.difficulty === 'easy' ? 'border-green-500 text-green-600' :
+                        config.difficulty === 'medium' ? 'border-yellow-500 text-yellow-600' :
+                        'border-red-500 text-red-600'
+                      }`}
+                    >
+                      {config.difficulty}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-300">Duration:</span>
+                    <span className="font-medium">{config.duration} minutes</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-300">Style:</span>
+                    <span className="font-medium capitalize">{config.interviewerPersonality}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tips */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Quick Tips</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 text-sm text-gray-600 dark:text-gray-300">
+                  <div className="flex gap-2">
+                    <span className="text-blue-500">•</span>
+                    <span>Find a quiet space with good lighting</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="text-blue-500">•</span>
+                    <span>Test your microphone and camera beforehand</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="text-blue-500">•</span>
+                    <span>Keep water nearby and stay hydrated</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="text-blue-500">•</span>
+                    <span>Take your time to think before answering</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="text-blue-500">•</span>
+                    <span>Be authentic and showcase your personality</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
-
-      {/* Payment Dialog */}
-      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="sm:max-w-lg">
-          <PayPalInterviewPayment 
-            cost={usageInfo?.cost || 5}
-            onPaymentComplete={handlePaymentComplete}
-            onCancel={handlePaymentCancel}
-            isProcessing={startInterviewMutation.isPending}
-          />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
