@@ -57,6 +57,7 @@ export class ChatInterviewService {
   private readonly conversationMemoryLimit = 12;
   private readonly questionBank: Map<string, AdaptiveQuestionStrategy[]> = new Map();
   private readonly analytics: Map<number, InterviewAnalytics> = new Map();
+  private readonly sessionStartTimes: Map<number, number> = new Map();
 
   constructor() {
     this.initializeQuestionBank();
@@ -99,6 +100,7 @@ export class ChatInterviewService {
 
     // Initialize analytics for this interview
     this.initializeAnalytics(interviewId);
+    this.sessionStartTimes.set(interviewId, Date.now());
 
     if (!this.groq) {
       const fallbackGreeting = this.generatePersonalizedGreeting(context);
@@ -364,7 +366,7 @@ Remember: Your goal is to uncover the candidate's true capabilities through stra
   }
 
   private generateContextualRedirection(type: string, context: InterviewContext): string {
-    const redirections = {
+    const redirections: Record<string, string[]> = {
       'help-seeking': [
         "I understand this might be challenging, but I need to assess your current knowledge. Please share your thoughts based on your experience.",
         "This is an evaluation, so I can't provide hints. Please tell me what you know about this topic from your perspective.",
@@ -409,7 +411,7 @@ Remember: Your goal is to uncover the candidate's true capabilities through stra
   }
 
   private getRoleSpecificGuidance(role: string): string {
-    const roleGuidance = {
+    const roleGuidance: Record<string, string> = {
       'frontend': `FRONTEND FOCUS: Assess UI/UX understanding, React/Vue knowledge, responsive design, browser compatibility, performance optimization, and accessibility.`,
       'backend': `BACKEND FOCUS: Evaluate API design, database knowledge, server architecture, scalability, security practices, and system integration.`,
       'fullstack': `FULLSTACK FOCUS: Test both frontend and backend capabilities, system architecture understanding, and end-to-end development approach.`,
@@ -424,7 +426,7 @@ Remember: Your goal is to uncover the candidate's true capabilities through stra
     const experience = context.yearsExperience || 0;
     const adjustedDifficulty = this.calculateAdjustedDifficulty(context.difficulty, experience);
 
-    const difficultyMap = {
+    const difficultyMap: Record<string, string> = {
       'beginner': 'Ask fundamental concepts with practical examples. Focus on understanding and potential.',
       'intermediate': 'Combine theory with real-world scenarios. Test problem-solving and best practices.',
       'advanced': 'Explore complex scenarios, edge cases, and system design. Expect detailed technical discussions.',
@@ -517,7 +519,7 @@ Remember: Your goal is to uncover the candidate's true capabilities through stra
     await db.update(virtualInterviews)
       .set({
         analytics: JSON.stringify(analytics),
-        completedAt: new Date()
+        updatedAt: new Date()
       })
       .where(eq(virtualInterviews.id, interviewId));
   }
@@ -531,12 +533,12 @@ Remember: Your goal is to uncover the candidate's true capabilities through stra
   ): Promise<void> {
     try {
       await db.insert(virtualInterviewMessages).values({
-        interviewId,
+        interviewId: interviewId,
         sender: sender === 'user' ? 'candidate' : 'interviewer',
-        messageType,
+        messageType: messageType,
         content: content.trim(),
         messageIndex: questionNumber,
-        responseTime: sender === 'user' ? Date.now() : 0,
+        responseTime: sender === 'user' ? Math.floor((Date.now() - (this.sessionStartTimes.get(interviewId) || Date.now())) / 1000) : 0,
         metadata: JSON.stringify({
           timestamp: new Date().toISOString(),
           wordCount: content.trim().split(/\s+/).length
@@ -685,7 +687,7 @@ Keep it warm but professional, matching the ${context.personality} personality s
   }
 
   private getAdvancedPersonalityGuidance(personality: string): string {
-    const personalityProfiles = {
+    const personalityProfiles: Record<string, string> = {
       'professional': `COMMUNICATION STYLE: Maintain formal, business-appropriate tone. Be direct but respectful. Focus on competency and results.`,
       'friendly': `COMMUNICATION STYLE: Be warm and approachable while maintaining professionalism. Use encouraging language and show genuine interest.`,
       'technical': `COMMUNICATION STYLE: Focus on technical accuracy and depth. Use industry terminology appropriately. Probe for detailed technical understanding.`,

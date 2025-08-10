@@ -1945,7 +1945,7 @@ export const virtualInterviewMessages = pgTable("virtual_interview_messages", {
   expectedAnswer: text("expected_answer"), // AI's expected response for scoring
   
   // Response analysis
-  responseTime: integer("response_time"), // time taken to respond in seconds
+  responseTime: integer("response_time"), // time taken to respond in seconds (not milliseconds)
   responseQuality: integer("response_quality"), // 1-10 AI assessment
   keywordsMatched: text("keywords_matched").array(),
   sentiment: varchar("sentiment"), // positive, neutral, negative

@@ -249,4 +249,298 @@ router.post('/:sessionId/complete', isAuthenticated, async (req: any, res) => {
   }
 });
 
+// Get interview feedback for completed interviews
+router.get('/:sessionId/feedback', isAuthenticated, async (req: any, res) => {
+  try {
+    const { sessionId } = req.params;
+    const userId = req.user?.id || req.session?.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    // Find the interview by sessionId and userId
+    const interview = await db.select()
+      .from(virtualInterviews)
+      .where(and(
+        eq(virtualInterviews.sessionId, sessionId),
+        eq(virtualInterviews.userId, userId),
+        eq(virtualInterviews.status, 'completed')
+      ))
+      .limit(1);
+
+    if (!interview.length) {
+      return res.status(404).json({ message: 'Interview not found or not completed' });
+    }
+
+    const interviewData = interview[0];
+
+    // Get all messages for this interview
+    const messages = await db.select()
+      .from(virtualInterviewMessages)
+      .where(eq(virtualInterviewMessages.interviewId, interviewData.id))
+      .orderBy(virtualInterviewMessages.messageIndex);
+
+    // Generate comprehensive feedback
+    const feedback = {
+      interviewId: interviewData.id,
+      sessionId: sessionId,
+      completedAt: interviewData.completedAt,
+      duration: interviewData.duration,
+      totalQuestions: interviewData.totalQuestions,
+      questionsAsked: interviewData.questionsAsked || messages.filter(m => m.sender === 'interviewer').length,
+      
+      // Performance metrics
+      performance: {
+        overallScore: calculateOverallScore(messages),
+        responseQuality: calculateAverageResponseQuality(messages),
+        communicationSkills: analyzeCommunicationSkills(messages),
+        technicalCompetency: analyzeTechnicalCompetency(messages),
+        engagement: analyzeEngagement(messages)
+      },
+      
+      // Detailed analysis
+      strengths: identifyStrengths(messages),
+      improvementAreas: identifyImprovementAreas(messages),
+      keyInsights: generateKeyInsights(messages),
+      recommendations: generateRecommendations(messages),
+      
+      // Interview analytics if available
+      analytics: interviewData.analytics ? JSON.parse(interviewData.analytics) : null,
+      
+      // Message summary
+      messageCount: messages.length,
+      averageResponseTime: calculateAverageResponseTime(messages)
+    };
+
+    res.json(feedback);
+  } catch (error) {
+    console.error('Error fetching chat interview feedback:', error);
+    res.status(500).json({ message: 'Failed to fetch interview feedback' });
+  }
+});
+
+// Helper functions for feedback generation
+function calculateOverallScore(messages: any[]): number {
+  const candidateMessages = messages.filter(m => m.sender === 'candidate');
+  if (candidateMessages.length === 0) return 0;
+  
+  const totalQuality = candidateMessages.reduce((sum, msg) => {
+    return sum + (msg.responseQuality || 50);
+  }, 0);
+  
+  return Math.round(totalQuality / candidateMessages.length);
+}
+
+function calculateAverageResponseQuality(messages: any[]): number {
+  const candidateMessages = messages.filter(m => m.sender === 'candidate' && m.responseQuality);
+  if (candidateMessages.length === 0) return 0;
+  
+  const totalQuality = candidateMessages.reduce((sum, msg) => sum + msg.responseQuality, 0);
+  return Math.round(totalQuality / candidateMessages.length);
+}
+
+function analyzeCommunicationSkills(messages: any[]): number {
+  const candidateMessages = messages.filter(m => m.sender === 'candidate');
+  if (candidateMessages.length === 0) return 0;
+  
+  let score = 70; // Base score
+  
+  // Analyze clarity and coherence
+  candidateMessages.forEach(msg => {
+    const content = msg.content.toLowerCase();
+    const wordCount = content.split(/\s+/).length;
+    
+    // Bonus for detailed responses
+    if (wordCount > 50) score += 5;
+    if (wordCount > 100) score += 5;
+    
+    // Bonus for professional language
+    if (content.includes('experience') || content.includes('project')) score += 3;
+    
+    // Penalty for too short responses
+    if (wordCount < 10) score -= 10;
+  });
+  
+  return Math.min(100, Math.max(0, score));
+}
+
+function analyzeTechnicalCompetency(messages: any[]): number {
+  const candidateMessages = messages.filter(m => m.sender === 'candidate');
+  if (candidateMessages.length === 0) return 0;
+  
+  let score = 60; // Base score
+  const technicalKeywords = [
+    'algorithm', 'data structure', 'api', 'database', 'framework', 
+    'optimization', 'scalability', 'architecture', 'design pattern',
+    'testing', 'debugging', 'performance', 'security', 'integration'
+  ];
+  
+  candidateMessages.forEach(msg => {
+    const content = msg.content.toLowerCase();
+    const keywordCount = technicalKeywords.filter(keyword => 
+      content.includes(keyword)).length;
+    
+    score += keywordCount * 5;
+    
+    // Bonus for technical accuracy markers
+    if (msg.technicalAccuracy && msg.technicalAccuracy > 70) {
+      score += 15;
+    }
+  });
+  
+  return Math.min(100, Math.max(0, score));
+}
+
+function analyzeEngagement(messages: any[]): number {
+  const candidateMessages = messages.filter(m => m.sender === 'candidate');
+  if (candidateMessages.length === 0) return 0;
+  
+  let score = 70; // Base score
+  
+  candidateMessages.forEach(msg => {
+    const content = msg.content.toLowerCase();
+    const wordCount = content.split(/\s+/).length;
+    
+    // Positive engagement indicators
+    if (content.includes('excited') || content.includes('interested') || 
+        content.includes('passionate')) score += 10;
+    
+    // Questions show engagement
+    if (content.includes('?')) score += 5;
+    
+    // Detailed responses show engagement
+    if (wordCount > 75) score += 8;
+    
+    // Check sentiment if available
+    if (msg.sentiment === 'positive') score += 5;
+    if (msg.sentiment === 'negative') score -= 10;
+  });
+  
+  return Math.min(100, Math.max(0, score));
+}
+
+function identifyStrengths(messages: any[]): string[] {
+  const strengths: string[] = [];
+  const candidateMessages = messages.filter(m => m.sender === 'candidate');
+  
+  if (candidateMessages.length === 0) return strengths;
+  
+  const avgWordCount = candidateMessages.reduce((sum, msg) => 
+    sum + msg.content.split(/\s+/).length, 0) / candidateMessages.length;
+  
+  if (avgWordCount > 50) {
+    strengths.push('Provides detailed and comprehensive responses');
+  }
+  
+  const technicalMessages = candidateMessages.filter(msg => 
+    msg.content.toLowerCase().includes('technical') || 
+    msg.content.toLowerCase().includes('algorithm') ||
+    msg.content.toLowerCase().includes('code')).length;
+    
+  if (technicalMessages > candidateMessages.length * 0.3) {
+    strengths.push('Strong technical knowledge and communication');
+  }
+  
+  const positiveMessages = candidateMessages.filter(msg => 
+    msg.sentiment === 'positive').length;
+    
+  if (positiveMessages > candidateMessages.length * 0.4) {
+    strengths.push('Positive attitude and enthusiasm');
+  }
+  
+  if (candidateMessages.some(msg => msg.content.toLowerCase().includes('team'))) {
+    strengths.push('Team collaboration awareness');
+  }
+  
+  if (candidateMessages.some(msg => msg.content.toLowerCase().includes('problem'))) {
+    strengths.push('Problem-solving mindset');
+  }
+  
+  return strengths.slice(0, 5); // Limit to top 5 strengths
+}
+
+function identifyImprovementAreas(messages: any[]): string[] {
+  const areas: string[] = [];
+  const candidateMessages = messages.filter(m => m.sender === 'candidate');
+  
+  if (candidateMessages.length === 0) return areas;
+  
+  const avgWordCount = candidateMessages.reduce((sum, msg) => 
+    sum + msg.content.split(/\s+/).length, 0) / candidateMessages.length;
+  
+  if (avgWordCount < 20) {
+    areas.push('Provide more detailed responses to showcase expertise');
+  }
+  
+  const shortResponses = candidateMessages.filter(msg => 
+    msg.content.split(/\s+/).length < 10).length;
+    
+  if (shortResponses > candidateMessages.length * 0.5) {
+    areas.push('Expand on answers with examples and context');
+  }
+  
+  const avgResponseTime = calculateAverageResponseTime(messages);
+  if (avgResponseTime > 120) { // More than 2 minutes
+    areas.push('Consider preparing common interview topics for quicker responses');
+  }
+  
+  const technicalAccuracy = candidateMessages.filter(msg => 
+    msg.technicalAccuracy && msg.technicalAccuracy < 60).length;
+    
+  if (technicalAccuracy > 0) {
+    areas.push('Review technical concepts for improved accuracy');
+  }
+  
+  if (!candidateMessages.some(msg => msg.content.toLowerCase().includes('example'))) {
+    areas.push('Include specific examples to support your answers');
+  }
+  
+  return areas.slice(0, 4); // Limit to top 4 areas
+}
+
+function generateKeyInsights(messages: any[]): string[] {
+  const insights: string[] = [];
+  const candidateMessages = messages.filter(m => m.sender === 'candidate');
+  
+  if (candidateMessages.length === 0) return insights;
+  
+  insights.push(`Answered ${candidateMessages.length} questions with an average response length of ${Math.round(candidateMessages.reduce((sum, msg) => sum + msg.content.split(/\s+/).length, 0) / candidateMessages.length)} words`);
+  
+  const positiveResponses = candidateMessages.filter(msg => 
+    msg.sentiment === 'positive').length;
+  if (positiveResponses > 0) {
+    insights.push(`Maintained positive attitude in ${Math.round((positiveResponses / candidateMessages.length) * 100)}% of responses`);
+  }
+  
+  const technicalContent = candidateMessages.filter(msg => 
+    msg.content.toLowerCase().match(/\b(technical|algorithm|code|database|api|framework)\b/)).length;
+  if (technicalContent > 0) {
+    insights.push(`Demonstrated technical knowledge in ${technicalContent} responses`);
+  }
+  
+  return insights;
+}
+
+function generateRecommendations(messages: any[]): string[] {
+  const recommendations: string[] = [];
+  
+  recommendations.push('Continue practicing technical interview questions to build confidence');
+  recommendations.push('Prepare specific examples from your experience to illustrate your points');
+  recommendations.push('Practice explaining complex concepts in simple terms');
+  recommendations.push('Research the company and role to tailor your responses accordingly');
+  
+  return recommendations;
+}
+
+function calculateAverageResponseTime(messages: any[]): number {
+  const candidateMessages = messages.filter(m => 
+    m.sender === 'candidate' && m.responseTime && m.responseTime > 0);
+    
+  if (candidateMessages.length === 0) return 0;
+  
+  const totalTime = candidateMessages.reduce((sum, msg) => sum + msg.responseTime, 0);
+  return Math.round(totalTime / candidateMessages.length);
+}
+
 export default router;
