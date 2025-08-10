@@ -69,6 +69,7 @@ export default function VirtualInterview() {
   const [isTyping, setIsTyping] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [optimisticMessage, setOptimisticMessage] = useState<string>("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -151,18 +152,24 @@ export default function VirtualInterview() {
         });
       }
       
-      // Clear input immediately
+      // Clear input immediately for instant feedback
       setCurrentMessage("");
+      setOptimisticMessage("");
       setIsTyping(true); // Show AI is typing
       
       return { previousData };
     },
     onSuccess: () => {
+      // Clear optimistic message since real message is now in cache
+      setOptimisticMessage("");
       // Refetch to get the actual response and next question
       queryClient.invalidateQueries({ queryKey: [`/api/virtual-interview/${sessionId}`] });
       setIsTyping(false);
     },
     onError: (error: any, variables, context) => {
+      // Clear optimistic message on error
+      setOptimisticMessage("");
+      
       // Rollback on error
       if (context?.previousData) {
         queryClient.setQueryData([`/api/virtual-interview/${sessionId}`], context.previousData);
@@ -255,9 +262,10 @@ export default function VirtualInterview() {
   }, []);
 
   const handleSendMessage = async () => {
-    if (!currentMessage.trim() || isTyping) return;
+    if (!currentMessage.trim() || sendMessageMutation.isPending) return;
     
-    setIsTyping(true);
+    // Show optimistic message immediately
+    setOptimisticMessage(currentMessage.trim());
     
     // Determine message type based on last interviewer message
     const lastInterviewerMessage = messages
@@ -478,6 +486,23 @@ export default function VirtualInterview() {
               {/* Messages Area */}
               <ScrollArea className="flex-1 p-6">
                 <div className="space-y-4">
+                  {/* Show optimistic message immediately while typing */}
+                  {optimisticMessage && !messages.find(m => m.content === optimisticMessage && m.sender === 'candidate') && (
+                    <div className="flex gap-3 flex-row-reverse">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                        <User className="h-4 w-4 text-green-500" />
+                      </div>
+                      <div className="flex-1 text-right">
+                        <div className="inline-block p-3 rounded-lg max-w-[calc(100%-2rem)] break-words bg-blue-500 text-white opacity-90">
+                          <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere">{optimisticMessage}</p>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 animate-pulse">
+                          Sending...
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
                   {messages.map((message, index) => (
                     <div key={message.id} className={`flex gap-3 ${message.sender === 'candidate' ? 'flex-row-reverse' : ''}`}>
                       <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
@@ -550,11 +575,17 @@ export default function VirtualInterview() {
                     <Input
                       ref={inputRef}
                       value={currentMessage}
-                      onChange={(e) => setCurrentMessage(e.target.value)}
-                      onKeyPress={handleKeyPress}
+                      onChange={(e) => {
+                        setCurrentMessage(e.target.value);
+                        // Clear optimistic message when user starts typing again
+                        if (optimisticMessage) setOptimisticMessage("");
+                      }}
+                      onKeyDown={handleKeyPress}
                       placeholder="Type your response here..."
-                      disabled={isTyping || sendMessageMutation.isPending}
+                      disabled={sendMessageMutation.isPending}
                       className="flex-1"
+                      autoComplete="off"
+                      autoFocus
                     />
                     <Button 
                       onClick={handleSendMessage}
