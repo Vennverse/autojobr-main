@@ -295,42 +295,72 @@ router.get('/:sessionId/question', isAuthenticated, async (req: any, res) => {
       return res.status(400).json({ message: 'Interview completed' });
     }
 
-    // Get previous responses for context
-    const previousMessages = await db.select().from(virtualInterviewMessages)
+    // Check if we already have this question generated
+    const existingQuestion = await db.select().from(virtualInterviewMessages)
       .where(and(
         eq(virtualInterviewMessages.interviewId, currentInterview.id),
-        eq(virtualInterviewMessages.sender, 'candidate')
-      ));
+        eq(virtualInterviewMessages.sender, 'interviewer'),
+        eq(virtualInterviewMessages.messageType, 'question'),
+        eq(virtualInterviewMessages.messageIndex, questionNumber)
+      ))
+      .limit(1);
 
-    const previousResponses = previousMessages.map(msg => msg.content);
+    let questionContent, questionCategory, questionDifficulty;
 
-    // Generate next question
-    const questionData = await virtualInterviewService.generateQuestion(
-      currentInterview.interviewType || 'technical',
-      currentInterview.difficulty || 'medium',
-      currentInterview.role || 'software_engineer',
-      questionNumber,
-      previousResponses
-    );
+    if (existingQuestion.length > 0) {
+      // Return the existing question
+      questionContent = existingQuestion[0].content;
+      questionCategory = existingQuestion[0].questionCategory || 'technical';
+      questionDifficulty = existingQuestion[0].difficulty || 'medium';
+    } else {
+      // Get previous responses for context
+      const previousMessages = await db.select().from(virtualInterviewMessages)
+        .where(and(
+          eq(virtualInterviewMessages.interviewId, currentInterview.id),
+          eq(virtualInterviewMessages.sender, 'candidate')
+        ));
 
-    // Store question in database
-    await db.insert(virtualInterviewMessages).values({
-      interviewId: currentInterview.id,
-      sender: 'interviewer',
-      messageType: 'question',
-      content: questionData.question,
-      messageIndex: questionNumber,
-      questionCategory: questionData.category,
-      difficulty: questionData.difficulty,
-      expectedAnswer: JSON.stringify(questionData.expectedKeywords)
-    });
+      const previousResponses = previousMessages.map(msg => msg.content);
+
+      // Generate next question
+      const questionData = await virtualInterviewService.generateQuestion(
+        currentInterview.interviewType || 'technical',
+        currentInterview.difficulty || 'medium',
+        currentInterview.role || 'software_engineer',
+        questionNumber,
+        previousResponses
+      );
+
+      // Store question in database
+      await db.insert(virtualInterviewMessages).values({
+        interviewId: currentInterview.id,
+        sender: 'interviewer',
+        messageType: 'question',
+        content: questionData.question,
+        messageIndex: questionNumber,
+        questionCategory: questionData.category,
+        difficulty: questionData.difficulty,
+        expectedAnswer: JSON.stringify(questionData.expectedKeywords)
+      });
+
+      questionContent = questionData.question;
+      questionCategory = questionData.category;
+      questionDifficulty = questionData.difficulty;
+    }
+
+    // Calculate remaining time
+    const startTime = new Date(currentInterview.startTime || Date.now()).getTime();
+    const durationMs = (currentInterview.duration || 30) * 60 * 1000;
+    const elapsed = Date.now() - startTime;
+    const timeRemaining = Math.max(0, Math.floor((durationMs - elapsed) / 1000));
 
     res.json({
-      question: questionData.question,
+      question: questionContent,
       questionNumber,
       totalQuestions: currentInterview.totalQuestions || 5,
-      category: questionData.category,
-      timeRemaining: currentInterview.timeRemaining || (currentInterview.duration || 30) * 60
+      category: questionCategory,
+      timeRemaining,
+      difficulty: questionDifficulty
     });
   } catch (error) {
     console.error('Error getting interview question:', error);
@@ -370,16 +400,16 @@ router.post('/:sessionId/response', isAuthenticated, async (req: any, res) => {
       responseTime: timeSpent
     });
 
-    // Update interview progress
+    // Update interview progress - increment questions asked
+    const newQuestionsAsked = (currentInterview.questionsAsked || 0) + 1;
     await db.update(virtualInterviews)
       .set({ 
-        questionsAsked: (currentInterview.questionsAsked || 0) + 1,
-        timeRemaining: Math.max(0, (currentInterview.timeRemaining || ((currentInterview.duration || 30) * 60)) - (timeSpent || 0))
+        questionsAsked: newQuestionsAsked
       })
       .where(eq(virtualInterviews.id, currentInterview.id));
 
     // Check if interview is complete
-    const isComplete = ((currentInterview.questionsAsked || 0) + 1) >= (currentInterview.totalQuestions || 5);
+    const isComplete = newQuestionsAsked >= (currentInterview.totalQuestions || 5);
 
     res.json({
       success: true,

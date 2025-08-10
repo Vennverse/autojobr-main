@@ -467,22 +467,51 @@ Be constructive and encouraging.`;
     previousResponses: string[],
     userContext?: string
   ): string {
+    // Define question progression strategy
+    let questionFocus = '';
+    switch (questionNumber) {
+      case 1:
+        questionFocus = 'Start with foundational concepts or basic experience';
+        break;
+      case 2:
+        questionFocus = 'Ask about practical application and problem-solving';
+        break;
+      case 3:
+        questionFocus = 'Focus on advanced concepts or system design';
+        break;
+      case 4:
+        questionFocus = 'Ask about experience and real-world scenarios';
+        break;
+      case 5:
+        questionFocus = 'Conclude with challenging or situational questions';
+        break;
+      default:
+        questionFocus = 'Ask a comprehensive question building on previous answers';
+    }
+
     return `
-Generate an interview question for:
-- Role: ${role}
-- Type: ${interviewType}
-- Difficulty: ${difficulty}
-- Question #: ${questionNumber}
-${userContext ? `- Candidate Background: ${userContext}` : ''}
+Generate interview question ${questionNumber} for a ${role} candidate.
+Interview Type: ${interviewType}
+Difficulty: ${difficulty}
+Question Focus: ${questionFocus}
+${userContext ? `Candidate Background: ${userContext}` : ''}
 
-Previous responses (to avoid repetition): ${previousResponses.slice(-2).join('; ')}
+Previous responses (avoid repetition): ${previousResponses.slice(-2).join('; ')}
 
-Return JSON with:
+CRITICAL REQUIREMENTS:
+- Generate ONLY ONE unique question completely different from previous ones
+- Question should be specific to ${interviewType} interviews  
+- Follow ${questionFocus} for this question number
+- For technical: Include specific technologies, algorithms, or coding concepts
+- For behavioral: Use STAR method scenarios
+- Make it realistic and engaging
+
+Return valid JSON only:
 {
   "category": "${interviewType}",
-  "question": "specific question text",
+  "question": "detailed specific question text here",
   "difficulty": "${difficulty}",
-  "expectedKeywords": ["keyword1", "keyword2"],
+  "expectedKeywords": ["keyword1", "keyword2", "keyword3", "keyword4"],
   "followUpPrompts": ["follow-up1", "follow-up2"]
 }`;
   }

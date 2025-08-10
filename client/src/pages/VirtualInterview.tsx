@@ -36,6 +36,7 @@ export default function VirtualInterview() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<number>(0);
 
   const sessionId = params?.sessionId;
 
@@ -46,6 +47,24 @@ export default function VirtualInterview() {
     }
     loadCurrentQuestion();
   }, [sessionId]);
+
+  // Timer countdown effect
+  useEffect(() => {
+    if (!interview || timeRemaining <= 0) return;
+    
+    const timer = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          // Time's up - auto-complete interview
+          handleTimeUp();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [interview, timeRemaining]);
 
   const loadCurrentQuestion = async () => {
     try {
@@ -61,6 +80,9 @@ export default function VirtualInterview() {
         timeRemaining: response.timeRemaining,
         category: response.category
       });
+      
+      // Set the timer
+      setTimeRemaining(response.timeRemaining || 1800); // Default 30 minutes
 
       // Add interviewer question to messages
       setMessages(prev => [...prev, {
@@ -140,6 +162,26 @@ export default function VirtualInterview() {
     }
   };
 
+  const handleTimeUp = async () => {
+    toast({
+      title: "Time's Up!",
+      description: "Your interview time has expired. We'll now generate your feedback.",
+      variant: "default",
+    });
+    
+    try {
+      await apiRequest(`/api/virtual-interview/${sessionId}/complete`, 'POST');
+      setLocation(`/virtual-interview-complete/${sessionId}`);
+    } catch (error) {
+      console.error('Error completing interview:', error);
+      toast({
+        title: "Error",
+        description: "Failed to complete interview",
+        variant: "destructive",
+      });
+    }
+  };
+
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -191,9 +233,12 @@ export default function VirtualInterview() {
               Virtual AI Interview
             </h1>
             <div className="flex items-center space-x-4">
-              <Badge variant="secondary" className="flex items-center space-x-1">
+              <Badge 
+                variant={timeRemaining < 300 ? "destructive" : "secondary"} 
+                className="flex items-center space-x-1"
+              >
                 <Clock className="w-4 h-4" />
-                <span>{formatTime(interview.timeRemaining)}</span>
+                <span>{formatTime(timeRemaining)}</span>
               </Badge>
               <Badge variant="outline">
                 Question {interview.questionNumber} of {interview.totalQuestions}
