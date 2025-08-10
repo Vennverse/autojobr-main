@@ -1,218 +1,166 @@
-import { useState, useEffect } from "react";
-import { useLocation, useRoute } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MessageCircle, Clock, CheckCircle, Loader2 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from 'react';
+import { useLocation, useRoute } from 'wouter';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Loader2, MessageCircle, Clock, User, Bot } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
-interface InterviewQuestion {
-  question: string;
-  questionNumber: number;
-  totalQuestions: number;
-  category: string;
-  timeRemaining?: number;
+interface InterviewMessage {
+  sender: 'interviewer' | 'candidate';
+  content: string;
+  timestamp: string;
 }
 
-interface InterviewSession {
-  interviewId: number;
+interface InterviewState {
   sessionId: string;
-  status: string;
-  greeting: string;
-  configuration: {
-    interviewType: string;
-    role: string;
-    company?: string;
-    difficulty: string;
-    duration: number;
-    interviewerPersonality: string;
-  };
+  status: 'active' | 'completed';
+  currentQuestion: string;
+  questionNumber: number;
+  totalQuestions: number;
+  timeRemaining: number;
+  category: string;
 }
 
 export default function VirtualInterview() {
+  const [, params] = useRoute('/virtual-interview/:sessionId');
   const [, setLocation] = useLocation();
-  const [match] = useRoute("/virtual-interview/:sessionId");
-  const sessionId = match?.sessionId;
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   
-  const [currentQuestion, setCurrentQuestion] = useState<InterviewQuestion | null>(null);
-  const [response, setResponse] = useState("");
-  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes per question
-  const [questionStartTime, setQuestionStartTime] = useState(Date.now());
-  const [interviewSession, setInterviewSession] = useState<InterviewSession | null>(null);
+  const [interview, setInterview] = useState<InterviewState | null>(null);
+  const [messages, setMessages] = useState<InterviewMessage[]>([]);
+  const [currentResponse, setCurrentResponse] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [startTime, setStartTime] = useState<number | null>(null);
 
-  // Get current question
-  const { data: questionData, isLoading: questionLoading, error: questionError } = useQuery({
-    queryKey: ['/api/virtual-interview/question', sessionId],
-    queryFn: () => apiRequest('GET', `/api/virtual-interview/${sessionId}/question`),
-    enabled: !!sessionId && !!interviewSession,
-    retry: false
-  });
+  const sessionId = params?.sessionId;
 
-  // Submit response mutation
-  const submitResponseMutation = useMutation({
-    mutationFn: (data: { response: string; timeSpent: number }) =>
-      apiRequest('POST', `/api/virtual-interview/${sessionId}/response`, data),
-    onSuccess: (data) => {
-      if (data.isComplete) {
-        completeInterviewMutation.mutate();
-      } else {
-        // Fetch next question
-        queryClient.invalidateQueries({ queryKey: ['/api/virtual-interview/question', sessionId] });
-        setResponse("");
-        setQuestionStartTime(Date.now());
-        setTimeLeft(300);
-      }
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to submit response",
-        variant: "destructive"
-      });
-    }
-  });
-
-  // Complete interview mutation
-  const completeInterviewMutation = useMutation({
-    mutationFn: () => apiRequest('POST', `/api/virtual-interview/${sessionId}/complete`),
-    onSuccess: () => {
-      setLocation(`/virtual-interview/${sessionId}/feedback`);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to complete interview",
-        variant: "destructive"
-      });
-    }
-  });
-
-  // Timer effect
   useEffect(() => {
-    if (!currentQuestion) return;
-
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          // Auto-submit if time runs out
-          if (response.trim()) {
-            handleSubmitResponse();
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [currentQuestion, response]);
-
-  // Update current question when data changes
-  useEffect(() => {
-    if (questionData) {
-      setCurrentQuestion(questionData);
-      setTimeLeft(300); // Reset timer for new question
-      setQuestionStartTime(Date.now());
+    if (!sessionId) {
+      setLocation('/virtual-interview-start');
+      return;
     }
-  }, [questionData]);
+    loadCurrentQuestion();
+  }, [sessionId]);
 
-  // Handle question error
-  useEffect(() => {
-    if (questionError) {
-      if ((questionError as any)?.message?.includes('Interview completed')) {
-        completeInterviewMutation.mutate();
+  const loadCurrentQuestion = async () => {
+    try {
+      setLoading(true);
+      const response = await apiRequest(`/api/virtual-interview/${sessionId}/question`);
+      
+      setInterview({
+        sessionId: sessionId!,
+        status: 'active',
+        currentQuestion: response.question,
+        questionNumber: response.questionNumber,
+        totalQuestions: response.totalQuestions,
+        timeRemaining: response.timeRemaining,
+        category: response.category
+      });
+
+      // Add interviewer question to messages
+      setMessages(prev => [...prev, {
+        sender: 'interviewer',
+        content: response.question,
+        timestamp: new Date().toISOString()
+      }]);
+
+      setStartTime(Date.now());
+    } catch (error: any) {
+      console.error('Error loading question:', error);
+      
+      if (error.message.includes('Interview completed')) {
+        // Interview is complete, redirect to feedback
+        setLocation(`/virtual-interview-feedback/${sessionId}`);
       } else {
         toast({
           title: "Error",
-          description: (questionError as any)?.message || "Failed to load question",
-          variant: "destructive"
+          description: "Failed to load interview question",
+          variant: "destructive",
         });
+        setLocation('/virtual-interview-start');
       }
+    } finally {
+      setLoading(false);
     }
-  }, [questionError]);
+  };
 
-  // Get session from URL parameters or localStorage
-  useEffect(() => {
-    if (!sessionId) {
-      setLocation('/virtual-interview/start');
-      return;
-    }
+  const submitResponse = async () => {
+    if (!currentResponse.trim() || !interview || !startTime) return;
 
-    // Try to get session data from localStorage or initialize
-    const storedSession = localStorage.getItem(`interview_session_${sessionId}`);
-    if (storedSession) {
-      try {
-        setInterviewSession(JSON.parse(storedSession));
-      } catch (e) {
-        console.error('Failed to parse stored session:', e);
-        setLocation('/virtual-interview/start');
+    try {
+      setSubmitting(true);
+      const timeSpent = Math.floor((Date.now() - startTime) / 1000);
+
+      // Add candidate response to messages
+      setMessages(prev => [...prev, {
+        sender: 'candidate',
+        content: currentResponse,
+        timestamp: new Date().toISOString()
+      }]);
+
+      const response = await apiRequest(`/api/virtual-interview/${sessionId}/response`, 'POST', {
+        response: currentResponse,
+        timeSpent
+      });
+
+      setCurrentResponse('');
+
+      if (response.isComplete) {
+        // Interview completed, redirect to completion page
+        setLocation(`/virtual-interview-complete/${sessionId}`);
+      } else {
+        // Load next question
+        await loadCurrentQuestion();
       }
-    } else {
-      // If no stored session, redirect to start
-      setLocation('/virtual-interview/start');
+    } catch (error) {
+      console.error('Error submitting response:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit response",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
     }
-  }, [sessionId, setLocation]);
+  };
 
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const handleSubmitResponse = () => {
-    if (!response.trim() || !currentQuestion) return;
-    
-    const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
-    submitResponseMutation.mutate({
-      response: response.trim(),
-      timeSpent
-    });
-  };
-
-  if (!sessionId || !interviewSession) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-            <p>Loading interview session...</p>
+          <CardContent className="flex flex-col items-center space-y-4 pt-6">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <p className="text-center text-gray-600 dark:text-gray-400">
+              Loading your interview question...
+            </p>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  if (questionLoading) {
+  if (!interview) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-            <p>Loading next question...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!currentQuestion) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <p>No question available. Please check your interview session.</p>
+          <CardContent className="text-center pt-6">
+            <p className="text-gray-600 dark:text-gray-400">Interview session not found</p>
             <Button 
-              onClick={() => setLocation('/dashboard')} 
+              onClick={() => setLocation('/virtual-interview-start')} 
               className="mt-4"
             >
-              Return to Dashboard
+              Start New Interview
             </Button>
           </CardContent>
         </Card>
@@ -220,108 +168,119 @@ export default function VirtualInterview() {
     );
   }
 
-  const progress = (currentQuestion.questionNumber / currentQuestion.totalQuestions) * 100;
+  const progress = (interview.questionNumber / interview.totalQuestions) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Virtual Interview Session
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Virtual AI Interview
             </h1>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+            <div className="flex items-center space-x-4">
+              <Badge variant="secondary" className="flex items-center space-x-1">
                 <Clock className="w-4 h-4" />
-                <span className="font-mono">{formatTime(timeLeft)}</span>
-              </div>
+                <span>{formatTime(interview.timeRemaining)}</span>
+              </Badge>
+              <Badge variant="outline">
+                Question {interview.questionNumber} of {interview.totalQuestions}
+              </Badge>
             </div>
           </div>
           
           <div className="space-y-2">
-            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
-              <span>Question {currentQuestion} of {totalQuestions}</span>
+            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+              <span>Progress</span>
               <span>{Math.round(progress)}% Complete</span>
             </div>
             <Progress value={progress} className="w-full" />
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Main Interview Area */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Interviewer */}
-            <Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Chat Interface */}
+          <div className="lg:col-span-2">
+            <Card className="h-[600px] flex flex-col">
               <CardHeader>
-                <div className="flex items-center gap-3">
-                  <Avatar className="w-12 h-12 bg-blue-100 dark:bg-blue-900">
-                    <AvatarFallback className="text-blue-600 dark:text-blue-300 font-semibold">
-                      AI
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <CardTitle className="text-lg">Interview Assistant</CardTitle>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      Virtual Interviewer
-                    </p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-500">
-                    <p className="text-gray-800 dark:text-gray-200 leading-relaxed">
-                      {currentQuestion.question}
-                    </p>
-                    <div className="mt-2 text-xs text-blue-600 dark:text-blue-400">
-                      Category: {currentQuestion.category}
-                    </div>
-                  </div>
-                  
-                  {currentQuestion.questionNumber > 1 && (
-                    <div className="text-sm text-green-600 dark:text-green-400 flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4" />
-                      Previous response recorded successfully
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Response Area */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center space-x-2">
                   <MessageCircle className="w-5 h-5" />
-                  Your Response
+                  <span>Interview Conversation</span>
+                  <Badge variant="secondary" className="ml-auto">
+                    {interview.category}
+                  </Badge>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              
+              <CardContent className="flex-1 flex flex-col">
+                {/* Messages */}
+                <div className="flex-1 space-y-4 overflow-y-auto mb-4 max-h-80">
+                  {messages.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`flex items-start space-x-3 ${
+                        message.sender === 'candidate' ? 'flex-row-reverse space-x-reverse' : ''
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        message.sender === 'interviewer' 
+                          ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300'
+                          : 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300'
+                      }`}>
+                        {message.sender === 'interviewer' ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                      </div>
+                      
+                      <div className={`flex-1 ${
+                        message.sender === 'candidate' ? 'text-right' : ''
+                      }`}>
+                        <div className={`inline-block p-3 rounded-lg max-w-full ${
+                          message.sender === 'interviewer'
+                            ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-gray-100'
+                            : 'bg-blue-600 text-white'
+                        }`}>
+                          <p className="whitespace-pre-wrap">{message.content}</p>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(message.timestamp).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Response Input */}
                 <div className="space-y-4">
-                  <Textarea
-                    value={response}
-                    onChange={(e) => setResponse(e.target.value)}
-                    placeholder="Type your response here..."
-                    className="min-h-[120px] resize-none"
-                    data-testid="response-textarea"
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Your Response
+                    </label>
+                    <Textarea
+                      value={currentResponse}
+                      onChange={(e) => setCurrentResponse(e.target.value)}
+                      placeholder="Type your response to the interview question..."
+                      className="min-h-[120px] resize-none"
+                      disabled={submitting}
+                    />
+                  </div>
                   
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">
-                      {response.length} characters
-                    </span>
-                    
-                    <Button 
-                      onClick={handleSubmitResponse}
-                      disabled={!response.trim() || submitResponseMutation.isPending}
-                      className="bg-blue-600 hover:bg-blue-700"
-                      data-testid="submit-response"
+                    <p className="text-sm text-gray-500">
+                      Take your time to provide a thoughtful response
+                    </p>
+                    <Button
+                      onClick={submitResponse}
+                      disabled={!currentResponse.trim() || submitting}
+                      className="px-6"
                     >
-                      {submitResponseMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      ) : null}
-                      {currentQuestion.questionNumber === currentQuestion.totalQuestions ? 'Complete Interview' : 'Next Question'}
+                      {submitting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        'Submit Response'
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -329,72 +288,45 @@ export default function VirtualInterview() {
             </Card>
           </div>
 
-          {/* Sidebar */}
+          {/* Interview Info Sidebar */}
           <div className="space-y-6">
-            {/* Interview Progress */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Interview Progress</CardTitle>
+                <CardTitle className="text-lg">Interview Details</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {Array.from({ length: currentQuestion.totalQuestions }, (_, i) => i + 1).map((q) => (
-                    <div
-                      key={q}
-                      className={`flex items-center gap-3 p-2 rounded-lg ${
-                        q === currentQuestion.questionNumber
-                          ? 'bg-blue-100 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                          : q < currentQuestion.questionNumber
-                          ? 'bg-green-50 dark:bg-green-900/20'
-                          : 'bg-gray-50 dark:bg-gray-800'
-                      }`}
-                    >
-                      <div
-                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
-                          q === currentQuestion.questionNumber
-                            ? 'bg-blue-500 text-white'
-                            : q < currentQuestion.questionNumber
-                            ? 'bg-green-500 text-white'
-                            : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
-                        }`}
-                      >
-                        {q < currentQuestion.questionNumber ? <CheckCircle className="w-3 h-3" /> : q}
-                      </div>
-                      <span className="text-sm">
-                        Question {q}
-                        {q === currentQuestion.questionNumber && ' (Current)'}
-                        {q < currentQuestion.questionNumber && ' (Completed)'}
-                      </span>
-                    </div>
-                  ))}
+              <CardContent className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Session ID</p>
+                  <p className="text-sm font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                    {sessionId}
+                  </p>
+                </div>
+                
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Current Question Type</p>
+                  <Badge variant="outline">{interview.category}</Badge>
+                </div>
+                
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Progress</p>
+                  <p className="text-sm">
+                    Question {interview.questionNumber} of {interview.totalQuestions}
+                  </p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Tips */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Interview Tips</CardTitle>
+                <CardTitle className="text-lg">Tips</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3 text-sm text-gray-600 dark:text-gray-300">
-                  <div className="flex gap-2">
-                    <span className="text-blue-500">•</span>
-                    <span>Take your time to think before responding</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="text-blue-500">•</span>
-                    <span>Use specific examples when possible</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="text-blue-500">•</span>
-                    <span>Stay calm and be yourself</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="text-blue-500">•</span>
-                    <span>Each question has a 5-minute time limit</span>
-                  </div>
-                </div>
+                <ul className="text-sm space-y-2 text-gray-600 dark:text-gray-400">
+                  <li>• Take your time to think before responding</li>
+                  <li>• Provide specific examples when possible</li>
+                  <li>• Explain your thought process clearly</li>
+                  <li>• Ask clarifying questions if needed</li>
+                </ul>
               </CardContent>
             </Card>
           </div>

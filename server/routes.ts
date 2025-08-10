@@ -5165,6 +5165,22 @@ Additional Information:
   // Mount virtual interview routes
   app.use('/api/virtual-interview', virtualInterviewRoutes);
 
+  // PayPal routes for interview retakes
+  app.get("/api/paypal/setup", async (req, res) => {
+    const { loadPaypalDefault } = await import('./paypal');
+    await loadPaypalDefault(req, res);
+  });
+
+  app.post("/api/paypal/order", async (req, res) => {
+    const { createPaypalOrder } = await import('./paypal');
+    await createPaypalOrder(req, res);
+  });
+
+  app.post("/api/paypal/order/:orderID/capture", async (req, res) => {
+    const { capturePaypalOrder } = await import('./paypal');
+    await capturePaypalOrder(req, res);
+  });
+
 
 
   // Note: Job search route moved to bottom of file to be public (no authentication required)

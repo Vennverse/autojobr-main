@@ -23,12 +23,14 @@ interface PayPalButtonProps {
   amount: string;
   currency: string;
   intent: string;
+  onSuccess?: () => void;
 }
 
 export default function PayPalButton({
   amount,
   currency,
   intent,
+  onSuccess,
 }: PayPalButtonProps) {
   const createOrder = async () => {
     const orderPayload = {
@@ -36,7 +38,7 @@ export default function PayPalButton({
       currency: currency,
       intent: intent,
     };
-    const response = await fetch("/paypal/order", {
+    const response = await fetch("/api/paypal/order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(orderPayload),
@@ -46,7 +48,7 @@ export default function PayPalButton({
   };
 
   const captureOrder = async (orderId: string) => {
-    const response = await fetch(`/paypal/order/${orderId}/capture`, {
+    const response = await fetch(`/api/paypal/order/${orderId}/capture`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -61,6 +63,10 @@ export default function PayPalButton({
     console.log("onApprove", data);
     const orderData = await captureOrder(data.orderId);
     console.log("Capture result", orderData);
+    
+    if (orderData.status === 'COMPLETED' && onSuccess) {
+      onSuccess();
+    }
   };
 
   const onCancel = async (data: any) => {
@@ -94,7 +100,7 @@ export default function PayPalButton({
   }, []);
   const initPayPal = async () => {
     try {
-      const clientToken: string = await fetch("/paypal/setup")
+      const clientToken: string = await fetch("/api/paypal/setup")
         .then((res) => res.json())
         .then((data) => {
           return data.clientToken;

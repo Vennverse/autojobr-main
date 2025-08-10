@@ -52,6 +52,7 @@ import MockInterview from "@/pages/mock-interview";
 import MockInterviewSession from "@/pages/mock-interview-session";
 import VirtualInterviewStart from "@/pages/VirtualInterviewStart";
 import VirtualInterview from "@/pages/VirtualInterview";
+import VirtualInterviewComplete from "@/pages/VirtualInterviewComplete";
 import VirtualInterviewFeedback from "@/pages/VirtualInterviewFeedback";
 import InterviewAssignments from "@/pages/InterviewAssignments";
 import PipelineManagement from "@/pages/PipelineManagement";
@@ -175,6 +176,7 @@ function Router() {
                   <Route path="/virtual-interview/start" component={VirtualInterviewStart} />
                   <Route path="/virtual-interview/new" component={VirtualInterviewStart} />
                   <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
+                  <Route path="/virtual-interview-complete/:sessionId" component={VirtualInterviewComplete} />
                   <Route path="/virtual-interview/:sessionId/feedback" component={VirtualInterviewFeedback} />
                   <Route path="/jobs/:id" component={ViewJob} />
                   <Route path="/career-ai-assistant" component={CareerAIAssistant} />
