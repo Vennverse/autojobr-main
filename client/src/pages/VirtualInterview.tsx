@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -96,7 +96,10 @@ export default function VirtualInterview() {
     messagesCount: messages.length,
     interviewStatus: interview?.status,
     questionsAsked: interview?.questionsAsked,
-    totalQuestions: interview?.totalQuestions
+    totalQuestions: interview?.totalQuestions,
+    currentStep: interview?.currentStep,
+    timeRemaining: interview?.timeRemaining,
+    messages: messages.map(m => ({ sender: m.sender, type: m.messageType, content: m.content.substring(0, 50) + '...' }))
   });
 
   // Start interview mutation for assigned interviews
@@ -104,8 +107,15 @@ export default function VirtualInterview() {
     mutationFn: async () => {
       return await apiRequest(`/api/virtual-interview/${sessionId}/start`, 'POST');
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/virtual-interview/${sessionId}`] });
+    onSuccess: async () => {
+      // Force refresh the interview data to get the new messages
+      await queryClient.invalidateQueries({ queryKey: [`/api/virtual-interview/${sessionId}`] });
+      
+      // Add a small delay to ensure backend processing is complete
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: [`/api/virtual-interview/${sessionId}`] });
+      }, 500);
+      
       toast({
         title: "Interview Started!",
         description: "Your virtual interview has begun. Good luck!",
@@ -132,26 +142,6 @@ export default function VirtualInterview() {
       // Snapshot the previous value
       const previousData = queryClient.getQueryData([`/api/virtual-interview/${sessionId}`]);
       
-      // Optimistically update to show user's message immediately
-      if (previousData) {
-        const newMessage = {
-          id: Date.now(), // Temporary ID
-          sender: 'candidate',
-          messageType: data.messageType,
-          content: data.content,
-          messageIndex: (previousData as any).messages.length + 1,
-          timestamp: new Date().toISOString(),
-          responseQuality: null,
-          technicalAccuracy: null,
-          clarityScore: null
-        };
-        
-        queryClient.setQueryData([`/api/virtual-interview/${sessionId}`], {
-          ...(previousData as any),
-          messages: [...(previousData as any).messages, newMessage]
-        });
-      }
-      
       // Clear input immediately for instant feedback
       setCurrentMessage("");
       setOptimisticMessage("");
@@ -159,14 +149,24 @@ export default function VirtualInterview() {
       
       return { previousData };
     },
-    onSuccess: () => {
-      // Clear optimistic message since real message is now in cache
+    onSuccess: (response: any) => {
+      // Clear optimistic message and typing indicator
       setOptimisticMessage("");
-      // Refetch to get the actual response and next question
-      queryClient.invalidateQueries({ queryKey: [`/api/virtual-interview/${sessionId}`] });
       setIsTyping(false);
+      
+      // The backend now returns both user message and AI response
+      // Invalidate queries to refresh the UI with the complete conversation
+      queryClient.invalidateQueries({ queryKey: [`/api/virtual-interview/${sessionId}`] });
+      
+      // Show success feedback if interview is completed
+      if (response.interviewStatus === 'completed') {
+        toast({
+          title: "Interview Complete!",
+          description: "Your interview has been completed. View your feedback now.",
+        });
+      }
     },
-    onError: (error: any, variables, context) => {
+    onError: (error: any, variables: any, context: any) => {
       // Clear optimistic message on error
       setOptimisticMessage("");
       
@@ -195,7 +195,7 @@ export default function VirtualInterview() {
     mutationFn: async () => {
       return await apiRequest(`/api/virtual-interview/${sessionId}/complete`, 'POST');
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       // SECURITY FIX: Clear cache to prevent stale retakeAllowed data
       queryClient.removeQueries({ queryKey: [`/api/virtual-interview/${sessionId}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/virtual-interview'] });
@@ -221,7 +221,7 @@ export default function VirtualInterview() {
       setTimeLeft(interview.timeRemaining);
       
       const timer = setInterval(() => {
-        setTimeLeft(prev => {
+        setTimeLeft((prev: number) => {
           const newTime = Math.max(0, prev - 1);
           if (newTime <= 0) {
             completeInterviewMutation.mutate();
@@ -264,8 +264,10 @@ export default function VirtualInterview() {
   const handleSendMessage = async () => {
     if (!currentMessage.trim() || sendMessageMutation.isPending) return;
     
+    const messageContent = currentMessage.trim();
+    
     // Show optimistic message immediately
-    setOptimisticMessage(currentMessage.trim());
+    setOptimisticMessage(messageContent);
     
     // Determine message type based on last interviewer message
     const lastInterviewerMessage = messages
@@ -275,7 +277,7 @@ export default function VirtualInterview() {
     const messageType = lastInterviewerMessage?.messageType === 'question' ? 'answer' : 'text';
     
     sendMessageMutation.mutate({
-      content: currentMessage.trim(),
+      content: messageContent,
       messageType
     });
   };
@@ -486,8 +488,25 @@ export default function VirtualInterview() {
               {/* Messages Area */}
               <ScrollArea className="flex-1 p-6">
                 <div className="space-y-4">
+                  {/* Show loading message if interview is active but no messages yet */}
+                  {interview && interview.status === 'active' && messages.length === 0 && (
+                    <div className="flex gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                        <Bot className="h-4 w-4 text-blue-500" />
+                      </div>
+                      <div className="bg-gray-100 p-3 rounded-lg">
+                        <p className="text-gray-700">Loading your interview questions...</p>
+                        <div className="flex gap-1 mt-2">
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* Show optimistic message immediately while typing */}
-                  {optimisticMessage && !messages.find(m => m.content === optimisticMessage && m.sender === 'candidate') && (
+                  {optimisticMessage && (
                     <div className="flex gap-3 flex-row-reverse">
                       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
                         <User className="h-4 w-4 text-green-500" />
@@ -568,8 +587,8 @@ export default function VirtualInterview() {
               
               <Separator />
               
-              {/* Input Area - Show as long as interview is not explicitly completed and user can still answer */}
-              {interview && (interview.status === 'active' || interview.status === 'paused' || ((interview.questionsAsked || 0) <= (interview.totalQuestions || 5) && interview.status !== 'completed')) && (
+              {/* Input Area - Show for active interviews or when there are messages to respond to */}
+              {interview && (interview.status === 'active' || (interview.status === 'assigned' && messages.length > 0) || interview.status === 'paused' || ((interview.questionsAsked || 0) <= (interview.totalQuestions || 5) && interview.status !== 'completed')) && (
                 <div className="p-4">
                   <div className="flex gap-2">
                     <Input
@@ -577,8 +596,10 @@ export default function VirtualInterview() {
                       value={currentMessage}
                       onChange={(e) => {
                         setCurrentMessage(e.target.value);
-                        // Clear optimistic message when user starts typing again
-                        if (optimisticMessage) setOptimisticMessage("");
+                        // Clear optimistic message when user starts typing a new message
+                        if (optimisticMessage && e.target.value !== optimisticMessage) {
+                          setOptimisticMessage("");
+                        }
                       }}
                       onKeyDown={handleKeyPress}
                       placeholder="Type your response here..."

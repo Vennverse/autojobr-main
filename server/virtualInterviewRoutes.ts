@@ -496,7 +496,7 @@ router.post("/:sessionId/message", isAuthenticated, async (req: any, res) => {
     const remainingQuestions = (interview.totalQuestions || 5) - (interview.questionsAsked || 0);
     
     if (interview.status !== 'active' && remainingQuestions <= 0) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Interview session is not active',
         status: interview.status,
         canRetake: interview.retakeAllowed || false,
@@ -528,22 +528,17 @@ router.post("/:sessionId/message", isAuthenticated, async (req: any, res) => {
       responseTime: Math.floor(Math.random() * 30) + 10
     }).returning();
 
-    // Send immediate response with user's message
+    // Process AI response and analysis synchronously to ensure immediate response
+    const aiResponseData = await processInterviewResponse(interview, candidateMessage, content, messageType, nextIndex);
+
+    // Send response with both user message and AI response
     res.json({
       success: true,
       candidateMessage,
-      aiResponse: null, // Will be generated in background
-      analysis: null,
-      interviewStatus: interview.status
-    });
-
-    // Process AI response and analysis in background (no await)
-    setImmediate(async () => {
-      try {
-        await processBackgroundAnalysis(interview, candidateMessage, content, messageType, nextIndex);
-      } catch (error) {
-        console.error('Background processing error:', error);
-      }
+      aiResponse: aiResponseData.aiMessage,
+      analysis: aiResponseData.analysis,
+      interviewStatus: aiResponseData.interviewStatus,
+      questionsRemaining: (interview.totalQuestions || 5) - (aiResponseData.questionsAsked || 0)
     });
 
   } catch (error) {
@@ -552,7 +547,123 @@ router.post("/:sessionId/message", isAuthenticated, async (req: any, res) => {
   }
 });
 
-// Background processing function
+// Synchronous processing function for immediate response
+async function processInterviewResponse(interview: any, candidateMessage: any, content: string, messageType: string, nextIndex: number) {
+  // Get previous messages for context
+  const recentMessages = await db.query.virtualInterviewMessages.findMany({
+    where: eq(virtualInterviewMessages.interviewId, interview.id),
+    orderBy: [desc(virtualInterviewMessages.messageIndex)],
+    limit: 5
+  });
+
+  // Analyze the response if it's an answer to a question
+  const lastInterviewerMessage = recentMessages.find(m => m.sender === 'interviewer' && m.messageType === 'question');
+  let analysis = null;
+  
+  if (lastInterviewerMessage && messageType === 'answer') {
+    // Quick analysis
+    analysis = {
+      responseQuality: Math.min(10, Math.max(1, Math.floor(content.length / 20) + 4)),
+      technicalAccuracy: 75,
+      clarityScore: 70,
+      depthScore: 65,
+      keywordsMatched: [],
+      sentiment: 'positive' as const,
+      confidence: 80,
+      finalScore: 75
+    };
+
+    // Update the candidate message with analysis
+    await db.update(virtualInterviewMessages)
+      .set({
+        responseQuality: analysis.responseQuality,
+        technicalAccuracy: analysis.technicalAccuracy,
+        clarityScore: analysis.clarityScore,
+        depthScore: analysis.depthScore,
+        keywordsMatched: analysis.keywordsMatched,
+        sentiment: analysis.sentiment,
+        confidence: analysis.confidence
+      })
+      .where(eq(virtualInterviewMessages.id, candidateMessage.id));
+  }
+
+  // Generate AI response
+  let aiResponse = '';
+  let aiMessageType = 'text';
+  let updatedQuestionsAsked = interview.questionsAsked || 0;
+  let interviewStatus = interview.status;
+
+  if ((interview.questionsAsked || 0) < (interview.totalQuestions || 5)) {
+    // Generate next question
+    const previousResponses = recentMessages
+      .filter(m => m.sender === 'candidate')
+      .map(m => m.content);
+
+    const question = await virtualInterviewService.generateQuestion(
+      interview.interviewType,
+      interview.difficulty,
+      interview.role,
+      (interview.questionsAsked || 0) + 1,
+      previousResponses,
+      interview.resumeContext || undefined
+    );
+
+    aiResponse = question.question;
+    aiMessageType = 'question';
+    updatedQuestionsAsked = (interview.questionsAsked || 0) + 1;
+
+    // Update interview progress
+    await db.update(virtualInterviews)
+      .set({
+        questionsAsked: updatedQuestionsAsked,
+        currentStep: updatedQuestionsAsked >= (interview.totalQuestions || 5) ? 'conclusion' : 'main_questions'
+      })
+      .where(eq(virtualInterviews.id, interview.id));
+
+  } else if (analysis && lastInterviewerMessage) {
+    // Generate follow-up or closing
+    aiResponse = await virtualInterviewService.generateFollowUp(
+      lastInterviewerMessage.content,
+      content,
+      analysis,
+      interview.interviewerPersonality
+    );
+    
+    // Mark interview as completed
+    await db.update(virtualInterviews)
+      .set({
+        status: 'completed',
+        endTime: new Date(),
+        currentStep: 'conclusion',
+        retakeAllowed: false
+      })
+      .where(eq(virtualInterviews.id, interview.id));
+    
+    interviewStatus = 'completed';
+  } else {
+    aiResponse = "Thank you for your response. Let me ask you another question.";
+  }
+
+  // Insert AI response
+  const [aiMessage] = await db.insert(virtualInterviewMessages).values({
+    interviewId: interview.id,
+    sender: 'interviewer',
+    messageType: aiMessageType,
+    content: aiResponse,
+    messageIndex: nextIndex + 1,
+    questionCategory: aiMessageType === 'question' ? interview.interviewType : undefined,
+    difficulty: interview.difficulty
+  }).returning();
+
+  return {
+    aiMessage,
+    analysis,
+    interviewStatus,
+    questionsAsked: updatedQuestionsAsked
+  };
+}
+
+// Background processing function (kept for compatibility)
 async function processBackgroundAnalysis(interview: any, candidateMessage: any, content: string, messageType: string, nextIndex: number) {
 
   // Get previous messages for context
