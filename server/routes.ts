@@ -8186,6 +8186,12 @@ Host: https://autojobr.com`;
     try {
       const { code, language, testCases, question } = req.body;
       
+      console.log('Code execution request:', {
+        language,
+        testCasesLength: testCases?.length,
+        codeLength: code?.length
+      });
+      
       if (!code || !language || !testCases) {
         return res.status(400).json({ message: "Missing required fields" });
       }
@@ -8194,6 +8200,12 @@ Host: https://autojobr.com`;
       
       // Execute code with test cases
       const executionResult = await codeExecutionService.executeCode(code, language, testCases);
+      
+      console.log('Execution result:', {
+        success: executionResult.success,
+        error: executionResult.error,
+        testResultsCount: executionResult.testResults?.details?.length
+      });
       
       // If execution was successful, also get AI evaluation
       let aiEvaluation = null;

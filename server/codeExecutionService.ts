@@ -152,19 +152,28 @@ export class CodeExecutionService {
         timeout: 10000
       });
 
+      console.log('Raw code execution output:', JSON.stringify(output));
+
       // Clean and parse output
       const cleanOutput = output.trim();
       if (!cleanOutput) {
         throw new Error('No output from code execution');
       }
       
+      console.log('Cleaned output:', cleanOutput);
+      
       let testResults;
       try {
         testResults = JSON.parse(cleanOutput);
+        console.log('Successfully parsed test results:', testResults);
       } catch (parseError) {
+        console.error('JSON parsing failed:', parseError.message);
+        console.error('Failed to parse output:', cleanOutput);
+        
         // If parsing fails, try to extract JSON from the output
         const jsonMatch = cleanOutput.match(/\[.*\]/s);
         if (jsonMatch) {
+          console.log('Found JSON match:', jsonMatch[0]);
           testResults = JSON.parse(jsonMatch[0]);
         } else {
           throw new Error(`JSON parsing failed: ${parseError.message}. Output: ${cleanOutput}`);
