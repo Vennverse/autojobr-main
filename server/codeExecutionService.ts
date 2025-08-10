@@ -53,15 +53,63 @@ export class CodeExecutionService {
         const testCases = ${JSON.stringify(testCases)};
         const results = [];
         
+        // Helper function to safely stringify values for comparison
+        function safeStringify(value) {
+          try {
+            return JSON.stringify(value);
+          } catch (e) {
+            return String(value);
+          }
+        }
+        
+        // Helper function to compare values
+        function deepEqual(a, b) {
+          if (a === b) return true;
+          if (a == null || b == null) return false;
+          if (Array.isArray(a) && Array.isArray(b)) {
+            if (a.length !== b.length) return false;
+            for (let i = 0; i < a.length; i++) {
+              if (!deepEqual(a[i], b[i])) return false;
+            }
+            return true;
+          }
+          if (typeof a === 'object' && typeof b === 'object') {
+            const keysA = Object.keys(a);
+            const keysB = Object.keys(b);
+            if (keysA.length !== keysB.length) return false;
+            for (let key of keysA) {
+              if (!keysB.includes(key) || !deepEqual(a[key], b[key])) return false;
+            }
+            return true;
+          }
+          return false;
+        }
+        
         for (const testCase of testCases) {
           try {
-            const result = solution(testCase.input);
+            // Handle different input formats for the function
+            let inputArgs;
+            if (typeof testCase.input === 'object' && testCase.input !== null) {
+              // If input is an object, extract the values
+              if (Array.isArray(testCase.input)) {
+                inputArgs = testCase.input;
+              } else {
+                // If it's an object like {nums: [2,7,11,15], target: 9}, extract values
+                inputArgs = Object.values(testCase.input);
+              }
+            } else {
+              inputArgs = [testCase.input];
+            }
+            
+            // Call the function with proper arguments
+            const result = solution(...inputArgs);
+            
             results.push({
               input: testCase.input,
               expected: testCase.expected,
               actual: result,
-              passed: JSON.stringify(result) === JSON.stringify(testCase.expected),
-              description: testCase.description
+              passed: deepEqual(result, testCase.expected),
+              description: testCase.description || ''
             });
           } catch (error) {
             results.push({
@@ -70,7 +118,7 @@ export class CodeExecutionService {
               actual: null,
               passed: false,
               error: error.message,
-              description: testCase.description
+              description: testCase.description || ''
             });
           }
         }
@@ -86,7 +134,24 @@ export class CodeExecutionService {
         timeout: 10000
       });
 
-      const testResults = JSON.parse(output.trim());
+      // Clean and parse output
+      const cleanOutput = output.trim();
+      if (!cleanOutput) {
+        throw new Error('No output from code execution');
+      }
+      
+      let testResults;
+      try {
+        testResults = JSON.parse(cleanOutput);
+      } catch (parseError) {
+        // If parsing fails, try to extract JSON from the output
+        const jsonMatch = cleanOutput.match(/\[.*\]/s);
+        if (jsonMatch) {
+          testResults = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error(`JSON parsing failed: ${parseError.message}. Output: ${cleanOutput}`);
+        }
+      }
       const passed = testResults.filter((r: any) => r.passed).length;
 
       return {

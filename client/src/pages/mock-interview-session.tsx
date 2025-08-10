@@ -154,14 +154,32 @@ export default function MockInterviewSession() {
   // Run code mutation
   const runCodeMutation = useMutation({
     mutationFn: async (code: string) => {
-      return await apiRequest('/api/mock-interview/execute-code', 'POST', {
+      return await apiRequest('/api/execute-code', 'POST', {
         code,
         language: session?.interview.language || 'javascript',
         testCases: currentQuestion?.testCases ? JSON.parse(currentQuestion.testCases) : []
       });
     },
     onSuccess: (result) => {
-      setCodeOutput(result.output || result.error || 'Code executed successfully');
+      if (result.success && result.testResults) {
+        const { passed, total, details } = result.testResults;
+        let output = `✅ Tests Passed: ${passed}/${total}\n\n`;
+        
+        details.forEach((test: any, index: number) => {
+          output += `Test ${index + 1}: ${test.passed ? '✅' : '❌'}\n`;
+          output += `Input: ${JSON.stringify(test.input)}\n`;
+          output += `Expected: ${JSON.stringify(test.expected)}\n`;
+          output += `Actual: ${JSON.stringify(test.actual)}\n`;
+          if (test.error) {
+            output += `Error: ${test.error}\n`;
+          }
+          output += '\n';
+        });
+        
+        setCodeOutput(output);
+      } else {
+        setCodeOutput(`Error: ${result.error || 'Code execution failed'}`);
+      }
     },
     onError: (error) => {
       setCodeOutput(`Error: ${error.message}`);
