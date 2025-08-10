@@ -62,6 +62,7 @@ import {
 import { subscriptionEnforcementService } from "./subscriptionEnforcementService.js";
 import { ResumeParser } from "./resumeParser.js";
 import virtualInterviewRoutes from "./virtualInterviewRoutes.js";
+import chatInterviewRoutes from "./chatInterviewRoutes.js";
 
 // Initialize services
 const resumeParser = new ResumeParser();
@@ -5164,6 +5165,9 @@ Additional Information:
 
   // Mount virtual interview routes
   app.use('/api/virtual-interview', virtualInterviewRoutes);
+  
+  // Mount chat-based interview routes
+  app.use('/api/chat-interview', chatInterviewRoutes);
 
   // PayPal routes for interview retakes
   app.get("/api/paypal/setup", async (req, res) => {

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Brain, Clock, DollarSign, CheckCircle } from 'lucide-react';
+import { Loader2, Brain, Clock, DollarSign, CheckCircle, MessageCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import PayPalButton from '@/components/PayPalButton';
@@ -101,6 +101,38 @@ export default function VirtualInterviewStart() {
           variant: "destructive",
         });
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startChatInterview = async () => {
+    try {
+      setLoading(true);
+      
+      const response = await apiRequest('/api/chat-interview/start-chat', 'POST', {
+        role: config.role,
+        interviewType: config.interviewType,
+        difficulty: config.difficulty,
+        duration: config.duration,
+        totalQuestions: 5,
+        personality: config.interviewerPersonality
+      });
+
+      toast({
+        title: "Chat Interview Started",
+        description: "Your AI chat interview has begun. Good luck!",
+      });
+
+      setLocation(`/chat-interview/${response.sessionId}`);
+    } catch (error: any) {
+      console.error('Error starting chat interview:', error);
+      
+      toast({
+        title: "Error", 
+        description: "Failed to start chat interview. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -294,23 +326,47 @@ export default function VirtualInterviewStart() {
                     </Card>
                   )}
 
-                  {/* Start Interview Button */}
+                  {/* Start Interview Buttons */}
                   {eligibility?.eligible && (
-                    <Button
-                      onClick={startInterview}
-                      disabled={loading}
-                      className="w-full"
-                      size="lg"
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Starting Interview...
-                        </>
-                      ) : (
-                        'Start Interview'
-                      )}
-                    </Button>
+                    <div className="space-y-3">
+                      <Button
+                        onClick={startChatInterview}
+                        disabled={loading}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700"
+                        size="lg"
+                        data-testid="start-chat-interview"
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Starting Chat Interview...
+                          </>
+                        ) : (
+                          <>
+                            <MessageCircle className="w-4 h-4 mr-2" />
+                            Start Chat Interview (NEW)
+                          </>
+                        )}
+                      </Button>
+                      
+                      <Button
+                        onClick={startInterview}
+                        disabled={loading}
+                        variant="outline"
+                        className="w-full"
+                        size="lg"
+                        data-testid="start-traditional-interview"
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Starting Traditional Interview...
+                          </>
+                        ) : (
+                          'Start Traditional Interview'
+                        )}
+                      </Button>
+                    </div>
                   )}
 
                   {eligibility?.needsPayment && !showPayment && (

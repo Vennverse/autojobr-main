@@ -52,6 +52,7 @@ import MockInterview from "@/pages/mock-interview";
 import MockInterviewSession from "@/pages/mock-interview-session";
 import VirtualInterviewStart from "@/pages/VirtualInterviewStart";
 import VirtualInterview from "@/pages/VirtualInterview";
+import ChatInterview from "@/pages/ChatInterview";
 import VirtualInterviewComplete from "@/pages/VirtualInterviewComplete";
 import VirtualInterviewFeedback from "@/pages/VirtualInterviewFeedback";
 import InterviewAssignments from "@/pages/InterviewAssignments";
@@ -177,6 +178,7 @@ function Router() {
                   <Route path="/virtual-interview-start" component={VirtualInterviewStart} />
                   <Route path="/virtual-interview/new" component={VirtualInterviewStart} />
                   <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
+                  <Route path="/chat-interview/:sessionId" component={ChatInterview} />
                   <Route path="/virtual-interview-complete/:sessionId" component={VirtualInterviewComplete} />
                   <Route path="/virtual-interview/:sessionId/feedback" component={VirtualInterviewFeedback} />
                   <Route path="/jobs/:id" component={ViewJob} />
@@ -204,6 +206,7 @@ function Router() {
               <Route path="/virtual-interview-start" component={VirtualInterviewStart} />
               <Route path="/virtual-interview/new" component={VirtualInterviewStart} />
               <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
+              <Route path="/chat-interview/:sessionId" component={ChatInterview} />
               <Route path="/virtual-interview-complete/:sessionId" component={VirtualInterviewComplete} />
               <Route path="/virtual-interview/:sessionId/feedback" component={VirtualInterviewFeedback} />
               <Route path="/subscription" component={Subscription} />
