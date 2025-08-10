@@ -1,5 +1,6 @@
 import Groq from "groq-sdk";
 import { Resend } from 'resend';
+import OpenAI from 'openai';
 
 interface ApiKeyPool {
   keys: string[];
@@ -19,14 +20,24 @@ interface ServiceConfig {
 class ApiKeyRotationService {
   private groqPool: ApiKeyPool;
   private resendPool: ApiKeyPool;
+  private openrouterPool: ApiKeyPool;
   private groqClients: Map<string, Groq> = new Map();
   private resendClients: Map<string, Resend> = new Map();
+  private openrouterClients: Map<string, OpenAI> = new Map();
 
   constructor() {
     // Initialize Groq key pool
     this.groqPool = this.initializeKeyPool('GROQ_API_KEY', {
       name: 'Groq',
       envPrefix: 'GROQ_API_KEY',
+      maxRetries: 3,
+      cooldownPeriod: 60000 // 1 minute cooldown
+    });
+
+    // Initialize OpenRouter key pool
+    this.openrouterPool = this.initializeKeyPool('OPENROUTER_API_KEY', {
+      name: 'OpenRouter',
+      envPrefix: 'OPENROUTER_API_KEY',
       maxRetries: 3,
       cooldownPeriod: 60000 // 1 minute cooldown
     });
@@ -41,10 +52,12 @@ class ApiKeyRotationService {
 
     // Initialize clients
     this.initializeGroqClients();
+    this.initializeOpenRouterClients();
     this.initializeResendClients();
 
     console.log(`🔄 API Key Rotation Service initialized:`);
     console.log(`   - Groq keys available: ${this.groqPool.keys.length}`);
+    console.log(`   - OpenRouter keys available: ${this.openrouterPool.keys.length}`);
     console.log(`   - Resend keys available: ${this.resendPool.keys.length}`);
   }
 
@@ -84,6 +97,24 @@ class ApiKeyRotationService {
         this.groqClients.set(key, client);
       } catch (error) {
         console.warn(`Failed to initialize Groq client for key: ${key.substring(0, 10)}...`);
+      }
+    });
+  }
+
+  private initializeOpenRouterClients(): void {
+    this.openrouterPool.keys.forEach(key => {
+      try {
+        const client = new OpenAI({
+          apiKey: key,
+          baseURL: 'https://openrouter.ai/api/v1',
+          defaultHeaders: {
+            'HTTP-Referer': 'https://autojobr.com',
+            'X-Title': 'AutoJobr Interview Prep'
+          }
+        });
+        this.openrouterClients.set(key, client);
+      } catch (error) {
+        console.warn(`Failed to initialize OpenRouter client for key: ${key.substring(0, 10)}...`);
       }
     });
   }
@@ -230,6 +261,58 @@ class ApiKeyRotationService {
     throw lastError || new Error('All Groq API keys exhausted');
   }
 
+  async executeWithOpenRouterRotation<T>(
+    operation: (client: OpenAI) => Promise<T>,
+    maxRetries: number = 3
+  ): Promise<T> {
+    let lastError: any;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const key = this.getNextWorkingKey(this.openrouterPool);
+      
+      if (!key) {
+        throw new Error('No OpenRouter API keys available');
+      }
+
+      const client = this.openrouterClients.get(key);
+      if (!client) {
+        this.markKeyAsFailed(this.openrouterPool, key);
+        continue;
+      }
+
+      try {
+        console.log(`🌐 Using OpenRouter key: ${key.substring(0, 10)}... (attempt ${attempt + 1}/${maxRetries})`);
+        const result = await operation(client);
+        
+        // Success - remove key from failed list if it was there
+        this.openrouterPool.failedKeys.delete(key);
+        this.openrouterPool.lastFailureTime.delete(key);
+        
+        return result;
+      } catch (error) {
+        lastError = error;
+        console.error(`OpenRouter operation failed with key ${key.substring(0, 10)}...:`, error);
+
+        // Mark key as failed if it's a rate limit or server error
+        if (this.isTemporaryError(error)) {
+          this.markKeyAsFailed(this.openrouterPool, key);
+        }
+
+        // If it's not a temporary error, don't rotate keys
+        if (!this.isTemporaryError(error)) {
+          throw error;
+        }
+
+        // Short delay before retry
+        if (attempt < maxRetries - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+        }
+      }
+    }
+
+    throw lastError || new Error('All OpenRouter API keys exhausted');
+  }
+
   async executeWithResendRotation<T>(
     operation: (client: Resend) => Promise<T>,
     maxRetries: number = 2
@@ -290,6 +373,12 @@ class ApiKeyRotationService {
         currentIndex: this.groqPool.currentIndex,
         availableKeys: this.groqPool.keys.length - this.groqPool.failedKeys.size
       },
+      openrouter: {
+        totalKeys: this.openrouterPool.keys.length,
+        failedKeys: this.openrouterPool.failedKeys.size,
+        currentIndex: this.openrouterPool.currentIndex,
+        availableKeys: this.openrouterPool.keys.length - this.openrouterPool.failedKeys.size
+      },
       resend: {
         totalKeys: this.resendPool.keys.length,
         failedKeys: this.resendPool.failedKeys.size,
@@ -300,11 +389,17 @@ class ApiKeyRotationService {
   }
 
   // Method to manually reset failed keys (useful for admin endpoints)
-  resetFailedKeys(service?: 'groq' | 'resend'): void {
+  resetFailedKeys(service?: 'groq' | 'openrouter' | 'resend'): void {
     if (!service || service === 'groq') {
       this.groqPool.failedKeys.clear();
       this.groqPool.lastFailureTime.clear();
       console.log('🔄 Groq failed keys reset');
+    }
+    
+    if (!service || service === 'openrouter') {
+      this.openrouterPool.failedKeys.clear();
+      this.openrouterPool.lastFailureTime.clear();
+      console.log('🔄 OpenRouter failed keys reset');
     }
     
     if (!service || service === 'resend') {
