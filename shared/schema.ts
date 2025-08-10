@@ -1894,6 +1894,10 @@ export const virtualInterviews = pgTable("virtual_interviews", {
   jobDescription: text("job_description"), // context for tailored questions
   resumeContext: text("resume_context"), // user's background for personalized questions
   
+  // Analytics data for enhanced chat interviews
+  analytics: text("analytics"), // JSON string containing advanced analytics data
+  lastResponseQuality: numeric("last_response_quality"), // 0-1 score for last response quality
+  
   // Payment and access
   isPaid: boolean("is_paid").default(false),
   paymentId: varchar("payment_id"),
