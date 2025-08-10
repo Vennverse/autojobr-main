@@ -165,9 +165,9 @@ export function Navbar() {
         },
         {
           name: "Live Interview",
-          href: "/virtual-interview/new",
+          href: "/virtual-interview-start",
           icon: Users,
-          current: location.startsWith("/virtual-interview/")
+          current: location.startsWith("/virtual-interview")
         },
         {
           name: "Ranking Tests",
