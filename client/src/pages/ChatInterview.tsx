@@ -38,6 +38,8 @@ function ChatInterview() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sessionId = params?.sessionId;
 
+  console.log('🎭 ChatInterview component mounted with sessionId:', sessionId);
+
   useEffect(() => {
     if (!sessionId) {
       setLocation('/virtual-interview-start');
@@ -105,18 +107,19 @@ function ChatInterview() {
   const sendMessage = async () => {
     if (!currentMessage.trim() || !interview || sending) return;
 
+    const messageToSend = currentMessage.trim();
+    
     try {
       setSending(true);
       
       // Add user message to chat immediately for better UX
       const userMessage: ChatMessage = {
         sender: 'candidate',
-        content: currentMessage.trim(),
+        content: messageToSend,
         timestamp: new Date().toISOString()
       };
       
       setMessages(prev => [...prev, userMessage]);
-      const messageToSend = currentMessage.trim();
       setCurrentMessage('');
 
       const response = await apiRequest(`/api/chat-interview/${sessionId}/message`, 'POST', {
@@ -158,7 +161,7 @@ function ChatInterview() {
       
       // Remove the user message we added optimistically
       setMessages(prev => prev.slice(0, -1));
-      setCurrentMessage(messageToSend); // Restore the message
+      setCurrentMessage(messageToSend); // Restore the original message
     } finally {
       setSending(false);
     }
