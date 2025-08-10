@@ -174,6 +174,7 @@ function Router() {
                   <Route path="/mock-interview/session/:sessionId" component={MockInterviewSession} />
                   <Route path="/mock-interview/:sessionId" component={MockInterviewSession} />
                   <Route path="/virtual-interview/start" component={VirtualInterviewStart} />
+                  <Route path="/virtual-interview-start" component={VirtualInterviewStart} />
                   <Route path="/virtual-interview/new" component={VirtualInterviewStart} />
                   <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
                   <Route path="/virtual-interview-complete/:sessionId" component={VirtualInterviewComplete} />
@@ -200,8 +201,10 @@ function Router() {
               <Route path="/mock-interview/session/:sessionId" component={MockInterviewSession} />
               <Route path="/mock-interview/:sessionId" component={MockInterviewSession} />
               <Route path="/virtual-interview/start" component={VirtualInterviewStart} />
+              <Route path="/virtual-interview-start" component={VirtualInterviewStart} />
               <Route path="/virtual-interview/new" component={VirtualInterviewStart} />
               <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
+              <Route path="/virtual-interview-complete/:sessionId" component={VirtualInterviewComplete} />
               <Route path="/virtual-interview/:sessionId/feedback" component={VirtualInterviewFeedback} />
               <Route path="/subscription" component={Subscription} />
               <Route path="/chat" component={SimpleChatPage} />

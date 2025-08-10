@@ -50,7 +50,7 @@ export default function VirtualInterview() {
   const loadCurrentQuestion = async () => {
     try {
       setLoading(true);
-      const response = await apiRequest(`/api/virtual-interview/${sessionId}/question`);
+      const response = await apiRequest(`/api/virtual-interview/${sessionId}/question`, 'GET');
       
       setInterview({
         sessionId: sessionId!,

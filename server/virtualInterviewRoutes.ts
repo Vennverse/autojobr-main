@@ -26,7 +26,7 @@ router.post('/check-eligibility', isAuthenticated, async (req: any, res) => {
       const existingAttempts = await db.select().from(virtualInterviews)
         .where(and(
           eq(virtualInterviews.userId, userId),
-          eq(virtualInterviews.assignedInterviewId, interviewId)
+          eq(virtualInterviews.jobPostingId, interviewId)
         ));
 
       if (existingAttempts.length === 0) {
@@ -52,8 +52,8 @@ router.post('/check-eligibility', isAuthenticated, async (req: any, res) => {
     }
 
     // For practice interviews, check user's subscription limits
-    const userProfile = await storage.getUserProfile(userId);
-    const subscriptionTier = userProfile?.subscriptionTier || 'free';
+    const user = await storage.getUser(userId);
+    const subscriptionTier = user?.planType || 'free';
     
     // Get user's interview stats
     const stats = await db.select().from(virtualInterviewStats)
