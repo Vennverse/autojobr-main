@@ -73,13 +73,24 @@ export default function VirtualInterview() {
     } catch (error: any) {
       console.error('Error loading question:', error);
       
+      // Check if error response contains redirect information
+      const errorData = error.response?.data || error;
+      
       if (error.message.includes('Interview completed')) {
         // Interview is complete, redirect to feedback
         setLocation(`/virtual-interview-feedback/${sessionId}`);
+      } else if (errorData.redirect) {
+        // Server provided a redirect path
+        toast({
+          title: "Error",
+          description: errorData.message || "Failed to load interview question",
+          variant: "destructive",
+        });
+        setLocation(errorData.redirect);
       } else {
         toast({
           title: "Error",
-          description: "Failed to load interview question",
+          description: errorData.message || "Failed to load interview question",
           variant: "destructive",
         });
         setLocation('/virtual-interview-start');

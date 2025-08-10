@@ -269,12 +269,23 @@ router.get('/:sessionId/question', isAuthenticated, async (req: any, res) => {
     const { sessionId } = req.params;
     const userId = req.user?.id || req.session?.user?.id;
 
+    // Handle "new" session ID - this shouldn't happen but provide helpful error
+    if (sessionId === 'new') {
+      return res.status(400).json({ 
+        message: 'Invalid session ID. Please start a new interview from the virtual interview page.',
+        redirect: '/virtual-interview-start'
+      });
+    }
+
     const interview = await db.select().from(virtualInterviews)
       .where(and(eq(virtualInterviews.sessionId, sessionId), eq(virtualInterviews.userId, userId)))
       .limit(1);
 
     if (!interview.length) {
-      return res.status(404).json({ message: 'Interview session not found' });
+      return res.status(404).json({ 
+        message: 'Interview session not found',
+        redirect: '/virtual-interview-start'
+      });
     }
 
     const currentInterview = interview[0];
