@@ -87,6 +87,13 @@ export default function MockInterviewSession() {
   const [codeOutput, setCodeOutput] = useState('');
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const questionStartTime = useRef(Date.now());
+  
+  // Anti-cheating state
+  const [warningCount, setWarningCount] = useState(0);
+  const [tabSwitchCount, setTabSwitchCount] = useState(0);
+  const [copyAttempts, setCopyAttempts] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Fetch interview session
   const { data: session, isLoading, error } = useQuery<InterviewSession>({
@@ -129,10 +136,11 @@ export default function MockInterviewSession() {
     onSuccess: () => {
       toast({
         title: "Interview Started!",
-        description: "Good luck! The timer is now running.",
+        description: "Good luck! Security monitoring is now active.",
       });
       queryClient.invalidateQueries({ queryKey: [`/api/mock-interviews/${sessionId}`] });
       setIsTimerRunning(true);
+      enterFullscreen(); // Enter fullscreen mode when interview starts
     },
     onError: (error) => {
       toast({
@@ -210,6 +218,124 @@ export default function MockInterviewSession() {
       questionStartTime.current = Date.now();
     }
   }, [currentQuestionIndex, session]);
+
+  // Anti-cheating measures
+  useEffect(() => {
+    if (session?.interview.status !== 'in_progress') return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        const newCount = tabSwitchCount + 1;
+        setTabSwitchCount(newCount);
+        setWarningCount(prev => prev + 1);
+        
+        toast({
+          title: "Warning: Tab Switch Detected",
+          description: `You've switched tabs ${newCount} times. Multiple violations may result in interview cancellation.`,
+          variant: "destructive"
+        });
+      }
+    };
+
+    const handleCopy = (e: ClipboardEvent) => {
+      e.preventDefault();
+      const newCount = copyAttempts + 1;
+      setCopyAttempts(newCount);
+      setWarningCount(prev => prev + 1);
+      
+      toast({
+        title: "Warning: Copy Attempt Detected",
+        description: `Copy/paste is disabled. Attempt ${newCount} recorded.`,
+        variant: "destructive"
+      });
+    };
+
+    const handlePaste = (e: ClipboardEvent) => {
+      e.preventDefault();
+      toast({
+        title: "Warning: Paste Blocked",
+        description: "Pasting content is not allowed during the interview.",
+        variant: "destructive"
+      });
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Block common cheating key combinations
+      if (
+        (e.ctrlKey || e.metaKey) && 
+        (e.key === 'c' || e.key === 'v' || e.key === 'a' || e.key === 'f' || e.key === 't' || e.key === 'w')
+      ) {
+        e.preventDefault();
+        setWarningCount(prev => prev + 1);
+        toast({
+          title: "Warning: Blocked Action",
+          description: "Keyboard shortcuts are disabled during the interview.",
+          variant: "destructive"
+        });
+      }
+      
+      // Block F12 and other developer tools shortcuts
+      if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
+        e.preventDefault();
+        toast({
+          title: "Warning: Developer Tools Blocked",
+          description: "Developer tools are not allowed during the interview.",
+          variant: "destructive"
+        });
+      }
+    };
+
+    const handleRightClick = (e: MouseEvent) => {
+      e.preventDefault();
+      toast({
+        title: "Warning: Right Click Disabled",
+        description: "Right-click is disabled during the interview.",
+        variant: "destructive"
+      });
+    };
+
+    const handleFullscreenChange = () => {
+      const isCurrentlyFullscreen = !!document.fullscreenElement;
+      setIsFullscreen(isCurrentlyFullscreen);
+      
+      if (!isCurrentlyFullscreen && session?.interview.status === 'in_progress') {
+        setWarningCount(prev => prev + 1);
+        toast({
+          title: "Warning: Fullscreen Exited",
+          description: "Please stay in fullscreen mode during the interview.",
+          variant: "destructive"
+        });
+      }
+    };
+
+    // Add event listeners
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('copy', handleCopy);
+    document.addEventListener('paste', handlePaste);
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('contextmenu', handleRightClick);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('copy', handleCopy);
+      document.removeEventListener('paste', handlePaste);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('contextmenu', handleRightClick);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, [session?.interview.status, tabSwitchCount, copyAttempts, toast]);
+
+  // Enter fullscreen when interview starts
+  const enterFullscreen = async () => {
+    if (containerRef.current && !document.fullscreenElement) {
+      try {
+        await containerRef.current.requestFullscreen();
+      } catch (error) {
+        console.warn('Fullscreen not supported or denied');
+      }
+    }
+  };
 
   if (isLoading) {
     return (
@@ -330,7 +456,7 @@ export default function MockInterviewSession() {
   })() : [];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div ref={containerRef} className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">
@@ -349,13 +475,18 @@ export default function MockInterviewSession() {
                 <Timer className="w-5 h-5 text-blue-600" />
                 <span className="font-mono text-lg">{formatTime(timeSpent)}</span>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsTimerRunning(!isTimerRunning)}
-              >
-                {isTimerRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-              </Button>
+              {/* Security status indicator */}
+              {session?.interview.status === 'in_progress' && (
+                <div className="flex items-center gap-2 text-sm">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-gray-600 dark:text-gray-400">Monitoring Active</span>
+                  {warningCount > 0 && (
+                    <Badge variant="destructive" className="ml-2">
+                      {warningCount} warning{warningCount > 1 ? 's' : ''}
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -587,7 +718,7 @@ export default function MockInterviewSession() {
             {/* Navigation */}
             <Card className="bg-white dark:bg-gray-800">
               <CardContent className="pt-6">
-                {session.interview.status === 'assigned' ? (
+                {session.interview.status === 'assigned' && session.interview.currentQuestion === 0 ? (
                   <div className="text-center">
                     <Button
                       onClick={() => startInterviewMutation.mutate()}
