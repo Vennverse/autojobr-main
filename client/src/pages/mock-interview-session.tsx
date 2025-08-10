@@ -154,10 +154,31 @@ export default function MockInterviewSession() {
   // Run code mutation
   const runCodeMutation = useMutation({
     mutationFn: async (code: string) => {
+      // Safely parse test cases
+      let testCases = [];
+      if (currentQuestion?.testCases) {
+        try {
+          // Check if testCases is already an object/array
+          if (typeof currentQuestion.testCases === 'string') {
+            testCases = JSON.parse(currentQuestion.testCases);
+          } else if (Array.isArray(currentQuestion.testCases)) {
+            testCases = currentQuestion.testCases;
+          } else {
+            console.warn('Unexpected testCases format:', typeof currentQuestion.testCases, currentQuestion.testCases);
+            testCases = [];
+          }
+        } catch (error) {
+          console.error('Error parsing test cases:', error, 'Raw data:', currentQuestion.testCases);
+          testCases = [];
+        }
+      }
+      
+      console.log('Sending test cases to execution:', testCases);
+      
       return await apiRequest('/api/execute-code', 'POST', {
         code,
         language: session?.interview.language || 'javascript',
-        testCases: currentQuestion?.testCases ? JSON.parse(currentQuestion.testCases) : []
+        testCases
       });
     },
     onSuccess: (result) => {

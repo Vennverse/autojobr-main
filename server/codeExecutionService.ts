@@ -46,12 +46,16 @@ export class CodeExecutionService {
     const filePath = path.join(this.tempDir, `${executionId}.js`);
 
     try {
+      console.log('Executing JavaScript with test cases:', testCases);
+      
       // Create test wrapper
       const testWrapper = `
         ${code}
         
         const testCases = ${JSON.stringify(testCases)};
         const results = [];
+        
+        console.log('Test cases in wrapper:', testCases);
         
         // Helper function to safely serialize values
         function safeSerialize(value) {
