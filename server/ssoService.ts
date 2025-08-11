@@ -161,7 +161,7 @@ export class SSOService {
           return { success: false, message: 'Unsupported provider type' };
       }
     } catch (error) {
-      return { success: false, message: error instanceof Error ? error.message : 'Unknown error' };
+      return { success: false, message: error.message };
     }
   }
 
@@ -200,7 +200,7 @@ export class SSOService {
 
       return { success: true, message: 'OIDC configuration is valid' };
     } catch (error) {
-      return { success: false, message: `OIDC test failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
+      return { success: false, message: `OIDC test failed: ${error.message}` };
     }
   }
 
@@ -274,7 +274,7 @@ export class SSOService {
         attributes
       };
     } catch (error) {
-      throw new Error(`Failed to parse SAML response: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Failed to parse SAML response: ${error.message}`);
     }
   }
 
