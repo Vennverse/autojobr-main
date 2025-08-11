@@ -1,8 +1,8 @@
 module.exports = {
  apps: [{
    name: 'autojobr',
-   script: './node_modules/.bin/tsx',
-   args: 'server/index.ts',
+   script: 'npx',
+   args: 'tsx server/index.ts',
    instances: 1,
    env_file: '.env',
    error_file: './logs/err.log',
