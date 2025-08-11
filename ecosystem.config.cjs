@@ -1,8 +1,8 @@
 module.exports = {
  apps: [{
    name: 'autojobr',
-   script: 'npx',
-   args: 'tsx server/index.ts',
+   script: './node_modules/.bin/tsx',
+   args: 'server/index.ts',
    instances: 1,
    env_file: '.env',
    error_file: './logs/err.log',
@@ -14,7 +14,10 @@ module.exports = {
      NODE_ENV: 'production'
    },
    watch: false,
-   autorestart: true
+   autorestart: true,
+   kill_timeout: 5000,
+   wait_ready: true,
+   listen_timeout: 10000
  }]
 }
 
