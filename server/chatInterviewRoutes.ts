@@ -39,8 +39,7 @@ router.post('/start-chat', isAuthenticated, async (req: any, res) => {
       totalQuestions,
       questionsAsked: 0,
       startTime: new Date(),
-      status: 'active',
-      retakeAllowed: false
+      status: 'active'
     }).returning();
 
     const interviewId = interview[0].id;
@@ -94,8 +93,8 @@ router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
       .orderBy(virtualInterviewMessages.messageIndex);
 
     // Calculate remaining time
-    const startTime = new Date(interview[0].startTime).getTime();
-    const durationMs = interview[0].duration * 60 * 1000;
+    const startTime = interview[0].startTime ? new Date(interview[0].startTime).getTime() : Date.now();
+    const durationMs = (interview[0].duration || 30) * 60 * 1000;
     const elapsed = Date.now() - startTime;
     const timeRemaining = Math.max(0, Math.floor((durationMs - elapsed) / 1000));
 
@@ -151,8 +150,8 @@ router.post('/:sessionId/message', isAuthenticated, async (req: any, res) => {
     }
 
     // Check time limit
-    const startTime = new Date(currentInterview.startTime).getTime();
-    const durationMs = currentInterview.duration * 60 * 1000;
+    const startTime = currentInterview.startTime ? new Date(currentInterview.startTime).getTime() : Date.now();
+    const durationMs = (currentInterview.duration || 30) * 60 * 1000;
     const elapsed = Date.now() - startTime;
     
     if (elapsed > durationMs) {
@@ -174,10 +173,10 @@ router.post('/:sessionId/message', isAuthenticated, async (req: any, res) => {
 
     // Process the user's message
     const context = {
-      role: currentInterview.role,
-      interviewType: currentInterview.interviewType,
-      difficulty: currentInterview.difficulty,
-      totalQuestions: currentInterview.totalQuestions,
+      role: currentInterview.role || 'software_engineer',
+      interviewType: currentInterview.interviewType || 'technical',
+      difficulty: currentInterview.difficulty || 'medium',
+      totalQuestions: currentInterview.totalQuestions || 5,
       currentQuestionCount: currentInterview.questionsAsked || 0,
       personality: 'professional'
     };
@@ -259,21 +258,34 @@ router.get('/:sessionId/feedback', isAuthenticated, async (req: any, res) => {
       return res.status(401).json({ message: 'Not authenticated' });
     }
 
-    // Find the interview by sessionId and userId
+    // Find the interview by sessionId and userId - allow both completed and active interviews
     const interview = await db.select()
       .from(virtualInterviews)
       .where(and(
         eq(virtualInterviews.sessionId, sessionId),
-        eq(virtualInterviews.userId, userId),
-        eq(virtualInterviews.status, 'completed')
+        eq(virtualInterviews.userId, userId)
       ))
       .limit(1);
 
     if (!interview.length) {
-      return res.status(404).json({ message: 'Interview not found or not completed' });
+      return res.status(404).json({ message: 'Interview session not found. Please check the session ID and try again.' });
     }
 
     const interviewData = interview[0];
+    
+    // If interview is still active, auto-complete it to allow feedback viewing
+    if (interviewData.status === 'active') {
+      await db.update(virtualInterviews)
+        .set({ 
+          status: 'completed',
+          endTime: new Date()
+        })
+        .where(eq(virtualInterviews.id, interviewData.id));
+      
+      // Update local copy for feedback generation
+      interviewData.status = 'completed';
+      interviewData.endTime = new Date();
+    }
 
     // Get all messages for this interview
     const messages = await db.select()
@@ -285,7 +297,7 @@ router.get('/:sessionId/feedback', isAuthenticated, async (req: any, res) => {
     const feedback = {
       interviewId: interviewData.id,
       sessionId: sessionId,
-      completedAt: interviewData.completedAt,
+      completedAt: interviewData.endTime,
       duration: interviewData.duration,
       totalQuestions: interviewData.totalQuestions,
       questionsAsked: interviewData.questionsAsked || messages.filter(m => m.sender === 'interviewer').length,
@@ -445,19 +457,11 @@ function identifyStrengths(messages: any[]): string[] {
   const positiveMessages = candidateMessages.filter(msg => 
     msg.sentiment === 'positive').length;
     
-  if (positiveMessages > candidateMessages.length * 0.4) {
-    strengths.push('Positive attitude and enthusiasm');
+  if (positiveMessages > candidateMessages.length * 0.5) {
+    strengths.push('Maintains positive and professional communication');
   }
   
-  if (candidateMessages.some(msg => msg.content.toLowerCase().includes('team'))) {
-    strengths.push('Team collaboration awareness');
-  }
-  
-  if (candidateMessages.some(msg => msg.content.toLowerCase().includes('problem'))) {
-    strengths.push('Problem-solving mindset');
-  }
-  
-  return strengths.slice(0, 5); // Limit to top 5 strengths
+  return strengths.length > 0 ? strengths : ['Shows engagement and participation in the interview'];
 }
 
 function identifyImprovementAreas(messages: any[]): string[] {
@@ -470,33 +474,25 @@ function identifyImprovementAreas(messages: any[]): string[] {
     sum + msg.content.split(/\s+/).length, 0) / candidateMessages.length;
   
   if (avgWordCount < 20) {
-    areas.push('Provide more detailed responses to showcase expertise');
+    areas.push('Provide more detailed responses to demonstrate depth of knowledge');
   }
   
-  const shortResponses = candidateMessages.filter(msg => 
-    msg.content.split(/\s+/).length < 10).length;
+  const technicalMessages = candidateMessages.filter(msg => 
+    msg.content.toLowerCase().includes('technical') || 
+    msg.content.toLowerCase().includes('algorithm')).length;
     
-  if (shortResponses > candidateMessages.length * 0.5) {
-    areas.push('Expand on answers with examples and context');
+  if (technicalMessages < candidateMessages.length * 0.2) {
+    areas.push('Include more technical details and examples in responses');
   }
   
-  const avgResponseTime = calculateAverageResponseTime(messages);
-  if (avgResponseTime > 120) { // More than 2 minutes
-    areas.push('Consider preparing common interview topics for quicker responses');
-  }
-  
-  const technicalAccuracy = candidateMessages.filter(msg => 
-    msg.technicalAccuracy && msg.technicalAccuracy < 60).length;
+  const questionsAsked = candidateMessages.filter(msg => 
+    msg.content.includes('?')).length;
     
-  if (technicalAccuracy > 0) {
-    areas.push('Review technical concepts for improved accuracy');
+  if (questionsAsked === 0) {
+    areas.push('Ask clarifying questions to show curiosity and engagement');
   }
   
-  if (!candidateMessages.some(msg => msg.content.toLowerCase().includes('example'))) {
-    areas.push('Include specific examples to support your answers');
-  }
-  
-  return areas.slice(0, 4); // Limit to top 4 areas
+  return areas.length > 0 ? areas : ['Continue developing communication and technical skills'];
 }
 
 function generateKeyInsights(messages: any[]): string[] {
@@ -505,41 +501,59 @@ function generateKeyInsights(messages: any[]): string[] {
   
   if (candidateMessages.length === 0) return insights;
   
-  insights.push(`Answered ${candidateMessages.length} questions with an average response length of ${Math.round(candidateMessages.reduce((sum, msg) => sum + msg.content.split(/\s+/).length, 0) / candidateMessages.length)} words`);
+  const avgResponseTime = candidateMessages.reduce((sum, msg) => 
+    sum + (msg.responseTime || 30), 0) / candidateMessages.length;
   
-  const positiveResponses = candidateMessages.filter(msg => 
-    msg.sentiment === 'positive').length;
-  if (positiveResponses > 0) {
-    insights.push(`Maintained positive attitude in ${Math.round((positiveResponses / candidateMessages.length) * 100)}% of responses`);
+  if (avgResponseTime < 15) {
+    insights.push('Quick thinking and response time demonstrates preparedness');
+  } else if (avgResponseTime > 60) {
+    insights.push('Takes time to formulate thoughtful responses');
   }
   
-  const technicalContent = candidateMessages.filter(msg => 
-    msg.content.toLowerCase().match(/\b(technical|algorithm|code|database|api|framework)\b/)).length;
-  if (technicalContent > 0) {
-    insights.push(`Demonstrated technical knowledge in ${technicalContent} responses`);
+  const avgQuality = candidateMessages.reduce((sum, msg) => 
+    sum + (msg.responseQuality || 50), 0) / candidateMessages.length;
+  
+  if (avgQuality > 75) {
+    insights.push('Consistently high-quality responses throughout the interview');
   }
   
-  return insights;
+  return insights.length > 0 ? insights : ['Participated actively in the interview process'];
 }
 
 function generateRecommendations(messages: any[]): string[] {
   const recommendations: string[] = [];
+  const candidateMessages = messages.filter(m => m.sender === 'candidate');
   
-  recommendations.push('Continue practicing technical interview questions to build confidence');
-  recommendations.push('Prepare specific examples from your experience to illustrate your points');
-  recommendations.push('Practice explaining complex concepts in simple terms');
-  recommendations.push('Research the company and role to tailor your responses accordingly');
+  if (candidateMessages.length === 0) return recommendations;
+  
+  const avgWordCount = candidateMessages.reduce((sum, msg) => 
+    sum + msg.content.split(/\s+/).length, 0) / candidateMessages.length;
+  
+  if (avgWordCount < 30) {
+    recommendations.push('Practice elaborating on answers with specific examples and details');
+  }
+  
+  const technicalTerms = candidateMessages.filter(msg => {
+    const content = msg.content.toLowerCase();
+    return content.includes('algorithm') || content.includes('data structure') || 
+           content.includes('api') || content.includes('database');
+  }).length;
+  
+  if (technicalTerms < 2) {
+    recommendations.push('Strengthen technical vocabulary and discuss more technical concepts');
+  }
+  
+  recommendations.push('Continue practicing interview skills and technical communication');
+  recommendations.push('Consider doing more mock interviews to build confidence');
   
   return recommendations;
 }
 
 function calculateAverageResponseTime(messages: any[]): number {
-  const candidateMessages = messages.filter(m => 
-    m.sender === 'candidate' && m.responseTime && m.responseTime > 0);
-    
+  const candidateMessages = messages.filter(m => m.sender === 'candidate' && m.responseTime);
   if (candidateMessages.length === 0) return 0;
   
-  const totalTime = candidateMessages.reduce((sum, msg) => sum + msg.responseTime, 0);
+  const totalTime = candidateMessages.reduce((sum, msg) => sum + (msg.responseTime || 30), 0);
   return Math.round(totalTime / candidateMessages.length);
 }
 
