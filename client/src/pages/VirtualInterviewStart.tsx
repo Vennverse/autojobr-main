@@ -77,34 +77,7 @@ export default function VirtualInterviewStart() {
     }
   };
 
-  const startInterview = async () => {
-    try {
-      setLoading(true);
-      
-      const response = await apiRequest('/api/virtual-interview/start', 'POST', config);
 
-      toast({
-        title: "Interview Started",
-        description: "Your virtual interview has begun. Good luck!",
-      });
-
-      setLocation(`/virtual-interview/${response.sessionId}`);
-    } catch (error: any) {
-      console.error('Error starting interview:', error);
-      
-      if (error.message.includes('402')) {
-        setShowPayment(true);
-      } else {
-        toast({
-          title: "Error", 
-          description: "Failed to start interview. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const startChatInterview = async () => {
     try {
@@ -120,8 +93,8 @@ export default function VirtualInterviewStart() {
       });
 
       toast({
-        title: "Chat Interview Started",
-        description: "Your AI chat interview has begun. Good luck!",
+        title: "AI Interview Started",
+        description: "Your AI interview has begun. Good luck!",
       });
 
       setLocation(`/chat-interview/${response.sessionId}`);
@@ -326,7 +299,7 @@ export default function VirtualInterviewStart() {
                     </Card>
                   )}
 
-                  {/* Start Interview Buttons */}
+                  {/* Start Interview Button */}
                   {eligibility?.eligible && (
                     <div className="space-y-3">
                       <Button
@@ -334,36 +307,18 @@ export default function VirtualInterviewStart() {
                         disabled={loading}
                         className="w-full bg-emerald-600 hover:bg-emerald-700"
                         size="lg"
-                        data-testid="start-chat-interview"
+                        data-testid="start-ai-interview"
                       >
                         {loading ? (
                           <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Starting Chat Interview...
+                            Starting AI Interview...
                           </>
                         ) : (
                           <>
                             <MessageCircle className="w-4 h-4 mr-2" />
-                            Start Chat Interview (NEW)
+                            Start AI Interview
                           </>
-                        )}
-                      </Button>
-                      
-                      <Button
-                        onClick={startInterview}
-                        disabled={loading}
-                        variant="outline"
-                        className="w-full"
-                        size="lg"
-                        data-testid="start-traditional-interview"
-                      >
-                        {loading ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Starting Traditional Interview...
-                          </>
-                        ) : (
-                          'Start Traditional Interview'
                         )}
                       </Button>
                     </div>

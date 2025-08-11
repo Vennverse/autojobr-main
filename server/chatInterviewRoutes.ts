@@ -25,6 +25,55 @@ router.post('/start-chat', isAuthenticated, async (req: any, res) => {
       return res.status(401).json({ message: 'Not authenticated' });
     }
 
+    // Import the virtual interview stats table and update statistics
+    const { virtualInterviewStats } = await import('../shared/schema.js');
+    
+    // Update interview statistics to track usage
+    const currentStats = await db.select()
+      .from(virtualInterviewStats)
+      .where(eq(virtualInterviewStats.userId, userId))
+      .limit(1);
+
+    if (currentStats.length > 0) {
+      const stats = currentStats[0];
+      // Update existing stats
+      await db.update(virtualInterviewStats)
+        .set({ 
+          totalInterviews: stats.totalInterviews + 1,
+          freeInterviewsUsed: stats.freeInterviewsUsed + 1,
+          lastInterviewDate: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(virtualInterviewStats.userId, userId));
+    } else {
+      // Create new stats record
+      await db.insert(virtualInterviewStats).values({
+        userId: userId,
+        totalInterviews: 1,
+        completedInterviews: 0,
+        freeInterviewsUsed: 1,
+        monthlyInterviewsUsed: 1,
+        lastMonthlyReset: new Date(),
+        averageScore: 0,
+        bestScore: 0,
+        improvementRate: 0,
+        consistencyScore: 0,
+        technicalInterviewAvg: 0,
+        behavioralInterviewAvg: 0,
+        systemDesignAvg: 0,
+        strongestSkills: '',
+        improvingSkills: '',
+        needsWorkSkills: '',
+        totalTimeSpent: 0,
+        averageSessionLength: 0,
+        lastInterviewDate: new Date(),
+        milestonesAchieved: '',
+        nextMilestone: '',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+    }
+
     // Generate unique session ID
     const sessionId = crypto.randomBytes(32).toString('hex');
 
