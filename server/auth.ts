@@ -138,7 +138,8 @@ export async function setupAuth(app: Express) {
       const baseUrl = 'https://autojobr.com';
       
       if (provider === 'google' && authConfig.providers.google.enabled) {
-        const authUrl = `https://accounts.google.com/oauth2/v2/auth?client_id=${authConfig.providers.google.clientId}&redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/callback/google`)}&scope=openid%20email%20profile&response_type=code`;
+        const currentUrl = `${req.protocol}://${req.get('host')}`;
+        const authUrl = `https://accounts.google.com/oauth2/v2/auth?client_id=${authConfig.providers.google.clientId}&redirect_uri=${encodeURIComponent(`${currentUrl}/api/auth/callback/google`)}&scope=openid%20email%20profile&response_type=code`;
         res.json({ redirectUrl: authUrl });
       } else if (provider === 'github' && authConfig.providers.github.enabled) {
         const authUrl = `https://github.com/login/oauth/authorize?client_id=${authConfig.providers.github.clientId}&redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/callback/github`)}&scope=user:email`;
@@ -293,6 +294,128 @@ export async function setupAuth(app: Express) {
         redirectTo: "/" 
       });
     });
+  });
+
+  // Google OAuth callback handler
+  app.get('/api/auth/callback/google', async (req, res) => {
+    try {
+      const { code, error } = req.query;
+      
+      if (error) {
+        console.error('Google OAuth error:', error);
+        return res.redirect('/login?error=google_oauth_failed');
+      }
+      
+      if (!code) {
+        return res.redirect('/login?error=missing_code');
+      }
+      
+      // Exchange code for tokens
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: authConfig.providers.google.clientId!,
+          client_secret: authConfig.providers.google.clientSecret!,
+          code: code as string,
+          grant_type: 'authorization_code',
+          redirect_uri: `${req.protocol}://${req.get('host')}/api/auth/callback/google`,
+        }),
+      });
+      
+      const tokens = await tokenResponse.json();
+      
+      if (!tokens.access_token) {
+        console.error('Failed to get access token:', tokens);
+        return res.redirect('/login?error=token_exchange_failed');
+      }
+      
+      // Get user profile from Google
+      const profileResponse = await fetch(
+        `https://www.googleapis.com/oauth2/v2/userinfo?access_token=${tokens.access_token}`
+      );
+      const profile = await profileResponse.json();
+      
+      if (!profile.email) {
+        return res.redirect('/login?error=no_email');
+      }
+      
+      // Create or find user
+      let user;
+      try {
+        // Try to find existing user by email
+        const [existingUser] = await db.select().from(users).where(eq(users.email, profile.email));
+        
+        if (existingUser) {
+          // Update existing user with Google data
+          user = await storage.upsertUser({
+            ...existingUser,
+            profileImageUrl: profile.picture || existingUser.profileImageUrl,
+            emailVerified: true, // Google emails are pre-verified
+          });
+        } else {
+          // Create new user from Google profile
+          const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          user = await storage.upsertUser({
+            id: userId,
+            email: profile.email,
+            firstName: profile.given_name || 'User',
+            lastName: profile.family_name || '',
+            profileImageUrl: profile.picture,
+            userType: 'job_seeker', // Default to job seeker
+            emailVerified: true,
+            password: null, // OAuth users don't have passwords
+          });
+          
+          // Create user profile for new OAuth users
+          try {
+            await storage.upsertUserProfile({
+              userId: userId,
+              fullName: `${profile.given_name || ''} ${profile.family_name || ''}`.trim(),
+              freeRankingTestsRemaining: 1,
+              freeInterviewsRemaining: 5,
+              premiumInterviewsRemaining: 50,
+              totalInterviewsUsed: 0,
+              totalRankingTestsUsed: 0,
+              onboardingCompleted: false,
+              profileCompletion: 25, // OAuth signup gives more completion
+            });
+          } catch (profileError) {
+            console.error('Error creating OAuth user profile:', profileError);
+          }
+        }
+      } catch (dbError) {
+        console.error('Database error during Google OAuth:', dbError);
+        return res.redirect('/login?error=database_error');
+      }
+      
+      // Set session
+      (req as any).session.user = {
+        id: user.id,
+        email: user.email,
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        firstName: user.firstName,
+        lastName: user.lastName,
+        userType: user.userType
+      };
+      
+      // Save session and redirect
+      (req as any).session.save((err: any) => {
+        if (err) {
+          console.error('Session save error during Google OAuth:', err);
+          return res.redirect('/login?error=session_error');
+        }
+        
+        console.log('✅ Google OAuth login successful for:', user.email);
+        res.redirect('/?auth=google_success');
+      });
+      
+    } catch (error) {
+      console.error('Google OAuth callback error:', error);
+      res.redirect('/login?error=oauth_callback_failed');
+    }
   });
 
   // Email authentication routes
