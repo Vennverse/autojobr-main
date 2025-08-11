@@ -185,8 +185,35 @@ export default function VirtualInterviewStart() {
                           <SelectItem value="backend_developer">Backend Developer</SelectItem>
                           <SelectItem value="fullstack_developer">Full Stack Developer</SelectItem>
                           <SelectItem value="data_scientist">Data Scientist</SelectItem>
-                          <SelectItem value="product_manager">Product Manager</SelectItem>
+                          <SelectItem value="data_analyst">Data Analyst</SelectItem>
                           <SelectItem value="devops_engineer">DevOps Engineer</SelectItem>
+                          <SelectItem value="mobile_developer">Mobile Developer</SelectItem>
+                          <SelectItem value="qa_engineer">QA Engineer</SelectItem>
+                          <SelectItem value="cybersecurity_specialist">Cybersecurity Specialist</SelectItem>
+                          <SelectItem value="product_manager">Product Manager</SelectItem>
+                          <SelectItem value="project_manager">Project Manager</SelectItem>
+                          <SelectItem value="business_analyst">Business Analyst</SelectItem>
+                          <SelectItem value="sales_representative">Sales Representative</SelectItem>
+                          <SelectItem value="sales_manager">Sales Manager</SelectItem>
+                          <SelectItem value="account_manager">Account Manager</SelectItem>
+                          <SelectItem value="business_development">Business Development</SelectItem>
+                          <SelectItem value="marketing_manager">Marketing Manager</SelectItem>
+                          <SelectItem value="digital_marketing_specialist">Digital Marketing Specialist</SelectItem>
+                          <SelectItem value="content_marketing_specialist">Content Marketing Specialist</SelectItem>
+                          <SelectItem value="social_media_manager">Social Media Manager</SelectItem>
+                          <SelectItem value="financial_analyst">Financial Analyst</SelectItem>
+                          <SelectItem value="investment_banker">Investment Banker</SelectItem>
+                          <SelectItem value="accountant">Accountant</SelectItem>
+                          <SelectItem value="financial_planner">Financial Planner</SelectItem>
+                          <SelectItem value="hr_manager">HR Manager</SelectItem>
+                          <SelectItem value="talent_acquisition_specialist">Talent Acquisition Specialist</SelectItem>
+                          <SelectItem value="operations_manager">Operations Manager</SelectItem>
+                          <SelectItem value="supply_chain_manager">Supply Chain Manager</SelectItem>
+                          <SelectItem value="consulting">Management Consultant</SelectItem>
+                          <SelectItem value="ui_ux_designer">UI/UX Designer</SelectItem>
+                          <SelectItem value="graphic_designer">Graphic Designer</SelectItem>
+                          <SelectItem value="customer_success_manager">Customer Success Manager</SelectItem>
+                          <SelectItem value="customer_support_specialist">Customer Support Specialist</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

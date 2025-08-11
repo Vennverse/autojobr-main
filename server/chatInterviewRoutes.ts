@@ -36,19 +36,19 @@ router.post('/start-chat', isAuthenticated, async (req: any, res) => {
 
     if (currentStats.length > 0) {
       const stats = currentStats[0];
-      // Update existing stats
+      // Update existing stats - handle potential null values
       await db.update(virtualInterviewStats)
         .set({ 
-          totalInterviews: stats.totalInterviews + 1,
-          freeInterviewsUsed: stats.freeInterviewsUsed + 1,
+          totalInterviews: (stats.totalInterviews || 0) + 1,
+          freeInterviewsUsed: (stats.freeInterviewsUsed || 0) + 1,
           lastInterviewDate: new Date(),
           updatedAt: new Date()
         })
         .where(eq(virtualInterviewStats.userId, userId));
     } else {
-      // Create new stats record
+      // Create new stats record with proper field name
       await db.insert(virtualInterviewStats).values({
-        userId: userId,
+        userId,
         totalInterviews: 1,
         completedInterviews: 0,
         freeInterviewsUsed: 1,

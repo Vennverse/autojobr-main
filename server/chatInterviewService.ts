@@ -74,19 +74,115 @@ export class ChatInterviewService {
   }
 
   private initializeQuestionBank(): void {
-    // Initialize adaptive question strategies for different roles/types
-    this.questionBank.set('frontend', [
-      { questionType: 'technical', complexity: 'intermediate', domain: 'react', estimatedDuration: 180 },
-      { questionType: 'technical', complexity: 'intermediate', domain: 'javascript', estimatedDuration: 120 },
-      { questionType: 'scenario', complexity: 'intermediate', domain: 'performance', estimatedDuration: 240 },
+    // Software Engineering & IT Roles - Include coding questions
+    this.questionBank.set('software_engineer', [
+      { questionType: 'problem-solving', complexity: 'intermediate', domain: 'coding', estimatedDuration: 300 },
+      { questionType: 'technical', complexity: 'intermediate', domain: 'algorithms', estimatedDuration: 240 },
       { questionType: 'behavioral', complexity: 'basic', domain: 'teamwork', estimatedDuration: 150 },
+      { questionType: 'scenario', complexity: 'intermediate', domain: 'system-design', estimatedDuration: 200 },
     ]);
 
-    this.questionBank.set('backend', [
+    this.questionBank.set('frontend_developer', [
+      { questionType: 'problem-solving', complexity: 'intermediate', domain: 'frontend-coding', estimatedDuration: 300 },
+      { questionType: 'technical', complexity: 'intermediate', domain: 'javascript', estimatedDuration: 180 },
+      { questionType: 'technical', complexity: 'intermediate', domain: 'react', estimatedDuration: 200 },
+      { questionType: 'scenario', complexity: 'intermediate', domain: 'performance', estimatedDuration: 240 },
+    ]);
+
+    this.questionBank.set('backend_developer', [
+      { questionType: 'problem-solving', complexity: 'intermediate', domain: 'backend-coding', estimatedDuration: 300 },
       { questionType: 'technical', complexity: 'intermediate', domain: 'api-design', estimatedDuration: 200 },
       { questionType: 'technical', complexity: 'advanced', domain: 'database', estimatedDuration: 180 },
-      { questionType: 'problem-solving', complexity: 'intermediate', domain: 'scalability', estimatedDuration: 300 },
-      { questionType: 'scenario', complexity: 'intermediate', domain: 'system-design', estimatedDuration: 240 },
+      { questionType: 'scenario', complexity: 'intermediate', domain: 'scalability', estimatedDuration: 240 },
+    ]);
+
+    this.questionBank.set('data_scientist', [
+      { questionType: 'problem-solving', complexity: 'intermediate', domain: 'data-coding', estimatedDuration: 300 },
+      { questionType: 'technical', complexity: 'advanced', domain: 'machine-learning', estimatedDuration: 240 },
+      { questionType: 'technical', complexity: 'intermediate', domain: 'statistics', estimatedDuration: 180 },
+      { questionType: 'scenario', complexity: 'intermediate', domain: 'data-analysis', estimatedDuration: 200 },
+    ]);
+
+    this.questionBank.set('devops_engineer', [
+      { questionType: 'problem-solving', complexity: 'intermediate', domain: 'infrastructure-coding', estimatedDuration: 300 },
+      { questionType: 'technical', complexity: 'advanced', domain: 'cloud-architecture', estimatedDuration: 240 },
+      { questionType: 'technical', complexity: 'intermediate', domain: 'containerization', estimatedDuration: 180 },
+      { questionType: 'scenario', complexity: 'intermediate', domain: 'deployment', estimatedDuration: 200 },
+    ]);
+
+    // Sales Roles
+    this.questionBank.set('sales_representative', [
+      { questionType: 'behavioral', complexity: 'intermediate', domain: 'relationship-building', estimatedDuration: 180 },
+      { questionType: 'scenario', complexity: 'intermediate', domain: 'objection-handling', estimatedDuration: 240 },
+      { questionType: 'behavioral', complexity: 'intermediate', domain: 'persuasion', estimatedDuration: 200 },
+      { questionType: 'scenario', complexity: 'basic', domain: 'customer-needs', estimatedDuration: 150 },
+    ]);
+
+    this.questionBank.set('sales_manager', [
+      { questionType: 'behavioral', complexity: 'advanced', domain: 'team-leadership', estimatedDuration: 240 },
+      { questionType: 'scenario', complexity: 'advanced', domain: 'sales-strategy', estimatedDuration: 300 },
+      { questionType: 'behavioral', complexity: 'intermediate', domain: 'coaching', estimatedDuration: 180 },
+      { questionType: 'scenario', complexity: 'intermediate', domain: 'performance-management', estimatedDuration: 200 },
+    ]);
+
+    // Marketing Roles
+    this.questionBank.set('marketing_manager', [
+      { questionType: 'scenario', complexity: 'intermediate', domain: 'campaign-strategy', estimatedDuration: 300 },
+      { questionType: 'behavioral', complexity: 'intermediate', domain: 'creativity', estimatedDuration: 180 },
+      { questionType: 'technical', complexity: 'intermediate', domain: 'analytics', estimatedDuration: 200 },
+      { questionType: 'scenario', complexity: 'intermediate', domain: 'brand-management', estimatedDuration: 240 },
+    ]);
+
+    this.questionBank.set('digital_marketing_specialist', [
+      { questionType: 'technical', complexity: 'intermediate', domain: 'digital-campaigns', estimatedDuration: 240 },
+      { questionType: 'scenario', complexity: 'intermediate', domain: 'social-media-strategy', estimatedDuration: 200 },
+      { questionType: 'technical', complexity: 'intermediate', domain: 'seo-sem', estimatedDuration: 180 },
+      { questionType: 'behavioral', complexity: 'basic', domain: 'data-driven-thinking', estimatedDuration: 150 },
+    ]);
+
+    // Finance Roles
+    this.questionBank.set('financial_analyst', [
+      { questionType: 'technical', complexity: 'advanced', domain: 'financial-modeling', estimatedDuration: 300 },
+      { questionType: 'scenario', complexity: 'intermediate', domain: 'investment-analysis', estimatedDuration: 240 },
+      { questionType: 'technical', complexity: 'intermediate', domain: 'valuation', estimatedDuration: 200 },
+      { questionType: 'behavioral', complexity: 'intermediate', domain: 'attention-to-detail', estimatedDuration: 150 },
+    ]);
+
+    this.questionBank.set('investment_banker', [
+      { questionType: 'technical', complexity: 'expert', domain: 'deal-structuring', estimatedDuration: 400 },
+      { questionType: 'scenario', complexity: 'advanced', domain: 'client-presentation', estimatedDuration: 300 },
+      { questionType: 'behavioral', complexity: 'advanced', domain: 'pressure-handling', estimatedDuration: 180 },
+      { questionType: 'technical', complexity: 'advanced', domain: 'market-analysis', estimatedDuration: 240 },
+    ]);
+
+    // Product Management
+    this.questionBank.set('product_manager', [
+      { questionType: 'scenario', complexity: 'advanced', domain: 'product-strategy', estimatedDuration: 300 },
+      { questionType: 'behavioral', complexity: 'intermediate', domain: 'stakeholder-management', estimatedDuration: 200 },
+      { questionType: 'scenario', complexity: 'intermediate', domain: 'prioritization', estimatedDuration: 240 },
+      { questionType: 'technical', complexity: 'basic', domain: 'data-analysis', estimatedDuration: 180 },
+    ]);
+
+    // Other important roles
+    this.questionBank.set('business_analyst', [
+      { questionType: 'scenario', complexity: 'intermediate', domain: 'process-improvement', estimatedDuration: 240 },
+      { questionType: 'technical', complexity: 'intermediate', domain: 'requirements-gathering', estimatedDuration: 200 },
+      { questionType: 'behavioral', complexity: 'intermediate', domain: 'analytical-thinking', estimatedDuration: 180 },
+      { questionType: 'scenario', complexity: 'intermediate', domain: 'stakeholder-communication', estimatedDuration: 200 },
+    ]);
+
+    this.questionBank.set('hr_manager', [
+      { questionType: 'behavioral', complexity: 'advanced', domain: 'people-management', estimatedDuration: 240 },
+      { questionType: 'scenario', complexity: 'intermediate', domain: 'conflict-resolution', estimatedDuration: 200 },
+      { questionType: 'behavioral', complexity: 'intermediate', domain: 'empathy', estimatedDuration: 180 },
+      { questionType: 'scenario', complexity: 'intermediate', domain: 'policy-development', estimatedDuration: 220 },
+    ]);
+
+    this.questionBank.set('operations_manager', [
+      { questionType: 'scenario', complexity: 'intermediate', domain: 'process-optimization', estimatedDuration: 260 },
+      { questionType: 'behavioral', complexity: 'intermediate', domain: 'problem-solving', estimatedDuration: 200 },
+      { questionType: 'technical', complexity: 'intermediate', domain: 'resource-management', estimatedDuration: 180 },
+      { questionType: 'scenario', complexity: 'intermediate', domain: 'quality-control', estimatedDuration: 200 },
     ]);
   }
 
@@ -412,14 +508,84 @@ Remember: Your goal is to uncover the candidate's true capabilities through stra
 
   private getRoleSpecificGuidance(role: string): string {
     const roleGuidance: Record<string, string> = {
-      'frontend': `FRONTEND FOCUS: Assess UI/UX understanding, React/Vue knowledge, responsive design, browser compatibility, performance optimization, and accessibility.`,
-      'backend': `BACKEND FOCUS: Evaluate API design, database knowledge, server architecture, scalability, security practices, and system integration.`,
-      'fullstack': `FULLSTACK FOCUS: Test both frontend and backend capabilities, system architecture understanding, and end-to-end development approach.`,
-      'devops': `DEVOPS FOCUS: Assess CI/CD knowledge, infrastructure management, monitoring, automation, cloud services, and security practices.`,
-      'mobile': `MOBILE FOCUS: Evaluate platform-specific knowledge, mobile UX principles, performance optimization, device compatibility, and app store processes.`
+      // Technical Roles
+      'software_engineer': `SOFTWARE ENGINEER FOCUS: Assess algorithms, data structures, system design, code quality, problem-solving approach, and software architecture knowledge.`,
+      'frontend_developer': `FRONTEND FOCUS: Assess UI/UX understanding, React/Vue knowledge, responsive design, browser compatibility, performance optimization, and accessibility.`,
+      'backend_developer': `BACKEND FOCUS: Evaluate API design, database knowledge, server architecture, scalability, security practices, and system integration.`,
+      'fullstack_developer': `FULLSTACK FOCUS: Test both frontend and backend capabilities, system architecture understanding, and end-to-end development approach.`,
+      'data_scientist': `DATA SCIENCE FOCUS: Assess statistical knowledge, machine learning algorithms, data analysis, programming skills (Python/R), and business insight generation.`,
+      'devops_engineer': `DEVOPS FOCUS: Assess CI/CD knowledge, infrastructure management, monitoring, automation, cloud services, and security practices.`,
+      'mobile_developer': `MOBILE FOCUS: Evaluate platform-specific knowledge, mobile UX principles, performance optimization, device compatibility, and app store processes.`,
+      
+      // Sales Roles
+      'sales_representative': `SALES REP FOCUS: Assess relationship building, objection handling, customer needs identification, persuasion skills, and closing techniques.`,
+      'sales_manager': `SALES MANAGEMENT FOCUS: Evaluate team leadership, sales strategy, coaching abilities, performance management, and revenue optimization.`,
+      'account_manager': `ACCOUNT MANAGEMENT FOCUS: Assess client relationship management, upselling/cross-selling, customer retention, and strategic account planning.`,
+      'business_development': `BUSINESS DEV FOCUS: Evaluate market analysis, partnership development, strategic thinking, negotiation skills, and growth strategy.`,
+      
+      // Marketing Roles
+      'marketing_manager': `MARKETING FOCUS: Assess campaign strategy, brand management, market analysis, creative thinking, and ROI measurement.`,
+      'digital_marketing_specialist': `DIGITAL MARKETING FOCUS: Evaluate SEO/SEM, social media strategy, content marketing, analytics, and digital campaign optimization.`,
+      'content_marketing_specialist': `CONTENT MARKETING FOCUS: Assess content strategy, storytelling, audience engagement, SEO writing, and content performance analysis.`,
+      'social_media_manager': `SOCIAL MEDIA FOCUS: Evaluate platform expertise, community management, content creation, engagement strategies, and social media analytics.`,
+      
+      // Finance Roles
+      'financial_analyst': `FINANCIAL ANALYST FOCUS: Assess financial modeling, valuation techniques, market analysis, Excel proficiency, and investment analysis.`,
+      'investment_banker': `INVESTMENT BANKING FOCUS: Evaluate deal structuring, financial modeling, client presentation skills, market knowledge, and pressure handling.`,
+      'accountant': `ACCOUNTING FOCUS: Assess financial reporting, tax knowledge, audit procedures, regulatory compliance, and attention to detail.`,
+      'financial_planner': `FINANCIAL PLANNING FOCUS: Evaluate investment strategies, risk assessment, client advisory skills, and retirement planning expertise.`,
+      
+      // Management & Operations
+      'product_manager': `PRODUCT MANAGEMENT FOCUS: Assess product strategy, stakeholder management, prioritization skills, market analysis, and user experience understanding.`,
+      'project_manager': `PROJECT MANAGEMENT FOCUS: Evaluate planning skills, resource management, risk mitigation, team coordination, and delivery excellence.`,
+      'operations_manager': `OPERATIONS FOCUS: Assess process optimization, resource management, quality control, team leadership, and continuous improvement.`,
+      'hr_manager': `HR MANAGEMENT FOCUS: Evaluate people management, conflict resolution, policy development, talent acquisition, and organizational development.`,
+      'business_analyst': `BUSINESS ANALYSIS FOCUS: Assess requirements gathering, process improvement, data analysis, stakeholder communication, and solution design.`
     };
 
     return roleGuidance[role.toLowerCase()] || `ROLE-SPECIFIC FOCUS: Assess technical skills, problem-solving ability, and relevant experience for the ${role} position.`;
+  }
+
+  private getCodingQuestionGuidance(role: string): string {
+    const codingRoles = [
+      'software_engineer', 'frontend_developer', 'backend_developer', 
+      'fullstack_developer', 'data_scientist', 'devops_engineer', 
+      'mobile_developer', 'data_analyst', 'qa_engineer', 'cybersecurity_specialist'
+    ];
+
+    if (!codingRoles.includes(role.toLowerCase())) {
+      return '';
+    }
+
+    const codingGuidance: Record<string, string> = {
+      'software_engineer': `CODING QUESTIONS (Include 1-2 per interview):
+1. PROBLEM-SOLVING: Array manipulation, string processing, or basic algorithm (e.g., "Find the first non-repeating character in a string")
+2. JOB-SPECIFIC: System design coding question (e.g., "Design a simple rate limiter class" or "Implement a basic cache with TTL")`,
+
+      'frontend_developer': `CODING QUESTIONS (Include 1-2 per interview):
+1. PROBLEM-SOLVING: DOM manipulation or JavaScript logic (e.g., "Implement a debounce function")
+2. JOB-SPECIFIC: React/Component question (e.g., "Create a reusable modal component" or "Implement infinite scroll")`,
+
+      'backend_developer': `CODING QUESTIONS (Include 1-2 per interview):
+1. PROBLEM-SOLVING: Data structure manipulation (e.g., "Merge two sorted linked lists")
+2. JOB-SPECIFIC: API/Database question (e.g., "Design a REST endpoint for user authentication" or "Write a SQL query for user analytics")`,
+
+      'data_scientist': `CODING QUESTIONS (Include 1-2 per interview):
+1. PROBLEM-SOLVING: Statistical analysis or data processing (e.g., "Calculate moving average from a dataset")
+2. JOB-SPECIFIC: ML/Analytics question (e.g., "Implement a basic linear regression" or "Design A/B testing framework")`,
+
+      'devops_engineer': `CODING QUESTIONS (Include 1-2 per interview):
+1. PROBLEM-SOLVING: System automation script (e.g., "Write a script to monitor disk usage")
+2. JOB-SPECIFIC: Infrastructure question (e.g., "Design a CI/CD pipeline configuration" or "Implement health check system")`,
+
+      'mobile_developer': `CODING QUESTIONS (Include 1-2 per interview):
+1. PROBLEM-SOLVING: Algorithm for mobile constraints (e.g., "Optimize image loading for slow networks")
+2. JOB-SPECIFIC: Platform-specific question (e.g., "Implement pull-to-refresh" or "Design offline data sync")`
+    };
+
+    return codingGuidance[role.toLowerCase()] || `CODING QUESTIONS (Include 1-2 per interview):
+1. PROBLEM-SOLVING: Basic algorithm or data structure question
+2. JOB-SPECIFIC: Role-specific technical implementation question`;
   }
 
   private getAdaptiveDifficultyGuidance(context: InterviewContext): string {
