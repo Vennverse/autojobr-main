@@ -125,3 +125,13 @@ AutoJobr is a comprehensive job application platform designed to connect job see
   - **Provider Status**: Google OAuth now enabled and functional (/api/auth/providers shows google: true)
   - **Production Domain Fix**: Fixed redirect URI consistency for production deployment at autojobr.com
   - **Enhanced Debugging**: Added environment variable validation and detailed error logging for OAuth troubleshooting
+- **VM Deployment Script Fix** (August 11, 2025): ✅ COMPLETED - Comprehensive rewrite of vm-deployment.sh
+  - **Database Permissions Fix**: Added SUPERUSER privileges and comprehensive schema permissions to resolve migration failures
+  - **Environment Variable Loading**: Fixed PM2 .env file loading with proper export and env_file configuration
+  - **Password Generation Fix**: Generate clean passwords without special characters (=, +, /) to prevent sed command failures
+  - **PM2 Configuration**: Proper ecosystem.config.cjs with environment file loading and production optimizations
+  - **Nginx Enhancement**: Comprehensive reverse proxy with security headers, buffer optimization, and timeout configuration
+  - **Service Verification**: Added comprehensive status checks and deployment verification
+  - **Security Features**: Firewall configuration, security headers, and proper service hardening
+  - **Production Ready**: Memory limits, restart policies, health checks, and monitoring capabilities
+  - **Error Handling**: Proper exit codes, detailed error messages, and recovery instructions

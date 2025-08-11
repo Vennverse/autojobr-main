@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRoute } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import Editor from "@monaco-editor/react";
+
+// Lazy load Monaco Editor to reduce initial bundle size by ~800KB
+const Editor = lazy(() => import("@monaco-editor/react"));
 import { 
   Timer, 
   CheckCircle, 
@@ -657,20 +659,31 @@ export default function MockInterviewSession() {
                         Code ({session.interview.language})
                       </label>
                       <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-                        <Editor
-                          height="300px"
-                          defaultLanguage={session.interview.language}
-                          value={userCode}
-                          onChange={(value) => setUserCode(value || '')}
-                          theme="vs-dark"
-                          options={{
-                            minimap: { enabled: false },
-                            fontSize: 14,
-                            lineNumbers: 'on',
-                            wordWrap: 'on',
-                            automaticLayout: true,
-                          }}
-                        />
+                        <Suspense
+                          fallback={
+                            <div className="flex items-center justify-center h-[300px] bg-gray-50 dark:bg-gray-900">
+                              <div className="flex items-center space-x-2">
+                                <div className="animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                                <span className="text-sm text-gray-600 dark:text-gray-400">Loading code editor...</span>
+                              </div>
+                            </div>
+                          }
+                        >
+                          <Editor
+                            height="300px"
+                            defaultLanguage={session.interview.language}
+                            value={userCode}
+                            onChange={(value) => setUserCode(value || '')}
+                            theme="vs-dark"
+                            options={{
+                              minimap: { enabled: false },
+                              fontSize: 14,
+                              lineNumbers: 'on',
+                              wordWrap: 'on',
+                              automaticLayout: true,
+                            }}
+                          />
+                        </Suspense>
                       </div>
                       
                       {/* Run Code Button and Output */}
