@@ -1,0 +1,13 @@
+HTTP/1.1 200 OK
+Access-Control-Allow-Credentials: true
+Content-Length: 138
+Content-Type: application/json; charset=utf-8
+Date: Wed, 30 Jul 2025 12:40:40 GMT
+Etag: W/"8a-xb87GLldgCTj3wWlH0LabJwkmfw"
+Replit-Cluster: picard
+Set-Cookie: autojobr.sid=s%3A1ev95B448XDZ9Tu1w6R-3RVu-0KzgIVD.ADMbWdAKbTZua3mtcHjTytIKeoXl7WYd4V8UTo5PIg4; Path=/; Expires=Thu, 30 Jul 2026 12:40:40 GMT; HttpOnly; Secure; SameSite=None
+Vary: Origin, Accept-Encoding
+X-Powered-By: Express
+X-Robots-Tag: none, noindex, noarchive, nofollow, nositelinkssearchbox, noimageindex
+X-Robots-Tag: none, noindex, noarchive, nofollow, nositelinkssearchbox, noimageindex
+

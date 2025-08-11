@@ -1,0 +1,46 @@
+========================================
+RESUME UPLOAD FIX - COPY THESE COMMANDS TO YOUR VM
+========================================
+
+The issue is that your VM database has a 'file_path' column but the app code tries to store 'fileData'.
+Run these exact commands on your VM to fix it:
+
+1. Connect to your database (replace with your actual DATABASE_URL):
+   psql "postgresql://your_user:your_password@your_host:5432/autojobr"
+
+2. Run these SQL commands:
+   ALTER TABLE resumes ADD COLUMN IF NOT EXISTS file_data TEXT;
+   ALTER TABLE resumes ALTER COLUMN file_path DROP NOT NULL;
+
+3. Verify the fix:
+   SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = 'resumes' AND column_name IN ('file_path', 'file_data') ORDER BY column_name;
+
+4. Restart your application:
+   pm2 restart autojobr
+
+5. Test resume upload - it should now work!
+
+========================================
+ALTERNATIVE: If you don't have psql access
+========================================
+
+Create this file on your VM as 'fix_db.js':
+
+const { Pool } = require('pg');
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+async function fix() {
+  try {
+    await pool.query('ALTER TABLE resumes ADD COLUMN IF NOT EXISTS file_data TEXT');
+    await pool.query('ALTER TABLE resumes ALTER COLUMN file_path DROP NOT NULL');
+    console.log('Fixed!');
+  } catch (err) {
+    console.error('Error:', err);
+  }
+  process.exit();
+}
+fix();
+
+Then run: node fix_db.js
+
+========================================
