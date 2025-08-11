@@ -317,6 +317,15 @@ export async function setupAuth(app: Express) {
       }
       
       // Exchange code for tokens
+      const redirectUri = process.env.NODE_ENV === 'production' ? 'https://autojobr.com/api/auth/callback/google' : `${req.protocol}://${req.get('host')}/api/auth/callback/google`;
+      
+      console.log('🔍 Google OAuth Token Exchange Details:');
+      console.log('  - Client ID:', authConfig.providers.google.clientId?.substring(0, 20) + '...');
+      console.log('  - Redirect URI:', redirectUri);
+      console.log('  - NODE_ENV:', process.env.NODE_ENV);
+      console.log('  - Request Host:', req.get('host'));
+      console.log('  - Request Protocol:', req.protocol);
+      
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: {
@@ -327,7 +336,7 @@ export async function setupAuth(app: Express) {
           client_secret: authConfig.providers.google.clientSecret!,
           code: code as string,
           grant_type: 'authorization_code',
-          redirect_uri: process.env.NODE_ENV === 'production' ? 'https://autojobr.com/api/auth/callback/google' : `${req.protocol}://${req.get('host')}/api/auth/callback/google`,
+          redirect_uri: redirectUri,
         }),
       });
       
