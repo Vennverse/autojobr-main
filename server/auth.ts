@@ -1447,9 +1447,15 @@ export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
 // Clean up stale cache entries periodically
 setInterval(() => {
   const now = Date.now();
-  for (const [userId, cached] of userSessionCache.entries()) {
+  const entriesToDelete: string[] = [];
+  
+  userSessionCache.forEach((cached, userId) => {
     if ((now - cached.lastCheck) > USER_CACHE_TTL * 2) {
-      userSessionCache.delete(userId);
+      entriesToDelete.push(userId);
     }
-  }
+  });
+  
+  entriesToDelete.forEach(userId => {
+    userSessionCache.delete(userId);
+  });
 }, USER_CACHE_TTL);

@@ -125,3 +125,6 @@ AutoJobr is a comprehensive job application platform designed to connect job see
   - **Provider Status**: Google OAuth now enabled and functional (/api/auth/providers shows google: true)
   - **Production Domain Fix**: Fixed redirect URI consistency for production deployment at autojobr.com
   - **Enhanced Debugging**: Added environment variable validation and detailed error logging for OAuth troubleshooting
+  - **TypeScript Compilation Fix**: Resolved MapIterator compilation error preventing successful builds
+  - **PM2 Configuration Update**: Updated ecosystem.config.cjs to properly execute TypeScript using tsx
+  - **Deployment Script**: Created automated deploy.sh script for streamlined production deployment
