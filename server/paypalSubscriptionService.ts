@@ -43,9 +43,7 @@ interface PayPalSubscription {
 }
 
 export class PayPalSubscriptionService {
-  private readonly BASE_URL = process.env.NODE_ENV === 'production' 
-    ? 'https://api-m.paypal.com' 
-    : 'https://api-m.sandbox.paypal.com';
+  private readonly BASE_URL = 'https://api-m.paypal.com'; // Use production PayPal API since we have production credentials
   
   private readonly CLIENT_ID = process.env.PAYPAL_CLIENT_ID;
   private readonly CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET;
@@ -98,8 +96,8 @@ export class PayPalSubscriptionService {
       description: `${tierName} subscription plan for ${userType}s on AutoJobr platform`,
       type: "SERVICE",
       category: this.PRODUCT_CATEGORIES[userType.toUpperCase() as keyof typeof this.PRODUCT_CATEGORIES],
-      image_url: "https://your-domain.com/logo.png", // You can add your logo URL
-      home_url: "https://autojobr.com"
+      image_url: `https://${process.env.REPL_SLUG}--${process.env.REPL_OWNER}.replit.app/logo.png`,
+      home_url: `https://${process.env.REPL_SLUG}--${process.env.REPL_OWNER}.replit.app`
     };
 
     try {
@@ -205,8 +203,8 @@ export class PayPalSubscriptionService {
             payer_selected: "PAYPAL",
             payee_preferred: "IMMEDIATE_PAYMENT_REQUIRED"
           },
-          return_url: `https://autojobr.com/subscription/success?userId=${userId}`,
-          cancel_url: `https://autojobr.com/subscription/cancel`
+          return_url: `https://${process.env.REPL_SLUG}--${process.env.REPL_OWNER}.replit.app/subscription/success?userId=${userId}`,
+          cancel_url: `https://${process.env.REPL_SLUG}--${process.env.REPL_OWNER}.replit.app/subscription/cancel`
         }
       };
 
