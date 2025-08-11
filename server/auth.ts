@@ -42,6 +42,13 @@ export async function setupAuth(app: Express) {
   // Setup session middleware with proper memory store
   console.log('🔑 Setting up session middleware...');
   
+  // Debug environment variables for Google OAuth
+  console.log('🔍 Google OAuth Configuration:');
+  console.log('  - GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'Set ✓' : 'Missing ✗');
+  console.log('  - GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'Set ✓' : 'Missing ✗');
+  console.log('  - NODE_ENV:', process.env.NODE_ENV || 'development');
+  console.log('  - Google OAuth Enabled:', authConfig.providers.google.enabled);
+  
   const MemoryStoreConstructor = MemoryStore(session);
   const sessionStore = new MemoryStoreConstructor({
     checkPeriod: 86400000 // prune expired entries every 24h
@@ -135,11 +142,10 @@ export async function setupAuth(app: Express) {
       }
     } else {
       // For OAuth providers, redirect to their auth URLs
-      const baseUrl = 'https://autojobr.com';
+      const baseUrl = process.env.NODE_ENV === 'production' ? 'https://autojobr.com' : `${req.protocol}://${req.get('host')}`;
       
       if (provider === 'google' && authConfig.providers.google.enabled) {
-        const currentUrl = `${req.protocol}://${req.get('host')}`;
-        const authUrl = `https://accounts.google.com/oauth2/v2/auth?client_id=${authConfig.providers.google.clientId}&redirect_uri=${encodeURIComponent(`${currentUrl}/api/auth/callback/google`)}&scope=openid%20email%20profile&response_type=code`;
+        const authUrl = `https://accounts.google.com/oauth2/v2/auth?client_id=${authConfig.providers.google.clientId}&redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/callback/google`)}&scope=openid%20email%20profile&response_type=code`;
         res.json({ redirectUrl: authUrl });
       } else if (provider === 'github' && authConfig.providers.github.enabled) {
         const authUrl = `https://github.com/login/oauth/authorize?client_id=${authConfig.providers.github.clientId}&redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/callback/github`)}&scope=user:email`;
@@ -321,14 +327,19 @@ export async function setupAuth(app: Express) {
           client_secret: authConfig.providers.google.clientSecret!,
           code: code as string,
           grant_type: 'authorization_code',
-          redirect_uri: `${req.protocol}://${req.get('host')}/api/auth/callback/google`,
+          redirect_uri: process.env.NODE_ENV === 'production' ? 'https://autojobr.com/api/auth/callback/google' : `${req.protocol}://${req.get('host')}/api/auth/callback/google`,
         }),
       });
       
       const tokens = await tokenResponse.json();
       
+      console.log('🔍 Google token exchange response status:', tokenResponse.status);
+      console.log('🔍 Google token exchange response:', JSON.stringify(tokens, null, 2));
+      
       if (!tokens.access_token) {
-        console.error('Failed to get access token:', tokens);
+        console.error('❌ Failed to get access token from Google:', tokens);
+        console.error('❌ Token exchange URL was:', `https://oauth2.googleapis.com/token`);
+        console.error('❌ Redirect URI used:', process.env.NODE_ENV === 'production' ? 'https://autojobr.com/api/auth/callback/google' : `${req.protocol}://${req.get('host')}/api/auth/callback/google`);
         return res.redirect('/login?error=token_exchange_failed');
       }
       

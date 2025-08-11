@@ -123,3 +123,5 @@ AutoJobr is a comprehensive job application platform designed to connect job see
   - **Session Management**: Integrated with existing session-based authentication system
   - **Dynamic Redirect URLs**: Uses current host for callback URLs (works on any domain/VM)
   - **Provider Status**: Google OAuth now enabled and functional (/api/auth/providers shows google: true)
+  - **Production Domain Fix**: Fixed redirect URI consistency for production deployment at autojobr.com
+  - **Enhanced Debugging**: Added environment variable validation and detailed error logging for OAuth troubleshooting
