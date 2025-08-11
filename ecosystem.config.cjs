@@ -1,8 +1,7 @@
 module.exports = {
  apps: [{
    name: 'autojobr',
-   script: 'npx',
-   args: 'tsx server/index.ts',
+   script: 'dist/index.js',
    instances: 1,
    env_file: '.env',
    error_file: './logs/err.log',
