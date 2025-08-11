@@ -1,0 +1,104 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://autojobr.com/#website",
+      "url": "https://autojobr.com/",
+      "name": "AutoJobr - Free Job Application Automation Platform",
+      "description": "FREE job application automation platform that helps job seekers apply to 1000+ jobs instantly, beat ATS systems, and get hired 10x faster.",
+      "publisher": {
+        "@id": "https://autojobr.com/#organization"
+      },
+      "potentialAction": [
+        {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://autojobr.com/jobs?search={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
+      ],
+      "inLanguage": "en-US"
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://autojobr.com/#organization",
+      "name": "AutoJobr",
+      "url": "https://autojobr.com/",
+      "logo": {
+        "@type": "ImageObject",
+        "inLanguage": "en-US",
+        "@id": "https://autojobr.com/#/schema/logo/image/",
+        "url": "https://autojobr.com/logo.png",
+        "contentUrl": "https://autojobr.com/logo.png",
+        "width": 512,
+        "height": 512,
+        "caption": "AutoJobr Logo"
+      },
+      "image": {
+        "@id": "https://autojobr.com/#/schema/logo/image/"
+      },
+      "sameAs": [
+        "https://twitter.com/autojobr",
+        "https://linkedin.com/company/autojobr",
+        "https://facebook.com/autojobr",
+        "https://instagram.com/autojobr"
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+1-555-AUTOJOBR",
+        "contactType": "customer service",
+        "availableLanguage": ["English"]
+      }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "AutoJobr - Job Application Automation",
+      "operatingSystem": "Web Browser, Chrome Extension",
+      "applicationCategory": "BusinessApplication",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "reviewCount": "50000"
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock"
+      },
+      "description": "Free job application automation platform that applies to 1000+ jobs instantly, beats ATS systems, and helps users get hired 10x faster."
+    },
+    {
+      "@type": "Service",
+      "name": "Job Application Automation Service",
+      "description": "Automated job application service that applies to hundreds of jobs on behalf of job seekers",
+      "provider": {
+        "@id": "https://autojobr.com/#organization"
+      },
+      "areaServed": "Worldwide",
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Job Application Services",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Free Job Application Automation"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service", 
+              "name": "Premium AI Resume Optimization"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
