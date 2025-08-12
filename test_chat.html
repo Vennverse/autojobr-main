@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat Test</title>
+</head>
+<body>
+    <div id="messages"></div>
+    <input type="text" id="messageInput" placeholder="Type message...">
+    <button onclick="sendMessage()">Send</button>
+    
+    <script>
+        // Test chat functionality
+        async function sendMessage() {
+            const message = document.getElementById('messageInput').value;
+            if (!message.trim()) return;
+            
+            try {
+                const response = await fetch('/api/simple-chat/conversations/1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ message: message })
+                });
+                
+                const result = await response.json();
+                console.log('Message sent:', result);
+                document.getElementById('messageInput').value = '';
+                
+                // Add to messages display
+                const messagesDiv = document.getElementById('messages');
+                messagesDiv.innerHTML += `<div>You: ${message}</div>`;
+            } catch (error) {
+                console.error('Error sending message:', error);
+            }
+        }
+        
+        // Test WebSocket
+        const ws = new WebSocket(`ws://${window.location.host}/ws`);
+        ws.onopen = function() {
+            console.log('WebSocket connected');
+            ws.send(JSON.stringify({
+                type: 'authenticate',
+                userId: 'user-1754048246842-ix1ppxb0h'
+            }));
+        };
+        
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            console.log('WebSocket message:', data);
+        };
+        
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>

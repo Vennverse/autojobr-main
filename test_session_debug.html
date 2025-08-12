@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Extension Authentication</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; }
+        .error { background-color: #f8d7da; }
+        button { margin: 5px; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Test Extension Authentication</h1>
+    
+    <button onclick="testLogin()">Test Login</button>
+    <button onclick="testProfile()">Test Profile</button>
+    <button onclick="checkCookies()">Check Cookies</button>
+    
+    <div id="results"></div>
+    
+    <script>
+        const API_BASE = 'https://fce2901e-6020-4c23-97dc-13c7fd7f97c3-00-15wzli1eenkr6.picard.replit.dev';
+        
+        function addResult(message, isSuccess = false) {
+            const div = document.createElement('div');
+            div.className = `result ${isSuccess ? 'success' : 'error'}`;
+            div.innerHTML = message;
+            document.getElementById('results').appendChild(div);
+        }
+        
+        async function testLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/signin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        provider: 'credentials',
+                        email: 'shubhamdubeyskd2001@gmail.com',
+                        password: '12345678'
+                    })
+                });
+                
+                const data = await response.json();
+                addResult(`Login: ${JSON.stringify(data)}`, response.ok);
+            } catch (error) {
+                addResult(`Login Error: ${error.message}`);
+            }
+        }
+        
+        async function testProfile() {
+            try {
+                const response = await fetch(`${API_BASE}/api/extension/profile`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                addResult(`Profile: ${JSON.stringify(data)}`, response.ok);
+            } catch (error) {
+                addResult(`Profile Error: ${error.message}`);
+            }
+        }
+        
+        function checkCookies() {
+            addResult(`Cookies: ${document.cookie}`, true);
+        }
+    </script>
+</body>
+</html>
