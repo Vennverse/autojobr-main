@@ -8,13 +8,16 @@ You're at: `/var/www/autojobr` and the code is in `autojobr-main` directory.
 # Move into the application directory
 cd autojobr-main
 
-# Install dependencies
+# Install dependencies (including missing ones)
 npm install
+npm install jsonwebtoken
+npm install @types/jsonwebtoken --save-dev
+npm install dotenv
 
 # Create environment file
 cat > .env << EOF
 NODE_ENV=production
-PORT=3000
+PORT=5000
 DATABASE_URL=postgresql://autojobr_user:secure_password_123@localhost:5432/autojobr
 
 # Add your API keys here (replace with real values)
@@ -48,16 +51,16 @@ npm run build
 
 ## Step 3: Test the application
 ```bash
-# Test run the application
-npm start
+# Test run the application with explicit environment variable
+DATABASE_URL=postgresql://autojobr_user:secure_password_123@localhost:5432/autojobr npm start
 ```
 
-If everything works, you should see the application starting. Press `Ctrl+C` to stop it, then proceed to Step 4.
+If everything works, you should see the application starting on port 5000. Press `Ctrl+C` to stop it, then proceed to Step 4.
 
 ## Step 4: Set up PM2 for production
 ```bash
-# Create PM2 ecosystem file
-cat > ecosystem.config.js << EOF
+# Create PM2 ecosystem file (use .cjs for CommonJS module)
+cat > ecosystem.config.cjs << EOF
 module.exports = {
   apps: [{
     name: 'autojobr',
@@ -69,7 +72,25 @@ module.exports = {
     },
     env_production: {
       NODE_ENV: 'production',
-      PORT: 3000
+      PORT: 5000,
+      DATABASE_URL: 'postgresql://autojobr_user:secure_password_123@localhost:5432/autojobr',
+      SESSION_SECRET: '8qDofFZSkswgdWpoAXg2dwRF4HsO+N5NK0VOjCCztvI=',
+      
+      // AI Services
+      GROQ_API_KEY: 'your_groq_api_key_here',
+      
+      // Payment Services
+      STRIPE_SECRET_KEY: 'your_stripe_secret_key_here',
+      STRIPE_PUBLISHABLE_KEY: 'your_stripe_publishable_key_here',
+      PAYPAL_CLIENT_ID: 'your_paypal_client_id_here',
+      PAYPAL_CLIENT_SECRET: 'your_paypal_client_secret_here',
+      
+      // Email Service
+      RESEND_API_KEY: 'your_resend_api_key_here',
+      
+      // OAuth (optional)
+      GOOGLE_CLIENT_ID: 'your_google_client_id_here',
+      GOOGLE_CLIENT_SECRET: 'your_google_client_secret_here'
     },
     error_file: './logs/err.log',
     out_file: './logs/out.log',
@@ -83,7 +104,7 @@ EOF
 mkdir -p logs
 
 # Start application with PM2
-pm2 start ecosystem.config.js --env production
+pm2 start ecosystem.config.cjs --env production
 pm2 save
 ```
 
@@ -96,7 +117,7 @@ pm2 status
 pm2 logs autojobr
 
 # Test if application responds
-curl -I http://localhost:3000
+curl -I http://localhost:5000
 ```
 
 ## Step 6: Configure Nginx (if not done already)
@@ -115,7 +136,7 @@ server {
     add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
 
     location / {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:5000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -129,7 +150,7 @@ server {
 
     # WebSocket support
     location /ws {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:5000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -171,7 +192,8 @@ If you encounter issues:
 2. **Database connection fails**: Verify PostgreSQL is running: `sudo systemctl status postgresql`
 3. **Build fails**: Check for any TypeScript errors in the logs
 4. **PM2 won't start**: Check the logs with `pm2 logs autojobr`
-5. **Nginx 502 error**: Ensure the application is running on port 3000
+5. **Environment variables not loading**: Use `.cjs` extension for ecosystem config and include all variables in the config file
+6. **Nginx 502 error**: Ensure the application is running on port 5000
 
 ## API Keys Setup
 
@@ -183,5 +205,9 @@ Remember to replace the placeholder API keys in `.env` with real ones:
 
 After updating API keys, restart the application:
 ```bash
+# Edit the ecosystem config file to add real API keys
+nano ecosystem.config.cjs
+
+# Restart application to load new keys
 pm2 restart autojobr
 ```

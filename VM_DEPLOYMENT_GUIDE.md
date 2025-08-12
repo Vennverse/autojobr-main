@@ -85,9 +85,14 @@ cd /var/www/autojobr
 
 # Clone your repository (replace with your actual repo URL)
 git clone <YOUR_REPOSITORY_URL> .
+# Note: If repository is downloaded as autojobr-main folder, move into it:
+cd autojobr-main
 
-# Install dependencies
+# Install dependencies (including missing ones)
 npm install
+npm install jsonwebtoken
+npm install @types/jsonwebtoken --save-dev
+npm install dotenv
 
 # Create environment file
 cat > .env << EOF
@@ -128,8 +133,8 @@ npm run build
 ## Step 8: Configure PM2
 
 ```bash
-# Create PM2 ecosystem file
-cat > ecosystem.config.js << EOF
+# Create PM2 ecosystem file (use .cjs for CommonJS module)
+cat > ecosystem.config.cjs << EOF
 module.exports = {
   apps: [{
     name: 'autojobr',
@@ -141,7 +146,25 @@ module.exports = {
     },
     env_production: {
       NODE_ENV: 'production',
-      PORT: 3000
+      PORT: 5000,
+      DATABASE_URL: 'postgresql://autojobr_user:secure_password_123@localhost:5432/autojobr',
+      SESSION_SECRET: '$(openssl rand -base64 32)',
+      
+      // AI Services
+      GROQ_API_KEY: 'your_groq_api_key_here',
+      
+      // Payment Services
+      STRIPE_SECRET_KEY: 'your_stripe_secret_key_here',
+      STRIPE_PUBLISHABLE_KEY: 'your_stripe_publishable_key_here',
+      PAYPAL_CLIENT_ID: 'your_paypal_client_id_here',
+      PAYPAL_CLIENT_SECRET: 'your_paypal_client_secret_here',
+      
+      // Email Service
+      RESEND_API_KEY: 'your_resend_api_key_here',
+      
+      // OAuth (optional)
+      GOOGLE_CLIENT_ID: 'your_google_client_id_here',
+      GOOGLE_CLIENT_SECRET: 'your_google_client_secret_here'
     },
     error_file: './logs/err.log',
     out_file: './logs/out.log',
@@ -155,7 +178,7 @@ EOF
 mkdir -p logs
 
 # Start application with PM2
-pm2 start ecosystem.config.js --env production
+pm2 start ecosystem.config.cjs --env production
 pm2 save
 ```
 
@@ -183,7 +206,7 @@ server {
     gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss;
 
     location / {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:5000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -197,7 +220,7 @@ server {
 
     # WebSocket support
     location /ws {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:5000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -319,7 +342,7 @@ sudo systemctl status postgresql
 pm2 status
 
 # Check if application is accessible
-curl -I http://localhost:3000
+curl -I http://localhost:5000
 curl -I http://your-domain.com
 
 # Check logs for any errors
@@ -376,7 +399,7 @@ free -h
 
 1. **Application won't start**: Check logs with `pm2 logs autojobr`
 2. **Database connection failed**: Verify PostgreSQL is running and credentials are correct
-3. **502 Bad Gateway**: Check if application is running on port 3000
+3. **502 Bad Gateway**: Check if application is running on port 5000
 4. **Permission denied**: Ensure proper file permissions and ownership
 
 ### Quick Fixes:
@@ -388,7 +411,7 @@ sudo systemctl restart postgresql
 pm2 restart all
 
 # Check port usage
-sudo netstat -tlnp | grep :3000
+sudo netstat -tlnp | grep :5000
 sudo netstat -tlnp | grep :80
 
 # Check disk space
