@@ -142,19 +142,16 @@ export async function setupAuth(app: Express) {
         const host = req.get('host');
         let currentUrl;
         
-        // For now, use autojobr.com for all environments to avoid Google OAuth issues
-        // TODO: Switch back to dynamic domains once Google Console is properly configured
-        currentUrl = 'https://autojobr.com';
-        
-        // Check if we're in development/Replit environment (commented for now)
-        // if (host && (host.includes('repl.co') || host.includes('replit.dev'))) {
-        //   currentUrl = `https://${host}`;
-        // } else if (host === 'autojobr.com') {
-        //   currentUrl = 'https://autojobr.com';
-        // } else {
-        //   // Fallback for other environments
-        //   currentUrl = `${req.protocol}://${host}`;
-        // }
+        // Use the actual request host for token exchange to work properly
+        if (host && (host.includes('repl.co') || host.includes('replit.dev'))) {
+          currentUrl = `https://${host}`;
+        } else if (host === 'autojobr.com') {
+          currentUrl = 'https://autojobr.com';
+        } else {
+          // For development, use the actual host
+          currentUrl = `${req.protocol}://${host}`;
+        }
+
         
         const authUrl = `https://accounts.google.com/oauth2/v2/auth?client_id=${authConfig.providers.google.clientId}&redirect_uri=${encodeURIComponent(`${currentUrl}/api/auth/callback/google`)}&scope=openid%20email%20profile&response_type=code`;
         res.json({ redirectUrl: authUrl });
@@ -338,7 +335,16 @@ export async function setupAuth(app: Express) {
           client_secret: authConfig.providers.google.clientSecret!,
           code: code as string,
           grant_type: 'authorization_code',
-          redirect_uri: 'https://autojobr.com/api/auth/callback/google',
+          redirect_uri: (() => {
+            const host = req.get('host');
+            if (host && (host.includes('repl.co') || host.includes('replit.dev'))) {
+              return `https://${host}/api/auth/callback/google`;
+            } else if (host === 'autojobr.com') {
+              return 'https://autojobr.com/api/auth/callback/google';
+            } else {
+              return `${req.protocol}://${host}/api/auth/callback/google`;
+            }
+          })(),
         }),
       });
       
@@ -346,6 +352,17 @@ export async function setupAuth(app: Express) {
       
       if (!tokens.access_token) {
         console.error('Failed to get access token:', tokens);
+        console.error('Request host:', req.get('host'));
+        console.error('Redirect URI used:', (() => {
+          const host = req.get('host');
+          if (host && (host.includes('repl.co') || host.includes('replit.dev'))) {
+            return `https://${host}/api/auth/callback/google`;
+          } else if (host === 'autojobr.com') {
+            return 'https://autojobr.com/api/auth/callback/google';
+          } else {
+            return `${req.protocol}://${host}/api/auth/callback/google`;
+          }
+        })());
         return res.redirect('/login?error=token_exchange_failed');
       }
       
