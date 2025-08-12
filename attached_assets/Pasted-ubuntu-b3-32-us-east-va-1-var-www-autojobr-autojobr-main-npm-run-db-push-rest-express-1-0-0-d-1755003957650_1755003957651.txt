@@ -1,0 +1,71 @@
+ubuntu@b3-32-us-east-va-1:/var/www/autojobr/autojobr-main$ npm run db:push
+
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/var/www/autojobr/autojobr-main/drizzle.config.ts'
+Using 'pg' driver for database querying
+[✓] Pulling schema from database...
+error: permission denied for schema public
+    at /var/www/autojobr/autojobr-main/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Object.query (/var/www/autojobr/autojobr-main/node_modules/drizzle-kit/bin.cjs:78355:26)
+    at async pgPush (/var/www/autojobr/autojobr-main/node_modules/drizzle-kit/bin.cjs:81944:13)
+    at async Object.handler (/var/www/autojobr/autojobr-main/node_modules/drizzle-kit/bin.cjs:92168:9)
+    at async run (/var/www/autojobr/autojobr-main/node_modules/drizzle-kit/bin.cjs:91408:7) {
+  length: 99,
+  severity: 'ERROR',
+  code: '42501',
+  detail: undefined,
+  hint: undefined,
+  position: '14',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'aclchk.c',
+  line: '2843',
+  routine: 'aclcheck_error'
+}
+ubuntu@b3-32-us-east-va-1:/var/www/autojobr/autojobr-main$ ^C
+ubuntu@b3-32-us-east-va-1:/var/www/autojobr/autojobr-main$ sudo -u postgres psql -c "ALTER USER autojobr WITH SUPERUSER;"
+ALTER ROLE
+ubuntu@b3-32-us-east-va-1:/var/www/autojobr/autojobr-main$ npm run db:push
+
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/var/www/autojobr/autojobr-main/drizzle.config.ts'
+Using 'pg' driver for database querying
+[✓] Pulling schema from database...
+error: permission denied for schema public
+    at /var/www/autojobr/autojobr-main/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Object.query (/var/www/autojobr/autojobr-main/node_modules/drizzle-kit/bin.cjs:78355:26)
+    at async pgPush (/var/www/autojobr/autojobr-main/node_modules/drizzle-kit/bin.cjs:81944:13)
+    at async Object.handler (/var/www/autojobr/autojobr-main/node_modules/drizzle-kit/bin.cjs:92168:9)
+    at async run (/var/www/autojobr/autojobr-main/node_modules/drizzle-kit/bin.cjs:91408:7) {
+  length: 99,
+  severity: 'ERROR',
+  code: '42501',
+  detail: undefined,
+  hint: undefined,
+  position: '14',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'aclchk.c',
+  line: '2843',
+  routine: 'aclcheck_error'
+}
