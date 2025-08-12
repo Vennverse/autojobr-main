@@ -59,10 +59,10 @@ app.use(cors({
     /^https:\/\/.*\.myworkdayjobs\.com$/,
     'https://chevron.wd5.myworkdayjobs.com',
     // Production domain
-    'https://autobr.com',
-    'https://www.autobr.com',
-    'http://autobr.com',
-    'http://www.autobr.com',
+    'https://autojobr.com',
+    'https://www.autojobr.com',
+    'http://autojobr.com',
+    'http://www.autojobr.com',
     ...(process.env.PRODUCTION_DOMAIN ? [process.env.PRODUCTION_DOMAIN] : [])
   ],
   credentials: true,
