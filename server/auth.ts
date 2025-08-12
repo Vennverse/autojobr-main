@@ -138,7 +138,10 @@ export async function setupAuth(app: Express) {
       const baseUrl = 'https://autojobr.com';
       
       if (provider === 'google' && authConfig.providers.google.enabled) {
-        const currentUrl = `${req.protocol}://${req.get('host')}`;
+        // Use HTTPS for production domain
+        const host = req.get('host');
+        const protocol = host === 'autojobr.com' ? 'https' : req.protocol;
+        const currentUrl = `${protocol}://${host}`;
         const authUrl = `https://accounts.google.com/oauth2/v2/auth?client_id=${authConfig.providers.google.clientId}&redirect_uri=${encodeURIComponent(`${currentUrl}/api/auth/callback/google`)}&scope=openid%20email%20profile&response_type=code`;
         res.json({ redirectUrl: authUrl });
       } else if (provider === 'github' && authConfig.providers.github.enabled) {
@@ -321,7 +324,7 @@ export async function setupAuth(app: Express) {
           client_secret: authConfig.providers.google.clientSecret!,
           code: code as string,
           grant_type: 'authorization_code',
-          redirect_uri: `${req.protocol}://${req.get('host')}/api/auth/callback/google`,
+          redirect_uri: `${req.get('host') === 'autojobr.com' ? 'https' : req.protocol}://${req.get('host')}/api/auth/callback/google`,
         }),
       });
       
