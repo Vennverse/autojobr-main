@@ -705,10 +705,7 @@ Remember: Your goal is to uncover the candidate's true capabilities through stra
         content: content.trim(),
         messageIndex: questionNumber,
         responseTime: sender === 'user' ? Math.floor((Date.now() - (this.sessionStartTimes.get(interviewId) || Date.now())) / 1000) : 0,
-        metadata: JSON.stringify({
-          timestamp: new Date().toISOString(),
-          wordCount: content.trim().split(/\s+/).length
-        })
+        keywordsMatched: [], // Initialize as empty array for the text array field
       });
     } catch (error) {
       console.error('Error storing enhanced message:', error);

@@ -61,13 +61,13 @@ router.post('/start-chat', isAuthenticated, async (req: any, res) => {
         technicalInterviewAvg: 0,
         behavioralInterviewAvg: 0,
         systemDesignAvg: 0,
-        strongestSkills: '',
-        improvingSkills: '',
-        needsWorkSkills: '',
+        strongestSkills: [], // Initialize as empty array for text[] field
+        improvingSkills: [], // Initialize as empty array for text[] field
+        needsWorkSkills: [], // Initialize as empty array for text[] field
         totalTimeSpent: 0,
         averageSessionLength: 0,
         lastInterviewDate: new Date(),
-        milestonesAchieved: '',
+        milestonesAchieved: [], // Initialize as empty array for text[] field
         nextMilestone: '',
         createdAt: new Date(),
         updatedAt: new Date()
