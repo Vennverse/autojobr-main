@@ -61,6 +61,13 @@ The application uses Drizzle ORM with PostgreSQL. Schema is defined in `shared/s
 
 ## Recent Changes
 
+### Google OAuth Authentication Fix (August 12, 2025)
+- ✅ Fixed Google OAuth redirect URI issues by using autojobr.com domain
+- ✅ Configured GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables
+- ✅ Added support for both .repl.co and .replit.dev domain detection
+- ✅ Resolved 404 errors during OAuth callback process
+- ✅ Authentication system now supports both email/password and Google OAuth
+
 ### Migration from Replit Agent (January 12, 2025)
 - ✅ Migrated project from Replit Agent to standard Replit environment
 - ✅ Configured PostgreSQL database with proper connection handling
