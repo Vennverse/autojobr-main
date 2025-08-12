@@ -1,232 +1,399 @@
-# AutoJobr Linux VM Deployment Guide
+# AutoJobr VM Deployment Guide
 
-## Quick Setup Script
-
-### 1. Download and Run the Auto-Deploy Script
-
-```bash
-# Download the repository and run automated setup
-git clone https://github.com/Vennverse/autojobr-main.git
-cd autojobr-main
-chmod +x vm-deploy.sh
-sudo ./vm-deploy.sh
-```
-
-## Manual Setup Instructions
-
-### Prerequisites
-- Ubuntu 20.04+ or CentOS 8+ Linux VM
-- At least 2GB RAM and 20GB disk space
+## Prerequisites
+- Fresh Ubuntu 20.04+ or CentOS 7+ VM
 - Root or sudo access
+- At least 2GB RAM, 20GB storage
+- Internet connectivity
 
-### Step 1: Install Dependencies
+## Step 1: Initial Server Setup
 
 ```bash
-# Update system
+# Update system packages
 sudo apt update && sudo apt upgrade -y
 
-# Install Node.js 20
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Install PostgreSQL
-sudo apt install postgresql postgresql-contrib -y
-
-# Install PM2 for process management
-sudo npm install -g pm2
-
-# Install Nginx (optional, for reverse proxy)
-sudo apt install nginx -y
+# Install essential packages
+sudo apt install -y curl wget git build-essential software-properties-common
 ```
 
-### Step 2: Setup Database
+## Step 2: Install Node.js 20
 
 ```bash
-# Start PostgreSQL
+# Install Node.js 20 using NodeSource repository
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Verify installation
+node --version
+npm --version
+```
+
+## Step 3: Install PostgreSQL
+
+```bash
+# Install PostgreSQL
+sudo apt install -y postgresql postgresql-contrib
+
+# Start and enable PostgreSQL
 sudo systemctl start postgresql
 sudo systemctl enable postgresql
 
 # Create database and user
 sudo -u postgres psql << EOF
 CREATE DATABASE autojobr;
-CREATE USER autojobr_user WITH PASSWORD 'your_secure_password';
+CREATE USER autojobr_user WITH PASSWORD 'secure_password_123';
 GRANT ALL PRIVILEGES ON DATABASE autojobr TO autojobr_user;
 ALTER USER autojobr_user CREATEDB;
 \q
 EOF
 ```
 
-### Step 3: Configure Application
+## Step 4: Install PM2 (Process Manager)
 
 ```bash
-# Clone repository
-git clone https://github.com/Vennverse/autojobr-main.git
-cd autojobr-main
+# Install PM2 globally
+sudo npm install -g pm2
+
+# Setup PM2 to start on boot
+pm2 startup
+sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $USER --hp /home/$USER
+```
+
+## Step 5: Install Nginx (Web Server)
+
+```bash
+# Install Nginx
+sudo apt install -y nginx
+
+# Start and enable Nginx
+sudo systemctl start nginx
+sudo systemctl enable nginx
+
+# Allow HTTP and HTTPS through firewall
+sudo ufw allow 'Nginx Full'
+sudo ufw allow ssh
+sudo ufw --force enable
+```
+
+## Step 6: Clone and Setup Application
+
+```bash
+# Create application directory
+sudo mkdir -p /var/www/autojobr
+sudo chown $USER:$USER /var/www/autojobr
+cd /var/www/autojobr
+
+# Clone your repository (replace with your actual repo URL)
+git clone <YOUR_REPOSITORY_URL> .
 
 # Install dependencies
 npm install
 
 # Create environment file
-cp .env.example .env
+cat > .env << EOF
+NODE_ENV=production
+PORT=3000
+DATABASE_URL=postgresql://autojobr_user:secure_password_123@localhost:5432/autojobr
+
+# Add your API keys here
+GROQ_API_KEY=your_groq_api_key_here
+STRIPE_SECRET_KEY=your_stripe_secret_key_here
+STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key_here
+PAYPAL_CLIENT_ID=your_paypal_client_id_here
+PAYPAL_CLIENT_SECRET=your_paypal_client_secret_here
+RESEND_API_KEY=your_resend_api_key_here
+
+# Google OAuth (optional)
+GOOGLE_CLIENT_ID=your_google_client_id_here
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+
+# Session secret
+SESSION_SECRET=your_very_long_random_session_secret_here
+EOF
+
+# Set proper permissions
+chmod 600 .env
 ```
 
-Edit `.env` file with your configuration:
-
-```bash
-# Database
-DATABASE_URL="postgresql://autojobr_user:your_secure_password@localhost:5432/autojobr"
-
-# API Keys
-GROQ_API_KEY="your_groq_api_key"
-RESEND_API_KEY="your_resend_api_key"
-
-# Optional Payment Keys
-PAYPAL_CLIENT_ID="your_paypal_client_id"
-PAYPAL_CLIENT_SECRET="your_paypal_client_secret"
-
-# Server Configuration
-NODE_ENV="production"
-PORT="5000"
-SESSION_SECRET="your_random_session_secret"
-```
-
-### Step 4: Setup Database Schema
+## Step 7: Build and Deploy Database
 
 ```bash
 # Push database schema
 npm run db:push
 
-# Build application
+# Build the application
 npm run build
 ```
 
-### Step 5: Start with PM2
+## Step 8: Configure PM2
 
 ```bash
+# Create PM2 ecosystem file
+cat > ecosystem.config.js << EOF
+module.exports = {
+  apps: [{
+    name: 'autojobr',
+    script: 'dist/index.js',
+    instances: 'max',
+    exec_mode: 'cluster',
+    env: {
+      NODE_ENV: 'development'
+    },
+    env_production: {
+      NODE_ENV: 'production',
+      PORT: 3000
+    },
+    error_file: './logs/err.log',
+    out_file: './logs/out.log',
+    log_file: './logs/combined.log',
+    time: true
+  }]
+};
+EOF
+
+# Create logs directory
+mkdir -p logs
+
 # Start application with PM2
-pm2 start ecosystem.config.js
-
-# Save PM2 configuration
+pm2 start ecosystem.config.js --env production
 pm2 save
-
-# Setup PM2 to start on boot
-pm2 startup
 ```
 
-### Step 6: Configure Nginx (Optional)
-
-Create nginx configuration:
+## Step 9: Configure Nginx
 
 ```bash
-sudo nano /etc/nginx/sites-available/autojobr
-```
-
-Add this configuration:
-
-```nginx
+# Create Nginx configuration
+sudo tee /etc/nginx/sites-available/autojobr << EOF
 server {
     listen 80;
-    server_name your_domain.com;
+    server_name your-domain.com www.your-domain.com;
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
+
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_proxied expired no-cache no-store private must-revalidate auth;
+    gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss;
 
     location / {
-        proxy_pass http://localhost:5000;
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_read_timeout 86400;
     }
+
+    # WebSocket support
+    location /ws {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    # Static files caching
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # File upload size
+    client_max_body_size 50M;
 }
-```
+EOF
 
-Enable the site:
-
-```bash
+# Enable the site
 sudo ln -s /etc/nginx/sites-available/autojobr /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+
+# Test and reload Nginx
 sudo nginx -t
-sudo systemctl restart nginx
+sudo systemctl reload nginx
 ```
 
-## Environment Variables Required
+## Step 10: SSL Certificate (Optional but Recommended)
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `DATABASE_URL` | PostgreSQL connection string | Yes |
-| `GROQ_API_KEY` | AI features (get from console.groq.com) | Yes |
-| `RESEND_API_KEY` | Email service (get from resend.com) | Yes |
-| `PAYPAL_CLIENT_ID` | PayPal payments (optional) | No |
-| `PAYPAL_CLIENT_SECRET` | PayPal payments (optional) | No |
-| `SESSION_SECRET` | Random string for sessions | Yes |
-| `NODE_ENV` | Set to "production" | Yes |
-| `PORT` | Application port (default: 5000) | No |
-
-## API Keys Setup
-
-### 1. GROQ API Key
-- Go to https://console.groq.com
-- Create account and get free API key
-- Add to `.env` file
-
-### 2. RESEND API Key
-- Go to https://resend.com
-- Create account and get API key
-- Add to `.env` file
-
-### 3. PayPal (Optional)
-- Go to https://developer.paypal.com
-- Create app and get Client ID/Secret
-- Add to `.env` file
-
-## Monitoring and Maintenance
-
-### Check Application Status
 ```bash
-pm2 status
+# Install Certbot
+sudo apt install -y snapd
+sudo snap install core; sudo snap refresh core
+sudo snap install --classic certbot
+sudo ln -s /snap/bin/certbot /usr/bin/certbot
+
+# Get SSL certificate (replace with your domain)
+sudo certbot --nginx -d your-domain.com -d www.your-domain.com
+
+# Setup auto-renewal
+sudo systemctl enable snap.certbot.renew.timer
+```
+
+## Step 11: Monitoring and Logs
+
+```bash
+# Install monitoring tools
+sudo npm install -g pm2-logrotate
+pm2 install pm2-logrotate
+
+# Set up log rotation
+pm2 set pm2-logrotate:max_size 10M
+pm2 set pm2-logrotate:retain 30
+pm2 set pm2-logrotate:compress true
+
+# View application logs
 pm2 logs autojobr
+pm2 monit
 ```
 
-### Update Application
+## Step 12: Backup Script
+
 ```bash
-cd autojobr
-git pull
-npm install
-npm run build
+# Create backup script
+cat > /var/www/autojobr/backup.sh << 'EOF'
+#!/bin/bash
+BACKUP_DIR="/var/backups/autojobr"
+DATE=$(date +%Y%m%d_%H%M%S)
+
+# Create backup directory
+mkdir -p $BACKUP_DIR
+
+# Backup database
+pg_dump -h localhost -U autojobr_user -d autojobr > $BACKUP_DIR/database_$DATE.sql
+
+# Backup application files
+tar -czf $BACKUP_DIR/app_files_$DATE.tar.gz /var/www/autojobr --exclude=node_modules --exclude=logs
+
+# Keep only last 7 days of backups
+find $BACKUP_DIR -name "*.sql" -mtime +7 -delete
+find $BACKUP_DIR -name "*.tar.gz" -mtime +7 -delete
+
+echo "Backup completed: $DATE"
+EOF
+
+# Make backup script executable
+chmod +x backup.sh
+
+# Add to crontab for daily backups
+echo "0 2 * * * /var/www/autojobr/backup.sh" | sudo crontab -
+```
+
+## Step 13: Security Hardening
+
+```bash
+# Update system packages regularly
+sudo apt install -y unattended-upgrades
+
+# Configure fail2ban for SSH protection
+sudo apt install -y fail2ban
+sudo systemctl enable fail2ban
+sudo systemctl start fail2ban
+
+# Disable root login and password authentication (after setting up SSH keys)
+# sudo nano /etc/ssh/sshd_config
+# PermitRootLogin no
+# PasswordAuthentication no
+# sudo systemctl restart ssh
+```
+
+## Step 14: Final Checks
+
+```bash
+# Check if all services are running
+sudo systemctl status nginx
+sudo systemctl status postgresql
+pm2 status
+
+# Check if application is accessible
+curl -I http://localhost:3000
+curl -I http://your-domain.com
+
+# Check logs for any errors
+pm2 logs autojobr --lines 50
+sudo journalctl -u nginx -f
+```
+
+## Step 15: API Keys Configuration
+
+After deployment, you'll need to configure the API keys in the `.env` file:
+
+1. **GROQ API Key**: Get from [console.groq.com](https://console.groq.com)
+2. **Stripe Keys**: Get from [dashboard.stripe.com](https://dashboard.stripe.com)
+3. **PayPal Keys**: Get from [developer.paypal.com](https://developer.paypal.com)
+4. **Resend API Key**: Get from [resend.com](https://resend.com)
+5. **Google OAuth**: Get from [console.developers.google.com](https://console.developers.google.com)
+
+Update the `.env` file and restart the application:
+```bash
 pm2 restart autojobr
 ```
 
-### Database Backup
+## Maintenance Commands
+
 ```bash
-pg_dump -h localhost -U autojobr_user autojobr > backup_$(date +%Y%m%d).sql
+# View application status
+pm2 status
+pm2 monit
+
+# View logs
+pm2 logs autojobr
+pm2 logs autojobr --lines 100
+
+# Restart application
+pm2 restart autojobr
+
+# Update application
+cd /var/www/autojobr
+git pull
+npm install
+npm run build
+npm run db:push
+pm2 restart autojobr
+
+# View system resources
+htop
+df -h
+free -h
 ```
-
-### Security Considerations
-
-1. **Firewall**: Only open ports 80, 443, and 22
-2. **SSL**: Use Let's Encrypt for HTTPS
-3. **Updates**: Keep system and dependencies updated
-4. **Monitoring**: Set up log monitoring and alerts
 
 ## Troubleshooting
 
-### Common Issues
+### Common Issues:
 
-1. **Port 5000 in use**: Change PORT in .env
-2. **Database connection failed**: Check DATABASE_URL
-3. **API features not working**: Verify API keys
-4. **Permission denied**: Check file permissions
+1. **Application won't start**: Check logs with `pm2 logs autojobr`
+2. **Database connection failed**: Verify PostgreSQL is running and credentials are correct
+3. **502 Bad Gateway**: Check if application is running on port 3000
+4. **Permission denied**: Ensure proper file permissions and ownership
 
-### Logs Location
-- Application logs: `pm2 logs`
-- Nginx logs: `/var/log/nginx/`
-- System logs: `/var/log/`
+### Quick Fixes:
 
-## Support
+```bash
+# Restart all services
+sudo systemctl restart nginx
+sudo systemctl restart postgresql
+pm2 restart all
 
-For issues or questions:
-1. Check logs with `pm2 logs autojobr`
-2. Verify environment variables are set
-3. Ensure database is running
-4. Check firewall settings
+# Check port usage
+sudo netstat -tlnp | grep :3000
+sudo netstat -tlnp | grep :80
+
+# Check disk space
+df -h
+du -sh /var/www/autojobr/*
+```
+
+This guide provides a complete setup for deploying AutoJobr on a fresh VM with production-ready configuration, security, monitoring, and backup systems.
