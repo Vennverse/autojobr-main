@@ -334,7 +334,16 @@ export async function setupAuth(app: Express) {
           client_secret: authConfig.providers.google.clientSecret!,
           code: code as string,
           grant_type: 'authorization_code',
-          redirect_uri: `${req.get('host') === 'autojobr.com' ? 'https' : req.protocol}://${req.get('host')}/api/auth/callback/google`,
+          redirect_uri: (() => {
+            const host = req.get('host');
+            if (host && host.includes('repl.co')) {
+              return `https://${host}/api/auth/callback/google`;
+            } else if (host === 'autojobr.com') {
+              return 'https://autojobr.com/api/auth/callback/google';
+            } else {
+              return `${req.protocol}://${host}/api/auth/callback/google`;
+            }
+          })(),
         }),
       });
       
