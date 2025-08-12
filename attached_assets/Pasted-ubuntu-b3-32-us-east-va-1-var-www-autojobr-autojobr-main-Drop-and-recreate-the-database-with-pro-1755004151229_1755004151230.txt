@@ -1,0 +1,49 @@
+ubuntu@b3-32-us-east-va-1:/var/www/autojobr/autojobr-main$ # Drop and recreate the database with proper ownership
+sudo -u postgres psql << 'EOF'
+DROP DATABASE IF EXISTS autojobr;
+CREATE DATABASE autojobr OWNER autojobr;
+\c autojobr
+GRANT ALL ON SCHEMA public TO autojobr;
+GRANT ALL ON SCHEMA public TO PUBLIC;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO autojobr;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO autojobr;
+\q
+EOF
+DROP DATABASE
+CREATE DATABASE
+You are now connected to database "autojobr" as user "postgres".
+GRANT
+GRANT
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ubuntu@b3-32-us-east-va-1:/var/www/autojobr/autojobr-main$ npm run db:push
+
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/var/www/autojobr/autojobr-main/drizzle.config.ts'
+Using 'pg' driver for database querying
+[✓] Pulling schema from database...
+[✓] Changes applied
+ubuntu@b3-32-us-east-va-1:/var/www/autojobr/autojobr-main$ pm2 restart autojobr
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [autojobr](ids: [ 0 ])
+[PM2] [autojobr](0) ✓
+┌────┬─────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name        │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼─────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ autojobr    │ default     │ 1.0.0   │ fork    │ 21056    │ 0s     │ 13   │ online    │ 0%       │ 18.4mb   │ ubuntu   │ disabled │
+└────┴─────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+ubuntu@b3-32-us-east-va-1:/var/www/autojobr/autojobr-main$ pm2 reload ecosystem.config.cjs
+[PM2] Applying action reloadProcessId on app [autojobr](ids: [ 0 ])
+[PM2] [autojobr](0) ✓
+ubuntu@b3-32-us-east-va-1:/var/www/autojobr/autojobr-main$ pm2 restart autojobr
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [autojobr](ids: [ 0 ])
+[PM2] [autojobr](0) ✓
+┌────┬─────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name        │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼─────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ autojobr    │ default     │ 1.0.0   │ fork    │ 21095    │ 0s     │ 15   │ online    │ 0%       │ 17.4mb   │ ubuntu   │ disabled │
+└────┴─────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴────
