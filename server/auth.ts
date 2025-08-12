@@ -143,7 +143,7 @@ export async function setupAuth(app: Express) {
         let currentUrl;
         
         // Check if we're in development/Replit environment
-        if (host && host.includes('repl.co')) {
+        if (host && (host.includes('repl.co') || host.includes('replit.dev'))) {
           currentUrl = `https://${host}`;
         } else if (host === 'autojobr.com') {
           currentUrl = 'https://autojobr.com';
@@ -336,7 +336,7 @@ export async function setupAuth(app: Express) {
           grant_type: 'authorization_code',
           redirect_uri: (() => {
             const host = req.get('host');
-            if (host && host.includes('repl.co')) {
+            if (host && (host.includes('repl.co') || host.includes('replit.dev'))) {
               return `https://${host}/api/auth/callback/google`;
             } else if (host === 'autojobr.com') {
               return 'https://autojobr.com/api/auth/callback/google';
