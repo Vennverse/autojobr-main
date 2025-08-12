@@ -3274,17 +3274,18 @@ Additional Information:
   app.get('/api/onboarding/status', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const [profile, skills, workExperience, education] = await Promise.all([
+      const [profile, skills, workExperience, education, resumes] = await Promise.all([
         storage.getUserProfile(userId),
         storage.getUserSkills(userId),
         storage.getUserWorkExperience(userId),
-        storage.getUserEducation(userId)
+        storage.getUserEducation(userId),
+        storage.getUserResumes(userId)
       ]);
 
       const hasBasicInfo = !!(profile?.fullName && profile?.phone && profile?.professionalTitle);
       const hasWorkAuth = !!(profile?.workAuthorization);
       const hasLocation = !!(profile?.city && profile?.state && profile?.country);
-      const hasResume = !!(profile?.resumeText);
+      const hasResume = resumes.length > 0; // Check if user has uploaded any resumes
       const hasSkills = skills.length > 0;
       const hasExperience = workExperience.length > 0;
       const hasEducation = education.length > 0 || !!(profile?.highestDegree && profile?.majorFieldOfStudy);
@@ -3316,6 +3317,10 @@ Additional Information:
         });
       }
 
+      // Get the active resume's ATS score, or the most recent one if no active resume
+      const activeResume = resumes.find(r => r.isActive) || resumes[0];
+      const atsScore = activeResume?.atsScore || null;
+
       res.json({
         onboardingCompleted,
         profileCompleteness,
@@ -3323,7 +3328,7 @@ Additional Information:
         totalSteps: completionSteps.length,
         steps: completionSteps,
         hasResume,
-        atsScore: profile?.atsScore || null
+        atsScore
       });
     } catch (error) {
       console.error("Error fetching onboarding status:", error);
