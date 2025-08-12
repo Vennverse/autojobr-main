@@ -9,7 +9,7 @@ module.exports = {
       PORT: 5000,
       DATABASE_URL: 'postgresql://autojobr_user:autojobr123@localhost:5432/autojobr',
       SESSION_SECRET: 'supersecretkey123456789',
-      PRODUCTION_DOMAIN: 'https://autobr.com',
+      PRODUCTION_DOMAIN: 'https://autojobr.com',
       
       // AI Services
       GROQ_API_KEY: 'your_groq_api_key_here',

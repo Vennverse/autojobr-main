@@ -1,7 +1,7 @@
-# AutoJobr Domain Setup for autobr.com
+# AutoJobr Domain Setup for autojobr.com
 
 ## Current Status
-Your AutoJobr application is successfully running on your VM. Now we'll configure it for your domain autobr.com.
+Your AutoJobr application is successfully running on your VM. Now we'll configure it for your domain autojobr.com.
 
 ## Step 1: Point Domain to Your VM
 
@@ -14,16 +14,16 @@ curl -4 icanhazip.com
    - Go to your domain registrar (where you bought autobr.com)
    - Add these DNS records:
      - **A Record**: `@` → `[your-vm-ip]`
-     - **CNAME Record**: `www` → `autobr.com`
+     - **CNAME Record**: `www` → `autojobr.com`
 
 ## Step 2: Update Nginx Configuration for Your Domain
 
 ```bash
-# Update Nginx configuration for autobr.com
+# Update Nginx configuration for autojobr.com
 sudo tee /etc/nginx/sites-available/autojobr << EOF
 server {
     listen 80;
-    server_name autobr.com www.autobr.com;
+    server_name autojobr.com www.autojobr.com;
 
     # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
@@ -74,12 +74,12 @@ sudo systemctl reload nginx
 
 ```bash
 # Test your domain (after DNS propagation)
-curl -I http://autobr.com
-curl -I http://www.autobr.com
+curl -I http://autojobr.com
+curl -I http://www.autojobr.com
 
 # Check if both redirect properly
-ping autobr.com
-ping www.autobr.com
+ping autojobr.com
+ping www.autojobr.com
 ```
 
 ## Step 4: Install SSL Certificate (HTTPS)
@@ -89,15 +89,15 @@ ping www.autobr.com
 sudo apt install certbot python3-certbot-nginx -y
 
 # Get SSL certificate for your domain
-sudo certbot --nginx -d autobr.com -d www.autobr.com
+sudo certbot --nginx -d autojobr.com -d www.autojobr.com
 
 # Test SSL renewal
 sudo certbot renew --dry-run
 ```
 
 After SSL installation, your site will be available at:
-- ✅ https://autobr.com
-- ✅ https://www.autobr.com
+- ✅ https://autojobr.com
+- ✅ https://www.autojobr.com
 
 ## Step 5: Update Application Configuration
 
@@ -112,9 +112,9 @@ Add these environment variables to the `env_production` section:
 ```javascript
 env_production: {
   // ... existing variables ...
-  DOMAIN: 'autobr.com',
-  ALLOWED_ORIGINS: 'https://autobr.com,https://www.autobr.com,http://autobr.com,http://www.autobr.com',
-  CORS_ORIGIN: 'https://autobr.com'
+  DOMAIN: 'autojobr.com',
+  ALLOWED_ORIGINS: 'https://autojobr.com,https://www.autojobr.com,http://autojobr.com,http://www.autojobr.com',
+  CORS_ORIGIN: 'https://autojobr.com'
 }
 ```
 
@@ -132,9 +132,9 @@ sudo systemctl status nginx
 ```
 
 2. **Test all URLs:**
-   - http://autobr.com (should redirect to HTTPS)
-   - https://autobr.com (main site)
-   - https://www.autobr.com (should work)
+   - http://autojobr.com (should redirect to HTTPS)
+   - https://autojobr.com (main site)
+   - https://www.autojobr.com (should work)
 
 3. **Test key features:**
    - Job browsing
@@ -146,15 +146,15 @@ sudo systemctl status nginx
 
 DNS changes can take 24-48 hours to propagate globally. You can check propagation status at:
 - https://www.whatsmydns.net/
-- Enter "autobr.com" and check A records
+- Enter "autojobr.com" and check A records
 
 ## Troubleshooting
 
 ### Domain not resolving:
 ```bash
 # Check DNS
-nslookup autobr.com
-dig autobr.com
+nslookup autojobr.com
+dig autojobr.com
 
 # Check if Nginx is listening
 sudo netstat -tlnp | grep :80
@@ -183,7 +183,7 @@ sudo tail -f /var/log/nginx/access.log
 ## Final Result
 
 Once complete, your AutoJobr platform will be live at:
-🌐 **https://autobr.com** - Your production job application platform
+🌐 **https://autojobr.com** - Your production job application platform
 
 Features available:
 - ✅ Job posting and browsing
