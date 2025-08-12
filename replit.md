@@ -67,7 +67,7 @@ AutoJobr is a comprehensive job application platform designed to connect job see
 - **Domain Configuration**: ✅ COMPLETED - Configured application for autojobr.com domain
   - **CORS Setup**: Added autojobr.com and www.autojobr.com to allowed origins
   - **PM2 Configuration**: Updated ecosystem config with PRODUCTION_DOMAIN environment variable
-  - **Domain Guide**: Created comprehensive AUTOBR_DOMAIN_SETUP.md with DNS, SSL, and Nginx instructions
+  - **Domain Guide**: Created comprehensive AUTOJOBR_DOMAIN_SETUP.md with DNS, SSL, and Nginx instructions
 - **Virtual Interview Fix**: ✅ COMPLETED - Fixed question loading issue with proper error handling and session validation
 - **Database Migration**: ✅ COMPLETED - Transitioned from Neon PostgreSQL to Replit's integrated PostgreSQL
 - **Visual Enhancements**: ✅ COMPLETED - Added emerald green and white favicon for professional branding

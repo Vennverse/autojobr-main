@@ -11,7 +11,7 @@ curl -4 icanhazip.com
 ```
 
 2. **Configure DNS Records:**
-   - Go to your domain registrar (where you bought autobr.com)
+   - Go to your domain registrar (where you bought autojobr.com)
    - Add these DNS records:
      - **A Record**: `@` → `[your-vm-ip]`
      - **CNAME Record**: `www` → `autojobr.com`
