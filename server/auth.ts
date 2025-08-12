@@ -9,6 +9,8 @@ import { eq } from "drizzle-orm";
 import type { Express, RequestHandler } from "express";
 import { sendEmail, generatePasswordResetEmail, generateVerificationEmail } from "./emailService";
 import crypto from "crypto";
+import passport from "passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 // Simple auth configuration
 const authConfig = {
@@ -63,6 +65,85 @@ export async function setupAuth(app: Express) {
     proxy: true // Trust first proxy for Replit environment
   }));
   console.log('✅ Session middleware configured successfully with MemoryStore');
+
+  // Initialize Passport
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  // Configure Google OAuth Strategy
+  if (authConfig.providers.google.enabled) {
+    passport.use(new GoogleStrategy({
+      clientID: authConfig.providers.google.clientId!,
+      clientSecret: authConfig.providers.google.clientSecret!,
+      callbackURL: "/api/auth/google/callback"
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        const email = profile.emails?.[0]?.value;
+        if (!email) {
+          return done(new Error('No email found'), null);
+        }
+
+        // Check if user exists
+        let user = await storage.getUserByEmail(email);
+        
+        if (!user) {
+          // Create new user
+          const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          user = await storage.upsertUser({
+            id: userId,
+            email: email,
+            firstName: profile.name?.givenName || 'User',
+            lastName: profile.name?.familyName || '',
+            profileImageUrl: profile.photos?.[0]?.value || null,
+            userType: 'job_seeker',
+            emailVerified: true,
+            password: null,
+          });
+
+          // Create user profile
+          await storage.upsertUserProfile({
+            userId: userId,
+            fullName: `${profile.name?.givenName || ''} ${profile.name?.familyName || ''}`.trim(),
+            freeRankingTestsRemaining: 1,
+            freeInterviewsRemaining: 5,
+            premiumInterviewsRemaining: 50,
+            totalInterviewsUsed: 0,
+            totalRankingTestsUsed: 0,
+            onboardingCompleted: false,
+            profileCompletion: 25,
+          });
+        } else {
+          // Update existing user
+          user = await storage.upsertUser({
+            ...user,
+            profileImageUrl: profile.photos?.[0]?.value || user.profileImageUrl,
+            emailVerified: true,
+          });
+        }
+
+        console.log('✅ Google OAuth user authenticated:', user.email);
+        return done(null, user);
+      } catch (error) {
+        console.error('Google OAuth error:', error);
+        return done(error, null);
+      }
+    }));
+  }
+
+  // Passport serialization
+  passport.serializeUser((user: any, done) => {
+    done(null, user.id);
+  });
+
+  passport.deserializeUser(async (id: string, done) => {
+    try {
+      const user = await storage.getUser(id);
+      done(null, user);
+    } catch (error) {
+      done(error, null);
+    }
+  });
 
   // Auth status endpoint with caching
   const providersCache = {
@@ -134,38 +215,15 @@ export async function setupAuth(app: Express) {
         res.status(500).json({ message: "Login failed" });
       }
     } else {
-      // For OAuth providers, redirect to their auth URLs
-      const baseUrl = 'https://autojobr.com';
-      
+      // For OAuth providers, redirect to proper Passport.js endpoints
       if (provider === 'google' && authConfig.providers.google.enabled) {
-        // Get the actual host from the request
-        const host = req.get('host');
-        console.log('🔍 OAuth host detection:', { host, protocol: req.protocol });
-        
-        let currentUrl;
-        
-        // Use the actual request host for token exchange to work properly
-        if (host && (host.includes('repl.co') || host.includes('replit.dev'))) {
-          currentUrl = `https://${host}`;
-          console.log('✅ Using Replit domain:', currentUrl);
-        } else if (host === 'autojobr.com') {
-          currentUrl = 'https://autojobr.com';
-          console.log('✅ Using production domain:', currentUrl);
-        } else {
-          // For development, use the actual host
-          currentUrl = `https://${host}`;
-          console.log('✅ Using fallback HTTPS domain:', currentUrl);
-        }
-
-        const redirectUri = `${currentUrl}/api/auth/callback/google`;
-        console.log('🔗 OAuth redirect URI:', redirectUri);
-        
-        const authUrl = `https://accounts.google.com/oauth2/v2/auth?client_id=${authConfig.providers.google.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20email%20profile&response_type=code`;
-        res.json({ redirectUrl: authUrl });
+        res.json({ redirectUrl: '/api/auth/google' });
       } else if (provider === 'github' && authConfig.providers.github.enabled) {
+        const baseUrl = 'https://autojobr.com';
         const authUrl = `https://github.com/login/oauth/authorize?client_id=${authConfig.providers.github.clientId}&redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/callback/github`)}&scope=user:email`;
         res.json({ redirectUrl: authUrl });
       } else if (provider === 'linkedin' && authConfig.providers.linkedin.enabled) {
+        const baseUrl = 'https://autojobr.com';
         const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${authConfig.providers.linkedin.clientId}&redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/callback/linkedin`)}&scope=r_liteprofile%20r_emailaddress`;
         res.json({ redirectUrl: authUrl });
       } else {
@@ -317,8 +375,42 @@ export async function setupAuth(app: Express) {
     });
   });
 
-  // Google OAuth callback handler
-  app.get('/api/auth/callback/google', async (req, res) => {
+  // Google OAuth Routes
+  app.get('/api/auth/google', 
+    passport.authenticate('google', { 
+      scope: ['profile', 'email'] 
+    })
+  );
+
+  app.get('/api/auth/callback/google',
+    passport.authenticate('google', { failureRedirect: '/auth?error=oauth_failed' }),
+    (req: any, res) => {
+      console.log(`✅ Google OAuth successful for user: ${req.user?.email}`);
+      
+      // Set session to match existing session format
+      req.session.user = {
+        id: req.user.id,
+        email: req.user.email,
+        name: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim(),
+        firstName: req.user.firstName,
+        lastName: req.user.lastName,
+        userType: req.user.userType
+      };
+
+      // Save session before redirect
+      req.session.save((err: any) => {
+        if (err) {
+          console.error('Session save error after Google OAuth:', err);
+          return res.redirect('/auth?error=session_save_failed');
+        }
+        console.log('✅ Google OAuth session saved for user:', req.user.email);
+        res.redirect('/');
+      });
+    }
+  );
+
+  // Old callback handler (to be removed)
+  app.get('/api/auth/callback/google-old', async (req, res) => {
     try {
       const { code, error } = req.query;
       
