@@ -138,10 +138,20 @@ export async function setupAuth(app: Express) {
       const baseUrl = 'https://autojobr.com';
       
       if (provider === 'google' && authConfig.providers.google.enabled) {
-        // Use HTTPS for production domain
+        // Use proper domain based on environment
         const host = req.get('host');
-        const protocol = host === 'autojobr.com' ? 'https' : req.protocol;
-        const currentUrl = `${protocol}://${host}`;
+        let currentUrl;
+        
+        // Check if we're in development/Replit environment
+        if (host && host.includes('repl.co')) {
+          currentUrl = `https://${host}`;
+        } else if (host === 'autojobr.com') {
+          currentUrl = 'https://autojobr.com';
+        } else {
+          // Fallback for other environments
+          currentUrl = `${req.protocol}://${host}`;
+        }
+        
         const authUrl = `https://accounts.google.com/oauth2/v2/auth?client_id=${authConfig.providers.google.clientId}&redirect_uri=${encodeURIComponent(`${currentUrl}/api/auth/callback/google`)}&scope=openid%20email%20profile&response_type=code`;
         res.json({ redirectUrl: authUrl });
       } else if (provider === 'github' && authConfig.providers.github.enabled) {
