@@ -138,22 +138,29 @@ export async function setupAuth(app: Express) {
       const baseUrl = 'https://autojobr.com';
       
       if (provider === 'google' && authConfig.providers.google.enabled) {
-        // Use proper domain based on environment
+        // Get the actual host from the request
         const host = req.get('host');
+        console.log('🔍 OAuth host detection:', { host, protocol: req.protocol });
+        
         let currentUrl;
         
         // Use the actual request host for token exchange to work properly
         if (host && (host.includes('repl.co') || host.includes('replit.dev'))) {
           currentUrl = `https://${host}`;
+          console.log('✅ Using Replit domain:', currentUrl);
         } else if (host === 'autojobr.com') {
           currentUrl = 'https://autojobr.com';
+          console.log('✅ Using production domain:', currentUrl);
         } else {
           // For development, use the actual host
-          currentUrl = `${req.protocol}://${host}`;
+          currentUrl = `https://${host}`;
+          console.log('✅ Using fallback HTTPS domain:', currentUrl);
         }
 
+        const redirectUri = `${currentUrl}/api/auth/callback/google`;
+        console.log('🔗 OAuth redirect URI:', redirectUri);
         
-        const authUrl = `https://accounts.google.com/oauth2/v2/auth?client_id=${authConfig.providers.google.clientId}&redirect_uri=${encodeURIComponent(`${currentUrl}/api/auth/callback/google`)}&scope=openid%20email%20profile&response_type=code`;
+        const authUrl = `https://accounts.google.com/oauth2/v2/auth?client_id=${authConfig.providers.google.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20email%20profile&response_type=code`;
         res.json({ redirectUrl: authUrl });
       } else if (provider === 'github' && authConfig.providers.github.enabled) {
         const authUrl = `https://github.com/login/oauth/authorize?client_id=${authConfig.providers.github.clientId}&redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/callback/github`)}&scope=user:email`;
