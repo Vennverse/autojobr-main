@@ -654,9 +654,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Store subscription details in database
         await db.insert(schema.subscriptions).values({
           userId,
-          tierId: selectedTier.id,
+          tier: selectedTier.id,
+          tierId: selectedTier.id, // For compatibility
           paypalSubscriptionId: subscription.subscriptionId,
           status: 'pending',
+          paymentMethod: 'paypal',
+          amount: selectedTier.price.toString(),
+          currency: 'USD',
+          billingCycle: 'monthly',
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
           nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
           createdAt: new Date()
         });
