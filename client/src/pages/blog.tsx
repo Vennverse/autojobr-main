@@ -40,12 +40,12 @@ export default function Blog() {
     {
       id: 4,
       title: "Remote Job Search Strategies for 2025",
-      excerpt: "Find remote opportunities faster with these proven job search automation techniques.",
+      excerpt: "Complete guide to landing high-paying remote positions using automation and proven strategies.",
       author: "Remote Work Expert",
-      date: "2025-08-10",
+      date: "2025-08-13",
       category: "Remote Work",
       slug: "remote-job-search-2025",
-      readTime: "7 min read"
+      readTime: "12 min read"
     },
     {
       id: 5,
@@ -147,9 +147,11 @@ export default function Blog() {
                   </div>
                   <div>8 min read</div>
                 </div>
-                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                  Read Article <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+                <Link href="/blog/beat-ats-systems-2025-guide">
+                  <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                    Read Article <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
               </div>
             </div>
           </Card>
@@ -181,9 +183,11 @@ export default function Blog() {
                       {new Date(post.date).toLocaleDateString()}
                     </div>
                   </div>
-                  <Button variant="outline" className="w-full">
-                    Read More <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
+                  <Link href={`/blog/${post.slug}`}>
+                    <Button variant="outline" className="w-full">
+                      Read More <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             ))}

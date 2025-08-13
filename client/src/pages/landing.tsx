@@ -173,7 +173,14 @@ const FloatingParticles = () => {
 };
 
 // Typing Animation Component
-const TypingAnimation = ({ texts, speed = 100, deleteSpeed = 50, pauseTime = 2000 }) => {
+interface TypingAnimationProps {
+  texts: string[];
+  speed?: number;
+  deleteSpeed?: number;
+  pauseTime?: number;
+}
+
+const TypingAnimation = ({ texts, speed = 100, deleteSpeed = 50, pauseTime = 2000 }: TypingAnimationProps) => {
   const [displayText, setDisplayText] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -218,7 +225,7 @@ export default function LandingPage() {
     setIsVisible(true);
     
     // Mouse tracking for parallax effects
-    const handleMouseMove = (e) => {
+    const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({
         x: (e.clientX / window.innerWidth) * 2 - 1,
         y: (e.clientY / window.innerHeight) * 2 - 1,
