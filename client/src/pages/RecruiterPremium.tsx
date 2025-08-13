@@ -344,11 +344,22 @@ export default function RecruiterPremium() {
                   </Button>
                 </div>
 
-                {paymentMethod === 'paypal' && (
+                {paymentMethod === 'paypal' && selectedTier && (
                   <div className="border rounded-lg p-4">
-                    <PayPalButton
+                    <PayPalSubscriptionButton
+                      tierId={selectedTier}
                       amount={tiers.find(t => t.id === selectedTier)?.price.toString() || "0"}
                       currency="USD"
+                      planName={tiers.find(t => t.id === selectedTier)?.name || "Premium Plan"}
+                      userType="recruiter"
+                      onSuccess={(data) => {
+                        console.log('PayPal subscription success:', data);
+                        // Handle successful subscription
+                      }}
+                      onError={(error) => {
+                        console.error('PayPal subscription error:', error);
+                        // Handle subscription error
+                      }}
                       intent="CAPTURE"
                     />
                   </div>

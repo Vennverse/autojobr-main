@@ -553,19 +553,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup payment routes
   setupPaymentRoutes(app);
 
-  // PayPal Routes
-  app.get("/paypal/setup", async (req, res) => {
+  // PayPal Routes (Consolidated)
+  app.get("/api/paypal/setup", async (req, res) => {
     await loadPaypalDefault(req, res);
   });
 
-  app.post("/paypal/order", async (req, res) => {
+  // One-time payment routes
+  app.post("/api/paypal/order", async (req, res) => {
     // Request body should contain: { intent, amount, currency }
     await createPaypalOrder(req, res);
   });
 
-  app.post("/paypal/order/:orderID/capture", async (req, res) => {
+  app.post("/api/paypal/order/:orderID/capture", async (req, res) => {
     await capturePaypalOrder(req, res);
   });
+
+  // PayPal subscription routes use existing PayPalSubscriptionService - see subscription routes below
 
   // Payment credentials check routes
   paymentCredentialsRouter(app);
@@ -5174,21 +5177,7 @@ Additional Information:
   // Mount chat-based interview routes
   app.use('/api/chat-interview', chatInterviewRoutes);
 
-  // PayPal routes for interview retakes
-  app.get("/api/paypal/setup", async (req, res) => {
-    const { loadPaypalDefault } = await import('./paypal');
-    await loadPaypalDefault(req, res);
-  });
-
-  app.post("/api/paypal/order", async (req, res) => {
-    const { createPaypalOrder } = await import('./paypal');
-    await createPaypalOrder(req, res);
-  });
-
-  app.post("/api/paypal/order/:orderID/capture", async (req, res) => {
-    const { capturePaypalOrder } = await import('./paypal');
-    await capturePaypalOrder(req, res);
-  });
+  // PayPal routes are already defined above - removed duplicates
 
 
 

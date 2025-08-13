@@ -62,10 +62,7 @@ export default function JobSeekerPremium() {
   // Create subscription mutation
   const createSubscriptionMutation = useMutation({
     mutationFn: async (data: { tierId: string; paymentMethod: string }) => {
-      return await apiRequest('/api/subscription/create', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      return await apiRequest('POST', '/api/subscription/create', data);
     },
     onSuccess: (data) => {
       if (data.order?.orderId) {
@@ -88,9 +85,7 @@ export default function JobSeekerPremium() {
   // Cancel subscription mutation
   const cancelSubscriptionMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('/api/subscription/cancel', {
-        method: 'POST',
-      });
+      return await apiRequest('POST', '/api/subscription/cancel', {});
     },
     onSuccess: () => {
       toast({
@@ -142,7 +137,7 @@ export default function JobSeekerPremium() {
 
   // Filter to ensure only job seeker tiers are displayed
   const tiers: JobSeekerSubscriptionTier[] = (tiersData?.tiers || []).filter((tier: any) => tier.userType === 'jobseeker');
-  const subscription = currentSubscription?.subscription;
+  const subscription = currentSubscription?.subscription || null;
   const isFreeTier = !subscription || !subscription.isActive;
 
   return (
@@ -359,12 +354,31 @@ export default function JobSeekerPremium() {
                   </Button>
                 </div>
 
-                {paymentMethod === 'paypal' && (
+                {paymentMethod === 'paypal' && selectedTier && (
                   <div className="border rounded-lg p-4">
-                    <PayPalButton
+                    <PayPalSubscriptionButton
+                      tierId={selectedTier}
                       amount={tiers.find(t => t.id === selectedTier)?.price.toString() || "0"}
                       currency="USD"
-                      intent="CAPTURE"
+                      planName={tiers.find(t => t.id === selectedTier)?.name || "Premium Plan"}
+                      userType="jobseeker"
+                      onSuccess={(data) => {
+                        console.log('PayPal subscription success:', data);
+                        toast({
+                          title: "Subscription activated!",
+                          description: "Your premium features are now active.",
+                        });
+                        queryClient.invalidateQueries({ queryKey: ['/api/subscription/current'] });
+                        setShowPayment(false);
+                      }}
+                      onError={(error) => {
+                        console.error('PayPal subscription error:', error);
+                        toast({
+                          title: "Payment failed",
+                          description: "Please try again or contact support.",
+                          variant: "destructive",
+                        });
+                      }}
                     />
                   </div>
                 )}

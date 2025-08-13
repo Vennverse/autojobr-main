@@ -83,7 +83,7 @@ export async function setupAuth(app: Express) {
       try {
         const email = profile.emails?.[0]?.value;
         if (!email) {
-          return done(new Error('No email found'), null);
+          return done(new Error('No email found'), false);
         }
 
         // Check if user exists
@@ -103,24 +103,33 @@ export async function setupAuth(app: Express) {
             password: null,
           });
 
-          // Create user profile
-          await storage.upsertUserProfile({
-            userId: userId,
-            fullName: `${profile.name?.givenName || ''} ${profile.name?.familyName || ''}`.trim(),
-            freeRankingTestsRemaining: 1,
-            freeInterviewsRemaining: 5,
-            premiumInterviewsRemaining: 50,
-            totalInterviewsUsed: 0,
-            totalRankingTestsUsed: 0,
-            onboardingCompleted: false,
-            profileCompletion: 25,
-          });
+          // Create user profile with proper error handling
+          try {
+            await storage.upsertUserProfile({
+              userId: userId,
+              fullName: `${profile.name?.givenName || ''} ${profile.name?.familyName || ''}`.trim(),
+              freeRankingTestsRemaining: 1,
+              freeInterviewsRemaining: 5,
+              premiumInterviewsRemaining: 50,
+              totalInterviewsUsed: 0,
+              totalRankingTestsUsed: 0,
+              onboardingCompleted: false,
+              profileCompletion: 25,
+            });
+            console.log('✅ User profile created successfully for:', email);
+          } catch (profileError) {
+            console.error('Error creating user profile:', profileError);
+            // Continue with authentication even if profile creation fails
+          }
         } else {
-          // Update existing user
+          // Update existing user with better data preservation
           user = await storage.upsertUser({
             ...user,
             profileImageUrl: profile.photos?.[0]?.value || user.profileImageUrl,
             emailVerified: true,
+            // Preserve existing names if they exist, otherwise use Google profile data
+            firstName: user.firstName || profile.name?.givenName || 'User',
+            lastName: user.lastName || profile.name?.familyName || '',
           });
         }
 
@@ -128,7 +137,7 @@ export async function setupAuth(app: Express) {
         return done(null, user);
       } catch (error) {
         console.error('Google OAuth error:', error);
-        return done(error, null);
+        return done(error, false);
       }
     }));
   } else {

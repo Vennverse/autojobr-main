@@ -80,11 +80,21 @@ export default function PayPalButton({
   useEffect(() => {
     const loadPayPalSDK = async () => {
       try {
+        // Check if PayPal credentials are available before loading SDK
+        const credentialsCheck = await fetch('/api/payment/paypal/check-credentials');
+        const credentialsData = await credentialsCheck.json();
+        
+        if (!credentialsData.available) {
+          console.error('PayPal credentials not configured:', credentialsData.message);
+          return;
+        }
+
         if (!(window as any).paypal) {
           const script = document.createElement("script");
           script.src = "https://www.paypal.com/web-sdk/v6/core";
           script.async = true;
           script.onload = () => initPayPal();
+          script.onerror = () => console.error('Failed to load PayPal SDK script');
           document.body.appendChild(script);
         } else {
           await initPayPal();
@@ -98,11 +108,12 @@ export default function PayPalButton({
   }, []);
   const initPayPal = async () => {
     try {
-      const clientToken: string = await fetch("/api/paypal/setup")
-        .then((res) => res.json())
-        .then((data) => {
-          return data.clientToken;
-        });
+      const response = await fetch("/api/paypal/setup");
+      if (!response.ok) {
+        throw new Error('Failed to get PayPal client token');
+      }
+      const data = await response.json();
+      const clientToken: string = data.clientToken;
       const sdkInstance = await (window as any).paypal.createInstance({
         clientToken,
         components: ["paypal-payments"],
