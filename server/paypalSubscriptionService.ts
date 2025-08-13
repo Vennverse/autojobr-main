@@ -192,7 +192,7 @@ export class PayPalSubscriptionService {
       
       const subscriptionData = {
         plan_id: planId,
-        start_time: new Date().toISOString(),
+        start_time: new Date(Date.now() + 60000).toISOString(), // Start 1 minute from now
         subscriber: {
           email_address: userEmail
         },
