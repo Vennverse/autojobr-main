@@ -28,6 +28,7 @@ export default function PayPalSubscriptionButton({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [credentialsChecked, setCredentialsChecked] = useState(false);
+  const [paypalClientId, setPaypalClientId] = useState<string | null>(null);
 
   useEffect(() => {
     const initializePayPal = async () => {
@@ -35,7 +36,7 @@ export default function PayPalSubscriptionButton({
         setIsLoading(true);
         setError(null);
 
-        // Check if PayPal credentials are available
+        // Check if PayPal credentials are available and get client ID
         const credentialsResponse = await fetch('/api/payment/paypal/check-credentials');
         const credentialsData = await credentialsResponse.json();
         
@@ -45,13 +46,24 @@ export default function PayPalSubscriptionButton({
           return;
         }
 
+        // Get PayPal client ID from server
+        const clientResponse = await fetch('/api/payment/paypal/client-id');
+        const clientData = await clientResponse.json();
+        
+        if (!clientData.clientId) {
+          setError('PayPal configuration error. Please try again later.');
+          setIsLoading(false);
+          return;
+        }
+
+        setPaypalClientId(clientData.clientId);
         setCredentialsChecked(true);
 
         // Load PayPal SDK if not already loaded
-        if (!(window as any).paypal) {
+        if (!(window as any).paypal && paypalClientId) {
           const script = document.createElement('script');
           // Use subscription intent and vault for recurring payments
-          script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.VITE_PAYPAL_CLIENT_ID || 'test'}&currency=${currency}&intent=subscription&vault=true&components=buttons`;
+          script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=${currency}&intent=subscription&vault=true&components=buttons`;
           script.async = true;
           
           script.onload = () => {
@@ -64,7 +76,7 @@ export default function PayPalSubscriptionButton({
           };
           
           document.body.appendChild(script);
-        } else {
+        } else if (paypalClientId) {
           renderPayPalButton();
         }
       } catch (err) {
@@ -149,7 +161,7 @@ export default function PayPalSubscriptionButton({
     };
 
     initializePayPal();
-  }, [amount, currency]);
+  }, [amount, currency, tierId]);
 
   if (error) {
     return (

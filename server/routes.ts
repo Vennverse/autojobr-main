@@ -245,6 +245,14 @@ const paymentCredentialsRouter = (app: Express) => {
     });
   });
 
+  // Get PayPal client ID for frontend SDK initialization
+  app.get('/api/payment/paypal/client-id', (req, res) => {
+    if (!process.env.PAYPAL_CLIENT_ID) {
+      return res.status(404).json({ error: 'PayPal client ID not configured' });
+    }
+    res.json({ clientId: process.env.PAYPAL_CLIENT_ID });
+  });
+
   // Check Amazon Pay credentials availability
   app.get('/api/payment/amazon-pay/check-credentials', (req, res) => {
     const available = !!(process.env.AMAZON_PAY_CLIENT_ID && process.env.AMAZON_PAY_CLIENT_SECRET);
