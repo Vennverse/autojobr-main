@@ -303,8 +303,7 @@ export class PayPalSubscriptionService {
       // Update database subscription status
       await db.update(subscriptions)
         .set({ 
-          status: 'active',
-          updatedAt: new Date()
+          status: 'active'
         })
         .where(eq(subscriptions.paypalSubscriptionId, subscriptionId));
 
@@ -317,8 +316,7 @@ export class PayPalSubscriptionService {
         await db.update(users)
           .set({
             planType: 'premium',
-            subscriptionStatus: 'active',
-            updatedAt: new Date()
+            subscriptionStatus: 'active'
           })
           .where(eq(users.id, subscription.userId));
       }
@@ -350,8 +348,7 @@ export class PayPalSubscriptionService {
       await db.update(subscriptions)
         .set({ 
           status: 'cancelled',
-          cancelledAt: new Date(),
-          updatedAt: new Date()
+          cancelledAt: new Date()
         })
         .where(eq(subscriptions.paypalSubscriptionId, subscriptionId));
 
@@ -364,8 +361,7 @@ export class PayPalSubscriptionService {
         await db.update(users)
           .set({
             planType: 'free',
-            subscriptionStatus: 'cancelled',
-            updatedAt: new Date()
+            subscriptionStatus: 'cancelled'
           })
           .where(eq(users.id, subscription.userId));
       }
@@ -377,18 +373,8 @@ export class PayPalSubscriptionService {
     }
   }
 
-  getPlanIdForTier(userType: 'jobseeker' | 'recruiter', tierName: string): string {
-    if (userType === 'jobseeker') {
-      if (tierName.includes('Basic')) return this.PLANS.JOBSEEKER_BASIC_MONTHLY;
-      if (tierName.includes('Premium')) return this.PLANS.JOBSEEKER_PREMIUM_MONTHLY;
-    } else if (userType === 'recruiter') {
-      if (tierName.includes('Starter')) return this.PLANS.RECRUITER_STARTER_MONTHLY;
-      if (tierName.includes('Professional')) return this.PLANS.RECRUITER_PROFESSIONAL_MONTHLY;
-      if (tierName.includes('Enterprise')) return this.PLANS.RECRUITER_ENTERPRISE_MONTHLY;
-    }
-    
-    throw new Error('Invalid user type or tier name');
-  }
+  // This method is not needed since we create plans dynamically
+  // getPlanIdForTier method removed - using dynamic plan creation instead
 
   // Check if user has active premium subscription
   async isPremiumUser(userId: string): Promise<boolean> {

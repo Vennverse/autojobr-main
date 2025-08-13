@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
@@ -24,144 +24,57 @@ export default function PayPalSubscriptionButton({
   userType = "jobseeker",
   className = ""
 }: PayPalSubscriptionButtonProps) {
-  const paypalRef = useRef<HTMLDivElement>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [credentialsChecked, setCredentialsChecked] = useState(false);
-  const [paypalClientId, setPaypalClientId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const initializePayPal = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        // Check if PayPal credentials are available and get client ID
-        const credentialsResponse = await fetch('/api/payment/paypal/check-credentials');
-        const credentialsData = await credentialsResponse.json();
-        
-        if (!credentialsData.available) {
-          setError('PayPal payment is currently unavailable. Please contact support.');
-          setIsLoading(false);
-          return;
-        }
-
-        // Get PayPal client ID from server
-        const clientResponse = await fetch('/api/payment/paypal/client-id');
-        const clientData = await clientResponse.json();
-        
-        if (!clientData.clientId) {
-          setError('PayPal configuration error. Please try again later.');
-          setIsLoading(false);
-          return;
-        }
-
-        setPaypalClientId(clientData.clientId);
-        setCredentialsChecked(true);
-
-        // Load PayPal SDK if not already loaded
-        if (!(window as any).paypal && paypalClientId) {
-          const script = document.createElement('script');
-          // Use subscription intent and vault for recurring payments
-          script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=${currency}&intent=subscription&vault=true&components=buttons`;
-          script.async = true;
-          
-          script.onload = () => {
-            renderPayPalButton();
-          };
-          
-          script.onerror = () => {
-            setError('Failed to load PayPal SDK');
-            setIsLoading(false);
-          };
-          
-          document.body.appendChild(script);
-        } else if (paypalClientId) {
-          renderPayPalButton();
-        }
-      } catch (err) {
-        console.error('PayPal initialization error:', err);
-        setError('Failed to initialize PayPal');
-        setIsLoading(false);
-      }
-    };
-
-    const renderPayPalButton = () => {
-      if (!paypalRef.current || !(window as any).paypal) {
+  const handlePayPalSubscription = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Check if PayPal credentials are available
+      const credentialsResponse = await fetch('/api/payment/paypal/check-credentials');
+      const credentialsData = await credentialsResponse.json();
+      
+      if (!credentialsData.available) {
+        setError('PayPal payment is currently unavailable. Please contact support.');
         return;
       }
 
-      // Clear any existing buttons
-      paypalRef.current.innerHTML = '';
-
-      (window as any).paypal.Buttons({
-        style: {
-          layout: 'vertical',
-          color: 'blue',
-          shape: 'rect',
-          label: 'subscribe'
+      // Create PayPal subscription using existing service
+      const response = await fetch('/api/subscription/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        
-        createSubscription: async () => {
-          try {
-            // Use existing subscription API that integrates with PayPalSubscriptionService
-            const response = await fetch('/api/subscription/create', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                tierId: tierId,
-                paymentMethod: 'paypal',
-                userType: userType
-              }),
-            });
-
-            if (!response.ok) {
-              throw new Error('Failed to create PayPal subscription');
-            }
-
-            const subscriptionData = await response.json();
-            return subscriptionData.paypalSubscriptionId;
-          } catch (err) {
-            console.error('Error creating PayPal subscription:', err);
-            setError('Failed to create subscription');
-            throw err;
-          }
-        },
-
-        onApprove: async (data: any) => {
-          try {
-            // Handle subscription approval - the existing webhook will handle activation
-            console.log('PayPal subscription approved:', data);
-            onSuccess?.(data);
-          } catch (err) {
-            console.error('Error handling PayPal subscription approval:', err);
-            onError?.(err);
-          }
-        },
-
-        onError: (err: any) => {
-          console.error('PayPal error:', err);
-          setError('Payment failed. Please try again.');
-          onError?.(err);
-        },
-
-        onCancel: (data: any) => {
-          console.log('PayPal payment cancelled:', data);
-          setError('Payment was cancelled');
-        }
-      }).render(paypalRef.current).then(() => {
-        setIsLoading(false);
-      }).catch((err: any) => {
-        console.error('Error rendering PayPal button:', err);
-        setError('Failed to load PayPal button');
-        setIsLoading(false);
+        body: JSON.stringify({
+          tierId: tierId,
+          paymentMethod: 'paypal',
+          userType: userType
+        }),
       });
-    };
 
-    initializePayPal();
-  }, [amount, currency, tierId]);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create PayPal subscription');
+      }
+
+      const subscriptionData = await response.json();
+      
+      // Redirect to PayPal approval URL
+      if (subscriptionData.approvalUrl) {
+        window.location.href = subscriptionData.approvalUrl;
+      } else {
+        throw new Error('No approval URL received from PayPal');
+      }
+    } catch (err: any) {
+      console.error('Error creating PayPal subscription:', err);
+      setError(err.message || 'Failed to create subscription. Please try again.');
+      onError?.(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (error) {
     return (
@@ -179,14 +92,22 @@ export default function PayPalSubscriptionButton({
           <p className="text-lg font-bold">{currency} {amount}/month</p>
         </div>
         
-        {isLoading && (
-          <div className="flex items-center justify-center py-4">
-            <Loader2 className="w-6 h-6 animate-spin mr-2" />
-            <span>Loading PayPal...</span>
-          </div>
-        )}
-        
-        <div ref={paypalRef} className={isLoading ? 'opacity-0' : 'opacity-100 transition-opacity'}></div>
+        <Button
+          onClick={handlePayPalSubscription}
+          disabled={isLoading}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 text-lg font-semibold"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              Processing...
+            </>
+          ) : (
+            <>
+              Subscribe with PayPal
+            </>
+          )}
+        </Button>
       </div>
     </div>
   );
