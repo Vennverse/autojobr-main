@@ -72,6 +72,7 @@ export async function setupAuth(app: Express) {
 
   // Configure Google OAuth Strategy
   if (authConfig.providers.google.enabled) {
+    console.log('🔑 Setting up Google OAuth strategy with callback URL: /api/auth/google/callback');
     passport.use(new GoogleStrategy({
       clientID: authConfig.providers.google.clientId!,
       clientSecret: authConfig.providers.google.clientSecret!,
@@ -129,6 +130,8 @@ export async function setupAuth(app: Express) {
         return done(error, null);
       }
     }));
+  } else {
+    console.log('⚠️  Google OAuth not configured - missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET');
   }
 
   // Passport serialization
@@ -382,7 +385,8 @@ export async function setupAuth(app: Express) {
     })
   );
 
-  app.get('/api/auth/callback/google',
+  // Handle Google OAuth callback route
+  app.get('/api/auth/google/callback', 
     passport.authenticate('google', { failureRedirect: '/auth?error=oauth_failed' }),
     (req: any, res) => {
       console.log(`✅ Google OAuth successful for user: ${req.user?.email}`);
