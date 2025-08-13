@@ -61,8 +61,8 @@ app.use(cors({
     // Production domain
     'https://autojobr.com',
     'https://www.autojobr.com',
-    'http://autojobr.com',
-    'http://www.autojobr.com',
+    'https://autojobr.com',
+    'https://www.autojobr.com',
     ...(process.env.PRODUCTION_DOMAIN ? [process.env.PRODUCTION_DOMAIN] : [])
   ],
   credentials: true,
