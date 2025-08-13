@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, Wallet, DollarSign, CheckCircle, AlertCircle } from "lucide-react";
 import PayPalSubscriptionButton from "./PayPalSubscriptionButton";
+import RazorpaySubscriptionButton from "./RazorpaySubscriptionButton";
 
 interface PaymentGatewayProps {
   tierId: string;
@@ -175,6 +176,24 @@ export default function PaymentGatewaySelector({
                   onSuccess={(subscriptionId: string) => {
                     onPaymentSuccess?.({ subscriptionId });
                   }}
+                />
+              </div>
+            </div>
+          ) : selectedGateway === 'razorpay' ? (
+            <div className="space-y-4">
+              <div className="text-center">
+                <h3 className="font-semibold">Complete Payment with Razorpay</h3>
+                <p className="text-sm text-muted-foreground">
+                  Secure payment with Credit Cards, UPI, Net Banking, and more
+                </p>
+              </div>
+              <div className="flex justify-center">
+                <RazorpaySubscriptionButton
+                  tierId={tierId}
+                  tierName={tierName}
+                  price={amount}
+                  userEmail={userEmail}
+                  disabled={false}
                 />
               </div>
             </div>

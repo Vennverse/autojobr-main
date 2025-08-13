@@ -679,9 +679,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
 
-    // For other payment methods (Amazon Pay) - return not available for now
+    // Handle Razorpay subscriptions
+    if (paymentMethod === 'razorpay') {
+      const { razorpayService } = await import('./razorpayService');
+      
+      if (!razorpayService.isAvailable()) {
+        return res.status(503).json({ 
+          error: 'Razorpay payment is not available. Please use PayPal or contact support.' 
+        });
+      }
+      
+      try {
+        const subscription = await razorpayService.createSubscription(
+          userId,
+          selectedTier.name,
+          selectedTier.price,
+          'monthly',
+          userEmail
+        );
+
+        return res.json({
+          success: true,
+          subscriptionId: subscription.subscriptionId,
+          shortUrl: subscription.shortUrl,
+          amountInINR: subscription.amountInINR
+        });
+      } catch (error: any) {
+        console.error('Razorpay subscription creation error:', error);
+        return res.status(500).json({ error: 'Failed to create Razorpay subscription' });
+      }
+    }
+
+    // For other payment methods - return not available for now
     return res.status(400).json({ 
-      error: `${paymentMethod} integration is coming soon. Please use PayPal for monthly subscriptions.` 
+      error: `${paymentMethod} integration is coming soon. Please use PayPal or Razorpay for monthly subscriptions.` 
     });
   }));
 
@@ -4167,6 +4198,60 @@ Additional Information:
     } catch (error) {
       console.error('PayPal order creation error:', error);
       res.status(500).json({ message: 'Failed to create PayPal order' });
+    }
+  });
+
+  // Create Razorpay Subscription
+  app.post('/api/subscription/razorpay/create', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tierId, userEmail } = req.body;
+      const userId = req.user.id;
+      
+      const { razorpayService } = await import('./razorpayService');
+      
+      if (!razorpayService.isAvailable()) {
+        return res.status(503).json({ 
+          error: 'Razorpay payment is not available. Please contact support.' 
+        });
+      }
+
+      // Get tier details
+      const tierData = await storage.getSubscriptionTiers();
+      const selectedTier = tierData.find((tier: any) => tier.id === tierId);
+      
+      if (!selectedTier) {
+        return res.status(404).json({ error: 'Subscription tier not found' });
+      }
+
+      const subscription = await razorpayService.createSubscription(
+        userId,
+        selectedTier.name,
+        selectedTier.price,
+        'monthly',
+        userEmail || req.user.email
+      );
+
+      res.json({
+        success: true,
+        subscriptionId: subscription.subscriptionId,
+        shortUrl: subscription.shortUrl,
+        amountInINR: subscription.amountInINR
+      });
+    } catch (error: any) {
+      console.error('Razorpay subscription creation error:', error);
+      res.status(500).json({ error: 'Failed to create Razorpay subscription' });
+    }
+  });
+
+  // Razorpay webhook handler
+  app.post('/api/subscription/razorpay/webhook', async (req, res) => {
+    try {
+      const { razorpayService } = await import('./razorpayService');
+      await razorpayService.handleWebhook(req.body);
+      res.status(200).json({ status: 'ok' });
+    } catch (error: any) {
+      console.error('Razorpay webhook error:', error);
+      res.status(500).json({ error: 'Webhook processing failed' });
     }
   });
 
