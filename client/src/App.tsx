@@ -67,6 +67,10 @@ import SubscriptionCancel from "@/pages/subscription/Cancel";
 
 // SEO Landing Pages to Beat Competition
 import FreeJobApplicationAutomation from "@/pages/seo/FreeJobApplicationAutomation";
+import BestJobApplicationTools from "@/pages/seo/BestJobApplicationTools";
+import RemoteJobsStudents from "@/pages/seo/RemoteJobsStudents";
+import OneClickApplyJobs from "@/pages/seo/OneClickApplyJobs";
+import JobApplicationAutofillExtension from "@/pages/seo/JobApplicationAutofillExtension";
 
 // Public Pages
 import About from "@/pages/about";
@@ -113,6 +117,24 @@ function Router() {
       <Route path="/auto-apply-1000-jobs-daily" component={FreeJobApplicationAutomation} />
       <Route path="/linkedin-auto-apply-bot" component={ChromeExtension} />
       <Route path="/indeed-auto-apply-tool" component={ChromeExtension} />
+      
+      {/* Strategic Long-Tail SEO Pages */}
+      <Route path="/best-job-application-tools-2025" component={BestJobApplicationTools} />
+      <Route path="/remote-jobs-students-2025" component={RemoteJobsStudents} />
+      <Route path="/1-click-apply-jobs" component={OneClickApplyJobs} />
+      <Route path="/freshers-remote-jobs-2025" component={RemoteJobsStudents} />
+      <Route path="/linkedin-job-application-autofill-tool" component={JobApplicationAutofillExtension} />
+      <Route path="/ai-job-application-tracker-free" component={BestJobApplicationTools} />
+      <Route path="/how-to-apply-jobs-faster-online" component={OneClickApplyJobs} />
+      <Route path="/job-application-autofill-extension" component={JobApplicationAutofillExtension} />
+      
+      {/* Additional High-Traffic Keyword Routes */}
+      <Route path="/entry-level-jobs-no-experience" component={RemoteJobsStudents} />
+      <Route path="/college-student-jobs-remote" component={RemoteJobsStudents} />
+      <Route path="/part-time-jobs-students-online" component={RemoteJobsStudents} />
+      <Route path="/automated-job-search-tool" component={BestJobApplicationTools} />
+      <Route path="/job-search-automation-software" component={BestJobApplicationTools} />
+      <Route path="/resume-optimizer-ats-free" component={ATSOptimizer} />
       
       {/* Post Job route - accessible to everyone, handles verification internally */}
       <Route path="/post-job" component={PostJob} />
