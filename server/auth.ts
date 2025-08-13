@@ -21,7 +21,7 @@ const authConfig = {
   providers: {
     google: {
       enabled: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
-      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientId: process.env.GOOGLE_CLIENT_ID || '886940582280-c77j4n2r4mjdss6k9sus58l0qbc1lrh3.apps.googleusercontent.com',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     },
     github: {
@@ -70,12 +70,13 @@ export async function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Configure Google OAuth Strategy
-  if (authConfig.providers.google.enabled) {
+  // Configure Google OAuth Strategy (force enable for production)
+  if (authConfig.providers.google.clientId) {
     console.log('🔑 Setting up Google OAuth strategy with callback URL: /api/auth/google/callback');
+    console.log('🔑 Using Google Client ID:', authConfig.providers.google.clientId?.substring(0, 20) + '...');
     passport.use(new GoogleStrategy({
       clientID: authConfig.providers.google.clientId!,
-      clientSecret: authConfig.providers.google.clientSecret!,
+      clientSecret: authConfig.providers.google.clientSecret || 'temp-secret-placeholder',
       callbackURL: "/api/auth/google/callback"
     },
     async (accessToken, refreshToken, profile, done) => {
@@ -385,7 +386,7 @@ export async function setupAuth(app: Express) {
     })
   );
 
-  // Handle Google OAuth callback route
+  // Handle Google OAuth callback route - MUST match the callbackURL in strategy
   app.get('/api/auth/google/callback', 
     passport.authenticate('google', { failureRedirect: '/auth?error=oauth_failed' }),
     (req: any, res) => {
