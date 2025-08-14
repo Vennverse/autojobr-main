@@ -55,11 +55,11 @@ export async function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: true, // Use HTTPS for production deployment
+      secure: process.env.NODE_ENV === 'production', // HTTPS for production, HTTP for development
       httpOnly: true,
       maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year for persistent extension auth
-      sameSite: 'none', // Required for cross-site HTTPS requests
-      domain: '.autojobr.com', // Set domain for production
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for production, 'lax' for development
+      domain: process.env.NODE_ENV === 'production' ? '.autojobr.com' : undefined, // Set domain only for production
     },
     name: 'autojobr.sid', // Custom session name
     proxy: true // Trust first proxy for production environment
