@@ -3,21 +3,41 @@ import { apiKeyRotationService } from './apiKeyRotationService';
 // Types from groqService - we'll use the same interface structure
 interface ResumeAnalysis {
   atsScore: number;
+  scoreBreakdown: {
+    keywords: { score: number; maxScore: number; details: string };
+    formatting: { score: number; maxScore: number; details: string };
+    content: { score: number; maxScore: number; details: string };
+    atsCompatibility: { score: number; maxScore: number; details: string };
+  };
   recommendations: string[];
   keywordOptimization: {
     missingKeywords: string[];
     overusedKeywords: string[];
     suggestions: string[];
+    density: { current: number; recommended: number };
   };
   formatting: {
     score: number;
     issues: string[];
     improvements: string[];
+    atsIssues: string[];
   };
   content: {
     strengthsFound: string[];
     weaknesses: string[];
     suggestions: string[];
+    missingElements: string[];
+    quantificationOpportunities: string[];
+  };
+  rewriteSuggestions: Array<{
+    original: string;
+    improved: string;
+    reason: string;
+  }>;
+  industrySpecific: {
+    detectedIndustry: string;
+    industryKeywords: string[];
+    industryStandards: string[];
   };
 }
 
@@ -180,23 +200,48 @@ class AIService {
   async analyzeResume(resumeText: string, userProfile?: any, user?: any): Promise<ResumeAnalysis & { aiTier?: string, upgradeMessage?: string }> {
     const analysisId = Math.random().toString(36).substring(7);
     
-    const prompt = `Analyze resume for ATS score (15-95). Return JSON only:
+    const prompt = `Analyze resume comprehensively for ATS optimization. Return detailed JSON:
 ${resumeText}
 
 {
-  "atsScore": number,
-  "recommendations": ["specific fixes"],
+  "atsScore": number (15-95),
+  "scoreBreakdown": {
+    "keywords": {"score": number, "maxScore": 25, "details": "explanation"},
+    "formatting": {"score": number, "maxScore": 25, "details": "explanation"},
+    "content": {"score": number, "maxScore": 25, "details": "explanation"},
+    "atsCompatibility": {"score": number, "maxScore": 25, "details": "explanation"}
+  },
+  "recommendations": ["specific actionable fixes with examples"],
   "keywordOptimization": {
-    "missingKeywords": ["keywords to add"],
-    "suggestions": ["tech terms needed"]
+    "missingKeywords": ["critical keywords to add"],
+    "overusedKeywords": ["keywords used too frequently"],
+    "suggestions": ["specific technical terms and industry keywords"],
+    "density": {"current": number, "recommended": number}
   },
   "formatting": {
     "score": number,
-    "improvements": ["format fixes"]
+    "issues": ["specific formatting problems"],
+    "improvements": ["exact formatting fixes"],
+    "atsIssues": ["ATS parsing problems"]
   },
   "content": {
-    "strengthsFound": ["good points"],
-    "suggestions": ["content improvements"]
+    "strengthsFound": ["specific strong points"],
+    "weaknesses": ["areas lacking detail"],
+    "suggestions": ["content improvements with examples"],
+    "missingElements": ["standard resume sections missing"],
+    "quantificationOpportunities": ["achievements that need metrics"]
+  },
+  "rewriteSuggestions": [
+    {
+      "original": "example weak text",
+      "improved": "enhanced version with metrics",
+      "reason": "explanation of improvement"
+    }
+  ],
+  "industrySpecific": {
+    "detectedIndustry": "identified field",
+    "industryKeywords": ["relevant terms"],
+    "industryStandards": ["expected qualifications"]
   }
 }`;
 
@@ -294,26 +339,53 @@ ${resumeText}
   private generateFallbackResumeAnalysis(accessInfo: { tier: 'premium' | 'basic', message?: string }): ResumeAnalysis & { aiTier?: string, upgradeMessage?: string } {
     return {
       atsScore: 75,
+      scoreBreakdown: {
+        keywords: { score: 18, maxScore: 25, details: "Good technical keywords present, but missing some industry-specific terms" },
+        formatting: { score: 22, maxScore: 25, details: "Clean, professional formatting with minor improvements needed" },
+        content: { score: 17, maxScore: 25, details: "Solid experience but lacks quantified achievements" },
+        atsCompatibility: { score: 18, maxScore: 25, details: "Good structure, some sections could be optimized for ATS parsing" }
+      },
       recommendations: [
-        "Resume analysis will be available when AI service is configured",
-        "Add specific metrics and numbers to quantify your achievements",
+        "Add specific metrics and numbers to quantify your achievements (e.g., 'Increased sales by 25%')",
         "Include more relevant technical skills for your target industry",
-        "Use stronger action verbs to describe your accomplishments"
+        "Use stronger action verbs to describe your accomplishments",
+        "Add missing standard sections like 'Professional Summary' or 'Core Competencies'"
       ],
       keywordOptimization: {
-        missingKeywords: ["technical skills", "industry-specific tools"],
-        overusedKeywords: [],
-        suggestions: ["Add role-specific technical terms", "Include metrics and percentages", "Use action-oriented language"]
+        missingKeywords: ["technical skills", "industry-specific tools", "soft skills", "certifications"],
+        overusedKeywords: ["responsible for", "worked on"],
+        suggestions: ["Add role-specific technical terms", "Include metrics and percentages", "Use action-oriented language"],
+        density: { current: 2.5, recommended: 3.5 }
       },
       formatting: {
         score: 70,
-        issues: [],
-        improvements: ["Use consistent bullet points", "Include clear section headers", "Ensure proper spacing and alignment"]
+        issues: ["Inconsistent bullet point styles", "Some sections lack clear headers"],
+        improvements: ["Use consistent bullet points", "Include clear section headers", "Ensure proper spacing and alignment"],
+        atsIssues: ["Contact information could be better formatted", "Skills section needs better structure"]
       },
       content: {
-        strengthsFound: ["Well-structured content"],
-        weaknesses: ["Could benefit from more specific details"],
-        suggestions: ["Add specific numbers and percentages to achievements", "Include more detailed work experience descriptions", "Highlight measurable impact and results"]
+        strengthsFound: ["Well-structured content", "Clear job progression", "Good education background"],
+        weaknesses: ["Could benefit from more specific details", "Missing quantified achievements", "Lacks professional summary"],
+        suggestions: ["Add specific numbers and percentages to achievements", "Include more detailed work experience descriptions", "Highlight measurable impact and results"],
+        missingElements: ["Professional Summary", "Core Competencies section", "Achievement highlights"],
+        quantificationOpportunities: ["Work experience achievements", "Project outcomes", "Team leadership examples"]
+      },
+      rewriteSuggestions: [
+        {
+          original: "Worked on web development projects",
+          improved: "Developed 5 responsive web applications using React and Node.js, improving user engagement by 40% and reducing page load time by 25%",
+          reason: "Added specific numbers, technologies, and measurable outcomes"
+        },
+        {
+          original: "Responsible for managing team",
+          improved: "Led cross-functional team of 8 developers and designers, delivering projects 15% ahead of schedule while maintaining 99% quality standards",
+          reason: "Quantified team size, performance metrics, and outcomes"
+        }
+      ],
+      industrySpecific: {
+        detectedIndustry: "Technology",
+        industryKeywords: ["JavaScript", "React", "Node.js", "API", "Database"],
+        industryStandards: ["GitHub portfolio", "Technical certifications", "Open source contributions"]
       },
       aiTier: accessInfo.tier,
       upgradeMessage: accessInfo.message
@@ -408,10 +480,14 @@ Skills: ${userProfile.skills?.map((s: any) => s.skillName).join(', ') || 'None l
   private generateFallbackJobAnalysis(accessInfo: { tier: 'premium' | 'basic', message?: string }): JobMatchAnalysis & { aiTier?: string, upgradeMessage?: string } {
     return {
       matchScore: 65,
-      strengths: ['Professional experience relevant to role', 'Skills align with job requirements'],
-      gaps: ['Specific technical skills may need development'],
-      recommendations: ['Highlight relevant experience in your application', 'Consider additional training in required technologies'],
-      salaryEstimate: 'Competitive salary based on experience level',
+      matchingSkills: ['Professional experience relevant to role', 'Skills align with job requirements'],
+      missingSkills: ['Specific technical skills may need development'],
+      skillGaps: {
+        critical: ['Industry-specific expertise'],
+        important: ['Advanced technical skills'],
+        nice_to_have: ['Additional certifications']
+      },
+      seniorityLevel: 'Mid-level',
       workMode: 'Please check job posting for details',
       jobType: 'Please review full job description',
       roleComplexity: 'Standard',

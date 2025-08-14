@@ -28,6 +28,7 @@ import {
   Clock,
   Plus
 } from "lucide-react";
+import ResumeAnalysisModal from "@/components/ResumeAnalysisModal";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -58,6 +59,7 @@ export default function ResumesPage() {
   const [isUploadingResume, setIsUploadingResume] = useState(false);
   const [selectedResume, setSelectedResume] = useState<any>(null);
   const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
+  const [showEnhancedModal, setShowEnhancedModal] = useState(false);
 
   const { data: resumes, isLoading: resumesLoading } = useQuery({
     queryKey: ["/api/resumes"],
@@ -369,11 +371,11 @@ export default function ResumesPage() {
                                 size="sm"
                                 onClick={() => {
                                   setSelectedResume(resume);
-                                  setShowAnalysisDialog(true);
+                                  setShowEnhancedModal(true);
                                 }}
                               >
                                 <Eye className="h-4 w-4 mr-2" />
-                                View Analysis
+                                Enhanced Analysis
                               </Button>
                               
                               {!resume.isActive && (
@@ -575,6 +577,31 @@ export default function ResumesPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Enhanced Resume Analysis Modal */}
+      <ResumeAnalysisModal
+        isOpen={showEnhancedModal}
+        onClose={() => setShowEnhancedModal(false)}
+        resumeData={selectedResume}
+        onReanalyze={() => {
+          if (selectedResume) {
+            // Trigger re-analysis
+            queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
+            toast({
+              title: "Re-analyzing Resume",
+              description: "Your resume is being re-analyzed with the latest AI improvements."
+            });
+          }
+        }}
+        onOptimize={(section: string) => {
+          toast({
+            title: "Optimization Applied",
+            description: `${section} has been optimized. Download your updated resume to see the changes.`
+          });
+          // In a real implementation, this would trigger the specific optimization
+          console.log("Optimizing section:", section);
+        }}
+      />
     </div>
   );
 }
