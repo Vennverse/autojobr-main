@@ -87,12 +87,12 @@ export default function RecruiterDashboard() {
   const [selectedJobForPromote, setSelectedJobForPromote] = useState<any>(null);
 
   // Fetch recruiter's job postings
-  const { data: jobPostings = [], isLoading: jobsLoading } = useQuery({
+  const { data: jobPostings, isLoading: jobsLoading } = useQuery({
     queryKey: ["/api/recruiter/jobs"],
   });
 
   // Fetch applications for recruiter's jobs
-  const { data: applications = [], isLoading: applicationsLoading } = useQuery({
+  const { data: applications, isLoading: applicationsLoading } = useQuery({
     queryKey: ["/api/recruiter/applications"],
   });
 
@@ -103,10 +103,14 @@ export default function RecruiterDashboard() {
   });
 
   // Fetch chat conversations
-  const { data: conversations = [], isLoading: conversationsLoading } =
-    useQuery({
-      queryKey: ["/api/chat/conversations"],
-    });
+  const { data: conversations, isLoading: conversationsLoading } = useQuery({
+    queryKey: ["/api/chat/conversations"],
+  });
+
+  // Safe array access with proper fallbacks
+  const safeJobPostings = Array.isArray(jobPostings) ? jobPostings : [];
+  const safeApplications = Array.isArray(applications) ? applications : [];
+  const safeConversations = Array.isArray(conversations) ? conversations : [];
 
   // Fetch applicant details when selected
   const { data: applicantDetails, isLoading: applicantLoading } = useQuery({
@@ -316,9 +320,9 @@ export default function RecruiterDashboard() {
                   <Briefcase className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{jobPostings.length}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{safeJobPostings.length}</p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Active Jobs</p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400">+{jobPostings.filter((j: any) => {
+                  <p className="text-xs text-blue-600 dark:text-blue-400">+{safeJobPostings.filter((j: any) => {
                     const createdAt = new Date(j.createdAt);
                     const weekAgo = new Date();
                     weekAgo.setDate(weekAgo.getDate() - 7);
@@ -336,10 +340,10 @@ export default function RecruiterDashboard() {
                   <Users className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{applications.length}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{safeApplications.length}</p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Applications</p>
                   <p className="text-xs text-green-600 dark:text-green-400">
-                    {applications.filter((a: any) => a.status === 'pending').length} pending review
+                    {safeApplications.filter((a: any) => a.status === 'pending').length} pending review
                   </p>
                 </div>
               </div>
@@ -368,7 +372,7 @@ export default function RecruiterDashboard() {
                   <MessageSquare className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{conversations.length}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{safeConversations.length}</p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Active Chats</p>
                   <p className="text-xs text-orange-600 dark:text-orange-400">
                     {conversations.filter((c: any) => c.hasUnread).length} unread

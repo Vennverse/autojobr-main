@@ -255,17 +255,18 @@ export default function EnhancedDashboard() {
     retry: false,
   });
 
-  const profileCompletion = profile?.profileCompletion || 0;
-  const resumeScore = resumes?.[0]?.atsScore || 0;
-  const totalApplications = applications?.length || 0;
-  const pendingTests = testAssignments?.length || 0;
-  const interviewsPending = mockInterviewStats?.totalSessions || 0;
+  // Safe data access with proper fallbacks
+  const profileCompletion = (profile as any)?.profileCompletion || 0;
+  const resumeScore = Array.isArray(resumes) && resumes.length > 0 ? resumes[0]?.atsScore || 0 : 0;
+  const totalApplications = Array.isArray(applications) ? applications.length : 0;
+  const pendingTests = Array.isArray(testAssignments) ? testAssignments.length : 0;
+  const interviewsPending = (mockInterviewStats as any)?.totalSessions || 0;
 
   // Calculate user progress and achievements
-  const hasUploadedResume = (resumes?.length || 0) > 0;
+  const hasUploadedResume = Array.isArray(resumes) ? resumes.length > 0 : false;
   const hasAppliedToJobs = totalApplications > 0;
   const hasCompletedInterview = interviewsPending > 0;
-  const hasCompletedTests = (rankingTestHistory?.length || 0) > 0;
+  const hasCompletedTests = Array.isArray(rankingTestHistory) ? rankingTestHistory.length > 0 : false;
   const hasGoodResumeScore = resumeScore >= 70;
   const hasCompleteProfile = profileCompletion >= 80;
 
@@ -491,9 +492,10 @@ export default function EnhancedDashboard() {
       const formData = new FormData();
       formData.append("resume", file);
 
-      const response = await apiRequest("/api/resumes/upload", {
+      const response = await fetch("/api/resumes/upload", {
         method: "POST",
         body: formData,
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -526,7 +528,7 @@ export default function EnhancedDashboard() {
   ) => {
     setIsGenerating(true);
     try {
-      const response = await apiRequest("/api/ai/cover-letter", {
+      const response = await fetch("/api/ai/cover-letter", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -536,6 +538,7 @@ export default function EnhancedDashboard() {
           companyName,
           jobTitle,
         }),
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -649,7 +652,7 @@ export default function EnhancedDashboard() {
         "Find perfect jobs with AI matching algorithm that analyzes your skills and preferences",
       icon: Target,
       route: "/jobs",
-      stats: `${jobPostings?.length || 0} Jobs Available`,
+      stats: `${Array.isArray(jobPostings) ? jobPostings.length : 0} Jobs Available`,
       gradient: "from-purple-500 to-pink-500",
       action: "Browse Jobs",
       helpText:
@@ -679,13 +682,13 @@ export default function EnhancedDashboard() {
         "Compete with other candidates in skill-based challenges and showcase your abilities",
       icon: Trophy,
       route: "/ranking-tests",
-      stats: `${rankingTestHistory?.length || 0} Completed`,
+      stats: `${Array.isArray(rankingTestHistory) ? rankingTestHistory.length : 0} Completed`,
       gradient: "from-yellow-500 to-orange-500",
       action: "Join Ranking",
       helpText:
         "Stand out by ranking in top 10% - recruiters actively seek high-performing candidates from our leaderboards",
       isCompetitive: true,
-      usageCount: rankingTestHistory?.length || 0,
+      usageCount: Array.isArray(rankingTestHistory) ? rankingTestHistory.length : 0,
       successRate: "72%",
     },
     {
