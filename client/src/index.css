@@ -152,120 +152,74 @@
 }
 
 :root {
-  /* Base Background - Cream White #FFF8E7 (neutral & auspicious) */
-  --background: hsl(48, 100%, 95.3%);
+  --background: hsl(0, 0%, 100%);
   --foreground: hsl(240, 10%, 3.9%);
-  
-  /* Muted elements - Soft Beige #F5E6CC (Ketu grounding) */
-  --muted: hsl(39, 56%, 88.8%);
+  --muted: hsl(240, 4.8%, 95.9%);
   --muted-foreground: hsl(240, 3.8%, 46.1%);
-  
-  /* Popover/Modal - Cream White */
-  --popover: hsl(48, 100%, 95.3%);
+  --popover: hsl(0, 0%, 100%);
   --popover-foreground: hsl(240, 10%, 3.9%);
-  
-  /* Cards - Cream White */
-  --card: hsl(48, 100%, 95.3%);
+  --card: hsl(0, 0%, 100%);
   --card-foreground: hsl(240, 10%, 3.9%);
-  
-  /* Borders - Soft Beige with lower opacity */
-  --border: hsl(39, 56%, 85%);
-  --input: hsl(39, 56%, 85%);
-  
-  /* Primary - Rich Gold #FFD54F (Jupiter prosperity) */
-  --primary: hsl(50, 100%, 65.1%);
-  --primary-foreground: hsl(240, 10%, 3.9%);
-  
-  /* Secondary - Sky Blue #4FC3F7 (Venus creativity & attraction) */
-  --secondary: hsl(198, 89%, 63.3%);
-  --secondary-foreground: hsl(0, 0%, 98%);
-  
-  /* Accent - Sky Blue (same as secondary for consistency) */
-  --accent: hsl(198, 89%, 63.3%);
-  --accent-foreground: hsl(0, 0%, 98%);
-  
-  /* CTA/Destructive - Coral Orange #FF7043 (Sun & Mars strength) */
-  --destructive: hsl(14, 100%, 63.3%);
+  --border: hsl(240, 5.9%, 90%);
+  --input: hsl(240, 5.9%, 90%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(0, 0%, 98%);
+  --secondary: hsl(240, 4.8%, 95.9%);
+  --secondary-foreground: hsl(240, 5.9%, 10%);
+  --accent: hsl(240, 4.8%, 95.9%);
+  --accent-foreground: hsl(240, 5.9%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
   --destructive-foreground: hsl(0, 0%, 98%);
-  
-  /* Ring focus - Rich Gold */
-  --ring: hsl(50, 100%, 65.1%);
-  
-  /* Chart colors - Astrological theme */
-  --chart-1: hsl(50, 100%, 65.1%);  /* Rich Gold */
-  --chart-2: hsl(198, 89%, 63.3%);  /* Sky Blue */
-  --chart-3: hsl(14, 100%, 63.3%);  /* Coral Orange */
-  --chart-4: hsl(0, 0%, 75.7%);     /* Metallic Silver */
-  --chart-5: hsl(39, 56%, 88.8%);   /* Soft Beige */
-  
-  /* Sidebar - Soft Beige base */
-  --sidebar-background: hsl(39, 56%, 92%);
+  --ring: hsl(207, 90%, 54%);
+  --chart-1: hsl(12, 76%, 61%);
+  --chart-2: hsl(173, 58%, 39%);
+  --chart-3: hsl(197, 37%, 24%);
+  --chart-4: hsl(43, 74%, 66%);
+  --chart-5: hsl(27, 87%, 67%);
+  --sidebar-background: hsl(0, 0%, 98%);
   --sidebar-foreground: hsl(240, 5.3%, 26.1%);
-  --sidebar-primary: hsl(50, 100%, 65.1%);
-  --sidebar-primary-foreground: hsl(240, 10%, 3.9%);
-  --sidebar-accent: hsl(198, 89%, 63.3%);
-  --sidebar-accent-foreground: hsl(0, 0%, 98%);
-  --sidebar-border: hsl(39, 56%, 85%);
-  --sidebar-ring: hsl(50, 100%, 65.1%);
+  --sidebar-primary: hsl(240, 5.9%, 10%);
+  --sidebar-primary-foreground: hsl(0, 0%, 98%);
+  --sidebar-accent: hsl(240, 4.8%, 95.9%);
+  --sidebar-accent-foreground: hsl(240, 5.9%, 10%);
+  --sidebar-border: hsl(220, 13%, 91%);
+  --sidebar-ring: hsl(217.2, 32.6%, 17.5%);
   --radius: 0.5rem;
 }
 
 .dark {
-  /* Dark Background - Deep navy while avoiding pure black */
-  --background: hsl(240, 15%, 8%);
-  --foreground: hsl(48, 100%, 95.3%);
-  
-  /* Muted elements - Dark grey with subtle warmth */
-  --muted: hsl(240, 5%, 20%);
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
   --muted-foreground: hsl(240, 5%, 64.9%);
-  
-  /* Popover/Modal - Dark background */
-  --popover: hsl(240, 15%, 8%);
-  --popover-foreground: hsl(48, 100%, 95.3%);
-  
-  /* Cards - Slightly lighter than background */
-  --card: hsl(240, 10%, 12%);
-  --card-foreground: hsl(48, 100%, 95.3%);
-  
-  /* Borders - Subtle grey */
-  --border: hsl(240, 5%, 25%);
-  --input: hsl(240, 5%, 25%);
-  
-  /* Primary - Rich Gold (unchanged for brand consistency) */
-  --primary: hsl(50, 100%, 65.1%);
-  --primary-foreground: hsl(240, 15%, 8%);
-  
-  /* Secondary - Sky Blue (slightly adjusted for dark mode) */
-  --secondary: hsl(198, 85%, 55%);
-  --secondary-foreground: hsl(240, 15%, 8%);
-  
-  /* Accent - Sky Blue */
-  --accent: hsl(198, 85%, 55%);
-  --accent-foreground: hsl(240, 15%, 8%);
-  
-  /* CTA/Destructive - Coral Orange (slightly muted for dark mode) */
-  --destructive: hsl(14, 90%, 58%);
-  --destructive-foreground: hsl(240, 15%, 8%);
-  
-  /* Ring focus - Rich Gold */
-  --ring: hsl(50, 100%, 65.1%);
-  
-  /* Chart colors - Astrological theme adjusted for dark mode */
-  --chart-1: hsl(50, 100%, 65.1%);  /* Rich Gold */
-  --chart-2: hsl(198, 85%, 55%);    /* Sky Blue */
-  --chart-3: hsl(14, 90%, 58%);     /* Coral Orange */
-  --chart-4: hsl(0, 0%, 65%);       /* Metallic Silver (brighter) */
-  --chart-5: hsl(39, 30%, 40%);     /* Soft Beige (darker) */
-  
-  /* Sidebar - Dark theme */
-  --sidebar-background: hsl(240, 10%, 10%);
-  --sidebar-foreground: hsl(48, 100%, 95.3%);
-  --sidebar-primary: hsl(50, 100%, 65.1%);
-  --sidebar-primary-foreground: hsl(240, 15%, 8%);
-  --sidebar-accent: hsl(198, 85%, 55%);
-  --sidebar-accent-foreground: hsl(240, 15%, 8%);
-  --sidebar-border: hsl(240, 5%, 25%);
-  --sidebar-ring: hsl(50, 100%, 65.1%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(0, 0%, 98%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --chart-1: hsl(220, 70%, 50%);
+  --chart-2: hsl(160, 60%, 45%);
+  --chart-3: hsl(30, 80%, 55%);
+  --chart-4: hsl(280, 65%, 60%);
+  --chart-5: hsl(340, 75%, 55%);
+  --sidebar-background: hsl(240, 5.9%, 10%);
+  --sidebar-foreground: hsl(240, 4.8%, 95.9%);
+  --sidebar-primary: hsl(224.3, 76.3%, 94.1%);
+  --sidebar-primary-foreground: hsl(240, 5.9%, 10%);
+  --sidebar-accent: hsl(240, 3.7%, 15.9%);
+  --sidebar-accent-foreground: hsl(240, 4.8%, 95.9%);
+  --sidebar-border: hsl(240, 3.7%, 15.9%);
+  --sidebar-ring: hsl(217.2, 32.6%, 17.5%);
 }
 
 @layer base {
@@ -278,114 +232,52 @@
   }
 }
 
-/* Custom styles for AutoJobr - Astrological Theme */
+/* Custom styles for AutoJobr */
 .gradient-hero {
-  background: linear-gradient(135deg, hsl(48, 100%, 95.3%) 0%, hsl(50, 100%, 85%) 15%, hsl(198, 89%, 93%) 100%);
+  background: linear-gradient(135deg, hsl(207, 90%, 97%) 0%, hsl(225, 100%, 97%) 100%);
 }
 
 .dark .gradient-hero {
-  background: linear-gradient(135deg, hsl(240, 15%, 8%) 0%, hsl(240, 10%, 12%) 15%, hsl(198, 30%, 15%) 100%);
+  background: linear-gradient(135deg, hsl(240, 10%, 3.9%) 0%, hsl(240, 3.7%, 15.9%) 100%);
 }
 
 .skill-tag {
-  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
-  background-color: hsl(50, 100%, 85%);
-  color: hsl(240, 10%, 3.9%);
-  border: 1px solid hsl(50, 100%, 75%);
-}
-
-.dark .skill-tag {
-  background-color: hsl(50, 100%, 20%);
-  color: hsl(50, 100%, 85%);
-  border: 1px solid hsl(50, 100%, 35%);
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-primary;
+  background-color: hsl(var(--primary) / 0.1);
 }
 
 .status-applied {
-  background-color: hsl(198, 89%, 90%);
-  color: hsl(198, 89%, 25%);
-}
-
-.dark .status-applied {
-  background-color: hsl(198, 89%, 15%);
-  color: hsl(198, 89%, 75%);
+  @apply bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400;
 }
 
 .status-interview {
-  background-color: hsl(50, 100%, 85%);
-  color: hsl(50, 100%, 25%);
-}
-
-.dark .status-interview {
-  background-color: hsl(50, 100%, 20%);
-  color: hsl(50, 100%, 75%);
+  @apply bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400;
 }
 
 .status-offer {
-  background-color: hsl(14, 100%, 90%);
-  color: hsl(14, 100%, 25%);
-}
-
-.dark .status-offer {
-  background-color: hsl(14, 100%, 15%);
-  color: hsl(14, 100%, 75%);
+  @apply bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400;
 }
 
 .status-rejected {
-  background-color: hsl(0, 100%, 90%);
-  color: hsl(0, 100%, 30%);
-}
-
-.dark .status-rejected {
-  background-color: hsl(0, 100%, 15%);
-  color: hsl(0, 100%, 75%);
+  @apply bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400;
 }
 
 .status-under-review {
-  background-color: hsl(39, 56%, 85%);
-  color: hsl(39, 56%, 25%);
-}
-
-.dark .status-under-review {
-  background-color: hsl(39, 56%, 20%);
-  color: hsl(39, 56%, 75%);
+  @apply bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400;
 }
 
 .match-score-excellent {
-  background-color: hsl(50, 100%, 85%);
-  color: hsl(50, 100%, 25%);
-}
-
-.dark .match-score-excellent {
-  background-color: hsl(50, 100%, 20%);
-  color: hsl(50, 100%, 75%);
+  @apply text-green-600 bg-green-100 dark:bg-green-900/20 dark:text-green-400;
 }
 
 .match-score-good {
-  background-color: hsl(198, 89%, 90%);
-  color: hsl(198, 89%, 25%);
-}
-
-.dark .match-score-good {
-  background-color: hsl(198, 89%, 15%);
-  color: hsl(198, 89%, 75%);
+  @apply text-blue-600 bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400;
 }
 
 .match-score-fair {
-  background-color: hsl(39, 56%, 85%);
-  color: hsl(39, 56%, 25%);
-}
-
-.dark .match-score-fair {
-  background-color: hsl(39, 56%, 20%);
-  color: hsl(39, 56%, 75%);
+  @apply text-amber-600 bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400;
 }
 
 .match-score-poor {
-  background-color: hsl(14, 100%, 90%);
-  color: hsl(14, 100%, 25%);
-}
-
-.dark .match-score-poor {
-  background-color: hsl(14, 100%, 15%);
-  color: hsl(14, 100%, 75%);
+  @apply text-red-600 bg-red-100 dark:bg-red-900/20 dark:text-red-400;
 }

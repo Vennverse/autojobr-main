@@ -61,15 +61,6 @@ export default {
           border: "var(--sidebar-border)",
           ring: "var(--sidebar-ring)",
         },
-        // Astrological theme colors for direct use
-        astro: {
-          cream: "#FFF8E7",        // Base Background (neutral & auspicious)
-          gold: "#FFD54F",         // Primary Accent (Jupiter prosperity)
-          blue: "#4FC3F7",         // Secondary Accent (Venus creativity & attraction)
-          coral: "#FF7043",        // Support Accent (Sun & Mars strength)
-          silver: "#C0C0C0",       // Optional Details (Rahu balancing)
-          beige: "#F5E6CC",        // Optional Details (Ketu grounding)
-        },
       },
       keyframes: {
         "accordion-down": {
