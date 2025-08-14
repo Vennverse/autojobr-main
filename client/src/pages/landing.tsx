@@ -262,7 +262,7 @@ export default function LandingPage() {
                 alt="AutoJobr" 
                 className="w-8 h-8 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" 
               />
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent hover:from-purple-600 hover:to-pink-600 transition-all duration-300">
+              <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent hover:from-emerald-500 hover:to-emerald-700 transition-all duration-300">
                 AutoJobr
               </span>
             </div>
@@ -270,15 +270,15 @@ export default function LandingPage() {
             <nav className="hidden md:flex space-x-8">
               <Link href="#features" className="relative text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-all duration-300 group">
                 Features
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 group-hover:w-full transition-all duration-300"></span>
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-500 to-blue-500 group-hover:w-full transition-all duration-300"></span>
               </Link>
               <Link href="#pricing" className="relative text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-all duration-300 group">
                 Pricing
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 group-hover:w-full transition-all duration-300"></span>
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-500 to-blue-500 group-hover:w-full transition-all duration-300"></span>
               </Link>
               <Link href="/recruiter-features" className="relative text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-all duration-300 group">
                 For Recruiters
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 group-hover:w-full transition-all duration-300"></span>
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-500 to-blue-500 group-hover:w-full transition-all duration-300"></span>
               </Link>
             </nav>
             
@@ -289,9 +289,9 @@ export default function LandingPage() {
                 </Button>
               </Link>
               <Link href="/auth">
-                <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden group">
+                <Button className="bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden group">
                   <span className="relative z-10">Get Started Free</span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-emerald-800 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </Button>
               </Link>
             </div>
@@ -312,16 +312,16 @@ export default function LandingPage() {
         
         {/* Floating Geometric Shapes */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-20 left-10 w-20 h-20 bg-gradient-to-r from-blue-400/10 to-purple-400/10 rounded-full animate-bounce-slow"></div>
-          <div className="absolute top-40 right-20 w-16 h-16 bg-gradient-to-r from-purple-400/10 to-pink-400/10 rounded-lg rotate-45 animate-spin-slow"></div>
-          <div className="absolute bottom-40 left-20 w-12 h-12 bg-gradient-to-r from-pink-400/10 to-blue-400/10 rounded-full animate-pulse"></div>
-          <div className="absolute top-60 right-40 w-8 h-8 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full animate-ping"></div>
+          <div className="absolute top-20 left-10 w-20 h-20 bg-gradient-to-r from-emerald-400/10 to-blue-400/10 rounded-full animate-bounce-slow"></div>
+          <div className="absolute top-40 right-20 w-16 h-16 bg-gradient-to-r from-emerald-400/10 to-emerald-600/10 rounded-lg rotate-45 animate-spin-slow"></div>
+          <div className="absolute bottom-40 left-20 w-12 h-12 bg-gradient-to-r from-emerald-400/10 to-blue-400/10 rounded-full animate-pulse"></div>
+          <div className="absolute top-60 right-40 w-8 h-8 bg-gradient-to-r from-emerald-400/20 to-emerald-600/20 rounded-full animate-ping"></div>
         </div>
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-              <Badge className="mb-6 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border-blue-200 hover:scale-105 transition-transform duration-300 cursor-pointer">
+              <Badge className="mb-6 bg-gradient-to-r from-emerald-100 to-blue-100 text-emerald-700 border-emerald-200 hover:scale-105 transition-transform duration-300 cursor-pointer">
                 <Rocket className="w-3 h-3 mr-1 animate-bounce" />
                 #1 AI-Powered Job Platform
                 <Sparkles className="w-3 h-3 ml-1 animate-pulse" />
@@ -329,7 +329,7 @@ export default function LandingPage() {
               
               <h1 className="text-5xl md:text-7xl font-bold text-slate-900 dark:text-white mb-6 leading-tight">
                 Land Your
-                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-gradient-x"> Dream Job</span>
+                <span className="bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 bg-clip-text text-transparent animate-gradient-x"> Dream Job</span>
                 <br />
                 <TypingAnimation 
                   texts={["5x Faster", "Smarter", "Better", "Easier"]}
@@ -345,8 +345,8 @@ export default function LandingPage() {
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
                 <Link href="/auth">
-                  <Button size="lg" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 px-8 py-4 text-lg relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <Button size="lg" className="bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 px-8 py-4 text-lg relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-emerald-800 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <Zap className="w-5 h-5 mr-2 relative z-10 group-hover:animate-pulse" />
                     <span className="relative z-10">Start Your Career Journey</span>
                     <ArrowRight className="w-5 h-5 ml-2 relative z-10 group-hover:translate-x-1 transition-transform duration-300" />
@@ -363,15 +363,15 @@ export default function LandingPage() {
               
               <div className="flex justify-center space-x-8 text-sm text-slate-500 dark:text-slate-400">
                 <div className="flex items-center">
-                  <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                  <CheckCircle className="w-4 h-4 mr-2 text-emerald-500" />
                   Free to start
                 </div>
                 <div className="flex items-center">
-                  <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                  <CheckCircle className="w-4 h-4 mr-2 text-emerald-500" />
                   No credit card required
                 </div>
                 <div className="flex items-center">
-                  <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                  <CheckCircle className="w-4 h-4 mr-2 text-emerald-500" />
                   Setup in 2 minutes
                 </div>
               </div>
@@ -405,10 +405,10 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
             {/* Average Time to Job */}
             <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-2xl p-8 text-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group">
-              <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:rotate-12 transition-transform duration-300">
+              <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:rotate-12 transition-transform duration-300">
                 <TrendingUp className="w-8 h-8 text-white" />
               </div>
-              <div className="text-4xl font-bold text-green-600 mb-2">14 Days</div>
+              <div className="text-4xl font-bold text-emerald-600 mb-2">14 Days</div>
               <div className="text-slate-600 dark:text-slate-300 mb-4">Average time to land a job</div>
               <div className="text-sm text-slate-500 italic">vs 3-6 months traditional job search</div>
             </div>
@@ -438,11 +438,11 @@ export default function LandingPage() {
           <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur rounded-2xl p-8 shadow-xl mb-12">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center">
-                <Globe className="w-6 h-6 mr-2 text-green-500 animate-pulse" />
+                <Globe className="w-6 h-6 mr-2 text-emerald-500 animate-pulse" />
                 Live Activity
               </h3>
-              <Badge className="bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400">
-                <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+              <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full mr-2 animate-pulse"></div>
                 Live
               </Badge>
             </div>
@@ -473,7 +473,7 @@ export default function LandingPage() {
                       </div>
                     </div>
                   </div>
-                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  <CheckCircle className="w-5 h-5 text-emerald-500" />
                 </div>
               ))}
             </div>
@@ -481,7 +481,7 @@ export default function LandingPage() {
 
           {/* Call to Action */}
           <div className="text-center">
-            <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl p-8 shadow-2xl">
+            <div className="bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 rounded-2xl p-8 shadow-2xl">
               <h3 className="text-3xl font-bold text-white mb-4">
                 Ready to Be Next? Start Your Success Story Today!
               </h3>
