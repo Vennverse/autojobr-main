@@ -15,7 +15,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   FileText, 
   Upload, 
-  Download, 
   Star, 
   AlertCircle, 
   CheckCircle, 
@@ -26,7 +25,8 @@ import {
   TrendingUp,
   Target,
   Clock,
-  Plus
+  Plus,
+  Lightbulb
 } from "lucide-react";
 import ResumeAnalysisModal from "@/components/ResumeAnalysisModal";
 
@@ -393,10 +393,15 @@ export default function ResumesPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => downloadResume(resume.id, resume.fileName)}
+                                onClick={() => {
+                                  toast({
+                                    title: "Resume Optimization Tips",
+                                    description: "Try the Enhanced Analysis to get personalized improvement suggestions for your resume.",
+                                  });
+                                }}
                               >
-                                <Download className="h-4 w-4 mr-2" />
-                                Download
+                                <Lightbulb className="h-4 w-4 mr-2" />
+                                Get Tips
                               </Button>
                             </div>
                           </div>

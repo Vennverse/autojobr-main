@@ -230,6 +230,11 @@ const JobSpecificOptimization: React.FC<{ industryData: any; onOptimize: (sectio
 }) => {
   const [targetRole, setTargetRole] = useState("");
 
+  // Safely access industryData properties with fallbacks
+  const detectedIndustry = industryData?.detectedIndustry || "Technology";
+  const industryKeywords = industryData?.industryKeywords || ["JavaScript", "React", "Node.js"];
+  const industryStandards = industryData?.industryStandards || [];
+
   return (
     <div className="space-y-4">
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-lg">
@@ -240,12 +245,12 @@ const JobSpecificOptimization: React.FC<{ industryData: any; onOptimize: (sectio
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Detected Industry</p>
-            <Badge variant="outline" className="mt-1">{industryData.detectedIndustry}</Badge>
+            <Badge variant="outline" className="mt-1">{detectedIndustry}</Badge>
           </div>
           <div>
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Industry Keywords</p>
             <div className="flex flex-wrap gap-1 mt-1">
-              {industryData.industryKeywords.slice(0, 3).map((keyword: string, index: number) => (
+              {industryKeywords.slice(0, 3).map((keyword: string, index: number) => (
                 <Badge key={index} variant="secondary" className="text-xs">{keyword}</Badge>
               ))}
             </div>
@@ -253,7 +258,7 @@ const JobSpecificOptimization: React.FC<{ industryData: any; onOptimize: (sectio
           <div>
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Standards Met</p>
             <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-              {industryData.industryStandards.length}/5 Standards
+              {industryStandards.length}/5 Standards
             </p>
           </div>
         </div>
@@ -481,9 +486,9 @@ export const ResumeAnalysisModal: React.FC<ResumeAnalysisModalProps> = ({
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Re-analyze
                       </Button>
-                      <Button>
-                        <Download className="h-4 w-4 mr-2" />
-                        Download Report
+                      <Button variant="outline">
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Get Pro Tips
                       </Button>
                     </div>
                   </div>
