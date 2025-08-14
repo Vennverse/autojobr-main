@@ -352,8 +352,8 @@ class AutoJobrContentScript {
 
     // Widget controls
     // Enhanced close button with better event handling
-    const closeBtn = document.getElementById('autojobr-close');
-    const minimizeBtn = document.getElementById('autojobr-minimize');
+    const closeBtn = document.querySelector('.autojobr-close');
+    const minimizeBtn = document.querySelector('.autojobr-minimize');
     
     if (closeBtn) {
       closeBtn.addEventListener('click', (e) => {

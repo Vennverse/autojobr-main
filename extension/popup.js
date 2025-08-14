@@ -37,6 +37,11 @@ class AutoJobrPopup {
   }
 
   initializeEventListeners() {
+    // Close popup button
+    document.getElementById('closePopup')?.addEventListener('click', () => {
+      window.close();
+    });
+    
     // Action buttons
     document.getElementById('autofillBtn').addEventListener('click', () => this.handleAutofill());
     document.getElementById('analyzeBtn').addEventListener('click', () => this.handleAnalyze());
@@ -58,6 +63,13 @@ class AutoJobrPopup {
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
+    
+    // ESC key to close popup
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        window.close();
+      }
+    });
   }
 
   initializeToggle(elementId, storageKey) {
