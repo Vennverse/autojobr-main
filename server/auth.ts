@@ -55,14 +55,14 @@ export async function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false, // Set to false for HTTP connections on VM
+      secure: process.env.NODE_ENV === 'production', // HTTPS for production, HTTP for development
       httpOnly: true,
       maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year for persistent extension auth
-      sameSite: 'lax', // Use lax for HTTP connections
-      domain: undefined, // Let it default to the request domain
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for cross-site HTTPS
+      domain: process.env.NODE_ENV === 'production' ? '.autojobr.com' : undefined, // Set domain for production
     },
     name: 'autojobr.sid', // Custom session name
-    proxy: true // Trust first proxy for Replit environment
+    proxy: true // Trust first proxy for production environment
   }));
   console.log('✅ Session middleware configured successfully with MemoryStore');
 
@@ -72,12 +72,23 @@ export async function setupAuth(app: Express) {
 
   // Configure Google OAuth Strategy (force enable for production)
   if (authConfig.providers.google.clientId) {
-    console.log('🔑 Setting up Google OAuth strategy with callback URL: /api/auth/google/callback');
+    // Determine the correct callback URL based on environment
+    const getCallbackURL = () => {
+      const baseURL = process.env.NODE_ENV === 'production' 
+        ? 'https://autojobr.com'
+        : process.env.REPLIT_ENVIRONMENT 
+          ? `https://${process.env.REPLIT_DEV_DOMAIN || process.env.REPL_SLUG + '.' + process.env.REPL_OWNER + '.repl.co'}`
+          : 'http://localhost:5000';
+      return `${baseURL}/api/auth/google/callback`;
+    };
+
+    const callbackURL = getCallbackURL();
+    console.log('🔑 Setting up Google OAuth strategy with callback URL:', callbackURL);
     console.log('🔑 Using Google Client ID:', authConfig.providers.google.clientId?.substring(0, 20) + '...');
     passport.use(new GoogleStrategy({
       clientID: authConfig.providers.google.clientId!,
       clientSecret: authConfig.providers.google.clientSecret || 'temp-secret-placeholder',
-      callbackURL: "/api/auth/google/callback"
+      callbackURL: callbackURL
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
