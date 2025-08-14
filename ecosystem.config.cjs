@@ -12,8 +12,17 @@ module.exports = {
       PRODUCTION_DOMAIN: 'https://autojobr.com',
       NEXTAUTH_SECRET: 'autojobr-secret-key-2025-production-vm',
 
-      // AI Services
+      // AI Services - Multiple GROQ API Keys for Rotation
       GROQ_API_KEY: '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',
+      GROQ_API_KEY_2: 'your_groq_api_key_2_here',
+      GROQ_API_KEY_3: 'your_groq_api_key_3_here',
+      GROQ_API_KEY_4: 'your_groq_api_key_4_here',
+      GROQ_API_KEY_5: 'your_groq_api_key_5_here',
+      GROQ_API_KEY_6: 'your_groq_api_key_6_here',
+      GROQ_API_KEY_7: 'your_groq_api_key_7_here',
+      GROQ_API_KEY_8: 'your_groq_api_key_8_here',
+      GROQ_API_KEY_9: 'your_groq_api_key_9_here',
+      GROQ_API_KEY_10: 'your_groq_api_key_10_here',
 
       // Payment Services
       PAYPAL_CLIENT_ID: 'AXSSrk5jbYkWs0Feb1nFQ-DeB6wcLNjerMynwzQ3zLFrk7pwbBjAwmg4d5Gd268xSIvSx6pUSOJQRBdR',
