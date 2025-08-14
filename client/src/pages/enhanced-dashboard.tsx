@@ -638,7 +638,7 @@ export default function EnhancedDashboard() {
       icon: Brain,
       route: "/career-ai-assistant",
       stats: "Powered by AI",
-      gradient: "from-orange-500 to-red-500",
+      gradient: "from-blue-600 to-yellow-500",
       action: "Get Insights",
       helpText:
         "AI analyzes your profile and provides strategic career advice, skill recommendations, and growth pathways",
@@ -653,7 +653,7 @@ export default function EnhancedDashboard() {
       icon: Target,
       route: "/jobs",
       stats: `${Array.isArray(jobPostings) ? jobPostings.length : 0} Jobs Available`,
-      gradient: "from-purple-500 to-pink-500",
+      gradient: "from-blue-500 to-amber-500",
       action: "Browse Jobs",
       helpText:
         "AI matches you with jobs based on skills, experience, and career goals - increasing your success rate by 3x",
@@ -668,7 +668,7 @@ export default function EnhancedDashboard() {
       icon: Video,
       route: "/virtual-interview/new",
       stats: `${interviewsPending} Completed`,
-      gradient: "from-green-500 to-emerald-500",
+      gradient: "from-indigo-600 to-yellow-600",
       action: "Start Interview",
       helpText:
         "Practice realistic interviews with AI that simulates real hiring managers - 85% of users improve within 3 sessions",
@@ -683,7 +683,7 @@ export default function EnhancedDashboard() {
       icon: Trophy,
       route: "/ranking-tests",
       stats: `${Array.isArray(rankingTestHistory) ? rankingTestHistory.length : 0} Completed`,
-      gradient: "from-yellow-500 to-orange-500",
+      gradient: "from-blue-700 to-amber-600",
       action: "Join Ranking",
       helpText:
         "Stand out by ranking in top 10% - recruiters actively seek high-performing candidates from our leaderboards",
@@ -698,7 +698,7 @@ export default function EnhancedDashboard() {
       icon: Mic,
       route: "/mock-interview",
       stats: `${mockInterviewStats?.averageScore || 0}% Avg Score`,
-      gradient: "from-indigo-500 to-purple-500",
+      gradient: "from-blue-800 to-yellow-500",
       action: "Practice Now",
       helpText:
         "Master behavioral questions with AI feedback - users report 40% better performance in real interviews",
@@ -1287,194 +1287,65 @@ export default function EnhancedDashboard() {
             )}
           </AnimatePresence>
 
-          {/* Resume Analysis Featured Card */}
-          <motion.div variants={itemVariants} className="mb-8">
-            <Card className="border-0 overflow-hidden relative bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 shadow-xl">
-              <div className="absolute inset-0 bg-black/5" />
-              <CardContent className="p-8 relative text-white">
-                <div className="flex items-start justify-between mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-4 rounded-2xl bg-white/20 backdrop-blur-sm">
-                      <Upload className="w-8 h-8 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-bold mb-1">
-                        AI Resume Analysis
-                      </h2>
-                      <p className="text-emerald-100 text-base">
-                        Upload and optimize your resumes with AI-powered ATS
-                        scoring
-                      </p>
-                    </div>
-                  </div>
-                  <Badge className="bg-white/20 text-white border-white/30 font-medium px-3 py-1">
-                    <CheckCircle className="w-4 h-4 mr-1" />
-                    Active
-                  </Badge>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Upload Status */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-emerald-100 font-medium">
-                        Resumes uploaded:
-                      </span>
-                      <span className="text-xl font-bold">
-                        {(resumes as any)?.length || 0}/
-                        {user?.planType === "premium" ? "∞" : "2"}
-                      </span>
-                    </div>
-
-                    {((resumes as any)?.length || 0) >= 2 &&
-                      user?.planType !== "premium" && (
-                        <div className="bg-white/10 rounded-xl p-4 border border-white/20">
-                          <p className="text-sm font-medium mb-3">
-                            Upload limit reached
-                          </p>
-                          <Button
-                            className="w-full bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-gray-900 font-semibold shadow-lg"
-                            onClick={() => setLocation("/pricing")}
-                          >
-                            <Crown className="w-4 h-4 mr-2" />
-                            Upgrade for Unlimited
-                          </Button>
-                        </div>
-                      )}
-                  </div>
-
-                  {/* Latest Analysis */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-emerald-100">
-                      Latest Resume Analysis:
-                    </h3>
-
-                    {resumes && (resumes as any).length > 0 ? (
-                      <div className="bg-white/10 rounded-xl p-4 border border-white/20 space-y-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-emerald-100">
-                            📄 {(resumes as any)[0]?.name || "Resume"}
-                          </span>
-                          <Badge className="bg-gradient-to-r from-yellow-400 to-orange-400 text-gray-900 font-bold">
-                            ATS: {resumeScore}%
-                          </Badge>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-3 text-center">
-                          <div>
-                            <div className="text-xl font-bold text-green-300">
-                              {(resumes as any)[0]?.analysis?.content
-                                ?.strengthsFound?.length || 1}
-                            </div>
-                            <div className="text-xs text-emerald-200">
-                              Strengths
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xl font-bold text-orange-300">
-                              {(resumes as any)[0]?.analysis?.recommendations
-                                ?.length || 4}
-                            </div>
-                            <div className="text-xs text-emerald-200">Tips</div>
-                          </div>
-                          <div>
-                            <div className="text-xl font-bold text-red-300">
-                              {(resumes as any)[0]?.analysis
-                                ?.keywordOptimization?.missingKeywords
-                                ?.length || 2}
-                            </div>
-                            <div className="text-xs text-emerald-200">
-                              Missing
-                            </div>
-                          </div>
-                        </div>
-
-                        <Button
-                          className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm"
-                          onClick={() => setLocation("/resumes")}
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          View Full Analysis
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="bg-white/10 rounded-xl p-4 border border-white/20 text-center">
-                        <Upload className="w-8 h-8 mx-auto mb-3 text-emerald-200" />
-                        <p className="text-sm text-emerald-100 mb-3">
-                          Upload your resume to get instant AI analysis
-                        </p>
-                        <Button
-                          className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30"
-                          onClick={() => setLocation("/resumes")}
-                        >
-                          <Upload className="w-4 h-4 mr-2" />
-                          Upload Resume
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
 
           {/* Stats Overview */}
           <motion.div
             variants={itemVariants}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
           >
-            <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0">
+            <Card className="bg-gradient-to-br from-blue-600 to-yellow-500 text-white border-0 shadow-lg">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-blue-100 text-sm font-medium">
+                    <p className="text-blue-50 text-sm font-medium">
                       Total Applications
                     </p>
                     <p className="text-3xl font-bold">{totalApplications}</p>
                   </div>
-                  <Briefcase className="w-8 h-8 text-blue-200" />
+                  <Briefcase className="w-8 h-8 text-yellow-200" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0">
+            <Card className="bg-gradient-to-br from-blue-500 to-amber-500 text-white border-0 shadow-lg">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-green-100 text-sm font-medium">
+                    <p className="text-blue-50 text-sm font-medium">
                       Profile Score
                     </p>
                     <p className="text-3xl font-bold">{profileCompletion}%</p>
                   </div>
-                  <Target className="w-8 h-8 text-green-200" />
+                  <Target className="w-8 h-8 text-amber-200" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0">
+            <Card className="bg-gradient-to-br from-indigo-600 to-yellow-600 text-white border-0 shadow-lg">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-purple-100 text-sm font-medium">
+                    <p className="text-indigo-50 text-sm font-medium">
                       ATS Score
                     </p>
                     <p className="text-3xl font-bold">{resumeScore}%</p>
                   </div>
-                  <Brain className="w-8 h-8 text-purple-200" />
+                  <Brain className="w-8 h-8 text-yellow-200" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0">
+            <Card className="bg-gradient-to-br from-blue-700 to-amber-600 text-white border-0 shadow-lg">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-orange-100 text-sm font-medium">
+                    <p className="text-blue-50 text-sm font-medium">
                       Pending Tests
                     </p>
                     <p className="text-3xl font-bold">{pendingTests}</p>
                   </div>
-                  <Code className="w-8 h-8 text-orange-200" />
+                  <Code className="w-8 h-8 text-amber-200" />
                 </div>
               </CardContent>
             </Card>
@@ -1484,7 +1355,7 @@ export default function EnhancedDashboard() {
           <motion.div variants={itemVariants}>
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-yellow-500 to-orange-500">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-blue-600 to-yellow-500">
                   <Zap className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -1494,7 +1365,7 @@ export default function EnhancedDashboard() {
                   </p>
                 </div>
               </div>
-              <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-3 py-1">
+              <Badge className="bg-gradient-to-r from-blue-600 to-yellow-500 text-white px-3 py-1">
                 <Timer className="w-3 h-3 mr-1" />
                 Fast Track
               </Badge>
@@ -1518,12 +1389,12 @@ export default function EnhancedDashboard() {
                         whileHover="pulse"
                         className={`w-14 h-14 mx-auto mb-4 rounded-full bg-gradient-to-br ${
                           action.color === "blue"
-                            ? "from-blue-500 to-blue-600"
+                            ? "from-blue-600 to-yellow-500"
                             : action.color === "green"
-                              ? "from-green-500 to-green-600"
+                              ? "from-blue-500 to-amber-500"
                               : action.color === "purple"
-                                ? "from-purple-500 to-purple-600"
-                                : "from-orange-500 to-orange-600"
+                                ? "from-indigo-600 to-yellow-600"
+                                : "from-blue-700 to-amber-600"
                         } flex items-center justify-center shadow-lg`}
                       >
                         <action.icon className="w-7 h-7 text-white" />
@@ -1535,7 +1406,7 @@ export default function EnhancedDashboard() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="w-full group hover:bg-primary hover:text-primary-foreground"
+                        className="w-full group hover:bg-gradient-to-r hover:from-blue-600 hover:to-yellow-500 hover:text-white hover:border-transparent"
                       >
                         Get Started
                         <ArrowRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
@@ -1551,15 +1422,15 @@ export default function EnhancedDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Assigned Tests Card */}
             <motion.div variants={itemVariants}>
-              <Card className="h-full border-0 overflow-hidden relative bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950 dark:to-red-950">
-                <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-red-500 opacity-5" />
+              <Card className="h-full border-0 overflow-hidden relative bg-gradient-to-br from-blue-50 to-yellow-50 dark:from-blue-950 dark:to-yellow-950">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-yellow-500 opacity-5" />
                 <CardContent className="p-6 relative">
                   <div className="flex items-start justify-between mb-4">
-                    <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500 to-red-500">
+                    <div className="p-3 rounded-xl bg-gradient-to-br from-blue-600 to-yellow-500">
                       <Code className="w-6 h-6 text-white" />
                     </div>
                     {pendingTests > 0 && (
-                      <Badge className="bg-orange-500 text-white">
+                      <Badge className="bg-gradient-to-r from-blue-600 to-yellow-500 text-white">
                         <Clock className="w-3 h-3 mr-1" />
                         {pendingTests} Pending
                       </Badge>
@@ -1578,7 +1449,7 @@ export default function EnhancedDashboard() {
                         <span className="text-sm font-medium">
                           Pending Tests
                         </span>
-                        <span className="text-lg font-bold text-orange-600">
+                        <span className="text-lg font-bold text-blue-600">
                           {pendingTests}
                         </span>
                       </div>
@@ -1588,7 +1459,7 @@ export default function EnhancedDashboard() {
                           .map((test: any, index: number) => (
                             <div
                               key={index}
-                              className="p-2 bg-orange-50 dark:bg-orange-950 rounded-lg"
+                              className="p-2 bg-blue-50 dark:bg-blue-950 rounded-lg"
                             >
                               <p className="text-sm font-medium">
                                 {test.testType || "Technical Assessment"}
@@ -1633,7 +1504,7 @@ export default function EnhancedDashboard() {
           <motion.div variants={itemVariants}>
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-blue-600 to-yellow-500">
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -1643,13 +1514,13 @@ export default function EnhancedDashboard() {
                   </p>
                 </div>
               </div>
-              <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1">
+              <Badge className="bg-gradient-to-r from-blue-600 to-yellow-500 text-white px-3 py-1">
                 <Zap className="w-3 h-3 mr-1" />
                 AI Enhanced
               </Badge>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {featureCards.map((feature, index) => (
                 <motion.div
                   key={feature.title}
@@ -1663,7 +1534,7 @@ export default function EnhancedDashboard() {
                     <div
                       className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-5`}
                     />
-                    <CardContent className="p-6 relative">
+                    <CardContent className="p-6 relative flex flex-col h-full">
                       {/* Feature badges */}
                       <div className="flex items-center justify-between mb-4">
                         <div
@@ -1671,7 +1542,7 @@ export default function EnhancedDashboard() {
                         >
                           <feature.icon className="w-6 h-6 text-white" />
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                           {feature.isNew && (
                             <Badge className="bg-green-500 text-white text-xs px-2 py-1">
                               <Sparkles className="w-3 h-3 mr-1" />
@@ -1699,57 +1570,61 @@ export default function EnhancedDashboard() {
                         </div>
                       </div>
 
-                      <h3 className="text-lg font-semibold mb-2">
-                        {feature.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        {feature.description}
-                      </p>
+                      <div className="flex-grow">
+                        <h3 className="text-lg font-semibold mb-2">
+                          {feature.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          {feature.description}
+                        </p>
 
-                      {/* Usage stats */}
-                      <div className="flex items-center gap-4 mb-3 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Activity className="w-3 h-3" />
-                          <span>Used {feature.usageCount} times</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <TrendUp className="w-3 h-3" />
-                          <span>{feature.successRate} success rate</span>
-                        </div>
-                      </div>
-
-                      <p className="text-xs text-blue-600 dark:text-blue-400 mb-4 italic">
-                        {feature.helpText}
-                      </p>
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-primary">
-                          {feature.stats}
-                        </span>
-                        <Button
-                          size="sm"
-                          className={`group bg-gradient-to-r ${feature.gradient} hover:shadow-lg transition-all duration-200`}
-                        >
-                          {feature.action}
-                          <ChevronRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
-                        </Button>
-                      </div>
-
-                      {/* Progress indicator for features with usage */}
-                      {feature.usageCount > 0 && (
-                        <div className="mt-3 pt-3 border-t border-border/50">
-                          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                            <span>Your Progress</span>
-                            <span>
-                              {Math.min(feature.usageCount * 20, 100)}%
-                            </span>
+                        {/* Usage stats */}
+                        <div className="flex items-center gap-4 mb-3 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Activity className="w-3 h-3" />
+                            <span>Used {feature.usageCount} times</span>
                           </div>
-                          <Progress
-                            value={Math.min(feature.usageCount * 20, 100)}
-                            className="h-1"
-                          />
+                          <div className="flex items-center gap-1">
+                            <TrendUp className="w-3 h-3" />
+                            <span>{feature.successRate} success rate</span>
+                          </div>
                         </div>
-                      )}
+
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mb-4 italic">
+                          {feature.helpText}
+                        </p>
+                      </div>
+
+                      <div className="mt-auto">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-medium text-primary">
+                            {feature.stats}
+                          </span>
+                          <Button
+                            size="sm"
+                            className={`group bg-gradient-to-r ${feature.gradient} hover:shadow-lg transition-all duration-200 text-white`}
+                          >
+                            {feature.action}
+                            <ChevronRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
+                          </Button>
+                        </div>
+
+                        {/* Progress indicator for features with usage */}
+                        {feature.usageCount > 0 && (
+                          <div className="pt-3 border-t border-border/50">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                              <span>Your Progress</span>
+                              <span>
+                                {Math.min(feature.usageCount * 20, 100)}%
+                              </span>
+                            </div>
+                            <Progress
+                              value={Math.min(feature.usageCount * 20, 100)}
+                              className="h-1"
+                            />
+                          </div>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 </motion.div>
