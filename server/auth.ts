@@ -55,11 +55,11 @@ export async function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === 'production', // HTTPS for production, HTTP for development
+      secure: true, // Use HTTPS for production deployment
       httpOnly: true,
       maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year for persistent extension auth
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for cross-site HTTPS
-      domain: process.env.NODE_ENV === 'production' ? '.autojobr.com' : undefined, // Set domain for production
+      sameSite: 'none', // Required for cross-site HTTPS requests
+      domain: '.autojobr.com', // Set domain for production
     },
     name: 'autojobr.sid', // Custom session name
     proxy: true // Trust first proxy for production environment
@@ -72,17 +72,8 @@ export async function setupAuth(app: Express) {
 
   // Configure Google OAuth Strategy (force enable for production)
   if (authConfig.providers.google.clientId) {
-    // Determine the correct callback URL based on environment
-    const getCallbackURL = () => {
-      const baseURL = process.env.NODE_ENV === 'production' 
-        ? 'https://autojobr.com'
-        : process.env.REPLIT_ENVIRONMENT 
-          ? `https://${process.env.REPLIT_DEV_DOMAIN || process.env.REPL_SLUG + '.' + process.env.REPL_OWNER + '.repl.co'}`
-          : 'http://localhost:5000';
-      return `${baseURL}/api/auth/google/callback`;
-    };
-
-    const callbackURL = getCallbackURL();
+    // Use HTTPS callback URL for production deployment
+    const callbackURL = 'https://autojobr.com/api/auth/google/callback';
     console.log('🔑 Setting up Google OAuth strategy with callback URL:', callbackURL);
     console.log('🔑 Using Google Client ID:', authConfig.providers.google.clientId?.substring(0, 20) + '...');
     passport.use(new GoogleStrategy({
