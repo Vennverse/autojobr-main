@@ -49,20 +49,24 @@ export async function setupAuth(app: Express) {
     checkPeriod: 86400000 // prune expired entries every 24h
   });
   
+  // Determine if we're in a secure environment (production with HTTPS)
+  const isSecure = process.env.NODE_ENV === 'production' && process.env.HTTPS === 'true';
+  const isProduction = process.env.NODE_ENV === 'production';
+  
   app.use(session({
     store: sessionStore,
     secret: authConfig.session.secret,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === 'production', // HTTPS for production, HTTP for development
+      secure: isSecure, // Only require HTTPS when explicitly configured
       httpOnly: true,
       maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year for persistent extension auth
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for production, 'lax' for development
-      domain: process.env.NODE_ENV === 'production' ? '.autojobr.com' : undefined, // Set domain only for production
+      sameSite: isSecure ? 'none' : 'lax', // 'none' only when secure, 'lax' otherwise
+      domain: isProduction && process.env.COOKIE_DOMAIN ? process.env.COOKIE_DOMAIN : undefined,
     },
     name: 'autojobr.sid', // Custom session name
-    proxy: true // Trust first proxy for production environment
+    proxy: isProduction // Trust proxy only in production
   }));
   console.log('✅ Session middleware configured successfully with MemoryStore');
 
@@ -1507,6 +1511,14 @@ const USER_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Middleware to check authentication - OPTIMIZED
 export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
+  // Debug session state for troubleshooting
+  console.log(`[AUTH DEBUG] ${req.method} ${req.path}:`, {
+    hasSession: !!req.session,
+    sessionUser: !!req.session?.user,
+    passportUser: !!req.user,
+    sessionId: req.sessionID,
+    cookies: req.headers.cookie ? 'present' : 'missing'
+  });
   try {
     const sessionUser = req.session?.user;
     
