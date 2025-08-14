@@ -12,7 +12,7 @@ module.exports = {
       PRODUCTION_DOMAIN: 'https://autojobr.com',
       
       // AI Services
-      GROQ_API_KEY: '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',
+      GROQ_API_KEY: '',
       
       // Payment Services
       STRIPE_SECRET_KEY: 'your_stripe_secret_key_here',
@@ -24,8 +24,8 @@ module.exports = {
       RESEND_API_KEY: 're_Tm6vhbwR_MZkjUNCnaeoZpgXQWFZqvwQg',
       
       // OAuth
-      GOOGLE_CLIENT_ID: '886940582280-c77j4n2r4mjdss6k9sus58l0qbc1lrh3.apps.googleusercontent.com',
-      GOOGLE_CLIENT_SECRET: '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'
+      GOOGLE_CLIENT_ID: '',
+      GOOGLE_CLIENT_SECRET: ''
     },
     error_file: './logs/err.log',
     out_file: './logs/out.log',
