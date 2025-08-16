@@ -112,6 +112,15 @@ export default function RecruiterDashboard() {
   const safeApplications = Array.isArray(applications) ? applications : [];
   const safeConversations = Array.isArray(conversations) ? conversations : [];
 
+  // Show loading state while user data is being fetched
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   // Fetch applicant details when selected
   const { data: applicantDetails, isLoading: applicantLoading } = useQuery({
     queryKey: [`/api/recruiter/applicant/${selectedApplicantId}`],
@@ -596,7 +605,7 @@ export default function RecruiterDashboard() {
                   <div>
                     <p className="text-sm text-blue-600 dark:text-blue-400">Application Rate</p>
                     <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                      {jobPostings.length > 0 ? Math.round((applications.length / jobPostings.length) * 100) / 100 : 0}
+                      {safeJobPostings.length > 0 ? Math.round((safeApplications.length / safeJobPostings.length) * 100) / 100 : 0}
                     </p>
                     <p className="text-xs text-blue-500 dark:text-blue-400">avg per job</p>
                   </div>
@@ -609,8 +618,8 @@ export default function RecruiterDashboard() {
                   <div>
                     <p className="text-sm text-green-600 dark:text-green-400">Response Rate</p>
                     <p className="text-2xl font-bold text-green-700 dark:text-green-300">
-                      {applications.length > 0 ? 
-                        Math.round((applications.filter((a: any) => a.status !== 'pending').length / applications.length) * 100) : 0}%
+                      {safeApplications.length > 0 ? 
+                        Math.round((safeApplications.filter((a: any) => a.status !== 'pending').length / safeApplications.length) * 100) : 0}%
                     </p>
                     <p className="text-xs text-green-500 dark:text-green-400">reviewed apps</p>
                   </div>
@@ -656,7 +665,7 @@ export default function RecruiterDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {applications.length === 0 && jobPostings.length === 0 ? (
+              {safeApplications.length === 0 && safeJobPostings.length === 0 ? (
                 <div className="text-center py-8">
                   <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600 dark:text-gray-400">No recent activity</p>
@@ -664,7 +673,7 @@ export default function RecruiterDashboard() {
                 </div>
               ) : (
                 <>
-                  {applications.slice(0, 3).map((app: any, index: number) => (
+                  {safeApplications.slice(0, 3).map((app: any, index: number) => (
                     <div key={index} className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                       <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                       <div className="flex-1">
@@ -675,7 +684,7 @@ export default function RecruiterDashboard() {
                       </div>
                     </div>
                   ))}
-                  {jobPostings.slice(0, 2).map((job: any, index: number) => (
+                  {safeJobPostings.slice(0, 2).map((job: any, index: number) => (
                     <div key={index} className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                       <div className="flex-1">
@@ -733,7 +742,7 @@ export default function RecruiterDashboard() {
                       </div>
                     ))}
                   </div>
-                ) : jobPostings.length === 0 ? (
+                ) : safeJobPostings.length === 0 ? (
                   <div className="text-center py-12">
                     <Briefcase className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -749,7 +758,7 @@ export default function RecruiterDashboard() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {jobPostings.map((job: any) => (
+                    {safeJobPostings.map((job: any) => (
                       <div
                         key={job.id}
                         className="border rounded-lg p-4 hover:shadow-md transition-shadow"
@@ -886,7 +895,7 @@ export default function RecruiterDashboard() {
                       </div>
                     ))}
                   </div>
-                ) : applications.length === 0 ? (
+                ) : safeApplications.length === 0 ? (
                   <div className="text-center py-12">
                     <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -899,7 +908,7 @@ export default function RecruiterDashboard() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {applications.map((application: any) => (
+                    {safeApplications.map((application: any) => (
                       <div
                         key={application.id}
                         className="border rounded-lg p-4 hover:shadow-md transition-shadow"
@@ -2025,7 +2034,7 @@ export default function RecruiterDashboard() {
                       </div>
                     ))}
                   </div>
-                ) : conversations.length === 0 ? (
+                ) : safeConversations.length === 0 ? (
                   <div className="text-center py-12">
                     <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -2037,7 +2046,7 @@ export default function RecruiterDashboard() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {conversations.map((conversation: any) => (
+                    {safeConversations.map((conversation: any) => (
                       <div
                         key={conversation.id}
                         className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"

@@ -321,8 +321,10 @@ export async function setupAuth(app: Express) {
         id: sessionUser.id,
         email: sessionUser.email,
         name: sessionUser.name,
-        firstName: 'User',
-        lastName: 'Name',
+        firstName: sessionUser.firstName || 'User',
+        lastName: sessionUser.lastName || 'Name',
+        userType: sessionUser.userType || 'job_seeker',
+        currentRole: sessionUser.userType || 'job_seeker',
         onboardingCompleted,
       });
     } catch (error) {
