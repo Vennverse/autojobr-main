@@ -506,13 +506,21 @@ export default function EnhancedPipelineManagement() {
   // Handle send interview invite
   const handleSendInterviewInvite = () => {
     if (!selectedApplication) return;
-    const assignmentData = {
-      ...interviewAssignmentData,
-      candidateId: selectedApplication.candidate.id,
-      jobPostingId: selectedApplication.job.id,
-      dueDate: new Date(interviewAssignmentData.dueDate).toISOString(),
-    };
-    sendInterviewInviteMutation.mutate(assignmentData);
+    try {
+      const assignmentData = {
+        ...interviewAssignmentData,
+        candidateId: selectedApplication.candidate.id,
+        jobPostingId: selectedApplication.job.id,
+        dueDate: new Date(interviewAssignmentData.dueDate).toISOString(),
+      };
+      sendInterviewInviteMutation.mutate(assignmentData);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send interview invitation. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Filter applications
@@ -587,11 +595,27 @@ export default function EnhancedPipelineManagement() {
 
   // Handle bulk actions
   const handleBulkAction = (action: string) => {
-    bulkActionMutation.mutate({
-      action,
-      applicationIds: Array.from(bulkSelection),
-      notes: `Bulk action: ${action}`
-    });
+    if (bulkSelection.size === 0) {
+      toast({
+        title: "No Selection",
+        description: "Please select applications to perform bulk actions.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      bulkActionMutation.mutate({
+        action,
+        applicationIds: Array.from(bulkSelection),
+        notes: `Bulk action: ${action}`
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to perform bulk action. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (applicationsLoading) {
@@ -801,6 +825,7 @@ export default function EnhancedPipelineManagement() {
                         size="sm" 
                         variant="outline"
                         onClick={() => handleBulkAction("shortlist")}
+                        disabled={bulkActionMutation.isPending}
                         data-testid="button-bulk-shortlist"
                       >
                         <Star className="w-4 h-4 mr-1" />
@@ -810,6 +835,7 @@ export default function EnhancedPipelineManagement() {
                         size="sm" 
                         variant="outline"
                         onClick={() => handleBulkAction("reject")}
+                        disabled={bulkActionMutation.isPending}
                         data-testid="button-bulk-reject"
                       >
                         <XCircle className="w-4 h-4 mr-1" />
@@ -819,6 +845,7 @@ export default function EnhancedPipelineManagement() {
                         size="sm" 
                         variant="outline"
                         onClick={() => handleBulkAction("schedule_interview")}
+                        disabled={bulkActionMutation.isPending}
                         data-testid="button-bulk-interview"
                       >
                         <Calendar className="w-4 h-4 mr-1" />

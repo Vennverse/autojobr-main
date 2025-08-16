@@ -145,6 +145,12 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
       current: location === "/recruiter/enhanced-pipeline"
     },
     {
+      name: "Task Management",
+      href: "/recruiter/tasks",
+      icon: Target,
+      current: location === "/recruiter/tasks"
+    },
+    {
       name: "Messages",
       href: "/chat",
       icon: MessageCircle,

@@ -267,6 +267,31 @@ export const jobRecommendations = pgTable("job_recommendations", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Task management for recruiters
+export const tasks = pgTable("tasks", {
+  id: serial("id").primaryKey(),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  status: varchar("status").notNull().default("pending"), // pending, in_progress, completed, overdue, cancelled
+  taskType: varchar("task_type").notNull(), // interview, meeting, followup, reminder, document_review, background_check
+  priority: varchar("priority").notNull().default("medium"), // low, medium, high, urgent
+  relatedTo: varchar("related_to"), // what the task is related to (candidate name, job title, etc.)
+  relatedId: integer("related_id"), // ID of related entity (job posting, application, etc.)
+  ownerId: varchar("owner_id").references(() => users.id).notNull(),
+  owner: varchar("owner").notNull(), // owner name for display
+  assignedById: varchar("assigned_by_id").references(() => users.id).notNull(),
+  assignedBy: varchar("assigned_by").notNull(), // assigned by name for display
+  dueDateTime: timestamp("due_date_time").notNull(),
+  candidateName: varchar("candidate_name"),
+  candidateEmail: varchar("candidate_email"),
+  jobTitle: varchar("job_title"),
+  meetingLink: varchar("meeting_link"), // Zoom, Teams, etc.
+  calendlyLink: varchar("calendly_link"), // Calendly scheduling link
+  emailSent: boolean("email_sent").default(false), // whether invitation email was sent
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // AI Job Analysis - stores detailed AI analysis of job postings
 export const aiJobAnalyses = pgTable("ai_job_analyses", {
   id: serial("id").primaryKey(),

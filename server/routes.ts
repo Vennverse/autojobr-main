@@ -2424,6 +2424,243 @@ Additional Information:
     }
   });
 
+  // Task Management Routes for Recruiters
+  
+  // Get all tasks for a recruiter
+  app.get('/api/recruiter/tasks', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      }
+
+      // Get tasks for this recruiter
+      const tasks = await db.select().from(schema.tasks)
+        .where(eq(schema.tasks.ownerId, userId))
+        .orderBy(desc(schema.tasks.createdAt));
+
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      res.status(500).json({ message: "Failed to fetch tasks" });
+    }
+  });
+
+  // Create a new task
+  app.post('/api/recruiter/tasks', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      }
+
+      const {
+        title,
+        description,
+        taskType,
+        priority,
+        dueDateTime,
+        candidateEmail,
+        candidateName,
+        jobTitle,
+        meetingLink,
+        calendlyLink,
+        relatedTo,
+        relatedId
+      } = req.body;
+
+      const newTask = await db.insert(schema.tasks).values({
+        title,
+        description,
+        status: 'pending',
+        taskType,
+        priority,
+        dueDateTime: new Date(dueDateTime),
+        ownerId: userId,
+        owner: `${user.firstName} ${user.lastName}`,
+        assignedById: userId,
+        assignedBy: `${user.firstName} ${user.lastName}`,
+        candidateEmail,
+        candidateName,
+        jobTitle,
+        meetingLink,
+        calendlyLink,
+        relatedTo,
+        relatedId: relatedId ? parseInt(relatedId) : null,
+        emailSent: false
+      }).returning();
+
+      res.json({ task: newTask[0], message: "Task created successfully" });
+    } catch (error) {
+      console.error("Error creating task:", error);
+      res.status(500).json({ message: "Failed to create task" });
+    }
+  });
+
+  // Update a task
+  app.patch('/api/recruiter/tasks/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const taskId = parseInt(req.params.id);
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      }
+
+      const updateData = req.body;
+      if (updateData.dueDateTime) {
+        updateData.dueDateTime = new Date(updateData.dueDateTime);
+      }
+
+      const updatedTask = await db.update(schema.tasks)
+        .set({ ...updateData, updatedAt: new Date() })
+        .where(and(eq(schema.tasks.id, taskId), eq(schema.tasks.ownerId, userId)))
+        .returning();
+
+      if (updatedTask.length === 0) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+
+      res.json({ task: updatedTask[0], message: "Task updated successfully" });
+    } catch (error) {
+      console.error("Error updating task:", error);
+      res.status(500).json({ message: "Failed to update task" });
+    }
+  });
+
+  // Bulk actions for tasks
+  app.post('/api/recruiter/tasks/bulk', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      }
+
+      const { action, taskIds } = req.body;
+      
+      let updateData = {};
+      switch (action) {
+        case 'complete':
+          updateData = { status: 'completed', updatedAt: new Date() };
+          break;
+        case 'cancel':
+          updateData = { status: 'cancelled', updatedAt: new Date() };
+          break;
+        case 'send_reminder':
+          // Handle sending reminder emails
+          for (const taskId of taskIds) {
+            const task = await db.select().from(schema.tasks)
+              .where(and(eq(schema.tasks.id, taskId), eq(schema.tasks.ownerId, userId)))
+              .limit(1);
+            
+            if (task.length > 0 && task[0].candidateEmail) {
+              try {
+                await sendEmail({
+                  to: task[0].candidateEmail,
+                  subject: `Reminder: ${task[0].title}`,
+                  text: `Hello ${task[0].candidateName || 'there'},\n\nThis is a reminder about: ${task[0].title}\n\nDue: ${new Date(task[0].dueDateTime).toLocaleString()}\n\nBest regards,\n${user.firstName} ${user.lastName}`,
+                  html: `
+                    <h2>Task Reminder</h2>
+                    <p>Hello ${task[0].candidateName || 'there'},</p>
+                    <p>This is a reminder about: <strong>${task[0].title}</strong></p>
+                    <p><strong>Due:</strong> ${new Date(task[0].dueDateTime).toLocaleString()}</p>
+                    ${task[0].meetingLink ? `<p><a href="${task[0].meetingLink}">Join Meeting</a></p>` : ''}
+                    <p>Best regards,<br>${user.firstName} ${user.lastName}</p>
+                  `
+                });
+              } catch (emailError) {
+                console.error(`Failed to send reminder email for task ${taskId}:`, emailError);
+              }
+            }
+          }
+          return res.json({ message: "Reminder emails sent successfully" });
+        default:
+          return res.status(400).json({ message: "Invalid bulk action" });
+      }
+
+      await db.update(schema.tasks)
+        .set(updateData)
+        .where(and(
+          eq(schema.tasks.ownerId, userId),
+          sql`${schema.tasks.id} = ANY(${taskIds})`
+        ));
+
+      res.json({ message: "Bulk action completed successfully" });
+    } catch (error) {
+      console.error("Error performing bulk action:", error);
+      res.status(500).json({ message: "Failed to perform bulk action" });
+    }
+  });
+
+  // Send email invitation for a task
+  app.post('/api/recruiter/tasks/send-email', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      }
+
+      const { taskId, type } = req.body;
+      
+      const task = await db.select().from(schema.tasks)
+        .where(and(eq(schema.tasks.id, taskId), eq(schema.tasks.ownerId, userId)))
+        .limit(1);
+
+      if (task.length === 0) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+
+      const taskData = task[0];
+      
+      if (!taskData.candidateEmail) {
+        return res.status(400).json({ message: "No candidate email found for this task" });
+      }
+
+      let subject = "";
+      let emailContent = "";
+      
+      if (type === 'meeting_invite') {
+        subject = `Meeting Invitation: ${taskData.title}`;
+        emailContent = `
+          <h2>Meeting Invitation</h2>
+          <p>Hello ${taskData.candidateName || 'there'},</p>
+          <p>You are invited to: <strong>${taskData.title}</strong></p>
+          <p><strong>Date & Time:</strong> ${new Date(taskData.dueDateTime).toLocaleString()}</p>
+          ${taskData.description ? `<p><strong>Description:</strong> ${taskData.description}</p>` : ''}
+          ${taskData.meetingLink ? `<p><a href="${taskData.meetingLink}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Join Meeting</a></p>` : ''}
+          ${taskData.calendlyLink ? `<p>Or schedule a time that works for you: <a href="${taskData.calendlyLink}">Schedule Meeting</a></p>` : ''}
+          <p>Best regards,<br>${user.firstName} ${user.lastName}<br>${user.companyName || 'Recruiter'}</p>
+        `;
+      }
+
+      await sendEmail({
+        to: taskData.candidateEmail,
+        subject: subject,
+        html: emailContent,
+        text: emailContent.replace(/<[^>]*>/g, '') // Strip HTML for text version
+      });
+
+      // Mark email as sent
+      await db.update(schema.tasks)
+        .set({ emailSent: true, updatedAt: new Date() })
+        .where(eq(schema.tasks.id, taskId));
+
+      res.json({ message: "Email sent successfully" });
+    } catch (error) {
+      console.error("Error sending email:", error);
+      res.status(500).json({ message: "Failed to send email" });
+    }
+  });
+
   // Bulk actions endpoint for recruiters
   app.post('/api/recruiter/bulk-actions', isAuthenticated, async (req: any, res) => {
     try {
