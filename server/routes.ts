@@ -5424,8 +5424,8 @@ Additional Information:
       const userId = req.user?.id;
 
       // Get user's subscription
-      const subscription = await subscriptionService.getCurrentSubscription(userId);
-      const isPremium = subscription?.isActive && subscription?.planType?.includes('premium');
+      const subscription = await subscriptionService.getUserSubscription(userId);
+      const isPremium = subscription?.planType === 'premium' || subscription?.planType === 'enterprise';
       
       // Check daily limits for free users
       if (!isPremium) {
