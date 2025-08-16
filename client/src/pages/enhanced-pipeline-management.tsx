@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -346,6 +346,19 @@ export default function EnhancedPipelineManagement() {
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [statusUpdate, setStatusUpdate] = useState("");
+  const [showInterviewDialog, setShowInterviewDialog] = useState(false);
+  const [interviewAssignmentData, setInterviewAssignmentData] = useState({
+    candidateId: "",
+    jobPostingId: "",
+    interviewType: "virtual",
+    assignmentType: "virtual",
+    role: "",
+    company: "",
+    difficulty: "medium",
+    duration: 60,
+    dueDate: "",
+    instructions: "",
+  });
 
   // Fetch applications and apply NLP analysis
   const { data: rawApplications = [], isLoading: applicationsLoading, refetch: refetchApplications } = useQuery({
@@ -389,9 +402,8 @@ export default function EnhancedPipelineManagement() {
   // Move application to different stage
   const moveApplicationMutation = useMutation({
     mutationFn: async ({ applicationId, newStage, notes }: { applicationId: number; newStage: string; notes?: string }) => {
-      return apiRequest(`/api/recruiter/applications/${applicationId}/stage`, {
-        method: "PUT",
-        body: { stage: newStage, notes }
+      return apiRequest(`/api/recruiter/applications/${applicationId}/stage`, "PUT", {
+        stage: newStage, notes
       });
     },
     onSuccess: () => {
@@ -414,9 +426,8 @@ export default function EnhancedPipelineManagement() {
   // Bulk actions mutation
   const bulkActionMutation = useMutation({
     mutationFn: async ({ action, applicationIds, notes }: { action: string; applicationIds: number[]; notes?: string }) => {
-      return apiRequest("/api/recruiter/applications/bulk", {
-        method: "POST",
-        body: { action, applicationIds, notes }
+      return apiRequest("/api/recruiter/applications/bulk", "POST", {
+        action, applicationIds, notes
       });
     },
     onSuccess: () => {
@@ -433,9 +444,8 @@ export default function EnhancedPipelineManagement() {
   // Add note mutation
   const addNoteMutation = useMutation({
     mutationFn: async ({ applicationId, note }: { applicationId: number; note: string }) => {
-      return apiRequest(`/api/recruiter/applications/${applicationId}/notes`, {
-        method: "POST",
-        body: { note }
+      return apiRequest(`/api/recruiter/applications/${applicationId}/notes`, "POST", {
+        note
       });
     },
     onSuccess: () => {
@@ -451,9 +461,8 @@ export default function EnhancedPipelineManagement() {
   // Schedule interview mutation
   const scheduleInterviewMutation = useMutation({
     mutationFn: async ({ applicationId, type, scheduledAt }: { applicationId: number; type: string; scheduledAt: string }) => {
-      return apiRequest("/api/interviews/schedule", {
-        method: "POST",
-        body: { applicationId, type, scheduledAt }
+      return apiRequest("/api/interviews/schedule", "POST", {
+        applicationId, type, scheduledAt
       });
     },
     onSuccess: () => {
@@ -464,6 +473,47 @@ export default function EnhancedPipelineManagement() {
       });
     }
   });
+
+  // Send interview invite mutation
+  const sendInterviewInviteMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const endpoint =
+        data.assignmentType === "virtual"
+          ? "/api/interviews/virtual/assign"
+          : data.assignmentType === "mock"
+          ? "/api/interviews/mock/assign"
+          : "/api/test-assignments";
+      return apiRequest(endpoint, "POST", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/recruiter/applications"] });
+      toast({
+        title: "Interview Assigned",
+        description: "Interview invitation sent successfully",
+      });
+      setShowInterviewDialog(false);
+      setSelectedApplication(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send interview invitation",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handle send interview invite
+  const handleSendInterviewInvite = () => {
+    if (!selectedApplication) return;
+    const assignmentData = {
+      ...interviewAssignmentData,
+      candidateId: selectedApplication.candidate.id,
+      jobPostingId: selectedApplication.job.id,
+      dueDate: new Date(interviewAssignmentData.dueDate).toISOString(),
+    };
+    sendInterviewInviteMutation.mutate(assignmentData);
+  };
 
   // Filter applications
   const filteredApplications = applications.filter((app: Application) => {
@@ -906,6 +956,37 @@ export default function EnhancedPipelineManagement() {
                             <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                               {application.job.title}
                             </p>
+                            
+                            {/* Enhanced Resume Analytics Display */}
+                            {(application.seniorityLevel || application.totalExperience || application.highestDegree) && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {application.seniorityLevel && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {application.seniorityLevel}
+                                  </Badge>
+                                )}
+                                {application.totalExperience && application.totalExperience > 0 && (
+                                  <Badge variant="outline" className="text-xs text-blue-600">
+                                    {application.totalExperience}y exp
+                                  </Badge>
+                                )}
+                                {application.highestDegree && application.highestDegree !== "High School" && (
+                                  <Badge variant="outline" className="text-xs text-purple-600">
+                                    {application.highestDegree}
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+                            
+                            {/* Skills Match Display */}
+                            {application.matchedSkills && application.matchedSkills.length > 0 && (
+                              <div className="mt-1">
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  Skills: {application.matchedSkills.slice(0, 3).join(", ")}
+                                  {application.matchedSkills.length > 3 && " +" + (application.matchedSkills.length - 3)}
+                                </p>
+                              </div>
+                            )}
                           </div>
                           
                           <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
@@ -977,11 +1058,41 @@ export default function EnhancedPipelineManagement() {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setSelectedApplication(application);
+                                  setShowInterviewDialog(true);
+                                  setInterviewAssignmentData((prev) => ({
+                                    ...prev,
+                                    role: application.job?.title || "",
+                                    candidateId: application.candidate.id,
+                                    jobPostingId: application.job.id.toString(),
+                                  }));
                                 }}
-                                title="Send Interview Invite"
+                                title="Assign AI Interview"
+                                data-testid={`button-interview-kanban-${application.id}`}
                               >
                                 <Video className="w-3 h-3 mr-1" />
                                 Interview
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-xs text-red-600 hover:bg-red-50"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedApplication(application);
+                                  setShowInterviewDialog(true);
+                                  setInterviewAssignmentData((prev) => ({
+                                    ...prev,
+                                    assignmentType: "test",
+                                    role: application.job?.title || "",
+                                    candidateId: application.candidate.id,
+                                    jobPostingId: application.job.id.toString(),
+                                  }));
+                                }}
+                                title="Assign Test"
+                                data-testid={`button-test-kanban-${application.id}`}
+                              >
+                                <Code className="w-3 h-3 mr-1" />
+                                Test
                               </Button>
                             </div>
                           </div>
@@ -1086,14 +1197,34 @@ export default function EnhancedPipelineManagement() {
                           </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {application.matchScore && (
-                            <div className="flex items-center">
-                              <Progress value={application.matchScore} className="w-16 mr-2" />
-                              <span className="text-sm text-gray-600 dark:text-gray-300">
-                                {application.matchScore}%
-                              </span>
+                          <div className="space-y-2">
+                            {application.fitScore && (
+                              <div className="flex items-center">
+                                <Progress value={application.fitScore} className="w-16 mr-2" />
+                                <span className="text-sm text-gray-600 dark:text-gray-300">
+                                  {application.fitScore}%
+                                </span>
+                              </div>
+                            )}
+                            {/* Enhanced Analytics Display for List View */}
+                            <div className="flex flex-wrap gap-1">
+                              {application.seniorityLevel && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {application.seniorityLevel}
+                                </Badge>
+                              )}
+                              {application.totalExperience && application.totalExperience > 0 && (
+                                <Badge variant="outline" className="text-xs text-blue-600">
+                                  {application.totalExperience}y
+                                </Badge>
+                              )}
+                              {application.highestDegree && application.highestDegree !== "High School" && (
+                                <Badge variant="outline" className="text-xs text-purple-600">
+                                  {application.highestDegree}
+                                </Badge>
+                              )}
                             </div>
-                          )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {new Date(application.appliedAt).toLocaleDateString()}
@@ -1110,6 +1241,7 @@ export default function EnhancedPipelineManagement() {
                                 setSelectedNlpApplication(application);
                               }}
                               title="NLP Analysis"
+                              data-testid={`button-nlp-analysis-${application.id}`}
                             >
                               <BarChart3 className="w-4 h-4" />
                             </Button>
@@ -1125,6 +1257,7 @@ export default function EnhancedPipelineManagement() {
                                 });
                               }}
                               title="AI Resume Scoring"
+                              data-testid={`button-resume-scoring-${application.id}`}
                             >
                               <Target className="w-4 h-4" />
                             </Button>
@@ -1134,11 +1267,19 @@ export default function EnhancedPipelineManagement() {
                               className="h-8 w-8 p-0 text-purple-600 border-purple-200"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                window.open(`/chat?user=${application.candidate.id}`, '_blank');
+                                setSelectedApplication(application);
+                                setShowInterviewDialog(true);
+                                setInterviewAssignmentData((prev) => ({
+                                  ...prev,
+                                  role: application.job?.title || "",
+                                  candidateId: application.candidate.id,
+                                  jobPostingId: application.job.id.toString(),
+                                }));
                               }}
-                              title="AI Chat"
+                              title="Assign AI Interview"
+                              data-testid={`button-assign-interview-${application.id}`}
                             >
-                              <MessageCircle className="w-4 h-4" />
+                              <Video className="w-4 h-4" />
                             </Button>
                             <Button
                               size="sm"
@@ -1146,14 +1287,20 @@ export default function EnhancedPipelineManagement() {
                               className="h-8 w-8 p-0 text-orange-600 border-orange-200"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toast({
-                                  title: "Interview Invite",
-                                  description: "Sending interview invitation...",
-                                });
+                                setSelectedApplication(application);
+                                setShowInterviewDialog(true);
+                                setInterviewAssignmentData((prev) => ({
+                                  ...prev,
+                                  assignmentType: "test",
+                                  role: application.job?.title || "",
+                                  candidateId: application.candidate.id,
+                                  jobPostingId: application.job.id.toString(),
+                                }));
                               }}
-                              title="Send Interview Invite"
+                              title="Assign Test"
+                              data-testid={`button-assign-test-${application.id}`}
                             >
-                              <Video className="w-4 h-4" />
+                              <Code className="w-4 h-4" />
                             </Button>
                             <Button
                               size="sm"
@@ -1712,105 +1859,89 @@ export default function EnhancedPipelineManagement() {
           </Dialog>
         )}
 
-        {/* Virtual AI Interview Assignment Dialog - Working Implementation */}
-        {selectedApplication && (
-          <Dialog open={!!selectedApplication} onOpenChange={() => setSelectedApplication(null)}>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Send Virtual AI Interview</DialogTitle>
-                <DialogDescription>
-                  Send an AI-powered interview invitation to {selectedApplication.candidate.name}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label>Interview Type</Label>
-                  <Select defaultValue="virtual">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="virtual">Virtual AI Interview</SelectItem>
-                      <SelectItem value="coding">Coding Assessment</SelectItem>
-                      <SelectItem value="behavioral">Behavioral Interview</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Position</Label>
-                  <Input
-                    defaultValue={selectedApplication.job.title}
-                    placeholder="e.g., Senior Frontend Developer"
-                  />
-                </div>
-                <div>
-                  <Label>Company</Label>
-                  <Input
-                    defaultValue={selectedApplication.job.company}
-                    placeholder="Company Name"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Duration</Label>
-                    <Select defaultValue="60">
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="30">30 minutes</SelectItem>
-                        <SelectItem value="45">45 minutes</SelectItem>
-                        <SelectItem value="60">60 minutes</SelectItem>
-                        <SelectItem value="90">90 minutes</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Difficulty</Label>
-                    <Select defaultValue="medium">
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="easy">Entry Level</SelectItem>
-                        <SelectItem value="medium">Mid Level</SelectItem>
-                        <SelectItem value="hard">Senior Level</SelectItem>
-                        <SelectItem value="expert">Expert Level</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div>
-                  <Label>Due Date</Label>
-                  <Input
-                    type="date"
-                    min={new Date().toISOString().split('T')[0]}
-                  />
-                </div>
-                <div>
-                  <Label>Additional Instructions</Label>
-                  <Textarea
-                    placeholder="Any specific instructions for the candidate..."
-                    rows={3}
-                  />
-                </div>
-                <Button 
-                  className="w-full bg-blue-500 hover:bg-blue-600"
-                  onClick={() => {
-                    toast({
-                      title: "Interview Sent Successfully",
-                      description: "Virtual AI interview invitation has been sent to the candidate.",
-                    });
-                    setSelectedApplication(null);
-                  }}
+        {/* Interview Assignment Dialog */}
+        <Dialog open={showInterviewDialog} onOpenChange={setShowInterviewDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Send Interview Invitation</DialogTitle>
+              <DialogDescription>
+                {selectedApplication && `Assign interview or test to ${selectedApplication.candidate.name}`}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Assignment Type</Label>
+                <Select
+                  value={interviewAssignmentData.assignmentType}
+                  onValueChange={(value) =>
+                    setInterviewAssignmentData((prev) => ({ ...prev, assignmentType: value }))
+                  }
                 >
-                  <PlayCircle className="w-4 h-4 mr-2" />
-                  Send Virtual Interview
-                </Button>
+                  <SelectTrigger data-testid="select-assignment-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="virtual">Virtual AI Interview</SelectItem>
+                    <SelectItem value="mock">Mock Coding Test</SelectItem>
+                    <SelectItem value="test">Test Assignment</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+              <div>
+                <Label>Role</Label>
+                <Input
+                  value={interviewAssignmentData.role}
+                  onChange={(e) =>
+                    setInterviewAssignmentData((prev) => ({ ...prev, role: e.target.value }))
+                  }
+                  placeholder="e.g., Senior Frontend Developer"
+                  data-testid="input-role"
+                />
+              </div>
+              <div>
+                <Label>Due Date</Label>
+                <Input
+                  type="datetime-local"
+                  value={interviewAssignmentData.dueDate}
+                  onChange={(e) =>
+                    setInterviewAssignmentData((prev) => ({ ...prev, dueDate: e.target.value }))
+                  }
+                  data-testid="input-due-date"
+                />
+              </div>
+              <div>
+                <Label>Instructions</Label>
+                <Textarea
+                  value={interviewAssignmentData.instructions}
+                  onChange={(e) =>
+                    setInterviewAssignmentData((prev) => ({ ...prev, instructions: e.target.value }))
+                  }
+                  placeholder="Additional instructions for the candidate..."
+                  rows={3}
+                  data-testid="textarea-instructions"
+                />
+              </div>
+              <Button
+                onClick={handleSendInterviewInvite}
+                className="w-full"
+                disabled={sendInterviewInviteMutation.isPending}
+                data-testid="button-send-invitation"
+              >
+                {sendInterviewInviteMutation.isPending ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Send Invitation
+                  </>
+                )}
+              </Button>
+            </div>
             </DialogContent>
           </Dialog>
-        )}
       </div>
     </div>
   );
