@@ -155,7 +155,7 @@ function Router() {
       {isAuthenticated ? (
         <>
           {/* Handle different user types */}
-          {user?.currentRole === 'recruiter' || user?.userType === 'recruiter' ? (
+          {user?.currentRole === 'recruiter' || user?.userType === 'recruiter' || (user?.currentRole === 'autojobr' && user?.userType === 'recruiter') ? (
             <>
               <Route path="/" component={UnifiedRecruiterDashboard} />
               <Route path="/recruiter-dashboard" component={UnifiedRecruiterDashboard} />

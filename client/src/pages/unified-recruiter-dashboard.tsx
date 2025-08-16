@@ -384,7 +384,7 @@ export default function RecruiterDashboard() {
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">{safeConversations.length}</p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Active Chats</p>
                   <p className="text-xs text-orange-600 dark:text-orange-400">
-                    {conversations.filter((c: any) => c.hasUnread).length} unread
+                    {safeConversations.filter((c: any) => c.hasUnread).length} unread
                   </p>
                 </div>
               </div>
