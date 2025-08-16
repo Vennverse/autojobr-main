@@ -116,92 +116,93 @@ export default function Profile() {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      fullName: profile?.fullName || "",
-      phone: profile?.phone || "",
-      professionalTitle: profile?.professionalTitle || "",
-      currentAddress: profile?.currentAddress || "",
-      city: profile?.city || "",
-      state: profile?.state || "",
-      zipCode: profile?.zipCode || "",
-      country: profile?.country || "United States",
-      linkedinUrl: profile?.linkedinUrl || "",
-      githubUrl: profile?.githubUrl || "",
-      portfolioUrl: profile?.portfolioUrl || "",
-      dateOfBirth: profile?.dateOfBirth || "",
-      gender: profile?.gender || "",
-      nationality: profile?.nationality || "",
-      workAuthorization: profile?.workAuthorization || "",
-      visaStatus: profile?.visaStatus || "",
-      requiresSponsorship: profile?.requiresSponsorship || false,
-      preferredWorkMode: profile?.preferredWorkMode || "",
-      desiredSalaryMin: profile?.desiredSalaryMin || undefined,
-      desiredSalaryMax: profile?.desiredSalaryMax || undefined,
-      salaryCurrency: profile?.salaryCurrency || "USD",
-      noticePeriod: profile?.noticePeriod || "",
-      willingToRelocate: profile?.willingToRelocate || false,
-      highestDegree: profile?.highestDegree || "",
-      majorFieldOfStudy: profile?.majorFieldOfStudy || "",
-      graduationYear: profile?.graduationYear || undefined,
-      summary: profile?.summary || "",
-      yearsExperience: profile?.yearsExperience || 0,
-      emergencyContactName: profile?.emergencyContactName || "",
-      emergencyContactPhone: profile?.emergencyContactPhone || "",
-      emergencyContactRelation: profile?.emergencyContactRelation || "",
-      veteranStatus: profile?.veteranStatus || "",
-      ethnicity: profile?.ethnicity || "",
-      disabilityStatus: profile?.disabilityStatus || "",
-      backgroundCheckConsent: profile?.backgroundCheckConsent || false,
-      drugTestConsent: profile?.drugTestConsent || false,
+      fullName: "",
+      phone: "",
+      professionalTitle: "",
+      currentAddress: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      country: "United States",
+      linkedinUrl: "",
+      githubUrl: "",
+      portfolioUrl: "",
+      dateOfBirth: "",
+      gender: "",
+      nationality: "",
+      workAuthorization: "",
+      visaStatus: "",
+      requiresSponsorship: false,
+      preferredWorkMode: "",
+      desiredSalaryMin: undefined,
+      desiredSalaryMax: undefined,
+      salaryCurrency: "USD",
+      noticePeriod: "",
+      willingToRelocate: false,
+      highestDegree: "",
+      majorFieldOfStudy: "",
+      graduationYear: undefined,
+      summary: "",
+      yearsExperience: 0,
+      emergencyContactName: "",
+      emergencyContactPhone: "",
+      emergencyContactRelation: "",
+      veteranStatus: "",
+      ethnicity: "",
+      disabilityStatus: "",
+      backgroundCheckConsent: false,
+      drugTestConsent: false,
     },
   });
 
   // Update form when profile data loads
   useEffect(() => {
-    if (profile) {
+    if (profile && typeof profile === 'object') {
+      const profileData = profile as any;
       form.reset({
-        fullName: profile.fullName || "",
-        phone: profile.phone || "",
-        professionalTitle: profile.professionalTitle || "",
-        currentAddress: profile.currentAddress || "",
-        city: profile.city || "",
-        state: profile.state || "",
-        zipCode: profile.zipCode || "",
-        country: profile.country || "United States",
-        linkedinUrl: profile.linkedinUrl || "",
-        githubUrl: profile.githubUrl || "",
-        portfolioUrl: profile.portfolioUrl || "",
-        dateOfBirth: profile.dateOfBirth || "",
-        gender: profile.gender || "",
-        nationality: profile.nationality || "",
-        workAuthorization: profile.workAuthorization || "",
-        visaStatus: profile.visaStatus || "",
-        requiresSponsorship: profile.requiresSponsorship || false,
-        preferredWorkMode: profile.preferredWorkMode || "",
-        desiredSalaryMin: profile.desiredSalaryMin || undefined,
-        desiredSalaryMax: profile.desiredSalaryMax || undefined,
-        salaryCurrency: profile.salaryCurrency || "USD",
-        noticePeriod: profile.noticePeriod || "",
-        willingToRelocate: profile.willingToRelocate || false,
-        highestDegree: profile.highestDegree || "",
-        majorFieldOfStudy: profile.majorFieldOfStudy || "",
-        graduationYear: profile.graduationYear || undefined,
-        summary: profile.summary || "",
-        yearsExperience: profile.yearsExperience || 0,
-        emergencyContactName: profile.emergencyContactName || "",
-        emergencyContactPhone: profile.emergencyContactPhone || "",
-        emergencyContactRelation: profile.emergencyContactRelation || "",
-        veteranStatus: profile.veteranStatus || "",
-        ethnicity: profile.ethnicity || "",
-        disabilityStatus: profile.disabilityStatus || "",
-        backgroundCheckConsent: profile.backgroundCheckConsent || false,
-        drugTestConsent: profile.drugTestConsent || false,
+        fullName: profileData.fullName || "",
+        phone: profileData.phone || "",
+        professionalTitle: profileData.professionalTitle || "",
+        currentAddress: profileData.currentAddress || "",
+        city: profileData.city || "",
+        state: profileData.state || "",
+        zipCode: profileData.zipCode || "",
+        country: profileData.country || "United States",
+        linkedinUrl: profileData.linkedinUrl || "",
+        githubUrl: profileData.githubUrl || "",
+        portfolioUrl: profileData.portfolioUrl || "",
+        dateOfBirth: profileData.dateOfBirth || "",
+        gender: profileData.gender || "",
+        nationality: profileData.nationality || "",
+        workAuthorization: profileData.workAuthorization || "",
+        visaStatus: profileData.visaStatus || "",
+        requiresSponsorship: profileData.requiresSponsorship || false,
+        preferredWorkMode: profileData.preferredWorkMode || "",
+        desiredSalaryMin: profileData.desiredSalaryMin || undefined,
+        desiredSalaryMax: profileData.desiredSalaryMax || undefined,
+        salaryCurrency: profileData.salaryCurrency || "USD",
+        noticePeriod: profileData.noticePeriod || "",
+        willingToRelocate: profileData.willingToRelocate || false,
+        highestDegree: profileData.highestDegree || "",
+        majorFieldOfStudy: profileData.majorFieldOfStudy || "",
+        graduationYear: profileData.graduationYear || undefined,
+        summary: profileData.summary || "",
+        yearsExperience: profileData.yearsExperience || 0,
+        emergencyContactName: profileData.emergencyContactName || "",
+        emergencyContactPhone: profileData.emergencyContactPhone || "",
+        emergencyContactRelation: profileData.emergencyContactRelation || "",
+        veteranStatus: profileData.veteranStatus || "",
+        ethnicity: profileData.ethnicity || "",
+        disabilityStatus: profileData.disabilityStatus || "",
+        backgroundCheckConsent: profileData.backgroundCheckConsent || false,
+        drugTestConsent: profileData.drugTestConsent || false,
       });
     }
   }, [profile, form]);
 
   const profileMutation = useMutation({
     mutationFn: async (data: ProfileFormValues) => {
-      await apiRequest("POST", "/api/profile", data);
+      await apiRequest("/api/profile", "POST", data);
     },
     onSuccess: () => {
       toast({
@@ -251,7 +252,7 @@ export default function Profile() {
 
   const addSkillMutation = useMutation({
     mutationFn: async (skillName: string) => {
-      await apiRequest("POST", "/api/skills", { skillName });
+      await apiRequest("/api/skills", "POST", { skillName });
     },
     onSuccess: () => {
       setNewSkill("");
@@ -279,7 +280,7 @@ export default function Profile() {
 
   const deleteSkillMutation = useMutation({
     mutationFn: async (skillId: number) => {
-      await apiRequest("DELETE", `/api/skills/${skillId}`);
+      await apiRequest(`/api/skills/${skillId}`, "DELETE");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/skills"] });
@@ -321,39 +322,42 @@ export default function Profile() {
 
   // Calculate comprehensive profile completion
   const calculateCompletion = () => {
+    const profileData = profile as any;
+    const skillsData = skills as any;
+    
     // Essential fields (required for most job applications)
     const essentialFields = [
-      profile?.fullName,
-      profile?.phone,
-      profile?.professionalTitle,
-      profile?.workAuthorization,
+      profileData?.fullName,
+      profileData?.phone,
+      profileData?.professionalTitle,
+      profileData?.workAuthorization,
       user?.email,
     ];
     
     // Important fields (commonly requested)
     const importantFields = [
-      profile?.currentAddress,
-      profile?.city,
-      profile?.state,
-      profile?.country,
-      profile?.linkedinUrl,
-      profile?.summary,
-      profile?.yearsExperience,
-      profile?.preferredWorkMode,
-      profile?.highestDegree,
-      skills?.length > 0,
+      profileData?.currentAddress,
+      profileData?.city,
+      profileData?.state,
+      profileData?.country,
+      profileData?.linkedinUrl,
+      profileData?.summary,
+      profileData?.yearsExperience,
+      profileData?.preferredWorkMode,
+      profileData?.highestDegree,
+      skillsData?.length > 0,
     ];
     
     // Optional fields (nice to have)
     const optionalFields = [
-      profile?.dateOfBirth,
-      profile?.nationality,
-      profile?.githubUrl,
-      profile?.portfolioUrl,
-      profile?.desiredSalaryMin,
-      profile?.noticePeriod,
-      profile?.majorFieldOfStudy,
-      profile?.emergencyContactName,
+      profileData?.dateOfBirth,
+      profileData?.nationality,
+      profileData?.githubUrl,
+      profileData?.portfolioUrl,
+      profileData?.desiredSalaryMin,
+      profileData?.noticePeriod,
+      profileData?.majorFieldOfStudy,
+      profileData?.emergencyContactName,
     ];
     
     const essentialCompleted = essentialFields.filter(Boolean).length;

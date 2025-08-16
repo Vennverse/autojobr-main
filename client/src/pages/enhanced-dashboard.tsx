@@ -528,15 +528,22 @@ export default function EnhancedDashboard() {
   ) => {
     setIsGenerating(true);
     try {
-      const response = await fetch("/api/ai/cover-letter", {
+      const response = await fetch("/api/generate-cover-letter", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          jobDescription,
-          companyName,
-          jobTitle,
+          jobData: {
+            company: companyName,
+            title: jobTitle,
+            description: jobDescription,
+          },
+          userProfile: null, // Will be fetched server-side
+          extractedData: {
+            company: companyName,
+            role: jobTitle,
+          },
         }),
         credentials: "include",
       });
