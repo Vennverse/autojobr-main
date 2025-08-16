@@ -28,7 +28,8 @@ import {
   Sparkles,
   Globe,
   Layers,
-  ChevronLeft
+  ChevronLeft,
+  Building2
 } from "lucide-react";
 import logoImage from "@assets/generated_images/AutoJobr_professional_logo_17c702fa.png";
 import heroBackground from "@assets/generated_images/Professional_hero_background_15f13bf2.png";
@@ -93,49 +94,76 @@ const testimonials = [
   }
 ];
 
-const pricingPlans = [
+const jobSeekerPlans = [
   {
     name: "Free",
     price: "$0",
     description: "Perfect for getting started",
     features: [
-      "50 job applications/month",
-      "Basic resume analysis", 
-      "Standard support",
-      "Job search filters"
+      "Unlimited job applications",
+      "2 AI cover letter generations/day",
+      "3 resume uploads",
+      "Basic Chrome extension auto-fill",
+      "Standard support"
     ],
     cta: "Start Free",
-    popular: false
+    popular: false,
+    href: "/auth"
   },
   {
     name: "Premium",
     price: "$10",
     description: "For serious job seekers",
     features: [
-      "Unlimited job applications",
-      "Advanced AI analysis",
-      "Priority support",
+      "Everything in Free",
+      "Unlimited AI cover letter generations",
+      "Unlimited resume uploads & analysis",
+      "Advanced resume optimization",
       "Premium job recommendations",
-      "Interview preparation",
-      "Salary insights"
+      "Interview preparation & mock sessions",
+      "Salary insights & negotiation tips",
+      "Priority support"
     ],
-    cta: "Go Premium",
-    popular: true
+    cta: "Upgrade to Premium",
+    popular: true,
+    href: "/subscription"
+  }
+];
+
+const recruiterPlans = [
+  {
+    name: "Basic",
+    price: "$0",
+    description: "Get started with hiring",
+    features: [
+      "2 active job postings",
+      "20 applicants per job",
+      "Basic resume viewing",
+      "Standard candidate screening",
+      "Email support"
+    ],
+    cta: "Start Free",
+    popular: false,
+    href: "/auth"
   },
   {
-    name: "Enterprise",
-    price: "Custom",
-    description: "For teams and companies",
+    name: "Premium",
+    price: "$49",
+    description: "For professional recruiters",
     features: [
-      "Everything in Premium",
-      "Team collaboration",
-      "Advanced analytics",
-      "Custom integrations",
-      "Dedicated support",
-      "SLA guarantee"
+      "Unlimited job postings",
+      "Unlimited applicants per job",
+      "Premium AI candidate matching",
+      "Advanced resume analytics",
+      "Custom assessment creation",
+      "Background check integration",
+      "Advanced analytics dashboard",
+      "API access & integrations",
+      "Priority support"
     ],
-    cta: "Contact Sales",
-    popular: false
+    cta: "Upgrade to Premium",
+    popular: true,
+    href: "/recruiter/premium"
   }
 ];
 
@@ -737,87 +765,190 @@ export default function LandingPage() {
               Choose Your Plan
             </h2>
             <p className="text-xl text-slate-600 dark:text-slate-300">
-              Start free and upgrade when you're ready to accelerate your career
+              Separate plans designed specifically for job seekers and recruiters
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {pricingPlans.map((plan, index) => (
-              <Card 
-                key={index} 
-                className={`relative border-0 transition-all duration-500 hover:scale-105 hover:-translate-y-2 group ${
-                  plan.popular 
-                    ? 'ring-2 ring-blue-500 bg-white dark:bg-slate-900 shadow-xl hover:shadow-2xl' 
-                    : 'bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 hover:shadow-xl'
-                } backdrop-blur`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-gradient-to-r from-blue-500 to-purple-600 text-white animate-pulse hover:animate-bounce">
-                      <Crown className="w-3 h-3 mr-1" />
-                      Most Popular
-                      <Sparkles className="w-3 h-3 ml-1" />
-                    </Badge>
-                  </div>
-                )}
-                
-                {/* Hover glow effect */}
-                <div className={`absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                  plan.popular 
-                    ? 'bg-gradient-to-r from-blue-500/10 to-purple-600/10' 
-                    : 'bg-gradient-to-r from-slate-500/5 to-slate-600/5'
-                }`}></div>
-                
-                <CardContent className="p-8 relative z-10">
-                  <div className="text-center mb-8">
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
-                      {plan.name}
-                    </h3>
-                    <div className="text-4xl font-bold text-slate-900 dark:text-white mb-2 group-hover:scale-110 transition-transform duration-300">
-                      {plan.price}
-                      {plan.price !== "Custom" && <span className="text-lg text-slate-500">/month</span>}
+          {/* Job Seeker Plans */}
+          <div className="mb-16">
+            <div className="text-center mb-8">
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 flex items-center justify-center gap-2">
+                <Users className="w-6 h-6 text-blue-500" />
+                For Job Seekers
+              </h3>
+              <p className="text-slate-600 dark:text-slate-300">
+                Find your dream job faster with AI-powered tools
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+              {jobSeekerPlans.map((plan, index) => (
+                <Card 
+                  key={index} 
+                  className={`relative border-0 transition-all duration-500 hover:scale-105 hover:-translate-y-2 group ${
+                    plan.popular 
+                      ? 'ring-2 ring-blue-500 bg-white dark:bg-slate-900 shadow-xl hover:shadow-2xl' 
+                      : 'bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 hover:shadow-xl'
+                  } backdrop-blur`}
+                >
+                  {plan.popular && (
+                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                      <Badge className="bg-gradient-to-r from-blue-500 to-purple-600 text-white animate-pulse hover:animate-bounce">
+                        <Crown className="w-3 h-3 mr-1" />
+                        Most Popular
+                        <Sparkles className="w-3 h-3 ml-1" />
+                      </Badge>
                     </div>
-                    <p className="text-slate-600 dark:text-slate-300 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors duration-300">
-                      {plan.description}
-                    </p>
-                  </div>
+                  )}
                   
-                  <ul className="space-y-3 mb-8">
-                    {plan.features.map((feature, featureIndex) => (
-                      <li 
-                        key={featureIndex} 
-                        className="flex items-center group-hover:translate-x-1 transition-transform duration-300"
-                        style={{ transitionDelay: `${featureIndex * 50}ms` }}
+                  <div className={`absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                    plan.popular 
+                      ? 'bg-gradient-to-r from-blue-500/10 to-purple-600/10' 
+                      : 'bg-gradient-to-r from-slate-500/5 to-slate-600/5'
+                  }`}></div>
+                  
+                  <CardContent className="p-8 relative z-10">
+                    <div className="text-center mb-8">
+                      <h4 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
+                        {plan.name}
+                      </h4>
+                      <div className="text-4xl font-bold text-slate-900 dark:text-white mb-2 group-hover:scale-110 transition-transform duration-300">
+                        {plan.price}
+                        {plan.price !== "$0" && <span className="text-lg text-slate-500">/month</span>}
+                      </div>
+                      <p className="text-slate-600 dark:text-slate-300 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors duration-300">
+                        {plan.description}
+                      </p>
+                    </div>
+                    
+                    <ul className="space-y-3 mb-8">
+                      {plan.features.map((feature, featureIndex) => (
+                        <li 
+                          key={featureIndex} 
+                          className="flex items-center group-hover:translate-x-1 transition-transform duration-300"
+                          style={{ transitionDelay: `${featureIndex * 50}ms` }}
+                        >
+                          <CheckCircle className="w-5 h-5 text-green-500 mr-3 group-hover:scale-110 transition-transform duration-300" />
+                          <span className="text-slate-600 dark:text-slate-300 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors duration-300">
+                            {feature}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    
+                    <Link href={plan.href}>
+                      <Button 
+                        className={`w-full transition-all duration-300 hover:scale-105 relative overflow-hidden group/btn ${
+                          plan.popular 
+                            ? 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl' 
+                            : 'bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600 hover:shadow-lg'
+                        }`}
+                        size="lg"
                       >
-                        <CheckCircle className="w-5 h-5 text-green-500 mr-3 group-hover:scale-110 transition-transform duration-300" />
-                        <span className="text-slate-600 dark:text-slate-300 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors duration-300">
-                          {feature}
+                        {plan.popular && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300"></div>
+                        )}
+                        <span className="relative z-10 flex items-center justify-center">
+                          {plan.cta}
+                          <ArrowRight className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform duration-300" />
                         </span>
-                      </li>
-                    ))}
-                  </ul>
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Recruiter Plans */}
+          <div>
+            <div className="text-center mb-8">
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 flex items-center justify-center gap-2">
+                <Building2 className="w-6 h-6 text-purple-500" />
+                For Recruiters
+              </h3>
+              <p className="text-slate-600 dark:text-slate-300">
+                Find the best talent with advanced recruiting tools
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+              {recruiterPlans.map((plan, index) => (
+                <Card 
+                  key={index} 
+                  className={`relative border-0 transition-all duration-500 hover:scale-105 hover:-translate-y-2 group ${
+                    plan.popular 
+                      ? 'ring-2 ring-purple-500 bg-white dark:bg-slate-900 shadow-xl hover:shadow-2xl' 
+                      : 'bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 hover:shadow-xl'
+                  } backdrop-blur`}
+                >
+                  {plan.popular && (
+                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                      <Badge className="bg-gradient-to-r from-purple-500 to-pink-600 text-white animate-pulse hover:animate-bounce">
+                        <Crown className="w-3 h-3 mr-1" />
+                        Most Popular
+                        <Sparkles className="w-3 h-3 ml-1" />
+                      </Badge>
+                    </div>
+                  )}
                   
-                  <Link href="/auth">
-                    <Button 
-                      className={`w-full transition-all duration-300 hover:scale-105 relative overflow-hidden group/btn ${
-                        plan.popular 
-                          ? 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl' 
-                          : 'bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600 hover:shadow-lg'
-                      }`}
-                      size="lg"
-                    >
-                      {plan.popular && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300"></div>
-                      )}
-                      <span className="relative z-10 flex items-center justify-center">
-                        {plan.cta}
-                        <ArrowRight className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform duration-300" />
-                      </span>
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
+                  <div className={`absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                    plan.popular 
+                      ? 'bg-gradient-to-r from-purple-500/10 to-pink-600/10' 
+                      : 'bg-gradient-to-r from-slate-500/5 to-slate-600/5'
+                  }`}></div>
+                  
+                  <CardContent className="p-8 relative z-10">
+                    <div className="text-center mb-8">
+                      <h4 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-300">
+                        {plan.name}
+                      </h4>
+                      <div className="text-4xl font-bold text-slate-900 dark:text-white mb-2 group-hover:scale-110 transition-transform duration-300">
+                        {plan.price}
+                        {plan.price !== "$0" && <span className="text-lg text-slate-500">/month</span>}
+                      </div>
+                      <p className="text-slate-600 dark:text-slate-300 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors duration-300">
+                        {plan.description}
+                      </p>
+                    </div>
+                    
+                    <ul className="space-y-3 mb-8">
+                      {plan.features.map((feature, featureIndex) => (
+                        <li 
+                          key={featureIndex} 
+                          className="flex items-center group-hover:translate-x-1 transition-transform duration-300"
+                          style={{ transitionDelay: `${featureIndex * 50}ms` }}
+                        >
+                          <CheckCircle className="w-5 h-5 text-green-500 mr-3 group-hover:scale-110 transition-transform duration-300" />
+                          <span className="text-slate-600 dark:text-slate-300 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors duration-300">
+                            {feature}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    
+                    <Link href={plan.href}>
+                      <Button 
+                        className={`w-full transition-all duration-300 hover:scale-105 relative overflow-hidden group/btn ${
+                          plan.popular 
+                            ? 'bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white shadow-lg hover:shadow-xl' 
+                            : 'bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600 hover:shadow-lg'
+                        }`}
+                        size="lg"
+                      >
+                        {plan.popular && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-pink-600 to-purple-600 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300"></div>
+                        )}
+                        <span className="relative z-10 flex items-center justify-center">
+                          {plan.cta}
+                          <ArrowRight className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform duration-300" />
+                        </span>
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         </div>
       </section>
