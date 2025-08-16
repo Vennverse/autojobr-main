@@ -183,6 +183,7 @@ function Router() {
               <Route path="/recruiter/advanced-analytics" component={AdvancedAnalyticsDashboard} />
               <Route path="/recruiter/background-checks" component={BackgroundCheckIntegration} />
               <Route path="/admin/sso-configuration" component={SSOConfiguration} />
+              <Route path="/admin/user-management" component={AdminUserManagement} />
               <Route path="/jobs/:id" component={ViewJob} />
               <Route path="/profile" component={Profile} />
               <Route path="/subscription" component={RecruiterSubscription} />

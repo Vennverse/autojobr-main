@@ -96,15 +96,19 @@ export async function setupAuth(app: Express) {
         let user = await storage.getUserByEmail(email);
         
         if (!user) {
-          // Create new user
+          // Create new user with intelligent role detection
           const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          const { UserRoleService } = await import('./userRoleService.js');
+          const roleAssignment = await UserRoleService.assignUserRole(email);
+          
           user = await storage.upsertUser({
             id: userId,
             email: email,
             firstName: profile.name?.givenName || 'User',
             lastName: profile.name?.familyName || '',
             profileImageUrl: profile.photos?.[0]?.value || null,
-            userType: 'job_seeker',
+            userType: roleAssignment.userType,
+            currentRole: roleAssignment.currentRole,
             emailVerified: true,
             password: null,
           });
@@ -208,7 +212,8 @@ export async function setupAuth(app: Express) {
           name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
           firstName: user.firstName,
           lastName: user.lastName,
-          userType: user.userType
+          userType: user.userType,
+          currentRole: user.currentRole || user.userType
         };
 
         // Save session before responding
@@ -324,7 +329,7 @@ export async function setupAuth(app: Express) {
         firstName: sessionUser.firstName || 'User',
         lastName: sessionUser.lastName || 'Name',
         userType: sessionUser.userType || 'job_seeker',
-        currentRole: sessionUser.userType || 'job_seeker',
+        currentRole: sessionUser.currentRole || sessionUser.userType || 'job_seeker',
         onboardingCompleted,
       });
     } catch (error) {

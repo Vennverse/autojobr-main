@@ -44,6 +44,7 @@ import {
   rateLimitMiddleware 
 } from "./optimizedMiddleware.js";
 import { customNLPService } from "./customNLP.js";
+import { UserRoleService } from "./userRoleService.js";
 import { PremiumFeaturesService } from "./premiumFeaturesService.js";
 import { SubscriptionService } from "./subscriptionService.js";
 import { rankingTestService } from "./rankingTestService.js";
