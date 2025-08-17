@@ -560,6 +560,12 @@ class AutoJobrContentScript {
 
   async detectJobPosting() {
     try {
+      // First check if this is actually a job page
+      if (!this.isJobPage()) {
+        this.hideWidget();
+        return { success: false, reason: 'Not a job page' };
+      }
+
       const jobData = await this.extractJobDetails();
       
       if (jobData.success && jobData.jobData.title) {
@@ -576,6 +582,49 @@ class AutoJobrContentScript {
       console.error('Job detection error:', error);
       return { success: false, error: error.message };
     }
+  }
+
+  isJobPage() {
+    const url = window.location.href.toLowerCase();
+    const hostname = window.location.hostname.toLowerCase();
+    
+    // Site-specific job page detection
+    const jobPagePatterns = {
+      'linkedin.com': ['/jobs/', '/job/'],
+      'indeed.com': ['/job/', '/viewjob'],
+      'glassdoor.com': ['/job/', '/jobs/'],
+      'ziprecruiter.com': ['/jobs/', '/job/'],
+      'monster.com': ['/job/', '/jobs/'],
+      'careerbuilder.com': ['/job/', '/jobs/'],
+      'dice.com': ['/jobs/', '/job/'],
+      'stackoverflow.com': ['/jobs/', '/job/'],
+      'angel.co': ['/job/', '/jobs/'],
+      'wellfound.com': ['/job/', '/jobs/'],
+      'greenhouse.io': ['/job/', '/jobs/'],
+      'lever.co': ['/jobs/', '/job/'],
+      'workday.com': ['/job/', '/jobs/', '/en-us/job/'],
+      'myworkdayjobs.com': ['/job/', '/jobs/'],
+      'icims.com': ['/job/', '/jobs/'],
+      'smartrecruiters.com': ['/job/', '/jobs/'],
+      'bamboohr.com': ['/job/', '/jobs/'],
+      'ashbyhq.com': ['/job/', '/jobs/'],
+      'careers.google.com': ['/job/', '/jobs/'],
+      'amazon.jobs': ['/job/', '/jobs/'],
+      'microsoft.com': ['/job/', '/jobs/', '/careers/job-search/'],
+      'apple.com': ['/job/', '/jobs/'],
+      'meta.com': ['/job/', '/jobs/']
+    };
+
+    // Check if hostname matches and URL contains job pattern
+    for (const [domain, patterns] of Object.entries(jobPagePatterns)) {
+      if (hostname.includes(domain)) {
+        return patterns.some(pattern => url.includes(pattern));
+      }
+    }
+
+    // Fallback: check for generic job indicators in URL
+    const genericJobIndicators = ['/job/', '/jobs/', '/career/', '/careers/', '/position/', '/apply/'];
+    return genericJobIndicators.some(indicator => url.includes(indicator));
   }
 
   updateJobInfo(jobData) {
@@ -905,6 +954,49 @@ class AutoJobrContentScript {
         type: [
           '.posting-categories .commitment',
           '.employment-type'
+        ]
+      },
+      microsoft: {
+        title: [
+          'h1[data-test-id="job-title"]',
+          '.ms-JobDetailHeader-title h1',
+          '.ms-JobTitle',
+          'h1.c-heading-3',
+          '[data-automation-id="jobTitle"]',
+          '.job-detail-title h1'
+        ],
+        company: [
+          '.ms-JobDetailHeader-company',
+          '.ms-CompanyName',
+          '.company-name',
+          '[data-automation-id="company"]'
+        ],
+        location: [
+          '.ms-JobDetailHeader-location',
+          '.ms-Location',
+          '.job-location',
+          '[data-automation-id="location"]'
+        ],
+        description: [
+          '.ms-JobDescription',
+          '.job-description-content',
+          '.job-detail-description',
+          '[data-automation-id="jobDescription"]'
+        ],
+        requirements: [
+          '.ms-JobRequirements',
+          '.job-requirements',
+          '.qualifications'
+        ],
+        salary: [
+          '.ms-Salary',
+          '.salary-range',
+          '.compensation'
+        ],
+        type: [
+          '.ms-JobType',
+          '.employment-type',
+          '.job-type'
         ]
       },
       generic: {
