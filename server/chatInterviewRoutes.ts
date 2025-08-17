@@ -297,6 +297,135 @@ router.post('/:sessionId/complete', isAuthenticated, async (req: any, res) => {
   }
 });
 
+// Assign chat interview to candidate (recruiter functionality)
+router.post('/assign', isAuthenticated, async (req: any, res) => {
+  try {
+    const {
+      candidateId,
+      jobPostingId,
+      interviewType = 'technical',
+      role,
+      company,
+      difficulty = 'medium',
+      duration = 30,
+      dueDate,
+      interviewerPersonality = 'professional',
+      jobDescription
+    } = req.body;
+
+    const recruiterId = req.user?.id || req.session?.user?.id;
+    if (!recruiterId) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    // Validate required fields
+    if (!candidateId || !role || !dueDate) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    // Generate unique session ID for assigned interview
+    const sessionId = `chat_assigned_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create chat interview record in virtualInterviews table
+    const interview = await db.insert(virtualInterviews).values({
+      userId: candidateId,
+      sessionId,
+      role,
+      interviewType,
+      difficulty,
+      duration,
+      totalQuestions: 5,
+      questionsAsked: 0,
+      status: 'assigned',
+      assignedBy: recruiterId,
+      assignedAt: new Date(),
+      dueDate: new Date(dueDate),
+      jobPostingId: jobPostingId || null,
+      assignmentType: 'recruiter_assigned',
+      interviewerPersonality,
+      company: company || '',
+      jobDescription: jobDescription || ''
+    }).returning();
+
+    // Send email notification to candidate
+    const { users } = await import('../shared/schema.js');
+    const candidate = await db.select().from(users).where(eq(users.id, candidateId)).limit(1);
+    const recruiter = await db.select().from(users).where(eq(users.id, recruiterId)).limit(1);
+
+    if (candidate.length > 0) {
+      const candidateEmail = candidate[0].email;
+      const candidateName = candidate[0].firstName || candidate[0].lastName 
+        ? `${candidate[0].firstName || ''} ${candidate[0].lastName || ''}`.trim()
+        : 'Candidate';
+      
+      if (!candidateEmail) {
+        throw new Error('Candidate email not found');
+      }
+      
+      const interviewLink = `${process.env.BASE_URL || 'https://autojobr.com'}/chat-interview/${sessionId}`;
+      
+      // Use the email service to send notification
+      const { sendEmail } = await import('./emailService.js');
+      await sendEmail({
+        to: candidateEmail,
+        subject: `AI Interview Assignment - ${role} Position`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">AI Interview Assignment</h2>
+            <p>Hello ${candidateName},</p>
+            <p>You have been assigned an AI interview for the <strong>${role}</strong> position${company ? ` at ${company}` : ''}.</p>
+            
+            <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0;">Interview Details:</h3>
+              <ul style="list-style: none; padding: 0;">
+                <li style="margin: 8px 0;"><strong>Position:</strong> ${role}</li>
+                ${company ? `<li style="margin: 8px 0;"><strong>Company:</strong> ${company}</li>` : ''}
+                <li style="margin: 8px 0;"><strong>Type:</strong> AI Chat Interview</li>
+                <li style="margin: 8px 0;"><strong>Duration:</strong> ${duration} minutes</li>
+                <li style="margin: 8px 0;"><strong>Difficulty:</strong> ${difficulty}</li>
+                <li style="margin: 8px 0;"><strong>Due Date:</strong> ${new Date(dueDate).toLocaleDateString()}</li>
+              </ul>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${interviewLink}" 
+                 style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                Start AI Interview
+              </a>
+            </div>
+
+            <p><strong>What to Expect:</strong></p>
+            <ul>
+              <li>Conversational AI interview with real-time questions</li>
+              <li>Questions tailored to the ${role} position</li>
+              <li>Professional AI interviewer with ${interviewerPersonality} personality</li>
+              <li>Comprehensive feedback and analysis</li>
+            </ul>
+
+            <p>Good luck with your interview!</p>
+            <p>Best regards,<br>The AutoJobR Team</p>
+          </div>
+        `
+      });
+
+      // Mark email as sent
+      await db.update(virtualInterviews)
+        .set({ emailSent: true })
+        .where(eq(virtualInterviews.id, interview[0].id));
+    }
+
+    res.json({
+      message: 'AI Interview assigned successfully',
+      sessionId,
+      interviewId: interview[0].id
+    });
+
+  } catch (error) {
+    console.error('Error assigning chat interview:', error);
+    res.status(500).json({ message: 'Failed to assign interview' });
+  }
+});
+
 // Get interview feedback for completed interviews
 router.get('/:sessionId/feedback', isAuthenticated, async (req: any, res) => {
   try {

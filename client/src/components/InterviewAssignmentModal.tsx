@@ -128,7 +128,7 @@ export default function InterviewAssignmentModal({
       }
 
       const endpoint = interviewType === 'virtual' 
-        ? '/api/interviews/virtual/assign'
+        ? '/api/chat-interview/assign'
         : '/api/interviews/mock/assign';
 
       // Assign interviews to all selected candidates
