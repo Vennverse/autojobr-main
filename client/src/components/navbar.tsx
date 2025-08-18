@@ -151,6 +151,12 @@ export function Navbar() {
           current: location === "/jobs"
         },
         {
+          name: "Applications",
+          href: "/applications",
+          icon: FileText,
+          current: location === "/applications"
+        },
+        {
           name: "AI Coach",
           href: "/career-ai-assistant",
           icon: Brain,
