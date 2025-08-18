@@ -3,10 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Crown, TrendingUp, Zap, Trophy, Gift, Calendar } from "lucide-react";
+import { AlertTriangle, Crown, TrendingUp, Zap, Trophy, Gift, Calendar, CreditCard } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useRankingTestUsage } from "@/hooks/useRankingTestUsage";
+import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 interface UsageReport {
   subscription: any;
@@ -16,9 +19,32 @@ interface UsageReport {
   upgradeRecommended: boolean;
 }
 
+// PayPal TypeScript declarations
+declare global {
+  interface Window {
+    paypal?: {
+      Buttons: (options: {
+        style?: {
+          shape?: string;
+          color?: string;
+          layout?: string;
+          label?: string;
+        };
+        createSubscription?: (data: any, actions: any) => Promise<string>;
+        onApprove?: (data: any, actions: any) => void;
+        onError?: (err: any) => void;
+      }) => {
+        render: (selector: string) => void;
+      };
+    };
+  }
+}
+
 export default function UsageMonitoringWidget() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: usageReport, isLoading, error } = useQuery({
     queryKey: ['/api/usage/report', user?.id, user?.planType], // Include user data in query key
@@ -61,6 +87,73 @@ export default function UsageMonitoringWidget() {
   };
 
   const freeRankingData = getFreeRankingTestData();
+
+  // PayPal script loading and button initialization
+  useEffect(() => {
+    const loadPayPalScript = () => {
+      // Check if PayPal script is already loaded
+      if (window.paypal) {
+        initializePayPalButton();
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://www.paypal.com/sdk/js?client-id=AUzUXMfJm1WWbSHiAKfylwAd4AOYkMQV_tE_Pzg2g9zxmGyPC1bt82hlQ_vQycZSrM-ke8gICEeh8kTf&vault=true&intent=subscription';
+      script.setAttribute('data-sdk-integration-source', 'button-factory');
+      script.onload = () => {
+        initializePayPalButton();
+      };
+      document.head.appendChild(script);
+    };
+
+    const initializePayPalButton = () => {
+      if (window.paypal && document.getElementById('paypal-button-container-P-9SC66893530757807NCRWYCI')) {
+        window.paypal.Buttons({
+          style: {
+            shape: 'rect',
+            color: 'gold',
+            layout: 'vertical',
+            label: 'subscribe'
+          },
+          createSubscription: function(data: any, actions: any) {
+            return actions.subscription.create({
+              plan_id: 'P-9SC66893530757807NCRWYCI'
+            });
+          },
+          onApprove: function(data: any, actions: any) {
+            alert(data.subscriptionID);
+            // Refresh subscription data
+            queryClient.invalidateQueries({ queryKey: ['/api/subscription/current'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/usage/report'] });
+            toast({
+              title: "Subscription Activated!",
+              description: "Your premium features are now active.",
+            });
+          },
+          onError: function(err: any) {
+            console.error('PayPal subscription error:', err);
+            toast({
+              title: "Payment Error",
+              description: "Failed to process subscription. Please try again.",
+              variant: "destructive",
+            });
+          }
+        }).render('#paypal-button-container-P-9SC66893530757807NCRWYCI');
+      }
+    };
+
+    loadPayPalScript();
+
+    // Cleanup function
+    return () => {
+      // Remove PayPal script if needed
+      const existingScript = document.querySelector('script[src*="paypal.com/sdk/js"]');
+      if (existingScript) {
+        existingScript.remove();
+      }
+    };
+  }, [queryClient, toast]);
 
   if (isLoading) {
     return (
@@ -327,6 +420,22 @@ export default function UsageMonitoringWidget() {
           </CardContent>
         </Card>
       )}
+
+      {/* PayPal Subscription Button */}
+      <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
+            <CreditCard className="h-5 w-5" />
+            Premium Subscription
+          </CardTitle>
+          <CardDescription className="text-blue-700 dark:text-blue-300">
+            Subscribe with PayPal for instant access
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div id="paypal-button-container-P-9SC66893530757807NCRWYCI"></div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
