@@ -1,5 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+// PayPal TypeScript declarations
+declare global {
+  interface Window {
+    paypal?: {
+      Buttons: (options: {
+        style?: {
+          shape?: string;
+          color?: string;
+          layout?: string;
+          label?: string;
+        };
+        createSubscription?: (data: any, actions: any) => Promise<string>;
+        onApprove?: (data: any, actions: any) => void;
+        onError?: (err: any) => void;
+      }) => {
+        render: (selector: string) => void;
+      };
+    };
+  }
+}
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -114,6 +135,72 @@ export default function JobSeekerPremium() {
     }
   };
 
+  // PayPal script loading and button initialization
+  useEffect(() => {
+    const loadPayPalScript = () => {
+      // Check if PayPal script is already loaded
+      if (window.paypal) {
+        initializePayPalButton();
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://www.paypal.com/sdk/js?client-id=AUzUXMfJm1WWbSHiAKfylwAd4AOYkMQV_tE_Pzg2g9zxmGyPC1bt82hlQ_vQycZSrM-ke8gICEeh8kTf&vault=true&intent=subscription';
+      script.setAttribute('data-sdk-integration-source', 'button-factory');
+      script.onload = () => {
+        initializePayPalButton();
+      };
+      document.head.appendChild(script);
+    };
+
+    const initializePayPalButton = () => {
+      if (window.paypal && document.getElementById('paypal-button-container-P-9SC66893530757807NCRWYCI')) {
+        window.paypal.Buttons({
+          style: {
+            shape: 'rect',
+            color: 'gold',
+            layout: 'vertical',
+            label: 'subscribe'
+          },
+          createSubscription: function(data: any, actions: any) {
+            return actions.subscription.create({
+              plan_id: 'P-9SC66893530757807NCRWYCI'
+            });
+          },
+          onApprove: function(data: any, actions: any) {
+            alert(data.subscriptionID);
+            // Refresh subscription data
+            queryClient.invalidateQueries({ queryKey: ['/api/subscription/current'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+            toast({
+              title: "Subscription Activated!",
+              description: "Your premium features are now active.",
+            });
+          },
+          onError: function(err: any) {
+            console.error('PayPal subscription error:', err);
+            toast({
+              title: "Payment Error",
+              description: "Failed to process subscription. Please try again.",
+              variant: "destructive",
+            });
+          }
+        }).render('#paypal-button-container-P-9SC66893530757807NCRWYCI');
+      }
+    };
+
+    loadPayPalScript();
+
+    // Cleanup function
+    return () => {
+      // Remove PayPal script if needed
+      const existingScript = document.querySelector('script[src*="paypal.com/sdk/js"]');
+      if (existingScript) {
+        existingScript.remove();
+      }
+    };
+  }, [queryClient, toast]);
+
   const getIconForTier = (tierName: string) => {
     if (tierName.includes('Basic')) return <Star className="h-6 w-6" />;
     if (tierName.includes('Premium')) return <Crown className="h-6 w-6" />;
@@ -137,8 +224,8 @@ export default function JobSeekerPremium() {
 
   // Filter to ensure only job seeker tiers are displayed
   const tiers: JobSeekerSubscriptionTier[] = (tiersData?.tiers || []).filter((tier: any) => tier.userType === 'jobseeker');
-  const subscription = currentSubscription?.subscription || null;
-  const isFreeTier = !subscription || !subscription.isActive;
+  const subscription = (currentSubscription as any)?.subscription || null;
+  const isFreeTier = !subscription || !subscription?.isActive;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -427,6 +514,21 @@ export default function JobSeekerPremium() {
                     Practice virtual interviews and improve your performance with AI feedback
                   </p>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Custom PayPal Subscription Button */}
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle className="text-center">Premium Subscription</CardTitle>
+              <CardDescription className="text-center">
+                Subscribe with PayPal for instant premium access
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center space-y-4">
+                <div id="paypal-button-container-P-9SC66893530757807NCRWYCI"></div>
               </div>
             </CardContent>
           </Card>
