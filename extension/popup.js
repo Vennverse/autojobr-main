@@ -1,1042 +1,437 @@
-// Enhanced AutoJobr Popup with Advanced Features
-const API_BASE_URL = 'https://autojobr.com';
-
+// Enhanced AutoJobr Extension Popup Script with Task Management
 class AutoJobrPopup {
   constructor() {
-    this.currentTab = null;
-    this.userProfile = null;
-    this.jobData = null;
-    this.isConnected = false;
     this.isAuthenticated = false;
-    this.cache = new Map();
+    this.userProfile = null;
+    this.tasks = [];
+    this.currentTab = 'tasks';
     this.init();
   }
 
   async init() {
+    await this.checkAuthentication();
+    this.setupEventListeners();
+    this.setupTabNavigation();
+    await this.loadTasks();
+    await this.checkResumeStatus();
+    this.updateUI();
+  }
+
+  async checkAuthentication() {
     try {
-      // Get current tab
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      this.currentTab = tab;
-      
-      // Initialize UI
-      this.initializeEventListeners();
-      this.showLoading(true);
-      
-      // Check connection and authentication
-      await this.checkConnection();
-      await this.loadUserProfile();
-      await this.analyzeCurrentPage();
-      
-      this.showLoading(false);
-      
-    } catch (error) {
-      console.error('Popup initialization error:', error);
-      this.showError('Failed to initialize extension');
-      this.showLoading(false);
-    }
-  }
-
-  initializeEventListeners() {
-    // Close popup button
-    document.getElementById('closePopup')?.addEventListener('click', () => {
-      window.close();
-    });
-    
-    // Action buttons
-    document.getElementById('autofillBtn').addEventListener('click', () => this.handleAutofill());
-    document.getElementById('analyzeBtn').addEventListener('click', () => this.handleAnalyze());
-    document.getElementById('saveJobBtn').addEventListener('click', () => this.handleSaveJob());
-    document.getElementById('coverLetterBtn').addEventListener('click', () => this.handleGenerateCoverLetter());
-    
-    // Quick action buttons
-    document.getElementById('resumeBtn').addEventListener('click', () => this.handleResumeAction());
-    document.getElementById('profileBtn').addEventListener('click', () => this.handleProfileAction());
-    document.getElementById('historyBtn').addEventListener('click', () => this.handleHistoryAction());
-    
-    // Footer actions
-    document.getElementById('openDashboard').addEventListener('click', () => this.openDashboard());
-
-    // Settings toggles
-    this.initializeToggle('autofillToggle', 'autofillEnabled');
-    this.initializeToggle('trackingToggle', 'trackingEnabled');
-    this.initializeToggle('notificationsToggle', 'notificationsEnabled');
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
-    
-    // ESC key to close popup
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        window.close();
-      }
-    });
-  }
-
-  initializeToggle(elementId, storageKey) {
-    const toggle = document.getElementById(elementId);
-    
-    // Load current state
-    chrome.storage.sync.get([storageKey], (result) => {
-      const isEnabled = result[storageKey] !== false;
-      toggle.classList.toggle('active', isEnabled);
-    });
-
-    // Handle clicks with animation
-    toggle.addEventListener('click', () => {
-      const isActive = toggle.classList.contains('active');
-      const newState = !isActive;
-      
-      toggle.classList.toggle('active', newState);
-      chrome.storage.sync.set({ [storageKey]: newState });
-      
-      // Show feedback
-      this.showNotification(
-        `${storageKey.replace('Enabled', '')} ${newState ? 'enabled' : 'disabled'}`,
-        newState ? 'success' : 'info'
-      );
-    });
-  }
-
-  async checkConnection() {
-    try {
-      // Check server health
-      const healthResponse = await this.makeApiRequest('/api/health', {
-        method: 'GET',
-        timeout: 5000
+      const response = await chrome.runtime.sendMessage({
+        action: 'getUserProfile'
       });
-      
-      if (!healthResponse) {
-        throw new Error('Server not reachable');
+
+      if (response && response.success && response.profile) {
+        this.isAuthenticated = true;
+        this.userProfile = response.profile;
+        document.getElementById('status').textContent = `Welcome back, ${response.profile.firstName || 'User'}!`;
+      } else {
+        document.getElementById('status').textContent = 'Please sign in to access features';
       }
-      
-      // Check authentication
-      const authResponse = await this.makeApiRequest('/api/user', {
-        method: 'GET'
-      });
-      
-      this.isConnected = !!healthResponse;
-      this.isAuthenticated = !!authResponse && !authResponse.error;
-      
-      this.updateConnectionStatus(this.isConnected, this.isAuthenticated);
-      
     } catch (error) {
-      console.error('Connection check failed:', error);
-      this.isConnected = false;
+      console.error('Authentication check failed:', error);
       this.isAuthenticated = false;
-      this.updateConnectionStatus(false, false);
+      document.getElementById('status').textContent = 'Authentication error';
     }
   }
 
-  async makeApiRequest(endpoint, options = {}) {
-    try {
-      // Check cache first for GET requests
-      const cacheKey = `${endpoint}_${JSON.stringify(options)}`;
-      if (options.method === 'GET' && this.cache.has(cacheKey)) {
-        const cached = this.cache.get(cacheKey);
-        if (Date.now() - cached.timestamp < 30000) { // 30 second cache
-          return cached.data;
+  setupTabNavigation() {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const tabName = button.dataset.tab;
+        
+        // Update active tab button
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        
+        // Update active tab content
+        tabContents.forEach(content => content.classList.remove('active'));
+        document.getElementById(`${tabName}-tab`).classList.add('active');
+        
+        this.currentTab = tabName;
+        
+        // Load tab-specific data
+        if (tabName === 'tasks') {
+          this.loadTasks();
+        } else if (tabName === 'resume') {
+          this.checkResumeStatus();
         }
-      }
-
-      // Get stored session token
-      const result = await chrome.storage.local.get(['sessionToken', 'userId']);
-      const sessionToken = result.sessionToken;
-      
-      const headers = {
-        'Content-Type': 'application/json',
-        ...options.headers
-      };
-      
-      if (sessionToken) {
-        headers['Authorization'] = `Bearer ${sessionToken}`;
-      }
-      
-      // Add timeout handling
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), options.timeout || 10000);
-      
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        headers,
-        credentials: 'include',
-        mode: 'cors',
-        signal: controller.signal
       });
-      
-      clearTimeout(timeoutId);
-      
-      if (response.status === 401) {
-        await chrome.storage.local.remove(['sessionToken', 'userId']);
-        this.isAuthenticated = false;
-        this.updateConnectionStatus(this.isConnected, false);
-        return { error: 'Authentication required' };
-      }
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      // Extract session token from response headers
-      const newToken = response.headers.get('X-Session-Token');
-      if (newToken) {
-        await chrome.storage.local.set({ sessionToken: newToken });
-      }
-      
-      const data = await response.json();
-      
-      // Cache GET responses
-      if (options.method === 'GET') {
-        this.cache.set(cacheKey, {
-          data,
-          timestamp: Date.now()
-        });
-      }
-      
-      return data;
-      
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        console.error(`Request timeout for ${endpoint}`);
-        return { error: 'Request timeout' };
-      }
-      console.error(`API request failed for ${endpoint}:`, error);
-      return null;
-    }
-  }
-
-  updateConnectionStatus(connected, authenticated = false) {
-    const statusDot = document.getElementById('statusDot');
-    const statusText = document.getElementById('connectionStatus');
-    
-    if (connected && authenticated) {
-      statusDot.classList.remove('disconnected');
-      statusText.textContent = 'Connected & Authenticated';
-      this.enableActionButtons();
-    } else if (connected && !authenticated) {
-      statusDot.classList.add('disconnected');
-      statusText.innerHTML = 'Not authenticated - <button class="login-btn" id="loginBtn">Sign In</button>';
-      this.disableActionButtons();
-      
-      // Add login button handler
-      setTimeout(() => {
-        document.getElementById('loginBtn')?.addEventListener('click', () => this.handleLogin());
-      }, 100);
-    } else {
-      statusDot.classList.add('disconnected');
-      statusText.textContent = 'Server unreachable';
-      this.disableActionButtons();
-    }
-  }
-
-  async handleLogin() {
-    try {
-      this.showNotification('Opening login page...', 'info');
-      
-      const loginUrl = `${API_BASE_URL}/auth/extension-login`;
-      const tab = await chrome.tabs.create({ url: loginUrl });
-      
-      // Listen for successful authentication
-      const listener = (tabId, changeInfo, updatedTab) => {
-        if (tabId === tab.id && changeInfo.url) {
-          if (changeInfo.url.includes('/auth/extension-success')) {
-            const url = new URL(changeInfo.url);
-            const token = url.searchParams.get('token');
-            const userId = url.searchParams.get('userId');
-            
-            if (token && userId) {
-              chrome.storage.local.set({ 
-                sessionToken: token, 
-                userId: userId 
-              }).then(() => {
-                chrome.tabs.remove(tab.id);
-                this.checkConnection();
-                this.loadUserProfile();
-                this.showNotification('Successfully authenticated!', 'success');
-              });
-            }
-            
-            chrome.tabs.onUpdated.removeListener(listener);
-          }
-        }
-      };
-      
-      chrome.tabs.onUpdated.addListener(listener);
-      
-      // Cleanup after 5 minutes
-      setTimeout(() => {
-        chrome.tabs.onUpdated.removeListener(listener);
-      }, 300000);
-      
-    } catch (error) {
-      console.error('Login error:', error);
-      this.showError('Failed to open login page');
-    }
-  }
-
-  async analyzeCurrentPage() {
-    const pageInfo = document.getElementById('pageInfo');
-    const url = this.currentTab?.url || '';
-    
-    // First, try to get analysis data from content script (if auto-analysis was performed)
-    try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      const analysisData = await chrome.tabs.sendMessage(tab.id, { action: 'getCurrentAnalysis' }).catch(() => null);
-      
-      if (analysisData && analysisData.success && analysisData.analysis) {
-        // Use data from automatic analysis
-        this.jobData = analysisData.jobData;
-        this.displayUnifiedAnalysis(analysisData.analysis, analysisData.jobData);
-        this.updatePageInfoWithJob(analysisData.jobData);
-        return;
-      }
-    } catch (error) {
-      console.log('No auto-analysis data available, proceeding with manual detection');
-    }
-    
-    // Fallback to manual site detection and analysis
-    const supportedSites = [
-      { domain: 'linkedin.com', name: 'LinkedIn', icon: '💼' },
-      { domain: 'indeed.com', name: 'Indeed', icon: '🔍' },
-      { domain: 'glassdoor.com', name: 'Glassdoor', icon: '🏢' },
-      { domain: 'ziprecruiter.com', name: 'ZipRecruiter', icon: '⚡' },
-      { domain: 'monster.com', name: 'Monster', icon: '👹' },
-      { domain: 'dice.com', name: 'Dice', icon: '🎲' },
-      { domain: 'stackoverflow.com', name: 'Stack Overflow', icon: '💻' },
-      { domain: 'greenhouse.io', name: 'Greenhouse', icon: '🌱' },
-      { domain: 'lever.co', name: 'Lever', icon: '⚖️' },
-      { domain: 'workday.com', name: 'Workday', icon: '📅' },
-      { domain: 'myworkdayjobs.com', name: 'Workday', icon: '📅' }
-    ];
-
-    const detectedSite = supportedSites.find(site => url.includes(site.domain));
-    
-    if (detectedSite) {
-      pageInfo.className = 'page-info supported';
-      pageInfo.innerHTML = `
-        <div class="page-info-header">
-          <div class="page-info-icon" style="background: #22c55e; color: white;">✓</div>
-          <strong>${detectedSite.icon} ${detectedSite.name} detected</strong>
-        </div>
-        <div style="font-size: 12px; opacity: 0.8;">Auto-fill and job analysis available</div>
-      `;
-      
-      // Try to detect job details manually
-      await this.detectJobDetails();
-      
-    } else {
-      pageInfo.className = 'page-info unsupported';
-      pageInfo.innerHTML = `
-        <div class="page-info-header">
-          <div class="page-info-icon" style="background: #ef4444; color: white;">!</div>
-          <strong>Unsupported job board</strong>
-        </div>
-        <div style="font-size: 12px; opacity: 0.8;">Navigate to a supported job board to enable auto-fill</div>
-      `;
-      
-      this.disableActionButtons();
-    }
-  }
-
-  updatePageInfoWithJob(jobData) {
-    const pageInfo = document.getElementById('pageInfo');
-    pageInfo.className = 'page-info supported';
-    pageInfo.innerHTML = `
-      <div class="page-info-header">
-        <div class="page-info-icon" style="background: #22c55e; color: white;">✓</div>
-        <strong>Job Detected & Analyzed</strong>
-      </div>
-      <div style="font-size: 12px; opacity: 0.8;">${jobData.title} at ${jobData.company}</div>
-    `;
-  }
-
-  displayUnifiedAnalysis(analysis, jobData) {
-    // Show job info
-    const jobInfo = document.getElementById('jobInfo');
-    const jobTitle = document.getElementById('jobTitle');
-    const jobCompany = document.getElementById('jobCompany');
-    
-    jobTitle.textContent = jobData.title || 'Job Position';
-    jobCompany.textContent = jobData.company || 'Company';
-    jobInfo.style.display = 'block';
-    
-    // Display enhanced analysis results
-    this.displayEnhancedAnalysisResults(analysis);
-  }
-
-  displayEnhancedAnalysisResults(analysis) {
-    const scoreSection = document.getElementById('scoreSection');
-    const matchScore = document.getElementById('matchScore');
-    const scoreFill = document.getElementById('scoreFill');
-
-    const score = analysis.matchScore || analysis.analysis?.matchScore || 0;
-    matchScore.textContent = `${Math.round(score)}%`;
-    
-    // Animate score fill
-    setTimeout(() => {
-      scoreFill.style.width = `${score}%`;
-    }, 100);
-    
-    scoreSection.style.display = 'block';
-
-    // Update colors based on score
-    let color = '#ef4444';
-    if (score >= 80) color = '#22c55e';
-    else if (score >= 60) color = '#f59e0b';
-    else if (score >= 40) color = '#f97316';
-
-    scoreFill.style.background = `linear-gradient(90deg, ${color}, ${color}cc)`;
-    matchScore.style.background = `linear-gradient(135deg, ${color}, ${color}dd)`;
-    matchScore.style.webkitBackgroundClip = 'text';
-    matchScore.style.webkitTextFillColor = 'transparent';
-    
-    // Show detailed score explanations
-    this.displayScoreExplanations(analysis);
-    
-    // Log analysis for debugging
-    console.log('Enhanced Analysis Results:', analysis);
-  }
-
-  async detectJobDetails() {
-    try {
-      const response = await chrome.tabs.sendMessage(this.currentTab.id, {
-        action: 'extractJobDetails'
-      });
-
-      if (response && response.success && response.jobData) {
-        this.jobData = response.jobData;
-        
-        // Show job info
-        if (this.jobData.title) {
-          const jobInfo = document.getElementById('jobInfo');
-          const jobTitle = document.getElementById('jobTitle');
-          const jobCompany = document.getElementById('jobCompany');
-          
-          jobTitle.textContent = this.jobData.title;
-          jobCompany.textContent = this.jobData.company || 'Company not detected';
-          jobInfo.style.display = 'block';
-          
-          // Analyze job match if user is authenticated
-          if (this.isAuthenticated && this.userProfile) {
-            await this.showJobAnalysis();
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Failed to detect job details:', error);
-    }
-  }
-
-  async showJobAnalysis() {
-    if (!this.jobData || !this.userProfile) return;
-
-    try {
-      const analysis = await this.makeApiRequest('/api/analyze-job-match', {
-        method: 'POST',
-        body: JSON.stringify({
-          jobData: this.jobData,
-          userProfile: this.userProfile
-        })
-      });
-
-      if (analysis && !analysis.error) {
-        const scoreSection = document.getElementById('scoreSection');
-        const matchScore = document.getElementById('matchScore');
-        const scoreFill = document.getElementById('scoreFill');
-
-        const score = analysis.matchScore || 0;
-        matchScore.textContent = `${score}%`;
-        
-        // Animate score fill
-        setTimeout(() => {
-          scoreFill.style.width = `${score}%`;
-        }, 100);
-        
-        scoreSection.style.display = 'block';
-
-        // Update colors based on score
-        let color = '#ef4444';
-        if (score >= 80) color = '#22c55e';
-        else if (score >= 60) color = '#f59e0b';
-        else if (score >= 40) color = '#f97316';
-
-        scoreFill.style.background = `linear-gradient(90deg, ${color}, ${color}cc)`;
-        matchScore.style.background = `linear-gradient(135deg, ${color}, ${color}dd)`;
-        matchScore.style.webkitBackgroundClip = 'text';
-        matchScore.style.webkitTextFillColor = 'transparent';
-        
-        // Show detailed score explanations
-        this.displayScoreExplanations(analysis);
-        
-        // Log detailed analysis for debugging
-        console.log('Job Analysis Results:', {
-          matchScore: analysis.matchScore,
-          factors: analysis.factors,
-          recommendation: analysis.recommendation,
-          userSkillsCount: analysis.userProfile?.skillsCount,
-          userTitle: analysis.userProfile?.professionalTitle,
-          jobTitle: this.jobData.title,
-          jobCompany: this.jobData.company
-        });
-      }
-    } catch (error) {
-      console.error('Job analysis failed:', error);
-    }
-  }
-
-  displayScoreExplanations(analysis) {
-    // Create or update score explanation section
-    let explanationSection = document.getElementById('scoreExplanation');
-    if (!explanationSection) {
-      explanationSection = document.createElement('div');
-      explanationSection.id = 'scoreExplanation';
-      explanationSection.style.cssText = `
-        margin-top: 12px;
-        padding: 12px;
-        background: rgba(255,255,255,0.05);
-        border-radius: 8px;
-        border: 1px solid rgba(255,255,255,0.1);
-        font-size: 12px;
-        display: none;
-      `;
-      document.getElementById('scoreSection').appendChild(explanationSection);
-    }
-
-    const score = analysis.matchScore || analysis.analysis?.matchScore || 0;
-    const matchingSkills = analysis.matchingSkills || analysis.analysis?.matchingSkills || [];
-    const missingSkills = analysis.missingSkills || analysis.analysis?.missingSkills || [];
-    const recommendation = analysis.applicationRecommendation || analysis.recommendation || 'review_required';
-    
-    explanationSection.innerHTML = `
-      <div style="margin-bottom: 8px; font-weight: 600; color: #e5e7eb;">
-        📊 Score Breakdown
-      </div>
-      
-      ${matchingSkills.length > 0 ? `
-        <div style="margin-bottom: 8px;">
-          <div style="color: #22c55e; font-weight: 500; margin-bottom: 4px;">
-            ✅ Matching Skills (${matchingSkills.length})
-          </div>
-          <div style="color: #d1d5db; font-size: 11px;">
-            ${matchingSkills.slice(0, 5).join(', ')}${matchingSkills.length > 5 ? '...' : ''}
-          </div>
-        </div>
-      ` : ''}
-      
-      ${missingSkills.length > 0 ? `
-        <div style="margin-bottom: 8px;">
-          <div style="color: #f59e0b; font-weight: 500; margin-bottom: 4px;">
-            ⚠️ Missing Skills (${missingSkills.length})
-          </div>
-          <div style="color: #d1d5db; font-size: 11px;">
-            ${missingSkills.slice(0, 5).join(', ')}${missingSkills.length > 5 ? '...' : ''}
-          </div>
-        </div>
-      ` : ''}
-      
-      <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
-        <div style="color: #e5e7eb; font-weight: 500; margin-bottom: 4px;">
-          💡 Recommendation
-        </div>
-        <div style="color: #d1d5db; font-size: 11px;">
-          ${this.getRecommendationText(recommendation, score)}
-        </div>
-      </div>
-      
-      <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
-        <button id="viewDetailedAnalysis" style="
-          background: rgba(255,255,255,0.1);
-          border: 1px solid rgba(255,255,255,0.2);
-          color: #e5e7eb;
-          padding: 6px 12px;
-          border-radius: 6px;
-          font-size: 11px;
-          cursor: pointer;
-          width: 100%;
-        ">
-          View Detailed Analysis
-        </button>
-      </div>
-    `;
-
-    // Add event listener for detailed analysis
-    document.getElementById('viewDetailedAnalysis')?.addEventListener('click', () => {
-      this.showDetailedAnalysisModal(analysis);
-    });
-
-    explanationSection.style.display = 'block';
-  }
-
-  getRecommendationText(recommendation, score) {
-    switch (recommendation) {
-      case 'strongly_recommended':
-        return 'Excellent match! Your profile aligns very well with this role. Apply with confidence.';
-      case 'recommended':
-        return 'Good match! You meet most requirements. Consider applying with a tailored resume.';
-      case 'consider_with_preparation':
-        return 'Moderate match. Review missing skills and consider highlighting transferable experience.';
-      case 'needs_development':
-        return 'Skills gap identified. Consider developing key missing skills before applying.';
-      case 'not_recommended':
-        return 'Limited match. This role may require significant additional preparation.';
-      default:
-        if (score >= 70) return 'Strong match - apply now!';
-        if (score >= 50) return 'Good match - consider applying';
-        return 'Consider tailoring your application';
-    }
-  }
-
-  showDetailedAnalysisModal(analysis) {
-    // Create detailed analysis modal
-    const modal = document.createElement('div');
-    modal.id = 'detailedAnalysisModal';
-    modal.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.8);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10001;
-      backdrop-filter: blur(5px);
-    `;
-
-    const content = this.buildDetailedAnalysisContent(analysis);
-    modal.innerHTML = `
-      <div style="
-        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-        border-radius: 12px;
-        padding: 20px;
-        max-width: 400px;
-        width: 90%;
-        max-height: 80vh;
-        overflow-y: auto;
-        border: 1px solid rgba(255,255,255,0.1);
-        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-      ">
-        <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 16px;">
-          <h3 style="color: #e5e7eb; margin: 0; font-size: 16px;">Detailed Job Analysis</h3>
-          <button id="closeModal" style="
-            background: none;
-            border: none;
-            color: #9ca3af;
-            font-size: 20px;
-            cursor: pointer;
-            padding: 0;
-            margin-left: auto;
-          ">×</button>
-        </div>
-        ${content}
-      </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    // Add close functionality
-    document.getElementById('closeModal').addEventListener('click', () => {
-      modal.remove();
-    });
-
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        modal.remove();
-      }
     });
   }
 
-  buildDetailedAnalysisContent(analysis) {
-    const score = analysis.matchScore || analysis.analysis?.matchScore || 0;
-    const skillGaps = analysis.skillGaps || {};
-    const seniorityLevel = analysis.seniorityLevel || 'Not specified';
-    const workMode = analysis.workMode || 'Not specified';
-    const tailoringAdvice = analysis.tailoringAdvice || 'Review job requirements carefully';
-    const interviewTips = analysis.interviewPrepTips || 'Prepare for standard interview questions';
+  setupEventListeners() {
+    // Task management actions
+    document.getElementById('create-task-btn').addEventListener('click', () => {
+      this.createQuickTask();
+    });
 
-    return `
-      <div style="color: #e5e7eb; font-size: 13px; line-height: 1.5;">
-        <div style="text-align: center; margin-bottom: 16px;">
-          <div style="
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, ${this.getScoreColor(score)}, ${this.getScoreColor(score)}dd);
-            margin: 0 auto 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            font-weight: bold;
-            color: white;
-          ">
-            ${Math.round(score)}%
-          </div>
-          <div style="font-weight: 600; margin-bottom: 4px;">Overall Match Score</div>
-          <div style="font-size: 11px; opacity: 0.8;">Based on comprehensive analysis</div>
-        </div>
+    document.getElementById('follow-up-btn').addEventListener('click', () => {
+      this.createFollowUpTask();
+    });
 
-        ${skillGaps.critical && skillGaps.critical.length > 0 ? `
-          <div style="margin-bottom: 12px; padding: 8px; background: rgba(239,68,68,0.1); border-radius: 6px; border-left: 3px solid #ef4444;">
-            <div style="font-weight: 600; color: #ef4444; margin-bottom: 4px;">🚨 Critical Skills Gap</div>
-            <div style="font-size: 11px; opacity: 0.9;">${skillGaps.critical.join(', ')}</div>
-          </div>
-        ` : ''}
+    // Resume actions
+    document.getElementById('get-active-resume-btn').addEventListener('click', () => {
+      this.checkResumeStatus();
+    });
 
-        ${skillGaps.important && skillGaps.important.length > 0 ? `
-          <div style="margin-bottom: 12px; padding: 8px; background: rgba(245,158,11,0.1); border-radius: 6px; border-left: 3px solid #f59e0b;">
-            <div style="font-weight: 600; color: #f59e0b; margin-bottom: 4px;">⚠️ Important Skills</div>
-            <div style="font-size: 11px; opacity: 0.9;">${skillGaps.important.join(', ')}</div>
-          </div>
-        ` : ''}
+    document.getElementById('upload-to-form-btn').addEventListener('click', () => {
+      this.uploadResumeToForm();
+    });
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
-          <div style="padding: 8px; background: rgba(255,255,255,0.05); border-radius: 6px;">
-            <div style="font-size: 10px; opacity: 0.7; margin-bottom: 2px;">Seniority Level</div>
-            <div style="font-weight: 500;">${seniorityLevel}</div>
-          </div>
-          <div style="padding: 8px; background: rgba(255,255,255,0.05); border-radius: 6px;">
-            <div style="font-size: 10px; opacity: 0.7; margin-bottom: 2px;">Work Mode</div>
-            <div style="font-weight: 500;">${workMode}</div>
-          </div>
-        </div>
+    // Page-specific actions
+    document.getElementById('detect-resume-fields-btn').addEventListener('click', () => {
+      this.detectResumeFields();
+    });
 
-        <div style="margin-bottom: 12px; padding: 8px; background: rgba(34,197,94,0.1); border-radius: 6px; border-left: 3px solid #22c55e;">
-          <div style="font-weight: 600; color: #22c55e; margin-bottom: 4px;">💡 Tailoring Advice</div>
-          <div style="font-size: 11px; opacity: 0.9;">${tailoringAdvice}</div>
-        </div>
+    document.getElementById('create-page-task-btn').addEventListener('click', () => {
+      this.createTaskForCurrentPage();
+    });
 
-        <div style="margin-bottom: 12px; padding: 8px; background: rgba(59,130,246,0.1); border-radius: 6px; border-left: 3px solid #3b82f6;">
-          <div style="font-weight: 600; color: #3b82f6; margin-bottom: 4px;">🎯 Interview Tips</div>
-          <div style="font-size: 11px; opacity: 0.9;">${interviewTips}</div>
-        </div>
-      </div>
-    `;
+    // Legacy autofill
+    document.getElementById('autofill-btn').addEventListener('click', () => {
+      this.triggerAutofill();
+    });
+
+    // Footer links
+    document.getElementById('open-dashboard').addEventListener('click', () => {
+      chrome.tabs.create({ url: 'https://autojobr.com/applications' });
+    });
+
+    document.getElementById('open-settings').addEventListener('click', () => {
+      chrome.tabs.create({ url: 'https://autojobr.com/profile' });
+    });
   }
 
-  getScoreColor(score) {
-    if (score >= 80) return '#22c55e';
-    if (score >= 60) return '#f59e0b';
-    if (score >= 40) return '#f97316';
-    return '#ef4444';
-  }
-
-  async loadUserProfile() {
-    if (!this.isAuthenticated) return;
-
-    try {
-      const profile = await this.makeApiRequest('/api/extension/profile');
-      if (profile && !profile.error) {
-        this.userProfile = profile;
-      }
-    } catch (error) {
-      console.error('Failed to load user profile:', error);
-    }
-  }
-
-  async handleAutofill() {
+  async loadTasks() {
     if (!this.isAuthenticated) {
-      this.showError('Please sign in to use auto-fill');
+      this.displayTasksError('Please sign in to view tasks');
       return;
     }
-
-    if (!this.userProfile) {
-      this.showError('User profile not loaded');
-      return;
-    }
-
-    this.showLoading(true);
 
     try {
-      const response = await chrome.tabs.sendMessage(this.currentTab.id, {
-        action: 'startAutofill',
-        userProfile: this.userProfile
+      const response = await chrome.runtime.sendMessage({
+        action: 'getUserTasks'
       });
 
       if (response && response.success) {
-        this.showNotification(
-          `✅ Auto-filled ${response.fieldsFilled}/${response.fieldsFound} fields!`,
-          'success'
-        );
-        
-        // Track the application
-        await this.trackApplication();
+        this.tasks = response.tasks || [];
+        this.displayTasks();
       } else {
-        throw new Error(response?.error || 'Auto-fill failed');
+        this.displayTasksError('Failed to load tasks');
       }
     } catch (error) {
-      console.error('Auto-fill error:', error);
-      this.showError('Auto-fill failed. Please try again.');
-    } finally {
-      this.showLoading(false);
+      console.error('Failed to load tasks:', error);
+      this.displayTasksError('Error loading tasks');
     }
   }
 
-  async handleAnalyze() {
-    if (!this.isAuthenticated) {
-      this.showError('Please sign in to analyze jobs');
-      return;
-    }
-
-    this.showLoading(true);
-
-    try {
-      await this.detectJobDetails();
-      await this.showJobAnalysis();
-      this.showNotification('✅ Job analysis completed!', 'success');
-    } catch (error) {
-      console.error('Analysis error:', error);
-      this.showError('Job analysis failed. Please try again.');
-    } finally {
-      this.showLoading(false);
-    }
-  }
-
-  async handleSaveJob() {
-    if (!this.isAuthenticated || !this.jobData) {
-      this.showError('Please ensure you\'re authenticated and on a job page');
-      return;
-    }
-
-    this.showLoading(true);
-
-    try {
-      const result = await this.makeApiRequest('/api/saved-jobs', {
-        method: 'POST',
-        body: JSON.stringify({
-          jobTitle: this.jobData.title,
-          company: this.jobData.company,
-          location: this.jobData.location,
-          jobUrl: this.currentTab.url,
-          description: this.jobData.description,
-          source: 'extension'
-        })
-      });
-
-      if (result && !result.error) {
-        this.showNotification('✅ Job saved successfully!', 'success');
-      } else {
-        throw new Error(result?.error || 'Failed to save job');
-      }
-    } catch (error) {
-      console.error('Save job error:', error);
-      this.showError('Failed to save job. Please try again.');
-    } finally {
-      this.showLoading(false);
-    }
-  }
-
-  async handleGenerateCoverLetter() {
-    if (!this.isAuthenticated || !this.jobData) {
-      this.showError('Please ensure you\'re authenticated and on a job page');
-      return;
-    }
-
-    // Check daily usage limit for free users
-    try {
-      const usageCheck = await this.makeApiRequest('/api/cover-letter/usage-check', {
-        method: 'GET'
-      });
-
-      if (usageCheck.limitReached) {
-        this.showError('You have used your daily limit of 2 cover letters. Please upgrade to Premium for unlimited access.');
-        return;
-      }
-    } catch (error) {
-      console.warn('Failed to check usage limits:', error);
-    }
-
-    this.showLoading(true);
-
-    try {
-      // Enhanced cover letter generation with extracted job data
-      const coverLetterData = {
-        jobData: {
-          ...this.jobData,
-          // Ensure we're using the extracted company and role
-          company: this.jobData.company || this.jobData.companyName || 'the company',
-          title: this.jobData.title || this.jobData.role || this.jobData.position || 'this position',
-          location: this.jobData.location,
-          description: this.jobData.description,
-          requirements: this.jobData.requirements,
-          url: window.location.href
-        },
-        userProfile: this.userProfile,
-        extractedData: {
-          company: this.jobData.company,
-          role: this.jobData.title,
-          extractedAt: new Date().toISOString()
-        }
-      };
-
-      const result = await this.makeApiRequest('/api/generate-cover-letter', {
-        method: 'POST',
-        body: JSON.stringify(coverLetterData)
-      });
-
-      if (result && !result.error) {
-        await navigator.clipboard.writeText(result.coverLetter);
-        this.showNotification('✅ Cover letter generated and copied!', 'success');
-        
-        // Show usage information
-        if (result.usageInfo) {
-          setTimeout(() => {
-            this.showNotification(`Daily usage: ${result.usageInfo.used}/${result.usageInfo.limit}`, 'info');
-          }, 2000);
-        }
-        
-        // Try to fill cover letter field
-        chrome.tabs.sendMessage(this.currentTab.id, {
-          action: 'fillCoverLetter',
-          coverLetter: result.coverLetter
-        });
-        
-      } else {
-        throw new Error(result?.error || 'Failed to generate cover letter');
-      }
-    } catch (error) {
-      console.error('Cover letter error:', error);
-      
-      // Handle specific error cases
-      if (error.message.includes('daily limit')) {
-        this.showError('You have used your daily limit of 2 cover letters. Please upgrade to Premium for unlimited access.');
-      } else {
-        this.showError('Failed to generate cover letter. Please try again.');
-      }
-    } finally {
-      this.showLoading(false);
-    }
-  }
-
-  async handleResumeAction() {
-    this.showNotification('Resume optimization coming soon!', 'info');
-  }
-
-  async handleProfileAction() {
-    chrome.tabs.create({
-      url: `${API_BASE_URL}/profile`
-    });
-  }
-
-  async handleHistoryAction() {
-    chrome.tabs.create({
-      url: `${API_BASE_URL}/applications`
-    });
-  }
-
-  async trackApplication() {
-    if (!this.jobData) return;
-
-    try {
-      await this.makeApiRequest('/api/extension/applications', {
-        method: 'POST',
-        body: JSON.stringify({
-          jobTitle: this.jobData.title,
-          company: this.jobData.company,
-          location: this.jobData.location,
-          jobUrl: this.currentTab.url,
-          source: 'extension',
-          status: 'applied'
-        })
-      });
-    } catch (error) {
-      console.error('Failed to track application:', error);
-    }
-  }
-
-  handleKeyboardShortcuts(e) {
-    if (e.ctrlKey || e.metaKey) {
-      switch (e.key) {
-        case '1':
-          e.preventDefault();
-          this.handleAutofill();
-          break;
-        case '2':
-          e.preventDefault();
-          this.handleAnalyze();
-          break;
-        case '3':
-          e.preventDefault();
-          this.handleSaveJob();
-          break;
-        case '4':
-          e.preventDefault();
-          this.handleGenerateCoverLetter();
-          break;
-      }
-    }
-  }
-
-  enableActionButtons() {
-    const buttons = ['autofillBtn', 'analyzeBtn', 'saveJobBtn', 'coverLetterBtn'];
-    buttons.forEach(id => {
-      const btn = document.getElementById(id);
-      if (btn) {
-        btn.disabled = false;
-        btn.style.opacity = '1';
-        btn.style.cursor = 'pointer';
-      }
-    });
-  }
-
-  disableActionButtons() {
-    const buttons = ['autofillBtn', 'analyzeBtn', 'saveJobBtn', 'coverLetterBtn'];
-    buttons.forEach(id => {
-      const btn = document.getElementById(id);
-      if (btn) {
-        btn.disabled = true;
-        btn.style.opacity = '0.5';
-        btn.style.cursor = 'not-allowed';
-      }
-    });
-  }
-
-  showLoading(show = true) {
-    const content = document.querySelector('.content');
-    const loading = document.getElementById('loading');
+  displayTasks() {
+    const taskList = document.getElementById('task-list');
+    const taskStats = document.getElementById('task-stats');
     
-    if (show) {
-      content.style.display = 'none';
-      loading.style.display = 'block';
-    } else {
-      content.style.display = 'block';
-      loading.style.display = 'none';
+    if (!this.tasks || this.tasks.length === 0) {
+      taskList.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">📝</div>
+          <div class="empty-state-text">No tasks yet</div>
+          <button class="action-btn primary" onclick="popup.createQuickTask()">Create Your First Task</button>
+        </div>
+      `;
+      taskStats.style.display = 'none';
+      return;
+    }
+
+    // Calculate stats
+    const pending = this.tasks.filter(t => t.status === 'pending' || t.status === 'in_progress').length;
+    const completed = this.tasks.filter(t => t.status === 'completed').length;
+    const overdue = this.tasks.filter(t => {
+      if (!t.dueDateTime || t.status === 'completed') return false;
+      return new Date(t.dueDateTime) < new Date();
+    }).length;
+
+    // Update stats
+    document.getElementById('pending-count').textContent = pending;
+    document.getElementById('completed-count').textContent = completed;
+    document.getElementById('overdue-count').textContent = overdue;
+    taskStats.style.display = 'grid';
+
+    // Display task list
+    taskList.innerHTML = this.tasks.map(task => this.createTaskItem(task)).join('');
+
+    // Add click listeners for task checkboxes
+    taskList.querySelectorAll('.task-checkbox').forEach((checkbox, index) => {
+      checkbox.addEventListener('click', () => {
+        this.toggleTask(this.tasks[index]);
+      });
+    });
+  }
+
+  createTaskItem(task) {
+    const isCompleted = task.status === 'completed';
+    const isOverdue = task.dueDateTime && new Date(task.dueDateTime) < new Date() && !isCompleted;
+    
+    return `
+      <div class="task-item">
+        <div class="task-checkbox ${isCompleted ? 'completed' : ''}" data-task-id="${task.id}">
+        </div>
+        <div class="task-content">
+          <div class="task-title ${isCompleted ? 'completed' : ''}">${task.title}</div>
+          <div class="task-meta">
+            <span class="task-priority ${task.priority || 'medium'}">${task.priority || 'medium'}</span>
+            ${task.dueDateTime ? `<span>${new Date(task.dueDateTime).toLocaleDateString()}</span>` : ''}
+            ${isOverdue ? '<span style="color: #dc2626;">⚠️ Overdue</span>' : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  displayTasksError(message) {
+    const taskList = document.getElementById('task-list');
+    taskList.innerHTML = `<div class="error">${message}</div>`;
+    document.getElementById('task-stats').style.display = 'none';
+  }
+
+  async toggleTask(task) {
+    if (task.status === 'completed') return;
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: 'completeTask',
+        taskId: task.id
+      });
+
+      if (response && response.success) {
+        await this.loadTasks(); // Refresh task list
+        this.showNotification('Task completed! 🎉');
+      } else {
+        this.showNotification('Failed to complete task', 'error');
+      }
+    } catch (error) {
+      console.error('Toggle task error:', error);
+      this.showNotification('Error completing task', 'error');
     }
   }
 
-  showNotification(message, type = 'success') {
-    // Remove existing notifications
-    const existing = document.querySelector('.notification');
-    if (existing) existing.remove();
+  async createQuickTask() {
+    if (!this.isAuthenticated) {
+      this.showNotification('Please sign in to create tasks', 'error');
+      return;
+    }
 
+    const title = prompt('Task title:');
+    if (!title) return;
+
+    const description = prompt('Task description (optional):') || '';
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: 'createQuickTask',
+        title,
+        description,
+        relatedUrl: ''
+      });
+
+      if (response && response.success) {
+        await this.loadTasks();
+        this.showNotification('Task created successfully!');
+      } else {
+        this.showNotification('Failed to create task', 'error');
+      }
+    } catch (error) {
+      console.error('Create task error:', error);
+      this.showNotification('Error creating task', 'error');
+    }
+  }
+
+  async createFollowUpTask() {
+    if (!this.isAuthenticated) {
+      this.showNotification('Please sign in to create tasks', 'error');
+      return;
+    }
+
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        action: 'createFollowUpTask'
+      });
+
+      if (response && response.success) {
+        await this.loadTasks();
+        this.showNotification('Follow-up task created!');
+      } else {
+        this.showNotification('Could not create follow-up task. Make sure you\'re on a job page.', 'error');
+      }
+    } catch (error) {
+      console.error('Create follow-up task error:', error);
+      this.showNotification('Error creating follow-up task', 'error');
+    }
+  }
+
+  async createTaskForCurrentPage() {
+    if (!this.isAuthenticated) {
+      this.showNotification('Please sign in to create tasks', 'error');
+      return;
+    }
+
+    const title = prompt('Task title for this page:');
+    if (!title) return;
+
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        action: 'createTaskForCurrentPage',
+        title,
+        description: `Task created for: ${tab.title}`
+      });
+
+      if (response && response.success) {
+        await this.loadTasks();
+        this.showNotification('Page task created!');
+      } else {
+        this.showNotification('Failed to create page task', 'error');
+      }
+    } catch (error) {
+      console.error('Create page task error:', error);
+      this.showNotification('Error creating page task', 'error');
+    }
+  }
+
+  async checkResumeStatus() {
+    const statusDiv = document.getElementById('resume-status');
+    statusDiv.innerHTML = '<div class="loading">Checking resume status...</div>';
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: 'getActiveResume'
+      });
+
+      if (response && response.success) {
+        statusDiv.innerHTML = `
+          <div style="color: #10b981;">
+            ✅ Active resume found
+            <div style="margin-top: 8px; font-size: 11px; color: #666;">
+              Ready for automatic upload to job applications
+            </div>
+          </div>
+        `;
+      } else {
+        statusDiv.innerHTML = `
+          <div style="color: #f59e0b;">
+            ⚠️ No active resume found
+            <div style="margin-top: 8px; font-size: 11px; color: #666;">
+              Please upload a resume in the dashboard first
+            </div>
+          </div>
+        `;
+      }
+    } catch (error) {
+      statusDiv.innerHTML = `
+        <div style="color: #dc2626;">
+          ❌ Error checking resume status
+        </div>
+      `;
+    }
+  }
+
+  async uploadResumeToForm() {
+    if (!this.isAuthenticated) {
+      this.showNotification('Please sign in to upload resume', 'error');
+      return;
+    }
+
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        action: 'uploadResumeToForm'
+      });
+
+      if (response && response.success) {
+        this.showNotification('Resume uploaded to form! 📄');
+      } else {
+        this.showNotification(response.error || 'Failed to upload resume. Make sure you\'re on a job application page.', 'error');
+      }
+    } catch (error) {
+      console.error('Upload resume error:', error);
+      this.showNotification('Error uploading resume', 'error');
+    }
+  }
+
+  async detectResumeFields() {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        action: 'detectResumeFields'
+      });
+
+      if (response && response.success) {
+        this.showNotification(`Found ${response.count} resume upload field(s)!`);
+      } else {
+        this.showNotification('No resume upload fields found on this page', 'error');
+      }
+    } catch (error) {
+      console.error('Detect resume fields error:', error);
+      this.showNotification('Error detecting resume fields', 'error');
+    }
+  }
+
+  async triggerAutofill() {
+    if (!this.isAuthenticated) {
+      this.showNotification('Please sign in to use autofill', 'error');
+      return;
+    }
+
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      await chrome.tabs.sendMessage(tab.id, {
+        action: 'startAutofill',
+        userProfile: this.userProfile
+      });
+      this.showNotification('Autofill started! 🤖');
+    } catch (error) {
+      this.showNotification('Autofill failed. Make sure you\'re on a job application page.', 'error');
+    }
+  }
+
+  showNotification(message, type = 'info') {
+    // Create temporary notification
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
+    notification.style.cssText = `
+      position: fixed;
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: ${type === 'error' ? '#fee2e2' : '#d1fae5'};
+      color: ${type === 'error' ? '#dc2626' : '#065f46'};
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      z-index: 1000;
+      animation: slideDown 0.3s ease;
+    `;
     notification.textContent = message;
-    
+
     document.body.appendChild(notification);
-    
-    // Animate in
-    setTimeout(() => notification.classList.add('show'), 100);
-    
-    // Remove after 3 seconds
+
     setTimeout(() => {
-      notification.classList.remove('show');
-      setTimeout(() => notification.remove(), 300);
+      notification.remove();
     }, 3000);
   }
 
-  showError(message) {
-    this.showNotification(`❌ ${message}`, 'error');
-  }
-
-  openDashboard() {
-    chrome.tabs.create({
-      url: `${API_BASE_URL}/applications`
-    });
+  updateUI() {
+    // UI is updated by individual methods
   }
 }
 
 // Initialize popup when DOM is loaded
+let popup;
 document.addEventListener('DOMContentLoaded', () => {
-  new AutoJobrPopup();
+  popup = new AutoJobrPopup();
 });

@@ -502,6 +502,14 @@ class AutoJobrContentScript {
         case 'detectResumeFields':
           this.detectResumeFields().then(sendResponse);
           return true;
+
+        case 'createTaskForCurrentPage':
+          this.createTaskForCurrentPage(message.title, message.description).then(sendResponse);
+          return true;
+
+        case 'createFollowUpTask':
+          this.createFollowUpTaskFromPage().then(sendResponse);
+          return true;
           
         default:
           sendResponse({ success: false, error: 'Unknown action' });
@@ -2831,6 +2839,59 @@ class AutoJobrContentScript {
             }
           }
         }, 300);
+    }
+  }
+
+  // ===== TASK MANAGEMENT FROM CONTENT SCRIPT =====
+  async createTaskForCurrentPage(title, description = '') {
+    try {
+      // Get current page context
+      const currentUrl = window.location.href;
+      const pageTitle = document.title;
+      const jobData = this.currentJobData || {};
+
+      const taskTitle = title || `Task for ${jobData.title || pageTitle}`;
+      const taskDescription = description || `Task created from ${currentUrl}`;
+
+      // Send to background script to create task
+      return new Promise((resolve) => {
+        chrome.runtime.sendMessage({
+          action: 'createQuickTask',
+          title: taskTitle,
+          description: taskDescription,
+          relatedUrl: currentUrl
+        }, resolve);
+      });
+    } catch (error) {
+      console.error('Create task for current page error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async createFollowUpTaskFromPage() {
+    try {
+      // Extract job information from current page
+      const jobData = this.currentJobData || await this.extractJobDetails();
+      
+      if (!jobData.success || !jobData.jobData) {
+        return { success: false, error: 'Unable to extract job information from current page' };
+      }
+
+      const { title, company } = jobData.jobData;
+      const currentUrl = window.location.href;
+
+      // Send to background script to create follow-up task
+      return new Promise((resolve) => {
+        chrome.runtime.sendMessage({
+          action: 'createFollowUpTask',
+          jobTitle: title,
+          company: company,
+          applicationUrl: currentUrl
+        }, resolve);
+      });
+    } catch (error) {
+      console.error('Create follow-up task error:', error);
+      return { success: false, error: error.message };
     }
   }
 

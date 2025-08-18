@@ -36,7 +36,10 @@ import {
   Bell,
   Zap,
   Flame,
-  Trophy
+  Trophy,
+  CheckSquare,
+  PlusCircle,
+  ChevronRight
 } from "lucide-react";
 
 // Helper functions
@@ -90,6 +93,60 @@ export default function Applications() {
   const { data: stats = {}, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/applications/stats"],
     retry: false,
+  });
+
+  // Fetch tasks for task management
+  const { data: tasks = [], isLoading: tasksLoading } = useQuery({
+    queryKey: ["/api/tasks"],
+    retry: false,
+  });
+
+  // Task creation mutation
+  const createTaskMutation = useMutation({
+    mutationFn: async (taskData: any) => {
+      return apiRequest('/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify(taskData)
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      toast({
+        title: "Task Created",
+        description: "Task added successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create task",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Complete task mutation
+  const completeTaskMutation = useMutation({
+    mutationFn: async (taskId: number) => {
+      return apiRequest(`/api/tasks/${taskId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'completed' })
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      toast({
+        title: "Task Completed",
+        description: "Great job! Task marked as completed",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to complete task",
+        variant: "destructive",
+      });
+    },
   });
 
   // Filter applications based on search and filters
@@ -311,6 +368,95 @@ export default function Applications() {
                   <Users className="h-4 w-4 mr-2" />
                   Practice Interview
                 </Button>
+              </CardContent>
+            </Card>
+
+            {/* Task Management Card */}
+            <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-emerald-200 dark:border-emerald-800">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <CheckSquare className="h-5 w-5 text-emerald-600" />
+                  Task Manager
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Task Stats */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg">
+                    <p className="text-2xl font-bold text-emerald-600">
+                      {Array.isArray(tasks) ? tasks.filter((task: any) => task.status === 'pending').length : 0}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Pending</p>
+                  </div>
+                  <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg">
+                    <p className="text-2xl font-bold text-green-600">
+                      {Array.isArray(tasks) ? tasks.filter((task: any) => task.status === 'completed').length : 0}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Done</p>
+                  </div>
+                </div>
+
+                {/* Recent Tasks */}
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {Array.isArray(tasks) && tasks.slice(0, 3).map((task: any) => (
+                    <div key={task.id} className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{task.title}</p>
+                        <p className="text-xs text-gray-500">
+                          {task.dueDateTime ? new Date(task.dueDateTime).toLocaleDateString() : 'No due date'}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant={task.status === 'completed' ? 'secondary' : 'outline'}
+                        className="h-6 w-6 p-0"
+                        onClick={() => task.status !== 'completed' && completeTaskMutation.mutate(task.id)}
+                        disabled={task.status === 'completed' || completeTaskMutation.isPending}
+                      >
+                        <CheckCircle className={`h-3 w-3 ${task.status === 'completed' ? 'text-green-600' : ''}`} />
+                      </Button>
+                    </div>
+                  ))}
+                  
+                  {(!Array.isArray(tasks) || tasks.length === 0) && (
+                    <div className="text-center py-4 text-gray-500">
+                      <CheckSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No tasks yet</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick Task Actions */}
+                <div className="space-y-2">
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-8 text-xs"
+                    onClick={() => {
+                      const title = prompt('Task title:');
+                      if (title) {
+                        createTaskMutation.mutate({
+                          title,
+                          description: '',
+                          taskType: 'reminder',
+                          priority: 'medium',
+                          status: 'pending',
+                          dueDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                        });
+                      }
+                    }}
+                  >
+                    <PlusCircle className="h-3 w-3 mr-1" />
+                    Quick Task
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-8 text-xs"
+                    onClick={() => window.location.href = '/task-management'}
+                  >
+                    <ChevronRight className="h-3 w-3 mr-1" />
+                    Full Manager
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>

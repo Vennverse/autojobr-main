@@ -312,6 +312,26 @@ class AutoJobrBackground {
           sendResponse(remindersResult);
           break;
 
+        case 'createQuickTask':
+          const quickTaskResult = await this.createQuickTask(message.title, message.description, message.relatedUrl);
+          sendResponse(quickTaskResult);
+          break;
+
+        case 'getUserTasks':
+          const userTasksResult = await this.getUserTasks();
+          sendResponse(userTasksResult);
+          break;
+
+        case 'completeTask':
+          const completeResult = await this.completeTask(message.taskId);
+          sendResponse(completeResult);
+          break;
+
+        case 'createFollowUpTask':
+          const followUpResult = await this.createApplicationFollowUpTask(message.jobTitle, message.company, message.applicationUrl);
+          sendResponse(followUpResult);
+          break;
+
         default:
           sendResponse({ success: false, error: 'Unknown action' });
       }
@@ -1082,6 +1102,118 @@ class AutoJobrBackground {
       });
     } catch (error) {
       console.error('Error snoozing reminder:', error);
+    }
+  }
+
+  // ===== ENHANCED CHROME EXTENSION TASK MANAGEMENT =====
+  async createQuickTask(title, description = '', relatedUrl = '') {
+    try {
+      const taskData = {
+        title,
+        description,
+        taskType: 'reminder',
+        priority: 'medium',
+        status: 'pending',
+        relatedUrl: relatedUrl || window.location?.href,
+        dueDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Due tomorrow
+      };
+
+      const response = await this.makeAuthenticatedRequest('/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify(taskData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return { success: true, task: result.task };
+      } else {
+        const error = await response.json();
+        return { success: false, error: error.error || 'Failed to create task' };
+      }
+    } catch (error) {
+      console.error('Create quick task error:', error);
+      return { success: false, error: 'Network error during task creation' };
+    }
+  }
+
+  // Get user's pending tasks for extension popup
+  async getUserTasks() {
+    try {
+      const response = await this.makeAuthenticatedRequest('/api/tasks', {
+        method: 'GET'
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return { success: true, tasks: result || [] };
+      } else {
+        return { success: false, error: 'Failed to get tasks' };
+      }
+    } catch (error) {
+      console.error('Get user tasks error:', error);
+      return { success: false, error: 'Network error getting tasks' };
+    }
+  }
+
+  // Create a quick task from extension popup
+  async createQuickTask(title, description = '', relatedUrl = '') {
+    try {
+      const taskData = {
+        title,
+        description,
+        taskType: 'general',
+        priority: 'medium',
+        status: 'pending',
+        relatedUrl
+      };
+
+      return await this.createTask(taskData);
+    } catch (error) {
+      console.error('Create quick task error:', error);
+      return { success: false, error: 'Failed to create quick task' };
+    }
+  }
+
+  // Complete a task by ID
+  async completeTask(taskId) {
+    try {
+      const response = await this.makeAuthenticatedRequest(`/api/tasks/${taskId}/complete`, {
+        method: 'PATCH'
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return { success: true, task: result.task };
+      } else {
+        const error = await response.json();
+        return { success: false, error: error.error || 'Failed to complete task' };
+      }
+    } catch (error) {
+      console.error('Complete task error:', error);
+      return { success: false, error: 'Network error completing task' };
+    }
+  }
+
+  // Create application follow-up task automatically
+  async createApplicationFollowUpTask(jobTitle, company, applicationUrl) {
+    try {
+      const followUpDate = new Date();
+      followUpDate.setDate(followUpDate.getDate() + 7); // Follow up in 7 days
+
+      const taskData = {
+        title: `Follow up: ${jobTitle} at ${company}`,
+        description: `Follow up on job application for ${jobTitle} position at ${company}`,
+        taskType: 'followup',
+        priority: 'medium',
+        status: 'pending',
+        relatedUrl: applicationUrl,
+        dueDateTime: followUpDate.toISOString()
+      };
+
+      return await this.createTask(taskData);
+    } catch (error) {
+      console.error('Create follow-up task error:', error);
+      return { success: false, error: 'Failed to create follow-up task' };
     }
   }
 }
