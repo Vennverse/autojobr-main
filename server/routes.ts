@@ -4112,6 +4112,90 @@ Additional Information:
 
 
 
+  // PayPal Subscription Verification Route
+  app.post('/api/paypal/verify-subscription', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { subscriptionId, planId, planType } = req.body;
+      
+      if (!subscriptionId || !planId || !planType) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Missing required fields: subscriptionId, planId, planType' 
+        });
+      }
+
+      // Update user with premium access based on plan type
+      let userPlanType = 'premium';
+      let subscriptionAmount = '5.00';
+      
+      if (planType === 'ultra_premium') {
+        userPlanType = 'ultra_premium';
+        subscriptionAmount = '15.00';
+      }
+
+      // Update user plan in database
+      await db.update(schema.users)
+        .set({
+          planType: userPlanType,
+          subscriptionStatus: 'active',
+          subscriptionEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          updatedAt: new Date()
+        })
+        .where(eq(schema.users.id, userId));
+
+      // Store subscription record
+      try {
+        await db.insert(schema.subscriptions).values({
+          userId,
+          tier: planType,
+          tierId: planId,
+          paypalSubscriptionId: subscriptionId,
+          status: 'active',
+          paymentMethod: 'paypal',
+          amount: subscriptionAmount,
+          currency: 'USD',
+          billingCycle: 'monthly',
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          createdAt: new Date()
+        });
+      } catch (insertError) {
+        // If subscription already exists, update it
+        await db.update(schema.subscriptions)
+          .set({
+            status: 'active',
+            paypalSubscriptionId: subscriptionId,
+            tier: planType,
+            tierId: planId,
+            amount: subscriptionAmount,
+            startDate: new Date(),
+            endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            updatedAt: new Date()
+          })
+          .where(eq(schema.subscriptions.userId, userId));
+      }
+
+      console.log(`✅ Premium access granted to user ${userId} - Plan: ${planType}, Subscription: ${subscriptionId}`);
+      
+      res.json({ 
+        success: true, 
+        message: 'Premium access activated successfully',
+        planType: userPlanType,
+        subscriptionId
+      });
+      
+    } catch (error) {
+      console.error("Error verifying PayPal subscription:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Failed to verify subscription" 
+      });
+    }
+  });
+
   // Subscription Management Routes (PayPal Integration for India support)
   app.get('/api/subscription/status', isAuthenticated, async (req: any, res) => {
     try {
