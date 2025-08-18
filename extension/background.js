@@ -107,6 +107,11 @@ class AutoJobrBackground {
     setInterval(() => {
       this.syncUserData();
     }, 10 * 60 * 1000);
+
+    // Check for task reminders every 2 minutes
+    setInterval(() => {
+      this.checkTaskReminders();
+    }, 2 * 60 * 1000);
   }
 
   async handleInstall() {
@@ -285,6 +290,26 @@ class AutoJobrBackground {
         case 'openPopup':
           await this.openExtensionPopup();
           sendResponse({ success: true });
+          break;
+
+        case 'uploadResume':
+          const uploadResult = await this.uploadResume(message.file, message.fileName);
+          sendResponse(uploadResult);
+          break;
+
+        case 'getActiveResume':
+          const resumeResult = await this.getActiveResume();
+          sendResponse(resumeResult);
+          break;
+
+        case 'createTask':
+          const taskResult = await this.createTask(message.data);
+          sendResponse(taskResult);
+          break;
+
+        case 'getTaskReminders':
+          const remindersResult = await this.getTaskReminders();
+          sendResponse(remindersResult);
           break;
 
         default:
@@ -885,6 +910,178 @@ class AutoJobrBackground {
       } catch (fallbackError) {
         console.error('Fallback popup open failed:', fallbackError);
       }
+    }
+  }
+
+  // ===== RESUME UPLOAD AND MANAGEMENT =====
+  async uploadResume(fileBlob, fileName) {
+    try {
+      const formData = new FormData();
+      formData.append('resume', fileBlob, fileName);
+      formData.append('makeActive', 'true');
+
+      const response = await this.makeAuthenticatedRequest('/api/resumes/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return { success: true, resume: result.resume };
+      } else {
+        const error = await response.json();
+        return { success: false, error: error.error || 'Resume upload failed' };
+      }
+    } catch (error) {
+      console.error('Resume upload error:', error);
+      return { success: false, error: 'Network error during resume upload' };
+    }
+  }
+
+  async getActiveResume() {
+    try {
+      const response = await this.makeAuthenticatedRequest('/api/resumes/active', {
+        method: 'GET'
+      });
+
+      if (response.ok) {
+        const resumeBlob = await response.blob();
+        return { success: true, resumeBlob };
+      } else {
+        return { success: false, error: 'No active resume found' };
+      }
+    } catch (error) {
+      console.error('Get active resume error:', error);
+      return { success: false, error: 'Failed to get active resume' };
+    }
+  }
+
+  // ===== TASK MANAGEMENT =====
+  async createTask(taskData) {
+    try {
+      const response = await this.makeAuthenticatedRequest('/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify(taskData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return { success: true, task: result.task };
+      } else {
+        const error = await response.json();
+        return { success: false, error: error.error || 'Failed to create task' };
+      }
+    } catch (error) {
+      console.error('Create task error:', error);
+      return { success: false, error: 'Network error during task creation' };
+    }
+  }
+
+  async getTaskReminders() {
+    try {
+      const response = await this.makeAuthenticatedRequest('/api/reminders/pending', {
+        method: 'GET'
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return { success: true, reminders: result.reminders };
+      } else {
+        return { success: false, error: 'Failed to get reminders' };
+      }
+    } catch (error) {
+      console.error('Get task reminders error:', error);
+      return { success: false, error: 'Network error getting reminders' };
+    }
+  }
+
+  // Check for task reminders and show notifications
+  async checkTaskReminders() {
+    try {
+      const response = await this.makeAuthenticatedRequest('/api/reminders/pending', {
+        method: 'GET'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const reminders = data.reminders || [];
+
+        // Show notifications for pending reminders
+        for (const reminder of reminders) {
+          this.showTaskNotification(reminder);
+        }
+      }
+    } catch (error) {
+      // Silently handle authentication errors - user may not be logged in
+      if (!error.message?.includes('401') && !error.message?.includes('403')) {
+        console.error('Error checking task reminders:', error);
+      }
+    }
+  }
+
+  // Show task notification
+  async showTaskNotification(reminder) {
+    const notificationId = `task_${reminder.reminderId}`;
+    
+    const options = {
+      type: 'basic',
+      iconUrl: 'icons/icon48.png',
+      title: `AutoJobr Task Reminder`,
+      message: `${reminder.taskTitle}${reminder.taskDescription ? '\n' + reminder.taskDescription : ''}`,
+      priority: reminder.taskPriority === 'high' ? 2 : 1,
+      buttons: [
+        { title: 'Complete Task' },
+        { title: 'Snooze 15min' }
+      ]
+    };
+
+    // Create notification
+    chrome.notifications.create(notificationId, options);
+
+    // Handle notification clicks
+    chrome.notifications.onButtonClicked.addListener((id, buttonIndex) => {
+      if (id === notificationId) {
+        if (buttonIndex === 0) {
+          // Complete task
+          this.completeTask(reminder.taskId);
+        } else if (buttonIndex === 1) {
+          // Snooze reminder
+          this.snoozeReminder(reminder.reminderId);
+        }
+        chrome.notifications.clear(id);
+      }
+    });
+
+    // Handle notification click (open related URL if available)
+    chrome.notifications.onClicked.addListener((id) => {
+      if (id === notificationId && reminder.relatedUrl) {
+        chrome.tabs.create({ url: reminder.relatedUrl });
+        chrome.notifications.clear(id);
+      }
+    });
+  }
+
+  // Complete a task
+  async completeTask(taskId) {
+    try {
+      await this.makeAuthenticatedRequest(`/api/tasks/${taskId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'completed' })
+      });
+    } catch (error) {
+      console.error('Error completing task:', error);
+    }
+  }
+
+  // Snooze a reminder
+  async snoozeReminder(reminderId) {
+    try {
+      await this.makeAuthenticatedRequest(`/api/reminders/${reminderId}/snooze`, {
+        method: 'PATCH',
+        body: JSON.stringify({ snoozeMinutes: 15 })
+      });
+    } catch (error) {
+      console.error('Error snoozing reminder:', error);
     }
   }
 }

@@ -267,29 +267,105 @@ export const jobRecommendations = pgTable("job_recommendations", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Task management for recruiters
+// Enhanced Task management for all users (job seekers and recruiters)
 export const tasks = pgTable("tasks", {
   id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(), // Task owner
   title: varchar("title").notNull(),
   description: text("description"),
   status: varchar("status").notNull().default("pending"), // pending, in_progress, completed, overdue, cancelled
-  taskType: varchar("task_type").notNull(), // interview, meeting, followup, reminder, document_review, background_check
+  taskType: varchar("task_type").notNull(), // interview, meeting, followup, reminder, document_review, background_check, application_deadline, skill_practice
   priority: varchar("priority").notNull().default("medium"), // low, medium, high, urgent
+  category: varchar("category").default("general"), // job_application, interview, networking, skill_development, career_planning
+  
+  // Reminder and scheduling
+  dueDateTime: timestamp("due_date_time"),
+  reminderDateTime: timestamp("reminder_date_time"), // When to show reminder popup
+  reminderEnabled: boolean("reminder_enabled").default(true),
+  reminderShown: boolean("reminder_shown").default(false), // Whether reminder popup was already shown
+  recurrence: varchar("recurrence"), // none, daily, weekly, monthly for recurring tasks
+  
+  // Related entities
   relatedTo: varchar("related_to"), // what the task is related to (candidate name, job title, etc.)
   relatedId: integer("related_id"), // ID of related entity (job posting, application, etc.)
-  ownerId: varchar("owner_id").references(() => users.id).notNull(),
-  owner: varchar("owner").notNull(), // owner name for display
-  assignedById: varchar("assigned_by_id").references(() => users.id).notNull(),
-  assignedBy: varchar("assigned_by").notNull(), // assigned by name for display
-  dueDateTime: timestamp("due_date_time").notNull(),
+  relatedUrl: varchar("related_url"), // Job posting URL, LinkedIn profile, etc.
+  
+  // Additional metadata
+  tags: text("tags").array(), // Custom user tags for organization
+  notes: text("notes"), // Private notes
+  completedAt: timestamp("completed_at"),
+  
+  // For recruiter tasks
   candidateName: varchar("candidate_name"),
   candidateEmail: varchar("candidate_email"),
-  jobTitle: varchar("job_title"),
   meetingLink: varchar("meeting_link"), // Zoom, Teams, etc.
   calendlyLink: varchar("calendly_link"), // Calendly scheduling link
   emailSent: boolean("email_sent").default(false), // whether invitation email was sent
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User resume storage with cloud sync capabilities  
+export const userResumes = pgTable("user_resumes", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Resume metadata
+  name: varchar("name").notNull(), // User-given name like "Software Engineer Resume"
+  fileName: varchar("file_name").notNull(), // Original file name
+  fileSize: integer("file_size"), // File size in bytes
+  mimeType: varchar("mime_type"), // application/pdf, application/msword, etc.
+  
+  // Storage options
+  fileData: text("file_data"), // Base64 encoded file data for database storage
+  filePath: varchar("file_path"), // Local/cloud file system path
+  cloudUrl: varchar("cloud_url"), // Cloud storage URL (S3, CloudFlare, etc.)
+  storageMethod: varchar("storage_method").default("database"), // database, filesystem, cloud
+  
+  // Resume content and analysis
+  resumeText: text("resume_text"), // Extracted text content for analysis
+  isActive: boolean("is_active").default(false), // Which resume to use for applications
+  isDefault: boolean("is_default").default(false), // Default resume for extension auto-upload
+  
+  // AI Analysis and optimization
+  atsScore: integer("ats_score"), // 0-100 ATS compatibility score
+  analysisData: jsonb("analysis_data"), // Full AI analysis results
+  recommendations: text("recommendations").array(), // ATS improvement suggestions
+  keySkills: text("key_skills").array(), // Extracted skills from resume
+  experience: jsonb("experience"), // Structured work experience data
+  education: jsonb("education"), // Structured education data
+  
+  // Usage tracking
+  timesUsed: integer("times_used").default(0), // How many times applied with this resume
+  lastUsed: timestamp("last_used"), // When this resume was last used for an application
+  lastAnalyzed: timestamp("last_analyzed"), // When this resume was last analyzed by AI
+  
+  // Version control
+  version: integer("version").default(1), // Resume version for change tracking
+  previousVersionId: integer("previous_version_id"), // Link to previous version
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Task reminders for Chrome extension popup notifications
+export const taskReminders = pgTable("task_reminders", {
+  id: serial("id").primaryKey(),
+  taskId: integer("task_id").references(() => tasks.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Reminder timing
+  triggerDateTime: timestamp("trigger_date_time").notNull(),
+  reminderType: varchar("reminder_type").default("popup"), // popup, notification, email
+  
+  // Reminder status
+  isTriggered: boolean("is_triggered").default(false),
+  triggeredAt: timestamp("triggered_at"),
+  userResponse: varchar("user_response"), // dismissed, snoozed, completed
+  snoozeUntil: timestamp("snooze_until"), // If user snoozed the reminder
+  
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // AI Job Analysis - stores detailed AI analysis of job postings
@@ -2154,3 +2230,29 @@ export const premiumTargetingJobs = pgTable("premium_targeting_jobs", {
 
 // Create aliases for missing exports to fix import errors
 export const educations = education;
+
+// Task management insert schemas
+export const insertTaskSchema = createInsertSchema(tasks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertUserResumeSchema = createInsertSchema(userResumes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTaskReminderSchema = createInsertSchema(taskReminders).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Task management types
+export type Task = typeof tasks.$inferSelect;
+export type InsertTask = z.infer<typeof insertTaskSchema>;
+export type UserResume = typeof userResumes.$inferSelect;
+export type InsertUserResume = z.infer<typeof insertUserResumeSchema>;
+export type TaskReminder = typeof taskReminders.$inferSelect;
+export type InsertTaskReminder = z.infer<typeof insertTaskReminderSchema>;

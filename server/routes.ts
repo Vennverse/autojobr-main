@@ -64,6 +64,8 @@ import { subscriptionEnforcementService } from "./subscriptionEnforcementService
 import { ResumeParser } from "./resumeParser.js";
 import virtualInterviewRoutes from "./virtualInterviewRoutes.js";
 import chatInterviewRoutes from "./chatInterviewRoutes.js";
+import { ResumeService, resumeUploadMiddleware } from "./resumeService.js";
+import { TaskService } from "./taskService.js";
 
 // Initialize services
 const resumeParser = new ResumeParser();
@@ -11326,6 +11328,48 @@ Report types supported:
       res.status(500).json({ message: 'Failed to schedule interview' });
     }
   });
+
+  // ===== RESUME MANAGEMENT API ROUTES =====
+  // Resume upload - supports web app and Chrome extension
+  app.post('/api/resumes/upload', isAuthenticated, resumeUploadMiddleware, ResumeService.uploadResume);
+  
+  // Get user's resumes
+  app.get('/api/resumes', isAuthenticated, ResumeService.getUserResumes);
+  
+  // Get active/default resume for extension auto-upload
+  app.get('/api/resumes/active', isAuthenticated, ResumeService.getActiveResume);
+  
+  // Set default resume for extension
+  app.patch('/api/resumes/:resumeId/default', isAuthenticated, ResumeService.setDefaultResume);
+  
+  // Delete a resume
+  app.delete('/api/resumes/:resumeId', isAuthenticated, ResumeService.deleteResume);
+
+  // ===== TASK MANAGEMENT API ROUTES =====
+  // Create new task
+  app.post('/api/tasks', isAuthenticated, TaskService.createTask);
+  
+  // Get user's tasks (with filtering)
+  app.get('/api/tasks', isAuthenticated, TaskService.getUserTasks);
+  
+  // Update task status
+  app.patch('/api/tasks/:taskId/status', isAuthenticated, TaskService.updateTaskStatus);
+  
+  // Delete task
+  app.delete('/api/tasks/:taskId', isAuthenticated, TaskService.deleteTask);
+  
+  // Get task statistics/analytics
+  app.get('/api/tasks/stats', isAuthenticated, TaskService.getTaskStats);
+
+  // ===== REMINDER SYSTEM API ROUTES (for Chrome Extension) =====
+  // Get pending reminders for extension popup
+  app.get('/api/reminders/pending', isAuthenticated, TaskService.getPendingReminders);
+  
+  // Snooze a reminder
+  app.patch('/api/reminders/:reminderId/snooze', isAuthenticated, TaskService.snoozeReminder);
+  
+  // Dismiss a reminder
+  app.patch('/api/reminders/:reminderId/dismiss', isAuthenticated, TaskService.dismissReminder);
 
   // Create HTTP server for WebSocket integration
   const httpServer = createServer(app);

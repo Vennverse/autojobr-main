@@ -494,6 +494,14 @@ class AutoJobrContentScript {
         case 'saveCurrentJob':
           this.saveCurrentJob().then(sendResponse);
           return true;
+
+        case 'uploadResumeToForm':
+          this.uploadResumeToForm().then(sendResponse);
+          return true;
+
+        case 'detectResumeFields':
+          this.detectResumeFields().then(sendResponse);
+          return true;
           
         default:
           sendResponse({ success: false, error: 'Unknown action' });
@@ -2634,6 +2642,196 @@ class AutoJobrContentScript {
         resolve(response?.apiUrl || 'https://autojobr.com');
       });
     });
+  }
+
+  // ===== RESUME UPLOAD FUNCTIONALITY =====
+  async detectResumeFields() {
+    try {
+      const resumeFields = [];
+      
+      // Common selectors for resume upload fields
+      const resumeSelectors = [
+        'input[type="file"][name*="resume"]',
+        'input[type="file"][name*="cv"]',
+        'input[type="file"][id*="resume"]',
+        'input[type="file"][id*="cv"]',
+        'input[type="file"][accept*=".pdf"]',
+        'input[type="file"][accept*=".doc"]',
+        'input[type="file"][accept*="application"]',
+        '[data-testid*="resume"]',
+        '[data-testid*="cv"]',
+        '.resume-upload',
+        '.cv-upload',
+        '.file-upload-resume'
+      ];
+
+      // Site-specific selectors
+      const siteSpecificSelectors = {
+        linkedin: [
+          'input[type="file"][data-test-file-input-file-uploader]',
+          '.file-input',
+          '[data-field="resume"]'
+        ],
+        indeed: [
+          'input[type="file"][name="resume"]',
+          '.ia-BaseForms-FileInput-file',
+          '#resume'
+        ],
+        greenhouse: [
+          'input[type="file"][data-source="resume"]',
+          '.file-input',
+          '[name*="attachment"]'
+        ],
+        workday: [
+          'input[type="file"]',
+          '.css-file-upload',
+          '[data-automation-id*="file"]'
+        ]
+      };
+
+      // Add site-specific selectors
+      if (siteSpecificSelectors[this.currentSite]) {
+        resumeSelectors.push(...siteSpecificSelectors[this.currentSite]);
+      }
+
+      // Find all potential resume fields
+      for (const selector of resumeSelectors) {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(element => {
+          if (element.offsetParent !== null) { // Only visible elements
+            resumeFields.push({
+              element: element,
+              selector: selector,
+              id: element.id,
+              name: element.name,
+              accept: element.accept,
+              required: element.required,
+              multiple: element.multiple
+            });
+          }
+        });
+      }
+
+      // Remove duplicates
+      const uniqueFields = resumeFields.filter((field, index, array) => 
+        array.findIndex(f => f.element === field.element) === index
+      );
+
+      return {
+        success: true,
+        fields: uniqueFields.map(field => ({
+          id: field.id,
+          name: field.name,
+          selector: field.selector,
+          accept: field.accept,
+          required: field.required,
+          multiple: field.multiple
+        })),
+        count: uniqueFields.length
+      };
+    } catch (error) {
+      console.error('Error detecting resume fields:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async uploadResumeToForm() {
+    try {
+      // First detect resume fields
+      const detectionResult = await this.detectResumeFields();
+      if (!detectionResult.success || detectionResult.count === 0) {
+        return { success: false, error: 'No resume upload fields found on this page' };
+      }
+
+      // Get active resume from background script
+      const resumeResult = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ action: 'getActiveResume' }, resolve);
+      });
+
+      if (!resumeResult.success) {
+        return { success: false, error: 'No active resume found. Please upload a resume first.' };
+      }
+
+      // Convert blob to file
+      const resumeFile = new File([resumeResult.resumeBlob], 'resume.pdf', {
+        type: 'application/pdf'
+      });
+
+      // Upload to the first available resume field
+      const resumeField = document.querySelector(detectionResult.fields[0].selector);
+      if (!resumeField) {
+        return { success: false, error: 'Resume field not found' };
+      }
+
+      // Create DataTransfer for file upload
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(resumeFile);
+
+      // Set files to the input
+      resumeField.files = dataTransfer.files;
+
+      // Trigger change events
+      resumeField.dispatchEvent(new Event('change', { bubbles: true }));
+      resumeField.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // Site-specific upload handling
+      await this.handleSiteSpecificUpload(resumeField, resumeFile);
+
+      return { 
+        success: true, 
+        message: 'Resume uploaded successfully',
+        fieldCount: detectionResult.count
+      };
+    } catch (error) {
+      console.error('Resume upload error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async handleSiteSpecificUpload(field, file) {
+    // Handle specific site upload behaviors
+    switch (this.currentSite) {
+      case 'linkedin':
+        // LinkedIn may have custom upload handlers
+        setTimeout(() => {
+          const uploadBtn = document.querySelector('[data-test-file-input-upload-btn]');
+          if (uploadBtn) uploadBtn.click();
+        }, 100);
+        break;
+        
+      case 'greenhouse':
+        // Greenhouse often requires additional form submission
+        setTimeout(() => {
+          const continueBtn = document.querySelector('.btn-primary, .continue-btn');
+          if (continueBtn && continueBtn.textContent.includes('Continue')) {
+            continueBtn.click();
+          }
+        }, 500);
+        break;
+        
+      case 'workday':
+        // Workday has specific upload flow
+        setTimeout(() => {
+          const uploadBtn = document.querySelector('[data-automation-id*="upload"]');
+          if (uploadBtn) uploadBtn.click();
+        }, 200);
+        break;
+        
+      default:
+        // Generic handling - look for submit or continue buttons
+        setTimeout(() => {
+          const submitBtns = document.querySelectorAll('button, input[type="submit"]');
+          for (const btn of submitBtns) {
+            const text = btn.textContent || btn.value || '';
+            if (text.toLowerCase().includes('upload') || 
+                text.toLowerCase().includes('continue') ||
+                text.toLowerCase().includes('next')) {
+              btn.click();
+              break;
+            }
+          }
+        }, 300);
+    }
   }
 
   // Cleanup method
