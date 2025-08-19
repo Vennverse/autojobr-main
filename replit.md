@@ -4,7 +4,8 @@
 AutoJobR is a comprehensive full-stack JavaScript application designed to streamline job applications using AI technology. Its main purpose is to assist both job seekers and recruiters with automated job matching, AI-powered interviews, resume analysis, and premium subscription services. The project aims to become a leading platform for AI-driven career management, offering significant market potential by automating and optimizing the job search and recruitment processes.
 
 ## User Preferences
-*To be updated based on user interactions and preferences*
+- **PayPal Integration**: Prefers using PayPal hosted buttons for one-time payments instead of custom payment implementations
+- **Payment Types**: Focused on specific payment scenarios: mock_interview, virtual_interview, ranking_test, and test_retake functionality
 
 ## System Architecture
 The application is built on a full-stack JavaScript architecture.
@@ -28,6 +29,6 @@ The application is built on a full-stack JavaScript architecture.
 - **System Design Choices**: The project maintains a secure client/server separation. Database schema uses Drizzle ORM with automatic type generation. The application is designed to work with multiple AI providers and allows for graceful fallbacks.
 
 ## External Dependencies
-- **Payment Processing**: Stripe and PayPal integration for subscriptions and one-time payments.
+- **Payment Processing**: Stripe and PayPal integration for subscriptions and one-time payments. Features PayPal hosted buttons for specific services (mock interviews, virtual interviews, ranking tests, test retakes) with secure payment processing and immediate access provisioning.
 - **AI Services**: Groq, OpenAI, and custom NLP services are integrated for AI functionalities.
 - **Authentication**: Google OAuth is used for user authentication.

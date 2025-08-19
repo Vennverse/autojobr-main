@@ -20,6 +20,7 @@ import {
   Target,
   Brain
 } from "lucide-react";
+import PayPalHostedButton from "@/components/PayPalHostedButton";
 
 export default function TestRetakePayment() {
   const params = useParams<{ id: string }>();
@@ -43,7 +44,7 @@ export default function TestRetakePayment() {
       // For demo purposes, we'll simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
       
-      return await apiRequest(`/api/test-assignments/${params.id}/retake/payment`, "POST", {
+      return await apiRequest(`/api/test-assignments/${params?.id}/retake/payment`, "POST", {
         paymentProvider: paymentMethod,
         paymentIntentId: `${paymentMethod}_${Date.now()}`, // Mock payment ID
         ...paymentData
@@ -57,11 +58,11 @@ export default function TestRetakePayment() {
       
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/jobseeker/test-assignments"] });
-      queryClient.invalidateQueries({ queryKey: [`/api/test-assignments/${params.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/test-assignments/${params?.id}`] });
       
       // Redirect to test page
       setTimeout(() => {
-        setLocation(`/test/${params.id}`);
+        setLocation(`/test/${params?.id}`);
       }, 1500);
     },
     onError: (error: any) => {
@@ -85,7 +86,7 @@ export default function TestRetakePayment() {
       const paymentData = {
         amount: 500, // $5 in cents
         currency: 'USD',
-        testAssignmentId: assignment.id,
+        testAssignmentId: (assignment as any)?.id,
       };
 
       await processPaymentMutation.mutateAsync(paymentData);
@@ -96,8 +97,8 @@ export default function TestRetakePayment() {
   };
 
   // Calculate passing score and gap
-  const passingScore = assignment?.testTemplate?.passingScore || 75;
-  const currentScore = assignment?.score || 0;
+  const passingScore = (assignment as any)?.testTemplate?.passingScore || 75;
+  const currentScore = (assignment as any)?.score || 0;
   const scoreGap = Math.max(0, passingScore - currentScore);
 
   if (isLoading) {
@@ -113,7 +114,7 @@ export default function TestRetakePayment() {
     );
   }
 
-  if (!assignment || assignment.status === 'passed') {
+  if (!assignment || (assignment as any)?.status === 'passed') {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Card>
@@ -134,7 +135,7 @@ export default function TestRetakePayment() {
   }
 
   // If user has already paid and retake is allowed, redirect them to test
-  if (assignment.retakeAllowed) {
+  if ((assignment as any)?.retakeAllowed) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Card>
@@ -144,7 +145,7 @@ export default function TestRetakePayment() {
             <p className="text-gray-600 mb-4">
               You've already paid for a retake. You can start the test again now.
             </p>
-            <Button onClick={() => setLocation(`/test/${params.id}`)}>
+            <Button onClick={() => setLocation(`/test/${params?.id}`)}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Start Test Retake
             </Button>
@@ -155,7 +156,7 @@ export default function TestRetakePayment() {
   }
 
   // Only show retake payment if user failed the test
-  if (assignment.score >= passingScore) {
+  if ((assignment as any)?.score >= passingScore) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Card>
@@ -163,7 +164,7 @@ export default function TestRetakePayment() {
             <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">You've Already Passed!</h3>
             <p className="text-gray-600 mb-4">
-              Your score of {assignment.score}% meets the passing requirement of {passingScore}%.
+              Your score of {(assignment as any)?.score}% meets the passing requirement of {passingScore}%.
             </p>
             <Button onClick={() => setLocation('/tests')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -209,10 +210,10 @@ export default function TestRetakePayment() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-blue-600" />
-                {assignment.testTemplate?.title || 'Skills Assessment'}
+                {(assignment as any)?.testTemplate?.title || 'Skills Assessment'}
               </CardTitle>
               <CardDescription>
-                {assignment.recruiter?.companyName || 'Test'} • {assignment.recruiter?.firstName} {assignment.recruiter?.lastName}
+                {(assignment as any)?.recruiter?.companyName || 'Test'} • {(assignment as any)?.recruiter?.firstName} {(assignment as any)?.recruiter?.lastName}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -368,24 +369,56 @@ export default function TestRetakePayment() {
                 </div>
               </div>
               
-              <Button 
-                onClick={handlePayment}
-                disabled={isProcessing}
-                className="w-full mt-6 bg-blue-600 hover:bg-blue-700"
-                size="lg"
-              >
-                {isProcessing ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                    Processing Payment...
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="w-4 h-4" />
-                    Pay $5 & Unlock Retake
-                  </div>
-                )}
-              </Button>
+              {paymentMethod === 'paypal' ? (
+                <PayPalHostedButton
+                  purpose="test_retake"
+                  amount={5}
+                  itemName={`${(assignment as any)?.testTemplate?.title || 'Skills Assessment'} - Retake`}
+                  onPaymentSuccess={(data) => {
+                    toast({
+                      title: "Payment Successful!",
+                      description: "Your retake is now available. You can start the test again.",
+                    });
+                    
+                    // Invalidate queries to refresh data
+                    queryClient.invalidateQueries({ queryKey: ["/api/jobseeker/test-assignments"] });
+                    queryClient.invalidateQueries({ queryKey: [`/api/test-assignments/${params?.id}`] });
+                    
+                    // Redirect to test page
+                    setTimeout(() => {
+                      setLocation(`/test/${params?.id}`);
+                    }, 1500);
+                  }}
+                  onPaymentError={(error) => {
+                    toast({
+                      title: "Payment Failed",
+                      description: error.message || "There was an error processing your payment. Please try again.",
+                      variant: "destructive",
+                    });
+                  }}
+                  description="Complete payment to unlock your test retake"
+                  disabled={isProcessing}
+                />
+              ) : (
+                <Button 
+                  onClick={handlePayment}
+                  disabled={isProcessing}
+                  className="w-full mt-6 bg-orange-600 hover:bg-orange-700"
+                  size="lg"
+                >
+                  {isProcessing ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                      Processing Payment...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="w-4 h-4" />
+                      Pay with Amazon Pay
+                    </div>
+                  )}
+                </Button>
+              )}
               
               <p className="text-xs text-gray-500 text-center mt-3">
                 Secure payment processing. Money-back guarantee if technical issues occur.

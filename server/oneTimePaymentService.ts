@@ -71,13 +71,12 @@ export class OneTimePaymentService {
         userId: request.userId,
         serviceType: request.serviceType,
         serviceId: request.serviceId,
-        amount: request.amount,
+        amount: request.amount.toString(),
         currency: request.currency,
         paymentProvider: 'paypal',
         paymentId: orderData.id,
         status: 'pending',
-        description: request.description,
-        createdAt: new Date()
+        description: request.description
       });
 
       const approvalUrl = orderData.links.find((link: any) => link.rel === 'approve')?.href;
@@ -101,13 +100,12 @@ export class OneTimePaymentService {
       userId: request.userId,
       serviceType: request.serviceType,
       serviceId: request.serviceId,
-      amount: request.amount,
+      amount: request.amount.toString(),
       currency: request.currency,
       paymentProvider: 'amazon_pay',
       paymentId: orderId,
       status: 'pending',
-      description: request.description,
-      createdAt: new Date()
+      description: request.description
     });
 
     return {

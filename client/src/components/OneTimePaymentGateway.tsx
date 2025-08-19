@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, Wallet, DollarSign, CheckCircle, AlertCircle, Clock } from "lucide-react";
-import PayPalButton from "./PayPalButton";
+import PayPalHostedButton from "./PayPalHostedButton";
 
 interface OneTimePaymentProps {
   amount: number;
@@ -182,21 +182,15 @@ export default function OneTimePaymentGateway({
       <Card>
         <CardContent className="pt-6">
           {selectedGateway === 'paypal' ? (
-            <div className="space-y-4">
-              <div className="text-center">
-                <h3 className="font-semibold">Complete One-Time Payment with PayPal</h3>
-                <p className="text-sm text-muted-foreground">
-                  Click the button below to proceed with secure PayPal payment
-                </p>
-              </div>
-              <div className="flex justify-center">
-                <PayPalButton
-                  amount={amount.toString()}
-                  currency={currency.toUpperCase()}
-                  intent="CAPTURE"
-                />
-              </div>
-            </div>
+            <PayPalHostedButton
+              purpose={purpose as 'mock_interview' | 'virtual_interview' | 'ranking_test' | 'test_retake'}
+              amount={amount}
+              itemName={itemName}
+              onPaymentSuccess={onPaymentSuccess}
+              onPaymentError={onPaymentError}
+              description="Complete your secure one-time payment with PayPal"
+              disabled={disabled}
+            />
           ) : selectedGateway === 'cashfree' ? (
             <div className="text-center space-y-4">
               <div className="text-orange-600">
