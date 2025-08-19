@@ -1,184 +1,150 @@
-import { Express } from 'express';
-import { subscriptionService } from './subscriptionService';
-import { isAuthenticated } from './auth';
-import Stripe from 'stripe';
+import { Router } from 'express';
+import { paymentVerificationService } from './paymentVerificationService';
 
-// Initialize Stripe only if API key is provided
-let stripe: Stripe | null = null;
-if (process.env.STRIPE_SECRET_KEY) {
-  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2023-10-16',
-  });
-}
+// Authentication middleware
+const isAuthenticated = (req: any, res: any, next: any) => {
+  const userId = req.user?.id || req.session?.user?.id;
+  if (!userId) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+  next();
+};
 
-export function setupPaymentRoutes(app: Express) {
-  // Create payment intent for subscription
-  app.post('/api/payment/create-intent', isAuthenticated, async (req: any, res) => {
-    try {
-      const { planId, amount, billingCycle, provider } = req.body;
-      const userId = req.user.id;
+const router = Router();
 
-      if (amount === 0) {
-        // Handle free plan "downgrade"
-        await subscriptionService.updateSubscription(userId, {
-          planType: 'free',
-          subscriptionStatus: 'free'
-        });
-        return res.json({ success: true });
-      }
-
-      switch (provider) {
-        case 'stripe':
-          if (!stripe) {
-            return res.status(500).json({ error: 'Stripe not configured - STRIPE_SECRET_KEY required' });
-          }
-          const paymentIntent = await stripe.paymentIntents.create({
-            amount: amount * 100, // Convert to cents
-            currency: 'usd',
-            metadata: {
-              userId,
-              planId,
-              billingCycle
-            }
-          });
-          
-          res.json({ 
-            clientSecret: paymentIntent.client_secret,
-            paymentIntentId: paymentIntent.id
-          });
-          break;
-
-        case 'paypal':
-          // PayPal integration would go here
-          // For now, return a mock response
-          res.json({
-            redirectUrl: `/api/payment/paypal/create?planId=${planId}&amount=${amount}&billingCycle=${billingCycle}&userId=${userId}`
-          });
-          break;
-
-        case 'razorpay':
-          // Razorpay integration would go here
-          // For now, return a mock response
-          res.json({
-            redirectUrl: `/api/payment/razorpay/create?planId=${planId}&amount=${amount}&billingCycle=${billingCycle}&userId=${userId}`
-          });
-          break;
-
-        default:
-          res.status(400).json({ error: 'Invalid payment provider' });
-      }
-    } catch (error: any) {
-      console.error('Payment intent creation error:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Stripe webhook handler
-  app.post('/api/payment/stripe/webhook', async (req, res) => {
-    const sig = req.headers['stripe-signature'];
-    let event;
-
-    try {
-      event = stripe.webhooks.constructEvent(req.body, sig!, process.env.STRIPE_WEBHOOK_SECRET!);
-    } catch (err: any) {
-      console.error('Webhook signature verification failed:', err.message);
-      return res.status(400).send(`Webhook Error: ${err.message}`);
+// Verify PayPal hosted button payment
+router.post('/verify-paypal', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.id || req.session?.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    if (event.type === 'payment_intent.succeeded') {
-      const paymentIntent = event.data.object as Stripe.PaymentIntent;
-      const { userId, planId, billingCycle } = paymentIntent.metadata;
+    const { serviceType, amount, paymentData, itemName } = req.body;
 
-      await subscriptionService.processSuccessfulPayment(userId, {
-        planType: planId,
-        paymentProvider: 'stripe',
-        paymentId: paymentIntent.id,
-        billingCycle: billingCycle as 'monthly' | 'annual',
-        amount: paymentIntent.amount / 100
-      });
+    if (!serviceType || !amount) {
+      return res.status(400).json({ message: 'Missing required payment information' });
     }
 
-    res.json({ received: true });
-  });
-
-  // PayPal payment creation
-  app.get('/api/payment/paypal/create', async (req, res) => {
-    try {
-      const { planId, amount, billingCycle, userId } = req.query;
-      
-      // Mock PayPal payment creation
-      // In a real implementation, you would use PayPal SDK here
-      const paymentId = `paypal_${Date.now()}`;
-      
-      await subscriptionService.processSuccessfulPayment(userId as string, {
-        planType: planId as string,
-        paymentProvider: 'paypal',
-        paymentId,
-        billingCycle: billingCycle as 'monthly' | 'annual',
-        amount: parseFloat(amount as string)
-      });
-
-      res.redirect('/recruiter/dashboard?payment=success');
-    } catch (error: any) {
-      console.error('PayPal payment error:', error);
-      res.redirect('/recruiter/premium?payment=error');
+    // Validate service type
+    const validServices = ['mock_interview', 'virtual_interview', 'ranking_test', 'test_retake'];
+    if (!validServices.includes(serviceType)) {
+      return res.status(400).json({ message: 'Invalid service type' });
     }
-  });
 
-  // Razorpay payment creation
-  app.get('/api/payment/razorpay/create', async (req, res) => {
-    try {
-      const { planId, amount, billingCycle, userId } = req.query;
-      
-      // Mock Razorpay payment creation
-      // In a real implementation, you would use Razorpay SDK here
-      const paymentId = `razorpay_${Date.now()}`;
-      
-      await subscriptionService.processSuccessfulPayment(userId as string, {
-        planType: planId as string,
-        paymentProvider: 'razorpay',
-        paymentId,
-        billingCycle: billingCycle as 'monthly' | 'annual',
-        amount: parseFloat(amount as string)
-      });
+    // Record the payment
+    const success = await paymentVerificationService.recordPayPalPayment({
+      userId,
+      serviceType,
+      amount: parseFloat(amount.toString()),
+      paypalOrderId: paymentData?.orderID || paymentData?.id,
+      transactionId: paymentData?.transactionID || paymentData?.id
+    });
 
-      res.redirect('/recruiter/dashboard?payment=success');
-    } catch (error: any) {
-      console.error('Razorpay payment error:', error);
-      res.redirect('/recruiter/premium?payment=error');
-    }
-  });
+    if (success) {
+      // Grant service access
+      await paymentVerificationService.grantServiceAccess(userId, serviceType);
 
-  // Get user subscription status
-  app.get('/api/subscription/status', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const subscription = await subscriptionService.getUserSubscription(userId);
-      const usage = await subscriptionService.getUsageStats(userId);
-      
       res.json({
-        ...subscription,
-        usage
+        success: true,
+        message: `Payment verified for ${serviceType}`,
+        serviceType,
+        amount,
+        accessGranted: true
       });
-    } catch (error: any) {
-      console.error('Subscription status error:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Cancel subscription
-  app.post('/api/subscription/cancel', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      
-      await subscriptionService.updateSubscription(userId, {
-        subscriptionStatus: 'canceled'
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to record payment'
       });
-
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error('Subscription cancellation error:', error);
-      res.status(500).json({ error: error.message });
     }
-  });
-}
+  } catch (error) {
+    console.error('PayPal verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Payment verification failed'
+    });
+  }
+});
+
+// Check if user has valid payment for service
+router.get('/check-access/:serviceType', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.id || req.session?.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const { serviceType } = req.params;
+    const { withinMinutes = 30 } = req.query;
+
+    const hasAccess = await paymentVerificationService.hasValidPayment(
+      userId, 
+      serviceType, 
+      parseInt(withinMinutes.toString())
+    );
+
+    res.json({
+      hasAccess,
+      serviceType,
+      userId
+    });
+  } catch (error) {
+    console.error('Access check error:', error);
+    res.status(500).json({
+      hasAccess: false,
+      message: 'Failed to check access'
+    });
+  }
+});
+
+// Get payment history
+router.get('/history', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.id || req.session?.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const { serviceType } = req.query;
+
+    const payments = await paymentVerificationService.getPaymentHistory(
+      userId, 
+      serviceType?.toString()
+    );
+
+    res.json({
+      payments,
+      count: payments.length
+    });
+  } catch (error) {
+    console.error('Payment history error:', error);
+    res.status(500).json({
+      payments: [],
+      message: 'Failed to fetch payment history'
+    });
+  }
+});
+
+// PayPal webhook handler (for production)
+router.post('/webhook/paypal', async (req, res) => {
+  try {
+    const webhookData = req.body;
+    
+    // In production, verify webhook signature here
+    console.log('PayPal webhook received:', webhookData.event_type);
+    
+    const success = await paymentVerificationService.handlePayPalWebhook(webhookData);
+    
+    if (success) {
+      res.status(200).json({ success: true });
+    } else {
+      res.status(400).json({ success: false });
+    }
+  } catch (error) {
+    console.error('PayPal webhook error:', error);
+    res.status(500).json({ success: false });
+  }
+});
+
+export { router as paymentRoutes };

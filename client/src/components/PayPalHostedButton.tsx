@@ -73,6 +73,103 @@ export default function PayPalHostedButton({
       (window as any).paypal.HostedButtons({
         hostedButtonId: "XRDMZMHE93YDS"
       }).render(paypalContainerRef.current).then(() => {
+        console.log('PayPal hosted button rendered successfully');
+        
+        // Listen for payment completion events
+        // Note: PayPal hosted buttons use postMessage for communication
+        window.addEventListener('message', handlePayPalMessage);
+      }).catch((error: any) => {
+        console.error('Failed to render PayPal hosted button:', error);
+        onPaymentError?.({ message: 'Failed to load payment button' });
+      });
+    } catch (error) {
+      console.error('PayPal hosted button error:', error);
+      onPaymentError?.({ message: 'Payment system error' });
+    }
+  };
+
+  const handlePayPalMessage = (event: MessageEvent) => {
+    // PayPal hosted buttons communicate via postMessage
+    if (event.origin !== 'https://www.paypal.com' && event.origin !== 'https://www.sandbox.paypal.com') {
+      return;
+    }
+
+    try {
+      const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+      
+      if (data.type === 'payment_success' || data.event === 'payment_success') {
+        console.log('✅ PayPal payment success received:', data);
+        
+        // Record payment on server and grant access
+        recordPaymentAndGrantAccess(data);
+      } else if (data.type === 'payment_error' || data.event === 'payment_error') {
+        console.log('❌ PayPal payment error received:', data);
+        onPaymentError?.({ 
+          message: data.message || 'Payment was not completed successfully' 
+        });
+      }
+    } catch (error) {
+      console.log('Non-JSON PayPal message received:', event.data);
+    }
+  };
+
+  const recordPaymentAndGrantAccess = async (paymentData: any) => {
+    try {
+      // Call our server to record the payment and verify access
+      const response = await fetch('/api/payments/verify-paypal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          serviceType: purpose,
+          amount: amount,
+          paymentData: paymentData,
+          itemName: itemName
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Payment verified and recorded:', result);
+        
+        onPaymentSuccess?.({
+          ...paymentData,
+          verified: true,
+          serviceType: purpose,
+          amount: amount
+        });
+      } else {
+        const error = await response.json();
+        console.error('❌ Payment verification failed:', error);
+        onPaymentError?.({ 
+          message: error.message || 'Payment verification failed' 
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error recording payment:', error);
+      onPaymentError?.({ 
+        message: 'Failed to verify payment. Please contact support.' 
+      });
+    }
+  };
+
+  // Clean up event listeners
+  const cleanup = () => {
+    window.removeEventListener('message', handlePayPalMessage);
+  };
+
+  // Effect cleanup
+  useEffect(() => {
+    return cleanup;
+  }, []);
+
+  const continueRenderHostedButton = () => {
+    try {
+      (window as any).paypal.HostedButtons({
+        hostedButtonId: "XRDMZMHE93YDS"
+      }).render(paypalContainerRef.current).then(() => {
         // Payment success handling
         // Note: PayPal hosted buttons handle success/error via webhook or return URL
         // For client-side handling, we'd need to implement a polling mechanism

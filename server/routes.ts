@@ -253,7 +253,7 @@ import { recruiterAnalytics } from "./recruiterAnalytics.js";
 import { generateVerificationEmail } from "./emailService";
 import { testService } from "./testService";
 import { paymentService } from "./paymentService";
-import { setupPaymentRoutes } from "./paymentRoutes";
+// Payment routes will be imported inline
 import { requirePremium, requireEnterprise, checkUsageLimit as checkSubscriptionUsageLimit } from "./middleware/subscriptionMiddleware";
 import { 
   insertUserProfileSchema,
@@ -594,7 +594,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware was already set up at the beginning of registerRoutes
 
   // Setup payment routes
-  setupPaymentRoutes(app);
+  // Payment routes are mounted inline below
 
   // PayPal Routes (Consolidated)
   app.get("/api/paypal/setup", async (req, res) => {
@@ -5632,6 +5632,10 @@ Additional Information:
   
   // Mount chat-based interview routes
   app.use('/api/chat-interview', chatInterviewRoutes);
+
+  // Mount payment verification routes
+  const { paymentRoutes } = await import('./paymentRoutes');
+  app.use('/api/payments', paymentRoutes);
 
   // PayPal routes are already defined above - removed duplicates
 

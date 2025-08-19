@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Brain, Clock, DollarSign, CheckCircle, MessageCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import PayPalButton from '@/components/PayPalButton';
+import PayPalHostedButton from '@/components/PayPalHostedButton';
+import { usePaymentAccess } from '@/hooks/usePaymentAccess';
 
 interface InterviewConfig {
   interviewType: string;
@@ -111,7 +112,7 @@ export default function VirtualInterviewStart() {
     }
   };
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = async () => {
     toast({
       title: "Payment Successful",
       description: "You can now start your interview. Payment confirmed!",
@@ -122,6 +123,9 @@ export default function VirtualInterviewStart() {
       remainingFree: 1,
       needsPayment: false
     });
+    
+    // Automatically start the interview after payment
+    startChatInterview();
   };
 
   return (
@@ -300,31 +304,7 @@ export default function VirtualInterviewStart() {
                     </Button>
                   )}
 
-                  {/* Payment Section for Retakes */}
-                  {eligibility?.needsPayment && showPayment && (
-                    <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20">
-                      <CardHeader>
-                        <CardTitle className="flex items-center space-x-2 text-yellow-800 dark:text-yellow-200">
-                          <DollarSign className="w-5 h-5" />
-                          <span>Additional Interview - $5</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-yellow-700 dark:text-yellow-300 mb-4">
-                          {eligibility?.isRetake 
-                            ? "Retaking recruiter-assigned interviews requires payment."
-                            : "You've used all your free practice interviews. Pay $5 to take another interview for additional practice."
-                          }
-                        </p>
-                        <PayPalButton
-                          amount="5.00"
-                          currency="USD"
-                          intent="CAPTURE"
-                          onSuccess={handlePaymentSuccess}
-                        />
-                      </CardContent>
-                    </Card>
-                  )}
+                  {/* This component is deprecated - use chat interviews instead */}
 
                   {/* Start Interview Button */}
                   {eligibility?.eligible && (
@@ -356,12 +336,65 @@ export default function VirtualInterviewStart() {
                       onClick={() => setShowPayment(true)}
                       className="w-full"
                       size="lg"
+                      data-testid="show-payment-button"
                     >
                       {eligibility?.isRetake 
                         ? "Pay $5 to Retake Interview"
                         : "Pay $5 for Additional Interview"
                       }
                     </Button>
+                  )}
+
+                  {/* PayPal Payment Component */}
+                  {showPayment && (
+                    <div className="mt-6">
+                      <PayPalHostedButton
+                        purpose="virtual_interview"
+                        amount={5}
+                        itemName={eligibility?.isRetake 
+                          ? "Virtual Interview Retake"
+                          : "Additional Virtual Interview Practice"
+                        }
+                        onPaymentSuccess={(data) => {
+                          toast({
+                            title: "Payment Successful!",
+                            description: "Your virtual interview access has been granted. Starting interview...",
+                          });
+                          
+                          // Update eligibility to allow interview start
+                          setEligibility(prev => prev ? {
+                            ...prev,
+                            eligible: true,
+                            needsPayment: false
+                          } : null);
+                          setShowPayment(false);
+                          
+                          // Automatically start interview after payment
+                          setTimeout(() => {
+                            startChatInterview();
+                          }, 1500);
+                        }}
+                        onPaymentError={(error) => {
+                          toast({
+                            title: "Payment Failed",
+                            description: error.message || "There was an error processing your payment. Please try again.",
+                            variant: "destructive",
+                          });
+                        }}
+                        description="Complete payment to access your virtual interview practice session"
+                        disabled={loading}
+                      />
+                      
+                      <div className="mt-4 text-center">
+                        <Button
+                          variant="ghost"
+                          onClick={() => setShowPayment(false)}
+                          className="text-sm"
+                        >
+                          Cancel Payment
+                        </Button>
+                      </div>
+                    </div>
                   )}
                 </CardContent>
               </Card>
