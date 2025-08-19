@@ -158,7 +158,14 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
       badge: unreadCount > 0 ? unreadCount : undefined
     },
     {
-      name: "Premium",
+      name: "Premium Plans",
+      href: "/recruiter/premium",
+      icon: Crown,
+      current: location === "/recruiter/premium" || location === "/recruiter-premium",
+      premium: false // Show to all users so they can see pricing
+    },
+    {
+      name: "Premium Targeting",
       href: "/premium-targeting",
       icon: Target,
       current: location === "/premium-targeting",
