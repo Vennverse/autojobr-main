@@ -97,16 +97,17 @@ export default function TaskManagement() {
     relatedId: ""
   });
 
-  // Fetch tasks
+  // Fetch tasks - use appropriate endpoint based on user type
   const { data: tasks, isLoading: tasksLoading, refetch: refetchTasks } = useQuery({
-    queryKey: ["/api/recruiter/tasks"],
+    queryKey: isRecruiter ? ["/api/recruiter/tasks"] : ["/api/tasks"],
     retry: false,
   });
 
-  // Fetch candidates for task assignment
+  // Fetch candidates for task assignment (recruiter only)
   const { data: candidates } = useQuery({
     queryKey: ["/api/recruiter/applications"],
     retry: false,
+    enabled: isRecruiter,
   });
 
   // Create task mutation
@@ -128,10 +129,10 @@ export default function TaskManagement() {
         dueDateTime: new Date(taskData.dueDateTime).toISOString(),
       };
       
-      return apiRequest("/api/recruiter/tasks", "POST", formattedData);
+      return apiRequest(isRecruiter ? "/api/recruiter/tasks" : "/api/tasks", "POST", formattedData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/recruiter/tasks"] });
+      queryClient.invalidateQueries({ queryKey: isRecruiter ? ["/api/recruiter/tasks"] : ["/api/tasks"] });
       setShowCreateDialog(false);
       resetForm();
       toast({
@@ -332,8 +333,11 @@ export default function TaskManagement() {
     }
   };
 
+  // Extract tasks from response
+  const taskList = isRecruiter ? (tasks as Task[] || []) : ((tasks as any)?.tasks || []);
+  
   // Filter tasks
-  const filteredTasks = (tasks as Task[] || []).filter(task => {
+  const filteredTasks = taskList.filter((task: any) => {
     const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          task.candidateName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          task.candidateEmail?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -347,7 +351,7 @@ export default function TaskManagement() {
   if (tasksLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-        {isRecruiter ? <RecruiterNavbar user={user || undefined} /> : <Navbar />}
+        {isRecruiter ? <RecruiterNavbar user={user as any} /> : <Navbar />}
         <div className="container mx-auto px-4 py-8">
           <div className="animate-pulse space-y-6">
             <div className="h-8 bg-gray-200 rounded w-1/4"></div>
@@ -364,7 +368,7 @@ export default function TaskManagement() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      {isRecruiter ? <RecruiterNavbar user={user || undefined} /> : <Navbar />}
+      {isRecruiter ? <RecruiterNavbar user={user as any} /> : <Navbar />}
       
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
@@ -532,7 +536,7 @@ export default function TaskManagement() {
                         checked={bulkSelection.size === filteredTasks.length && filteredTasks.length > 0}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setBulkSelection(new Set(filteredTasks.map(t => t.id)));
+                            setBulkSelection(new Set(filteredTasks.map((t: any) => t.id)));
                           } else {
                             setBulkSelection(new Set());
                           }
@@ -557,7 +561,7 @@ export default function TaskManagement() {
                       </td>
                     </tr>
                   ) : (
-                    filteredTasks.map((task) => (
+                    filteredTasks.map((task: any) => (
                       <tr 
                         key={task.id} 
                         className="border-b hover:bg-gray-50 dark:hover:bg-gray-800"

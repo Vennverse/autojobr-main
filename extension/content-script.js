@@ -24,6 +24,7 @@ class AutoJobrContentScript {
       this.initializeSmartSelectors();
       this.setupApplicationTracking(); // Setup tracking once during initialization
       this.setupAutoAnalysis(); // New: Setup automatic job analysis
+      this.setupTaskReminders(); // New: Setup task reminder system
       this.isInitialized = true;
       
       // Mark as loaded for background script
@@ -2904,6 +2905,142 @@ class AutoJobrContentScript {
     const button = document.getElementById('autojobr-floating-button');
     if (overlay) overlay.remove();
     if (button) button.remove();
+  }
+
+  setupTaskReminders() {
+    // Check for pending tasks every 5 minutes
+    setInterval(() => {
+      this.checkPendingTasks();
+    }, 5 * 60 * 1000);
+
+    // Initial check after 10 seconds
+    setTimeout(() => {
+      this.checkPendingTasks();
+    }, 10000);
+  }
+
+  async checkPendingTasks() {
+    try {
+      const response = await fetch(`${this.getApiUrl()}/api/tasks`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const pendingTasks = data.tasks?.filter(task => 
+          task.status === 'pending' && this.isTaskUrgent(task.dueDateTime)
+        ) || [];
+
+        if (pendingTasks.length > 0) {
+          this.showTaskReminder(pendingTasks);
+        }
+      }
+    } catch (error) {
+      console.log('Task reminder check failed:', error);
+    }
+  }
+
+  isTaskUrgent(dueDateTime) {
+    if (!dueDateTime) return false;
+    
+    const due = new Date(dueDateTime);
+    const now = new Date();
+    const timeDiff = due.getTime() - now.getTime();
+    const hoursLeft = timeDiff / (1000 * 60 * 60);
+    
+    // Show reminder if less than 6 hours left or overdue
+    return hoursLeft < 6;
+  }
+
+  showTaskReminder(tasks) {
+    const taskList = tasks.map(task => {
+      const due = new Date(task.dueDateTime);
+      const now = new Date();
+      const timeDiff = due.getTime() - now.getTime();
+      const hoursLeft = Math.ceil(timeDiff / (1000 * 60 * 60));
+      
+      return `• ${task.title} (${hoursLeft > 0 ? `${hoursLeft}h left` : 'OVERDUE'})`;
+    }).join('\n');
+
+    this.showNotification({
+      title: `⏰ ${tasks.length} Task${tasks.length > 1 ? 's' : ''} Due Soon!`,
+      message: `You have incomplete tasks:\n${taskList}\n\nClick to manage tasks.`,
+      type: 'urgent'
+    });
+  }
+
+  getApiUrl() {
+    return 'https://autojobr.com';
+  }
+
+  showNotification(options) {
+    // Create a styled notification popup
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+      color: white;
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(255, 107, 107, 0.3);
+      z-index: 10001;
+      max-width: 350px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.4;
+      cursor: pointer;
+      animation: slideIn 0.3s ease-out;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    `;
+
+    notification.innerHTML = `
+      <div style="display: flex; align-items: flex-start; gap: 12px;">
+        <div style="font-size: 20px;">⏰</div>
+        <div style="flex: 1;">
+          <div style="font-weight: 600; margin-bottom: 4px;">${options.title}</div>
+          <div style="white-space: pre-line; opacity: 0.95;">${options.message}</div>
+          <div style="margin-top: 8px; display: flex; gap: 8px;">
+            <button onclick="this.parentElement.parentElement.parentElement.parentElement.remove()" 
+                    style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;">
+              Dismiss
+            </button>
+            <button onclick="window.open('https://autojobr.com/task-management', '_blank'); this.parentElement.parentElement.parentElement.parentElement.remove();" 
+                    style="background: rgba(255,255,255,0.9); border: none; color: #333; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 500;">
+              Manage Tasks
+            </button>
+          </div>
+        </div>
+        <button onclick="this.parentElement.parentElement.remove()" 
+                style="background: none; border: none; color: white; font-size: 18px; cursor: pointer; opacity: 0.7; padding: 0; width: 20px; height: 20px;">
+          ×
+        </button>
+      </div>
+    `;
+
+    // Add animation styles
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(400px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+
+    document.body.appendChild(notification);
+
+    // Auto-remove after 10 seconds
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.remove();
+      }
+    }, 10000);
   }
 }
 
