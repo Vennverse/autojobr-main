@@ -2508,6 +2508,7 @@ Additional Information:
       } = req.body;
 
       const newTask = await db.insert(schema.tasks).values({
+        userId, // Fix: Add userId field to prevent null constraint violation
         title,
         description,
         status: 'pending',

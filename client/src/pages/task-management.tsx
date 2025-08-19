@@ -110,21 +110,38 @@ export default function TaskManagement() {
   // Create task mutation
   const createTaskMutation = useMutation({
     mutationFn: async (taskData: any) => {
-      return apiRequest("/api/recruiter/tasks", "POST", taskData);
+      // Validate required fields
+      if (!taskData.title?.trim()) {
+        throw new Error("Task title is required");
+      }
+      if (!taskData.dueDateTime) {
+        throw new Error("Due date and time are required");
+      }
+      
+      // Format the data properly
+      const formattedData = {
+        ...taskData,
+        title: taskData.title.trim(),
+        description: taskData.description?.trim() || '',
+        dueDateTime: new Date(taskData.dueDateTime).toISOString(),
+      };
+      
+      return apiRequest("/api/recruiter/tasks", "POST", formattedData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recruiter/tasks"] });
       setShowCreateDialog(false);
       resetForm();
       toast({
-        title: "Task Created",
-        description: "Task has been created successfully.",
+        title: "✅ Task Created",
+        description: "Your task has been created successfully and added to your dashboard.",
       });
     },
     onError: (error: any) => {
+      console.error('Task creation error:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to create task",
+        title: "❌ Failed to Create Task",
+        description: error.message || "Please check all required fields and try again.",
         variant: "destructive",
       });
     }
@@ -212,15 +229,42 @@ export default function TaskManagement() {
     });
   };
 
+  // Enhanced form validation
+  const validateForm = () => {
+    const errors: string[] = [];
+    
+    if (!formData.title?.trim()) {
+      errors.push("Task title is required");
+    }
+    
+    if (!formData.dueDateTime) {
+      errors.push("Due date and time are required");
+    } else {
+      const dueDate = new Date(formData.dueDateTime);
+      const now = new Date();
+      if (dueDate < now) {
+        errors.push("Due date cannot be in the past");
+      }
+    }
+    
+    if (formData.candidateEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.candidateEmail)) {
+      errors.push("Please enter a valid email address");
+    }
+    
+    return errors;
+  };
+
   const handleCreateTask = () => {
-    if (!formData.title || !formData.dueDateTime) {
+    const validationErrors = validateForm();
+    if (validationErrors.length > 0) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields.",
+        title: "❌ Validation Error",
+        description: validationErrors.join(", "),
         variant: "destructive",
       });
       return;
     }
+    
     createTaskMutation.mutate(formData);
   };
 
@@ -646,7 +690,11 @@ export default function TaskManagement() {
                     onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                     placeholder="e.g., Confirm Interview Time"
                     data-testid="input-task-title"
+                    className={!formData.title?.trim() ? "border-red-300" : ""}
                   />
+                  {!formData.title?.trim() && (
+                    <p className="text-sm text-red-600 mt-1">Title is required</p>
+                  )}
                 </div>
                 <div>
                   <Label>Task Type</Label>
@@ -704,8 +752,13 @@ export default function TaskManagement() {
                     type="datetime-local"
                     value={formData.dueDateTime}
                     onChange={(e) => setFormData(prev => ({ ...prev, dueDateTime: e.target.value }))}
+                    min={new Date().toISOString().slice(0, 16)} // Prevent past dates
                     data-testid="input-due-datetime"
+                    className={!formData.dueDateTime ? "border-red-300" : ""}
                   />
+                  {!formData.dueDateTime && (
+                    <p className="text-sm text-red-600 mt-1">Due date is required</p>
+                  )}
                 </div>
               </div>
 
@@ -727,7 +780,11 @@ export default function TaskManagement() {
                     onChange={(e) => setFormData(prev => ({ ...prev, candidateEmail: e.target.value }))}
                     placeholder="john@example.com"
                     data-testid="input-candidate-email"
+                    className={formData.candidateEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.candidateEmail) ? "border-red-300" : ""}
                   />
+                  {formData.candidateEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.candidateEmail) && (
+                    <p className="text-sm text-red-600 mt-1">Please enter a valid email address</p>
+                  )}
                 </div>
               </div>
 
@@ -778,13 +835,14 @@ export default function TaskManagement() {
                 </Button>
                 <Button
                   onClick={handleCreateTask}
-                  disabled={createTaskMutation.isPending}
+                  disabled={createTaskMutation.isPending || !formData.title?.trim() || !formData.dueDateTime}
                   data-testid="button-submit-create"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   {createTaskMutation.isPending ? (
                     <>
                       <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Creating...
+                      Creating Task...
                     </>
                   ) : (
                     <>
