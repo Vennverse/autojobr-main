@@ -7908,6 +7908,108 @@ Host: https://autojobr.com`;
   });
 
   // Schedule Interview
+  // Schedule appointment - send email to candidate with scheduling link
+  app.post('/api/recruiter/schedule-appointment', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.userType !== 'recruiter') {
+        return res.status(403).json({ message: 'Only recruiters can schedule appointments' });
+      }
+
+      const {
+        applicationId,
+        candidateName,
+        candidateEmail,
+        jobTitle,
+        schedulingLink,
+        appointmentType,
+        finalEmailContent
+      } = req.body;
+
+      // Validate required fields
+      if (!candidateEmail || !candidateName || !schedulingLink || !finalEmailContent) {
+        return res.status(400).json({ 
+          message: 'Missing required fields: candidateEmail, candidateName, schedulingLink, and email content are required' 
+        });
+      }
+
+      // Validate email format
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(candidateEmail)) {
+        return res.status(400).json({ message: 'Invalid email format' });
+      }
+
+      // Generate email subject
+      let appointmentTypeText = 'appointment';
+      if (appointmentType === 'interview') appointmentTypeText = 'Interview';
+      else if (appointmentType === 'phone_screen') appointmentTypeText = 'Phone Screen';
+      else if (appointmentType === 'meeting') appointmentTypeText = 'Meeting';
+      
+      const subject = `Schedule ${appointmentTypeText} - ${jobTitle}`;
+
+      // Convert plain text to HTML for better email formatting
+      const htmlContent = finalEmailContent
+        .replace(/\n/g, '<br>')
+        .replace(/📧/g, '📧')
+        .replace(/📞/g, '📞')
+        .replace(/🗓️/g, '🗓️')
+        .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color: #3b82f6; text-decoration: underline;">$1</a>');
+
+      const formattedHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6; color: #333;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 8px 8px 0 0; color: white; text-align: center;">
+          <h1 style="margin: 0; font-size: 24px;">📅 ${appointmentTypeText} Invitation</h1>
+        </div>
+        <div style="background: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; border: 1px solid #e2e8f0;">
+          ${htmlContent.replace(/\n/g, '<br>')}
+        </div>
+        <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #64748b;">
+          <p>Sent via AutoJobr - AI-Powered Recruitment Platform</p>
+        </div>
+      </div>`;
+
+      // Import email service
+      const { sendEmail } = await import('./emailService.js');
+      
+      // Send the appointment email
+      const emailSent = await sendEmail({
+        to: candidateEmail,
+        subject: subject,
+        html: formattedHtml
+      });
+
+      if (!emailSent) {
+        return res.status(500).json({ message: 'Failed to send appointment email' });
+      }
+
+      // If applicationId is provided, log the appointment in the application timeline
+      if (applicationId) {
+        try {
+          await storage.addApplicationNote(applicationId, {
+            note: `Appointment scheduled: ${appointmentTypeText} via ${schedulingLink}`,
+            type: 'appointment_scheduled',
+            createdBy: userId
+          });
+        } catch (noteError) {
+          // Don't fail the whole request if note logging fails
+          console.warn('Could not log appointment to application timeline:', noteError);
+        }
+      }
+
+      res.json({ 
+        success: true,
+        message: 'Appointment email sent successfully',
+        emailSent: true,
+        recipient: candidateEmail
+      });
+
+    } catch (error) {
+      console.error('Error scheduling appointment:', error);
+      res.status(500).json({ message: 'Failed to schedule appointment' });
+    }
+  });
+
   app.post('/api/recruiter/schedule-interview', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;

@@ -360,6 +360,27 @@ export default function EnhancedPipelineManagement() {
     instructions: "",
   });
 
+  // Schedule appointment state
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [appointmentData, setAppointmentData] = useState({
+    applicationId: null as number | null,
+    candidateName: "",
+    candidateEmail: "",
+    jobTitle: "",
+    schedulingLink: "",
+    appointmentType: "interview", // interview, meeting, phone_screen
+    message: "",
+    useTemplate: true,
+    includeRecruiterContact: false,
+    recruiterPhone: "",
+    recruiterEmail: "",
+    appointmentDate: "",
+    appointmentTime: "",
+    timezone: "America/New_York"
+  });
+  const [showEmailPreview, setShowEmailPreview] = useState(false);
+  const [emailPreviewContent, setEmailPreviewContent] = useState("");
+
   // Fetch applications and apply NLP analysis
   const { data: rawApplications = [], isLoading: applicationsLoading, refetch: refetchApplications } = useQuery({
     queryKey: ["/api/recruiter/applications"],
@@ -503,6 +524,29 @@ export default function EnhancedPipelineManagement() {
     },
   });
 
+  // Schedule appointment mutation
+  const scheduleAppointmentMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest("/api/recruiter/schedule-appointment", "POST", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "✅ Appointment Scheduled",
+        description: "Appointment email sent successfully to the candidate.",
+      });
+      setShowScheduleDialog(false);
+      setShowEmailPreview(false);
+      resetAppointmentForm();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "❌ Error",
+        description: error.message || "Failed to schedule appointment.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Handle send interview invite
   const handleSendInterviewInvite = () => {
     if (!selectedApplication) return;
@@ -521,6 +565,88 @@ export default function EnhancedPipelineManagement() {
         variant: "destructive",
       });
     }
+  };
+
+  // Reset appointment form
+  const resetAppointmentForm = () => {
+    setAppointmentData({
+      applicationId: null,
+      candidateName: "",
+      candidateEmail: "",
+      jobTitle: "",
+      schedulingLink: "",
+      appointmentType: "interview",
+      message: "",
+      useTemplate: true,
+      includeRecruiterContact: false,
+      recruiterPhone: "",
+      recruiterEmail: "",
+      appointmentDate: "",
+      appointmentTime: "",
+      timezone: "America/New_York"
+    });
+  };
+
+  // Handle schedule appointment
+  const handleScheduleAppointment = (application: Application) => {
+    setAppointmentData({
+      ...appointmentData,
+      applicationId: application.id,
+      candidateName: application.candidate.name,
+      candidateEmail: application.candidate.email,
+      jobTitle: application.job.title,
+    });
+    setShowScheduleDialog(true);
+  };
+
+  // Generate email template
+  const generateAppointmentTemplate = () => {
+    const { candidateName, jobTitle, appointmentType, schedulingLink, appointmentDate, appointmentTime, timezone } = appointmentData;
+    
+    let appointmentTypeText = "appointment";
+    if (appointmentType === "interview") appointmentTypeText = "interview";
+    else if (appointmentType === "phone_screen") appointmentTypeText = "phone screening";
+    else if (appointmentType === "meeting") appointmentTypeText = "meeting";
+
+    const dateTimeInfo = appointmentDate && appointmentTime 
+      ? `\n\nScheduled for: ${new Date(appointmentDate + 'T' + appointmentTime).toLocaleDateString()} at ${appointmentTime} (${timezone})`
+      : "";
+
+    const contactInfo = appointmentData.includeRecruiterContact 
+      ? `\n\nIf you have any questions, please contact me:\n${appointmentData.recruiterEmail ? `📧 Email: ${appointmentData.recruiterEmail}` : ''}${appointmentData.recruiterPhone ? `\n📞 Phone: ${appointmentData.recruiterPhone}` : ''}`
+      : "";
+
+    return `Dear ${candidateName},
+
+I hope this email finds you well. I'm reaching out regarding your application for the ${jobTitle} position.
+
+I'd like to schedule an ${appointmentTypeText} with you to discuss your background and the opportunity in more detail.${dateTimeInfo}
+
+Please use the following link to schedule a convenient time for our ${appointmentTypeText}:
+🗓️ ${schedulingLink}
+
+Looking forward to speaking with you soon!${contactInfo}
+
+Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
+  };
+
+  // Handle preview email
+  const handlePreviewEmail = () => {
+    const content = appointmentData.useTemplate ? generateAppointmentTemplate() : appointmentData.message;
+    setEmailPreviewContent(content);
+    setShowEmailPreview(true);
+  };
+
+  // Handle send appointment email
+  const handleSendAppointmentEmail = () => {
+    const emailContent = appointmentData.useTemplate ? generateAppointmentTemplate() : appointmentData.message;
+    
+    const emailData = {
+      ...appointmentData,
+      finalEmailContent: emailContent,
+    };
+    
+    scheduleAppointmentMutation.mutate(emailData);
   };
 
   // Filter applications
@@ -1121,6 +1247,20 @@ export default function EnhancedPipelineManagement() {
                                 <Code className="w-3 h-3 mr-1" />
                                 Test
                               </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-xs text-indigo-600 hover:bg-indigo-50"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleScheduleAppointment(application);
+                                }}
+                                title="Schedule Appointment"
+                                data-testid={`button-schedule-kanban-${application.id}`}
+                              >
+                                <Calendar className="w-3 h-3 mr-1" />
+                                Schedule
+                              </Button>
                             </div>
                           </div>
                         </motion.div>
@@ -1328,6 +1468,19 @@ export default function EnhancedPipelineManagement() {
                               data-testid={`button-assign-test-${application.id}`}
                             >
                               <Code className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 w-8 p-0 text-indigo-600 border-indigo-200"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleScheduleAppointment(application);
+                              }}
+                              title="Schedule Appointment"
+                              data-testid={`button-schedule-list-${application.id}`}
+                            >
+                              <Calendar className="w-4 h-4" />
                             </Button>
                             <Button
                               size="sm"
@@ -1967,6 +2120,275 @@ export default function EnhancedPipelineManagement() {
                 )}
               </Button>
             </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Schedule Appointment Dialog */}
+          <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>📅 Schedule Appointment</DialogTitle>
+                <DialogDescription>
+                  Schedule an appointment with {appointmentData.candidateName} for the {appointmentData.jobTitle} position
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Candidate Name</Label>
+                    <Input
+                      value={appointmentData.candidateName}
+                      readOnly
+                      className="bg-gray-50"
+                      data-testid="input-candidate-name"
+                    />
+                  </div>
+                  <div>
+                    <Label>Candidate Email</Label>
+                    <Input
+                      value={appointmentData.candidateEmail}
+                      readOnly
+                      className="bg-gray-50"
+                      data-testid="input-candidate-email"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Job Title</Label>
+                    <Input
+                      value={appointmentData.jobTitle}
+                      readOnly
+                      className="bg-gray-50"
+                      data-testid="input-job-title"
+                    />
+                  </div>
+                  <div>
+                    <Label>Appointment Type</Label>
+                    <Select
+                      value={appointmentData.appointmentType}
+                      onValueChange={(value) => setAppointmentData(prev => ({ ...prev, appointmentType: value }))}
+                    >
+                      <SelectTrigger data-testid="select-appointment-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="interview">Interview</SelectItem>
+                        <SelectItem value="phone_screen">Phone Screen</SelectItem>
+                        <SelectItem value="meeting">Meeting</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Scheduling Link *</Label>
+                  <Input
+                    value={appointmentData.schedulingLink}
+                    onChange={(e) => setAppointmentData(prev => ({ ...prev, schedulingLink: e.target.value }))}
+                    placeholder="e.g., https://calendly.com/yourname or https://calendar.google.com/..."
+                    data-testid="input-scheduling-link"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">Calendly, Google Calendar, or any other scheduling link</p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>Date (Optional)</Label>
+                    <Input
+                      type="date"
+                      value={appointmentData.appointmentDate}
+                      onChange={(e) => setAppointmentData(prev => ({ ...prev, appointmentDate: e.target.value }))}
+                      data-testid="input-appointment-date"
+                    />
+                  </div>
+                  <div>
+                    <Label>Time (Optional)</Label>
+                    <Input
+                      type="time"
+                      value={appointmentData.appointmentTime}
+                      onChange={(e) => setAppointmentData(prev => ({ ...prev, appointmentTime: e.target.value }))}
+                      data-testid="input-appointment-time"
+                    />
+                  </div>
+                  <div>
+                    <Label>Timezone</Label>
+                    <Select
+                      value={appointmentData.timezone}
+                      onValueChange={(value) => setAppointmentData(prev => ({ ...prev, timezone: value }))}
+                    >
+                      <SelectTrigger data-testid="select-timezone">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
+                        <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
+                        <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
+                        <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
+                        <SelectItem value="UTC">UTC</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Label>Email Content</Label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="use-template"
+                      checked={appointmentData.useTemplate}
+                      onChange={(e) => setAppointmentData(prev => ({ ...prev, useTemplate: e.target.checked }))}
+                      className="rounded"
+                    />
+                    <Label htmlFor="use-template" className="font-normal">Use email template</Label>
+                  </div>
+                  
+                  {!appointmentData.useTemplate && (
+                    <Textarea
+                      value={appointmentData.message}
+                      onChange={(e) => setAppointmentData(prev => ({ ...prev, message: e.target.value }))}
+                      placeholder="Write your custom email message here..."
+                      rows={6}
+                      data-testid="textarea-custom-message"
+                    />
+                  )}
+                </div>
+
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <input
+                      type="checkbox"
+                      id="include-contact"
+                      checked={appointmentData.includeRecruiterContact}
+                      onChange={(e) => setAppointmentData(prev => ({ ...prev, includeRecruiterContact: e.target.checked }))}
+                      className="rounded"
+                    />
+                    <Label htmlFor="include-contact" className="font-medium">Include your contact information</Label>
+                  </div>
+                  
+                  {appointmentData.includeRecruiterContact && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Your Email</Label>
+                        <Input
+                          value={appointmentData.recruiterEmail}
+                          onChange={(e) => setAppointmentData(prev => ({ ...prev, recruiterEmail: e.target.value }))}
+                          placeholder="your.email@company.com"
+                          data-testid="input-recruiter-email"
+                        />
+                      </div>
+                      <div>
+                        <Label>Your Phone</Label>
+                        <Input
+                          value={appointmentData.recruiterPhone}
+                          onChange={(e) => setAppointmentData(prev => ({ ...prev, recruiterPhone: e.target.value }))}
+                          placeholder="+1 (555) 123-4567"
+                          data-testid="input-recruiter-phone"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3 justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowScheduleDialog(false);
+                      resetAppointmentForm();
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handlePreviewEmail}
+                    disabled={!appointmentData.schedulingLink}
+                    data-testid="button-preview-email"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview Email
+                  </Button>
+                  <Button
+                    onClick={handleSendAppointmentEmail}
+                    disabled={!appointmentData.schedulingLink || scheduleAppointmentMutation.isPending}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    data-testid="button-send-appointment"
+                  >
+                    {scheduleAppointmentMutation.isPending ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-2" />
+                        Send Appointment Email
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Email Preview Dialog */}
+          <Dialog open={showEmailPreview} onOpenChange={setShowEmailPreview}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>📧 Email Preview</DialogTitle>
+                <DialogDescription>
+                  Review the email that will be sent to {appointmentData.candidateName}
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                <div className="border rounded-lg p-4 bg-white">
+                  <div className="border-b pb-3 mb-4">
+                    <div className="text-sm text-gray-600">To: {appointmentData.candidateEmail}</div>
+                    <div className="text-sm text-gray-600">
+                      Subject: Schedule {appointmentData.appointmentType === 'interview' ? 'Interview' : appointmentData.appointmentType === 'phone_screen' ? 'Phone Screen' : 'Meeting'} - {appointmentData.jobTitle}
+                    </div>
+                  </div>
+                  
+                  <div className="whitespace-pre-wrap text-sm font-mono bg-gray-50 p-4 rounded border">
+                    {emailPreviewContent}
+                  </div>
+                </div>
+
+                <div className="flex gap-3 justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowEmailPreview(false)}
+                  >
+                    Close Preview
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setShowEmailPreview(false);
+                      handleSendAppointmentEmail();
+                    }}
+                    disabled={scheduleAppointmentMutation.isPending}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    data-testid="button-send-from-preview"
+                  >
+                    {scheduleAppointmentMutation.isPending ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-2" />
+                        Send Email
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </DialogContent>
           </Dialog>
       </div>
