@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { RecruiterNavbar } from "@/components/RecruiterNavbar";
+import { Navbar } from "@/components/navbar";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Search,
@@ -68,6 +69,7 @@ export default function TaskManagement() {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const isRecruiter = user?.userType === 'recruiter' || user?.currentRole === 'recruiter';
 
   // State management
   const [searchTerm, setSearchTerm] = useState("");
@@ -345,7 +347,7 @@ export default function TaskManagement() {
   if (tasksLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-        <RecruiterNavbar user={user} />
+        {isRecruiter ? <RecruiterNavbar user={user || undefined} /> : <Navbar />}
         <div className="container mx-auto px-4 py-8">
           <div className="animate-pulse space-y-6">
             <div className="h-8 bg-gray-200 rounded w-1/4"></div>
@@ -362,7 +364,7 @@ export default function TaskManagement() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <RecruiterNavbar user={user} />
+      {isRecruiter ? <RecruiterNavbar user={user || undefined} /> : <Navbar />}
       
       <div className="container mx-auto px-4 py-8">
         {/* Header */}

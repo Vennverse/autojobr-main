@@ -75,6 +75,7 @@ export default function Applications() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [quickTaskTitle, setQuickTaskTitle] = useState("");
   const queryClient = useQueryClient();
 
   // Redirect to home if not authenticated
@@ -104,10 +105,7 @@ export default function Applications() {
   // Task creation mutation
   const createTaskMutation = useMutation({
     mutationFn: async (taskData: any) => {
-      return apiRequest('/api/tasks', {
-        method: 'POST',
-        body: JSON.stringify(taskData)
-      });
+      return apiRequest('/api/tasks', 'POST', taskData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
@@ -128,10 +126,7 @@ export default function Applications() {
   // Complete task mutation
   const completeTaskMutation = useMutation({
     mutationFn: async (taskId: number) => {
-      return apiRequest(`/api/tasks/${taskId}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: 'completed' })
-      });
+      return apiRequest(`/api/tasks/${taskId}/status`, 'PATCH', { status: 'completed' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
@@ -428,26 +423,28 @@ export default function Applications() {
 
                 {/* Quick Task Actions */}
                 <div className="space-y-2">
-                  <Button 
-                    variant="outline" 
-                    className="w-full h-8 text-xs"
-                    onClick={() => {
-                      const title = prompt('Task title:');
-                      if (title) {
-                        createTaskMutation.mutate({
-                          title,
-                          description: '',
-                          taskType: 'reminder',
-                          priority: 'medium',
-                          status: 'pending',
-                          dueDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-                        });
-                      }
-                    }}
-                  >
-                    <PlusCircle className="h-3 w-3 mr-1" />
-                    Quick Task
-                  </Button>
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="Add a quick task..."
+                      value={quickTaskTitle}
+                      onChange={(e) => setQuickTaskTitle(e.target.value)}
+                      className="h-8 text-xs"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && quickTaskTitle.trim()) {
+                          createTaskMutation.mutate({
+                            title: quickTaskTitle.trim(),
+                            description: '',
+                            taskType: 'reminder',
+                            priority: 'medium',
+                            status: 'pending',
+                            dueDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                          });
+                          setQuickTaskTitle('');
+                        }
+                      }}
+                      data-testid="input-quick-task"
+                    />
+                  </div>
                   <Button 
                     variant="outline" 
                     className="w-full h-8 text-xs"

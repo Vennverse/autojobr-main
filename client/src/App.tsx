@@ -216,6 +216,7 @@ function Router() {
                   <Route path="/job-seeker-tests" component={JobSeekerTests} />
                   <Route path="/job-seeker/tests" component={JobSeekerTests} />
                   <Route path="/ranking-tests" component={RankingTests} />
+                  <Route path="/task-management" component={TaskManagement} />
                   <Route path="/test/:id" component={TestTaking} />
                   <Route path="/test/:id/retake-payment">
                     {(params) => <TestRetakePayment />}
