@@ -132,7 +132,7 @@ export class JobSpyService {
         'Seattle, WA',
         'Remote'
       ],
-      job_sites: ['indeed', 'linkedin', 'zip_recruiter'],
+      job_sites: ['indeed', 'linkedin'],
       results_wanted: 30,
       country: 'USA'
     };
@@ -153,7 +153,7 @@ export class JobSpyService {
         'remote designer'
       ],
       locations: ['Remote', 'Anywhere'],
-      job_sites: ['indeed', 'linkedin', 'zip_recruiter'],
+      job_sites: ['indeed', 'linkedin'],
       results_wanted: 40,
       country: 'USA'
     };
@@ -168,7 +168,7 @@ export class JobSpyService {
     const config: JobSpyConfig = {
       search_terms: [role],
       locations: location ? [location] : ['New York, NY', 'San Francisco, CA', 'Remote'],
-      job_sites: ['indeed', 'linkedin', 'zip_recruiter'],
+      job_sites: ['indeed', 'linkedin'],
       results_wanted: 25,
       country: 'USA'
     };
@@ -216,7 +216,7 @@ export class JobSpyService {
    * Get available job sites supported by JobSpy
    */
   getAvailableJobSites(): string[] {
-    return ['indeed', 'linkedin', 'zip_recruiter', 'glassdoor'];
+    return ['indeed', 'linkedin'];
   }
 
   /**

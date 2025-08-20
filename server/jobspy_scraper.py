@@ -150,7 +150,7 @@ class JobSpyIntegration:
             locations = ['New York, NY', 'San Francisco, CA', 'Los Angeles, CA', 'Chicago, IL', 'Remote']
         
         if job_sites is None:
-            job_sites = ['indeed', 'linkedin', 'zip_recruiter']
+            job_sites = ['indeed', 'linkedin']
         
         all_jobs = []
         

@@ -381,8 +381,6 @@ export default function AdminJobSpyPage() {
                     <SelectContent>
                       <SelectItem value="indeed">Indeed</SelectItem>
                       <SelectItem value="linkedin">LinkedIn</SelectItem>
-                      <SelectItem value="zip_recruiter">ZipRecruiter</SelectItem>
-                      <SelectItem value="glassdoor">Glassdoor</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
