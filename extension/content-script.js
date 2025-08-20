@@ -2793,15 +2793,32 @@ class AutoJobrContentScript {
   async loadUserTasks() {
     try {
       const apiUrl = await this.getApiUrl();
-      const response = await fetch(`${apiUrl}/api/tasks/pending-reminders`, {
+      const response = await fetch(`${apiUrl}/api/reminders/pending`, {
         method: 'GET',
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
       });
       
-      if (!response.ok) return;
+      if (!response.ok) {
+        if (response.status === 401) {
+          console.log('User not authenticated - skipping task load');
+          return;
+        }
+        console.error('Task API error:', response.status, response.statusText);
+        return;
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Expected JSON response but got:', contentType);
+        return;
+      }
       
       const data = await response.json();
-      if (data.success && data.reminders.length > 0) {
+      if (data.success && data.reminders && data.reminders.length > 0) {
         this.displayTasks(data.reminders);
       }
     } catch (error) {
@@ -2855,14 +2872,21 @@ class AutoJobrContentScript {
   async markTaskComplete(taskId) {
     try {
       const apiUrl = await this.getApiUrl();
-      await fetch(`${apiUrl}/api/tasks/${taskId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch(`${apiUrl}/api/tasks/${taskId}/status`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         credentials: 'include',
         body: JSON.stringify({ status: 'completed' })
       });
       
-      this.updateTaskCount(-1);
+      if (response.ok) {
+        this.updateTaskCount(-1);
+      } else {
+        console.error('Failed to mark task complete:', response.status);
+      }
     } catch (error) {
       console.error('Failed to mark task complete:', error);
     }
@@ -2872,14 +2896,21 @@ class AutoJobrContentScript {
   async snoozeReminder(reminderId) {
     try {
       const apiUrl = await this.getApiUrl();
-      await fetch(`${apiUrl}/api/tasks/reminders/${reminderId}/snooze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch(`${apiUrl}/api/reminders/${reminderId}/snooze`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         credentials: 'include',
         body: JSON.stringify({ snoozeMinutes: 15 })
       });
       
-      this.updateTaskCount(-1);
+      if (response.ok) {
+        this.updateTaskCount(-1);
+      } else {
+        console.error('Failed to snooze reminder:', response.status);
+      }
     } catch (error) {
       console.error('Failed to snooze reminder:', error);
     }
