@@ -75,16 +75,46 @@ export class JobSpyService {
         
         if (code === 0) {
           try {
-            // Parse the JSON result from stdout
+            // Parse the JSON result from stdout - find JSON block
             const lines = stdout.trim().split('\n');
-            const lastLine = lines[lines.length - 1];
-            const result = JSON.parse(lastLine);
+            let jsonResult = null;
             
-            console.log('[JOBSPY_SERVICE] Scraping completed successfully');
-            console.log('[JOBSPY_SERVICE] Result:', result);
-            resolve(result);
+            // Look for JSON result starting from the end
+            for (let i = lines.length - 1; i >= 0; i--) {
+              const line = lines[i].trim();
+              if (line.startsWith('{') && line.includes('"success"')) {
+                // Try to parse potential JSON lines
+                try {
+                  // If it's a single line JSON
+                  if (line.endsWith('}')) {
+                    jsonResult = JSON.parse(line);
+                    break;
+                  } else {
+                    // Multi-line JSON - collect all lines from this point
+                    const jsonLines = lines.slice(i);
+                    const jsonString = jsonLines.join('\n');
+                    jsonResult = JSON.parse(jsonString);
+                    break;
+                  }
+                } catch (e) {
+                  // Continue looking for valid JSON
+                  continue;
+                }
+              }
+            }
+            
+            if (jsonResult) {
+              console.log('[JOBSPY_SERVICE] Scraping completed successfully');
+              console.log('[JOBSPY_SERVICE] Result:', jsonResult);
+              resolve(jsonResult);
+            } else {
+              console.error('[JOBSPY_SERVICE] No valid JSON found in output');
+              console.error('[JOBSPY_SERVICE] Full stdout:', stdout);
+              reject(new Error('No valid JSON result found in JobSpy output'));
+            }
           } catch (parseError) {
             console.error('[JOBSPY_SERVICE] Failed to parse result:', parseError);
+            console.error('[JOBSPY_SERVICE] Full stdout:', stdout);
             reject(new Error(`Failed to parse JobSpy result: ${parseError.message}`));
           }
         } else {
