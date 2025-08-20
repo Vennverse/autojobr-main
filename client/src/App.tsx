@@ -60,6 +60,7 @@ import PipelineManagement from "@/pages/PipelineManagement";
 import ApplicantsPage from "@/pages/modern-recruiter-dashboard";
 import EnhancedPipelineManagement from "@/pages/enhanced-pipeline-management";
 import TaskManagement from "@/pages/task-management";
+import JobSeekerTasks from "@/pages/job-seeker-tasks";
 import AdvancedAnalyticsDashboard from "@/pages/advanced-analytics-dashboard";
 import BackgroundCheckIntegration from "@/pages/background-check-integration";
 import SSOConfiguration from "@/pages/sso-configuration";
@@ -217,6 +218,7 @@ function Router() {
                   <Route path="/job-seeker/tests" component={JobSeekerTests} />
                   <Route path="/ranking-tests" component={RankingTests} />
                   <Route path="/task-management" component={TaskManagement} />
+                  <Route path="/job-seeker-tasks" component={JobSeekerTasks} />
                   <Route path="/test/:id" component={TestTaking} />
                   <Route path="/test/:id/retake-payment">
                     {(params) => <TestRetakePayment />}

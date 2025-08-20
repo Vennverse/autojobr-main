@@ -448,7 +448,7 @@ export default function Applications() {
                   <Button 
                     variant="outline" 
                     className="w-full h-8 text-xs"
-                    onClick={() => window.location.href = '/task-management'}
+                    onClick={() => window.location.href = '/job-seeker-tasks'}
                   >
                     <ChevronRight className="h-3 w-3 mr-1" />
                     Full Manager
