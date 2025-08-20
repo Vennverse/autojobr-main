@@ -142,19 +142,25 @@ export default function JobSeekerTasks() {
   // Update task status mutation
   const updateTaskStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number, status: string }) => {
-      return apiRequest(`/api/tasks/${id}/status`, "PATCH", { status });
+      console.log('Updating task status:', { id, status });
+      const result = await apiRequest(`/api/tasks/${id}/status`, "PATCH", { status });
+      console.log('Update result:', result);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      console.log('Task update successful:', data);
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      refetchTasks(); // Force refetch
       toast({
-        title: "Task Updated",
-        description: "Task status has been updated successfully.",
+        title: "✅ Task Updated",
+        description: `Task marked as ${variables.status.replace('_', ' ')}`,
       });
     },
     onError: (error: any) => {
+      console.error('Task update error:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to update task",
+        title: "❌ Update Failed",
+        description: error.message || "Failed to update task status",
         variant: "destructive",
       });
     }
@@ -163,18 +169,24 @@ export default function JobSeekerTasks() {
   // Delete task mutation
   const deleteTaskMutation = useMutation({
     mutationFn: async (taskId: number) => {
-      return apiRequest(`/api/tasks/${taskId}`, "DELETE");
+      console.log('Deleting task:', taskId);
+      const result = await apiRequest(`/api/tasks/${taskId}`, "DELETE");
+      console.log('Delete result:', result);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data, taskId) => {
+      console.log('Task delete successful:', data);
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      refetchTasks(); // Force refetch
       toast({
-        title: "Task Deleted",
-        description: "Task has been deleted successfully.",
+        title: "🗑️ Task Deleted",
+        description: "Task has been permanently deleted.",
       });
     },
     onError: (error: any) => {
+      console.error('Task delete error:', error);
       toast({
-        title: "Error",
+        title: "❌ Delete Failed",
         description: error.message || "Failed to delete task",
         variant: "destructive",
       });
@@ -495,23 +507,40 @@ export default function JobSeekerTasks() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => updateTaskStatusMutation.mutate({ 
-                              id: task.id, 
-                              status: task.status === 'pending' ? 'in_progress' : 'completed' 
-                            })}
+                            onClick={() => {
+                              const newStatus = task.status === 'pending' ? 'in_progress' : 'completed';
+                              updateTaskStatusMutation.mutate({ id: task.id, status: newStatus });
+                            }}
+                            disabled={updateTaskStatusMutation.isPending}
                             data-testid={`button-update-${task.id}`}
                           >
-                            {task.status === 'pending' ? 'Start' : 'Complete'}
+                            {updateTaskStatusMutation.isPending ? (
+                              <>
+                                <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                                Updating...
+                              </>
+                            ) : (
+                              task.status === 'pending' ? 'Start' : 'Complete'
+                            )}
                           </Button>
                         )}
                         
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => deleteTaskMutation.mutate(task.id)}
+                          onClick={() => {
+                            if (confirm('Are you sure you want to delete this task?')) {
+                              deleteTaskMutation.mutate(task.id);
+                            }
+                          }}
+                          disabled={deleteTaskMutation.isPending}
                           data-testid={`button-delete-${task.id}`}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          {deleteTaskMutation.isPending ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
