@@ -267,14 +267,15 @@ export default function Jobs() {
 
   // Filter and sort jobs
   const filteredJobs = allJobs.filter((job: any) => {
-    if (!searchQuery) return true;
-    const searchLower = searchQuery.toLowerCase();
+    if (!searchQuery?.trim()) return true;
+    const searchLower = searchQuery.toLowerCase().trim();
     return (
-      job.title.toLowerCase().includes(searchLower) ||
-      job.companyName.toLowerCase().includes(searchLower) ||
-      job.description.toLowerCase().includes(searchLower) ||
+      job.title?.toLowerCase().includes(searchLower) ||
+      job.companyName?.toLowerCase().includes(searchLower) ||
+      job.description?.toLowerCase().includes(searchLower) ||
+      job.location?.toLowerCase().includes(searchLower) ||
       (job.requiredSkills && job.requiredSkills.some((skill: string) => 
-        skill.toLowerCase().includes(searchLower)
+        skill?.toLowerCase().includes(searchLower)
       ))
     );
   });
@@ -292,6 +293,11 @@ export default function Jobs() {
   const totalPages = Math.ceil(totalJobs / jobsPerPage);
   const startIndex = (currentPage - 1) * jobsPerPage;
   const paginatedJobs = sortedJobs.slice(startIndex, startIndex + jobsPerPage);
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterPreferences]);
 
   // Set first job as selected by default
   useEffect(() => {
@@ -493,67 +499,6 @@ export default function Jobs() {
                   </Card>
                 );
               })
-            )}
-            
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-6 pb-4">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    Previous
-                  </Button>
-                  
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      const page = i + 1;
-                      return (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(page)}
-                          className="w-8 h-8"
-                        >
-                          {page}
-                        </Button>
-                      );
-                    })}
-                    {totalPages > 5 && (
-                      <>
-                        <span className="px-2">...</span>
-                        <Button
-                          variant={currentPage === totalPages ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(totalPages)}
-                          className="w-8 h-8"
-                        >
-                          {totalPages}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </div>
-                
-                <p className="text-sm text-gray-500">
-                  Page {currentPage} of {totalPages}
-                </p>
-              </div>
             )}
             
             {/* Pagination */}
