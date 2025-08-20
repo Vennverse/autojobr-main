@@ -28,47 +28,11 @@ app.use(compression({
 
 // CORS configuration for Chrome extension and external sites
 app.use(cors({
-  origin: [
-    'chrome-extension://*',
-    'moz-extension://*',
-    /^https?:\/\/localhost:\d+$/,
-    /^https?:\/\/.*\.replit\.app$/,
-    /^https?:\/\/.*\.replit\.dev$/,
-    /^https?:\/\/.*\.vercel\.app$/,
-    /^https?:\/\/.*\.railway\.app$/,
-    /^https?:\/\/.*\.netlify\.app$/,
-    // Job sites where the extension operates
-    'https://www.linkedin.com',
-    'https://linkedin.com',
-    'https://www.indeed.com',
-    'https://indeed.com',
-    'https://www.glassdoor.com',
-    'https://glassdoor.com',
-    'https://www.monster.com',
-    'https://monster.com',
-    'https://www.ziprecruiter.com',
-    'https://ziprecruiter.com',
-    'https://stackoverflow.com',
-    'https://www.stackoverflow.com',
-    'https://angel.co',
-    'https://www.angel.co',
-    'https://wellfound.com',
-    'https://www.wellfound.com',
-    // Workday job sites
-    /^https:\/\/.*\.wd\d*\.myworkdayjobs\.com$/,
-    /^https:\/\/.*\.myworkdayjobs\.com$/,
-    'https://chevron.wd5.myworkdayjobs.com',
-    // Production domain
-    'https://autojobr.com',
-    'https://www.autojobr.com',
-    'https://autojobr.com',
-    'https://www.autojobr.com',
-    ...(process.env.PRODUCTION_DOMAIN ? [process.env.PRODUCTION_DOMAIN] : [])
-  ],
+  origin: true, // Allow all origins for production
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept', 'X-Requested-With'],
-  optionsSuccessStatus: 200, // Some legacy browsers choke on 204
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept', 'X-Requested-With', 'Origin'],
+  optionsSuccessStatus: 200,
   preflightContinue: false
 }));
 

@@ -17,35 +17,51 @@ class AutoJobrBackground {
   }
 
   async detectApiUrl() {
-    const possibleUrls = [
-      'https://autojobr.com',
-      'https://fce2901e-6020-4c23-97dc-13c7fd7f97c3-00-15wzli1eenkr6.picard.replit.dev'
-    ];
+    // Use only production URL
+    const url = 'https://autojobr.com';
 
-    for (const url of possibleUrls) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
-        
-        const response = await fetch(`${url}/api/health`, { 
-          method: 'GET',
-          mode: 'cors',
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (response.ok) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(`${url}/api/health`, { 
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'include',
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.status === 'ok' || data.message) {
           this.apiUrl = url;
           console.log('✅ Connected to AutoJobr server:', this.apiUrl);
           
           // Update stored API URL
           await chrome.storage.sync.set({ apiUrl: this.apiUrl });
-          break;
+          
+          // Notify content scripts of successful connection
+          chrome.tabs.query({}, (tabs) => {
+            tabs.forEach(tab => {
+              if (tab.id) {
+                chrome.tabs.sendMessage(tab.id, {
+                  action: 'apiConnected',
+                  apiUrl: this.apiUrl
+                }).catch(() => {}); // Ignore errors for tabs without content script
+              }
+            });
+          });
         }
-      } catch (error) {
-        console.log(`Failed to connect to ${url}:`, error.message);
       }
+    } catch (error) {
+      console.log(`Failed to connect to ${url}:`, error.message);
+      console.log('Extension will work in offline mode');
     }
   }
 
