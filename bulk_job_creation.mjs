@@ -1,8 +1,10 @@
+import fetch from 'node-fetch';
+
 const jobs = [
   // Software Engineering Jobs
   {
     title: "Senior Full Stack Developer",
-    company: "TechVision Solutions",
+    companyName: "TechVision Solutions",
     location: "San Francisco, CA",
     workMode: "hybrid",
     jobType: "full-time",
@@ -17,7 +19,7 @@ const jobs = [
   },
   {
     title: "DevOps Engineer",
-    company: "CloudFirst Inc",
+    companyName: "CloudFirst Inc",
     location: "Austin, TX",
     workMode: "remote",
     jobType: "full-time",
@@ -32,7 +34,7 @@ const jobs = [
   },
   {
     title: "Frontend React Developer",
-    company: "Digital Dynamics",
+    companyName: "Digital Dynamics",
     location: "New York, NY",
     workMode: "onsite",
     jobType: "full-time",
@@ -47,7 +49,7 @@ const jobs = [
   },
   {
     title: "Backend Python Developer",
-    company: "DataFlow Systems",
+    companyName: "DataFlow Systems",
     location: "Seattle, WA",
     workMode: "hybrid",
     jobType: "full-time",
@@ -62,7 +64,7 @@ const jobs = [
   },
   {
     title: "Mobile App Developer (iOS/Android)",
-    company: "MobileFirst Studios",
+    companyName: "MobileFirst Studios",
     location: "Los Angeles, CA",
     workMode: "hybrid",
     jobType: "full-time",
@@ -79,7 +81,7 @@ const jobs = [
   // Marketing Jobs
   {
     title: "Digital Marketing Manager",
-    company: "GrowthLab Marketing",
+    companyName: "GrowthLab Marketing",
     location: "Chicago, IL",
     workMode: "hybrid",
     jobType: "full-time",
@@ -94,7 +96,7 @@ const jobs = [
   },
   {
     title: "Content Marketing Specialist",
-    company: "ContentCraft Agency",
+    companyName: "ContentCraft Agency",
     location: "Remote",
     workMode: "remote",
     jobType: "full-time",
@@ -109,7 +111,7 @@ const jobs = [
   },
   {
     title: "Social Media Manager",
-    company: "Brand Builders Co",
+    companyName: "Brand Builders Co",
     location: "Miami, FL",
     workMode: "onsite",
     jobType: "full-time",
@@ -124,7 +126,7 @@ const jobs = [
   },
   {
     title: "SEO Specialist",
-    company: "SearchPro Digital",
+    companyName: "SearchPro Digital",
     location: "Denver, CO",
     workMode: "remote",
     jobType: "full-time",
@@ -139,7 +141,7 @@ const jobs = [
   },
   {
     title: "Email Marketing Specialist",
-    company: "EmailExpert Solutions",
+    companyName: "EmailExpert Solutions",
     location: "Boston, MA",
     workMode: "hybrid",
     jobType: "full-time",
@@ -156,7 +158,7 @@ const jobs = [
   // Sales Jobs
   {
     title: "Enterprise Sales Executive",
-    company: "SalesPro Enterprise",
+    companyName: "SalesPro Enterprise",
     location: "San Francisco, CA",
     workMode: "hybrid",
     jobType: "full-time",
@@ -171,7 +173,7 @@ const jobs = [
   },
   {
     title: "Inside Sales Representative",
-    company: "TechSales Solutions",
+    companyName: "TechSales Solutions",
     location: "Austin, TX",
     workMode: "onsite",
     jobType: "full-time",
@@ -186,7 +188,7 @@ const jobs = [
   },
   {
     title: "Account Manager",
-    company: "ClientFirst Services",
+    companyName: "ClientFirst Services",
     location: "Chicago, IL",
     workMode: "hybrid",
     jobType: "full-time",
@@ -201,7 +203,7 @@ const jobs = [
   },
   {
     title: "Business Development Representative",
-    company: "GrowthEngine Corp",
+    companyName: "GrowthEngine Corp",
     location: "Remote",
     workMode: "remote",
     jobType: "full-time",
@@ -216,7 +218,7 @@ const jobs = [
   },
   {
     title: "Sales Operations Analyst",
-    company: "SalesOps Pro",
+    companyName: "SalesOps Pro",
     location: "Seattle, WA",
     workMode: "hybrid",
     jobType: "full-time",
@@ -233,7 +235,7 @@ const jobs = [
   // HR Jobs
   {
     title: "HR Business Partner",
-    company: "PeopleFirst Solutions",
+    companyName: "PeopleFirst Solutions",
     location: "New York, NY",
     workMode: "hybrid",
     jobType: "full-time",
@@ -248,7 +250,7 @@ const jobs = [
   },
   {
     title: "Talent Acquisition Specialist",
-    company: "TalentHub Recruiting",
+    companyName: "TalentHub Recruiting",
     location: "San Diego, CA",
     workMode: "hybrid",
     jobType: "full-time",
@@ -263,7 +265,7 @@ const jobs = [
   },
   {
     title: "HR Generalist",
-    company: "CompleteCare HR",
+    companyName: "CompleteCare HR",
     location: "Phoenix, AZ",
     workMode: "onsite",
     jobType: "full-time",
@@ -278,7 +280,7 @@ const jobs = [
   },
   {
     title: "Learning and Development Specialist",
-    company: "SkillBuilder Corp",
+    companyName: "SkillBuilder Corp",
     location: "Remote",
     workMode: "remote",
     jobType: "full-time",
@@ -293,7 +295,7 @@ const jobs = [
   },
   {
     title: "Compensation and Benefits Analyst",
-    company: "RewardSystems Inc",
+    companyName: "RewardSystems Inc",
     location: "Dallas, TX",
     workMode: "hybrid",
     jobType: "full-time",
@@ -310,7 +312,7 @@ const jobs = [
   // Other Professional Roles
   {
     title: "Project Manager",
-    company: "ProjectPro Solutions",
+    companyName: "ProjectPro Solutions",
     location: "Atlanta, GA",
     workMode: "hybrid",
     jobType: "full-time",
@@ -325,7 +327,7 @@ const jobs = [
   },
   {
     title: "Data Analyst",
-    company: "DataInsights Pro",
+    companyName: "DataInsights Pro",
     location: "Remote",
     workMode: "remote",
     jobType: "full-time",
@@ -340,7 +342,7 @@ const jobs = [
   },
   {
     title: "UX/UI Designer",
-    company: "DesignCraft Studio",
+    companyName: "DesignCraft Studio",
     location: "Portland, OR",
     workMode: "hybrid",
     jobType: "full-time",
@@ -355,7 +357,7 @@ const jobs = [
   },
   {
     title: "Product Manager",
-    company: "InnovateTech Products",
+    companyName: "InnovateTech Products",
     location: "San Francisco, CA",
     workMode: "hybrid",
     jobType: "full-time",
@@ -370,7 +372,7 @@ const jobs = [
   },
   {
     title: "Business Analyst",
-    company: "BusinessSolutions Corp",
+    companyName: "BusinessSolutions Corp",
     location: "Washington, DC",
     workMode: "hybrid",
     jobType: "full-time",
@@ -387,7 +389,7 @@ const jobs = [
   // Additional Tech Roles
   {
     title: "QA Engineer",
-    company: "QualityFirst Testing",
+    companyName: "QualityFirst Testing",
     location: "Remote",
     workMode: "remote",
     jobType: "full-time",
@@ -402,7 +404,7 @@ const jobs = [
   },
   {
     title: "Cybersecurity Analyst",
-    company: "SecureShield Technologies",
+    companyName: "SecureShield Technologies",
     location: "Washington, DC",
     workMode: "onsite",
     jobType: "full-time",
@@ -417,7 +419,7 @@ const jobs = [
   },
   {
     title: "Database Administrator",
-    company: "DataCore Systems",
+    companyName: "DataCore Systems",
     location: "Phoenix, AZ",
     workMode: "hybrid",
     jobType: "full-time",
@@ -432,7 +434,7 @@ const jobs = [
   },
   {
     title: "Cloud Solutions Architect",
-    company: "CloudFirst Architecture",
+    companyName: "CloudFirst Architecture",
     location: "Seattle, WA",
     workMode: "hybrid",
     jobType: "full-time",
@@ -449,7 +451,7 @@ const jobs = [
   // Finance and Operations
   {
     title: "Financial Analyst",
-    company: "FinanceMax Solutions",
+    companyName: "FinanceMax Solutions",
     location: "New York, NY",
     workMode: "hybrid",
     jobType: "full-time",
@@ -464,7 +466,7 @@ const jobs = [
   },
   {
     title: "Operations Manager",
-    company: "EfficiencyPro Operations",
+    companyName: "EfficiencyPro Operations",
     location: "Chicago, IL",
     workMode: "onsite",
     jobType: "full-time",
@@ -481,7 +483,7 @@ const jobs = [
   // Customer Service and Support
   {
     title: "Customer Success Manager",
-    company: "CustomerFirst Solutions",
+    companyName: "CustomerFirst Solutions",
     location: "Remote",
     workMode: "remote",
     jobType: "full-time",
@@ -496,7 +498,7 @@ const jobs = [
   },
   {
     title: "Technical Support Specialist",
-    company: "TechSupport Pro",
+    companyName: "TechSupport Pro",
     location: "Austin, TX",
     workMode: "hybrid",
     jobType: "full-time",
@@ -511,45 +513,60 @@ const jobs = [
   }
 ];
 
-// Function to create jobs using the API
-async function createJobs() {
-  const baseUrl = 'http://localhost:5000';
+// Function to login and create jobs using the API
+async function loginAndCreateJobs() {
+  console.log('Logging in as recruiter...');
   
+  // Login first
+  const loginResponse = await fetch('http://localhost:5000/api/auth/email/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      email: 'shubham.dubey@vennverse.com',
+      password: '12345678'
+    })
+  });
+  
+  if (!loginResponse.ok) {
+    console.error('Login failed:', await loginResponse.text());
+    return;
+  }
+  
+  // Extract session cookie
+  const cookies = loginResponse.headers.get('set-cookie');
+  console.log(`Login successful, creating ${jobs.length} jobs...`);
+  
+  // Create jobs one by one
   for (let i = 0; i < jobs.length; i++) {
     const job = jobs[i];
     try {
-      const response = await fetch(`${baseUrl}/api/recruiter/jobs`, {
+      const response = await fetch('http://localhost:5000/api/recruiter/jobs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Cookie': 'connect.sid=s%3Ai8uQCbAC-PXQu1mrxQF546IzpENtoNWb.2nQxbxz8%2Bo%2FO4gslH8Qh9DcObK%2F2VdnP%2F5fq9cHOKtM'
+          'Cookie': cookies || ''
         },
         body: JSON.stringify(job)
       });
       
       if (response.ok) {
-        console.log(`✅ Created job ${i + 1}: ${job.title} at ${job.company}`);
+        console.log(`✅ [${i + 1}/${jobs.length}] Created: ${job.title} at ${job.companyName}`);
       } else {
         const error = await response.text();
-        console.log(`❌ Failed to create job ${i + 1}: ${job.title} - ${error}`);
+        console.log(`❌ [${i + 1}/${jobs.length}] Failed: ${job.title} - ${error}`);
       }
     } catch (error) {
-      console.log(`❌ Error creating job ${i + 1}: ${job.title} - ${error.message}`);
+      console.log(`❌ [${i + 1}/${jobs.length}] Error: ${job.title} - ${error.message}`);
     }
     
     // Small delay to avoid overwhelming the server
     await new Promise(resolve => setTimeout(resolve, 100));
   }
   
-  console.log(`\n🎉 Completed creating ${jobs.length} job postings!`);
+  console.log(`\n🎉 Job creation process completed! Successfully created jobs across all categories.`);
+  console.log(`📊 Total jobs processed: ${jobs.length}`);
 }
 
-// Export for Node.js usage
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { jobs, createJobs };
-}
-
-// Run if called directly
-if (typeof require !== 'undefined' && require.main === module) {
-  createJobs();
-}
+loginAndCreateJobs().catch(console.error);
