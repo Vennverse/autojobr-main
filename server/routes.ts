@@ -8291,14 +8291,170 @@ Host: https://autojobr.com`;
 
   // Note: External job search route removed per user request
 
-  // Get scraped jobs with filters - Return empty array for now (table not implemented yet)
+  // Import JobSpy service
+  const { jobSpyService } = await import('./jobspyService.js');
+
+  // Get scraped jobs with filters
   app.get('/api/scraped-jobs', async (req: any, res) => {
     try {
-      // Return empty array until scraped_jobs table is properly implemented
-      res.json([]);
+      const { 
+        category, 
+        location, 
+        workMode, 
+        experienceLevel, 
+        skills,
+        limit = 50,
+        offset = 0 
+      } = req.query;
+
+      let query = db.select().from(schema.scrapedJobs);
+      
+      // Apply filters
+      const conditions = [];
+      if (category) conditions.push(eq(schema.scrapedJobs.category, category));
+      if (location) conditions.push(like(schema.scrapedJobs.location, `%${location}%`));
+      if (workMode) conditions.push(eq(schema.scrapedJobs.workMode, workMode));
+      if (experienceLevel) conditions.push(eq(schema.scrapedJobs.experienceLevel, experienceLevel));
+      if (skills) {
+        const skillsArray = skills.split(',');
+        conditions.push(sql`${schema.scrapedJobs.skills} && ${skillsArray}`);
+      }
+      
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+      
+      const jobs = await query
+        .where(eq(schema.scrapedJobs.isActive, true))
+        .orderBy(desc(schema.scrapedJobs.createdAt))
+        .limit(parseInt(limit))
+        .offset(parseInt(offset));
+
+      res.json(jobs);
     } catch (error) {
       console.error("Error fetching scraped jobs:", error);
-      res.json([]);
+      res.status(500).json({ error: "Failed to fetch scraped jobs" });
+    }
+  });
+
+  // JobSpy Routes
+  // ===============================
+
+  // Test JobSpy installation
+  app.get('/api/jobspy/test', async (req: any, res) => {
+    try {
+      const result = await jobSpyService.testJobSpy();
+      res.json(result);
+    } catch (error) {
+      console.error("Error testing JobSpy:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: `JobSpy test failed: ${error.message}` 
+      });
+    }
+  });
+
+  // Start JobSpy scraping with custom configuration
+  app.post('/api/jobspy/scrape', async (req: any, res) => {
+    try {
+      const config = req.body;
+      console.log('[API] Starting JobSpy scraping with config:', config);
+      
+      const result = await jobSpyService.scrapeJobs(config);
+      res.json(result);
+    } catch (error) {
+      console.error("Error running JobSpy scraping:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Quick scrape for tech jobs
+  app.post('/api/jobspy/scrape-tech', async (req: any, res) => {
+    try {
+      console.log('[API] Starting JobSpy tech jobs scraping...');
+      const result = await jobSpyService.scrapeTechJobs();
+      res.json(result);
+    } catch (error) {
+      console.error("Error scraping tech jobs:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Scrape remote jobs specifically
+  app.post('/api/jobspy/scrape-remote', async (req: any, res) => {
+    try {
+      console.log('[API] Starting JobSpy remote jobs scraping...');
+      const result = await jobSpyService.scrapeRemoteJobs();
+      res.json(result);
+    } catch (error) {
+      console.error("Error scraping remote jobs:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Scrape jobs by specific role and location
+  app.post('/api/jobspy/scrape-role', async (req: any, res) => {
+    try {
+      const { role, location } = req.body;
+      
+      if (!role) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Role is required' 
+        });
+      }
+
+      console.log(`[API] Starting JobSpy scraping for role: ${role}, location: ${location || 'default locations'}`);
+      const result = await jobSpyService.scrapeJobsByRole(role, location);
+      res.json(result);
+    } catch (error) {
+      console.error("Error scraping jobs by role:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Get JobSpy configuration options
+  app.get('/api/jobspy/config', async (req: any, res) => {
+    try {
+      const config = {
+        available_job_sites: jobSpyService.getAvailableJobSites(),
+        search_terms_by_category: jobSpyService.getSearchTermsByCategory(),
+        common_locations: [
+          'New York, NY',
+          'San Francisco, CA',
+          'Los Angeles, CA',
+          'Chicago, IL',
+          'Austin, TX',
+          'Seattle, WA',
+          'Boston, MA',
+          'Denver, CO',
+          'Atlanta, GA',
+          'Remote'
+        ],
+        countries: ['USA', 'Canada', 'UK'],
+        max_results_per_search: 50
+      };
+      
+      res.json(config);
+    } catch (error) {
+      console.error("Error getting JobSpy config:", error);
+      res.status(500).json({ error: "Failed to get configuration" });
     }
   });
 

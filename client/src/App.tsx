@@ -42,6 +42,7 @@ import QuestionBuilder from "@/pages/question-builder";
 import RecruiterFeatures from "@/pages/recruiter-features";
 import QuestionBank from "@/pages/question-bank";
 import QuestionBankAdmin from "@/pages/admin/question-bank";
+import AdminJobSpyPage from "@/pages/admin-jobspy";
 // Import Dashboard for the missing reference
 import Dashboard from "@/pages/dashboard";
 import QuickLogin from "@/pages/quick-login";
@@ -178,6 +179,7 @@ function Router() {
               </Route>
               <Route path="/recruiter/question-bank" component={QuestionBank} />
               <Route path="/admin/question-bank" component={QuestionBankAdmin} />
+              <Route path="/admin/jobspy" component={AdminJobSpyPage} />
               <Route path="/recruiter/interview-assignments" component={InterviewAssignments} />
               <Route path="/recruiter/applicants" component={ApplicantsPage} />
               <Route path="/recruiter/pipeline" component={PipelineManagement} />
