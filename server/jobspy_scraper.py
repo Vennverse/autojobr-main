@@ -8,6 +8,8 @@ import os
 import sys
 import json
 import psycopg2
+import pandas as pd
+import numpy as np
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 import traceback
@@ -95,13 +97,26 @@ class JobSpyIntegration:
     
     def clean_salary(self, salary_min: Optional[float], salary_max: Optional[float]) -> Optional[str]:
         """Clean and format salary range"""
-        if salary_min and salary_max:
-            return f"${int(salary_min):,} - ${int(salary_max):,}"
-        elif salary_min:
-            return f"${int(salary_min):,}+"
-        elif salary_max:
-            return f"Up to ${int(salary_max):,}"
-        return None
+        try:
+            if salary_min is not None and not pd.isna(salary_min) and salary_min > 0:
+                salary_min = int(float(salary_min))
+            else:
+                salary_min = None
+                
+            if salary_max is not None and not pd.isna(salary_max) and salary_max > 0:
+                salary_max = int(float(salary_max))
+            else:
+                salary_max = None
+                
+            if salary_min and salary_max:
+                return f"${salary_min:,} - ${salary_max:,}"
+            elif salary_min:
+                return f"${salary_min:,}+"
+            elif salary_max:
+                return f"Up to ${salary_max:,}"
+            return None
+        except (ValueError, TypeError, OverflowError):
+            return None
     
     def extract_skills(self, title: str, description: str) -> List[str]:
         """Extract skills from job title and description"""
@@ -166,7 +181,7 @@ class JobSpyIntegration:
                         location=location,
                         results_wanted=min(results_wanted, 20),  # Limit per search to avoid rate limits
                         hours_old=72,  # Only get jobs posted in last 72 hours
-                        country_indeed=country,
+                        country_indeed=country.lower(),
                         hyperlinks=True,
                         verbose=0
                     )
@@ -175,33 +190,40 @@ class JobSpyIntegration:
                         print(f"[JOBSPY] Found {len(jobs_df)} jobs for '{search_term}' in '{location}'")
                         
                         for _, job in jobs_df.iterrows():
-                            # Convert job data to our format
-                            skills = self.extract_skills(str(job.get('title', '')), str(job.get('description', '')))
-                            category, subcategory = self.categorize_job(str(job.get('title', '')), skills)
-                            experience_level = self.determine_experience_level(
-                                str(job.get('title', '')), 
-                                str(job.get('description', ''))
-                            )
-                            
-                            job_data = {
-                                'title': str(job.get('title', 'Unknown Position')),
-                                'company': str(job.get('company', 'Unknown Company')),
-                                'description': str(job.get('description', ''))[:2000],  # Limit description length
-                                'location': str(job.get('location', location)),
-                                'work_mode': 'remote' if 'remote' in str(job.get('location', '')).lower() else 'onsite',
-                                'job_type': 'full-time',  # Default, JobSpy doesn't always provide this
-                                'experience_level': experience_level,
-                                'salary_range': self.clean_salary(job.get('min_amount'), job.get('max_amount')),
-                                'skills': skills,
-                                'source_url': str(job.get('job_url', '')),
-                                'source_platform': str(job.get('site', 'unknown')),
-                                'external_id': f"{job.get('site', 'unknown')}_{hash(str(job.get('job_url', '')))}",
-                                'category': category,
-                                'subcategory': subcategory,
-                                'tags': skills[:5],  # Use first 5 skills as tags
-                                'scraped_at': datetime.now()
-                            }
-                            all_jobs.append(job_data)
+                            try:
+                                # Convert job data to our format
+                                skills = self.extract_skills(str(job.get('title', '')), str(job.get('description', '')))
+                                category, subcategory = self.categorize_job(str(job.get('title', '')), skills)
+                                experience_level = self.determine_experience_level(
+                                    str(job.get('title', '')), 
+                                    str(job.get('description', ''))
+                                )
+                                
+                                job_data = {
+                                    'title': str(job.get('title', 'Unknown Position')),
+                                    'company': str(job.get('company', 'Unknown Company')),
+                                    'description': str(job.get('description', ''))[:2000],  # Limit description length
+                                    'location': str(job.get('location', location)),
+                                    'work_mode': 'remote' if 'remote' in str(job.get('location', '')).lower() else 'onsite',
+                                    'job_type': 'full-time',  # Default, JobSpy doesn't always provide this
+                                    'experience_level': experience_level,
+                                    'salary_range': self.clean_salary(
+                                        job.get('min_amount'), 
+                                        job.get('max_amount')
+                                    ),
+                                    'skills': skills,
+                                    'source_url': str(job.get('job_url', '')),
+                                    'source_platform': str(job.get('site', 'unknown')),
+                                    'external_id': f"{job.get('site', 'unknown')}_{hash(str(job.get('job_url', '')))}",
+                                    'category': category,
+                                    'subcategory': subcategory,
+                                    'tags': skills[:5],  # Use first 5 skills as tags
+                                    'scraped_at': datetime.now()
+                                }
+                                all_jobs.append(job_data)
+                            except Exception as job_error:
+                                print(f"[JOBSPY] Error processing individual job: {str(job_error)}")
+                                continue
                     
                 except Exception as e:
                     print(f"[JOBSPY] Error scraping '{search_term}' in '{location}': {str(e)}")
@@ -287,7 +309,7 @@ class JobSpyIntegration:
         
         return saved_count
     
-    def run_scraping(self, config: Dict[str, Any] = None) -> Dict[str, Any]:
+    def run_scraping(self, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Run the complete scraping process"""
         if config is None:
             config = {}
@@ -305,7 +327,7 @@ class JobSpyIntegration:
                 'Chicago, IL', 'Austin, TX', 'Seattle, WA', 'Remote'
             ])
             
-            job_sites = config.get('job_sites', ['indeed', 'linkedin', 'zip_recruiter'])
+            job_sites = config.get('job_sites', ['indeed', 'linkedin'])
             results_wanted = config.get('results_wanted', 50)
             country = config.get('country', 'USA')
             
