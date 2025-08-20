@@ -37,6 +37,7 @@ class AutoJobrContentScript {
 
   detectSite() {
     const hostname = window.location.hostname.toLowerCase();
+    const pathname = window.location.pathname.toLowerCase();
     
     const siteMap = {
       'linkedin.com': 'linkedin',
@@ -215,9 +216,10 @@ class AutoJobrContentScript {
       
       // Resume/Cover Letter
       resume: {
-        patterns: ['resume', 'cv', 'resumeUpload', 'resume_upload', 'curriculum'],
+        patterns: ['resume', 'cv', 'resumeUpload', 'resume_upload', 'curriculum', 'attachment', 'document', 'file'],
         types: ['file'],
-        priority: 9
+        priority: 9,
+        autoFill: true
       },
       coverLetter: {
         patterns: ['coverLetter', 'cover_letter', 'covering_letter', 'motivation'],
@@ -306,6 +308,10 @@ class AutoJobrContentScript {
                 <span class="btn-icon">📝</span>
                 <span>Cover Letter</span>
               </button>
+              <button class="autojobr-btn secondary" id="autojobr-upload-resume">
+                <span class="btn-icon">📄</span>
+                <span>Upload Resume</span>
+              </button>
             </div>
           </div>
           
@@ -318,6 +324,18 @@ class AutoJobrContentScript {
               <input type="checkbox" id="auto-submit">
               <label for="auto-submit">Auto Submit</label>
             </div>
+            <div class="feature-toggle">
+              <input type="checkbox" id="auto-resume" checked>
+              <label for="auto-resume">Auto Resume Upload</label>
+            </div>
+          </div>
+          
+          <div class="autojobr-tasks" id="autojobr-tasks" style="display: none;">
+            <div class="tasks-header">
+              <span class="tasks-title">📋 Pending Tasks</span>
+              <span class="tasks-count" id="tasks-count">0</span>
+            </div>
+            <div class="tasks-list" id="tasks-list"></div>
           </div>
           
           <div class="autojobr-stats" id="autojobr-stats" style="display: none;">
@@ -341,6 +359,9 @@ class AutoJobrContentScript {
     document.body.appendChild(overlay);
     this.attachEnhancedUIEventListeners();
     this.makeWidgetDraggable();
+    
+    // Load user tasks when widget is displayed
+    this.loadUserTasks();
   }
 
   attachEnhancedUIEventListeners() {
@@ -349,6 +370,7 @@ class AutoJobrContentScript {
     document.getElementById('autojobr-analyze')?.addEventListener('click', () => this.handleAnalyze());
     document.getElementById('autojobr-save-job')?.addEventListener('click', () => this.handleSaveJob());
     document.getElementById('autojobr-cover-letter')?.addEventListener('click', () => this.handleCoverLetter());
+    document.getElementById('autojobr-upload-resume')?.addEventListener('click', () => this.handleResumeUpload());
 
     // Widget controls
     // Enhanced close button with better event handling
@@ -389,6 +411,10 @@ class AutoJobrContentScript {
 
     document.getElementById('auto-submit')?.addEventListener('change', (e) => {
       chrome.storage.sync.set({ autoSubmitMode: e.target.checked });
+    });
+    
+    document.getElementById('auto-resume')?.addEventListener('change', (e) => {
+      chrome.storage.sync.set({ autoResumeMode: e.target.checked });
     });
   }
 
@@ -587,44 +613,78 @@ class AutoJobrContentScript {
   isJobPage() {
     const url = window.location.href.toLowerCase();
     const hostname = window.location.hostname.toLowerCase();
+    const pathname = window.location.pathname.toLowerCase();
     
-    // Site-specific job page detection
+    // Enhanced site-specific job page detection
     const jobPagePatterns = {
-      'linkedin.com': ['/jobs/', '/job/'],
-      'indeed.com': ['/job/', '/viewjob'],
-      'glassdoor.com': ['/job/', '/jobs/'],
-      'ziprecruiter.com': ['/jobs/', '/job/'],
-      'monster.com': ['/job/', '/jobs/'],
-      'careerbuilder.com': ['/job/', '/jobs/'],
-      'dice.com': ['/jobs/', '/job/'],
+      'linkedin.com': ['/jobs/', '/job/', '/jobs/view/', '/jobs/search/', 'jobs/collections/'],
+      'indeed.com': ['/job/', '/viewjob', '/jobs/', '/job-'],
+      'glassdoor.com': ['/job/', '/jobs/', '/job-listing/'],
+      'ziprecruiter.com': ['/jobs/', '/job/', '/c/'],
+      'monster.com': ['/job/', '/jobs/', '/job-openings/'],
+      'careerbuilder.com': ['/job/', '/jobs/', '/job-'],
+      'dice.com': ['/jobs/', '/job/', '/job-detail/'],
       'stackoverflow.com': ['/jobs/', '/job/'],
-      'angel.co': ['/job/', '/jobs/'],
-      'wellfound.com': ['/job/', '/jobs/'],
-      'greenhouse.io': ['/job/', '/jobs/'],
-      'lever.co': ['/jobs/', '/job/'],
-      'workday.com': ['/job/', '/jobs/', '/en-us/job/'],
-      'myworkdayjobs.com': ['/job/', '/jobs/'],
-      'icims.com': ['/job/', '/jobs/'],
-      'smartrecruiters.com': ['/job/', '/jobs/'],
-      'bamboohr.com': ['/job/', '/jobs/'],
-      'ashbyhq.com': ['/job/', '/jobs/'],
-      'careers.google.com': ['/job/', '/jobs/'],
-      'amazon.jobs': ['/job/', '/jobs/'],
-      'microsoft.com': ['/job/', '/jobs/', '/careers/job-search/'],
-      'apple.com': ['/job/', '/jobs/'],
-      'meta.com': ['/job/', '/jobs/']
+      'angel.co': ['/job/', '/jobs/', '/company/', '/job-'],
+      'wellfound.com': ['/job/', '/jobs/', '/company/', '/job-'],
+      'greenhouse.io': ['/job/', '/jobs/', '/job_app/'],
+      'lever.co': ['/jobs/', '/job/', '/postings/'],
+      'workday.com': ['/job/', '/jobs/', '/en-us/job/', '/job_', '/job-', '/jobs/', '/job_app', '/apply', '/careers/job/', '/en/job/', '/job_detail'],
+      'myworkdayjobs.com': ['/job/', '/jobs/', '/job_', '/job-', '/apply', '/job_detail', '/job_app'],
+      'icims.com': ['/job/', '/jobs/', '/job_', '/apply'],
+      'smartrecruiters.com': ['/job/', '/jobs/', '/postings/'],
+      'bamboohr.com': ['/job/', '/jobs/', '/careers/'],
+      'ashbyhq.com': ['/job/', '/jobs/', '/posting/'],
+      'careers.google.com': ['/job/', '/jobs/', '/careers/'],
+      'amazon.jobs': ['/job/', '/jobs/', '/en/'],
+      'microsoft.com': ['/job/', '/jobs/', '/careers/job-search/', '/careers/us/'],
+      'apple.com': ['/job/', '/jobs/', '/careers/'],
+      'meta.com': ['/job/', '/jobs/', '/careers/']
     };
 
     // Check if hostname matches and URL contains job pattern
     for (const [domain, patterns] of Object.entries(jobPagePatterns)) {
       if (hostname.includes(domain)) {
-        return patterns.some(pattern => url.includes(pattern));
+        const isJobPage = patterns.some(pattern => url.includes(pattern) || pathname.includes(pattern));
+        if (isJobPage) {
+          console.log(`📍 Job page detected on ${domain} with pattern match`);
+          return true;
+        }
       }
     }
 
-    // Fallback: check for generic job indicators in URL
-    const genericJobIndicators = ['/job/', '/jobs/', '/career/', '/careers/', '/position/', '/apply/'];
-    return genericJobIndicators.some(indicator => url.includes(indicator));
+    // Enhanced fallback: check for generic job indicators in URL and DOM
+    const genericJobIndicators = ['/job/', '/jobs/', '/career/', '/careers/', '/position/', '/apply/', '/posting/', '/job_', '/job-'];
+    const hasJobPattern = genericJobIndicators.some(indicator => url.includes(indicator) || pathname.includes(indicator));
+    
+    if (hasJobPattern) {
+      console.log(`📍 Generic job page detected with pattern: ${pathname}`);
+      return true;
+    }
+    
+    // DOM-based detection for dynamic job pages
+    const jobIndicatorSelectors = [
+      '[data-automation-id*="job"]',
+      '[class*="job-details"]',
+      '[class*="job-posting"]',
+      '[class*="job-application"]',
+      '[id*="job-details"]',
+      '.job-view',
+      '.job-detail',
+      '.apply-button',
+      '.job-description'
+    ];
+    
+    const hasJobElements = jobIndicatorSelectors.some(selector => {
+      return document.querySelector(selector) !== null;
+    });
+    
+    if (hasJobElements) {
+      console.log(`📍 Job page detected via DOM elements`);
+      return true;
+    }
+    
+    return false;
   }
 
   updateJobInfo(jobData) {
@@ -2634,6 +2694,222 @@ class AutoJobrContentScript {
         resolve(response?.apiUrl || 'https://autojobr.com');
       });
     });
+  }
+
+  // Handle resume upload functionality
+  async handleResumeUpload() {
+    try {
+      const status = document.getElementById('autojobr-status');
+      this.updateStatus('🔄 Fetching your resume...', 'loading');
+      
+      // Get user's active resume from server
+      const apiUrl = await this.getApiUrl();
+      const response = await fetch(`${apiUrl}/api/resumes/active`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        this.updateStatus('❌ No resume found. Please upload one in your dashboard.', 'error');
+        return;
+      }
+      
+      // Get the resume as blob
+      const resumeBlob = await response.blob();
+      const fileName = response.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || 'resume.pdf';
+      
+      // Find file input fields on the page
+      const fileInputs = this.findResumeFields();
+      
+      if (fileInputs.length === 0) {
+        this.updateStatus('❌ No file upload fields found on this page.', 'error');
+        return;
+      }
+      
+      // Create File object from blob
+      const resumeFile = new File([resumeBlob], fileName, { type: resumeBlob.type });
+      
+      // Upload to all found file inputs
+      let uploadCount = 0;
+      for (const input of fileInputs) {
+        try {
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(resumeFile);
+          input.files = dataTransfer.files;
+          
+          // Trigger change event
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+          uploadCount++;
+        } catch (error) {
+          console.error('Failed to upload to input:', error);
+        }
+      }
+      
+      if (uploadCount > 0) {
+        this.updateStatus(`✅ Resume uploaded to ${uploadCount} field(s)`, 'success');
+      } else {
+        this.updateStatus('❌ Failed to upload resume to any fields', 'error');
+      }
+      
+    } catch (error) {
+      console.error('Resume upload error:', error);
+      this.updateStatus('❌ Resume upload failed', 'error');
+    }
+  }
+  
+  // Find resume/file upload fields
+  findResumeFields() {
+    const fileInputs = [];
+    
+    // Look for file inputs with resume-related attributes
+    const inputs = document.querySelectorAll('input[type="file"]');
+    
+    inputs.forEach(input => {
+      const inputText = (
+        input.name + ' ' + 
+        input.id + ' ' + 
+        input.className + ' ' + 
+        (input.placeholder || '') + ' ' +
+        (input.getAttribute('aria-label') || '') + ' ' +
+        (input.getAttribute('data-automation-id') || '')
+      ).toLowerCase();
+      
+      const resumeKeywords = ['resume', 'cv', 'curriculum', 'document', 'file', 'attachment', 'upload'];
+      
+      if (resumeKeywords.some(keyword => inputText.includes(keyword))) {
+        fileInputs.push(input);
+      }
+    });
+    
+    // If no specific resume fields found, return all file inputs
+    if (fileInputs.length === 0) {
+      return Array.from(inputs);
+    }
+    
+    return fileInputs;
+  }
+  
+  // Load and display user tasks
+  async loadUserTasks() {
+    try {
+      const apiUrl = await this.getApiUrl();
+      const response = await fetch(`${apiUrl}/api/tasks/pending-reminders`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) return;
+      
+      const data = await response.json();
+      if (data.success && data.reminders.length > 0) {
+        this.displayTasks(data.reminders);
+      }
+    } catch (error) {
+      console.error('Failed to load tasks:', error);
+    }
+  }
+  
+  // Display tasks in the widget
+  displayTasks(reminders) {
+    const tasksSection = document.getElementById('autojobr-tasks');
+    const tasksCount = document.getElementById('tasks-count');
+    const tasksList = document.getElementById('tasks-list');
+    
+    if (!tasksSection || !tasksCount || !tasksList) return;
+    
+    tasksCount.textContent = reminders.length;
+    tasksSection.style.display = 'block';
+    
+    tasksList.innerHTML = '';
+    
+    reminders.forEach(reminder => {
+      const taskElement = document.createElement('div');
+      taskElement.className = 'task-item';
+      taskElement.innerHTML = `
+        <div class="task-content">
+          <div class="task-title">${reminder.taskTitle}</div>
+          <div class="task-time">${this.formatRelativeTime(reminder.triggerDateTime)}</div>
+        </div>
+        <div class="task-actions">
+          <button class="task-complete" data-task-id="${reminder.taskId}" title="Mark Complete">✓</button>
+          <button class="task-snooze" data-reminder-id="${reminder.reminderId}" title="Snooze 15 min">💤</button>
+        </div>
+      `;
+      
+      // Add event listeners
+      taskElement.querySelector('.task-complete')?.addEventListener('click', (e) => {
+        this.markTaskComplete(reminder.taskId);
+        taskElement.remove();
+      });
+      
+      taskElement.querySelector('.task-snooze')?.addEventListener('click', (e) => {
+        this.snoozeReminder(reminder.reminderId);
+        taskElement.remove();
+      });
+      
+      tasksList.appendChild(taskElement);
+    });
+  }
+  
+  // Mark task as complete
+  async markTaskComplete(taskId) {
+    try {
+      const apiUrl = await this.getApiUrl();
+      await fetch(`${apiUrl}/api/tasks/${taskId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ status: 'completed' })
+      });
+      
+      this.updateTaskCount(-1);
+    } catch (error) {
+      console.error('Failed to mark task complete:', error);
+    }
+  }
+  
+  // Snooze reminder
+  async snoozeReminder(reminderId) {
+    try {
+      const apiUrl = await this.getApiUrl();
+      await fetch(`${apiUrl}/api/tasks/reminders/${reminderId}/snooze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ snoozeMinutes: 15 })
+      });
+      
+      this.updateTaskCount(-1);
+    } catch (error) {
+      console.error('Failed to snooze reminder:', error);
+    }
+  }
+  
+  // Update task count
+  updateTaskCount(delta) {
+    const tasksCount = document.getElementById('tasks-count');
+    if (tasksCount) {
+      const current = parseInt(tasksCount.textContent) || 0;
+      const newCount = Math.max(0, current + delta);
+      tasksCount.textContent = newCount;
+      
+      if (newCount === 0) {
+        document.getElementById('autojobr-tasks').style.display = 'none';
+      }
+    }
+  }
+  
+  // Format relative time
+  formatRelativeTime(dateTimeString) {
+    const date = new Date(dateTimeString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return 'now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
+    return `${Math.floor(diffMins / 1440)}d ago`;
   }
 
   // Cleanup method

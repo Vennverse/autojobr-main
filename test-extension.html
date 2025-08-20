@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AutoJobr Extension Test Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .job-form { max-width: 600px; margin: 20px 0; }
+        .form-group { margin: 15px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, textarea, select { width: 100%; padding: 8px; margin-bottom: 10px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        .test-site { background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h1>AutoJobr Extension Test Page</h1>
+    <p>This page simulates various job application forms to test the AutoJobr Chrome extension functionality.</p>
+    
+    <div class="test-site">
+        <h2>LinkedIn-style Job Application</h2>
+        <form class="job-form" data-testid="linkedin-form">
+            <div class="form-group">
+                <label for="firstName">First Name</label>
+                <input type="text" id="firstName" name="firstName" placeholder="Enter your first name">
+            </div>
+            
+            <div class="form-group">
+                <label for="lastName">Last Name</label>
+                <input type="text" id="lastName" name="lastName" placeholder="Enter your last name">
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" placeholder="your.email@example.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" name="phone" placeholder="(555) 123-4567">
+            </div>
+            
+            <div class="form-group">
+                <label for="resume">Upload Resume</label>
+                <input type="file" id="resume" name="resume" accept=".pdf,.doc,.docx">
+            </div>
+            
+            <div class="form-group">
+                <label for="coverLetter">Cover Letter</label>
+                <textarea id="coverLetter" name="coverLetter" rows="4" placeholder="Write your cover letter..."></textarea>
+            </div>
+            
+            <button type="submit">Submit Application</button>
+        </form>
+    </div>
+    
+    <div class="test-site">
+        <h2>Workday-style Application</h2>
+        <form class="job-form" data-automation-id="jobApplication">
+            <div class="form-group">
+                <label for="full-name">Full Name</label>
+                <input type="text" id="full-name" name="fullName" data-automation-id="fullName">
+            </div>
+            
+            <div class="form-group">
+                <label for="email-address">Email</label>
+                <input type="email" id="email-address" name="emailAddress" data-automation-id="emailAddress">
+            </div>
+            
+            <div class="form-group">
+                <label for="phone-number">Phone</label>
+                <input type="tel" id="phone-number" name="phoneNumber" data-automation-id="phoneNumber">
+            </div>
+            
+            <div class="form-group">
+                <label for="resume-upload">Resume/CV Upload</label>
+                <input type="file" id="resume-upload" name="resume" data-automation-id="resumeUpload" accept=".pdf,.doc,.docx">
+            </div>
+            
+            <button type="button" data-automation-id="continueButton">Continue</button>
+        </form>
+    </div>
+    
+    <div class="test-site">
+        <h2>General Job Board Form</h2>
+        <form class="job-form">
+            <div class="form-group">
+                <label for="candidate-name">Candidate Name</label>
+                <input type="text" id="candidate-name" name="candidateName">
+            </div>
+            
+            <div class="form-group">
+                <label for="contact-email">Contact Email</label>
+                <input type="email" id="contact-email" name="contactEmail">
+            </div>
+            
+            <div class="form-group">
+                <label for="mobile">Mobile Number</label>
+                <input type="tel" id="mobile" name="mobile">
+            </div>
+            
+            <div class="form-group">
+                <label for="current-title">Current Job Title</label>
+                <input type="text" id="current-title" name="currentTitle">
+            </div>
+            
+            <div class="form-group">
+                <label for="cv-upload">CV/Resume</label>
+                <input type="file" id="cv-upload" name="cv" accept=".pdf,.doc,.docx">
+            </div>
+            
+            <div class="form-group">
+                <label for="work-authorization">Work Authorization</label>
+                <select id="work-authorization" name="workAuthorization">
+                    <option value="">Select...</option>
+                    <option value="us_citizen">US Citizen</option>
+                    <option value="permanent_resident">Permanent Resident</option>
+                    <option value="h1b">H1B Visa</option>
+                    <option value="opt">OPT</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            
+            <button type="submit">Apply Now</button>
+        </form>
+    </div>
+
+    <script>
+        // Add some JavaScript to simulate form interactions
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Test page loaded - AutoJobr extension should detect this as a job application page');
+            
+            // Add some job posting data to the page for extension to detect
+            const jobData = {
+                title: "Senior Software Engineer",
+                company: "Tech Corp",
+                location: "San Francisco, CA",
+                type: "Full-time"
+            };
+            
+            // Create a hidden element with job data for extension to find
+            const jobInfo = document.createElement('div');
+            jobInfo.style.display = 'none';
+            jobInfo.id = 'job-posting-data';
+            jobInfo.innerHTML = `
+                <h1 class="job-title">${jobData.title}</h1>
+                <div class="company-name">${jobData.company}</div>
+                <div class="job-location">${jobData.location}</div>
+                <div class="job-type">${jobData.type}</div>
+            `;
+            document.body.appendChild(jobInfo);
+            
+            // Simulate form validation
+            document.querySelectorAll('form').forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    alert('Form submission prevented for testing - AutoJobr extension should have auto-filled the fields!');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
