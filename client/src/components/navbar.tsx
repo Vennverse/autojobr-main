@@ -195,6 +195,13 @@ export function Navbar() {
           icon: Crown,
           current: location === "/job-seeker-premium",
           premium: true
+        },
+        {
+          name: "Post Jobs",
+          href: "/post-job",
+          icon: Briefcase,
+          current: location === "/post-job" || location.startsWith("/recruiter"),
+          badge: "Recruit"
         }
       ];
     }
