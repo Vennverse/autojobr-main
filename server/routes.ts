@@ -299,7 +299,6 @@ const paymentCredentialsRouter = (app: Express) => {
 };
 import { aiDetectionService } from "./aiDetectionService";
 import { subscriptionPaymentService } from "./subscriptionPaymentService";
-import virtualInterviewRoutes from "./virtualInterviewRoutes";
 import { interviewAssignmentService } from "./interviewAssignmentService";
 import { mockInterviewService } from "./mockInterviewService";
 
@@ -6199,8 +6198,8 @@ Additional Information:
 
   // Job Seeker API Routes for Job Postings
   
-  // Get all active job postings for job seekers with filtering
-  app.get('/api/jobs/postings', isAuthenticated, async (req: any, res) => {
+  // Get all active job postings for job seekers with filtering (PUBLIC - no auth required)
+  app.get('/api/jobs/postings', async (req: any, res) => {
     try {
       const { search, location, jobType, workMode } = req.query;
       
@@ -10027,23 +10026,7 @@ Host: https://autojobr.com`;
     }
   });
 
-  // Get job postings for assignment
-  app.get('/api/jobs/postings', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (user?.userType !== 'recruiter') {
-        return res.status(403).json({ message: 'Access denied. Recruiter account required.' });
-      }
-      
-      const jobPostings = await interviewAssignmentService.getJobPostings(userId);
-      res.json(jobPostings);
-    } catch (error) {
-      console.error('Error fetching job postings:', error);
-      res.status(500).json({ message: 'Failed to fetch job postings' });
-    }
-  });
+  // Note: Duplicate job postings route removed - already handled above for public access
 
   // Assign virtual interview
   app.post('/api/interviews/virtual/assign', isAuthenticated, async (req: any, res) => {
