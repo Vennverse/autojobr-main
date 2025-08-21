@@ -136,7 +136,14 @@ export default function Jobs() {
 
   // Fetch scraped jobs - now public
   const { data: scrapedJobs = [], isLoading: scrapedJobsLoading } = useQuery({
-    queryKey: ["/api/scraped-jobs?limit=2000"]
+    queryKey: ["/api/scraped-jobs?limit=2000"],
+    queryFn: async () => {
+      const response = await fetch("/api/scraped-jobs?limit=2000", {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch scraped jobs');
+      return response.json();
+    }
     // Removed enabled: isAuthenticated - now loads for everyone
   });
 
@@ -181,6 +188,58 @@ export default function Jobs() {
     return true;
   });
 
+  // Improved compatibility calculation - must be defined before usage in sorting
+  const calculateCompatibility = (job: any) => {
+    if (!isAuthenticated || !userProfile) return 0; // No compatibility for non-authenticated users
+    
+    let score = 50; // Base score
+    
+    // Skills matching (30 points max)
+    const userSkills = userProfile?.skills || [];
+    const jobSkills = job.requiredSkills || [];
+    
+    if (jobSkills.length > 0 && userSkills.length > 0) {
+      const skillsMatch = jobSkills.filter((skill: string) => 
+        userSkills.some((userSkill: string) => 
+          userSkill.toLowerCase().includes(skill.toLowerCase()) ||
+          skill.toLowerCase().includes(userSkill.toLowerCase())
+        )
+      ).length;
+      
+      const skillMatchPercentage = skillsMatch / jobSkills.length;
+      score += Math.round(skillMatchPercentage * 30);
+    }
+    
+    // Experience level matching (15 points max)
+    if (userProfile?.experienceLevel && job.experienceLevel) {
+      const levels = ['entry', 'junior', 'mid', 'senior', 'lead', 'principal'];
+      const userLevelIndex = levels.indexOf(userProfile.experienceLevel.toLowerCase());
+      const jobLevelIndex = levels.indexOf(job.experienceLevel.toLowerCase());
+      
+      if (userLevelIndex !== -1 && jobLevelIndex !== -1) {
+        const levelDiff = Math.abs(userLevelIndex - jobLevelIndex);
+        if (levelDiff === 0) score += 15; // Perfect match
+        else if (levelDiff === 1) score += 10; // Close match
+        else if (levelDiff === 2) score += 5; // Reasonable match
+      }
+    }
+    
+    // Location preference (5 points max)
+    if (userProfile?.preferredLocation && job.location) {
+      const userLocation = userProfile.preferredLocation.toLowerCase();
+      const jobLocation = job.location.toLowerCase();
+      
+      if (jobLocation.includes(userLocation) || userLocation.includes(jobLocation) || jobLocation.includes('remote')) {
+        score += 5;
+      }
+    }
+    
+    // Add some randomization for variety (+/- 10 points)
+    score += Math.floor(Math.random() * 21) - 10;
+    
+    return Math.min(100, Math.max(45, score));
+  };
+
   // Sort jobs based on selected criteria
   const allJobs = [...allJobsUnsorted].sort((a, b) => {
     // First, always prioritize platform jobs over scraped jobs
@@ -188,7 +247,14 @@ export default function Jobs() {
       return a.priority - b.priority;
     }
 
-    // Then apply secondary sorting
+    // For non-authenticated users, just sort by date
+    if (!isAuthenticated) {
+      const dateA = new Date(a.createdAt || a.created_at || 0).getTime();
+      const dateB = new Date(b.createdAt || b.created_at || 0).getTime();
+      return dateB - dateA; // Newer first
+    }
+
+    // Then apply secondary sorting for authenticated users
     switch (sortBy) {
       case "match":
         const matchA = calculateCompatibility(a);
@@ -219,6 +285,8 @@ export default function Jobs() {
     queryKey: ["/api/profile"],
     enabled: isAuthenticated
   });
+
+
 
   // Check applied jobs
   const { data: applications = [] } = useQuery({
@@ -318,59 +386,7 @@ export default function Jobs() {
     setSelectedJob(job);
   };
 
-  // Improved compatibility calculation
-  const calculateCompatibility = (job: any) => {
-    if (!userProfile) return Math.floor(Math.random() * 30 + 65); // Random score between 65-95
-    
-    let score = 50; // Base score
-    
-    // Skills matching (30 points max)
-    const userSkills = userProfile.skills || [];
-    const jobSkills = job.requiredSkills || [];
-    
-    if (jobSkills.length > 0 && userSkills.length > 0) {
-      const skillsMatch = jobSkills.filter((skill: string) => 
-        userSkills.some((userSkill: string) => 
-          userSkill.toLowerCase().includes(skill.toLowerCase()) ||
-          skill.toLowerCase().includes(userSkill.toLowerCase())
-        )
-      ).length;
-      
-      const skillMatchPercentage = skillsMatch / jobSkills.length;
-      score += Math.round(skillMatchPercentage * 30);
-    }
-    
-    // Experience level matching (15 points max)
-    if (userProfile.experienceLevel && job.experienceLevel) {
-      const levels = ['entry', 'junior', 'mid', 'senior', 'lead', 'principal'];
-      const userLevelIndex = levels.indexOf(userProfile.experienceLevel.toLowerCase());
-      const jobLevelIndex = levels.indexOf(job.experienceLevel.toLowerCase());
-      
-      if (userLevelIndex !== -1 && jobLevelIndex !== -1) {
-        const levelDiff = Math.abs(userLevelIndex - jobLevelIndex);
-        if (levelDiff === 0) score += 15; // Perfect match
-        else if (levelDiff === 1) score += 10; // Close match
-        else if (levelDiff === 2) score += 5; // Reasonable match
-      }
-    }
-    
-    // Location preference (5 points max)
-    if (userProfile.preferredLocation && job.location) {
-      const userLocation = userProfile.preferredLocation.toLowerCase();
-      const jobLocation = job.location.toLowerCase();
-      
-      if (jobLocation.includes(userLocation) || userLocation.includes(jobLocation) || jobLocation.includes('remote')) {
-        score += 5;
-      }
-    }
-    
-    // Add some randomization for variety (+/- 10 points)
-    score += Math.floor(Math.random() * 21) - 10;
-    
-    return Math.min(100, Math.max(45, score));
-  };
-
-  // Filter and sort jobs
+  // Filter jobs (allJobs is already sorted above)
   const filteredJobs = allJobs.filter((job: any) => {
     if (!searchQuery?.trim()) return true;
     const searchLower = searchQuery.toLowerCase().trim();
@@ -385,16 +401,11 @@ export default function Jobs() {
     );
   });
 
-  // Sort by profile compatibility first, then by date
-  const sortedJobs = [...filteredJobs].sort((a, b) => {
-    const scoreA = calculateCompatibility(a);
-    const scoreB = calculateCompatibility(b);
-    if (scoreB !== scoreA) return scoreB - scoreA; // Higher score first
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
+  // Use filteredJobs directly as allJobs is already sorted
+  const sortedJobs = filteredJobs;
 
   // SEO and Structured Data (after data is loaded)
-  const totalJobsCount = (platformJobs?.length || 0) + (scrapedJobs?.length || 0);
+  const totalJobsCount = (Array.isArray(platformJobs) ? platformJobs.length : 0) + (Array.isArray(scrapedJobs) ? scrapedJobs.length : 0);
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "JobBoard",
