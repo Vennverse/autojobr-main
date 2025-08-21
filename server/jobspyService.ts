@@ -82,19 +82,26 @@ export class JobSpyService {
             // Look for JSON result starting from the end
             for (let i = lines.length - 1; i >= 0; i--) {
               const line = lines[i].trim();
-              if (line.startsWith('{') && line.includes('"success"')) {
+              if (line.startsWith('{')) {
                 // Try to parse potential JSON lines
                 try {
                   // If it's a single line JSON
                   if (line.endsWith('}')) {
-                    jsonResult = JSON.parse(line);
-                    break;
+                    const parsed = JSON.parse(line);
+                    // Verify it's our expected result structure
+                    if (parsed && typeof parsed === 'object' && ('success' in parsed || 'scraped_count' in parsed)) {
+                      jsonResult = parsed;
+                      break;
+                    }
                   } else {
                     // Multi-line JSON - collect all lines from this point
                     const jsonLines = lines.slice(i);
                     const jsonString = jsonLines.join('\n');
-                    jsonResult = JSON.parse(jsonString);
-                    break;
+                    const parsed = JSON.parse(jsonString);
+                    if (parsed && typeof parsed === 'object' && ('success' in parsed || 'scraped_count' in parsed)) {
+                      jsonResult = parsed;
+                      break;
+                    }
                   }
                 } catch (e) {
                   // Continue looking for valid JSON
@@ -113,9 +120,9 @@ export class JobSpyService {
               reject(new Error('No valid JSON result found in JobSpy output'));
             }
           } catch (parseError) {
-            console.error('[JOBSPY_SERVICE] Failed to parse result:', parseError);
+            console.error('[JOBSPY_SERVICE] Failed to parse result:', parseError instanceof Error ? parseError.message : String(parseError));
             console.error('[JOBSPY_SERVICE] Full stdout:', stdout);
-            reject(new Error(`Failed to parse JobSpy result: ${parseError.message}`));
+            reject(new Error(`Failed to parse JobSpy result: ${parseError instanceof Error ? parseError.message : String(parseError)}`));
           }
         } else {
           const errorMessage = stderr || 'JobSpy script failed with unknown error';
@@ -237,7 +244,7 @@ export class JobSpyService {
     } catch (error) {
       return {
         success: false,
-        message: `JobSpy test error: ${error.message}`
+        message: `JobSpy test error: ${error instanceof Error ? error.message : String(error)}`
       };
     }
   }
