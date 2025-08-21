@@ -315,6 +315,7 @@ function JobCard({ job, onSave }: { job: any; onSave: () => void }) {
               size="sm"
               onClick={() => window.open(job.sourceUrl, '_blank')}
               className="flex items-center gap-1"
+              data-testid="button-apply"
             >
               <ExternalLink className="h-4 w-4" />
               Apply
