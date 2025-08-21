@@ -240,8 +240,9 @@ export default function Jobs() {
       }
     }
     
-    // Add some randomization for variety (+/- 10 points)
-    score += Math.floor(Math.random() * 21) - 10;
+    // Use job ID for consistent pseudo-randomization to avoid constant re-ordering
+    const pseudoRandom = (job.id % 21) - 10;
+    score += pseudoRandom;
     
     return Math.min(100, Math.max(45, score));
   };
