@@ -188,6 +188,12 @@ export default function Jobs() {
     return true;
   });
 
+  // Get user profile for compatibility scoring (only if authenticated) - must be before calculateCompatibility
+  const { data: userProfile } = useQuery<UserProfile>({
+    queryKey: ["/api/profile"],
+    enabled: isAuthenticated
+  });
+
   // Improved compatibility calculation - must be defined before usage in sorting
   const calculateCompatibility = (job: any) => {
     if (!isAuthenticated || !userProfile) return 0; // No compatibility for non-authenticated users
@@ -280,11 +286,7 @@ export default function Jobs() {
 
   const jobsLoading = platformJobsLoading || scrapedJobsLoading;
 
-  // Get user profile for compatibility scoring (only if authenticated)
-  const { data: userProfile } = useQuery<UserProfile>({
-    queryKey: ["/api/profile"],
-    enabled: isAuthenticated
-  });
+  // User profile query already defined above
 
 
 
