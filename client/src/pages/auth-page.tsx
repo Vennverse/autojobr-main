@@ -21,15 +21,10 @@ export default function AuthPage() {
     if (redirect) {
       return decodeURIComponent(redirect);
     }
-    // Check if we came from a specific page and should return there
-    const referrer = document.referrer;
+    // If no redirect param, check if we came from an interview URL
     const currentPath = window.location.pathname;
     if (currentPath.includes('/virtual-interview/') || currentPath.includes('/mock-interview/')) {
       return currentPath;
-    }
-    // If referrer is jobs page, return to jobs
-    if (referrer && referrer.includes('/jobs')) {
-      return '/jobs';
     }
     return '/';
   };
