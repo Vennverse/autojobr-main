@@ -104,7 +104,7 @@ export default function Jobs() {
     category: ""
   });
 
-  // Fetch platform jobs (recruiter postings)
+  // Fetch platform jobs (recruiter postings) - now public
   const { data: platformJobs = [], isLoading: platformJobsLoading } = useQuery({
     queryKey: ["/api/jobs/postings", searchQuery, filterPreferences],
     queryFn: async () => {
@@ -120,14 +120,14 @@ export default function Jobs() {
       
       if (!response.ok) throw new Error('Failed to fetch jobs');
       return response.json();
-    },
-    enabled: isAuthenticated
+    }
+    // Removed enabled: isAuthenticated - now loads for everyone
   });
 
-  // Fetch scraped jobs
+  // Fetch scraped jobs - now public
   const { data: scrapedJobs = [], isLoading: scrapedJobsLoading } = useQuery({
-    queryKey: ["/api/scraped-jobs?limit=2000"],
-    enabled: isAuthenticated
+    queryKey: ["/api/scraped-jobs?limit=2000"]
+    // Removed enabled: isAuthenticated - now loads for everyone
   });
 
   // Combine and prioritize platform jobs first, then scraped jobs
@@ -204,7 +204,7 @@ export default function Jobs() {
 
   const jobsLoading = platformJobsLoading || scrapedJobsLoading;
 
-  // Get user profile for compatibility scoring
+  // Get user profile for compatibility scoring (only if authenticated)
   const { data: userProfile } = useQuery<UserProfile>({
     queryKey: ["/api/profile"],
     enabled: isAuthenticated
@@ -270,10 +270,8 @@ export default function Jobs() {
   
   const handleApply = (job: any) => {
     if (!isAuthenticated) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to apply for jobs."
-      });
+      // Redirect to auth page instead of showing error
+      setLocation('/auth');
       return;
     }
 
@@ -299,10 +297,8 @@ export default function Jobs() {
 
   const handleSaveJob = (jobId: number) => {
     if (!isAuthenticated) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to save jobs."
-      });
+      // Redirect to auth page instead of showing error
+      setLocation('/auth');
       return;
     }
     saveJobMutation.mutate(jobId);
@@ -584,7 +580,7 @@ export default function Jobs() {
                             className="text-gray-600 hover:text-yellow-600 text-xs h-8 px-2 touch-manipulation"
                           >
                             <Bookmark className="w-3 h-3 mr-1" />
-                            Save
+                            {isAuthenticated ? 'Save' : 'Sign in to Save'}
                           </Button>
                           {isApplied ? (
                             <Badge className="bg-green-100 text-green-800 text-xs px-2">
@@ -600,7 +596,9 @@ export default function Jobs() {
                               }}
                               className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-8 px-3 touch-manipulation"
                             >
-                              {job.applyType === 'external' ? (
+                              {!isAuthenticated ? (
+                                'Sign in to Apply'
+                              ) : job.applyType === 'external' ? (
                                 <><ExternalLink className="w-3 h-3 mr-1" />Apply</>
                               ) : (
                                 'Apply'
