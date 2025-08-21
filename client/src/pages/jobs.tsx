@@ -103,8 +103,8 @@ export default function Jobs() {
     category: ""
   });
 
-  // Fetch all jobs without pagination limit
-  const { data: allJobs = [], isLoading: jobsLoading } = useQuery({
+  // Fetch platform jobs (recruiter postings)
+  const { data: platformJobs = [], isLoading: platformJobsLoading } = useQuery({
     queryKey: ["/api/jobs/postings", searchQuery, filterPreferences],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -122,6 +122,51 @@ export default function Jobs() {
     },
     enabled: isAuthenticated
   });
+
+  // Fetch scraped jobs
+  const { data: scrapedJobs = [], isLoading: scrapedJobsLoading } = useQuery({
+    queryKey: ["/api/scraped-jobs?limit=2000"],
+    enabled: isAuthenticated
+  });
+
+  // Combine platform jobs and scraped jobs
+  const allJobs = [
+    ...platformJobs.map((job: any) => ({
+      ...job,
+      company: job.companyName || job.company_name || job.company,
+      jobType: 'platform',
+      applyType: 'easy'
+    })),
+    ...scrapedJobs.map((job: any) => ({
+      ...job,
+      company: job.company,
+      companyName: job.company,
+      jobType: 'scraped',
+      applyType: 'external'
+    }))
+  ].filter((job: any) => {
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      return job.title?.toLowerCase().includes(query) || 
+             job.company?.toLowerCase().includes(query) ||
+             job.location?.toLowerCase().includes(query);
+    }
+    return true;
+  }).filter((job: any) => {
+    // Apply filters
+    if (filterPreferences.category && filterPreferences.category !== 'all') {
+      return job.category === filterPreferences.category;
+    }
+    if (filterPreferences.workMode && filterPreferences.workMode !== 'all') {
+      return job.workMode === filterPreferences.workMode || job.work_mode === filterPreferences.workMode;
+    }
+    if (filterPreferences.experienceLevel && filterPreferences.experienceLevel !== 'all') {
+      return job.experienceLevel === filterPreferences.experienceLevel || job.experience_level === filterPreferences.experienceLevel;
+    }
+    return true;
+  });
+
+  const jobsLoading = platformJobsLoading || scrapedJobsLoading;
 
   // Get user profile for compatibility scoring
   const { data: userProfile } = useQuery<UserProfile>({
