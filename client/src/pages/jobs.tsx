@@ -356,14 +356,32 @@ export default function Jobs() {
       return;
     }
 
-    // Handle external scraped jobs
-    if (job.jobType === 'scraped' && job.sourceUrl) {
-      window.open(job.sourceUrl, '_blank');
-      toast({
-        title: "Redirected to External Site",
-        description: "Complete your application on the company's website."
-      });
-      return;
+    console.log('Apply clicked for job:', {
+      id: job.id,
+      jobType: job.jobType,
+      applyType: job.applyType,
+      sourceUrl: job.sourceUrl,
+      source_url: job.source_url
+    });
+
+    // Handle external scraped jobs - check both sourceUrl and source_url fields
+    if (job.jobType === 'scraped' || job.applyType === 'external') {
+      const externalUrl = job.sourceUrl || job.source_url;
+      if (externalUrl) {
+        window.open(externalUrl, '_blank');
+        toast({
+          title: "Redirected to External Site",
+          description: "Complete your application on the company's website."
+        });
+        return;
+      } else {
+        toast({
+          title: "No External URL",
+          description: "This job doesn't have a valid application URL.",
+          variant: "destructive"
+        });
+        return;
+      }
     }
 
     // Handle platform jobs
