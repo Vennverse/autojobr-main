@@ -381,6 +381,9 @@ export default function AdminJobSpyPage() {
                     <SelectContent>
                       <SelectItem value="indeed">Indeed</SelectItem>
                       <SelectItem value="linkedin">LinkedIn</SelectItem>
+                      <SelectItem value="zip_recruiter">ZipRecruiter</SelectItem>
+                      <SelectItem value="glassdoor">Glassdoor</SelectItem>
+                      <SelectItem value="naukri">Naukri (India)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -413,6 +416,7 @@ export default function AdminJobSpyPage() {
                       <SelectItem value="USA">USA</SelectItem>
                       <SelectItem value="Canada">Canada</SelectItem>
                       <SelectItem value="UK">UK</SelectItem>
+                      <SelectItem value="India">India</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

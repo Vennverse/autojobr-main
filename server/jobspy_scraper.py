@@ -162,10 +162,10 @@ class JobSpyIntegration:
             search_terms = ['software engineer', 'data scientist', 'product manager', 'designer']
         
         if locations is None:
-            locations = ['New York, NY', 'San Francisco, CA', 'Los Angeles, CA', 'Chicago, IL', 'Remote']
+            locations = ['New York, NY', 'San Francisco, CA', 'Los Angeles, CA', 'Chicago, IL', 'Remote', 'Mumbai, India', 'Bangalore, India', 'Delhi, India']
         
         if job_sites is None:
-            job_sites = ['indeed', 'linkedin', 'zip_recruiter', 'glassdoor']  # Maximum coverage with 4 major job boards
+            job_sites = ['indeed', 'linkedin', 'zip_recruiter', 'glassdoor', 'naukri']  # Added Naukri for India market coverage
         
         all_jobs = []
         
