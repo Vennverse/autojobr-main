@@ -35,9 +35,14 @@ export default function JobDiscoveryPage() {
   });
 
   // Fetch scraped jobs (with external Apply)
-  const { data: scrapedJobs = [], isLoading: scrapedJobsLoading } = useQuery({
-    queryKey: ["/api/scraped-jobs", filters],
+  const { data: scrapedJobs = [], isLoading: scrapedJobsLoading, error: scrapedJobsError } = useQuery({
+    queryKey: ["/api/scraped-jobs?limit=2000"],
   });
+
+  // Debug logging
+  console.log('Platform jobs:', platformJobs.length);
+  console.log('Scraped jobs:', scrapedJobs.length);
+  console.log('Scraped jobs error:', scrapedJobsError);
 
   // Combine and process all jobs
   const allJobs = [
