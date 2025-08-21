@@ -165,7 +165,7 @@ class JobSpyIntegration:
             locations = ['New York, NY', 'San Francisco, CA', 'Los Angeles, CA', 'Chicago, IL', 'Remote']
         
         if job_sites is None:
-            job_sites = ['indeed', 'linkedin']
+            job_sites = ['indeed', 'linkedin', 'zip_recruiter']  # Added ZipRecruiter for more coverage
         
         all_jobs = []
         
@@ -174,7 +174,7 @@ class JobSpyIntegration:
                 try:
                     print(f"[JOBSPY] Scraping: '{search_term}' in '{location}'")
                     
-                    # Scrape jobs using JobSpy
+                    # Scrape jobs using JobSpy with improved parameters
                     jobs_df = scrape_jobs(
                         site_name=job_sites,
                         search_term=search_term,
@@ -183,7 +183,12 @@ class JobSpyIntegration:
                         hours_old=72,  # Only get jobs posted in last 72 hours
                         country_indeed=country.lower(),
                         hyperlinks=True,
-                        verbose=0
+                        verbose=1,  # Show warnings and errors for better debugging
+                        description_format="markdown",  # Better formatted descriptions  
+                        linkedin_fetch_description=True,  # Get full LinkedIn descriptions
+                        enforce_annual_salary=True,  # Standardize salary format
+                        easy_apply=False,  # Don't filter for easy apply to get more results
+                        is_remote=(location.lower() == 'remote')  # Set remote flag for remote searches
                     )
                     
                     if jobs_df is not None and not jobs_df.empty:
