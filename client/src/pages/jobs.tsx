@@ -4,12 +4,14 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { Navbar } from "@/components/navbar";
+import SEOHead from "@/components/seo-head";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Search, 
@@ -48,7 +50,13 @@ import {
   MessageCircle,
   Share2,
   ThumbsUp,
-  Plus
+  Plus,
+  Sparkles as SparklesIcon,
+  Zap as ZapIcon,
+  Chrome,
+  Brain,
+  Target,
+  X
 } from "lucide-react";
 
 interface JobPosting {
@@ -90,6 +98,8 @@ export default function Jobs() {
   const [searchQuery, setSearchQuery] = useState("");
   const [savedJobs, setSavedJobs] = useState<Set<number>>(new Set());
   const [selectedJob, setSelectedJob] = useState<any>(null);
+  const [showPromoAlert, setShowPromoAlert] = useState(true);
+  const [currentPromo, setCurrentPromo] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const jobsPerPage = 25; // Show more jobs per page
   const [sortBy, setSortBy] = useState("relevance"); // relevance, date, salary, match
@@ -383,11 +393,79 @@ export default function Jobs() {
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
+  // SEO and Structured Data (after data is loaded)
+  const totalJobsCount = (platformJobs?.length || 0) + (scrapedJobs?.length || 0);
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "JobBoard",
+    "name": "AutoJobR Jobs",
+    "description": "Find your dream job with AI-powered matching. Browse 1000+ jobs from top companies worldwide.",
+    "url": "https://autojobr.com/jobs",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://autojobr.com/jobs?search={search_term_string}"
+      },
+      "query-input": "required name=search_term_string"
+    },
+    "numberOfJobs": totalJobsCount,
+    "jobPosting": allJobs.slice(0, 10).map((job: any) => ({
+      "@type": "JobPosting",
+      "title": job.title,
+      "description": job.description,
+      "hiringOrganization": {
+        "@type": "Organization",
+        "name": job.company
+      },
+      "jobLocation": {
+        "@type": "Place",
+        "address": job.location
+      },
+      "employmentType": job.jobType?.toUpperCase() || "FULL_TIME",
+      "workHours": job.workMode === 'remote' ? "REMOTE" : "FULL_TIME",
+      "datePosted": job.createdAt || job.created_at
+    }))
+  };
+
+  // Promotional content rotation
+  const promoContent = [
+    {
+      icon: <Brain className="w-5 h-5" />,
+      title: "AI Resume Optimizer",
+      description: "Beat ATS systems with AI-powered resume analysis",
+      cta: "Try Free",
+      color: "from-blue-500 to-purple-600"
+    },
+    {
+      icon: <Chrome className="w-5 h-5" />,
+      title: "Chrome Extension",
+      description: "Auto-apply to 100+ jobs daily with one click",
+      cta: "Install Free",
+      color: "from-green-500 to-teal-600"
+    },
+    {
+      icon: <Target className="w-5 h-5" />,
+      title: "For Recruiters",
+      description: "Find top candidates 10x faster with AI matching",
+      cta: "Start Free",
+      color: "from-orange-500 to-red-600"
+    }
+  ];
+
+  // Rotate promotional content every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentPromo((prev) => (prev + 1) % promoContent.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Pagination
-  const totalJobs = sortedJobs.length;
+  const totalJobs = allJobs.length;
   const totalPages = Math.ceil(totalJobs / jobsPerPage);
   const startIndex = (currentPage - 1) * jobsPerPage;
-  const paginatedJobs = sortedJobs.slice(startIndex, startIndex + jobsPerPage);
+  const paginatedJobs = allJobs.slice(startIndex, startIndex + jobsPerPage);
 
   // Reset to first page when search changes
   useEffect(() => {
@@ -401,40 +479,93 @@ export default function Jobs() {
     }
   }, [paginatedJobs, selectedJob]);
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900">
-        <Navbar />
-        <div className="container mx-auto px-4 py-20">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">Please log in to view jobs</h1>
-            <Button onClick={() => window.location.href = "/api/login"}>
-              Log In
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+      <SEOHead
+        title={`${totalJobsCount}+ Jobs Available - Find Your Dream Career | AutoJobR`}
+        description={`Discover ${totalJobsCount}+ job opportunities from top companies worldwide. AI-powered job matching, one-click applications, and instant interview booking. Join 1M+ professionals finding jobs 10x faster.`}
+        keywords="jobs, careers, job search, employment, hiring, remote jobs, tech jobs, AI job matching, auto apply jobs, job automation, career opportunities"
+        canonicalUrl="https://autojobr.com/jobs"
+        structuredData={structuredData}
+        ogType="website"
+      />
       <Navbar />
       
-      {/* Mobile-Optimized Header */}
-      <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
+      {/* Promotional Alert Banner */}
+      {showPromoAlert && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          className="bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+        >
+          <div className="max-w-7xl mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <motion.div
+                  key={currentPromo}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="flex items-center gap-3"
+                >
+                  {promoContent[currentPromo].icon}
+                  <div>
+                    <span className="font-semibold">{promoContent[currentPromo].title}:</span>
+                    <span className="ml-2 text-blue-100">{promoContent[currentPromo].description}</span>
+                  </div>
+                </motion.div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                  onClick={() => !isAuthenticated ? setLocation('/auth') : null}
+                >
+                  {promoContent[currentPromo].cta}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowPromoAlert(false)}
+                  className="text-white hover:bg-white/20 p-1"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+      
+      {/* Enhanced Header with Better Typography and Mobile Optimization */}
+      <div className="bg-gradient-to-br from-white via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
           <div className="flex flex-col gap-3 sm:gap-4">
             <div>
-              <h1 className="text-lg sm:text-2xl font-semibold text-gray-900 dark:text-white leading-tight">
-                Top job picks for you
+              <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent leading-tight">
+                {isAuthenticated ? 'Your Perfect Job Matches' : 'Discover Your Dream Career'}
               </h1>
-              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1">
-                Based on your profile and activity
+              <p className="text-sm sm:text-lg text-gray-600 dark:text-gray-300 mt-2">
+                {isAuthenticated 
+                  ? `AI-curated opportunities based on your profile`
+                  : `${totalJobsCount}+ jobs from top companies worldwide • AI-powered matching`}
               </p>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {totalJobs} results
-              </p>
+              <div className="flex items-center gap-4 mt-3">
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                  {totalJobs} results
+                </p>
+                {!isAuthenticated && (
+                  <div className="flex items-center gap-2 text-xs sm:text-sm">
+                    <SparklesIcon className="w-4 h-4 text-yellow-500" />
+                    <span className="text-yellow-600 dark:text-yellow-400 font-medium">
+                      Sign in for personalized matches
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           
             {/* Search and Sort Controls */}
@@ -473,9 +604,9 @@ export default function Jobs() {
 
       {/* Main Content - Mobile Optimized */}
       <div className="flex-1 max-w-7xl mx-auto w-full px-2 sm:px-4 py-4 sm:py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6 h-full">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-6 h-full">
           {/* Job List - Mobile Optimized */}
-          <div className="h-full">
+          <div className="lg:col-span-2 h-full">
             <div className="h-[calc(100vh-200px)] sm:h-[calc(100vh-240px)] overflow-y-auto pr-1 lg:pr-2 space-y-3 lg:space-y-4">
             {jobsLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
@@ -722,10 +853,13 @@ export default function Jobs() {
                         </Badge>
                       ) : (
                         <Button
-                          onClick={() => handleApply(selectedJob.id)}
+                          onClick={() => handleApply(selectedJob)}
                           className="bg-blue-600 hover:bg-blue-700 text-white text-sm h-9 px-4 touch-manipulation"
                         >
-                          Easy Apply
+                          {!isAuthenticated ? 'Sign in to Apply' : 
+                           selectedJob.applyType === 'external' ? (
+                             <><ExternalLink className="w-4 h-4 mr-1" />Apply</>
+                           ) : 'Easy Apply'}
                         </Button>
                       )}
                       <Button
@@ -923,6 +1057,113 @@ export default function Jobs() {
             )}
             </div>
           </div>
+
+          {/* Promotional Sidebar for Non-Authenticated Users */}
+          {!isAuthenticated && (
+            <div className="hidden lg:block space-y-4">
+              {/* Sign Up CTA */}
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700">
+                <CardContent className="p-6">
+                  <div className="text-center">
+                    <SparklesIcon className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                      Unlock Your Career Potential
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm">
+                      Get personalized job matches, one-click applications, and AI-powered career tools
+                    </p>
+                    <Button 
+                      onClick={() => setLocation('/auth')}
+                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium"
+                    >
+                      Sign Up Free
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* AI Tools Promotion */}
+              <Card className="border-0 shadow-lg bg-white dark:bg-gray-800">
+                <CardContent className="p-6">
+                  <h4 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                    <Brain className="w-5 h-5 text-purple-600" />
+                    AI-Powered Tools
+                  </h4>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-start gap-3">
+                      <ZapIcon className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">Resume Optimizer</p>
+                        <p className="text-gray-600 dark:text-gray-300">Beat ATS systems with AI analysis</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <MessageCircle className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">AI Interview Prep</p>
+                        <p className="text-gray-600 dark:text-gray-300">Practice with virtual interviews</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Target className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">Smart Matching</p>
+                        <p className="text-gray-600 dark:text-gray-300">Find perfect job matches instantly</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Chrome Extension Promotion */}
+              <Card className="border-0 shadow-lg bg-white dark:bg-gray-800">
+                <CardContent className="p-6">
+                  <h4 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                    <Chrome className="w-5 h-5 text-green-600" />
+                    Chrome Extension
+                  </h4>
+                  <div className="space-y-3 text-sm">
+                    <p className="text-gray-600 dark:text-gray-300">
+                      Auto-apply to 100+ jobs daily with one click
+                    </p>
+                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                      <CheckCircle className="w-4 h-4" />
+                      <span className="font-medium">10x faster applications</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                      <CheckCircle className="w-4 h-4" />
+                      <span className="font-medium">Auto-fill job forms</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                      <CheckCircle className="w-4 h-4" />
+                      <span className="font-medium">Track all applications</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Recruiter Benefits */}
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-red-50 dark:from-gray-800 dark:to-gray-700">
+                <CardContent className="p-6">
+                  <h4 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-orange-600" />
+                    For Recruiters
+                  </h4>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-3">
+                    Find top candidates 10x faster with AI-powered matching
+                  </p>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setLocation('/auth')}
+                    className="w-full border-orange-600 text-orange-600 hover:bg-orange-50"
+                  >
+                    Hire Talent
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       </div>
     </div>
