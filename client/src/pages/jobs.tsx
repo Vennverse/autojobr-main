@@ -472,11 +472,11 @@ export default function Jobs() {
     return () => clearInterval(interval);
   }, []);
 
-  // Pagination
-  const totalJobs = allJobs.length;
+  // Pagination - safely handle empty arrays
+  const totalJobs = Array.isArray(sortedJobs) ? sortedJobs.length : 0;
   const totalPages = Math.ceil(totalJobs / jobsPerPage);
   const startIndex = (currentPage - 1) * jobsPerPage;
-  const paginatedJobs = allJobs.slice(startIndex, startIndex + jobsPerPage);
+  const paginatedJobs = Array.isArray(sortedJobs) ? sortedJobs.slice(startIndex, startIndex + jobsPerPage) : [];
 
   // Reset to first page when search changes
   useEffect(() => {
@@ -485,11 +485,26 @@ export default function Jobs() {
 
   // Set first job as selected by default
   useEffect(() => {
-    if (paginatedJobs.length > 0 && !selectedJob) {
+    if (Array.isArray(paginatedJobs) && paginatedJobs.length > 0 && !selectedJob) {
       setSelectedJob(paginatedJobs[0]);
     }
   }, [paginatedJobs, selectedJob]);
 
+
+  // Show loading while data is being fetched
+  if (jobsLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading jobs...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
