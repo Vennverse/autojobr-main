@@ -164,7 +164,7 @@ export default function Jobs() {
       jobType: 'scraped',
       applyType: 'external',
       priority: 2, // Scraped jobs get lower priority
-      sourceUrl: job.source_url // Map the database field
+      sourceUrl: job.sourceUrl || job.source_url // Use API field first, then database field as fallback
     }))
   ].filter((job: any) => {
     if (searchQuery) {
