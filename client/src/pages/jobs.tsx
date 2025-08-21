@@ -348,8 +348,8 @@ export default function Jobs() {
   
   const handleApply = (job: any) => {
     if (!isAuthenticated) {
-      // Redirect to auth page instead of showing error
-      setLocation('/auth');
+      // Redirect to auth page with return URL
+      setLocation('/auth?redirect=' + encodeURIComponent('/jobs'));
       return;
     }
 
@@ -375,8 +375,8 @@ export default function Jobs() {
 
   const handleSaveJob = (jobId: number) => {
     if (!isAuthenticated) {
-      // Redirect to auth page instead of showing error
-      setLocation('/auth');
+      // Redirect to auth page with return URL
+      setLocation('/auth?redirect=' + encodeURIComponent('/jobs'));
       return;
     }
     saveJobMutation.mutate(jobId);
