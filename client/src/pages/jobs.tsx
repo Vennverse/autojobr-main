@@ -92,6 +92,7 @@ export default function Jobs() {
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const jobsPerPage = 25; // Show more jobs per page
+  const [sortBy, setSortBy] = useState("relevance"); // relevance, date, salary, match
   const [filterPreferences, setFilterPreferences] = useState({
     location: "",
     jobType: "",
@@ -129,20 +130,24 @@ export default function Jobs() {
     enabled: isAuthenticated
   });
 
-  // Combine platform jobs and scraped jobs
-  const allJobs = [
+  // Combine and prioritize platform jobs first, then scraped jobs
+  const allJobsUnsorted = [
     ...platformJobs.map((job: any) => ({
       ...job,
       company: job.companyName || job.company_name || job.company,
+      companyName: job.companyName || job.company_name || job.company,
       jobType: 'platform',
-      applyType: 'easy'
+      applyType: 'easy',
+      priority: 1 // Platform jobs get higher priority
     })),
     ...scrapedJobs.map((job: any) => ({
       ...job,
       company: job.company,
       companyName: job.company,
       jobType: 'scraped',
-      applyType: 'external'
+      applyType: 'external',
+      priority: 2, // Scraped jobs get lower priority
+      sourceUrl: job.source_url // Map the database field
     }))
   ].filter((job: any) => {
     if (searchQuery) {
@@ -164,6 +169,37 @@ export default function Jobs() {
       return job.experienceLevel === filterPreferences.experienceLevel || job.experience_level === filterPreferences.experienceLevel;
     }
     return true;
+  });
+
+  // Sort jobs based on selected criteria
+  const allJobs = [...allJobsUnsorted].sort((a, b) => {
+    // First, always prioritize platform jobs over scraped jobs
+    if (a.priority !== b.priority) {
+      return a.priority - b.priority;
+    }
+
+    // Then apply secondary sorting
+    switch (sortBy) {
+      case "match":
+        const matchA = calculateCompatibility(a);
+        const matchB = calculateCompatibility(b);
+        return matchB - matchA; // Higher match first
+      
+      case "date":
+        const dateA = new Date(a.createdAt || a.created_at || 0).getTime();
+        const dateB = new Date(b.createdAt || b.created_at || 0).getTime();
+        return dateB - dateA; // Newer first
+        
+      case "salary":
+        const salaryA = a.maxSalary || a.minSalary || 0;
+        const salaryB = b.maxSalary || b.minSalary || 0;
+        return salaryB - salaryA; // Higher salary first
+        
+      default: // relevance
+        const relevanceA = calculateCompatibility(a);
+        const relevanceB = calculateCompatibility(b);
+        return relevanceB - relevanceA; // Higher relevance first
+    }
   });
 
   const jobsLoading = platformJobsLoading || scrapedJobsLoading;
@@ -196,7 +232,7 @@ export default function Jobs() {
     }
   });
 
-  // Apply to job mutation
+  // Apply to job mutation (for platform jobs only)
   const applyMutation = useMutation({
     mutationFn: async (jobId: number) => {
       const response = await fetch(`/api/jobs/postings/${jobId}/apply`, {
@@ -232,7 +268,7 @@ export default function Jobs() {
   // Helper functions
   const appliedJobIds = Array.isArray(applications) ? applications.map((app: any) => app.jobPostingId) : [];
   
-  const handleApply = (jobId: number) => {
+  const handleApply = (job: any) => {
     if (!isAuthenticated) {
       toast({
         title: "Authentication Required",
@@ -240,7 +276,25 @@ export default function Jobs() {
       });
       return;
     }
-    applyMutation.mutate(jobId);
+
+    // Handle external scraped jobs
+    if (job.jobType === 'scraped' && job.sourceUrl) {
+      window.open(job.sourceUrl, '_blank');
+      toast({
+        title: "Redirected to External Site",
+        description: "Complete your application on the company's website."
+      });
+      return;
+    }
+
+    // Handle platform jobs
+    if (job.jobType === 'platform') {
+      applyMutation.mutate(job.id);
+      return;
+    }
+
+    // Fallback for platform jobs without explicit type
+    applyMutation.mutate(job.id);
   };
 
   const handleSaveJob = (jobId: number) => {
@@ -387,9 +441,9 @@ export default function Jobs() {
               </p>
             </div>
           
-            {/* Mobile-Optimized Search Bar */}
+            {/* Search and Sort Controls */}
             <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
-              <CardContent className="p-3 sm:p-4">
+              <CardContent className="p-3 sm:p-4 space-y-3">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                   <Input
@@ -398,6 +452,22 @@ export default function Jobs() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-9 sm:pl-10 h-10 sm:h-12 text-sm sm:text-base border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 touch-manipulation"
                   />
+                </div>
+                
+                {/* Sort Options */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sort by:</span>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="relevance">Relevance</SelectItem>
+                      <SelectItem value="match">Best Match</SelectItem>
+                      <SelectItem value="date">Latest</SelectItem>
+                      <SelectItem value="salary">Highest Pay</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>
@@ -488,11 +558,6 @@ export default function Jobs() {
                             {job.workMode}
                           </Badge>
                         )}
-                        {job.jobType && (
-                          <Badge variant="secondary" className="text-xs px-2 py-1">
-                            {job.jobType}
-                          </Badge>
-                        )}
                         {job.experienceLevel && (
                           <Badge variant="outline" className="text-xs px-2 py-1">
                             {job.experienceLevel}
@@ -531,11 +596,15 @@ export default function Jobs() {
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleApply(job.id);
+                                handleApply(job);
                               }}
                               className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-8 px-3 touch-manipulation"
                             >
-                              Apply
+                              {job.applyType === 'external' ? (
+                                <><ExternalLink className="w-3 h-3 mr-1" />Apply</>
+                              ) : (
+                                'Apply'
+                              )}
                             </Button>
                           )}
                         </div>
