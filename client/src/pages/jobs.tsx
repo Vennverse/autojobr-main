@@ -385,7 +385,12 @@ export default function Jobs() {
   };
 
   const handleJobClick = (job: any) => {
-    setSelectedJob(job);
+    console.log('Job clicked:', job?.id, job?.title);
+    if (job && job.id) {
+      setSelectedJob(job);
+    } else {
+      console.error('Invalid job clicked:', job);
+    }
   };
 
   // Filter jobs (allJobs is already sorted above)
@@ -488,6 +493,7 @@ export default function Jobs() {
   // Set first job as selected by default
   useEffect(() => {
     if (Array.isArray(paginatedJobs) && paginatedJobs.length > 0 && !selectedJob) {
+      console.log('Setting default selected job:', paginatedJobs[0]?.id, paginatedJobs[0]?.title);
       setSelectedJob(paginatedJobs[0]);
     }
   }, [paginatedJobs, selectedJob]);
@@ -662,8 +668,13 @@ export default function Jobs() {
             ) : (
               paginatedJobs.map((job: any) => {
                 const compatibility = calculateCompatibility(job);
-                const isSelected = selectedJob?.id === job.id;
-                const isApplied = appliedJobIds.includes(job.id);
+                const isSelected = selectedJob?.id === job?.id;
+                const isApplied = Array.isArray(appliedJobIds) && appliedJobIds.includes(job.id);
+                
+                if (!job || !job.id) {
+                  console.error('Invalid job in list:', job);
+                  return null;
+                }
                 
                 return (
                   <Card 
