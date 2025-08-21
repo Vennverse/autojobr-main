@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
@@ -22,29 +22,59 @@ import {
 import { motion } from "framer-motion";
 
 export default function JobDiscoveryPage() {
-  const [selectedPlaylist, setSelectedPlaylist] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState({
-    category: "",
-    workMode: "",
-    experienceLevel: ""
+    category: "all",
+    workMode: "all", 
+    experienceLevel: "all"
   });
 
-  // Fetch job playlists
-  const { data: playlists = [], isLoading: playlistsLoading } = useQuery({
-    queryKey: ["/api/job-playlists"],
+  // Fetch platform jobs (with Easy Apply)
+  const { data: platformJobs = [], isLoading: platformJobsLoading } = useQuery({
+    queryKey: ["/api/jobs/postings"],
   });
 
-  // Fetch jobs in selected playlist
-  const { data: playlistJobs = [], isLoading: jobsLoading } = useQuery({
-    queryKey: ["/api/job-playlists", selectedPlaylist, "jobs"],
-    enabled: !!selectedPlaylist,
-  });
-
-  // Fetch scraped jobs with filters
+  // Fetch scraped jobs (with external Apply)
   const { data: scrapedJobs = [], isLoading: scrapedJobsLoading } = useQuery({
     queryKey: ["/api/scraped-jobs", filters],
   });
+
+  // Combine and process all jobs
+  const allJobs = [
+    ...platformJobs.map((job: any) => ({
+      ...job,
+      company: job.company_name || job.company,
+      jobType: 'platform',
+      applyType: 'easy'
+    })),
+    ...scrapedJobs.map((job: any) => ({
+      ...job,
+      company: job.company,
+      jobType: 'scraped', 
+      applyType: 'external'
+    }))
+  ].filter((job: any) => {
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      return job.title?.toLowerCase().includes(query) || 
+             job.company?.toLowerCase().includes(query) ||
+             job.location?.toLowerCase().includes(query);
+    }
+    return true;
+  }).filter((job: any) => {
+    if (filters.category && filters.category !== 'all') {
+      return job.category === filters.category;
+    }
+    if (filters.workMode && filters.workMode !== 'all') {
+      return job.workMode === filters.workMode || job.work_mode === filters.workMode;
+    }
+    if (filters.experienceLevel && filters.experienceLevel !== 'all') {
+      return job.experienceLevel === filters.experienceLevel || job.experience_level === filters.experienceLevel;
+    }
+    return true;
+  });
+
+  const isLoading = platformJobsLoading || scrapedJobsLoading;
 
   const handleSaveJob = async (jobId: number, type: 'scraped' | 'posting') => {
     try {
@@ -97,10 +127,10 @@ export default function JobDiscoveryPage() {
           {/* Header */}
           <motion.div variants={itemVariants} className="text-center">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              🎵 Job Discovery
+              Discover Your Dream Job
             </h1>
             <p className="text-lg text-gray-600 dark:text-gray-300 mt-2">
-              Discover opportunities like you discover music - curated playlists for every career path
+              Browse platform jobs with Easy Apply and external opportunities from top job boards
             </p>
           </motion.div>
 
@@ -148,138 +178,42 @@ export default function JobDiscoveryPage() {
             </Card>
           </motion.div>
 
-          <Tabs defaultValue="playlists" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="playlists">📋 Job Playlists</TabsTrigger>
-              <TabsTrigger value="browse">🔍 Browse All Jobs</TabsTrigger>
-            </TabsList>
+          {/* Jobs Results Summary */}
+          <motion.div variants={itemVariants} className="text-center">
+            <p className="text-gray-600 dark:text-gray-300">
+              {isLoading ? 'Loading jobs...' : `Found ${allJobs.length} jobs (${platformJobs.length} platform jobs + ${scrapedJobs.length} external jobs)`}
+            </p>
+          </motion.div>
 
-            {/* Playlists Tab */}
-            <TabsContent value="playlists" className="space-y-6">
-              {!selectedPlaylist ? (
-                // Playlist Grid
-                <motion.div variants={containerVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {playlistsLoading ? (
-                    Array.from({ length: 6 }).map((_, i) => (
-                      <Card key={i} className="border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm animate-pulse">
-                        <CardContent className="p-6">
-                          <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                          <div className="h-3 bg-gray-200 rounded mb-4"></div>
-                          <div className="h-8 bg-gray-200 rounded"></div>
-                        </CardContent>
-                      </Card>
-                    ))
-                  ) : (
-                    playlists?.map((playlist: any) => (
-                      <motion.div key={playlist.id} variants={itemVariants}>
-                        <Card 
-                          className="border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:shadow-xl transition-all cursor-pointer group"
-                          onClick={() => setSelectedPlaylist(playlist.id)}
-                        >
-                          <CardContent className="p-6">
-                            <div className="flex items-start justify-between mb-4">
-                              <div className="flex-1">
-                                <h3 className="font-semibold text-lg text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors">
-                                  {playlist.name}
-                                </h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                                  {playlist.description}
-                                </p>
-                              </div>
-                              <Play className="h-5 w-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
-                            </div>
-                            
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-4 text-sm text-gray-500">
-                                <span className="flex items-center gap-1">
-                                  <Building2 className="h-4 w-4" />
-                                  {playlist.jobsCount} jobs
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Users className="h-4 w-4" />
-                                  {playlist.followersCount} followers
-                                </span>
-                              </div>
-                              {playlist.isFeatured && (
-                                <Badge variant="secondary" className="bg-gradient-to-r from-blue-500 to-purple-500 text-white">
-                                  Featured
-                                </Badge>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    ))
-                  )}
+          {/* Unified Jobs List */}
+          <motion.div variants={containerVariants} className="grid gap-4">
+            {isLoading ? (
+              Array.from({ length: 10 }).map((_, i) => (
+                <Card key={i} className="border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm animate-pulse">
+                  <CardContent className="p-6">
+                    <div className="h-6 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded mb-4"></div>
+                    <div className="flex gap-2">
+                      <div className="h-6 w-16 bg-gray-200 rounded"></div>
+                      <div className="h-6 w-20 bg-gray-200 rounded"></div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : allJobs.length > 0 ? (
+              allJobs.map((job: any) => (
+                <motion.div key={`${job.jobType}-${job.id}`} variants={itemVariants}>
+                  <JobCard job={job} onSave={() => handleSaveJob(job.id, job.jobType)} />
                 </motion.div>
-              ) : (
-                // Playlist Jobs View
-                <motion.div variants={containerVariants} className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setSelectedPlaylist(null)}
-                      className="flex items-center gap-2"
-                    >
-                      ← Back to Playlists
-                    </Button>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {playlists?.find((p: any) => p.id === selectedPlaylist)?.name}
-                    </h2>
-                  </div>
-
-                  <div className="grid gap-4">
-                    {jobsLoading ? (
-                      Array.from({ length: 5 }).map((_, i) => (
-                        <Card key={i} className="border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm animate-pulse">
-                          <CardContent className="p-6">
-                            <div className="h-6 bg-gray-200 rounded mb-2"></div>
-                            <div className="h-4 bg-gray-200 rounded mb-4"></div>
-                            <div className="flex gap-2">
-                              <div className="h-6 w-16 bg-gray-200 rounded"></div>
-                              <div className="h-6 w-20 bg-gray-200 rounded"></div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))
-                    ) : (
-                      playlistJobs?.map((job: any) => (
-                        <motion.div key={job.id} variants={itemVariants}>
-                          <JobCard job={job} onSave={() => handleSaveJob(job.id, 'scraped')} />
-                        </motion.div>
-                      ))
-                    )}
-                  </div>
-                </motion.div>
-              )}
-            </TabsContent>
-
-            {/* Browse Tab */}
-            <TabsContent value="browse" className="space-y-6">
-              <motion.div variants={containerVariants} className="grid gap-4">
-                {scrapedJobsLoading ? (
-                  Array.from({ length: 10 }).map((_, i) => (
-                    <Card key={i} className="border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm animate-pulse">
-                      <CardContent className="p-6">
-                        <div className="h-6 bg-gray-200 rounded mb-2"></div>
-                        <div className="h-4 bg-gray-200 rounded mb-4"></div>
-                        <div className="flex gap-2">
-                          <div className="h-6 w-16 bg-gray-200 rounded"></div>
-                          <div className="h-6 w-20 bg-gray-200 rounded"></div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                ) : (
-                  scrapedJobs?.map((job: any) => (
-                    <motion.div key={job.id} variants={itemVariants}>
-                      <JobCard job={job} onSave={() => handleSaveJob(job.id, 'scraped')} />
-                    </motion.div>
-                  ))
-                )}
+              ))
+            ) : (
+              <motion.div variants={itemVariants} className="text-center py-12">
+                <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No jobs found</h3>
+                <p className="text-gray-600 dark:text-gray-300">Try adjusting your search criteria or filters</p>
               </motion.div>
-            </TabsContent>
-          </Tabs>
+            )}
+          </motion.div>
         </motion.div>
       </div>
     </div>
@@ -288,14 +222,35 @@ export default function JobDiscoveryPage() {
 
 // Job Card Component
 function JobCard({ job, onSave }: { job: any; onSave: () => void }) {
+  const handleApply = () => {
+    if (job.applyType === 'easy') {
+      // For platform jobs, redirect to application page
+      window.location.href = `/jobs/${job.id}/apply`;
+    } else {
+      // For scraped jobs, open external URL
+      window.open(job.sourceUrl, '_blank');
+    }
+  };
+
   return (
     <Card className="border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:shadow-xl transition-all">
       <CardContent className="p-6">
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
-              {job.title}
-            </h3>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                {job.title}
+              </h3>
+              {job.jobType === 'platform' ? (
+                <Badge variant="default" className="bg-green-100 text-green-800 text-xs">
+                  Platform
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="border-blue-200 text-blue-600 text-xs">
+                  {job.site || 'External'}
+                </Badge>
+              )}
+            </div>
             <p className="text-lg text-blue-600 dark:text-blue-400 font-medium">
               {job.company}
             </p>
@@ -306,19 +261,29 @@ function JobCard({ job, onSave }: { job: any; onSave: () => void }) {
               size="sm"
               onClick={onSave}
               className="flex items-center gap-1"
+              data-testid="button-save"
             >
               <Bookmark className="h-4 w-4" />
               Save
             </Button>
             <Button
-              variant="outline"
+              variant={job.applyType === 'easy' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => window.open(job.sourceUrl, '_blank')}
+              onClick={handleApply}
               className="flex items-center gap-1"
               data-testid="button-apply"
             >
-              <ExternalLink className="h-4 w-4" />
-              Apply
+              {job.applyType === 'easy' ? (
+                <>
+                  <Heart className="h-4 w-4" />
+                  Easy Apply
+                </>
+              ) : (
+                <>
+                  <ExternalLink className="h-4 w-4" />
+                  Apply
+                </>
+              )}
             </Button>
           </div>
         </div>
