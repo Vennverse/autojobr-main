@@ -165,7 +165,7 @@ class JobSpyIntegration:
             locations = ['New York, NY', 'San Francisco, CA', 'Los Angeles, CA', 'Chicago, IL', 'Remote']
         
         if job_sites is None:
-            job_sites = ['indeed', 'linkedin', 'zip_recruiter']  # Added ZipRecruiter for more coverage
+            job_sites = ['indeed', 'linkedin', 'zip_recruiter', 'glassdoor']  # Maximum coverage with 4 major job boards
         
         all_jobs = []
         
