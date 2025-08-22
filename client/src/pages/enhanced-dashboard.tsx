@@ -65,6 +65,8 @@ import {
   Handshake,
   Headphones,
   Bell,
+  Network,
+  UserCheck,
 } from "lucide-react";
 
 const containerVariants = {
@@ -1069,6 +1071,141 @@ export default function EnhancedDashboard() {
               </Card>
             </motion.div>
           )}
+
+          {/* Referral Marketplace Section */}
+          <motion.div variants={itemVariants}>
+            <Card className="border-0 overflow-hidden relative bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-green-950 dark:via-emerald-950 dark:to-teal-950">
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500 via-emerald-500 to-teal-500 opacity-5" />
+              <CardContent className="p-6 relative">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500">
+                      <Handshake className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold">
+                        Referral Marketplace
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Connect with employees for career advice, interview prep & referrals
+                      </p>
+                    </div>
+                  </div>
+                  <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm px-3 py-1">
+                    New!
+                  </Badge>
+                </div>
+
+                {/* Feature Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <motion.div
+                    variants={slideInVariants}
+                    initial="hidden"
+                    animate="visible"
+                    className="p-4 bg-white dark:bg-gray-800 rounded-lg border shadow-sm"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
+                        <MessageCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <h4 className="font-semibold text-sm">Career Advice</h4>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Get insights from real employees about company culture, career paths, and growth opportunities
+                    </p>
+                  </motion.div>
+
+                  <motion.div
+                    variants={slideInVariants}
+                    initial="hidden"
+                    animate="visible"
+                    transition={{ delay: 0.1 }}
+                    className="p-4 bg-white dark:bg-gray-800 rounded-lg border shadow-sm"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900">
+                        <Brain className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <h4 className="font-semibold text-sm">Interview Prep</h4>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Practice with real employees, get insider tips, and boost your interview success rate
+                    </p>
+                  </motion.div>
+
+                  <motion.div
+                    variants={slideInVariants}
+                    initial="hidden"
+                    animate="visible"
+                    transition={{ delay: 0.2 }}
+                    className="p-4 bg-white dark:bg-gray-800 rounded-lg border shadow-sm"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900">
+                        <UserCheck className="w-5 h-5 text-green-600 dark:text-green-400" />
+                      </div>
+                      <h4 className="font-semibold text-sm">Referrals</h4>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Get referred by employees and increase your chances of landing your dream job
+                    </p>
+                  </motion.div>
+                </div>
+
+                {/* Quick Stats */}
+                <div className="flex items-center justify-center gap-8 mb-6 text-sm">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">500+</div>
+                    <div className="text-muted-foreground">Verified Employees</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">85%</div>
+                    <div className="text-muted-foreground">Success Rate</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600">200+</div>
+                    <div className="text-muted-foreground">Companies</div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+                    onClick={() => setLocation("/referral-marketplace")}
+                  >
+                    <Handshake className="w-4 h-4 mr-2" />
+                    Browse Services
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 border-green-200 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-950"
+                    onClick={() => setLocation("/become-referrer")}
+                  >
+                    <DollarSign className="w-4 h-4 mr-2" />
+                    Become a Referrer
+                  </Button>
+                </div>
+
+                {/* Success Story */}
+                <div className="mt-6 p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-full bg-green-500 text-white">
+                      <Star className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                        "I got 3 interviews and 1 offer in 2 weeks using the referral marketplace!"
+                      </p>
+                      <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                        - Sarah M., Software Engineer at Google
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* AI Career Insights Paywall */}
           {!isPremium && hasAppliedToJobs && totalApplications >= 2 && (

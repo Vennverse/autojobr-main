@@ -62,6 +62,8 @@ import ApplicantsPage from "@/pages/modern-recruiter-dashboard";
 import EnhancedPipelineManagement from "@/pages/enhanced-pipeline-management";
 import TaskManagement from "@/pages/task-management";
 import JobSeekerTasks from "@/pages/job-seeker-tasks";
+import ReferralMarketplace from "@/pages/referral-marketplace";
+import BecomeReferrer from "@/pages/become-referrer";
 import AdvancedAnalyticsDashboard from "@/pages/advanced-analytics-dashboard";
 import BackgroundCheckIntegration from "@/pages/background-check-integration";
 import SSOConfiguration from "@/pages/sso-configuration";
@@ -240,6 +242,8 @@ function Router() {
                   <Route path="/career-ai-assistant" component={CareerAIAssistant} />
                   <Route path="/subscription" component={Subscription} />
                   <Route path="/job-seeker-premium" component={JobSeekerPremium} />
+                  <Route path="/referral-marketplace" component={ReferralMarketplace} />
+                  <Route path="/become-referrer" component={BecomeReferrer} />
                   <Route path="/chat" component={SimpleChatPage} />
                   <Route path="/messaging" component={SimpleChatPage} />
                 </>
@@ -265,6 +269,8 @@ function Router() {
               <Route path="/virtual-interview-complete/:sessionId" component={VirtualInterviewComplete} />
               <Route path="/virtual-interview/:sessionId/feedback" component={VirtualInterviewFeedback} />
               <Route path="/subscription" component={Subscription} />
+              <Route path="/referral-marketplace" component={ReferralMarketplace} />
+              <Route path="/become-referrer" component={BecomeReferrer} />
               <Route path="/chat" component={SimpleChatPage} />
               <Route path="/messaging" component={SimpleChatPage} />
             </>

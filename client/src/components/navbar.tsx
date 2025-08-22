@@ -40,7 +40,8 @@ import {
   Target,
   Zap,
   Users,
-  Star
+  Star,
+  Handshake
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -188,6 +189,13 @@ export function Navbar() {
           icon: MessageCircle,
           current: location === "/chat",
           badge: totalUnreadCount > 0 ? totalUnreadCount : undefined
+        },
+        {
+          name: "Referral Market",
+          href: "/referral-marketplace",
+          icon: Handshake,
+          current: location === "/referral-marketplace" || location === "/become-referrer",
+          badge: "New"
         },
         {
           name: "Premium",
