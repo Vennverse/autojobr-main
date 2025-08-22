@@ -66,6 +66,7 @@ import virtualInterviewRoutes from "./virtualInterviewRoutes.js";
 import chatInterviewRoutes from "./chatInterviewRoutes.js";
 import { ResumeService, resumeUploadMiddleware } from "./resumeService.js";
 import { TaskService } from "./taskService.js";
+import referralMarketplaceRoutes from "./referralMarketplaceRoutes.js";
 
 // Initialize services
 const resumeParser = new ResumeParser();
@@ -11700,6 +11701,9 @@ Report types supported:
   
   // Dismiss a reminder
   app.patch('/api/reminders/:reminderId/dismiss', isAuthenticated, TaskService.dismissReminder);
+
+  // ===== REFERRAL MARKETPLACE API ROUTES =====
+  app.use('/api/referral-marketplace', isAuthenticated, referralMarketplaceRoutes);
 
   // Create HTTP server for WebSocket integration
   const httpServer = createServer(app);

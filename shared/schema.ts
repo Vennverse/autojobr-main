@@ -2256,3 +2256,274 @@ export type UserResume = typeof userResumes.$inferSelect;
 export type InsertUserResume = z.infer<typeof insertUserResumeSchema>;
 export type TaskReminder = typeof taskReminders.$inferSelect;
 export type InsertTaskReminder = z.infer<typeof insertTaskReminderSchema>;
+
+// REFERRAL MARKETPLACE SYSTEM
+
+// Referrers table - Employee profiles offering referral services
+export const referrers = pgTable("referrers", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Verification details
+  companyEmail: varchar("company_email").notNull(),
+  companyName: varchar("company_name").notNull(),
+  jobTitle: varchar("job_title").notNull(),
+  department: varchar("department"),
+  linkedinProfile: varchar("linkedin_profile"),
+  
+  // Verification status
+  isEmailVerified: boolean("is_email_verified").default(false),
+  verificationToken: varchar("verification_token"),
+  verificationTokenExpiry: timestamp("verification_token_expiry"),
+  verificationLevel: varchar("verification_level").default("basic"), // basic, verified, premium
+  
+  // Privacy settings
+  isAnonymous: boolean("is_anonymous").default(false),
+  displayName: varchar("display_name"), // Custom display name if anonymous
+  
+  // Profile information
+  yearsAtCompany: integer("years_at_company"),
+  bio: text("bio"),
+  specialties: text("specialties").array(),
+  availableRoles: text("available_roles").array(), // Roles they can refer for
+  
+  // Reputation system
+  totalServices: integer("total_services").default(0),
+  completedServices: integer("completed_services").default(0),
+  totalReferrals: integer("total_referrals").default(0),
+  successfulReferrals: integer("successful_referrals").default(0),
+  averageRating: numeric("average_rating", { precision: 3, scale: 2 }).default("0.00"),
+  totalReviews: integer("total_reviews").default(0),
+  
+  // Status
+  isActive: boolean("is_active").default(true),
+  acceptingBookings: boolean("accepting_bookings").default(true),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("referrers_user_idx").on(table.userId),
+  index("referrers_company_idx").on(table.companyName),
+  index("referrers_verified_idx").on(table.isEmailVerified),
+  index("referrers_active_idx").on(table.isActive),
+  index("referrers_rating_idx").on(table.averageRating),
+]);
+
+// Referral Services - The bundles/packages offered by referrers
+export const referralServices = pgTable("referral_services", {
+  id: serial("id").primaryKey(),
+  referrerId: integer("referrer_id").references(() => referrers.id).notNull(),
+  
+  // Service details
+  serviceType: varchar("service_type").notNull(), // intro_meeting, interview_prep, ongoing_mentorship
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  
+  // Pricing
+  basePrice: numeric("base_price", { precision: 10, scale: 2 }).notNull(),
+  referralBonusPrice: numeric("referral_bonus_price", { precision: 10, scale: 2 }).default("0.00"),
+  currency: varchar("currency").default("USD"),
+  
+  // Service specifics
+  sessionDuration: integer("session_duration"), // in minutes
+  sessionsIncluded: integer("sessions_included").default(1),
+  includesReferral: boolean("includes_referral").default(false),
+  
+  // Features included
+  features: text("features").array(),
+  deliverables: text("deliverables").array(),
+  
+  // Availability
+  isActive: boolean("is_active").default(true),
+  availableSlots: integer("available_slots").default(10),
+  bookedSlots: integer("booked_slots").default(0),
+  
+  // Requirements
+  requirements: text("requirements").array(), // What job seeker needs to provide
+  targetRoles: text("target_roles").array(), // Which roles this service helps with
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("referral_services_referrer_idx").on(table.referrerId),
+  index("referral_services_type_idx").on(table.serviceType),
+  index("referral_services_active_idx").on(table.isActive),
+  index("referral_services_price_idx").on(table.basePrice),
+]);
+
+// Referral Bookings - Sessions booked between job seekers and referrers
+export const referralBookings = pgTable("referral_bookings", {
+  id: serial("id").primaryKey(),
+  serviceId: integer("service_id").references(() => referralServices.id).notNull(),
+  referrerId: integer("referrer_id").references(() => referrers.id).notNull(),
+  jobSeekerId: varchar("job_seeker_id").references(() => users.id).notNull(),
+  
+  // Booking details
+  status: varchar("status").default("pending"), // pending, confirmed, in_progress, completed, cancelled, refunded
+  scheduledAt: timestamp("scheduled_at"),
+  actualStartTime: timestamp("actual_start_time"),
+  actualEndTime: timestamp("actual_end_time"),
+  
+  // Communication
+  conversationId: integer("conversation_id").references(() => conversations.id),
+  meetingLink: varchar("meeting_link"),
+  notes: text("notes"),
+  
+  // Payment information
+  totalAmount: numeric("total_amount", { precision: 10, scale: 2 }).notNull(),
+  baseAmount: numeric("base_amount", { precision: 10, scale: 2 }).notNull(),
+  referralBonusAmount: numeric("referral_bonus_amount", { precision: 10, scale: 2 }).default("0.00"),
+  paymentStatus: varchar("payment_status").default("pending"), // pending, escrowed, released, refunded
+  paymentId: varchar("payment_id"),
+  
+  // Escrow system
+  escrowStatus: varchar("escrow_status").default("held"), // held, released_base, released_bonus, refunded
+  baseAmountReleased: boolean("base_amount_released").default(false),
+  bonusAmountReleased: boolean("bonus_amount_released").default(false),
+  escrowReleaseDate: timestamp("escrow_release_date"),
+  
+  // Referral tracking
+  referralSubmitted: boolean("referral_submitted").default(false),
+  referralProofUrl: varchar("referral_proof_url"),
+  referralSubmittedAt: timestamp("referral_submitted_at"),
+  interviewScheduled: boolean("interview_scheduled").default(false),
+  interviewCompletedAt: timestamp("interview_completed_at"),
+  
+  // Service delivery tracking
+  deliverables: jsonb("deliverables"), // What was delivered during the session
+  sessionSummary: text("session_summary"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("referral_bookings_service_idx").on(table.serviceId),
+  index("referral_bookings_referrer_idx").on(table.referrerId),
+  index("referral_bookings_job_seeker_idx").on(table.jobSeekerId),
+  index("referral_bookings_status_idx").on(table.status),
+  index("referral_bookings_payment_idx").on(table.paymentStatus),
+  index("referral_bookings_scheduled_idx").on(table.scheduledAt),
+]);
+
+// Referral Feedback - Reviews and ratings for referrers
+export const referralFeedback = pgTable("referral_feedback", {
+  id: serial("id").primaryKey(),
+  bookingId: integer("booking_id").references(() => referralBookings.id).notNull(),
+  referrerId: integer("referrer_id").references(() => referrers.id).notNull(),
+  jobSeekerId: varchar("job_seeker_id").references(() => users.id).notNull(),
+  
+  // Rating system
+  overallRating: integer("overall_rating").notNull(), // 1-5 stars
+  communicationRating: integer("communication_rating").notNull(),
+  helpfulnessRating: integer("helpfulness_rating").notNull(),
+  professionalismRating: integer("professionalism_rating").notNull(),
+  valueRating: integer("value_rating").notNull(),
+  
+  // Written feedback
+  reviewTitle: varchar("review_title"),
+  reviewText: text("review_text"),
+  pros: text("pros").array(),
+  cons: text("cons").array(),
+  
+  // Service specific feedback
+  referralLikelihood: varchar("referral_likelihood"), // very_likely, likely, unlikely, very_unlikely
+  wouldBookAgain: boolean("would_book_again").default(false),
+  recommendToOthers: boolean("recommend_to_others").default(false),
+  
+  // Verification
+  isVerified: boolean("is_verified").default(true), // Verified as genuine booking
+  moderationStatus: varchar("moderation_status").default("approved"), // pending, approved, rejected
+  
+  // Public display
+  isPublic: boolean("is_public").default(true),
+  displayName: varchar("display_name"), // How reviewer wants to be shown
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("referral_feedback_booking_idx").on(table.bookingId),
+  index("referral_feedback_referrer_idx").on(table.referrerId),
+  index("referral_feedback_rating_idx").on(table.overallRating),
+  index("referral_feedback_public_idx").on(table.isPublic),
+  index("referral_feedback_created_idx").on(table.createdAt),
+]);
+
+// Referral Payment Transactions - Detailed payment tracking for escrow
+export const referralPayments = pgTable("referral_payments", {
+  id: serial("id").primaryKey(),
+  bookingId: integer("booking_id").references(() => referralBookings.id).notNull(),
+  
+  // Payment details
+  paymentProvider: varchar("payment_provider").notNull(), // paypal, stripe
+  paymentIntentId: varchar("payment_intent_id"),
+  paypalOrderId: varchar("paypal_order_id"),
+  
+  // Amount breakdown
+  totalAmount: numeric("total_amount", { precision: 10, scale: 2 }).notNull(),
+  baseAmount: numeric("base_amount", { precision: 10, scale: 2 }).notNull(),
+  referralBonusAmount: numeric("referral_bonus_amount", { precision: 10, scale: 2 }).default("0.00"),
+  platformFee: numeric("platform_fee", { precision: 10, scale: 2 }).default("0.00"),
+  currency: varchar("currency").default("USD"),
+  
+  // Transaction status
+  transactionType: varchar("transaction_type").notNull(), // charge, refund, payout
+  transactionStatus: varchar("transaction_status").default("pending"), // pending, completed, failed, cancelled
+  
+  // Escrow management
+  escrowHoldUntil: timestamp("escrow_hold_until"),
+  baseAmountReleaseStatus: varchar("base_amount_release_status").default("held"), // held, released, failed
+  bonusAmountReleaseStatus: varchar("bonus_amount_release_status").default("held"),
+  
+  // Metadata
+  metadata: jsonb("metadata"), // Additional payment provider data
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("referral_payments_booking_idx").on(table.bookingId),
+  index("referral_payments_provider_idx").on(table.paymentProvider),
+  index("referral_payments_status_idx").on(table.transactionStatus),
+  index("referral_payments_type_idx").on(table.transactionType),
+]);
+
+// Insert schemas for referral system
+export const insertReferrerSchema = createInsertSchema(referrers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertReferralServiceSchema = createInsertSchema(referralServices).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertReferralBookingSchema = createInsertSchema(referralBookings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertReferralFeedbackSchema = createInsertSchema(referralFeedback).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertReferralPaymentSchema = createInsertSchema(referralPayments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Referral system types
+export type Referrer = typeof referrers.$inferSelect;
+export type InsertReferrer = z.infer<typeof insertReferrerSchema>;
+export type ReferralService = typeof referralServices.$inferSelect;
+export type InsertReferralService = z.infer<typeof insertReferralServiceSchema>;
+export type ReferralBooking = typeof referralBookings.$inferSelect;
+export type InsertReferralBooking = z.infer<typeof insertReferralBookingSchema>;
+export type ReferralFeedback = typeof referralFeedback.$inferSelect;
+export type InsertReferralFeedback = z.infer<typeof insertReferralFeedbackSchema>;
+export type ReferralPayment = typeof referralPayments.$inferSelect;
+export type InsertReferralPayment = z.infer<typeof insertReferralPaymentSchema>;
