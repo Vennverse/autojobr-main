@@ -64,8 +64,8 @@ const features = [
   },
   {
     icon: Layers,
-    title: "Smart Application Bundles",
-    description: "Choose from curated bundles tailored to your industry, experience level, and career goals for maximum efficiency."
+    title: "Referral Marketplace Bundles",
+    description: "Access exclusive bundles that combine job applications with employee referrals from our marketplace, dramatically increasing your hiring success rate."
   },
   {
     icon: Crown,
