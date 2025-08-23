@@ -72,7 +72,7 @@ const submitFeedbackSchema = z.object({
 
 /**
  * GET /api/referral-marketplace/services
- * Get all available service listings
+ * Get all available service listings (PUBLIC ENDPOINT)
  */
 router.get("/services", async (req: Request, res: Response) => {
   try {

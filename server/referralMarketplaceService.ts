@@ -184,6 +184,12 @@ export class ReferralMarketplaceService {
     includesReferral?: boolean;
   }) {
     try {
+      // Build filter conditions first
+      let whereConditions = [
+        eq(referralServices.isActive, true),
+        eq(referrers.isEmailVerified, true),
+        eq(referrers.acceptingBookings, true)
+      ];
       let query = db.select({
         // Service info
         serviceId: referralServices.id,
@@ -206,6 +212,7 @@ export class ReferralMarketplaceService {
         // Referrer info (anonymous-safe)
         referrerId: referrers.id,
         companyName: referrers.companyName,
+        companyLogoUrl: referrers.companyLogoUrl,
         jobTitle: referrers.jobTitle,
         department: referrers.department,
         isAnonymous: referrers.isAnonymous,
@@ -223,14 +230,7 @@ export class ReferralMarketplaceService {
         totalReviews: referrers.totalReviews,
       })
       .from(referralServices)
-      .leftJoin(referrers, eq(referralServices.referrerId, referrers.id))
-      .where(and(...whereConditions));
-
-      let whereConditions = [
-        eq(referralServices.isActive, true),
-        eq(referrers.isEmailVerified, true),
-        eq(referrers.acceptingBookings, true)
-      ];
+      .leftJoin(referrers, eq(referralServices.referrerId, referrers.id));
 
       // Apply filters
       if (filters?.serviceType) {
@@ -245,7 +245,9 @@ export class ReferralMarketplaceService {
         whereConditions.push(eq(referralServices.includesReferral, filters.includesReferral));
       }
 
-      const services = await query.orderBy(desc(referrers.averageRating), desc(referrers.totalReviews));
+      const services = await query
+        .where(and(...whereConditions))
+        .orderBy(desc(referrers.averageRating), desc(referrers.totalReviews));
 
       // Format response with anonymous privacy protection
       return services.map(service => ({

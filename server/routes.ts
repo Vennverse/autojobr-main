@@ -11703,6 +11703,31 @@ Report types supported:
   app.patch('/api/reminders/:reminderId/dismiss', isAuthenticated, TaskService.dismissReminder);
 
   // ===== REFERRAL MARKETPLACE API ROUTES =====
+  // Public referral marketplace endpoints (must come BEFORE protected routes)
+  app.get('/api/referral-marketplace/services', async (req, res) => {
+    try {
+      const { referralMarketplaceService } = await import('./referralMarketplaceService.js');
+      const filters = {
+        serviceType: req.query.serviceType as string,
+        minPrice: req.query.minPrice ? Number(req.query.minPrice) : undefined,
+        maxPrice: req.query.maxPrice ? Number(req.query.maxPrice) : undefined,
+        companyName: req.query.companyName as string,
+        includesReferral: req.query.includesReferral === 'true' ? true : 
+                         req.query.includesReferral === 'false' ? false : undefined,
+      };
+
+      const services = await referralMarketplaceService.getServiceListings(filters);
+      res.json({ success: true, services });
+    } catch (error) {
+      console.error('Error getting services:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to get services' 
+      });
+    }
+  });
+  
+  // Protected referral marketplace endpoints  
   app.use('/api/referral-marketplace', isAuthenticated, referralMarketplaceRoutes);
 
   // Create HTTP server for WebSocket integration
