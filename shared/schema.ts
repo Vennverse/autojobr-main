@@ -2316,6 +2316,7 @@ export const referrers = pgTable("referrers", {
   // Verification details
   companyEmail: varchar("company_email").notNull(),
   companyName: varchar("company_name").notNull(),
+  companyLogoUrl: varchar("company_logo_url"),
   jobTitle: varchar("job_title").notNull(),
   department: varchar("department"),
   linkedinProfile: varchar("linkedin_profile"),
