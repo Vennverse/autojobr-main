@@ -140,9 +140,35 @@ const BecomeReferrer: React.FC = () => {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold mb-4">Become a Referrer</h1>
-            <p className="text-gray-600 text-lg">
+            <p className="text-gray-600 text-lg mb-4">
               Help job seekers while earning money by sharing your company knowledge and network
             </p>
+            
+            {/* Navigation Submenu */}
+            <div className="flex flex-wrap gap-2 mb-6 justify-center">
+              <Button
+                variant="outline" 
+                size="sm"
+                onClick={() => window.location.href = '/referral-marketplace'}
+              >
+                Browse Services
+              </Button>
+              <Button
+                variant="outline" 
+                size="sm"
+                onClick={() => window.location.href = '/my-bookings'}
+              >
+                My Bookings
+              </Button>
+              <Button
+                variant="outline" 
+                size="sm"
+                onClick={() => window.location.href = '/become-referrer'}
+                className="bg-blue-50 border-blue-200 text-blue-700"
+              >
+                Become a Referrer
+              </Button>
+            </div>
           </div>
 
           {/* Benefits Section */}

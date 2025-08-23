@@ -65,6 +65,7 @@ import JobSeekerTasks from "@/pages/job-seeker-tasks";
 import ReferralMarketplace from "@/pages/referral-marketplace";
 import BecomeReferrer from "@/pages/become-referrer";
 import EmployeeReferralServices from "@/pages/employee-referral-services";
+import MyBookings from "@/pages/my-bookings";
 import AdvancedAnalyticsDashboard from "@/pages/advanced-analytics-dashboard";
 import BackgroundCheckIntegration from "@/pages/background-check-integration";
 import SSOConfiguration from "@/pages/sso-configuration";
@@ -255,6 +256,7 @@ function Router() {
                   <Route path="/job-seeker-premium" component={JobSeekerPremium} />
                   <Route path="/referral-marketplace" component={ReferralMarketplace} />
                   <Route path="/become-referrer" component={BecomeReferrer} />
+                  <Route path="/my-bookings" component={MyBookings} />
                   <Route path="/chat" component={SimpleChatPage} />
                   <Route path="/messaging" component={SimpleChatPage} />
                 </>
@@ -282,6 +284,7 @@ function Router() {
               <Route path="/subscription" component={Subscription} />
               <Route path="/referral-marketplace" component={ReferralMarketplace} />
               <Route path="/become-referrer" component={BecomeReferrer} />
+              <Route path="/my-bookings" component={MyBookings} />
               <Route path="/chat" component={SimpleChatPage} />
               <Route path="/messaging" component={SimpleChatPage} />
             </>

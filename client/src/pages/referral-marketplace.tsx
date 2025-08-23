@@ -78,14 +78,15 @@ const ReferralMarketplace: React.FC = () => {
     }
   };
 
-  const handleBookService = async (serviceId: number) => {
+  const handleBookService = async (serviceId: number, servicePrice: number) => {
     if (!user) {
       window.location.href = '/auth-page';
       return;
     }
 
     try {
-      const response = await fetch(`/api/referral-marketplace/book/${serviceId}`, {
+      // First create the booking
+      const bookingResponse = await fetch(`/api/referral-marketplace/book/${serviceId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -95,14 +96,31 @@ const ReferralMarketplace: React.FC = () => {
         }),
       });
 
-      const data = await response.json();
+      const bookingData = await bookingResponse.json();
       
-      if (data.success) {
-        // Redirect to payment page or show payment modal
-        alert('Booking created! Redirecting to payment...');
-        // Here you would integrate with your payment system
+      if (bookingData.success) {
+        // Create PayPal payment order
+        const paymentResponse = await fetch('/api/referral-marketplace/payment/create-order', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            bookingId: bookingData.booking.id,
+            amount: servicePrice
+          }),
+        });
+
+        const paymentData = await paymentResponse.json();
+        
+        if (paymentData.success && paymentData.approvalUrl) {
+          // Redirect to PayPal payment
+          window.location.href = paymentData.approvalUrl;
+        } else {
+          alert('Failed to create payment: ' + (paymentData.error || 'Unknown error'));
+        }
       } else {
-        alert('Failed to create booking: ' + data.error);
+        alert('Failed to create booking: ' + bookingData.error);
       }
     } catch (error) {
       console.error('Error booking service:', error);
@@ -159,9 +177,35 @@ const ReferralMarketplace: React.FC = () => {
     <div className="container mx-auto p-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Referral Marketplace</h1>
-        <p className="text-gray-600 mb-6">
+        <p className="text-gray-600 mb-4">
           Connect with company employees for career advice, interview prep, and referral opportunities
         </p>
+        
+        {/* Navigation Submenu */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          <Button
+            variant="outline" 
+            size="sm"
+            onClick={() => window.location.href = '/referral-marketplace'}
+            className="bg-blue-50 border-blue-200 text-blue-700"
+          >
+            Browse Services
+          </Button>
+          <Button
+            variant="outline" 
+            size="sm"
+            onClick={() => window.location.href = '/my-bookings'}
+          >
+            My Bookings
+          </Button>
+          <Button
+            variant="outline" 
+            size="sm"
+            onClick={() => window.location.href = '/become-referrer'}
+          >
+            Become a Referrer
+          </Button>
+        </div>
 
         {/* Filters */}
         <div className="flex flex-wrap gap-4 mb-6">
@@ -216,14 +260,22 @@ const ReferralMarketplace: React.FC = () => {
               {/* Referrer Info */}
               <div className="bg-gray-50 p-3 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium">{service.referrer.displayName}</h4>
+                  <div className="flex items-center gap-2">
+                    {/* Company Logo Placeholder */}
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <span className="text-xs font-bold text-blue-600">
+                        {service.referrer.companyName.charAt(0)}
+                      </span>
+                    </div>
+                    <h4 className="font-medium">{service.referrer.displayName}</h4>
+                  </div>
                   {getVerificationBadge(service.referrer.verificationLevel)}
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 ml-10">
                   {service.referrer.jobTitle} at {service.referrer.companyName}
                 </p>
                 {service.referrer.yearsAtCompany && (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 ml-10">
                     {service.referrer.yearsAtCompany} years at company
                   </p>
                 )}
@@ -300,11 +352,12 @@ const ReferralMarketplace: React.FC = () => {
                     </div>
                   </div>
                   <Button
-                    onClick={() => handleBookService(service.serviceId)}
+                    onClick={() => handleBookService(service.serviceId, service.basePrice + (service.includesReferral ? service.referralBonusPrice || 0 : 0))}
                     disabled={service.bookedSlots >= service.availableSlots}
                     className="bg-blue-600 hover:bg-blue-700"
+                    data-testid={`button-book-service-${service.serviceId}`}
                   >
-                    {service.bookedSlots >= service.availableSlots ? 'Fully Booked' : 'Book Now'}
+                    {service.bookedSlots >= service.availableSlots ? 'Fully Booked' : 'Book & Pay'}
                   </Button>
                 </div>
               </div>

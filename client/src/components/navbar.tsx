@@ -194,7 +194,7 @@ export function Navbar() {
           name: "Referral Market",
           href: "/referral-marketplace",
           icon: Handshake,
-          current: location === "/referral-marketplace" || location === "/become-referrer",
+          current: location === "/referral-marketplace" || location === "/become-referrer" || location === "/my-bookings",
           badge: "New"
         },
         {
@@ -369,6 +369,12 @@ export function Navbar() {
                       <Link href="/resume" className="w-full flex items-center">
                         <BarChart3 className="mr-2 h-4 w-4" />
                         <span>Resume & ATS Score</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/my-bookings" className="w-full flex items-center">
+                        <Handshake className="mr-2 h-4 w-4" />
+                        <span>My Bookings</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>

@@ -6,13 +6,14 @@ import { z } from "zod";
 // Extend Express Request interface
 declare global {
   namespace Express {
+    interface User {
+      id: string;
+      email?: string;
+      firstName?: string;
+      lastName?: string;
+    }
     interface Request {
-      user?: {
-        id: string;
-        email?: string;
-        firstName?: string;
-        lastName?: string;
-      };
+      user?: User;
     }
   }
 }
