@@ -34,6 +34,10 @@ import {
 import logoImage from "@assets/generated_images/AutoJobr_professional_logo_17c702fa.png";
 import heroBackground from "@assets/generated_images/Professional_hero_background_15f13bf2.png";
 import dashboardMockup from "@assets/generated_images/Recruitment_dashboard_mockup_2b680657.png";
+import referralMarketplace from "@assets/generated_images/Referral_marketplace_interface_design_86e419f3.png";
+import atsComparisonImage from "@assets/generated_images/Extension_ATS_bypass_comparison_6bd77ec6.png";
+import bundlesImage from "@assets/generated_images/Subscription_bundles_showcase_design_d57dc5e6.png";
+import genuineApplicationImage from "@assets/generated_images/Genuine_application_creation_illustration_3166e23e.png";
 
 // Removed stats array - replaced with more compelling social proof section
 
@@ -50,23 +54,23 @@ const features = [
   },
   {
     icon: Shield,
-    title: "ATS Score Optimization",
-    description: "Our AI analyzes and optimizes resumes for maximum ATS compatibility and recruiter visibility."
+    title: "Genuine Applications That Pass ATS",
+    description: "Unlike other bots that get cancelled, our system creates authentic applications that bypass ATS detection and reach real recruiters."
   },
   {
-    icon: BarChart3,
-    title: "Advanced Analytics",
-    description: "Real-time insights on application performance, hiring metrics, and market trends to drive decisions."
+    icon: Users,
+    title: "Referral Marketplace",
+    description: "Connect with employees at your target companies who can refer you internally, dramatically increasing your chances of getting hired."
   },
   {
-    icon: MessageCircle,
-    title: "Seamless Communication",
-    description: "Built-in messaging, video interviews, and collaboration tools keep everyone connected."
+    icon: Layers,
+    title: "Smart Application Bundles",
+    description: "Choose from curated bundles tailored to your industry, experience level, and career goals for maximum efficiency."
   },
   {
     icon: Crown,
-    title: "Premium Features",
-    description: "Unlock unlimited applications, priority support, and exclusive tools for career acceleration."
+    title: "Chrome Extension Advantage",
+    description: "Our intelligent extension creates human-like applications across 100+ job boards, ensuring you never get flagged as a bot."
   }
 ];
 
@@ -300,6 +304,10 @@ export default function LandingPage() {
                 Features
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 group-hover:w-full transition-all duration-300"></span>
               </Link>
+              <Link href="/referral-marketplace" className="relative text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-all duration-300 group">
+                Referrals
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 group-hover:w-full transition-all duration-300"></span>
+              </Link>
               <Link href="#pricing" className="relative text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-all duration-300 group">
                 Pricing
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 group-hover:w-full transition-all duration-300"></span>
@@ -368,7 +376,7 @@ export default function LandingPage() {
               </h1>
               
               <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-                Transform your job search with AI — built to match you with the right roles, optimize your resume, and accelerate your career.
+                The only job application system that creates <strong>genuine applications</strong> that bypass ATS bot detection. Unlike other tools that get cancelled, we connect you with real opportunities and employee referrals.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
@@ -547,6 +555,235 @@ export default function LandingPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ATS Bypass Advantage Section */}
+      <section className="py-20 bg-gradient-to-r from-red-50 via-orange-50 to-yellow-50 dark:from-red-900/10 dark:via-orange-900/10 dark:to-yellow-900/10 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <Badge className="mb-6 bg-red-100 text-red-700 border-red-200 hover:scale-105 transition-transform duration-300">
+                <Shield className="w-3 h-3 mr-1" />
+                Critical Advantage
+              </Badge>
+              
+              <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6">
+                Why Other Bots 
+                <span className="bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent"> Fail</span>
+              </h2>
+              
+              <div className="space-y-6 mb-8">
+                <div className="flex items-start space-x-4">
+                  <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                    <span className="text-white font-bold text-sm">✗</span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Other Automation Tools Get Cancelled</h3>
+                    <p className="text-slate-600 dark:text-slate-300">Most job boards and ATS systems detect and automatically reject applications from bots, wasting your time and burning bridges.</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-4">
+                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                    <span className="text-white font-bold text-sm">✓</span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-white mb-2">AutoJobr Creates Genuine Applications</h3>
+                    <p className="text-slate-600 dark:text-slate-300">Our intelligent system mimics human behavior, ensuring your applications pass all ATS filters and reach real recruiters.</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-4">
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                    <span className="text-white font-bold text-sm">⚡</span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Smart Extension Technology</h3>
+                    <p className="text-slate-600 dark:text-slate-300">Works seamlessly across 100+ job boards including LinkedIn, Indeed, Glassdoor, and company career pages.</p>
+                  </div>
+                </div>
+              </div>
+              
+              <Link href="/chrome-extension">
+                <Button className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                  <Shield className="w-5 h-5 mr-2" />
+                  Download Chrome Extension
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </Link>
+            </div>
+            
+            <div className="relative">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
+                <img 
+                  src={atsComparisonImage} 
+                  alt="ATS Bypass Comparison" 
+                  className="w-full h-auto"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+              </div>
+              
+              {/* Floating success indicators */}
+              <div className="absolute -top-4 -right-4 bg-green-500 text-white px-4 py-2 rounded-full text-sm font-semibold animate-bounce">
+                ✓ ATS Approved
+              </div>
+              <div className="absolute bottom-4 -left-4 bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-semibold animate-pulse">
+                🔒 Human-Like Applications
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Referral Marketplace Section */}
+      <section className="py-20 bg-gradient-to-r from-purple-50 via-blue-50 to-indigo-50 dark:from-purple-900/10 dark:via-blue-900/10 dark:to-indigo-900/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="relative">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
+                <img 
+                  src={referralMarketplace} 
+                  alt="Referral Marketplace" 
+                  className="w-full h-auto"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+              </div>
+              
+              {/* Floating network indicators */}
+              <div className="absolute -top-4 -left-4 bg-purple-500 text-white px-4 py-2 rounded-full text-sm font-semibold animate-bounce">
+                🤝 50K+ Referrers
+              </div>
+              <div className="absolute bottom-4 -right-4 bg-green-500 text-white px-4 py-2 rounded-full text-sm font-semibold animate-pulse">
+                💰 Earn Rewards
+              </div>
+            </div>
+            
+            <div>
+              <Badge className="mb-6 bg-purple-100 text-purple-700 border-purple-200 hover:scale-105 transition-transform duration-300">
+                <Users className="w-3 h-3 mr-1" />
+                Referral Marketplace
+              </Badge>
+              
+              <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6">
+                Get Referred by 
+                <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent"> Insiders</span>
+              </h2>
+              
+              <p className="text-xl text-slate-600 dark:text-slate-300 mb-8">
+                Connect with employees at your dream companies who can refer you internally. Referred candidates are 5x more likely to get hired!
+              </p>
+              
+              <div className="space-y-4 mb-8">
+                <div className="flex items-center space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  <span className="text-slate-700 dark:text-slate-300">Access 50,000+ employee referrers at top companies</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  <span className="text-slate-700 dark:text-slate-300">Automated matching based on your skills and target roles</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  <span className="text-slate-700 dark:text-slate-300">Secure messaging and collaboration tools</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  <span className="text-slate-700 dark:text-slate-300">Earn rewards by referring other candidates</span>
+                </div>
+              </div>
+              
+              <Link href="/referral-marketplace">
+                <Button className="bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                  <Users className="w-5 h-5 mr-2" />
+                  Explore Referral Network
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Smart Bundles Section */}
+      <section className="py-20 bg-white dark:bg-slate-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
+              <Layers className="w-3 h-3 mr-1" />
+              Smart Bundles
+            </Badge>
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
+              Curated Application 
+              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Bundles</span>
+            </h2>
+            <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto mb-12">
+              Save time with pre-built application packages tailored to your industry and experience level.
+            </p>
+            
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl mb-12">
+              <img 
+                src={bundlesImage} 
+                alt="Application Bundles" 
+                className="w-full h-auto max-w-4xl mx-auto"
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 bg-gradient-to-br from-white to-blue-50 dark:from-slate-800 dark:to-blue-900/20">
+              <CardContent className="p-8">
+                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-600 rounded-lg flex items-center justify-center mb-6 group-hover:rotate-6 transition-transform duration-300">
+                  <Briefcase className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">Entry Level Bundle</h3>
+                <p className="text-slate-600 dark:text-slate-300 mb-4">Perfect for new graduates and career changers</p>
+                <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                  <li>✓ 50 targeted applications</li>
+                  <li>✓ Resume optimization</li>
+                  <li>✓ Cover letter templates</li>
+                  <li>✓ Interview prep guide</li>
+                </ul>
+              </CardContent>
+            </Card>
+            
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 bg-gradient-to-br from-white to-purple-50 dark:from-slate-800 dark:to-purple-900/20 relative">
+              <div className="absolute -top-2 right-4">
+                <Badge className="bg-purple-500 text-white">Most Popular</Badge>
+              </div>
+              <CardContent className="p-8">
+                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg flex items-center justify-center mb-6 group-hover:rotate-6 transition-transform duration-300">
+                  <Star className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">Professional Bundle</h3>
+                <p className="text-slate-600 dark:text-slate-300 mb-4">For experienced professionals seeking advancement</p>
+                <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                  <li>✓ 100 strategic applications</li>
+                  <li>✓ Executive resume review</li>
+                  <li>✓ Salary negotiation guide</li>
+                  <li>✓ LinkedIn optimization</li>
+                  <li>✓ Referral connections</li>
+                </ul>
+              </CardContent>
+            </Card>
+            
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 bg-gradient-to-br from-white to-yellow-50 dark:from-slate-800 dark:to-yellow-900/20">
+              <CardContent className="p-8">
+                <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-lg flex items-center justify-center mb-6 group-hover:rotate-6 transition-transform duration-300">
+                  <Crown className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">Executive Bundle</h3>
+                <p className="text-slate-600 dark:text-slate-300 mb-4">Premium service for C-level and senior roles</p>
+                <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                  <li>✓ 200 premium applications</li>
+                  <li>✓ Personal career advisor</li>
+                  <li>✓ Executive search access</li>
+                  <li>✓ Board connections</li>
+                  <li>✓ White-glove service</li>
+                </ul>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
