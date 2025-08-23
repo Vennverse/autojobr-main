@@ -64,8 +64,8 @@ const features = [
   },
   {
     icon: Layers,
-    title: "Referral Marketplace Bundles",
-    description: "Access exclusive bundles that combine job applications with employee referrals from our marketplace, dramatically increasing your hiring success rate."
+    title: "Insider Referral Access",
+    description: "Connect directly with employees at top companies who can fast-track your applications through internal referrals, bypassing the competition."
   },
   {
     icon: Crown,
