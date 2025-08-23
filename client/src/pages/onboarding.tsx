@@ -275,10 +275,13 @@ export default function Onboarding() {
         });
       }
 
-      // Refresh queries
-      queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/onboarding/status"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+      // Refresh queries and force refetch
+      await queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/onboarding/status"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+      
+      // Force refetch onboarding status to ensure hasResume is updated
+      await queryClient.refetchQueries({ queryKey: ["/api/onboarding/status"] });
       
     } catch (error: any) {
       if (isUnauthorizedError(error)) {
