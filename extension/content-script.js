@@ -9,6 +9,8 @@ class AutoJobrContentScript {
     this.observers = [];
     this.fillHistory = [];
     this.smartSelectors = new Map();
+    this.filledFields = new Set(); // Track filled fields to prevent loops
+    this.formState = { currentPage: 1, hasNextPage: false, hasSubmit: false };
     this.init();
   }
 
@@ -78,12 +80,12 @@ class AutoJobrContentScript {
     return {
       // Personal Information
       firstName: {
-        patterns: ['firstName', 'first_name', 'fname', 'first-name', 'given-name', 'forename', 'given name', 'legal first name', 'first legal name'],
+        patterns: ['firstName', 'first_name', 'fname', 'first-name', 'given-name', 'forename', 'given name', 'legal first name', 'first legal name', 'givenname', 'firstname', 'first name', 'name_first', 'applicant_first_name'],
         types: ['text'],
         priority: 10
       },
       lastName: {
-        patterns: ['lastName', 'last_name', 'lname', 'last-name', 'family-name', 'surname', 'family name', 'legal last name', 'last legal name'],
+        patterns: ['lastName', 'last_name', 'lname', 'last-name', 'family-name', 'surname', 'family name', 'legal last name', 'last legal name', 'familyname', 'lastname', 'last name', 'name_last', 'applicant_last_name'],
         types: ['text'],
         priority: 10
       },
@@ -98,7 +100,7 @@ class AutoJobrContentScript {
         priority: 10
       },
       phone: {
-        patterns: ['phone', 'phoneNumber', 'phone_number', 'phone-number', 'telephone', 'mobile', 'cell'],
+        patterns: ['phone', 'phoneNumber', 'phone_number', 'phone-number', 'telephone', 'mobile', 'cell', 'phonenumber', 'mobilephone', 'mobile_phone', 'contact_phone', 'applicant_phone', 'home_phone', 'work_phone', 'primary_phone', 'contact_number', 'tel'],
         types: ['tel', 'text'],
         priority: 9
       },
@@ -1163,6 +1165,9 @@ class AutoJobrContentScript {
       return { success: false, error: 'Max auto-fill attempts reached' };
     }
 
+    // Reset filled fields tracking for new session
+    this.filledFields.clear();
+
     this.fillInProgress = true;
     this.showProgress(true);
 
@@ -1212,6 +1217,9 @@ class AutoJobrContentScript {
 
       // Update statistics
       this.updateStats(totalFieldsFound, totalFieldsFilled);
+
+      // Detect form navigation buttons after filling
+      this.detectFormNavigation();
 
       // Auto-submit if enabled
       if (autoSubmit && totalFieldsFilled > 0) {
@@ -1351,8 +1359,21 @@ class AutoJobrContentScript {
     return false;
   }
 
+  getFieldIdentifier(field) {
+    // Create unique identifier for field to prevent duplicate filling
+    return `${field.tagName}_${field.type}_${field.name}_${field.id}_${field.placeholder}`.toLowerCase().replace(/\s+/g, '_');
+  }
+
   async fillFieldSmart(field, userProfile, smartMode) {
     try {
+      // Generate unique field identifier to prevent loops
+      const fieldId = this.getFieldIdentifier(field);
+      
+      // Skip if already filled to prevent infinite loops
+      if (this.filledFields.has(fieldId)) {
+        return false;
+      }
+
       // Scroll field into view smoothly
       field.scrollIntoView({ 
         behavior: 'smooth', 
@@ -1371,24 +1392,39 @@ class AutoJobrContentScript {
       if (!value) return false;
 
       // Fill based on field type
+      let success = false;
       switch (field.tagName.toLowerCase()) {
         case 'select':
-          return await this.fillSelectFieldSmart(field, value);
+          success = await this.fillSelectFieldSmart(field, value);
+          break;
         case 'textarea':
-          return await this.fillTextAreaSmart(field, value);
+          success = await this.fillTextAreaSmart(field, value);
+          break;
         case 'input':
           switch (field.type.toLowerCase()) {
             case 'checkbox':
             case 'radio':
-              return await this.fillChoiceFieldSmart(field, value);
+              success = await this.fillChoiceFieldSmart(field, value);
+              break;
             case 'file':
-              return await this.fillFileFieldSmart(field, value, userProfile);
+              success = await this.fillFileFieldSmart(field, value, userProfile);
+              break;
             default:
-              return await this.fillTextFieldSmart(field, value);
+              success = await this.fillTextFieldSmart(field, value);
+              break;
           }
+          break;
         default:
-          return await this.fillTextFieldSmart(field, value);
+          success = await this.fillTextFieldSmart(field, value);
+          break;
       }
+
+      // Mark field as filled if successful
+      if (success) {
+        this.filledFields.add(fieldId);
+      }
+
+      return success;
 
     } catch (error) {
       console.error('Smart field fill error:', error);
@@ -1637,26 +1673,30 @@ class AutoJobrContentScript {
 
   async fillTextFieldSmart(field, value) {
     try {
-      // Clear existing value with animation
-      if (field.value) {
-        for (let i = field.value.length; i >= 0; i--) {
-          field.value = field.value.substring(0, i);
-          field.dispatchEvent(new Event('input', { bubbles: true }));
-          await this.delay(20);
-        }
+      // Skip if field already has correct value
+      if (field.value === value) {
+        return true;
       }
 
-      // Type with human-like rhythm
-      for (let i = 0; i < value.length; i++) {
-        field.value = value.substring(0, i + 1);
+      // Focus field first
+      field.focus();
+      await this.delay(100);
+
+      // Clear field more efficiently
+      field.value = '';
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      
+      // Use faster typing for better performance
+      const chunkSize = Math.max(1, Math.floor(value.length / 10));
+      for (let i = 0; i < value.length; i += chunkSize) {
+        const chunk = value.substring(i, i + chunkSize);
+        field.value = value.substring(0, i + chunk.length);
         
         // Dispatch events for framework compatibility
         field.dispatchEvent(new Event('input', { bubbles: true }));
-        field.dispatchEvent(new Event('keyup', { bubbles: true }));
         
-        // Variable typing speed
-        const delay = 30 + Math.random() * 40;
-        await this.delay(delay);
+        // Shorter delay for better UX
+        await this.delay(50);
       }
 
       // Final events
@@ -1831,10 +1871,39 @@ class AutoJobrContentScript {
 
   async fillFileFieldSmart(field, value, userProfile) {
     try {
-      // This would need to be implemented based on actual file handling
-      // For now, we'll skip file fields as they require actual file data
-      console.log('File field detected, skipping for now:', field);
-      return false;
+      // Attempt to inject resume from server
+      console.log('File field detected, attempting resume upload:', field);
+      
+      // Get user's active resume from server
+      const apiUrl = await this.getApiUrl();
+      const response = await fetch(`${apiUrl}/api/resumes/active`, {
+        credentials: 'include',
+        headers: { 'Accept': 'application/octet-stream' }
+      });
+
+      if (response.ok) {
+        const resumeBlob = await response.blob();
+        const fileName = response.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || 'resume.pdf';
+        
+        // Create a File object from the blob
+        const resumeFile = new File([resumeBlob], fileName, { type: resumeBlob.type });
+        
+        // Create a new DataTransfer to simulate file selection
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(resumeFile);
+        
+        // Set the files property
+        field.files = dataTransfer.files;
+        
+        // Trigger change event
+        field.dispatchEvent(new Event('change', { bubbles: true }));
+        
+        console.log('✅ Resume uploaded successfully:', fileName);
+        return true;
+      } else {
+        console.log('❌ No active resume found on server');
+        return false;
+      }
     } catch (error) {
       console.error('File field fill error:', error);
       return false;
@@ -1959,6 +2028,265 @@ class AutoJobrContentScript {
     }
 
     return false;
+  }
+
+  detectFormNavigation() {
+    // Detect next page and submit buttons
+    const nextButtons = this.findNextPageButtons();
+    const submitButtons = this.findSubmitButtons();
+    
+    this.formState.hasNextPage = nextButtons.length > 0;
+    this.formState.hasSubmit = submitButtons.length > 0;
+    
+    // Update widget UI to show navigation buttons
+    this.updateNavigationUI(nextButtons, submitButtons);
+    
+    console.log('Form navigation detected:', {
+      nextButtons: nextButtons.length,
+      submitButtons: submitButtons.length,
+      formState: this.formState
+    });
+  }
+
+  findNextPageButtons() {
+    const nextButtonSelectors = [
+      // Generic next/continue buttons
+      'button[type="button"]:contains("Next")',
+      'button[type="button"]:contains("Continue")',
+      'input[type="button"][value*="Next"]',
+      'input[type="button"][value*="Continue"]',
+      'input[type="submit"][value*="Next"]',
+      'input[type="submit"][value*="Continue"]',
+      
+      // Site-specific selectors
+      ...this.smartSelectors.nextButtons || [],
+      
+      // Common classes and IDs
+      '.next-button', '.continue-button', '.btn-next', '.btn-continue',
+      '#next-button', '#continue-button', '#btn-next', '#btn-continue',
+      
+      // Data attributes
+      '[data-automation-id*="next"]', '[data-automation-id*="continue"]',
+      '[data-test*="next"]', '[data-test*="continue"]',
+      
+      // Text-based detection
+      'button:not([type="submit"])', 'input[type="button"]'
+    ];
+
+    const buttons = [];
+    
+    nextButtonSelectors.forEach(selector => {
+      try {
+        document.querySelectorAll(selector).forEach(button => {
+          if (this.isNextButton(button) && !buttons.includes(button)) {
+            buttons.push(button);
+          }
+        });
+      } catch (e) {
+        // Skip invalid selectors
+      }
+    });
+
+    return buttons;
+  }
+
+  findSubmitButtons() {
+    const submitButtonSelectors = [
+      // Standard submit buttons
+      'button[type="submit"]',
+      'input[type="submit"]',
+      
+      // Site-specific selectors
+      ...this.smartSelectors.submitButtons || [],
+      
+      // Common submit button patterns
+      'button:contains("Submit")', 'button:contains("Apply")',
+      'button:contains("Send Application")', 'button:contains("Complete Application")',
+      '.submit-button', '.apply-button', '.btn-submit', '.btn-apply',
+      '#submit-button', '#apply-button', '#btn-submit', '#btn-apply',
+      
+      // Data attributes
+      '[data-automation-id*="submit"]', '[data-automation-id*="apply"]',
+      '[data-test*="submit"]', '[data-test*="apply"]'
+    ];
+
+    const buttons = [];
+    
+    submitButtonSelectors.forEach(selector => {
+      try {
+        document.querySelectorAll(selector).forEach(button => {
+          if (this.isSubmitButton(button) && !buttons.includes(button)) {
+            buttons.push(button);
+          }
+        });
+      } catch (e) {
+        // Skip invalid selectors
+      }
+    });
+
+    return buttons;
+  }
+
+  isNextButton(button) {
+    const text = (button.textContent || button.value || '').toLowerCase();
+    const nextKeywords = ['next', 'continue', 'proceed', 'forward', 'step', '→', '»'];
+    const submitKeywords = ['submit', 'apply', 'send', 'complete', 'finish'];
+    
+    // Must contain next keywords but not submit keywords
+    return nextKeywords.some(keyword => text.includes(keyword)) && 
+           !submitKeywords.some(keyword => text.includes(keyword)) &&
+           !button.disabled;
+  }
+
+  isSubmitButton(button) {
+    const text = (button.textContent || button.value || '').toLowerCase();
+    const submitKeywords = ['submit', 'apply', 'send application', 'complete application', 'finish application', 'send my application'];
+    
+    return submitKeywords.some(keyword => text.includes(keyword)) && !button.disabled;
+  }
+
+  updateNavigationUI(nextButtons, submitButtons) {
+    // Remove existing navigation buttons
+    const existingNav = document.getElementById('autojobr-navigation');
+    if (existingNav) existingNav.remove();
+
+    if (nextButtons.length === 0 && submitButtons.length === 0) return;
+
+    // Create navigation section
+    const navigationHTML = `
+      <div class="autojobr-navigation" id="autojobr-navigation">
+        <div class="nav-header">
+          <span class="nav-title">📋 Form Navigation</span>
+        </div>
+        <div class="nav-buttons">
+          ${nextButtons.length > 0 ? `
+            <button class="autojobr-btn secondary" id="autojobr-next-page">
+              <span class="btn-icon">➡️</span>
+              <span>Next Page (${nextButtons.length})</span>
+            </button>
+          ` : ''}
+          ${submitButtons.length > 0 ? `
+            <button class="autojobr-btn primary" id="autojobr-submit-form">
+              <span class="btn-icon">✅</span>
+              <span>Submit Application (${submitButtons.length})</span>
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    `;
+
+    // Insert navigation after actions
+    const actionsDiv = document.querySelector('.autojobr-actions');
+    if (actionsDiv) {
+      actionsDiv.insertAdjacentHTML('afterend', navigationHTML);
+
+      // Add event listeners
+      document.getElementById('autojobr-next-page')?.addEventListener('click', () => {
+        this.handleNextPage(nextButtons);
+      });
+
+      document.getElementById('autojobr-submit-form')?.addEventListener('click', () => {
+        this.handleSubmitForm(submitButtons);
+      });
+    }
+  }
+
+  async handleNextPage(nextButtons) {
+    if (nextButtons.length === 0) return;
+
+    try {
+      this.updateStatus('🔄 Moving to next page...', 'loading');
+
+      // Click the most appropriate next button
+      const bestButton = this.selectBestButton(nextButtons, 'next');
+      if (bestButton) {
+        bestButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        await this.delay(500);
+        
+        bestButton.click();
+        this.formState.currentPage++;
+        
+        this.updateStatus('✅ Moved to next page', 'success');
+        
+        // Wait for page to load then re-detect navigation
+        setTimeout(() => {
+          this.detectFormNavigation();
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Next page error:', error);
+      this.updateStatus('❌ Failed to move to next page', 'error');
+    }
+  }
+
+  async handleSubmitForm(submitButtons) {
+    if (submitButtons.length === 0) return;
+
+    try {
+      // Confirm before submitting
+      if (!confirm('Submit the application now? This action cannot be undone.')) {
+        return;
+      }
+
+      this.updateStatus('🔄 Submitting application...', 'loading');
+
+      // Click the most appropriate submit button
+      const bestButton = this.selectBestButton(submitButtons, 'submit');
+      if (bestButton) {
+        bestButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        await this.delay(500);
+        
+        bestButton.click();
+        
+        this.updateStatus('✅ Application submitted!', 'success');
+        
+        // Track application submission
+        this.trackApplicationSubmission();
+      }
+    } catch (error) {
+      console.error('Submit form error:', error);
+      this.updateStatus('❌ Failed to submit application', 'error');
+    }
+  }
+
+  selectBestButton(buttons, type) {
+    if (buttons.length === 1) return buttons[0];
+
+    // Score buttons based on various criteria
+    let bestButton = null;
+    let bestScore = 0;
+
+    for (const button of buttons) {
+      let score = 0;
+      const text = (button.textContent || button.value || '').toLowerCase();
+
+      // Prefer buttons with clear text
+      if (type === 'next') {
+        if (text.includes('next')) score += 20;
+        if (text.includes('continue')) score += 15;
+      } else if (type === 'submit') {
+        if (text.includes('submit')) score += 20;
+        if (text.includes('apply')) score += 15;
+      }
+
+      // Prefer visible buttons
+      const style = window.getComputedStyle(button);
+      if (style.display !== 'none' && style.visibility !== 'hidden') {
+        score += 10;
+      }
+
+      // Prefer primary/styled buttons
+      if (button.className.includes('primary') || button.className.includes('btn-primary')) {
+        score += 5;
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestButton = button;
+      }
+    }
+
+    return bestButton;
   }
 
   async analyzeNewForms() {
