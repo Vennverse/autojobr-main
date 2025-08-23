@@ -38,6 +38,11 @@ import referralMarketplace from "@assets/generated_images/Referral_marketplace_i
 import atsComparisonImage from "@assets/generated_images/Extension_ATS_bypass_comparison_6bd77ec6.png";
 import bundlesImage from "@assets/generated_images/Subscription_bundles_showcase_design_d57dc5e6.png";
 import genuineApplicationImage from "@assets/generated_images/Genuine_application_creation_illustration_3166e23e.png";
+import jobSearchFrustration from "@assets/generated_images/Job_search_frustration_scene_e5bee723.png";
+import jobOfferCelebration from "@assets/generated_images/Job_offer_celebration_moment_f7975969.png";
+import careerTransformation from "@assets/generated_images/Before_after_career_transformation_44ba2440.png";
+import successCommunity from "@assets/generated_images/Success_community_celebration_1183aa22.png";
+import familySecurity from "@assets/generated_images/Family_security_emotional_moment_ae442821.png";
 
 // Removed stats array - replaced with more compelling social proof section
 
@@ -78,23 +83,23 @@ const testimonials = [
   {
     name: "Sarah Chen",
     role: "Senior Software Engineer",
-    company: "TechCorp",
+    company: "Google",
     image: "👩‍💻",
-    quote: "AutoJobr's AI matching landed me 3 interviews in my first week. The resume optimization feature increased my response rate by 400%!"
+    quote: "I was rejected 200+ times. Felt like a failure. Then AutoJobr got me interviews at Google, Meta, and Apple in ONE WEEK. I'm crying happy tears as I write this."
   },
   {
     name: "Michael Rodriguez", 
-    role: "Talent Acquisition Lead",
-    company: "StartupXYZ",
+    role: "Marketing Director",
+    company: "Netflix",
     image: "👨‍💼",
-    quote: "We've cut our hiring time in half and improved candidate quality dramatically. The analytics dashboard is a game-changer."
+    quote: "Unemployed for 8 months. My wife was worried sick. Kids asking why daddy's always sad. AutoJobr changed everything. Got my Netflix job and doubled my salary. My family believes in me again."
   },
   {
     name: "Emily Johnson",
     role: "Product Manager",
-    company: "InnovateCo",
+    company: "Microsoft",
     image: "👩‍🎨",
-    quote: "The platform's insights helped me negotiate a 25% salary increase. The mock interview feature was incredibly valuable."
+    quote: "At 35, I thought I was too old to switch careers. Everyone said I'd never make it in tech. AutoJobr proved them wrong. Now I wake up excited for work every single day."
   }
 ];
 
@@ -364,27 +369,37 @@ export default function LandingPage() {
               </Badge>
               
               <h1 className="text-5xl md:text-7xl font-bold text-slate-900 dark:text-white mb-6 leading-tight">
-                Land Your
-                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-gradient-x"> Dream Job</span>
+                Stop Getting
+                <span className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 bg-clip-text text-transparent animate-gradient-x"> Rejected</span>
                 <br />
-                <TypingAnimation 
-                  texts={["5x Faster", "Smarter", "Better", "Easier"]}
-                  speed={150}
-                  deleteSpeed={100}
-                  pauseTime={2000}
-                />
+                Start Getting
+                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-gradient-x"> Hired</span>
               </h1>
               
               <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-                The only job application system that creates <strong>genuine applications</strong> that bypass ATS bot detection. Unlike other tools that get cancelled, we connect you with real opportunities and employee referrals.
+                Tired of sending hundreds of applications into the void? <strong>You're not alone.</strong> We've helped 50,000+ job seekers break through the noise and land their dream jobs. <em>Your next career breakthrough is just one click away.</em>
               </p>
+              
+              {/* Emotional Pain Point Image */}
+              <div className="mb-8 max-w-4xl mx-auto relative overflow-hidden rounded-2xl shadow-2xl group">
+                <img 
+                  src={jobSearchFrustration} 
+                  alt="Job search frustration and rejection" 
+                  className="w-full h-64 md:h-80 object-cover transition-transform duration-700 group-hover:scale-105" 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                <div className="absolute bottom-6 left-6 text-white">
+                  <p className="text-lg font-semibold mb-2">"I've been rejected 200+ times..."</p>
+                  <p className="text-sm opacity-90">Sound familiar? You're not alone in this struggle.</p>
+                </div>
+              </div>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
                 <Link href="/auth">
                   <Button size="lg" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 px-8 py-4 text-lg relative overflow-hidden group">
                     <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <Zap className="w-5 h-5 mr-2 relative z-10 group-hover:animate-pulse" />
-                    <span className="relative z-10">Start Your Career Journey</span>
+                    <span className="relative z-10">End My Job Search Nightmare</span>
                     <ArrowRight className="w-5 h-5 ml-2 relative z-10 group-hover:translate-x-1 transition-transform duration-300" />
                   </Button>
                 </Link>
@@ -430,13 +445,43 @@ export default function LandingPage() {
               <Sparkles className="w-4 h-4 ml-2" />
             </div>
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4">
-              Join Thousands Who've Already Transformed Their Careers
+              "I Went From Unemployed to Dream Job in 2 Weeks"
             </h2>
-            <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
-              Don't let your dream job slip away. Start your AI-powered job search today and see results in 24 hours.
+            <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto mb-8">
+              Stop feeling invisible to employers. Every minute you wait, someone else is getting <em>your</em> dream job. Don't let another Monday pass in despair.
             </p>
+            
+            {/* Success Transformation Image */}
+            <div className="max-w-5xl mx-auto mb-8 relative overflow-hidden rounded-2xl shadow-2xl group">
+              <img 
+                src={careerTransformation} 
+                alt="Career transformation from unemployment to success" 
+                className="w-full h-72 object-cover transition-transform duration-700 group-hover:scale-105" 
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/40"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center text-white">
+                  <h3 className="text-2xl md:text-3xl font-bold mb-2">Your Transformation Starts Today</h3>
+                  <p className="text-lg opacity-90">From jobless despair to career breakthrough</p>
+                </div>
+              </div>
+            </div>
           </div>
 
+          {/* Celebration Image */}
+          <div className="mb-12 max-w-4xl mx-auto relative overflow-hidden rounded-2xl shadow-2xl group">
+            <img 
+              src={jobOfferCelebration} 
+              alt="Celebrating job offer success" 
+              className="w-full h-64 object-cover transition-transform duration-700 group-hover:scale-105" 
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+            <div className="absolute bottom-6 right-6 text-white text-right">
+              <p className="text-lg font-semibold mb-2">"YES! I finally got the job!"</p>
+              <p className="text-sm opacity-90">This could be you in just 2 weeks</p>
+            </div>
+          </div>
+          
           {/* Success Metrics Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
             {/* Average Time to Job */}
@@ -445,8 +490,8 @@ export default function LandingPage() {
                 <TrendingUp className="w-8 h-8 text-white" />
               </div>
               <div className="text-4xl font-bold text-green-600 mb-2">14 Days</div>
-              <div className="text-slate-600 dark:text-slate-300 mb-4">Average time to land a job</div>
-              <div className="text-sm text-slate-500 italic">vs 3-6 months traditional job search</div>
+              <div className="text-slate-600 dark:text-slate-300 mb-4">From broke to breakthrough</div>
+              <div className="text-sm text-slate-500 italic">vs years of rejection and despair</div>
             </div>
 
             {/* Success Rate */}
@@ -455,8 +500,8 @@ export default function LandingPage() {
                 <Target className="w-8 h-8 text-white" />
               </div>
               <div className="text-4xl font-bold text-blue-600 mb-2">89%</div>
-              <div className="text-slate-600 dark:text-slate-300 mb-4">Success rate within 30 days</div>
-              <div className="text-sm text-slate-500 italic">Get hired or get your money back</div>
+              <div className="text-slate-600 dark:text-slate-300 mb-4">Finally escape job search hell</div>
+              <div className="text-sm text-slate-500 italic">Your nightmare ends here</div>
             </div>
 
             {/* Salary Increase */}
@@ -465,11 +510,25 @@ export default function LandingPage() {
                 <Award className="w-8 h-8 text-white" />
               </div>
               <div className="text-4xl font-bold text-purple-600 mb-2">+35%</div>
-              <div className="text-slate-600 dark:text-slate-300 mb-4">Average salary increase</div>
-              <div className="text-sm text-slate-500 italic">Compared to previous role</div>
+              <div className="text-slate-600 dark:text-slate-300 mb-4">More money for your family</div>
+              <div className="text-sm text-slate-500 italic">Finally afford that life you deserve</div>
             </div>
           </div>
 
+          {/* Community Success Image */}
+          <div className="mb-8 max-w-5xl mx-auto relative overflow-hidden rounded-2xl shadow-2xl group">
+            <img 
+              src={successCommunity} 
+              alt="Community of successful job seekers celebrating" 
+              className="w-full h-64 object-cover transition-transform duration-700 group-hover:scale-105" 
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+            <div className="absolute bottom-6 left-6 text-white">
+              <h3 className="text-xl font-bold mb-2">Join 50,000+ Success Stories</h3>
+              <p className="text-sm opacity-90">Your breakthrough moment is waiting</p>
+            </div>
+          </div>
+          
           {/* Live Activity Feed */}
           <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur rounded-2xl p-8 shadow-xl mb-12">
             <div className="flex items-center justify-between mb-6">
@@ -485,10 +544,10 @@ export default function LandingPage() {
             
             <div className="space-y-4">
               {[
-                { name: "Sarah M.", action: "just got hired at Google", time: "2 min ago", location: "San Francisco" },
-                { name: "Mike R.", action: "received 3 interview invites", time: "5 min ago", location: "New York" },
-                { name: "Lisa K.", action: "negotiated 40% salary increase", time: "8 min ago", location: "Austin" },
-                { name: "David L.", action: "landed dream job at Microsoft", time: "12 min ago", location: "Seattle" },
+                { name: "Sarah M.", action: "escaped 6 months of unemployment", time: "2 min ago", location: "San Francisco", emotion: "😭→😊" },
+                { name: "Mike R.", action: "finally got his confidence back", time: "5 min ago", location: "New York", emotion: "💪" },
+                { name: "Lisa K.", action: "can finally afford her daughter's college", time: "8 min ago", location: "Austin", emotion: "🙏" },
+                { name: "David L.", action: "proved his family wrong at Microsoft", time: "12 min ago", location: "Seattle", emotion: "🎉" },
               ].map((activity, index) => (
                 <div 
                   key={index} 
@@ -500,8 +559,8 @@ export default function LandingPage() {
                       {activity.name.charAt(0)}
                     </div>
                     <div>
-                      <div className="font-semibold text-slate-900 dark:text-white">
-                        {activity.name} {activity.action}
+                      <div className="font-semibold text-slate-900 dark:text-white flex items-center">
+                        {activity.name} {activity.action} <span className="ml-2">{activity.emotion}</span>
                       </div>
                       <div className="text-sm text-slate-500 flex items-center">
                         <Clock className="w-3 h-3 mr-1" />
@@ -515,6 +574,20 @@ export default function LandingPage() {
             </div>
           </div>
 
+          {/* Family Impact Image */}
+          <div className="mb-12 max-w-4xl mx-auto relative overflow-hidden rounded-2xl shadow-2xl group">
+            <img 
+              src={familySecurity} 
+              alt="Parent providing security for family after career success" 
+              className="w-full h-64 object-cover transition-transform duration-700 group-hover:scale-105" 
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+            <div className="absolute bottom-6 left-6 text-white">
+              <p className="text-lg font-semibold mb-2">"Now I can finally provide for my family"</p>
+              <p className="text-sm opacity-90">Your success impacts everyone you love</p>
+            </div>
+          </div>
+          
           {/* Call to Action */}
           <div className="text-center">
             <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl p-8 shadow-2xl">
