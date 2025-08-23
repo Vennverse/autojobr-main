@@ -31,42 +31,47 @@ const EmployeeReferralServices: React.FC = () => {
     'Adobe', 'Salesforce', 'Uber', 'Airbnb', 'Stripe', 'Shopify', 'PayPal', 'Square'
   ];
 
-  const services = [
+  const serviceTypes = [
     {
-      title: 'Direct Employee Referrals',
-      price: '$99',
+      type: 'intro_meeting',
+      title: 'Intro Meeting + Optional Referral',
+      description: 'Connect directly with employees for insights and potential referrals',
       features: [
-        'Personal introduction to hiring manager',
-        'Internal referral submission',
-        'Follow-up support for 30 days',
-        'Resume optimization for specific role',
-        'Interview preparation session'
+        'One-on-one video consultation',
+        'Company culture and team insights',
+        'Application strategy guidance',
+        'Optional internal referral submission',
+        'Direct connection with hiring teams'
       ],
+      priceRange: '$25-150',
       popular: true
     },
     {
-      title: 'Company Insider Consultation',
-      price: '$49',
+      type: 'interview_prep',
+      title: 'Interview Preparation',
+      description: 'Get insider interview tips from current employees',
       features: [
-        '30-minute consultation call',
-        'Company culture insights',
-        'Application strategy guidance',
-        'Team structure information',
-        'Salary negotiation tips'
+        'Mock interview sessions',
+        'Company-specific interview questions',
+        'Insider tips and expectations',
+        'Technical round preparation',
+        'Behavioral interview coaching'
       ],
+      priceRange: '$40-200',
       popular: false
     },
     {
-      title: 'Premium Referral Package',
-      price: '$199',
+      type: 'ongoing_mentorship',
+      title: 'Ongoing Mentorship',
+      description: 'Long-term career guidance and support',
       features: [
-        'Multiple referrals (up to 3 companies)',
-        'Priority placement in referral queue',
-        'Dedicated referral coordinator',
-        'LinkedIn introduction facilitation',
-        '60-day follow-up support',
-        'Interview coaching sessions'
+        'Regular mentorship sessions',
+        'Career progression advice',
+        'Skill development guidance',
+        'Industry insights and trends',
+        'Professional network expansion'
       ],
+      priceRange: '$100-500',
       popular: false
     }
   ];
@@ -106,19 +111,19 @@ const EmployeeReferralServices: React.FC = () => {
     },
     {
       question: 'What companies do you have referral connections at?',
-      answer: 'We have verified employees at 500+ top companies including Google, Microsoft, Apple, Amazon, Meta, Tesla, Netflix, Adobe, Salesforce, Uber, Airbnb, and many more Fortune 500 companies.'
+      answer: 'Our marketplace features verified employees from 500+ top companies including Google, Microsoft, Apple, Amazon, Meta, Tesla, Netflix, Adobe, Salesforce, Uber, Airbnb, and many more Fortune 500 companies.'
     },
     {
-      question: 'How quickly can I get a referral?',
-      answer: 'Most referrals are processed within 24-48 hours. Our employees typically submit referrals within 1-2 business days after receiving your optimized application materials.'
+      question: 'How does the pricing work?',
+      answer: 'Each employee sets their own rates based on their experience, company, and service type. Prices typically range from $25-500 depending on the service. You can browse and compare different options to find what fits your budget.'
     },
     {
-      question: 'What if the referral doesn\'t result in an interview?',
-      answer: 'We offer a money-back guarantee if you don\'t receive an interview invitation within 30 days of the referral submission (terms and conditions apply).'
+      question: 'What if I\'m not satisfied with the service?',
+      answer: 'Each referrer has their own policies, and you can see their ratings and reviews before booking. We encourage communication between job seekers and referrers to ensure expectations are met.'
     },
     {
-      question: 'Can I get referrals for multiple positions?',
-      answer: 'Yes! Our Premium Referral Package includes referrals to up to 3 different companies. You can also purchase individual referral services for specific positions.'
+      question: 'Can I book services with multiple employees?',
+      answer: 'Absolutely! You can book different services with multiple employees across various companies. Many job seekers work with several referrers to maximize their opportunities.'
     }
   ];
 
@@ -227,7 +232,7 @@ const EmployeeReferralServices: React.FC = () => {
             </h1>
             
             <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-8 max-w-4xl mx-auto leading-relaxed">
-              Connect with verified employees at <strong>Google, Microsoft, Apple, Amazon & 500+ companies</strong> who provide internal referrals that bypass HR filters and reach hiring managers directly.
+              Browse our marketplace of verified employees at <strong>Google, Microsoft, Apple, Amazon & 500+ companies</strong> who offer personalized services including career advice, interview prep, and internal referrals at their own rates.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
@@ -362,20 +367,20 @@ const EmployeeReferralServices: React.FC = () => {
           </div>
         </section>
 
-        {/* Service Packages */}
+        {/* Service Types */}
         <section id="services" className="py-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4">
-                Employee Referral Service Packages
+                Browse Services by Type
               </h2>
               <p className="text-xl text-slate-600 dark:text-slate-300">
-                Choose the package that best fits your career goals
+                Each employee sets their own rates - find the perfect match for your budget and needs
               </p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {services.map((service, index) => (
+              {serviceTypes.map((service, index) => (
                 <Card 
                   key={index}
                   className={`relative ${service.popular ? 'ring-2 ring-blue-500 scale-105' : ''}`}
@@ -391,8 +396,10 @@ const EmployeeReferralServices: React.FC = () => {
                   
                   <CardHeader className="text-center">
                     <CardTitle className="text-2xl">{service.title}</CardTitle>
-                    <div className="text-4xl font-bold text-slate-900 dark:text-white">
-                      {service.price}
+                    <p className="text-slate-600 dark:text-slate-300 mt-2">{service.description}</p>
+                    <div className="text-2xl font-bold text-slate-900 dark:text-white mt-4">
+                      {service.priceRange}
+                      <div className="text-sm font-normal text-slate-500">Set by individual referrers</div>
                     </div>
                   </CardHeader>
                   
@@ -406,18 +413,28 @@ const EmployeeReferralServices: React.FC = () => {
                       ))}
                     </ul>
                     
-                    <Link href="/auth">
+                    <Link href="/referral-marketplace">
                       <Button 
                         className={`w-full ${service.popular ? 'bg-blue-500 hover:bg-blue-600' : ''}`}
                         size="lg"
                       >
-                        Get Started
+                        Browse {service.title.split(' ')[0]} Services
                         <ArrowRight className="w-4 h-4 ml-2" />
                       </Button>
                     </Link>
                   </CardContent>
                 </Card>
               ))}
+            </div>
+            
+            <div className="text-center mt-12">
+              <Link href="/referral-marketplace">
+                <Button size="lg" variant="outline" className="px-8 py-4 text-lg">
+                  <MessageCircle className="w-5 h-5 mr-2" />
+                  View All Available Services
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </Link>
             </div>
           </div>
         </section>
