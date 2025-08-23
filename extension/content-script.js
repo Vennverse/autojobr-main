@@ -716,21 +716,30 @@ class AutoJobrContentScript {
   showWidget() {
     const widget = document.querySelector('.autojobr-widget');
     if (widget) {
+      // Ensure widget is visible
       widget.style.display = 'block';
       widget.style.position = 'fixed';
       widget.style.top = '20px';
       widget.style.right = '20px';
       widget.style.zIndex = '10000';
       
-      // Animate in
+      // Reset any previous transforms
       widget.style.opacity = '0';
       widget.style.transform = 'translateX(100%)';
+      widget.style.transition = 'none';
       
+      // Trigger reflow and animate in
+      widget.offsetHeight;
       setTimeout(() => {
         widget.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
         widget.style.opacity = '1';
         widget.style.transform = 'translateX(0)';
       }, 100);
+      
+      console.log('✅ AutoJobr widget displayed');
+    } else {
+      console.log('❌ AutoJobr widget not found - reinject UI');
+      this.injectEnhancedUI();
     }
   }
 
@@ -742,7 +751,7 @@ class AutoJobrContentScript {
       widget.style.transform = 'translateX(100%)';
       
       setTimeout(() => {
-        widget.remove(); // Completely remove from DOM instead of just hiding
+        widget.style.display = 'none'; // Hide instead of removing from DOM
       }, 300);
     }
   }
