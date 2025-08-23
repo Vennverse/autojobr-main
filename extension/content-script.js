@@ -80,12 +80,12 @@ class AutoJobrContentScript {
     return {
       // Personal Information
       firstName: {
-        patterns: ['firstName', 'first_name', 'fname', 'first-name', 'given-name', 'forename', 'given name', 'legal first name', 'first legal name', 'givenname', 'firstname', 'first name', 'name_first', 'applicant_first_name'],
+        patterns: ['firstName', 'first_name', 'fname', 'first-name', 'given-name', 'forename', 'given name', 'legal first name', 'first legal name', 'givenname', 'firstname', 'first name', 'name_first', 'applicant_first_name', 'candidate-first-name'],
         types: ['text'],
         priority: 10
       },
       lastName: {
-        patterns: ['lastName', 'last_name', 'lname', 'last-name', 'family-name', 'surname', 'family name', 'legal last name', 'last legal name', 'familyname', 'lastname', 'last name', 'name_last', 'applicant_last_name'],
+        patterns: ['lastName', 'last_name', 'lname', 'last-name', 'family-name', 'surname', 'family name', 'legal last name', 'last legal name', 'familyname', 'lastname', 'last name', 'name_last', 'applicant_last_name', 'candidate-last-name'],
         types: ['text'],
         priority: 10
       },
@@ -134,17 +134,17 @@ class AutoJobrContentScript {
       
       // Professional
       currentTitle: {
-        patterns: ['currentTitle', 'title', 'jobTitle', 'job_title', 'position', 'role'],
+        patterns: ['currentTitle', 'title', 'jobTitle', 'job_title', 'position', 'role', 'current-position', 'job-title'],
         types: ['text'],
         priority: 9
       },
       company: {
-        patterns: ['company', 'employer', 'organization', 'current_company', 'currentCompany'],
+        patterns: ['company', 'employer', 'organization', 'current_company', 'currentCompany', 'current-employer', 'company_name'],
         types: ['text'],
         priority: 8
       },
       experience: {
-        patterns: ['experience', 'yearsExperience', 'years_experience', 'years-experience', 'exp'],
+        patterns: ['experience', 'yearsExperience', 'years_experience', 'years-experience', 'exp', 'experience_level', 'years-experience'],
         types: ['text', 'number', 'select-one'],
         priority: 7
       },
@@ -156,7 +156,7 @@ class AutoJobrContentScript {
         priority: 7
       },
       degree: {
-        patterns: ['degree', 'education_level', 'qualification'],
+        patterns: ['degree', 'education_level', 'qualification', 'degree_type', 'education-level'],
         types: ['text', 'select-one'],
         priority: 7
       },
@@ -183,9 +183,26 @@ class AutoJobrContentScript {
         priority: 6
       },
       
+      // Work Screening Questions
+      currentlyEmployed: {
+        patterns: ['currentlyEmployed', 'currently_employed', 'employment_status', 'employed', 'currently-employed'],
+        types: ['select-one', 'radio', 'checkbox'],
+        priority: 7
+      },
+      canContactEmployer: {
+        patterns: ['canContactEmployer', 'contact_employer', 'employer_contact', 'employer_contact_permission', 'contact-current-employer'],
+        types: ['select-one', 'radio', 'checkbox'],
+        priority: 7
+      },
+      willingToTravel: {
+        patterns: ['willingToTravel', 'willing_to_travel', 'travel_willingness', 'travel-willing', 'can-travel'],
+        types: ['select-one', 'radio', 'checkbox'],
+        priority: 7
+      },
+      
       // Work Authorization
       workAuth: {
-        patterns: ['workAuthorization', 'work_authorization', 'eligible', 'authorized', 'legal'],
+        patterns: ['workAuthorization', 'work_authorization', 'eligible', 'authorized', 'legal', 'work_eligibility', 'employment_eligibility'],
         types: ['select-one', 'radio', 'checkbox'],
         priority: 8
       },
@@ -314,7 +331,7 @@ class AutoJobrContentScript {
       
       // Application-Specific Questions
       howDidYouHear: {
-        patterns: ['hear_about', 'how_did_you_hear', 'referral_source', 'source', 'where_did_you_hear'],
+        patterns: ['hear_about', 'how_did_you_hear', 'referral_source', 'source', 'where_did_you_hear', 'how_heard_about_us'],
         types: ['radio', 'select-one'],
         priority: 7,
         values: {
@@ -330,7 +347,7 @@ class AutoJobrContentScript {
       },
       
       whyInterestedRole: {
-        patterns: ['why_interested', 'interest_reason', 'motivation', 'why_apply', 'reason_applying'],
+        patterns: ['why_interested', 'interest_reason', 'motivation', 'why_apply', 'reason_applying', 'position_interest'],
         types: ['textarea', 'text'],
         priority: 6
       },
@@ -361,7 +378,7 @@ class AutoJobrContentScript {
       
       // Professional References
       referenceName: {
-        patterns: ['reference_name', 'referenceName', 'ref_name', 'contact_name'],
+        patterns: ['reference_name', 'referenceName', 'ref_name', 'contact_name', 'reference_1_name'],
         types: ['text'],
         priority: 7
       },
@@ -391,7 +408,7 @@ class AutoJobrContentScript {
       },
       
       referenceRelationship: {
-        patterns: ['reference_relationship', 'relationship', 'how_do_you_know', 'connection'],
+        patterns: ['reference_relationship', 'relationship', 'how_do_you_know', 'connection', 'reference_1_relationship'],
         types: ['select-one', 'text'],
         priority: 6,
         values: {
