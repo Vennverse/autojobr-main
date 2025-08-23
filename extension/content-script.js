@@ -227,6 +227,180 @@ class AutoJobrContentScript {
         patterns: ['coverLetter', 'cover_letter', 'covering_letter', 'motivation'],
         types: ['textarea', 'text'],
         priority: 8
+      },
+      
+      // Personal Details
+      gender: {
+        patterns: ['gender', 'sex', 'gender_identity', 'genderIdentity', 'gender-identity'],
+        types: ['radio', 'select-one'],
+        priority: 6,
+        values: {
+          male: ['male', 'man', 'm'],
+          female: ['female', 'woman', 'f'], 
+          other: ['other', 'non-binary', 'nonbinary', 'prefer-not-to-say', 'decline']
+        }
+      },
+      
+      veteranStatus: {
+        patterns: ['veteran', 'veteran_status', 'veteranStatus', 'military', 'armed_forces', 'service_member'],
+        types: ['radio', 'select-one'],
+        priority: 7,
+        values: {
+          not_veteran: ['no', 'not-veteran', 'not_veteran', 'civilian', 'none'],
+          veteran: ['yes', 'veteran', 'military-veteran'],
+          disabled_veteran: ['disabled-veteran', 'disabled_veteran', 'disabled']
+        }
+      },
+      
+      // Additional Social Links
+      twitter: {
+        patterns: ['twitter', 'twitterUrl', 'twitter_url', 'twitter-url', 'twitter_handle'],
+        types: ['url', 'text'],
+        priority: 5
+      },
+      
+      personalWebsite: {
+        patterns: ['personalWebsite', 'personal_website', 'website', 'homepage', 'blog', 'personal_site'],
+        types: ['url', 'text'],
+        priority: 5
+      },
+      
+      // Work Screening Questions (Boolean responses)
+      currentlyEmployed: {
+        patterns: ['currently_employed', 'currentlyEmployed', 'employed', 'current_job', 'working'],
+        types: ['radio', 'select-one', 'checkbox'],
+        priority: 8,
+        values: {
+          yes: ['yes', 'true', 'currently-employed', 'employed'],
+          no: ['no', 'false', 'unemployed', 'not-employed']
+        }
+      },
+      
+      canContactEmployer: {
+        patterns: ['contact_employer', 'contactEmployer', 'current_employer', 'employer_contact', 'reference_check'],
+        types: ['radio', 'select-one', 'checkbox'],
+        priority: 7,
+        values: {
+          yes: ['yes', 'true', 'authorized', 'allowed'],
+          no: ['no', 'false', 'not-authorized', 'do-not-contact']
+        }
+      },
+      
+      willingToWorkOvertime: {
+        patterns: ['overtime', 'work_overtime', 'extra_hours', 'extended_hours', 'flexible_hours'],
+        types: ['radio', 'select-one', 'checkbox'],
+        priority: 6,
+        values: {
+          yes: ['yes', 'true', 'willing', 'available'],
+          no: ['no', 'false', 'not-willing', 'unavailable']
+        }
+      },
+      
+      willingToTravel: {
+        patterns: ['travel', 'willing_to_travel', 'business_travel', 'travel_required', 'relocation'],
+        types: ['radio', 'select-one', 'checkbox'],
+        priority: 6,
+        values: {
+          yes: ['yes', 'true', 'willing', 'available'],
+          no: ['no', 'false', 'not-willing', 'unavailable']
+        }
+      },
+      
+      travelPercentage: {
+        patterns: ['travel_percentage', 'travel_percent', 'travel_amount', 'travel_frequency'],
+        types: ['text', 'number', 'select-one'],
+        priority: 5
+      },
+      
+      // Application-Specific Questions
+      howDidYouHear: {
+        patterns: ['hear_about', 'how_did_you_hear', 'referral_source', 'source', 'where_did_you_hear'],
+        types: ['radio', 'select-one'],
+        priority: 7,
+        values: {
+          linkedin: ['linkedin', 'linked-in'],
+          indeed: ['indeed'],
+          company_website: ['company-website', 'website', 'company_site'],
+          referral: ['referral', 'employee-referral', 'friend', 'colleague'],
+          job_board: ['job-board', 'job_site', 'job_portal'],
+          social_media: ['social-media', 'facebook', 'twitter'],
+          search_engine: ['google', 'search', 'search-engine'],
+          other: ['other']
+        }
+      },
+      
+      whyInterestedRole: {
+        patterns: ['why_interested', 'interest_reason', 'motivation', 'why_apply', 'reason_applying'],
+        types: ['textarea', 'text'],
+        priority: 6
+      },
+      
+      whyInterestedCompany: {
+        patterns: ['why_company', 'company_interest', 'company_motivation', 'why_work_here'],
+        types: ['textarea', 'text'],
+        priority: 6
+      },
+      
+      careerGoals: {
+        patterns: ['career_goals', 'future_goals', 'aspirations', 'career_objectives', 'long_term_goals'],
+        types: ['textarea', 'text'],
+        priority: 5
+      },
+      
+      startDate: {
+        patterns: ['start_date', 'startDate', 'available_date', 'availability', 'when_can_start'],
+        types: ['date', 'text'],
+        priority: 7
+      },
+      
+      gpa: {
+        patterns: ['gpa', 'grade_point', 'academic_record', 'grades'],
+        types: ['text', 'number'],
+        priority: 5
+      },
+      
+      // Professional References
+      referenceName: {
+        patterns: ['reference_name', 'referenceName', 'ref_name', 'contact_name'],
+        types: ['text'],
+        priority: 7
+      },
+      
+      referenceTitle: {
+        patterns: ['reference_title', 'referenceTitle', 'ref_title', 'contact_title'],
+        types: ['text'],
+        priority: 6
+      },
+      
+      referenceCompany: {
+        patterns: ['reference_company', 'referenceCompany', 'ref_company', 'contact_company'],
+        types: ['text'],
+        priority: 6
+      },
+      
+      referenceEmail: {
+        patterns: ['reference_email', 'referenceEmail', 'ref_email', 'contact_email'],
+        types: ['email', 'text'],
+        priority: 7
+      },
+      
+      referencePhone: {
+        patterns: ['reference_phone', 'referencePhone', 'ref_phone', 'contact_phone'],
+        types: ['tel', 'text'],
+        priority: 6
+      },
+      
+      referenceRelationship: {
+        patterns: ['reference_relationship', 'relationship', 'how_do_you_know', 'connection'],
+        types: ['select-one', 'text'],
+        priority: 6,
+        values: {
+          supervisor: ['supervisor', 'manager', 'boss'],
+          colleague: ['colleague', 'coworker', 'peer'],
+          client: ['client', 'customer'],
+          mentor: ['mentor', 'advisor'],
+          other: ['other']
+        }
       }
     };
   }
@@ -1574,10 +1748,102 @@ class AutoJobrContentScript {
       coverLetter: profile.defaultCoverLetter || '',
       skills: Array.isArray(profile.skills) ? profile.skills.join(', ') : (profile.skills || ''),
       salary: profile.desiredSalaryMin ? `${profile.desiredSalaryMin}-${profile.desiredSalaryMax || profile.desiredSalaryMin}` : '',
-      description: profile.summary || ''
+      description: profile.summary || '',
+      
+      // New Personal Details Fields
+      gender: this.mapValueWithOptions('gender', profile.gender, fieldInfo),
+      veteranStatus: this.mapValueWithOptions('veteranStatus', profile.veteranStatus, fieldInfo),
+      twitter: profile.twitterUrl || '',
+      personalWebsite: profile.personalWebsiteUrl || '',
+      
+      // Work Screening Questions (Boolean responses)
+      currentlyEmployed: this.mapBooleanValue(profile.currentlyEmployed, fieldInfo),
+      canContactEmployer: this.mapBooleanValue(profile.canContactCurrentEmployer, fieldInfo), 
+      willingToWorkOvertime: this.mapBooleanValue(profile.willingToWorkOvertime, fieldInfo),
+      willingToTravel: this.mapBooleanValue(profile.willingToTravel, fieldInfo),
+      travelPercentage: profile.maxTravelPercentage ? `${profile.maxTravelPercentage}%` : '',
+      
+      // Application-Specific Questions
+      howDidYouHear: this.mapValueWithOptions('howDidYouHear', profile.howDidYouHearAboutUs, fieldInfo),
+      whyInterestedRole: profile.whyInterestedInRole || '',
+      whyInterestedCompany: profile.whyInterestedInCompany || '',
+      careerGoals: profile.careerGoals || '',
+      startDate: profile.preferredStartDate || profile.earliestStartDate || 'Flexible',
+      gpa: profile.gpa || '',
+      
+      // Professional References (use first reference if available)
+      referenceName: profile.references?.[0]?.fullName || '',
+      referenceTitle: profile.references?.[0]?.jobTitle || '',
+      referenceCompany: profile.references?.[0]?.company || '',
+      referenceEmail: profile.references?.[0]?.email || '',
+      referencePhone: profile.references?.[0]?.phone || '',
+      referenceRelationship: this.mapValueWithOptions('referenceRelationship', profile.references?.[0]?.relationship, fieldInfo)
     };
 
     return valueMap[key] || null;
+  }
+
+  // Enhanced value mapping for fields with predefined options
+  mapValueWithOptions(fieldType, userValue, fieldInfo) {
+    if (!userValue) return null;
+    
+    const mapping = this.fieldMappings[fieldType];
+    if (!mapping || !mapping.values) return userValue;
+    
+    // Find matching value from our predefined options
+    for (const [ourValue, possibleMatches] of Object.entries(mapping.values)) {
+      if (ourValue === userValue || possibleMatches.includes(userValue.toLowerCase())) {
+        // Check if field is radio/select and try to match exact option text
+        if (fieldInfo.type === 'radio' || fieldInfo.type === 'select-one') {
+          return this.findBestOptionMatch(possibleMatches, fieldInfo);
+        }
+        return ourValue;
+      }
+    }
+    
+    return userValue;
+  }
+
+  // Map boolean values to appropriate yes/no responses based on field context
+  mapBooleanValue(boolValue, fieldInfo) {
+    if (boolValue === null || boolValue === undefined) return null;
+    
+    if (fieldInfo.type === 'radio' || fieldInfo.type === 'select-one') {
+      // Try to find actual option values in the form
+      const form = fieldInfo.element?.closest('form');
+      if (form) {
+        const options = form.querySelectorAll(`input[name="${fieldInfo.name}"], option`);
+        for (const option of options) {
+          const value = (option.value || option.textContent || '').toLowerCase();
+          if (boolValue && (value.includes('yes') || value.includes('true') || value.includes('authorized'))) {
+            return option.value || 'yes';
+          }
+          if (!boolValue && (value.includes('no') || value.includes('false') || value.includes('not'))) {
+            return option.value || 'no';
+          }
+        }
+      }
+    }
+    
+    return boolValue ? 'yes' : 'no';
+  }
+
+  // Find the best matching option text from available form options
+  findBestOptionMatch(possibleMatches, fieldInfo) {
+    const form = fieldInfo.element?.closest('form');
+    if (!form) return possibleMatches[0]; // Return first match if no form context
+    
+    const options = form.querySelectorAll(`input[name="${fieldInfo.name}"], option`);
+    for (const option of options) {
+      const optionText = (option.value || option.textContent || '').toLowerCase();
+      for (const match of possibleMatches) {
+        if (optionText.includes(match) || match.includes(optionText)) {
+          return option.value || optionText;
+        }
+      }
+    }
+    
+    return possibleMatches[0]; // Fallback to first match
   }
 
   formatPhone(phone, fieldInfo) {

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -78,6 +79,43 @@ const DEGREE_OPTIONS = [
   { value: "bachelors", label: "Bachelor's Degree" },
   { value: "masters", label: "Master's Degree" },
   { value: "phd", label: "Ph.D." },
+  { value: "other", label: "Other" }
+];
+
+const GENDER_OPTIONS = [
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
+  { value: "other", label: "Other" },
+  { value: "prefer_not_to_say", label: "Prefer not to say" }
+];
+
+const VETERAN_STATUS_OPTIONS = [
+  { value: "not_veteran", label: "Not a veteran" },
+  { value: "veteran", label: "Veteran" },
+  { value: "disabled_veteran", label: "Disabled veteran" }
+];
+
+const HEAR_ABOUT_US_OPTIONS = [
+  { value: "linkedin", label: "LinkedIn" },
+  { value: "indeed", label: "Indeed" },
+  { value: "company_website", label: "Company Website" },
+  { value: "referral", label: "Employee Referral" },
+  { value: "job_board", label: "Job Board" },
+  { value: "social_media", label: "Social Media" },
+  { value: "search_engine", label: "Search Engine" },
+  { value: "other", label: "Other" }
+];
+
+const YES_NO_OPTIONS = [
+  { value: "yes", label: "Yes" },
+  { value: "no", label: "No" }
+];
+
+const RELATIONSHIP_OPTIONS = [
+  { value: "supervisor", label: "Supervisor/Manager" },
+  { value: "colleague", label: "Colleague/Peer" },
+  { value: "client", label: "Client/Customer" },
+  { value: "mentor", label: "Mentor" },
   { value: "other", label: "Other" }
 ];
 
@@ -893,6 +931,249 @@ export default function Onboarding() {
               <li>4. Click the AutoJobr icon to auto-fill the form</li>
               <li>5. Review and submit your application</li>
             </ol>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: "personal_details",
+      title: "Personal Details",
+      description: "Optional personal information for diversity and compliance",
+      content: (
+        <div className="space-y-6">
+          <div>
+            <Label className="text-base font-medium">Gender</Label>
+            <p className="text-sm text-gray-600 mb-3">Optional - Select your gender identity</p>
+            <RadioGroup
+              value={formData.gender || ""}
+              onValueChange={(value) => handleInputChange("gender", value)}
+              data-testid="radio-gender"
+            >
+              {GENDER_OPTIONS.map((option) => (
+                <div key={option.value} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option.value} id={`gender-${option.value}`} />
+                  <Label htmlFor={`gender-${option.value}`}>{option.label}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+
+          <div>
+            <Label className="text-base font-medium">Veteran Status</Label>
+            <p className="text-sm text-gray-600 mb-3">Required for compliance reporting</p>
+            <RadioGroup
+              value={formData.veteranStatus || ""}
+              onValueChange={(value) => handleInputChange("veteranStatus", value)}
+              data-testid="radio-veteran-status"
+            >
+              {VETERAN_STATUS_OPTIONS.map((option) => (
+                <div key={option.value} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option.value} id={`veteran-${option.value}`} />
+                  <Label htmlFor={`veteran-${option.value}`}>{option.label}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="twitterUrl">Twitter Profile</Label>
+              <Input
+                id="twitterUrl"
+                value={formData.twitterUrl || ""}
+                onChange={(e) => handleInputChange("twitterUrl", e.target.value)}
+                placeholder="https://twitter.com/username"
+                data-testid="input-twitter"
+              />
+            </div>
+            <div>
+              <Label htmlFor="personalWebsiteUrl">Personal Website</Label>
+              <Input
+                id="personalWebsiteUrl"
+                value={formData.personalWebsiteUrl || ""}
+                onChange={(e) => handleInputChange("personalWebsiteUrl", e.target.value)}
+                placeholder="https://yourwebsite.com"
+                data-testid="input-personal-website"
+              />
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: "work_screening",
+      title: "Work Screening Questions",
+      description: "Common questions asked by employers",
+      content: (
+        <div className="space-y-6">
+          <div>
+            <Label className="text-base font-medium">Are you currently employed?</Label>
+            <RadioGroup
+              value={formData.currentlyEmployed ? "yes" : "no"}
+              onValueChange={(value) => handleInputChange("currentlyEmployed", value === "yes")}
+              className="mt-3"
+              data-testid="radio-currently-employed"
+            >
+              {YES_NO_OPTIONS.map((option) => (
+                <div key={option.value} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option.value} id={`employed-${option.value}`} />
+                  <Label htmlFor={`employed-${option.value}`}>{option.label}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+
+          <div>
+            <Label className="text-base font-medium">May we contact your current employer?</Label>
+            <RadioGroup
+              value={formData.canContactCurrentEmployer ? "yes" : "no"}
+              onValueChange={(value) => handleInputChange("canContactCurrentEmployer", value === "yes")}
+              className="mt-3"
+              data-testid="radio-contact-employer"
+            >
+              {YES_NO_OPTIONS.map((option) => (
+                <div key={option.value} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option.value} id={`contact-employer-${option.value}`} />
+                  <Label htmlFor={`contact-employer-${option.value}`}>{option.label}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+
+          <div>
+            <Label className="text-base font-medium">Are you willing to work overtime when needed?</Label>
+            <RadioGroup
+              value={formData.willingToWorkOvertime ? "yes" : "no"}
+              onValueChange={(value) => handleInputChange("willingToWorkOvertime", value === "yes")}
+              className="mt-3"
+              data-testid="radio-overtime"
+            >
+              {YES_NO_OPTIONS.map((option) => (
+                <div key={option.value} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option.value} id={`overtime-${option.value}`} />
+                  <Label htmlFor={`overtime-${option.value}`}>{option.label}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+
+          <div>
+            <Label className="text-base font-medium">Are you willing to travel for work?</Label>
+            <RadioGroup
+              value={formData.willingToTravel ? "yes" : "no"}
+              onValueChange={(value) => handleInputChange("willingToTravel", value === "yes")}
+              className="mt-3"
+              data-testid="radio-travel"
+            >
+              {YES_NO_OPTIONS.map((option) => (
+                <div key={option.value} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option.value} id={`travel-${option.value}`} />
+                  <Label htmlFor={`travel-${option.value}`}>{option.label}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+
+          {formData.willingToTravel && (
+            <div>
+              <Label htmlFor="maxTravelPercentage">Maximum travel percentage you're comfortable with</Label>
+              <Input
+                id="maxTravelPercentage"
+                type="number"
+                min="0"
+                max="100"
+                value={formData.maxTravelPercentage || ""}
+                onChange={(e) => handleInputChange("maxTravelPercentage", parseInt(e.target.value) || 0)}
+                placeholder="25"
+                className="mt-2"
+                data-testid="input-travel-percentage"
+              />
+              <p className="text-sm text-gray-600 mt-1">Enter percentage (0-100%)</p>
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
+      id: "application_questions",
+      title: "Application Questions",
+      description: "Common questions asked in job applications",
+      content: (
+        <div className="space-y-6">
+          <div>
+            <Label className="text-base font-medium">How did you hear about us?</Label>
+            <RadioGroup
+              value={formData.howDidYouHearAboutUs || ""}
+              onValueChange={(value) => handleInputChange("howDidYouHearAboutUs", value)}
+              className="mt-3"
+              data-testid="radio-hear-about-us"
+            >
+              {HEAR_ABOUT_US_OPTIONS.map((option) => (
+                <div key={option.value} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option.value} id={`hear-${option.value}`} />
+                  <Label htmlFor={`hear-${option.value}`}>{option.label}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+
+          <div>
+            <Label htmlFor="whyInterestedInRole">Why are you interested in this role?</Label>
+            <Textarea
+              id="whyInterestedInRole"
+              value={formData.whyInterestedInRole || ""}
+              onChange={(e) => handleInputChange("whyInterestedInRole", e.target.value)}
+              placeholder="Describe what attracts you to this specific position..."
+              className="min-h-[100px] mt-2"
+              data-testid="textarea-interested-role"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="whyInterestedInCompany">Why do you want to work for this company?</Label>
+            <Textarea
+              id="whyInterestedInCompany"
+              value={formData.whyInterestedInCompany || ""}
+              onChange={(e) => handleInputChange("whyInterestedInCompany", e.target.value)}
+              placeholder="What interests you about this company and its mission..."
+              className="min-h-[100px] mt-2"
+              data-testid="textarea-interested-company"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="careerGoals">What are your career goals?</Label>
+            <Textarea
+              id="careerGoals"
+              value={formData.careerGoals || ""}
+              onChange={(e) => handleInputChange("careerGoals", e.target.value)}
+              placeholder="Describe your short-term and long-term career objectives..."
+              className="min-h-[100px] mt-2"
+              data-testid="textarea-career-goals"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="preferredStartDate">Preferred Start Date</Label>
+              <Input
+                id="preferredStartDate"
+                value={formData.preferredStartDate || ""}
+                onChange={(e) => handleInputChange("preferredStartDate", e.target.value)}
+                placeholder="mm/dd/yyyy or 'Flexible'"
+                data-testid="input-start-date"
+              />
+            </div>
+            <div>
+              <Label htmlFor="gpa">GPA (if recent graduate)</Label>
+              <Input
+                id="gpa"
+                value={formData.gpa || ""}
+                onChange={(e) => handleInputChange("gpa", e.target.value)}
+                placeholder="3.75"
+                data-testid="input-gpa"
+              />
+            </div>
           </div>
         </div>
       )

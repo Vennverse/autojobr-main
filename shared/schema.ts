@@ -94,6 +94,10 @@ export const userProfiles = pgTable("user_profiles", {
   gender: varchar("gender"),
   nationality: varchar("nationality"),
   
+  // Additional Social Links
+  twitterUrl: varchar("twitter_url"),
+  personalWebsiteUrl: varchar("personal_website_url"),
+  
   // Work Authorization
   workAuthorization: varchar("work_authorization"), // "citizen", "permanent_resident", "visa_required"
   visaStatus: varchar("visa_status"),
@@ -114,14 +118,37 @@ export const userProfiles = pgTable("user_profiles", {
   salaryCurrency: varchar("salary_currency").default("USD"),
   noticePeriod: varchar("notice_period"), // "immediate", "2_weeks", "1_month", "2_months"
   
+  // Application Screening Questions
+  workedForCompanyBefore: boolean("worked_for_company_before").default(false),
+  currentlyEmployed: boolean("currently_employed").default(false),
+  canContactCurrentEmployer: boolean("can_contact_current_employer").default(true),
+  canWorkSpecificHours: boolean("can_work_specific_hours").default(true),
+  willingToWorkOvertime: boolean("willing_to_work_overtime").default(true),
+  willingToTravel: boolean("willing_to_travel").default(true),
+  maxTravelPercentage: integer("max_travel_percentage").default(0), // 0-100%
+  
   // Education Summary (for quick form filling)  
   highestDegree: varchar("highest_degree"),
   majorFieldOfStudy: varchar("major_field_of_study"),
   graduationYear: integer("graduation_year"),
+  gpa: varchar("gpa"), // For recent graduates
+  relevantCertifications: text("relevant_certifications"), // Comma-separated list
   
   // Professional Summary
   summary: text("summary"),
   yearsExperience: integer("years_experience"),
+  
+  // Company-Specific Questions (commonly asked)
+  howDidYouHearAboutUs: varchar("how_did_you_hear_about_us"),
+  whyInterestedInRole: text("why_interested_in_role"),
+  whyInterestedInCompany: text("why_interested_in_company"),
+  careerGoals: text("career_goals"),
+  
+  // Availability and Start Date
+  preferredStartDate: varchar("preferred_start_date"), // Flexible format
+  earliestStartDate: varchar("earliest_start_date"),
+  interviewingElsewhere: boolean("interviewing_elsewhere").default(false),
+  interviewSchedulingRestrictions: text("interview_scheduling_restrictions"),
   
   // Emergency Contact (sometimes required)
   emergencyContactName: varchar("emergency_contact_name"),
@@ -157,6 +184,28 @@ export const userProfiles = pgTable("user_profiles", {
 
 // Export alias for compatibility with server routes
 export const profiles = userProfiles;
+
+// Professional References
+export const professionalReferences = pgTable("professional_references", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Reference Details
+  fullName: varchar("full_name").notNull(),
+  jobTitle: varchar("job_title").notNull(),
+  company: varchar("company").notNull(),
+  email: varchar("email").notNull(),
+  phone: varchar("phone").notNull(),
+  relationship: varchar("relationship").notNull(), // supervisor, colleague, client, mentor
+  yearsKnown: integer("years_known"),
+  
+  // Permissions
+  canContact: boolean("can_contact").default(true),
+  isPrimary: boolean("is_primary").default(false), // Mark one as primary reference
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
 // User skills
 export const userSkills = pgTable("user_skills", {
