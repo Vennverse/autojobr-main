@@ -251,16 +251,33 @@ router.post("/payment/create-order", async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'Booking ID and amount required' });
     }
 
-    // Create PayPal order with escrow model
-    const orderRequest = {
+    // Create PayPal order with correct format and return URL structure
+    const mockReq = {
       body: {
         amount: amount.toString(),
         currency: 'USD',
         intent: 'CAPTURE'
       }
+    } as Request;
+
+    // Temporarily store the booking ID for later capture
+    const originalSend = res.json;
+    res.json = function(data: any) {
+      if (data.id) {
+        // Add approval URL to response
+        data.links = data.links || [];
+        data.links.push({
+          href: `https://www.sandbox.paypal.com/checkoutnow?token=${data.id}`,
+          rel: 'approve',
+          method: 'REDIRECT'
+        });
+        data.approvalUrl = `https://www.sandbox.paypal.com/checkoutnow?token=${data.id}`;
+        return res.status(200).json({ success: true, ...data });
+      }
+      return originalSend.call(this, data);
     };
 
-    await createPaypalOrder(orderRequest as any, res);
+    await createPaypalOrder(mockReq, res);
   } catch (error) {
     console.error('Error creating PayPal order:', error);
     res.status(500).json({ success: false, error: 'Failed to create payment order' });
@@ -275,12 +292,12 @@ router.post("/payment/capture/:orderId", async (req: Request, res: Response) => 
   try {
     const { orderId } = req.params;
     
-    // Capture PayPal order
-    const captureRequest = {
+    // Capture PayPal order - fix the parameter structure
+    const mockReq = {
       params: { orderID: orderId }
-    };
+    } as Request;
 
-    await capturePaypalOrder(captureRequest as any, res);
+    await capturePaypalOrder(mockReq, res);
   } catch (error) {
     console.error('Error capturing PayPal payment:', error);
     res.status(500).json({ success: false, error: 'Failed to capture payment' });

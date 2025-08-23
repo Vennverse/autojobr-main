@@ -98,9 +98,10 @@ const MyBookings: React.FC = () => {
 
       const data = await response.json();
       
-      if (data.success && data.approvalUrl) {
-        // Redirect to PayPal
-        window.location.href = data.approvalUrl;
+      if (data.id) {
+        // Create the approval URL manually since PayPal returns order ID
+        const approvalUrl = `https://www.sandbox.paypal.com/checkoutnow?token=${data.id}`;
+        window.location.href = approvalUrl;
       } else {
         alert('Failed to create payment: ' + (data.error || 'Unknown error'));
       }

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Star, Clock, Users, Shield, MessageCircle, ExternalLink } from 'lucide-react';
+import { Star, Clock, Users, Shield, MessageCircle, ExternalLink, Target } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 interface ReferralService {
@@ -206,6 +206,92 @@ const ReferralMarketplace: React.FC = () => {
             Become a Referrer
           </Button>
         </div>
+        
+        {/* How It Works - Step by Step Process */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-8 mb-8">
+          <h2 className="text-2xl font-bold text-center mb-8 text-gray-900">How Our Referral Program Works</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {/* Step 1 */}
+            <div className="text-center relative">
+              <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white font-bold text-xl">
+                1
+              </div>
+              <h3 className="font-semibold mb-2 text-gray-900">Browse & Select</h3>
+              <p className="text-sm text-gray-600">Choose from verified employees at top companies offering career advice and referrals</p>
+              {/* Connector Arrow */}
+              <div className="hidden md:block absolute top-8 -right-3 w-6 h-6 text-blue-300">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
+            
+            {/* Step 2 */}
+            <div className="text-center relative">
+              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white font-bold text-xl">
+                2
+              </div>
+              <h3 className="font-semibold mb-2 text-gray-900">Book & Pay</h3>
+              <p className="text-sm text-gray-600">Secure your session and pay safely through our platform</p>
+              {/* Connector Arrow */}
+              <div className="hidden md:block absolute top-8 -right-3 w-6 h-6 text-green-300">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
+            
+            {/* Step 3 */}
+            <div className="text-center relative">
+              <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white font-bold text-xl">
+                3
+              </div>
+              <h3 className="font-semibold mb-2 text-gray-900">Get Mentored</h3>
+              <p className="text-sm text-gray-600">1-on-1 session with industry insider for career advice, interview prep, and insights</p>
+              {/* Connector Arrow */}
+              <div className="hidden md:block absolute top-8 -right-3 w-6 h-6 text-purple-300">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
+            
+            {/* Step 4 */}
+            <div className="text-center">
+              <div className="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white font-bold text-xl">
+                4
+              </div>
+              <h3 className="font-semibold mb-2 text-gray-900">Get Referred</h3>
+              <p className="text-sm text-gray-600">Receive internal referral to bypass HR filters and land interviews</p>
+            </div>
+          </div>
+          
+          {/* What You Get */}
+          <div className="mt-8 pt-8 border-t border-blue-200">
+            <h3 className="text-lg font-bold text-center mb-6 text-gray-900">What You Receive:</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <MessageCircle className="w-6 h-6 text-blue-600" />
+                </div>
+                <p className="text-sm font-medium">Expert Career Advice</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <Users className="w-6 h-6 text-green-600" />
+                </div>
+                <p className="text-sm font-medium">Internal Company Referral</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <Target className="w-6 h-6 text-purple-600" />
+                </div>
+                <p className="text-sm font-medium">Interview Preparation</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Filters */}
         <div className="flex flex-wrap gap-4 mb-6">
@@ -341,9 +427,9 @@ const ReferralMarketplace: React.FC = () => {
                   <div>
                     <div className="text-lg font-bold">
                       ${service.basePrice}
-                      {service.includesReferral && service.referralBonusPrice > 0 && (
-                        <span className="text-sm text-gray-600 ml-1">
-                          + ${service.referralBonusPrice} bonus
+                      {service.includesReferral && (
+                        <span className="text-sm text-green-600 ml-2">
+                          + Referral Included
                         </span>
                       )}
                     </div>
@@ -352,7 +438,7 @@ const ReferralMarketplace: React.FC = () => {
                     </div>
                   </div>
                   <Button
-                    onClick={() => handleBookService(service.serviceId, service.basePrice + (service.includesReferral ? service.referralBonusPrice || 0 : 0))}
+                    onClick={() => handleBookService(service.serviceId, service.basePrice)}
                     disabled={service.bookedSlots >= service.availableSlots}
                     className="bg-blue-600 hover:bg-blue-700"
                     data-testid={`button-book-service-${service.serviceId}`}
