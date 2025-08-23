@@ -59,13 +59,13 @@ const features = [
   },
   {
     icon: Users,
-    title: "Referral Marketplace",
-    description: "Connect with employees at your target companies who can refer you internally, dramatically increasing your chances of getting hired."
+    title: "Employee Referral Network",
+    description: "Tap into our exclusive network of 10,000+ employees at Fortune 500 companies who provide internal referrals, increasing your interview chances by 300%."
   },
   {
     icon: Layers,
-    title: "Insider Referral Access",
-    description: "Connect directly with employees at top companies who can fast-track your applications through internal referrals, bypassing the competition."
+    title: "Verified Referral Partners",
+    description: "Work with verified employees at Google, Microsoft, Apple, and 500+ top companies who guarantee genuine referrals that bypass HR filters and reach hiring managers directly."
   },
   {
     icon: Crown,

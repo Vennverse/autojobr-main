@@ -64,6 +64,7 @@ import TaskManagement from "@/pages/task-management";
 import JobSeekerTasks from "@/pages/job-seeker-tasks";
 import ReferralMarketplace from "@/pages/referral-marketplace";
 import BecomeReferrer from "@/pages/become-referrer";
+import EmployeeReferralServices from "@/pages/employee-referral-services";
 import AdvancedAnalyticsDashboard from "@/pages/advanced-analytics-dashboard";
 import BackgroundCheckIntegration from "@/pages/background-check-integration";
 import SSOConfiguration from "@/pages/sso-configuration";
@@ -125,6 +126,16 @@ function Router() {
       <Route path="/blog/remote-job-search-2025" component={RemoteJobSearch2025} />
       <Route path="/chrome-extension" component={ChromeExtension} />
       <Route path="/ats-optimizer" component={ATSOptimizer} />
+      
+      {/* SEO-optimized referral landing page */}
+      <Route path="/employee-referral-services" component={EmployeeReferralServices} />
+      <Route path="/job-referrals" component={EmployeeReferralServices} />
+      <Route path="/internal-referrals" component={EmployeeReferralServices} />
+      <Route path="/tech-company-referrals" component={EmployeeReferralServices} />
+      <Route path="/google-referral" component={EmployeeReferralServices} />
+      <Route path="/microsoft-referral" component={EmployeeReferralServices} />
+      <Route path="/amazon-referral" component={EmployeeReferralServices} />
+      <Route path="/apple-referral" component={EmployeeReferralServices} />
       
       {/* High-Value SEO Landing Pages to Beat Competition */}
       <Route path="/free-job-application-automation" component={FreeJobApplicationAutomation} />
