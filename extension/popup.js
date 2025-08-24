@@ -430,6 +430,10 @@ class AutoJobrPopup {
     if (!this.jobData || !this.userProfile) return;
 
     try {
+      // Clear any cached analysis first to ensure fresh calculation
+      const cacheKey = `${JSON.stringify(this.jobData)}_${JSON.stringify(this.userProfile)}`;
+      this.cache.delete(cacheKey);
+      
       const analysis = await this.makeApiRequest('/api/analyze-job-match', {
         method: 'POST',
         body: JSON.stringify({
@@ -438,12 +442,17 @@ class AutoJobrPopup {
         })
       });
 
+      console.log('Fresh job analysis received:', analysis);
+
       if (analysis && !analysis.error) {
         const scoreSection = document.getElementById('scoreSection');
         const matchScore = document.getElementById('matchScore');
         const scoreFill = document.getElementById('scoreFill');
 
+        // Use the server-calculated score directly without any local modifications
         const score = analysis.matchScore || 0;
+        console.log('Using server-calculated match score:', score);
+        
         matchScore.textContent = `${score}%`;
         
         // Animate score fill
@@ -453,7 +462,7 @@ class AutoJobrPopup {
         
         scoreSection.style.display = 'block';
 
-        // Update colors based on score
+        // Update colors based on score (consistent with dashboard)
         let color = '#ef4444';
         if (score >= 80) color = '#22c55e';
         else if (score >= 60) color = '#f59e0b';
@@ -464,7 +473,7 @@ class AutoJobrPopup {
         matchScore.style.webkitBackgroundClip = 'text';
         matchScore.style.webkitTextFillColor = 'transparent';
         
-        // Show detailed score explanations
+        // Show detailed score explanations using consistent server data
         this.displayScoreExplanations(analysis);
         
         // Log detailed analysis for debugging

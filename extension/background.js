@@ -687,6 +687,12 @@ class AutoJobrBackground {
       const result = await chrome.storage.local.get(['sessionToken']);
       const sessionToken = result.sessionToken;
       
+      console.log('Background script analyzing job with fresh API call:', {
+        jobTitle: data.jobData?.title,
+        company: data.jobData?.company,
+        userSkills: data.userProfile?.skills?.length || 0
+      });
+      
       const headers = {
         'Content-Type': 'application/json'
       };
@@ -695,15 +701,17 @@ class AutoJobrBackground {
         headers['Authorization'] = `Bearer ${sessionToken}`;
       }
       
+      // Always make fresh API call - don't use any cached data
       const response = await fetch(`${this.apiUrl}/api/analyze-job-match`, {
         method: 'POST',
         headers,
         credentials: 'include',
         mode: 'cors',
         body: JSON.stringify({
-          ...data,
+          jobData: data.jobData,
+          userProfile: data.userProfile,
           analyzedAt: new Date().toISOString(),
-          source: 'extension_v2'
+          source: 'extension_automatic_popup'
         })
       });
 
@@ -715,6 +723,11 @@ class AutoJobrBackground {
       }
 
       const analysis = await response.json();
+      
+      console.log('Background script received fresh analysis:', {
+        matchScore: analysis.matchScore,
+        factors: analysis.factors?.length || 0
+      });
 
       const matchLevel = analysis.matchScore >= 80 ? 'Excellent' : 
                         analysis.matchScore >= 60 ? 'Good' : 
@@ -726,8 +739,7 @@ class AutoJobrBackground {
         analysis.matchScore >= 60 ? 'success' : 'warning'
       );
 
-      // Remove auto-save - only save when user clicks save button
-
+      // Return the fresh analysis data directly from server
       return analysis;
 
     } catch (error) {

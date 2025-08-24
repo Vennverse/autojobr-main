@@ -25,7 +25,7 @@ class AutoJobrContentScript {
       this.setupKeyboardShortcuts();
       this.initializeSmartSelectors();
       this.setupApplicationTracking(); // Setup tracking once during initialization
-      this.setupAutoAnalysis(); // New: Setup automatic job analysis
+      this.setupAutoAnalysis(); // New: Setup automatic job analysis (always fresh)
       this.isInitialized = true;
       
       // Mark as loaded for background script
@@ -2728,7 +2728,10 @@ class AutoJobrContentScript {
   updateJobMatch(analysis) {
     const matchEl = document.getElementById('autojobr-job-match');
     if (matchEl && analysis) {
+      // Use the exact same score from server response without any local modifications
       const score = analysis.matchScore || 0;
+      console.log('Content script updating job match with server score:', score);
+      
       const level = score >= 80 ? 'Excellent' : 
                    score >= 60 ? 'Good' : 
                    score >= 40 ? 'Fair' : 'Poor';
@@ -2738,6 +2741,8 @@ class AutoJobrContentScript {
           ${score}% Match (${level})
         </div>
       `;
+      
+      console.log('Updated automatic popup with match score:', score, level);
     }
   }
 
@@ -3070,8 +3075,13 @@ class AutoJobrContentScript {
     return hasStrictJobForm && hasApplyButton;
   }
 
-  // Setup automatic job analysis when new pages load
+  // Setup automatic job analysis when new pages load - always use fresh data
   setupAutoAnalysis() {
+    console.log('🎯 Setting up automatic job analysis with fresh data');
+    
+    // Clear any cached job data first
+    this.currentJobData = null;
+    
     // Analyze current page if it's a job page
     if (this.isJobApplicationPage()) {
       setTimeout(() => this.performAutoAnalysis(), 2000);
@@ -3082,6 +3092,9 @@ class AutoJobrContentScript {
     const urlObserver = new MutationObserver(() => {
       if (window.location.href !== lastUrl) {
         lastUrl = window.location.href;
+        console.log('🔄 URL changed, clearing cached data for fresh analysis');
+        this.currentJobData = null; // Clear cached data on URL change
+        
         if (this.isJobApplicationPage()) {
           setTimeout(() => this.performAutoAnalysis(), 3000);
         }
@@ -3098,25 +3111,41 @@ class AutoJobrContentScript {
 
   async performAutoAnalysis() {
     try {
+      console.log('🎯 Starting fresh automatic job analysis');
+      
+      // Always extract fresh job data
       const jobData = this.extractJobData();
       if (!jobData || !jobData.title) {
         console.log('No job data found for analysis');
         return;
       }
 
-      // Get user profile first
+      console.log('📋 Fresh job data extracted:', {
+        title: jobData.title,
+        company: jobData.company,
+        hasDescription: !!jobData.description
+      });
+
+      // Get fresh user profile
       const profile = await this.getUserProfile();
       if (!profile) {
         console.log('User not authenticated - skipping auto analysis');
         return;
       }
 
-      // Perform enhanced job analysis
+      console.log('👤 Fresh user profile retrieved:', {
+        skillsCount: profile.skills?.length || 0,
+        title: profile.professionalTitle
+      });
+
+      // Perform enhanced job analysis with fresh data
       const analysis = await this.analyzeJobWithAPI(jobData, profile);
       if (analysis) {
-        // Update floating button with analysis results
+        console.log('✅ Fresh analysis completed - match score:', analysis.matchScore);
+        
+        // Update floating button with fresh analysis results
         this.updateFloatingButtonWithAnalysis(analysis);
-        console.log('Auto-analysis completed:', analysis);
+        console.log('Updated automatic popup with fresh analysis:', analysis.matchScore);
       }
     } catch (error) {
       console.error('Auto-analysis failed:', error);
