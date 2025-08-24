@@ -50,22 +50,43 @@ interface Booking {
 }
 
 const MyBookings: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [referrerBookings, setReferrerBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('job_seeker');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
       fetchBookings();
+    } else if (!authLoading && !user) {
+      // User is not authenticated, redirect to login
+      window.location.href = '/auth-page';
     }
-  }, [user, activeTab]);
+  }, [user, activeTab, authLoading]);
 
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/referral-marketplace/my-bookings?role=${activeTab}`);
+      setError(null);
+      
+      const response = await fetch(`/api/referral-marketplace/my-bookings?role=${activeTab}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Authentication failed, redirect to login
+          window.location.href = '/auth-page';
+          return;
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
       
       if (data.success) {
@@ -74,9 +95,12 @@ const MyBookings: React.FC = () => {
         } else {
           setReferrerBookings(data.bookings);
         }
+      } else {
+        setError(data.error || 'Failed to load bookings');
       }
     } catch (error) {
       console.error('Error fetching bookings:', error);
+      setError('Failed to load bookings. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -90,6 +114,7 @@ const MyBookings: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           bookingId,
           amount
@@ -98,10 +123,9 @@ const MyBookings: React.FC = () => {
 
       const data = await response.json();
       
-      if (data.id) {
-        // Create the approval URL manually since PayPal returns order ID
-        const approvalUrl = `https://www.sandbox.paypal.com/checkoutnow?token=${data.id}`;
-        window.location.href = approvalUrl;
+      if (data.success && data.approvalUrl) {
+        // Redirect to PayPal payment (using production URL)
+        window.location.href = data.approvalUrl;
       } else {
         alert('Failed to create payment: ' + (data.error || 'Unknown error'));
       }
@@ -261,6 +285,39 @@ const MyBookings: React.FC = () => {
       </CardContent>
     </Card>
   );
+
+  // Show loading state while authenticating
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if there's an error
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center py-8">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Bookings</h2>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={fetchBookings} className="mr-2">
+              Try Again
+            </Button>
+            <Button variant="outline" onClick={() => window.location.href = '/referral-marketplace'}>
+              Go to Marketplace
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (

@@ -267,11 +267,11 @@ router.post("/payment/create-order", async (req: Request, res: Response) => {
         // Add approval URL to response
         data.links = data.links || [];
         data.links.push({
-          href: `https://www.sandbox.paypal.com/checkoutnow?token=${data.id}`,
+          href: `https://www.paypal.com/checkoutnow?token=${data.id}`,
           rel: 'approve',
           method: 'REDIRECT'
         });
-        data.approvalUrl = `https://www.sandbox.paypal.com/checkoutnow?token=${data.id}`;
+        data.approvalUrl = `https://www.paypal.com/checkoutnow?token=${data.id}`;
         return res.status(200).json({ success: true, ...data });
       }
       return originalSend.call(this, data);
