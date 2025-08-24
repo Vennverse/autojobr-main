@@ -296,9 +296,9 @@ router.post("/payment/capture/:orderId", async (req: Request, res: Response) => 
     const mockReq = {
       ...req,
       params: { orderID: orderId }
-    };
+    } as unknown as Request;
 
-    await capturePaypalOrder(mockReq as Request, res);
+    await capturePaypalOrder(mockReq, res);
   } catch (error) {
     console.error('Error capturing PayPal payment:', error);
     res.status(500).json({ success: false, error: 'Failed to capture payment' });
