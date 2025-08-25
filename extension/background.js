@@ -507,43 +507,42 @@ class AutoJobrBackground {
 
   async getUserProfile() {
     try {
-      const result = await chrome.storage.local.get(['sessionToken']);
-      const sessionToken = result.sessionToken;
-      
-      if (!sessionToken) return null;
-      
-      // Check cache first
+      // Check cache first to prevent excessive requests
       const cacheKey = 'user_profile';
       const cached = this.cache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < 300000) { // 5 minute cache
         return cached.data;
       }
       
+      // Use session-based authentication (cookies) instead of Bearer tokens
       const response = await fetch(`${this.apiUrl}/api/extension/profile`, {
         headers: {
-          'Authorization': `Bearer ${sessionToken}`,
           'Content-Type': 'application/json'
         },
-        credentials: 'include',
+        credentials: 'include', // This sends session cookies
         mode: 'cors'
       });
 
       if (response.ok) {
         const profile = await response.json();
         
-        // Cache the profile
-        this.cache.set(cacheKey, {
-          data: profile,
-          timestamp: Date.now()
-        });
+        // Only cache if user is authenticated
+        if (profile.authenticated) {
+          this.cache.set(cacheKey, {
+            data: profile,
+            timestamp: Date.now()
+          });
+        }
         
         return profile;
       } else if (response.status === 401) {
-        await chrome.storage.local.remove(['sessionToken', 'userId']);
+        // Expected when user is not logged in - don't treat as error
+        console.log('User not authenticated - extension will work in limited mode');
         return null;
       }
       
-      throw new Error('Failed to fetch user profile');
+      console.warn('Profile fetch failed with status:', response.status);
+      return null;
     } catch (error) {
       console.error('Get user profile error:', error);
       return null;
@@ -552,22 +551,16 @@ class AutoJobrBackground {
 
   async trackApplication(data) {
     try {
-      const result = await chrome.storage.local.get(['sessionToken']);
-      const sessionToken = result.sessionToken;
-      
+      // Use session-based authentication instead of Bearer tokens
       const headers = {
         'Content-Type': 'application/json'
       };
-      
-      if (sessionToken) {
-        headers['Authorization'] = `Bearer ${sessionToken}`;
-      }
       
       // Use the main applications endpoint that updates job_applications table
       const response = await fetch(`${this.apiUrl}/api/applications`, {
         method: 'POST',
         headers,
-        credentials: 'include',
+        credentials: 'include', // Send session cookies
         mode: 'cors',
         body: JSON.stringify({
           jobTitle: data.jobTitle,
@@ -582,7 +575,8 @@ class AutoJobrBackground {
 
       if (!response.ok) {
         if (response.status === 401) {
-          await chrome.storage.local.remove(['sessionToken', 'userId']);
+          console.log('User not authenticated - cannot track application');
+          throw new Error('Please log in to AutoJobr to track applications');
         }
         const errorText = await response.text();
         throw new Error(`Failed to track application: ${errorText}`);
@@ -702,9 +696,6 @@ class AutoJobrBackground {
 
   async analyzeJob(data) {
     try {
-      const result = await chrome.storage.local.get(['sessionToken']);
-      const sessionToken = result.sessionToken;
-      
       console.log('Background script analyzing job with fresh API call:', {
         jobTitle: data.jobData?.title,
         company: data.jobData?.company,
@@ -715,15 +706,11 @@ class AutoJobrBackground {
         'Content-Type': 'application/json'
       };
       
-      if (sessionToken) {
-        headers['Authorization'] = `Bearer ${sessionToken}`;
-      }
-      
       // Always make fresh API call - don't use any cached data
       const response = await fetch(`${this.apiUrl}/api/analyze-job-match`, {
         method: 'POST',
         headers,
-        credentials: 'include',
+        credentials: 'include', // Use session cookies
         mode: 'cors',
         body: JSON.stringify({
           jobData: data.jobData,
@@ -735,7 +722,8 @@ class AutoJobrBackground {
 
       if (!response.ok) {
         if (response.status === 401) {
-          await chrome.storage.local.remove(['sessionToken', 'userId']);
+          console.log('User not authenticated - cannot analyze job');
+          throw new Error('Please log in to AutoJobr to analyze jobs');
         }
         throw new Error('Failed to analyze job');
       }

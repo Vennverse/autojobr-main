@@ -3113,13 +3113,38 @@ Additional Information:
 
   // Chrome Extension download route
   app.get('/extension/*', (req, res) => {
-    const filePath = req.path.replace('/extension/', '');
-    const extensionPath = path.join(process.cwd(), 'extension', filePath);
-    
-    if (fs.existsSync(extensionPath)) {
-      res.sendFile(extensionPath);
-    } else {
-      res.status(404).json({ message: 'File not found' });
+    try {
+      const filePath = req.path.replace('/extension/', '');
+      const extensionPath = path.join(process.cwd(), 'extension', filePath);
+
+      // Security check to prevent directory traversal
+      if (!extensionPath.startsWith(path.join(process.cwd(), 'extension'))) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+
+      if (fs.existsSync(extensionPath)) {
+        // Set appropriate content type
+        const ext = path.extname(filePath).toLowerCase();
+        const contentTypes = {
+          '.js': 'application/javascript',
+          '.css': 'text/css',
+          '.html': 'text/html',
+          '.json': 'application/json',
+          '.png': 'image/png',
+          '.svg': 'image/svg+xml'
+        };
+        
+        if (contentTypes[ext]) {
+          res.setHeader('Content-Type', contentTypes[ext]);
+        }
+        
+        res.sendFile(extensionPath);
+      } else {
+        res.status(404).json({ message: 'Extension file not found' });
+      }
+    } catch (error) {
+      console.error('Extension file serve error:', error);
+      res.status(500).json({ message: 'Internal server error' });
     }
   });
 

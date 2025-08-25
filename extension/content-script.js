@@ -14,6 +14,8 @@ class AutoJobrContentScript {
     this.analysisInProgress = false; // Prevent duplicate analysis
     this.lastAnalysisUrl = null; // Track last analyzed URL
     this.analysisDebounceTimer = null; // Debounce analysis calls
+    this.cachedProfile = null; // Cache profile to prevent excessive requests
+    this.lastAuthCheck = 0; // Track last authentication check
     this.init();
   }
 
@@ -2759,6 +2761,11 @@ class AutoJobrContentScript {
 
   async getUserProfile() {
     try {
+      // Check cache first to prevent excessive requests
+      if (this.cachedProfile && Date.now() - this.cachedProfile.timestamp < 300000) { // 5 minutes
+        return this.cachedProfile.data;
+      }
+      
       const result = await chrome.runtime.sendMessage({
         action: 'getUserProfile'
       });
@@ -2770,9 +2777,19 @@ class AutoJobrContentScript {
           fullName: result.profile.fullName,
           skillsCount: result.profile.skills?.length || 0
         });
+        
+        // Cache successful profile
+        this.cachedProfile = { data: result.profile, timestamp: Date.now() };
+        return result.profile;
       }
 
-      return result.success ? result.profile : null;
+      // Handle authentication errors gracefully
+      if (result.error && result.error.includes('401')) {
+        console.log('User not authenticated - skipping profile fetch');
+        return null;
+      }
+
+      return null;
     } catch (error) {
       console.error('Failed to get user profile:', error);
       return null;
@@ -3169,10 +3186,17 @@ class AutoJobrContentScript {
         hasDescription: !!jobData.description
       });
 
-      // Get fresh user profile
+      // Get fresh user profile with auth caching
+      const now = Date.now();
+      if (now - this.lastAuthCheck < 60000 && !this.cachedProfile) { // 1 minute cooldown
+        console.log('User not authenticated - skipping auto analysis (cached)');
+        return;
+      }
+      
       const profile = await this.getUserProfile();
-      if (!profile) {
+      if (!profile || !profile.authenticated) {
         console.log('User not authenticated - skipping auto analysis');
+        this.lastAuthCheck = now; // Cache auth check to prevent spam
         return;
       }
 
@@ -3371,8 +3395,19 @@ class AutoJobrContentScript {
       });
       
       if (response.ok) {
-        return await response.json();
+        const profile = await response.json();
+        // Cache successful profile for 5 minutes to prevent excessive requests
+        this.cachedProfile = { data: profile, timestamp: Date.now() };
+        return profile;
       }
+      
+      if (response.status === 401) {
+        // User not authenticated - this is expected behavior
+        console.log('User not authenticated - skipping profile fetch');
+        return null;
+      }
+      
+      console.warn('Profile fetch failed with status:', response.status);
       return null;
     } catch (error) {
       console.error('Failed to get user profile:', error);
