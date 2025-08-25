@@ -2715,7 +2715,8 @@ class AutoJobrContentScript {
           action: 'analyzeJob',
           data: {
             jobData: jobData.jobData,
-            userProfile: null // Let background script get profile with proper auth
+            userProfile: null, // Let background script get profile with proper auth
+            source: 'manual_analysis' // Mark as manual to allow notifications
           }
         });
 
@@ -3204,8 +3205,8 @@ class AutoJobrContentScript {
         title: profile.professionalTitle
       });
 
-      // Perform enhanced job analysis with fresh data
-      const analysis = await this.analyzeJobWithAPI(jobData, profile);
+      // Perform enhanced job analysis with fresh data (automatic - no notifications)
+      const analysis = await this.analyzeJobWithAPI(jobData, profile, true); // Pass true for automatic
       if (analysis) {
         console.log('✅ Fresh analysis completed - match score:', analysis.matchScore);
         
@@ -3265,17 +3266,12 @@ class AutoJobrContentScript {
     return jobData.title ? jobData : null;
   }
 
-  async analyzeJobWithAPI(jobData, userProfile) {
+  async analyzeJobWithAPI(jobData, userProfile, isAutomatic = false) {
     try {
-      const apiUrl = await this.getApiUrl();
-      const response = await fetch(`${apiUrl}/api/analyze-job-match`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({
+      // Use background script for authentication instead of direct API calls
+      const result = await chrome.runtime.sendMessage({
+        action: 'analyzeJob',
+        data: {
           jobData: {
             title: jobData.title,
             company: jobData.company,
@@ -3287,18 +3283,19 @@ class AutoJobrContentScript {
             salary: jobData.salary,
             url: jobData.url
           },
-          userProfile
-        })
+          userProfile,
+          source: isAutomatic ? 'extension_automatic_popup' : 'manual_analysis'
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`Analysis failed: ${response.status}`);
+      if (result && result.success) {
+        return result.analysis;
+      } else {
+        console.error('Job analysis failed:', result?.error || 'Unknown error');
+        return null;
       }
-
-      const result = await response.json();
-      return result;
     } catch (error) {
-      console.error('API job analysis failed:', error);
+      console.error('Job analysis API error:', error);
       return null;
     }
   }

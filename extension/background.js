@@ -750,11 +750,26 @@ class AutoJobrBackground {
                         analysis.matchScore >= 60 ? 'Good' : 
                         analysis.matchScore >= 40 ? 'Fair' : 'Poor';
 
-      await this.showAdvancedNotification(
-        'Job Analysis Complete! 🎯',
-        `Match Score: ${analysis.matchScore}% (${matchLevel} match)`,
-        analysis.matchScore >= 60 ? 'success' : 'warning'
-      );
+      // Only show notification for manual analysis, not automatic ones, and throttle duplicates
+      if (data.source !== 'extension_automatic_popup') {
+        const jobKey = `${data.jobData?.title}_${data.jobData?.company}`.replace(/\s/g, '');
+        const now = Date.now();
+        
+        // Don't show notification if same job was analyzed in last 30 seconds
+        if (!this.lastNotifications) this.lastNotifications = {};
+        const lastNotificationTime = this.lastNotifications[jobKey];
+        
+        if (!lastNotificationTime || (now - lastNotificationTime) > 30000) { // 30 seconds throttle
+          this.lastNotifications[jobKey] = now;
+          await this.showAdvancedNotification(
+            'Job Analysis Complete! 🎯',
+            `Match Score: ${analysis.matchScore}% (${matchLevel} match)`,
+            analysis.matchScore >= 60 ? 'success' : 'warning'
+          );
+        } else {
+          console.log('Skipping duplicate notification for same job');
+        }
+      }
 
       // Return the fresh analysis data directly from server
       return analysis;
