@@ -2709,14 +2709,13 @@ class AutoJobrContentScript {
       // Update UI with job info
       this.updateJobInfo(jobData.jobData);
       
-      // Send to background for analysis
+      // Send to background for analysis - background script handles authentication
       try {
-        const userProfile = await this.getUserProfile();
         const result = await chrome.runtime.sendMessage({
           action: 'analyzeJob',
           data: {
             jobData: jobData.jobData,
-            userProfile: userProfile
+            userProfile: null // Let background script get profile with proper auth
           }
         });
 
@@ -3386,34 +3385,7 @@ class AutoJobrContentScript {
     return '#ef4444';
   }
 
-  async getUserProfile() {
-    try {
-      const apiUrl = await this.getApiUrl();
-      const response = await fetch(`${apiUrl}/api/extension/profile`, {
-        method: 'GET',
-        credentials: 'include'
-      });
-      
-      if (response.ok) {
-        const profile = await response.json();
-        // Cache successful profile for 5 minutes to prevent excessive requests
-        this.cachedProfile = { data: profile, timestamp: Date.now() };
-        return profile;
-      }
-      
-      if (response.status === 401) {
-        // User not authenticated - this is expected behavior
-        console.log('User not authenticated - skipping profile fetch');
-        return null;
-      }
-      
-      console.warn('Profile fetch failed with status:', response.status);
-      return null;
-    } catch (error) {
-      console.error('Failed to get user profile:', error);
-      return null;
-    }
-  }
+  // Removed duplicate getUserProfile method - using the background script version instead
 
   async getApiUrl() {
     return new Promise((resolve) => {

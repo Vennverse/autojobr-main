@@ -1,0 +1,96 @@
+content-script.js:841 📍 Job page detected on linkedin.com with pattern match
+content-script.js:939 ✅ AutoJobr popup widget displayed automatically
+content-script.js:903 Updated job info with extracted data: {title: 'Consultant - Business Consulting (Oil & Gas)', company: 'Infosys'}
+15Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('<URL>') does not match the recipient window's origin ('null').Understand this warning
+inpage.js:1 Uncaught (in promise) s: Failed to connect to MetaMask
+    at Object.connect (inpage.js:1:21493)
+    at async o (inpage.js:1:19297)Caused by: Error: MetaMask extension not found
+    at inpage.js:1:16607
+connect @ inpage.js:1
+await in connect
+o @ inpage.js:1
+e @ inpage.js:1
+(anonymous) @ inpage.js:1
+(anonymous) @ inpage.js:1
+2.../../shared/modules/provider-injection @ inpage.js:1
+s @ inpage.js:1
+e @ inpage.js:1
+(anonymous) @ inpage.js:1Understand this error
+content-script.js:3155 🔄 URL changed to: https://www.linkedin.com/jobs/collections/recommended/?currentJobId=4281826221
+content-script.js:841 📍 Job page detected on linkedin.com with pattern match
+content-script.js:3124 📍 Job page detected - starting analysis: https://www.linkedin.com/jobs/collections/recommended/?currentJobId=4281826221
+content-script.js:841 📍 Job page detected on linkedin.com with pattern match
+content-script.js:939 ✅ AutoJobr popup widget displayed automatically
+content-script.js:903 Updated job info with extracted data: {title: 'Petroleum Engineer (QA Specialist)', company: 'Halliburton'}
+content-script.js:841 📍 Job page detected on linkedin.com with pattern match
+content-script.js:939 ✅ AutoJobr popup widget displayed automatically
+content-script.js:903 Updated job info with extracted data: {title: 'Petroleum Engineer (QA Specialist)', company: 'Halliburton'}
+content-script.js:3174 🎯 Starting fresh automatic job analysis
+content-script.js:3183 📋 Fresh job data extracted: {title: 'Petroleum Engineer (QA Specialist)', company: 'Halliburton', hasDescription: false}
+content-script.js:3192 User not authenticated - skipping auto analysis (cached)
+content-script.js:903 Updated job info with extracted data: {title: 'Petroleum Engineer (QA Specialist)', company: 'Halliburton'}
+content-script.js:903 Updated job info with extracted data: {title: 'Petroleum Engineer (QA Specialist)', company: 'Halliburton'}
+content-script.js:903 Updated job info with extracted data: {title: 'Petroleum Engineer (QA Specialist)', company: 'Halliburton'}
+content-script.js:903 Updated job info with extracted data: {title: 'Petroleum Engineer (QA Specialist)', company: 'Halliburton'}
+content-script.js:903 Updated job info with extracted data: {title: 'Petroleum Engineer (QA Specialist)', company: 'Halliburton'}
+content-script.js:903 Updated job info with extracted data: {title: 'Petroleum Engineer (QA Specialist)', company: 'Halliburton'}
+content-script.js:3392  GET https://autojobr.com/api/extension/profile 401 (Unauthorized)
+getUserProfile @ content-script.js:3392
+await in getUserProfile
+analyzeCurrentJob @ content-script.js:2714
+await in analyzeCurrentJob
+handleAnalyze @ content-script.js:2613
+(anonymous) @ content-script.js:575Understand this error
+content-script.js:3406 User not authenticated - skipping profile fetch
+content-script.js:3392  GET https://autojobr.com/api/extension/profile 401 (Unauthorized)
+getUserProfile @ content-script.js:3392
+await in getUserProfile
+analyzeCurrentJob @ content-script.js:2714
+await in analyzeCurrentJob
+handleAnalyze @ content-script.js:2613
+(anonymous) @ content-script.js:575Understand this error
+content-script.js:3406 User not authenticated - skipping profile fetch
+content-script.js:2742 Content script updating job match with server score: 28
+content-script.js:2754 Updated automatic popup with match score: 28 Poor
+content-script.js:3392  GET https://autojobr.com/api/extension/profile 401 (Unauthorized)
+getUserProfile @ content-script.js:3392
+await in getUserProfile
+analyzeCurrentJob @ content-script.js:2714
+await in analyzeCurrentJob
+handleAnalyze @ content-script.js:2613
+(anonymous) @ content-script.js:575Understand this error
+content-script.js:3406 User not authenticated - skipping profile fetch
+content-script.js:2742 Content script updating job match with server score: 28
+content-script.js:2754 Updated automatic popup with match score: 28 Poor
+content-script.js:3392  GET https://autojobr.com/api/extension/profile 401 (Unauthorized)
+getUserProfile @ content-script.js:3392
+await in getUserProfile
+analyzeCurrentJob @ content-script.js:2714
+await in analyzeCurrentJob
+handleAnalyze @ content-script.js:2613
+(anonymous) @ content-script.js:575Understand this error
+content-script.js:3406 User not authenticated - skipping profile fetch
+content-script.js:2742 Content script updating job match with server score: 28
+content-script.js:2754 Updated automatic popup with match score: 28 Poor
+content-script.js:3392  GET https://autojobr.com/api/extension/profile 401 (Unauthorized)
+getUserProfile @ content-script.js:3392
+await in getUserProfile
+analyzeCurrentJob @ content-script.js:2714
+await in analyzeCurrentJob
+handleAnalyze @ content-script.js:2613
+(anonymous) @ content-script.js:575Understand this error
+content-script.js:3406 User not authenticated - skipping profile fetch
+content-script.js:2742 Content script updating job match with server score: 28
+content-script.js:2754 Updated automatic popup with match score: 28 Poor
+content-script.js:3392  GET https://autojobr.com/api/extension/profile 401 (Unauthorized)
+getUserProfile @ content-script.js:3392
+await in getUserProfile
+analyzeCurrentJob @ content-script.js:2714
+await in analyzeCurrentJob
+handleAnalyze @ content-script.js:2613
+(anonymous) @ content-script.js:575Understand this error
+content-script.js:3406 User not authenticated - skipping profile fetch
+content-script.js:2742 Content script updating job match with server score: 28
+content-script.js:2754 Updated automatic popup with match score: 28 Poor
+content-script.js:2742 Content script updating job match with server score: 28
+content-script.js:2754 Updated automatic popup with match score: 28 Poor

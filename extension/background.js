@@ -696,10 +696,21 @@ class AutoJobrBackground {
 
   async analyzeJob(data) {
     try {
+      // Get user profile if not provided by content script
+      let userProfile = data.userProfile;
+      if (!userProfile) {
+        console.log('Background script: Getting user profile for job analysis');
+        userProfile = await this.getUserProfile();
+        if (!userProfile || !userProfile.authenticated) {
+          console.log('User not authenticated - cannot analyze job');
+          throw new Error('Please log in to AutoJobr to analyze jobs');
+        }
+      }
+      
       console.log('Background script analyzing job with fresh API call:', {
         jobTitle: data.jobData?.title,
         company: data.jobData?.company,
-        userSkills: data.userProfile?.skills?.length || 0
+        userSkills: userProfile?.skills?.length || 0
       });
       
       const headers = {
@@ -714,7 +725,7 @@ class AutoJobrBackground {
         mode: 'cors',
         body: JSON.stringify({
           jobData: data.jobData,
-          userProfile: data.userProfile,
+          userProfile: userProfile,
           analyzedAt: new Date().toISOString(),
           source: 'extension_automatic_popup'
         })
