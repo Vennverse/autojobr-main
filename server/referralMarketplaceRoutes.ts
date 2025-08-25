@@ -438,4 +438,108 @@ router.get("/my-bookings", async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /api/referral-marketplace/bookings/referrer
+ * Get referrer's bookings with full details
+ */
+router.get("/bookings/referrer", async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    const bookings = await referralMarketplaceService.getReferrerBookings(req.user.id);
+    res.json({ success: true, bookings });
+  } catch (error) {
+    console.error('Error getting referrer bookings:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to get bookings' 
+    });
+  }
+});
+
+/**
+ * GET /api/referral-marketplace/profile
+ * Get referrer profile with settings
+ */
+router.get("/profile", async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    const profile = await referralMarketplaceService.getReferrerProfile(req.user.id);
+    res.json({ success: true, profile });
+  } catch (error) {
+    console.error('Error getting referrer profile:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to get profile' 
+    });
+  }
+});
+
+/**
+ * PUT /api/referral-marketplace/profile/settings
+ * Update referrer settings (meeting link and email template)
+ */
+router.put("/profile/settings", async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    const { meetingScheduleLink, emailTemplate } = req.body;
+    const result = await referralMarketplaceService.updateReferrerSettings(
+      req.user.id, 
+      { meetingScheduleLink, emailTemplate }
+    );
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Error updating referrer settings:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to update settings' 
+    });
+  }
+});
+
+/**
+ * POST /api/referral-marketplace/send-schedule-email
+ * Send meeting schedule email to job seeker
+ */
+router.post("/send-schedule-email", async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    const { bookingId, meetingLink, customMessage } = req.body;
+    
+    if (!bookingId || !meetingLink) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Booking ID and meeting link are required' 
+      });
+    }
+
+    const result = await referralMarketplaceService.sendScheduleEmail(
+      req.user.id,
+      bookingId,
+      meetingLink,
+      customMessage
+    );
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Error sending schedule email:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to send schedule email' 
+    });
+  }
+});
+
 export default router;

@@ -2345,6 +2345,10 @@ export const referrers = pgTable("referrers", {
   averageRating: numeric("average_rating", { precision: 3, scale: 2 }).default("0.00"),
   totalReviews: integer("total_reviews").default(0),
   
+  // Meeting scheduling
+  meetingScheduleLink: varchar("meeting_schedule_link"),
+  emailTemplate: text("email_template"),
+  
   // Status
   isActive: boolean("is_active").default(true),
   acceptingBookings: boolean("accepting_bookings").default(true),

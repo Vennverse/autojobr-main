@@ -255,8 +255,8 @@ export class ReferralMarketplaceService {
         serviceType: service.serviceType,
         title: service.title,
         description: service.description,
-        basePrice: parseFloat(service.basePrice),
-        referralBonusPrice: parseFloat(service.referralBonusPrice),
+        basePrice: parseFloat(service.basePrice || '0'),
+        referralBonusPrice: parseFloat(service.referralBonusPrice || '0'),
         sessionDuration: service.sessionDuration,
         sessionsIncluded: service.sessionsIncluded,
         includesReferral: service.includesReferral,
@@ -637,6 +637,283 @@ export class ReferralMarketplaceService {
     } catch (error) {
       console.error('Error getting user service listings:', error);
       throw new Error('Failed to get service listings');
+    }
+  }
+
+  /**
+   * Get referrer's bookings with full details including job seeker info
+   */
+  async getReferrerBookings(userId: string) {
+    try {
+      // First get referrer profile to get referrer ID
+      const referrer = await this.getReferrerProfile(userId);
+      if (!referrer) {
+        return [];
+      }
+
+      const bookings = await db.select({
+        // Booking info
+        id: referralBookings.id,
+        serviceId: referralBookings.serviceId,
+        jobSeekerId: referralBookings.jobSeekerId,
+        status: referralBookings.status,
+        scheduledAt: referralBookings.scheduledAt,
+        conversationId: referralBookings.conversationId,
+        notes: referralBookings.notes,
+        totalAmount: referralBookings.totalAmount,
+        paymentStatus: referralBookings.paymentStatus,
+        createdAt: referralBookings.createdAt,
+        
+        // Job seeker info
+        jobSeekerEmail: users.email,
+        jobSeekerFirstName: users.firstName,
+        jobSeekerLastName: users.lastName,
+        jobSeekerPhone: users.phone,
+        
+        // Service info
+        serviceTitle: referralServices.title,
+        serviceType: referralServices.serviceType,
+        sessionDuration: referralServices.sessionDuration,
+      })
+      .from(referralBookings)
+      .leftJoin(users, eq(referralBookings.jobSeekerId, users.id))
+      .leftJoin(referralServices, eq(referralBookings.serviceId, referralServices.id))
+      .where(eq(referralBookings.referrerId, referrer.id))
+      .orderBy(desc(referralBookings.createdAt));
+
+      // Format the response
+      return bookings.map(booking => ({
+        id: booking.id,
+        serviceId: booking.serviceId,
+        jobSeekerId: booking.jobSeekerId,
+        status: booking.status,
+        scheduledAt: booking.scheduledAt,
+        conversationId: booking.conversationId,
+        notes: booking.notes,
+        totalAmount: booking.totalAmount,
+        paymentStatus: booking.paymentStatus,
+        createdAt: booking.createdAt,
+        jobSeeker: {
+          id: booking.jobSeekerId,
+          email: booking.jobSeekerEmail,
+          firstName: booking.jobSeekerFirstName,
+          lastName: booking.jobSeekerLastName,
+          phoneNumber: booking.jobSeekerPhone,
+        },
+        service: {
+          id: booking.serviceId,
+          title: booking.serviceTitle,
+          serviceType: booking.serviceType,
+          sessionDuration: booking.sessionDuration,
+        }
+      }));
+    } catch (error) {
+      console.error('Error getting referrer bookings:', error);
+      throw new Error('Failed to get referrer bookings');
+    }
+  }
+
+  /**
+   * Update referrer settings (meeting link and email template)
+   */
+  async updateReferrerSettings(userId: string, settings: {
+    meetingScheduleLink?: string;
+    emailTemplate?: string;
+  }) {
+    try {
+      // First get referrer profile to get referrer ID
+      const referrer = await this.getReferrerProfile(userId);
+      if (!referrer) {
+        throw new Error('Referrer profile not found');
+      }
+
+      await db.update(referrers)
+        .set({
+          meetingScheduleLink: settings.meetingScheduleLink,
+          emailTemplate: settings.emailTemplate,
+          updatedAt: new Date()
+        })
+        .where(eq(referrers.id, referrer.id));
+
+      return {
+        success: true,
+        message: 'Settings updated successfully'
+      };
+    } catch (error) {
+      console.error('Error updating referrer settings:', error);
+      throw new Error('Failed to update referrer settings');
+    }
+  }
+
+  /**
+   * Send schedule email to job seeker
+   */
+  async sendScheduleEmail(userId: string, bookingId: number, meetingLink: string, customMessage?: string) {
+    try {
+      // First get referrer profile
+      const referrer = await this.getReferrerProfile(userId);
+      if (!referrer) {
+        throw new Error('Referrer profile not found');
+      }
+
+      // Get booking details with job seeker info
+      const booking = await db.select({
+        id: referralBookings.id,
+        referrerId: referralBookings.referrerId,
+        jobSeekerId: referralBookings.jobSeekerId,
+        status: referralBookings.status,
+        paymentStatus: referralBookings.paymentStatus,
+        
+        // Job seeker info
+        jobSeekerEmail: users.email,
+        jobSeekerFirstName: users.firstName,
+        jobSeekerLastName: users.lastName,
+        
+        // Service info
+        serviceTitle: referralServices.title,
+        serviceType: referralServices.serviceType,
+        sessionDuration: referralServices.sessionDuration,
+        
+        // Referrer info
+        referrerDisplayName: referrers.displayName,
+        referrerJobTitle: referrers.jobTitle,
+        referrerCompanyName: referrers.companyName,
+      })
+      .from(referralBookings)
+      .leftJoin(users, eq(referralBookings.jobSeekerId, users.id))
+      .leftJoin(referralServices, eq(referralBookings.serviceId, referralServices.id))
+      .leftJoin(referrers, eq(referralBookings.referrerId, referrers.id))
+      .where(
+        and(
+          eq(referralBookings.id, bookingId),
+          eq(referralBookings.referrerId, referrer.id)
+        )
+      )
+      .limit(1);
+
+      if (booking.length === 0) {
+        throw new Error('Booking not found or not authorized');
+      }
+
+      const bookingData = booking[0];
+
+      // Check if payment is confirmed
+      if (bookingData.paymentStatus !== 'paid') {
+        throw new Error('Cannot schedule meeting until payment is confirmed');
+      }
+
+      // Generate email content
+      const jobSeekerFirstName = bookingData.jobSeekerFirstName || 'there';
+      const referrerName = bookingData.referrerDisplayName || 
+                          `${bookingData.referrerJobTitle} at ${bookingData.referrerCompanyName}`;
+
+      // Use custom email template if available, otherwise use default
+      let emailTemplate = referrer.emailTemplate || `Hi {firstName},
+
+Thank you for booking a session with me! I'm excited to help you with your career goals.
+
+I'd like to schedule our meeting. Please use the link below to choose a time that works best for you:
+
+{meetingLink}
+
+Our session will cover:
+- Career advice and insights
+- Interview preparation tips
+- Company-specific guidance
+- Next steps in your job search
+
+If you have any specific questions or topics you'd like to discuss, please feel free to reply to this email.
+
+Looking forward to our conversation!
+
+Best regards,
+{referrerName}`;
+
+      // Replace placeholders in template
+      let emailContent = emailTemplate
+        .replace(/{firstName}/g, jobSeekerFirstName)
+        .replace(/{meetingLink}/g, meetingLink)
+        .replace(/{referrerName}/g, referrerName);
+
+      // Add custom message if provided
+      if (customMessage && customMessage.trim()) {
+        emailContent += `\n\nAdditional Message:\n${customMessage.trim()}`;
+      }
+
+      // Send email
+      const emailParams = {
+        to: bookingData.jobSeekerEmail || '',
+        subject: `Meeting Invitation - ${bookingData.serviceTitle}`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Meeting Invitation - AutoJobr</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+              <h1 style="color: white; margin: 0; font-size: 24px;">Meeting Invitation</h1>
+              <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">Your scheduled session is ready!</p>
+            </div>
+            
+            <div style="background: white; padding: 30px; border: 1px solid #e1e5e9; border-top: none; border-radius: 0 0 10px 10px;">
+              <div style="white-space: pre-line; line-height: 1.6; color: #333;">
+                ${emailContent}
+              </div>
+              
+              <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3 style="color: #333; margin-top: 0; font-size: 16px;">📅 Session Details:</h3>
+                <ul style="color: #666; line-height: 1.6; margin: 0; padding-left: 20px;">
+                  <li><strong>Service:</strong> ${bookingData.serviceTitle}</li>
+                  <li><strong>Duration:</strong> ${bookingData.sessionDuration} minutes</li>
+                  <li><strong>Type:</strong> ${bookingData.serviceType}</li>
+                  <li><strong>Booking ID:</strong> #${bookingData.id}</li>
+                </ul>
+              </div>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${meetingLink}" 
+                   style="background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); 
+                          color: white; 
+                          padding: 15px 30px; 
+                          text-decoration: none; 
+                          border-radius: 5px; 
+                          font-weight: bold;
+                          display: inline-block;">
+                  Schedule Your Meeting
+                </a>
+              </div>
+              
+              <hr style="border: none; border-top: 1px solid #e1e5e9; margin: 30px 0;">
+              
+              <p style="color: #999; font-size: 12px; text-align: center;">
+                This meeting invitation was sent through the AutoJobr platform.
+                <br>If you have any issues, please contact support.
+              </p>
+            </div>
+          </body>
+          </html>
+        `
+      };
+
+      await sendEmail(emailParams);
+
+      // Update booking to mark meeting link sent
+      await db.update(referralBookings)
+        .set({
+          meetingLink: meetingLink,
+          updatedAt: new Date()
+        })
+        .where(eq(referralBookings.id, bookingId));
+
+      return {
+        success: true,
+        message: 'Meeting invitation sent successfully!'
+      };
+    } catch (error) {
+      console.error('Error sending schedule email:', error);
+      throw new Error('Failed to send schedule email');
     }
   }
 
