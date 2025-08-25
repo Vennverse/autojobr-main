@@ -215,7 +215,12 @@ class AutoJobrBackground {
         '*://*.greenhouse.io/*',
         '*://*.lever.co/*',
         '*://*.workday.com/*',
-        '*://*.myworkdayjobs.com/*'
+        '*://*.myworkdayjobs.com/*',
+        '*://*.naukri.com/*',
+        '*://*.shine.com/*',
+        '*://*.timesjobs.com/*',
+        '*://*.freshersjobs.com/*',
+        '*://*.instahyre.com/*'
       ]
     });
 
@@ -229,7 +234,12 @@ class AutoJobrBackground {
         '*://*.glassdoor.com/*',
         '*://*.ziprecruiter.com/*',
         '*://*.monster.com/*',
-        '*://*.dice.com/*'
+        '*://*.dice.com/*',
+        '*://*.naukri.com/*',
+        '*://*.shine.com/*',
+        '*://*.timesjobs.com/*',
+        '*://*.freshersjobs.com/*',
+        '*://*.instahyre.com/*'
       ]
     });
 
@@ -242,6 +252,13 @@ class AutoJobrBackground {
 
   async handleMessage(message, sender, sendResponse) {
     try {
+      // Check if sender has a valid tab (prevent errors on detached contexts)
+      if (!sender || !sender.tab) {
+        console.log('Message from detached context, ignoring');
+        sendResponse({ success: false, error: 'Detached context' });
+        return;
+      }
+      
       // Rate limiting
       if (!this.checkRateLimit(sender.tab?.id || 'unknown', message.action)) {
         sendResponse({ success: false, error: 'Rate limit exceeded' });

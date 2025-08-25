@@ -11,6 +11,9 @@ class AutoJobrContentScript {
     this.smartSelectors = new Map();
     this.filledFields = new Set(); // Track filled fields to prevent loops
     this.formState = { currentPage: 1, hasNextPage: false, hasSubmit: false };
+    this.analysisInProgress = false; // Prevent duplicate analysis
+    this.lastAnalysisUrl = null; // Track last analyzed URL
+    this.analysisDebounceTimer = null; // Debounce analysis calls
     this.init();
   }
 
@@ -25,12 +28,8 @@ class AutoJobrContentScript {
       this.initializeSmartSelectors();
       this.setupApplicationTracking(); // Setup tracking once during initialization
       
-      // Initial job detection with small delay to ensure page is loaded
-      setTimeout(() => {
-        this.detectJobPosting();
-      }, 1000);
-      
-      this.setupAutoAnalysis(); // New: Setup automatic job analysis (always fresh)
+      // Setup automatic job analysis with debouncing
+      this.setupAutoAnalysis();
       this.isInitialized = true;
       
       // Mark as loaded for background script
@@ -70,7 +69,12 @@ class AutoJobrContentScript {
       'microsoft.com': 'microsoft',
       'apple.com': 'apple',
       'meta.com': 'meta',
-      'autojobr.com': 'autojobr'
+      'autojobr.com': 'autojobr',
+      'naukri.com': 'naukri',
+      'shine.com': 'shine',
+      'timesjobs.com': 'timesjobs',
+      'freshersjobs.com': 'freshersjobs',
+      'instahyre.com': 'instahyre'
     };
 
     for (const [domain, site] of Object.entries(siteMap)) {
@@ -731,13 +735,8 @@ class AutoJobrContentScript {
     let currentUrl = window.location.href;
     
     const observer = new MutationObserver((mutations) => {
-      // Check for URL changes
-      if (window.location.href !== currentUrl) {
-        currentUrl = window.location.href;
-        setTimeout(() => {
-          this.detectJobPosting();
-        }, 1500);
-      }
+      // URL changes are now handled by setupAutoAnalysis debounced function
+      // No need for additional URL change detection here
 
       // Check for form changes
       mutations.forEach((mutation) => {
@@ -763,24 +762,8 @@ class AutoJobrContentScript {
 
     this.observers.push(observer);
 
-    // Listen for popstate events
-    window.addEventListener('popstate', () => {
-      setTimeout(() => this.detectJobPosting(), 1000);
-    });
-
-    // Listen for pushstate/replacestate
-    const originalPushState = history.pushState;
-    const originalReplaceState = history.replaceState;
-
-    history.pushState = function() {
-      originalPushState.apply(history, arguments);
-      setTimeout(() => this.detectJobPosting(), 1000);
-    }.bind(this);
-
-    history.replaceState = function() {
-      originalReplaceState.apply(history, arguments);
-      setTimeout(() => this.detectJobPosting(), 1000);
-    }.bind(this);
+    // URL changes are now handled by setupAutoAnalysis debounced function
+    // Removed duplicate event listeners to prevent multiple analysis calls
   }
 
   async detectJobPosting() {
@@ -814,7 +797,7 @@ class AutoJobrContentScript {
     const hostname = window.location.hostname.toLowerCase();
     const pathname = window.location.pathname.toLowerCase();
     
-    // Enhanced site-specific job page detection
+    // Enhanced site-specific job page detection including Indian job sites
     const jobPagePatterns = {
       'linkedin.com': ['/jobs/', '/job/', '/jobs/view/', '/jobs/search/', 'jobs/collections/'],
       'indeed.com': ['/job/', '/viewjob', '/jobs/', '/job-'],
@@ -839,7 +822,13 @@ class AutoJobrContentScript {
       'microsoft.com': ['/job/', '/jobs/', '/careers/job-search/', '/careers/us/'],
       'apple.com': ['/job/', '/jobs/', '/careers/'],
       'meta.com': ['/job/', '/jobs/', '/careers/'],
-      'autojobr.com': ['/jobs/', '/job/', '/applications/', '/dashboard', '/job-discovery/', '/view-job/', '/post-job']
+      'autojobr.com': ['/jobs/', '/job/', '/applications/', '/dashboard', '/job-discovery/', '/view-job/', '/post-job'],
+      // Indian job sites
+      'naukri.com': ['/job-listings/', '/jobs/', '/job/', '/job-detail/', '/jobdetail/', '/job_detail', '/recruiter/job/', '/jobs-listings/'],
+      'shine.com': ['/job/', '/jobs/', '/job-detail/', '/job-listing/', '/job_detail'],
+      'timesjobs.com': ['/job/', '/jobs/', '/job-detail/', '/job-listing/', '/candidatejobs/'],
+      'freshersjobs.com': ['/job/', '/jobs/', '/job-detail/', '/job-posting/'],
+      'instahyre.com': ['/job/', '/jobs/', '/job-detail/', '/job/', '/posting/']
     };
 
     // Check if hostname matches and URL contains job pattern
@@ -3093,49 +3082,74 @@ class AutoJobrContentScript {
     return hasStrictJobForm && hasApplyButton;
   }
 
-  // Setup automatic job analysis when new pages load - always use fresh data
+  // Setup automatic job analysis when new pages load - prevent duplicates
   setupAutoAnalysis() {
-    console.log('🎯 Setting up automatic job analysis with fresh data');
+    console.log('🎯 Setting up automatic job analysis with debouncing');
     
-    // Clear any cached job data first
-    this.currentJobData = null;
+    // Debounced analysis function to prevent multiple calls
+    this.debouncedAnalysis = this.debounce(() => {
+      const currentUrl = window.location.href;
+      
+      // Skip if already analyzing this URL
+      if (this.analysisInProgress || this.lastAnalysisUrl === currentUrl) {
+        console.log('🔄 Skipping duplicate analysis for:', currentUrl);
+        return;
+      }
+      
+      this.lastAnalysisUrl = currentUrl;
+      this.analysisInProgress = true;
+      
+      // Clear any cached job data first
+      this.currentJobData = null;
+      
+      // Check if this is a job page
+      if (this.isJobPage()) {
+        console.log('📍 Job page detected - starting analysis:', currentUrl);
+        this.detectJobPosting().then((result) => {
+          if (result && result.success) {
+            // Only perform auto-analysis if widget was shown successfully
+            setTimeout(() => {
+              this.performAutoAnalysis().finally(() => {
+                this.analysisInProgress = false;
+              });
+            }, 1000);
+          } else {
+            this.analysisInProgress = false;
+          }
+        }).catch(() => {
+          this.analysisInProgress = false;
+        });
+      } else {
+        this.hideWidget();
+        this.analysisInProgress = false;
+      }
+    }, 2000); // 2 second debounce
     
-    // Check if this is a job page and show widget automatically
-    if (this.isJobPage()) {
-      console.log('📍 Job page detected - showing widget automatically');
-      setTimeout(() => {
-        this.detectJobPosting(); // This will show the widget
-        this.performAutoAnalysis(); // This will populate it with analysis
-      }, 2000);
-    }
-
+    // Initial analysis
+    setTimeout(() => {
+      this.debouncedAnalysis();
+    }, 1500);
+    
     // Watch for URL changes (SPA navigation)
-    let lastUrl = window.location.href;
+    let currentUrl = window.location.href;
     const urlObserver = new MutationObserver(() => {
-      if (window.location.href !== lastUrl) {
-        lastUrl = window.location.href;
-        console.log('🔄 URL changed, clearing cached data for fresh analysis');
-        this.currentJobData = null; // Clear cached data on URL change
-        
-        // Check for any job page, not just application pages
-        if (this.isJobPage()) {
-          console.log('📍 New job page detected after navigation - showing widget');
-          setTimeout(() => {
-            this.detectJobPosting(); // Show widget
-            this.performAutoAnalysis(); // Populate with analysis
-          }, 3000);
-        } else {
-          this.hideWidget(); // Hide widget on non-job pages
-        }
+      if (window.location.href !== currentUrl) {
+        currentUrl = window.location.href;
+        console.log('🔄 URL changed to:', currentUrl);
+        this.debouncedAnalysis();
       }
     });
-
-    urlObserver.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
-
+    
+    urlObserver.observe(document.body, { childList: true, subtree: true });
     this.observers.push(urlObserver);
+  }
+
+  // Debounce utility function
+  debounce(func, wait) {
+    return (...args) => {
+      clearTimeout(this.analysisDebounceTimer);
+      this.analysisDebounceTimer = setTimeout(() => func.apply(this, args), wait);
+    };
   }
 
   async performAutoAnalysis() {
