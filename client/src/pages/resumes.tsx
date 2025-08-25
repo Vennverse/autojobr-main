@@ -384,11 +384,15 @@ export default function ResumesPage() {
                                 size="sm"
                                 className="bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border-purple-200 dark:from-purple-900/20 dark:to-blue-900/20"
                                 onClick={() => {
-                                  // TODO: Implement AI resume generation
-                                  toast({
-                                    title: "AI Resume Generator",
-                                    description: "Creating your optimized ATS resume... This feature is coming soon!",
-                                  });
+                                  setSelectedResume(resume);
+                                  setShowEnhancedModal(true);
+                                  // Automatically switch to the Generate AI Resume tab
+                                  setTimeout(() => {
+                                    const generateTab = document.querySelector('[value="generate"]') as HTMLElement;
+                                    if (generateTab) {
+                                      generateTab.click();
+                                    }
+                                  }, 100);
                                 }}
                               >
                                 <Sparkles className="h-4 w-4 mr-2 text-purple-600" />

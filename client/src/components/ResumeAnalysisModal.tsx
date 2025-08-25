@@ -7,7 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '@/hooks/use-toast';
 import { 
   FileText, 
   TrendingUp, 
@@ -29,7 +33,10 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
-  Sparkles
+  Sparkles,
+  Wand2,
+  FileOutput,
+  Eye
 } from 'lucide-react';
 
 interface ResumeAnalysisModalProps {
@@ -309,6 +316,196 @@ const JobSpecificOptimization: React.FC<{ industryData: any; onOptimize: (sectio
   );
 };
 
+const AIResumeGenerator: React.FC<{ resumeData: any }> = ({ resumeData }) => {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [templateType, setTemplateType] = useState('professional');
+  const [targetJobDescription, setTargetJobDescription] = useState('');
+  const [generatedResume, setGeneratedResume] = useState(null);
+  const { toast } = useToast();
+
+  const handleGenerateResume = async () => {
+    if (!resumeData?.id) {
+      toast({
+        title: "Error",
+        description: "Resume data not found",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const response = await fetch(`/api/resumes/${resumeData.id}/generate-ai`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          templateType,
+          targetJobDescription: targetJobDescription.trim() || undefined
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate AI resume');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        setGeneratedResume(result);
+        toast({
+          title: "Success!",
+          description: "Your AI-optimized resume has been generated and saved.",
+        });
+      } else {
+        throw new Error(result.message || 'Generation failed');
+      }
+    } catch (error: any) {
+      console.error('AI Resume Generation Error:', error);
+      toast({
+        title: "Generation Failed",
+        description: error.message || "Failed to generate AI resume. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200">
+        <CardHeader>
+          <CardTitle className="flex items-center text-xl">
+            <Wand2 className="h-6 w-6 mr-2 text-purple-600" />
+            AI Resume Generator
+          </CardTitle>
+          <p className="text-gray-600 dark:text-gray-300">
+            Generate an ATS-optimized resume using advanced AI and proven templates
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Template Selection */}
+          <div>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block">
+              Choose Template Style
+            </label>
+            <Select value={templateType} onValueChange={setTemplateType}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select template type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="professional">Professional Standard</SelectItem>
+                <SelectItem value="modern">Modern Clean</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Target Job Description */}
+          <div>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block">
+              Target Job Description (Optional)
+            </label>
+            <Textarea
+              placeholder="Paste the job description here to optimize your resume for this specific role..."
+              value={targetJobDescription}
+              onChange={(e) => setTargetJobDescription(e.target.value)}
+              className="min-h-[120px] resize-none"
+            />
+            <p className="text-xs text-gray-500 mt-2">
+              Providing a job description helps the AI optimize your resume for specific keywords and requirements
+            </p>
+          </div>
+
+          {/* Generation Features */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="border-green-200 bg-green-50 dark:bg-green-900/20">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-3">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <div>
+                    <h4 className="font-medium text-green-800 dark:text-green-300">ATS Optimization</h4>
+                    <p className="text-sm text-green-600 dark:text-green-400">Keyword optimization & formatting</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-3">
+                  <Sparkles className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <h4 className="font-medium text-blue-800 dark:text-blue-300">AI Enhancement</h4>
+                    <p className="text-sm text-blue-600 dark:text-blue-400">Quantified achievements & impact</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Generate Button */}
+          <div className="text-center">
+            <Button 
+              onClick={handleGenerateResume}
+              disabled={isGenerating}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-3 text-lg"
+            >
+              {isGenerating ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white mr-2"></div>
+                  Generating AI Resume...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="h-5 w-5 mr-2" />
+                  Generate AI Resume
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Success State */}
+          {generatedResume && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-6"
+            >
+              <Card className="border-green-200 bg-green-50 dark:bg-green-900/20">
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <CheckCircle className="h-8 w-8 text-green-600" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-green-800 dark:text-green-300">
+                        AI Resume Generated Successfully!
+                      </h3>
+                      <p className="text-green-600 dark:text-green-400">
+                        Your optimized resume has been created and saved to your account
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex space-x-3">
+                    <Button variant="outline" className="flex-1">
+                      <FileOutput className="h-4 w-4 mr-2" />
+                      Download PDF
+                    </Button>
+                    <Button variant="outline" className="flex-1">
+                      <Eye className="h-4 w-4 mr-2" />
+                      Preview Resume
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
 const BeforeAfterComparison: React.FC<{ resumeData: any }> = ({ resumeData }) => {
   const improvements = {
     scoreIncrease: 39, // Example: 39% → 78%
@@ -515,6 +712,10 @@ export const ResumeAnalysisModal: React.FC<ResumeAnalysisModalProps> = ({
                     industryData={analysis.industrySpecific || {}}
                     onOptimize={onOptimize}
                   />
+                </TabsContent>
+
+                <TabsContent value="generate" className="mt-0">
+                  <AIResumeGenerator resumeData={resumeData} />
                 </TabsContent>
 
                 <TabsContent value="detailed" className="mt-0">
