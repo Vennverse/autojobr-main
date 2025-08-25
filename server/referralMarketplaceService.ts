@@ -651,62 +651,70 @@ export class ReferralMarketplaceService {
         return [];
       }
 
-      const bookings = await db.select({
-        // Booking info
-        id: referralBookings.id,
-        serviceId: referralBookings.serviceId,
-        jobSeekerId: referralBookings.jobSeekerId,
-        status: referralBookings.status,
-        scheduledAt: referralBookings.scheduledAt,
-        conversationId: referralBookings.conversationId,
-        notes: referralBookings.notes,
-        totalAmount: referralBookings.totalAmount,
-        paymentStatus: referralBookings.paymentStatus,
-        createdAt: referralBookings.createdAt,
-        
-        // Job seeker info
-        jobSeekerEmail: users.email,
-        jobSeekerFirstName: users.firstName,
-        jobSeekerLastName: users.lastName,
-        jobSeekerPhone: users.phone,
-        
-        // Service info
-        serviceTitle: referralServices.title,
-        serviceType: referralServices.serviceType,
-        sessionDuration: referralServices.sessionDuration,
-      })
-      .from(referralBookings)
-      .leftJoin(users, eq(referralBookings.jobSeekerId, users.id))
-      .leftJoin(referralServices, eq(referralBookings.serviceId, referralServices.id))
-      .where(eq(referralBookings.referrerId, referrer.id))
-      .orderBy(desc(referralBookings.createdAt));
+      // Get bookings first
+      const bookings = await db.select()
+        .from(referralBookings)
+        .where(eq(referralBookings.referrerId, referrer.id))
+        .orderBy(desc(referralBookings.createdAt));
 
-      // Format the response
-      return bookings.map(booking => ({
-        id: booking.id,
-        serviceId: booking.serviceId,
-        jobSeekerId: booking.jobSeekerId,
-        status: booking.status,
-        scheduledAt: booking.scheduledAt,
-        conversationId: booking.conversationId,
-        notes: booking.notes,
-        totalAmount: booking.totalAmount,
-        paymentStatus: booking.paymentStatus,
-        createdAt: booking.createdAt,
-        jobSeeker: {
-          id: booking.jobSeekerId,
-          email: booking.jobSeekerEmail,
-          firstName: booking.jobSeekerFirstName,
-          lastName: booking.jobSeekerLastName,
-          phoneNumber: booking.jobSeekerPhone,
-        },
-        service: {
-          id: booking.serviceId,
-          title: booking.serviceTitle,
-          serviceType: booking.serviceType,
-          sessionDuration: booking.sessionDuration,
-        }
-      }));
+      // For each booking, get additional details
+      const bookingsWithDetails = await Promise.all(
+        bookings.map(async (booking) => {
+          // Get job seeker details
+          let jobSeeker = null;
+          if (booking.jobSeekerId) {
+            const jobSeekerResult = await db.select()
+              .from(users)
+              .where(eq(users.id, booking.jobSeekerId))
+              .limit(1);
+            
+            if (jobSeekerResult.length > 0) {
+              jobSeeker = {
+                id: jobSeekerResult[0].id,
+                email: jobSeekerResult[0].email,
+                firstName: jobSeekerResult[0].firstName,
+                lastName: jobSeekerResult[0].lastName,
+                phoneNumber: jobSeekerResult[0].phone,
+              };
+            }
+          }
+
+          // Get service details
+          let service = null;
+          if (booking.serviceId) {
+            const serviceResult = await db.select()
+              .from(referralServices)
+              .where(eq(referralServices.id, booking.serviceId))
+              .limit(1);
+            
+            if (serviceResult.length > 0) {
+              service = {
+                id: serviceResult[0].id,
+                title: serviceResult[0].title,
+                serviceType: serviceResult[0].serviceType,
+                sessionDuration: serviceResult[0].sessionDuration,
+              };
+            }
+          }
+
+          return {
+            id: booking.id,
+            serviceId: booking.serviceId,
+            jobSeekerId: booking.jobSeekerId,
+            status: booking.status,
+            scheduledAt: booking.scheduledAt,
+            conversationId: booking.conversationId,
+            notes: booking.notes,
+            totalAmount: booking.totalAmount,
+            paymentStatus: booking.paymentStatus,
+            createdAt: booking.createdAt,
+            jobSeeker,
+            service
+          };
+        })
+      );
+
+      return bookingsWithDetails;
     } catch (error) {
       console.error('Error getting referrer bookings:', error);
       throw new Error('Failed to get referrer bookings');
