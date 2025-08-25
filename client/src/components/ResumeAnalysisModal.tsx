@@ -442,7 +442,7 @@ export const ResumeAnalysisModal: React.FC<ResumeAnalysisModalProps> = ({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-          <TabsList className="grid w-full grid-cols-5 flex-shrink-0">
+          <TabsList className="grid w-full grid-cols-6 flex-shrink-0">
             <TabsTrigger value="overview" className="flex items-center space-x-2">
               <BarChart3 className="h-4 w-4" />
               <span>Score Breakdown</span>
@@ -458,6 +458,10 @@ export const ResumeAnalysisModal: React.FC<ResumeAnalysisModalProps> = ({
             <TabsTrigger value="optimization" className="flex items-center space-x-2">
               <Target className="h-4 w-4" />
               <span>Job-Specific</span>
+            </TabsTrigger>
+            <TabsTrigger value="generate" className="flex items-center space-x-2">
+              <Sparkles className="h-4 w-4" />
+              <span>Generate AI Resume</span>
             </TabsTrigger>
             <TabsTrigger value="detailed" className="flex items-center space-x-2">
               <FileText className="h-4 w-4" />

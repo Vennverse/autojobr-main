@@ -26,7 +26,8 @@ import {
   Target,
   Clock,
   Plus,
-  Lightbulb
+  Lightbulb,
+  Sparkles
 } from "lucide-react";
 import ResumeAnalysisModal from "@/components/ResumeAnalysisModal";
 
@@ -376,6 +377,22 @@ export default function ResumesPage() {
                               >
                                 <Eye className="h-4 w-4 mr-2" />
                                 Enhanced Analysis
+                              </Button>
+                              
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border-purple-200 dark:from-purple-900/20 dark:to-blue-900/20"
+                                onClick={() => {
+                                  // TODO: Implement AI resume generation
+                                  toast({
+                                    title: "AI Resume Generator",
+                                    description: "Creating your optimized ATS resume... This feature is coming soon!",
+                                  });
+                                }}
+                              >
+                                <Sparkles className="h-4 w-4 mr-2 text-purple-600" />
+                                Generate AI Resume
                               </Button>
                               
                               {!resume.isActive && (
