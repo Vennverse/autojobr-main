@@ -1,0 +1,77 @@
+Failed to load resource: net::ERR_FAILEDUnderstand this error
+chrome-extension://invalid/:1  Failed to load resource: net::ERR_FAILEDUnderstand this error
+chrome-extension://invalid/:1  Failed to load resource: net::ERR_FAILEDUnderstand this error
+chrome-extension://invalid/:1  Failed to load resource: net::ERR_FAILEDUnderstand this error
+chrome-extension://invalid/:1  Failed to load resource: net::ERR_FAILEDUnderstand this error
+chrome-extension://invalid/:1  Failed to load resource: net::ERR_FAILEDUnderstand this error
+chrome-extension://invalid/:1  Failed to load resource: net::ERR_FAILEDUnderstand this error
+chrome-extension://invalid/:1  Failed to load resource: net::ERR_FAILEDUnderstand this error
+chrome-extension://invalid/:1  Failed to load resource: net::ERR_FAILEDUnderstand this error
+chrome-extension://invalid/:1  Failed to load resource: net::ERR_FAILEDUnderstand this error
+chrome-extension://invalid/:1  Failed to load resource: net::ERR_FAILEDUnderstand this error
+autojobr.com/api/reminders/pending:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)Understand this error
+content-script.js:3499 User not authenticated - skipping task load
+content-script.js:3138 🔄 URL changed to: https://www.linkedin.com/jobs/collections/recommended/?currentJobId=4260968261
+content-script.js:839 📍 Job page detected on linkedin.com with pattern match
+content-script.js:3107 📍 Job page detected - starting analysis: https://www.linkedin.com/jobs/collections/recommended/?currentJobId=4260968261
+content-script.js:839 📍 Job page detected on linkedin.com with pattern match
+content-script.js:937 ✅ AutoJobr popup widget displayed automatically
+content-script.js:901 Updated job info with extracted data: Object
+Grammarly-check.js:1 [Violation] Permissions policy violation: unload is not allowed in this document.
+(anonymous) @ Grammarly-check.js:1Understand this error
+content-script.js:839 📍 Job page detected on linkedin.com with pattern match
+content-script.js:937 ✅ AutoJobr popup widget displayed automatically
+content-script.js:901 Updated job info with extracted data: Object
+content-script.js:3157 🎯 Starting fresh automatic job analysis
+content-script.js:3166 📋 Fresh job data extracted: Object
+profile:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)Understand this error
+content-script.js:3175 User not authenticated - skipping auto analysis
+content-script.js:839 📍 Job page detected on linkedin.com with pattern match
+content-script.js:937 ✅ AutoJobr popup widget displayed automatically
+content-script.js:901 Updated job info with extracted data: Object
+10Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('<URL>') does not match the recipient window's origin ('null').Understand this warning
+inpage.js:1 Uncaught (in promise) s: Failed to connect to MetaMask
+    at Object.connect (inpage.js:1:21493)
+    at async o (inpage.js:1:19297)Caused by: Error: MetaMask extension not found
+    at inpage.js:1:16607Understand this error
+855 log entries are not shown.Understand this warning
+content-script.js:901 Updated job info with extracted data: {title: 'Consultant - Business Consulting (Oil & Gas)', company: 'Infosys'}
+content-script.js:901 Updated job info with extracted data: {title: 'Consultant - Business Consulting (Oil & Gas)', company: 'Infosys'}
+content-script.js:901 Updated job info with extracted data: {title: 'Consultant - Business Consulting (Oil & Gas)', company: 'Infosys'}
+content-script.js:901 Updated job info with extracted data: {title: 'Consultant - Business Consulting (Oil & Gas)', company: 'Infosys'}
+content-script.js:3368  GET https://autojobr.com/api/extension/profile 401 (Unauthorized)
+getUserProfile @ content-script.js:3368
+await in getUserProfile
+analyzeCurrentJob @ content-script.js:2712
+await in analyzeCurrentJob
+handleAnalyze @ content-script.js:2611
+(anonymous) @ content-script.js:573Understand this error
+content-script.js:3368  GET https://autojobr.com/api/extension/profile 401 (Unauthorized)
+getUserProfile @ content-script.js:3368
+await in getUserProfile
+analyzeCurrentJob @ content-script.js:2712
+await in analyzeCurrentJob
+handleAnalyze @ content-script.js:2611
+(anonymous) @ content-script.js:573Understand this error
+content-script.js:2740 Content script updating job match with server score: 40
+content-script.js:2752 Updated automatic popup with match score: 40 Fair
+content-script.js:3368  GET https://autojobr.com/api/extension/profile 401 (Unauthorized)
+getUserProfile @ content-script.js:3368
+await in getUserProfile
+analyzeCurrentJob @ content-script.js:2712
+await in analyzeCurrentJob
+handleAnalyze @ content-script.js:2611
+(anonymous) @ content-script.js:573Understand this error
+content-script.js:2740 Content script updating job match with server score: 40
+content-script.js:2752 Updated automatic popup with match score: 40 Fair
+content-script.js:3368  GET https://autojobr.com/api/extension/profile 401 (Unauthorized)
+getUserProfile @ content-script.js:3368
+await in getUserProfile
+analyzeCurrentJob @ content-script.js:2712
+await in analyzeCurrentJob
+handleAnalyze @ content-script.js:2611
+(anonymous) @ content-script.js:573Understand this error
+content-script.js:2740 Content script updating job match with server score: 40
+content-script.js:2752 Updated automatic popup with match score: 40 Fair
+content-script.js:2740 Content script updating job match with server score: 40
+content-script.js:2752 Updated automatic popup with match score: 40 Fair
