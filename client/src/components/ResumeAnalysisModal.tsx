@@ -445,11 +445,12 @@ const AIResumeGenerator: React.FC<{ resumeData: any }> = ({ resumeData }) => {
           </div>
 
           {/* Generate Button */}
-          <div className="text-center">
+          <div className="text-center space-y-4">
             <Button 
               onClick={handleGenerateResume}
               disabled={isGenerating}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-3 text-lg"
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-3 text-lg w-full max-w-md"
+              data-testid="generate-ai-resume-btn"
             >
               {isGenerating ? (
                 <>
@@ -463,6 +464,9 @@ const AIResumeGenerator: React.FC<{ resumeData: any }> = ({ resumeData }) => {
                 </>
               )}
             </Button>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Click to generate an ATS-optimized PDF resume using AI
+            </p>
           </div>
 
           {/* Success State */}
@@ -487,13 +491,33 @@ const AIResumeGenerator: React.FC<{ resumeData: any }> = ({ resumeData }) => {
                   </div>
                   
                   <div className="flex space-x-3">
-                    <Button variant="outline" className="flex-1">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => {
+                        if (generatedResume?.resume?.id) {
+                          // Download the generated resume
+                          window.open(`/api/resumes/${generatedResume.resume.id}/download`, '_blank');
+                        }
+                      }}
+                      data-testid="download-generated-resume-btn"
+                    >
                       <FileOutput className="h-4 w-4 mr-2" />
                       Download PDF
                     </Button>
-                    <Button variant="outline" className="flex-1">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => {
+                        if (generatedResume?.resume?.id) {
+                          // Navigate to resumes page to view the new resume
+                          window.location.href = `/resumes`;
+                        }
+                      }}
+                      data-testid="view-generated-resume-btn"
+                    >
                       <Eye className="h-4 w-4 mr-2" />
-                      Preview Resume
+                      View Resume
                     </Button>
                   </div>
                 </CardContent>
