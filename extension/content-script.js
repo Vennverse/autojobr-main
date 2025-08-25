@@ -21,10 +21,15 @@ class AutoJobrContentScript {
       this.injectEnhancedUI();
       this.setupMessageListener();
       this.observePageChanges();
-      this.detectJobPosting();
       this.setupKeyboardShortcuts();
       this.initializeSmartSelectors();
       this.setupApplicationTracking(); // Setup tracking once during initialization
+      
+      // Initial job detection with small delay to ensure page is loaded
+      setTimeout(() => {
+        this.detectJobPosting();
+      }, 1000);
+      
       this.setupAutoAnalysis(); // New: Setup automatic job analysis (always fresh)
       this.isInitialized = true;
       
@@ -907,14 +912,23 @@ class AutoJobrContentScript {
   }
 
   showWidget() {
-    const widget = document.querySelector('.autojobr-widget');
+    let widget = document.querySelector('.autojobr-widget');
+    
+    // If widget doesn't exist, create it
+    if (!widget) {
+      console.log('🔧 AutoJobr widget not found - creating fresh UI');
+      this.injectEnhancedUI();
+      widget = document.querySelector('.autojobr-widget');
+    }
+    
     if (widget) {
-      // Ensure widget is visible
+      // Ensure widget is visible and properly positioned
       widget.style.display = 'block';
       widget.style.position = 'fixed';
       widget.style.top = '20px';
       widget.style.right = '20px';
       widget.style.zIndex = '10000';
+      widget.style.boxShadow = '0 10px 25px rgba(0,0,0,0.1)';
       
       // Reset any previous transforms
       widget.style.opacity = '0';
@@ -929,10 +943,12 @@ class AutoJobrContentScript {
         widget.style.transform = 'translateX(0)';
       }, 100);
       
-      console.log('✅ AutoJobr widget displayed');
+      console.log('✅ AutoJobr popup widget displayed automatically');
+      
+      // Force re-attach event listeners in case they were lost
+      this.attachEnhancedUIEventListeners();
     } else {
-      console.log('❌ AutoJobr widget not found - reinject UI');
-      this.injectEnhancedUI();
+      console.error('❌ Failed to create AutoJobr widget');
     }
   }
 
@@ -3082,9 +3098,13 @@ class AutoJobrContentScript {
     // Clear any cached job data first
     this.currentJobData = null;
     
-    // Analyze current page if it's a job page
-    if (this.isJobApplicationPage()) {
-      setTimeout(() => this.performAutoAnalysis(), 2000);
+    // Check if this is a job page and show widget automatically
+    if (this.isJobPage()) {
+      console.log('📍 Job page detected - showing widget automatically');
+      setTimeout(() => {
+        this.detectJobPosting(); // This will show the widget
+        this.performAutoAnalysis(); // This will populate it with analysis
+      }, 2000);
     }
 
     // Watch for URL changes (SPA navigation)
@@ -3095,8 +3115,15 @@ class AutoJobrContentScript {
         console.log('🔄 URL changed, clearing cached data for fresh analysis');
         this.currentJobData = null; // Clear cached data on URL change
         
-        if (this.isJobApplicationPage()) {
-          setTimeout(() => this.performAutoAnalysis(), 3000);
+        // Check for any job page, not just application pages
+        if (this.isJobPage()) {
+          console.log('📍 New job page detected after navigation - showing widget');
+          setTimeout(() => {
+            this.detectJobPosting(); // Show widget
+            this.performAutoAnalysis(); // Populate with analysis
+          }, 3000);
+        } else {
+          this.hideWidget(); // Hide widget on non-job pages
         }
       }
     });
