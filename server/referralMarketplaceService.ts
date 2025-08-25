@@ -674,7 +674,7 @@ export class ReferralMarketplaceService {
                 email: jobSeekerResult[0].email,
                 firstName: jobSeekerResult[0].firstName,
                 lastName: jobSeekerResult[0].lastName,
-                phoneNumber: jobSeekerResult[0].phone,
+                phoneNumber: null, // Phone is stored in userProfiles table
               };
             }
           }
