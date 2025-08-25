@@ -165,16 +165,10 @@ export function Navbar() {
           badge: "AI"
         },
         {
-          name: "Mock Interview",
+          name: "Interviews",
           href: "/mock-interview",
           icon: Video,
-          current: location === "/mock-interview" || location.startsWith("/mock-interview/")
-        },
-        {
-          name: "Live Interview",
-          href: "/virtual-interview-start",
-          icon: Users,
-          current: location.startsWith("/virtual-interview")
+          current: location === "/mock-interview" || location.startsWith("/mock-interview/") || location.startsWith("/virtual-interview")
         },
         {
           name: "Ranking Tests",
@@ -191,7 +185,7 @@ export function Navbar() {
           badge: totalUnreadCount > 0 ? totalUnreadCount : undefined
         },
         {
-          name: "Referral Market",
+          name: "Get Referred",
           href: "/referral-marketplace",
           icon: Handshake,
           current: location === "/referral-marketplace" || location === "/become-referrer" || location === "/my-bookings",
