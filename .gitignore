@@ -53,3 +53,4 @@ temp/
 
 # Cache
 .cache/
+.local
