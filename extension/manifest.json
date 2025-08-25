@@ -38,6 +38,8 @@
     "*://*.microsoft.com/careers/*",
     "*://*.apple.com/*",
     "*://*.meta.com/*",
+    "*://*.autojobr.com/*",
+    "*://autojobr.com/*",
     "*://*.replit.dev/*",
     "*://*.replit.app/*",
     "*://localhost:*/*",
@@ -72,7 +74,9 @@
         "*://*.microsoft.com/*/job/*",
         "*://*.microsoft.com/careers/*",
         "*://*.apple.com/*",
-        "*://*.meta.com/*"
+        "*://*.meta.com/*",
+        "*://*.autojobr.com/*",
+        "*://autojobr.com/*"
       ],
       "js": ["content-script.js"],
       "css": ["popup-styles.css"],

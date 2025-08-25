@@ -337,7 +337,8 @@ class AutoJobrBackground {
       'monster.com', 'careerbuilder.com', 'dice.com', 'stackoverflow.com',
       'angel.co', 'wellfound.com', 'greenhouse.io', 'lever.co',
       'workday.com', 'myworkdayjobs.com', 'icims.com', 'smartrecruiters.com',
-      'bamboohr.com', 'ashbyhq.com', 'careers.google.com', 'amazon.jobs'
+      'bamboohr.com', 'ashbyhq.com', 'careers.google.com', 'amazon.jobs',
+      'autojobr.com'
     ];
 
     const isJobBoard = supportedDomains.some(domain => tab.url.includes(domain));

@@ -69,7 +69,8 @@ class AutoJobrContentScript {
       'amazon.jobs': 'amazon',
       'microsoft.com': 'microsoft',
       'apple.com': 'apple',
-      'meta.com': 'meta'
+      'meta.com': 'meta',
+      'autojobr.com': 'autojobr'
     };
 
     for (const [domain, site] of Object.entries(siteMap)) {
@@ -837,7 +838,8 @@ class AutoJobrContentScript {
       'amazon.jobs': ['/job/', '/jobs/', '/en/'],
       'microsoft.com': ['/job/', '/jobs/', '/careers/job-search/', '/careers/us/'],
       'apple.com': ['/job/', '/jobs/', '/careers/'],
-      'meta.com': ['/job/', '/jobs/', '/careers/']
+      'meta.com': ['/job/', '/jobs/', '/careers/'],
+      'autojobr.com': ['/jobs/', '/job/', '/applications/', '/dashboard', '/job-discovery/', '/view-job/', '/post-job']
     };
 
     // Check if hostname matches and URL contains job pattern
