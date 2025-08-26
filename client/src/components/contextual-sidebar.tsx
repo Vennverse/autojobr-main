@@ -159,7 +159,7 @@ export function ContextualSidebar() {
           {
             label: "Job Tools",
             items: [
-              { name: "Job Analytics", href: "/job-analytics", icon: BarChart3, current: location === "/job-analytics" },
+
               { name: "Salary Insights", href: "/salary-insights", icon: DollarSign, current: location === "/salary-insights" },
               { name: "Company Research", href: "/company-research", icon: Building2, current: location === "/company-research" },
               { name: "Job Alerts", href: "/job-alerts", icon: Bell, current: location === "/job-alerts" },
@@ -335,7 +335,6 @@ export function ContextualSidebar() {
               { name: "Profile Score", href: "/profile-score", icon: Target, current: location === "/profile-score" },
               { name: "Test History", href: "/test-history", icon: Clock, current: location === "/test-history" },
               { name: "Skill Progress", href: "/skill-progress", icon: TrendingUp, current: location === "/skill-progress" },
-              { name: "Career Analytics", href: "/career-analytics", icon: PieChart, current: location === "/career-analytics" },
             ]
           }
         ]
@@ -462,7 +461,7 @@ export function ContextualSidebar() {
               { name: "Post New Job", href: "/post-job", icon: PlusCircle, current: location === "/post-job" },
               { name: "Job Promotion", href: "/job-promotion-payment", icon: Megaphone, current: location === "/job-promotion-payment" },
               { name: "Premium Targeting", href: "/premium-targeting-payment", icon: Target, current: location === "/premium-targeting-payment" },
-              { name: "Job Analytics", href: "/job-analytics", icon: BarChart3, current: location === "/job-analytics" },
+
             ]
           },
           {
