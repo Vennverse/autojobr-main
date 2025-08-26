@@ -218,7 +218,7 @@ export function Navbar() {
 
   return (
     <>
-      <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
+      <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 relative z-30">
         <div className="max-w-full mx-auto px-2 sm:px-4 lg:px-6">
           <div className="flex justify-between h-16">
             <div className="flex">
@@ -417,7 +417,13 @@ export function Navbar() {
 
         {/* Mobile menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <>
+            {/* Backdrop */}
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+            <div className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 absolute top-full left-0 right-0 z-50 max-h-[calc(100vh-4rem)] overflow-y-auto shadow-lg">
             <div className="px-4 pt-4 pb-3 space-y-2">
               {user ? navigationItems.map((item) => {
                 const Icon = item.icon;
@@ -529,6 +535,7 @@ export function Navbar() {
               )}
             </div>
           </div>
+          </>
         )}
       </nav>
     </>
