@@ -41,7 +41,7 @@ export default function VirtualInterview() {
   const sessionId = params?.sessionId;
 
   useEffect(() => {
-    if (!sessionId) {
+    if (!sessionId || sessionId === 'new') {
       setLocation('/virtual-interview-start');
       return;
     }
