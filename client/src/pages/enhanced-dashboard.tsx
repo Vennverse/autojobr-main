@@ -770,7 +770,7 @@ export default function EnhancedDashboard() {
               <Navbar />
             </div>
           </header>
-          <div className="flex-1 space-y-4 p-4 md:p-8 max-w-full overflow-x-hidden">
+          <div className="flex-1 space-y-4 p-2 sm:p-4 md:p-8 max-w-full overflow-x-hidden">
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -781,10 +781,10 @@ export default function EnhancedDashboard() {
           <motion.div variants={itemVariants} className="space-y-6">
             {/* Main Welcome */}
             <div className="text-center space-y-3">
-              <div className="flex items-center justify-center gap-3">
+              <div className="flex items-center justify-center gap-2 sm:gap-3">
                 <motion.h1
                   variants={slideInVariants}
-                  className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent"
+                  className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent"
                 >
                   Welcome back, {userName}!
                 </motion.h1>
@@ -800,22 +800,22 @@ export default function EnhancedDashboard() {
               </div>
 
               {/* User Level & Progress */}
-              <div className="flex items-center justify-center gap-4 flex-wrap">
-                <Badge className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 text-sm font-semibold">
-                  <Star className="w-4 h-4 mr-1" />
+              <div className="flex items-center justify-center gap-2 sm:gap-4 flex-wrap">
+                <Badge className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-semibold">
+                  <Star className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                   Level {userLevel}
                 </Badge>
-                <Badge variant="outline" className="px-4 py-2 text-sm">
-                  <Trophy className="w-4 h-4 mr-1 text-yellow-500" />
+                <Badge variant="outline" className="px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm">
+                  <Trophy className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-yellow-500" />
                   {totalPoints} XP
                 </Badge>
-                <Badge variant="outline" className="px-4 py-2 text-sm">
-                  <Flame className="w-4 h-4 mr-1 text-orange-500" />
+                <Badge variant="outline" className="px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm">
+                  <Flame className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-orange-500" />
                   {unlockedAchievements.length} Achievements
                 </Badge>
               </div>
 
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
                 Your AI-powered career journey • {totalProgress}% Complete
               </p>
             </div>
@@ -823,7 +823,7 @@ export default function EnhancedDashboard() {
             {/* Progress Overview Card */}
             <Card className="border-0 overflow-hidden relative bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-950 dark:via-purple-950 dark:to-pink-950">
               <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 opacity-5" />
-              <CardContent className="p-6 relative">
+              <CardContent className="p-3 sm:p-6 relative">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="p-3 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500">
@@ -863,7 +863,7 @@ export default function EnhancedDashboard() {
                 </div>
 
                 {/* Quick Progress Tasks */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
                   {progressTasks.map((task, index) => (
                     <motion.div
                       key={task.id}
@@ -871,7 +871,7 @@ export default function EnhancedDashboard() {
                       initial="hidden"
                       animate="visible"
                       transition={{ delay: index * 0.1 }}
-                      className={`p-3 rounded-lg border transition-all duration-200 ${
+                      className={`p-2 sm:p-3 rounded-lg border transition-all duration-200 ${
                         task.completed
                           ? "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800"
                           : "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-primary/30"
@@ -999,7 +999,7 @@ export default function EnhancedDashboard() {
             <motion.div variants={itemVariants}>
               <Card className="border-0 overflow-hidden relative bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950 dark:via-indigo-950 dark:to-purple-950">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500 opacity-5" />
-                <CardContent className="p-6 relative">
+                <CardContent className="p-3 sm:p-6 relative">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500">
                       <Compass className="w-6 h-6 text-white" />
@@ -1090,7 +1090,7 @@ export default function EnhancedDashboard() {
           <motion.div variants={itemVariants}>
             <Card className="border-0 overflow-hidden relative bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-green-950 dark:via-emerald-950 dark:to-teal-950">
               <div className="absolute inset-0 bg-gradient-to-br from-green-500 via-emerald-500 to-teal-500 opacity-5" />
-              <CardContent className="p-6 relative">
+              <CardContent className="p-3 sm:p-6 relative">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="p-3 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500">
@@ -1226,7 +1226,7 @@ export default function EnhancedDashboard() {
             <motion.div variants={itemVariants}>
               <Card className="border-0 overflow-hidden relative bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-purple-950 dark:via-blue-950 dark:to-indigo-950">
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-blue-500 to-indigo-500 opacity-5" />
-                <CardContent className="p-6 relative">
+                <CardContent className="p-3 sm:p-6 relative">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500">
                       <Brain className="w-6 h-6 text-white" />
@@ -1450,7 +1450,7 @@ export default function EnhancedDashboard() {
           {/* Stats Overview */}
           <motion.div
             variants={itemVariants}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
           >
             <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0">
               <CardContent className="p-6">
@@ -1529,7 +1529,7 @@ export default function EnhancedDashboard() {
               </Badge>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
               {quickActions.map((action, index) => (
                 <motion.div
                   key={action.title}
@@ -1577,12 +1577,12 @@ export default function EnhancedDashboard() {
           </motion.div>
 
           {/* Main Feature Cards Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
             {/* Assigned Tests Card */}
             <motion.div variants={itemVariants}>
               <Card className="h-full border-0 overflow-hidden relative bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950 dark:to-red-950">
                 <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-red-500 opacity-5" />
-                <CardContent className="p-6 relative">
+                <CardContent className="p-3 sm:p-6 relative">
                   <div className="flex items-start justify-between mb-4">
                     <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500 to-red-500">
                       <Code className="w-6 h-6 text-white" />
@@ -1867,7 +1867,7 @@ export default function EnhancedDashboard() {
           </motion.div>
 
           {/* Resume Analysis & AI Tools */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
             {/* Resume Analysis Tab */}
             <motion.div variants={itemVariants}>
               <Card className="border-0 shadow-lg bg-gradient-to-br from-green-500 to-teal-600 text-white">
