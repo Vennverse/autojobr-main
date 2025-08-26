@@ -759,10 +759,10 @@ export default function EnhancedDashboard() {
   // Duplicate functions removed - using the ones defined earlier
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="min-h-screen flex bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
+    <SidebarProvider defaultOpen={false}>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
         <ContextualSidebar />
-        <SidebarInset className="flex-1">
+        <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-white/80 backdrop-blur-sm">
             <SidebarTrigger className="h-8 w-8 p-0 hover:bg-gray-100 rounded-md" />
             <Separator orientation="vertical" className="mr-2 h-4" />
@@ -770,7 +770,7 @@ export default function EnhancedDashboard() {
               <Navbar />
             </div>
           </header>
-          <div className="flex-1 space-y-4 p-4 md:p-8 overflow-auto">
+          <div className="flex-1 space-y-4 p-4 md:p-8 max-w-full overflow-x-hidden">
         <motion.div
           variants={containerVariants}
           initial="hidden"
