@@ -167,19 +167,6 @@ const EmployeeReferralServices: React.FC = () => {
             },
             "serviceType": "Employment Referral Services",
             "areaServed": "Worldwide",
-            "hasOfferCatalog": {
-              "@type": "OfferCatalog",
-              "name": "Referral Services",
-              "itemListElement": services.map(service => ({
-                "@type": "Offer",
-                "itemOffered": {
-                  "@type": "Service",
-                  "name": service.title
-                },
-                "price": service.price.replace('$', ''),
-                "priceCurrency": "USD"
-              }))
-            },
             "aggregateRating": {
               "@type": "AggregateRating",
               "ratingValue": "4.9",
