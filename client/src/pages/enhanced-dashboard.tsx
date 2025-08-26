@@ -763,7 +763,13 @@ export default function EnhancedDashboard() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
         <ContextualSidebar />
         <SidebarInset>
-          <Navbar />
+          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <div className="flex-1">
+              <Navbar />
+            </div>
+          </header>
           <div className="flex-1 space-y-4 p-4 md:p-8">
         <motion.div
           variants={containerVariants}
