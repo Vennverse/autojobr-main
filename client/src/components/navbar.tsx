@@ -218,7 +218,7 @@ export function Navbar() {
 
   return (
     <>
-      <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 relative z-30">
+      <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
         <div className="max-w-full mx-auto px-2 sm:px-4 lg:px-6">
           <div className="flex justify-between h-16">
             <div className="flex">
@@ -407,7 +407,8 @@ export function Navbar() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2"
+                className="p-2 z-[65] relative"
+                data-testid="mobile-menu-button"
               >
                 {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </Button>
@@ -420,10 +421,12 @@ export function Navbar() {
           <>
             {/* Backdrop */}
             <div 
-              className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+              className="fixed inset-0 bg-black bg-opacity-50 z-[55] md:hidden"
               onClick={() => setIsMobileMenuOpen(false)}
+              data-testid="mobile-menu-backdrop"
             />
-            <div className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 absolute top-full left-0 right-0 z-50 max-h-[calc(100vh-4rem)] overflow-y-auto shadow-lg">
+            <div className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 fixed top-16 left-0 right-0 z-[60] max-h-[calc(100vh-4rem)] overflow-y-auto shadow-xl"
+                 data-testid="mobile-menu-dropdown">
             <div className="px-4 pt-4 pb-3 space-y-2">
               {user ? navigationItems.map((item) => {
                 const Icon = item.icon;

@@ -763,7 +763,7 @@ export default function EnhancedDashboard() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
         <ContextualSidebar />
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-white/80 backdrop-blur-sm">
+          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-white/80 backdrop-blur-sm relative z-10">
             <SidebarTrigger className="h-8 w-8 p-0 hover:bg-gray-100 rounded-md" />
             <Separator orientation="vertical" className="mr-2 h-4" />
             <div className="flex-1">
