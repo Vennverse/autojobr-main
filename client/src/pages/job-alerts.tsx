@@ -86,23 +86,97 @@ export default function JobAlertsPage() {
     isActive: true
   });
 
-  // Fetch recommended jobs based on user profile and preferences
-  const { data: recommendedJobs = [], isLoading: loadingRecommended } = useQuery<RecommendedJob[]>({
-    queryKey: ["/api/jobs/recommended", user?.id],
-    enabled: !!user?.id,
-  });
+  // Mock data for recommended jobs
+  const mockRecommendedJobs: RecommendedJob[] = [
+    {
+      id: "job-1",
+      title: "Senior Software Engineer",
+      company: "TechCorp Inc.",
+      location: "San Francisco, CA",
+      salary: "$120K - $180K",
+      type: "Full-time",
+      postedDate: "2025-01-25",
+      description: "Join our engineering team to build scalable web applications using React, Node.js, and cloud technologies.",
+      requirements: ["React", "Node.js", "TypeScript", "AWS", "5+ years experience"],
+      benefits: ["Health Insurance", "401K", "Remote Work", "Stock Options"],
+      matchScore: 95,
+      isRemote: true,
+      isUrgent: false,
+      applicationUrl: "https://techcorp.com/jobs/senior-engineer"
+    },
+    {
+      id: "job-2", 
+      title: "Frontend Developer",
+      company: "StartupXYZ",
+      location: "New York, NY",
+      salary: "$80K - $120K",
+      type: "Full-time",
+      postedDate: "2025-01-24",
+      description: "Looking for a creative frontend developer to work on our next-generation user interfaces.",
+      requirements: ["React", "JavaScript", "CSS", "UI/UX", "3+ years experience"],
+      benefits: ["Flexible Hours", "Health Insurance", "Learning Budget"],
+      matchScore: 87,
+      isRemote: false,
+      isUrgent: true,
+      applicationUrl: "https://startupxyz.com/careers"
+    },
+    {
+      id: "job-3",
+      title: "Full Stack Developer",
+      company: "Digital Agency",
+      location: "Remote",
+      salary: "$90K - $130K", 
+      type: "Full-time",
+      postedDate: "2025-01-23",
+      description: "Build end-to-end web solutions for our diverse client portfolio using modern technologies.",
+      requirements: ["React", "Node.js", "MongoDB", "GraphQL", "4+ years experience"],
+      benefits: ["100% Remote", "Health Insurance", "Unlimited PTO"],
+      matchScore: 82,
+      isRemote: true,
+      isUrgent: false,
+      applicationUrl: "https://digitalagency.com/jobs"
+    }
+  ];
 
-  // Fetch user's job alerts
-  const { data: jobAlerts = [], isLoading: loadingAlerts } = useQuery<JobAlert[]>({
-    queryKey: ["/api/job-alerts", user?.id],
-    enabled: !!user?.id,
-  });
+  // Mock data for job alerts
+  const mockJobAlerts: JobAlert[] = [
+    {
+      id: "alert-1",
+      title: "React Developer Jobs",
+      keywords: ["React", "JavaScript", "Frontend"],
+      location: "San Francisco, CA",
+      salaryMin: 100000,
+      salaryMax: 150000,
+      jobType: "Full-time",
+      experienceLevel: "Senior",
+      isActive: true,
+      matchCount: 12,
+      createdAt: "2025-01-20",
+      lastMatched: "2025-01-25"
+    },
+    {
+      id: "alert-2",
+      title: "Remote Software Engineer",
+      keywords: ["Software Engineer", "Remote", "Node.js"],
+      location: "Remote",
+      jobType: "Full-time", 
+      experienceLevel: "Mid-level",
+      isActive: false,
+      matchCount: 8,
+      createdAt: "2025-01-18"
+    }
+  ];
 
-  // Fetch recent job matches for alerts
-  const { data: recentMatches = [], isLoading: loadingMatches } = useQuery<RecommendedJob[]>({
-    queryKey: ["/api/job-alerts/matches", user?.id],
-    enabled: !!user?.id,
-  });
+  // Mock data for recent matches
+  const mockRecentMatches: RecommendedJob[] = mockRecommendedJobs.slice(0, 2);
+
+  // Use mock data instead of API calls
+  const recommendedJobs = mockRecommendedJobs;
+  const jobAlerts = mockJobAlerts;
+  const recentMatches = mockRecentMatches;
+  const loadingRecommended = false;
+  const loadingAlerts = false;
+  const loadingMatches = false;
 
   const handleSaveJob = async (jobId: string) => {
     // Implementation for saving jobs
@@ -118,9 +192,28 @@ export default function JobAlertsPage() {
     }
   };
 
+  const [showCreateAlert, setShowCreateAlert] = useState(false);
+  const [showAlertSettings, setShowAlertSettings] = useState(false);
+
   const createJobAlert = async () => {
     // Implementation for creating job alerts
     console.log("Creating job alert:", alertForm);
+    setShowCreateAlert(true);
+    // Reset form
+    setAlertForm({
+      title: "",
+      keywords: "",
+      location: "",
+      salaryMin: "",
+      salaryMax: "",
+      jobType: "all",
+      experienceLevel: "all",
+      isActive: true
+    });
+  };
+
+  const toggleAlertSettings = () => {
+    setShowAlertSettings(!showAlertSettings);
   };
 
   const getMatchScoreColor = (score: number) => {
@@ -160,11 +253,11 @@ export default function JobAlertsPage() {
           </div>
           
           <div className="flex gap-3">
-            <Button variant="outline" data-testid="button-job-settings">
+            <Button variant="outline" onClick={toggleAlertSettings} data-testid="button-job-settings">
               <Settings className="w-4 h-4 mr-2" />
               Alert Settings
             </Button>
-            <Button data-testid="button-create-alert">
+            <Button onClick={() => setShowCreateAlert(true)} data-testid="button-create-alert">
               <Plus className="w-4 h-4 mr-2" />
               Create Alert
             </Button>
@@ -475,6 +568,182 @@ export default function JobAlertsPage() {
             </Tabs>
           </CardContent>
         </Card>
+
+        {/* Create Alert Modal */}
+        {showCreateAlert && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md mx-4"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Create Job Alert</h2>
+                <Button variant="ghost" size="sm" onClick={() => setShowCreateAlert(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="alert-title">Alert Title</Label>
+                  <Input
+                    id="alert-title"
+                    placeholder="e.g. React Developer Jobs"
+                    value={alertForm.title}
+                    onChange={(e) => setAlertForm({...alertForm, title: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="keywords">Keywords</Label>
+                  <Input
+                    id="keywords"
+                    placeholder="e.g. React, JavaScript, Frontend"
+                    value={alertForm.keywords}
+                    onChange={(e) => setAlertForm({...alertForm, keywords: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="location">Location</Label>
+                  <Input
+                    id="location"
+                    placeholder="e.g. San Francisco, CA or Remote"
+                    value={alertForm.location}
+                    onChange={(e) => setAlertForm({...alertForm, location: e.target.value})}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="min-salary">Min Salary</Label>
+                    <Input
+                      id="min-salary"
+                      type="number"
+                      placeholder="80000"
+                      value={alertForm.salaryMin}
+                      onChange={(e) => setAlertForm({...alertForm, salaryMin: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="max-salary">Max Salary</Label>
+                    <Input
+                      id="max-salary"
+                      type="number"
+                      placeholder="150000"
+                      value={alertForm.salaryMax}
+                      onChange={(e) => setAlertForm({...alertForm, salaryMax: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="job-type">Job Type</Label>
+                  <Select value={alertForm.jobType} onValueChange={(value) => setAlertForm({...alertForm, jobType: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select job type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="full-time">Full-time</SelectItem>
+                      <SelectItem value="part-time">Part-time</SelectItem>
+                      <SelectItem value="contract">Contract</SelectItem>
+                      <SelectItem value="remote">Remote</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={alertForm.isActive}
+                    onCheckedChange={(checked) => setAlertForm({...alertForm, isActive: checked})}
+                  />
+                  <Label>Activate immediately</Label>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <Button variant="outline" onClick={() => setShowCreateAlert(false)} className="flex-1">
+                    Cancel
+                  </Button>
+                  <Button onClick={createJobAlert} className="flex-1">
+                    Create Alert
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Alert Settings Modal */}
+        {showAlertSettings && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md mx-4"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Alert Settings</h2>
+                <Button variant="ghost" size="sm" onClick={() => setShowAlertSettings(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Email Notifications</Label>
+                      <p className="text-sm text-gray-500">Get notified via email when new matches are found</p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Push Notifications</Label>
+                      <p className="text-sm text-gray-500">Receive push notifications for urgent job matches</p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Daily Digest</Label>
+                      <p className="text-sm text-gray-500">Get a daily summary of all job matches</p>
+                    </div>
+                    <Switch />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="notification-frequency">Notification Frequency</Label>
+                  <Select defaultValue="immediate">
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select frequency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="immediate">Immediate</SelectItem>
+                      <SelectItem value="hourly">Hourly</SelectItem>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <Button variant="outline" onClick={() => setShowAlertSettings(false)} className="flex-1">
+                    Cancel
+                  </Button>
+                  <Button onClick={() => setShowAlertSettings(false)} className="flex-1">
+                    Save Settings
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </div>
     </div>
   );
