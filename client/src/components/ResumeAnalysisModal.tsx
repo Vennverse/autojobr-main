@@ -651,98 +651,117 @@ export const ResumeAnalysisModal: React.FC<ResumeAnalysisModalProps> = ({
   const [activeTab, setActiveTab] = useState("overview");
   const analysis = resumeData?.analysis;
 
-  if (!analysis) return null;
+  // If no resume data, default to generate tab for new AI resume creation
+  React.useEffect(() => {
+    if (!resumeData) {
+      setActiveTab("generate");
+    }
+  }, [resumeData]);
+
+  // Allow opening for AI generation even without analysis
+  if (!analysis && !isOpen) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            AI Resume Analysis - Enhanced Report
+            {analysis ? 'AI Resume Analysis - Enhanced Report' : 'AI Resume Generator'}
           </DialogTitle>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-          <TabsList className="grid w-full grid-cols-6 flex-shrink-0">
-            <TabsTrigger value="overview" className="flex items-center space-x-2">
-              <BarChart3 className="h-4 w-4" />
-              <span>Score Breakdown</span>
-            </TabsTrigger>
-            <TabsTrigger value="improvements" className="flex items-center space-x-2">
-              <Zap className="h-4 w-4" />
-              <span>Quick Fixes</span>
-            </TabsTrigger>
-            <TabsTrigger value="comparison" className="flex items-center space-x-2">
-              <TrendingUp className="h-4 w-4" />
-              <span>Before/After</span>
-            </TabsTrigger>
-            <TabsTrigger value="optimization" className="flex items-center space-x-2">
-              <Target className="h-4 w-4" />
-              <span>Job-Specific</span>
-            </TabsTrigger>
+          <TabsList className={`grid w-full ${!analysis ? 'grid-cols-1' : 'grid-cols-6'} flex-shrink-0`}>
+            {analysis && (
+              <>
+                <TabsTrigger value="overview" className="flex items-center space-x-2">
+                  <BarChart3 className="h-4 w-4" />
+                  <span>Score Breakdown</span>
+                </TabsTrigger>
+                <TabsTrigger value="improvements" className="flex items-center space-x-2">
+                  <Zap className="h-4 w-4" />
+                  <span>Quick Fixes</span>
+                </TabsTrigger>
+                <TabsTrigger value="comparison" className="flex items-center space-x-2">
+                  <TrendingUp className="h-4 w-4" />
+                  <span>Before/After</span>
+                </TabsTrigger>
+                <TabsTrigger value="optimization" className="flex items-center space-x-2">
+                  <Target className="h-4 w-4" />
+                  <span>Job-Specific</span>
+                </TabsTrigger>
+              </>
+            )}
             <TabsTrigger value="generate" className="flex items-center space-x-2">
               <Sparkles className="h-4 w-4" />
               <span>Generate AI Resume</span>
             </TabsTrigger>
-            <TabsTrigger value="detailed" className="flex items-center space-x-2">
-              <FileText className="h-4 w-4" />
-              <span>Detailed Analysis</span>
-            </TabsTrigger>
+            {analysis && (
+              <TabsTrigger value="detailed" className="flex items-center space-x-2">
+                <FileText className="h-4 w-4" />
+                <span>Detailed Analysis</span>
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <div className="flex-1 overflow-hidden">
             <ScrollArea className="h-full">
               <div className="p-6 space-y-6">
-                <TabsContent value="overview" className="mt-0">
-                  <div className="space-y-6">
-                    <div className="text-center">
-                      <div className="text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-                        {analysis.atsScore}%
+                {analysis && (
+                  <>
+                    <TabsContent value="overview" className="mt-0">
+                      <div className="space-y-6">
+                        <div className="text-center">
+                          <div className="text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                            {analysis.atsScore}%
+                          </div>
+                          <p className="text-lg text-gray-600 dark:text-gray-300">Overall ATS Score</p>
+                        </div>
+                        
+                        {analysis.scoreBreakdown && (
+                          <ScoreBreakdown breakdown={analysis.scoreBreakdown} />
+                        )}
+                        
+                        <div className="flex justify-center space-x-4">
+                          <Button onClick={onReanalyze} variant="outline">
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Re-analyze
+                          </Button>
+                          <Button variant="outline">
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Get Pro Tips
+                          </Button>
+                        </div>
                       </div>
-                      <p className="text-lg text-gray-600 dark:text-gray-300">Overall ATS Score</p>
-                    </div>
-                    
-                    {analysis.scoreBreakdown && (
-                      <ScoreBreakdown breakdown={analysis.scoreBreakdown} />
-                    )}
-                    
-                    <div className="flex justify-center space-x-4">
-                      <Button onClick={onReanalyze} variant="outline">
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Re-analyze
-                      </Button>
-                      <Button variant="outline">
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Get Pro Tips
-                      </Button>
-                    </div>
-                  </div>
-                </TabsContent>
+                    </TabsContent>
 
-                <TabsContent value="improvements" className="mt-0">
-                  <InteractiveImprovement
-                    recommendations={analysis.recommendations || []}
-                    rewriteSuggestions={analysis.rewriteSuggestions || []}
-                    onOptimize={onOptimize}
-                  />
-                </TabsContent>
+                    <TabsContent value="improvements" className="mt-0">
+                      <InteractiveImprovement
+                        recommendations={analysis.recommendations || []}
+                        rewriteSuggestions={analysis.rewriteSuggestions || []}
+                        onOptimize={onOptimize}
+                      />
+                    </TabsContent>
 
-                <TabsContent value="comparison" className="mt-0">
-                  <BeforeAfterComparison resumeData={resumeData} />
-                </TabsContent>
+                    <TabsContent value="comparison" className="mt-0">
+                      <BeforeAfterComparison resumeData={resumeData} />
+                    </TabsContent>
 
-                <TabsContent value="optimization" className="mt-0">
-                  <JobSpecificOptimization
-                    industryData={analysis.industrySpecific || {}}
-                    onOptimize={onOptimize}
-                  />
-                </TabsContent>
+                    <TabsContent value="optimization" className="mt-0">
+                      <JobSpecificOptimization
+                        industryData={analysis.industrySpecific || {}}
+                        onOptimize={onOptimize}
+                      />
+                    </TabsContent>
+                  </>
+                )}
 
                 <TabsContent value="generate" className="mt-0">
                   <AIResumeGenerator resumeData={resumeData} />
                 </TabsContent>
 
-                <TabsContent value="detailed" className="mt-0">
+                {analysis && (
+                  <TabsContent value="detailed" className="mt-0">
                   <div className="space-y-6">
                     {/* Existing detailed analysis content */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -821,7 +840,8 @@ export const ResumeAnalysisModal: React.FC<ResumeAnalysisModalProps> = ({
                       </CardContent>
                     </Card>
                   </div>
-                </TabsContent>
+                  </TabsContent>
+                )}
               </div>
             </ScrollArea>
           </div>

@@ -273,38 +273,19 @@ export function Navbar() {
                 </Button>
               )}
 
-              {/* Upgrade Button for Free Users */}
-              {user && user?.planType === 'free' && (
-                <Link href="/job-seeker-premium">
-                  <Button size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-sm">
-                    <Crown className="w-4 h-4 mr-1" />
-                    Upgrade
-                  </Button>
-                </Link>
-              )}
+
               
               {/* User Profile Dropdown */}
               {user && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-10 w-auto px-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">
-                      <div className="flex items-center space-x-2">
-                        <Avatar className="h-8 w-8 ring-2 ring-gray-200 dark:ring-gray-600">
-                          <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${user?.firstName} ${user?.lastName}`} />
-                          <AvatarFallback className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold">
-                            {user?.firstName?.[0]}{user?.lastName?.[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="text-left hidden xl:block">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-32">
-                            {user?.firstName} {user?.lastName}
-                          </p>
-                          <div className="flex items-center gap-1">
-                            {getPlanBadge(user?.planType || 'free')}
-                          </div>
-                        </div>
-                        <ChevronDown className="h-3 w-3 text-gray-400 hidden lg:block" />
-                      </div>
+                    <Button variant="ghost" className="relative h-10 w-10 p-0 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-full">
+                      <Avatar className="h-8 w-8 ring-2 ring-gray-200 dark:ring-gray-600">
+                        <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${user?.firstName} ${user?.lastName}`} />
+                        <AvatarFallback className="bg-blue-600 text-white font-semibold">
+                          {user?.firstName?.[0]}{user?.lastName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56" align="end" forceMount>

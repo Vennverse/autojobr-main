@@ -27,7 +27,8 @@ import {
   Clock,
   Plus,
   Lightbulb,
-  Sparkles
+  Sparkles,
+  Wand2
 } from "lucide-react";
 import ResumeAnalysisModal from "@/components/ResumeAnalysisModal";
 
@@ -220,7 +221,7 @@ export default function ResumesPage() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Upload New Resume Card */}
             <motion.div 
               className="lg:col-span-1"
@@ -283,6 +284,59 @@ export default function ResumesPage() {
                       )}
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* AI Resume Generator Card */}
+            <motion.div 
+              className="lg:col-span-1"
+              variants={itemVariants}
+            >
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-600 to-blue-600 text-white h-full">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5" />
+                    AI Resume Generator
+                  </CardTitle>
+                  <p className="text-sm text-purple-100">
+                    Create a completely new resume with AI-powered optimization
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="h-4 w-4 text-purple-200" />
+                      <span>ATS-optimized templates</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="h-4 w-4 text-purple-200" />
+                      <span>Job-specific keywords</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="h-4 w-4 text-purple-200" />
+                      <span>Professional formatting</span>
+                    </div>
+                  </div>
+                  <Button
+                    className="w-full bg-white/20 hover:bg-white/30 text-white border-0"
+                    onClick={() => {
+                      // Open modal directly to AI generation tab
+                      setSelectedResume(null); // No existing resume needed for new generation
+                      setShowEnhancedModal(true);
+                      // Switch to Generate tab
+                      setTimeout(() => {
+                        const generateTab = document.querySelector('[value="generate"]') as HTMLElement;
+                        if (generateTab) {
+                          generateTab.click();
+                        }
+                      }, 100);
+                    }}
+                    data-testid="create-ai-resume-btn"
+                  >
+                    <Wand2 className="h-4 w-4 mr-2" />
+                    Create AI Resume
+                  </Button>
                 </CardContent>
               </Card>
             </motion.div>
