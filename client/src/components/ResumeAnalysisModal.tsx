@@ -495,9 +495,9 @@ const AIResumeGenerator: React.FC<{ resumeData: any }> = ({ resumeData }) => {
                       variant="outline" 
                       className="flex-1"
                       onClick={() => {
-                        if (generatedResume?.resume?.id) {
+                        if (generatedResume?.id) {
                           // Download the generated resume
-                          window.open(`/api/resumes/${generatedResume.resume.id}/download`, '_blank');
+                          window.open(`/api/resumes/${generatedResume.id}/download`, '_blank');
                         }
                       }}
                       data-testid="download-generated-resume-btn"
@@ -509,7 +509,7 @@ const AIResumeGenerator: React.FC<{ resumeData: any }> = ({ resumeData }) => {
                       variant="outline" 
                       className="flex-1"
                       onClick={() => {
-                        if (generatedResume?.resume?.id) {
+                        if (generatedResume?.id) {
                           // Navigate to resumes page to view the new resume
                           window.location.href = `/resumes`;
                         }
@@ -663,7 +663,7 @@ export const ResumeAnalysisModal: React.FC<ResumeAnalysisModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             {analysis ? 'AI Resume Analysis - Enhanced Report' : 'AI Resume Generator'}
@@ -704,9 +704,9 @@ export const ResumeAnalysisModal: React.FC<ResumeAnalysisModalProps> = ({
             )}
           </TabsList>
 
-          <div className="flex-1 overflow-auto">
-            <ScrollArea className="h-full px-6 pb-6">
-              <div className="space-y-6">
+          <div className="flex-1 overflow-hidden">
+            <ScrollArea className="h-full max-h-[calc(90vh-200px)]">
+              <div className="p-6 space-y-6 pb-12">
                 {analysis && (
                   <>
                     <TabsContent value="overview" className="mt-0">

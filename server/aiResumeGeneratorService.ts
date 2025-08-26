@@ -172,7 +172,8 @@ Make sure to:
 `;
 
     try {
-      const response = await apiKeyRotationService.executeWithGroqRotation(async (apiKey: string) => {
+      const response = await apiKeyRotationService.executeWithGroqRotation(async (groqClient: any) => {
+        const apiKey = groqClient.apiKey || process.env.GROQ_API_KEY;
         const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -187,11 +188,11 @@ Make sure to:
           })
         });
         
-        if (!response.ok) {
-          throw new Error(`Groq API error: ${response.statusText}`);
+        if (!groqResponse.ok) {
+          throw new Error(`Groq API error: ${groqResponse.statusText}`);
         }
         
-        return response.json();
+        return groqResponse.json();
       });
 
       const content = response.choices[0]?.message?.content;
@@ -266,10 +267,17 @@ Make sure to:
       // Populate template with data
       const populatedHtml = this.populateTemplate(templateHtml, resumeData, templateType);
       
-      // Generate PDF using Puppeteer
+      // Generate PDF using Puppeteer with Chrome path fallback
       const browser = await puppeteer.launch({
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        args: [
+          '--no-sandbox', 
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--no-first-run',
+          '--disable-gpu'
+        ],
+        executablePath: process.env.CHROME_EXECUTABLE_PATH || '/usr/bin/chromium-browser' || undefined
       });
       
       const page = await browser.newPage();
@@ -298,7 +306,7 @@ Make sure to:
       });
       
       await browser.close();
-      return pdfBuffer;
+      return Buffer.from(pdfBuffer);
       
     } catch (error) {
       console.error('PDF Generation Error:', error);
