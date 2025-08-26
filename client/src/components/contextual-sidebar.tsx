@@ -201,7 +201,6 @@ export function ContextualSidebar() {
               { name: "Application Stats", href: "/applications/stats", icon: BarChart3, current: location.includes("stats") },
               { name: "Success Rate", href: "/application-success", icon: TrendingUp, current: location === "/application-success" },
               { name: "Response Timeline", href: "/response-timeline", icon: Clock, current: location === "/response-timeline" },
-              { name: "Advanced Analytics", href: "/advanced-analytics-dashboard", icon: PieChart, current: location === "/advanced-analytics-dashboard" },
             ]
           },
           {
@@ -360,7 +359,6 @@ export function ContextualSidebar() {
           {
             label: "Premium Tools",
             items: [
-              { name: "Advanced Analytics", href: "/advanced-analytics-dashboard", icon: BarChart3, current: location === "/advanced-analytics-dashboard" },
               { name: "AI Career Coach", href: "/career-ai-assistant", icon: Brain, current: location === "/career-ai-assistant" },
               { name: "Premium Chat", href: "/premium-chat", icon: MessageCircle, current: location === "/premium-chat" },
               { name: "Priority Support", href: "/premium-support", icon: Headphones, current: location === "/premium-support" },

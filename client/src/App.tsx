@@ -91,6 +91,7 @@ import BeatATSGuide from "@/pages/blog/beat-ats-systems-2025-guide";
 import LinkedInAutomationGuide from "@/pages/blog/linkedin-automation-guide";
 import AICoverLettersGuide from "@/pages/blog/ai-cover-letters-guide";
 import RemoteJobSearch2025 from "@/pages/blog/remote-job-search-2025";
+import JobAlertsPage from "@/pages/job-alerts";
 
 
 function Router() {
@@ -200,7 +201,6 @@ function Router() {
               <Route path="/recruiter/pipeline" component={PipelineManagement} />
               <Route path="/recruiter/enhanced-pipeline" component={EnhancedPipelineManagement} />
               <Route path="/recruiter/tasks" component={TaskManagement} />
-              <Route path="/recruiter/advanced-analytics" component={AdvancedAnalyticsDashboard} />
               <Route path="/recruiter/background-checks" component={BackgroundCheckIntegration} />
               <Route path="/admin/sso-configuration" component={SSOConfiguration} />
               {/* Admin user management temporarily disabled */}
@@ -257,6 +257,7 @@ function Router() {
                   <Route path="/referral-marketplace" component={ReferralMarketplace} />
                   <Route path="/become-referrer" component={BecomeReferrer} />
                   <Route path="/my-bookings" component={MyBookings} />
+                  <Route path="/job-alerts" component={JobAlertsPage} />
                   <Route path="/chat" component={SimpleChatPage} />
                   <Route path="/messaging" component={SimpleChatPage} />
                 </>
