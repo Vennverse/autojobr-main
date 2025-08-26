@@ -246,11 +246,10 @@ function Router() {
                   <Route path="/virtual-interview-start" component={VirtualInterviewStart} />
                   <Route path="/virtual-interview/start" component={VirtualInterviewStart} />
                   <Route path="/virtual-interview/new" component={VirtualInterviewStart} />
-                  <Route path="/virtual-interview-start" component={VirtualInterviewStart} />
-                  <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
-                  <Route path="/chat-interview/:sessionId" component={ChatInterview} />
                   <Route path="/virtual-interview-complete/:sessionId" component={VirtualInterviewComplete} />
                   <Route path="/virtual-interview/:sessionId/feedback" component={VirtualInterviewFeedback} />
+                  <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
+                  <Route path="/chat-interview/:sessionId" component={ChatInterview} />
                   <Route path="/jobs/:id" component={ViewJob} />
                   <Route path="/career-ai-assistant" component={CareerAIAssistant} />
                   <Route path="/subscription" component={Subscription} />
@@ -278,10 +277,10 @@ function Router() {
               <Route path="/virtual-interview-start" component={VirtualInterviewStart} />
               <Route path="/virtual-interview/start" component={VirtualInterviewStart} />
               <Route path="/virtual-interview/new" component={VirtualInterviewStart} />
-              <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
-              <Route path="/chat-interview/:sessionId" component={ChatInterview} />
               <Route path="/virtual-interview-complete/:sessionId" component={VirtualInterviewComplete} />
               <Route path="/virtual-interview/:sessionId/feedback" component={VirtualInterviewFeedback} />
+              <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
+              <Route path="/chat-interview/:sessionId" component={ChatInterview} />
               <Route path="/subscription" component={Subscription} />
               <Route path="/referral-marketplace" component={ReferralMarketplace} />
               <Route path="/become-referrer" component={BecomeReferrer} />
