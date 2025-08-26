@@ -523,7 +523,6 @@ export function ContextualSidebar() {
           items: [
             { name: "Upgrade to Premium", href: "/job-seeker-premium", icon: Crown, current: false },
             { name: "Premium Features", href: "/premium-features", icon: Star, current: false },
-            { name: "Advanced Tools", href: "/advanced-tools", icon: Zap, current: false },
           ]
         }
       ]
