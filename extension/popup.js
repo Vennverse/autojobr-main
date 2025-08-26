@@ -26,6 +26,7 @@ class AutoJobrPopup {
       await this.checkConnection();
       await this.loadUserProfile();
       await this.analyzeCurrentPage();
+      await this.loadTasks();
       
       this.showLoading(false);
       
@@ -55,6 +56,9 @@ class AutoJobrPopup {
     
     // Footer actions
     document.getElementById('openDashboard').addEventListener('click', () => this.openDashboard());
+
+    // Task management
+    document.getElementById('addTaskBtn').addEventListener('click', () => this.handleAddTask());
 
     // Settings toggles
     this.initializeToggle('autofillToggle', 'autofillEnabled');
@@ -1000,6 +1004,95 @@ class AutoJobrPopup {
     });
   }
 
+  // Task Management Methods
+  async loadTasks() {
+    if (!this.isAuthenticated) return;
+    
+    try {
+      const response = await this.makeApiRequest('/api/tasks?limit=5&status=pending');
+      const data = await response.json();
+      
+      if (data.success) {
+        this.displayTasks(data.tasks);
+        this.updateTasksCount(data.tasks.length);
+      }
+    } catch (error) {
+      console.error('Failed to load tasks:', error);
+    }
+  }
+
+  displayTasks(tasks) {
+    const tasksList = document.getElementById('tasksList');
+    const tasksSection = document.getElementById('tasksSection');
+    
+    if (!tasks || tasks.length === 0) {
+      tasksList.innerHTML = '<div class="no-tasks">No pending tasks</div>';
+      tasksSection.style.display = 'block';
+      return;
+    }
+
+    tasksList.innerHTML = tasks.map(task => `
+      <div class="task-item" data-task-id="${task.id}">
+        <div class="task-checkbox ${task.status === 'completed' ? 'checked' : ''}" 
+             onclick="autojobr.toggleTaskStatus(${task.id}, '${task.status === 'completed' ? 'pending' : 'completed'}')">
+          ${task.status === 'completed' ? '✓' : ''}
+        </div>
+        <div class="task-text">${task.title}</div>
+        <div class="task-priority ${task.priority || 'medium'}"></div>
+      </div>
+    `).join('');
+    
+    tasksSection.style.display = 'block';
+  }
+
+  updateTasksCount(count) {
+    const tasksCount = document.getElementById('tasksCount');
+    if (tasksCount) {
+      tasksCount.textContent = count;
+    }
+  }
+
+  async toggleTaskStatus(taskId, newStatus) {
+    try {
+      const response = await this.makeApiRequest(`/api/tasks/${taskId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.ok) {
+        await this.loadTasks(); // Refresh tasks
+        this.showNotification(`Task ${newStatus === 'completed' ? 'completed' : 'reopened'}!`, 'success');
+      }
+    } catch (error) {
+      console.error('Failed to update task:', error);
+      this.showNotification('Failed to update task', 'error');
+    }
+  }
+
+  async handleAddTask() {
+    const title = prompt('Enter task title:');
+    if (!title) return;
+
+    try {
+      const response = await this.makeApiRequest('/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify({
+          title,
+          priority: 'medium',
+          category: 'general'
+        })
+      });
+
+      if (response.ok) {
+        await this.loadTasks(); // Refresh tasks
+        this.showNotification('Task added!', 'success');
+      }
+    } catch (error) {
+      console.error('Failed to add task:', error);
+      this.showNotification('Failed to add task', 'error');
+    }
+  }
+
   showLoading(show = true) {
     const content = document.querySelector('.content');
     const loading = document.getElementById('loading');
@@ -1045,7 +1138,13 @@ class AutoJobrPopup {
   }
 }
 
+// Make popup instance globally accessible for task management
+let autojobr;
+
 // Initialize popup when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-  new AutoJobrPopup();
+  autojobr = new AutoJobrPopup();
+  
+  // Make methods globally accessible for onclick handlers
+  window.autojobr = autojobr;
 });

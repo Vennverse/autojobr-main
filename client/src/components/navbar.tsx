@@ -273,7 +273,15 @@ export function Navbar() {
                 </Button>
               )}
 
-
+              {/* Upgrade Button for Free Users */}
+              {user && user?.planType === 'free' && (
+                <Link href="/job-seeker-premium">
+                  <Button size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-sm">
+                    <Crown className="w-4 h-4 mr-1" />
+                    Upgrade
+                  </Button>
+                </Link>
+              )}
               
               {/* User Profile Dropdown */}
               {user && (

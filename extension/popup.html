@@ -550,21 +550,137 @@
       box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
     }
 
+    /* Tasks Section Styling */
+    .tasks-section {
+      margin-bottom: 20px;
+      border-top: 2px solid #f1f5f9;
+      padding-top: 16px;
+    }
+
+    .tasks-count {
+      display: inline-block;
+      background: #3b82f6;
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-left: 8px;
+      min-width: 20px;
+      text-align: center;
+    }
+
+    .tasks-list {
+      max-height: 150px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+    }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      background: #f8fafc;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    .task-item:hover {
+      background: #e2e8f0;
+    }
+
+    .task-item.completed {
+      opacity: 0.7;
+      text-decoration: line-through;
+    }
+
+    .task-checkbox {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #d1d5db;
+      border-radius: 3px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+
+    .task-checkbox.checked {
+      background: #22c55e;
+      border-color: #22c55e;
+      color: white;
+    }
+
+    .task-text {
+      flex: 1;
+      color: #374151;
+      font-weight: 500;
+    }
+
+    .task-priority {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .task-priority.high {
+      background: #ef4444;
+    }
+
+    .task-priority.medium {
+      background: #f59e0b;
+    }
+
+    .task-priority.low {
+      background: #22c55e;
+    }
+
+    .add-task-btn {
+      width: 100%;
+      padding: 8px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px dashed #3b82f6;
+      border-radius: 6px;
+      color: #3b82f6;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .add-task-btn:hover {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: #1d4ed8;
+    }
+
+    .no-tasks {
+      text-align: center;
+      color: #9ca3af;
+      font-size: 12px;
+      padding: 16px;
+    }
+
     /* Scrollbar styling */
-    .content::-webkit-scrollbar {
+    .content::-webkit-scrollbar, .tasks-list::-webkit-scrollbar {
       width: 6px;
     }
 
-    .content::-webkit-scrollbar-track {
+    .content::-webkit-scrollbar-track, .tasks-list::-webkit-scrollbar-track {
       background: #f1f5f9;
     }
 
-    .content::-webkit-scrollbar-thumb {
+    .content::-webkit-scrollbar-thumb, .tasks-list::-webkit-scrollbar-thumb {
       background: #cbd5e1;
       border-radius: 3px;
     }
 
-    .content::-webkit-scrollbar-thumb:hover {
+    .content::-webkit-scrollbar-thumb:hover, .tasks-list::-webkit-scrollbar-thumb:hover {
       background: #94a3b8;
     }
   </style>
@@ -626,6 +742,18 @@
           <button class="quick-btn" id="profileBtn">👤 Profile</button>
           <button class="quick-btn" id="historyBtn">📈 History</button>
         </div>
+      </div>
+
+      <!-- Tasks Section -->
+      <div class="tasks-section" id="tasksSection">
+        <div class="section-title">
+          ✅ My Tasks
+          <span class="tasks-count" id="tasksCount">0</span>
+        </div>
+        <div class="tasks-list" id="tasksList">
+          <!-- Tasks will be loaded here -->
+        </div>
+        <button class="add-task-btn" id="addTaskBtn">+ Add Task</button>
       </div>
 
       <div class="score-section" id="scoreSection" style="display: none;">
