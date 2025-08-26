@@ -412,6 +412,7 @@ const AIResumeGenerator: React.FC<{ resumeData: any }> = ({ resumeData }) => {
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
+          <ScrollArea className="max-h-[70vh] pr-4">
           {/* Profession Selection */}
           <div>
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block">
@@ -621,6 +622,7 @@ const AIResumeGenerator: React.FC<{ resumeData: any }> = ({ resumeData }) => {
               </Card>
             </motion.div>
           )}
+          </ScrollArea>
         </CardContent>
       </Card>
     </div>
