@@ -204,18 +204,10 @@ export default function EnhancedDashboard() {
     }
   }, [isAuthenticated, isLoading]);
 
-  // Exit-intent detection for premium modal
+  // Exit-intent detection for premium modal - DISABLED
   useEffect(() => {
-    if (isPremium) return;
-
-    const handleMouseLeave = (e: MouseEvent) => {
-      if (e.clientY <= 0 && !showExitModal) {
-        setShowExitModal(true);
-      }
-    };
-
-    document.addEventListener("mouseleave", handleMouseLeave);
-    return () => document.removeEventListener("mouseleave", handleMouseLeave);
+    // Disabled exit intent popup to prevent intrusive behavior
+    return;
   }, [isPremium, showExitModal]);
 
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -764,8 +756,8 @@ export default function EnhancedDashboard() {
         <ContextualSidebar />
         <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-white/80 backdrop-blur-sm relative z-10">
-            <SidebarTrigger className="h-8 w-8 p-0 hover:bg-gray-100 rounded-md" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
+            <SidebarTrigger className="h-8 w-8 p-0 hover:bg-gray-100 rounded-md hidden md:flex" />
+            <Separator orientation="vertical" className="mr-2 h-4 hidden md:block" />
             <div className="flex-1">
               <Navbar />
             </div>
@@ -2163,7 +2155,7 @@ export default function EnhancedDashboard() {
 
           {/* Exit-Intent Premium Modal */}
           <AnimatePresence>
-            {showExitModal && !isPremium && (
+            {false && showExitModal && !isPremium && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
