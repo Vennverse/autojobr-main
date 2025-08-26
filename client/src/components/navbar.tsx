@@ -160,6 +160,13 @@ export function Navbar() {
           badge: "AI"
         },
         {
+          name: "AI-powered Mock Interviews",
+          href: "/virtual-interview/new",
+          icon: Video,
+          current: location === "/virtual-interview/new" || location.startsWith("/virtual-interview") || location.startsWith("/mock-interview"),
+          badge: "New"
+        },
+        {
           name: "Get Referred",
           href: "/referral-marketplace",
           icon: Handshake,

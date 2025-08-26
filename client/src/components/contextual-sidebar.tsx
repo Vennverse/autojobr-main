@@ -225,7 +225,8 @@ export function ContextualSidebar() {
           {
             label: "AI Practice",
             items: [
-              { name: "Mock Interview", href: "/mock-interview", icon: Video, current: location === "/mock-interview" },
+              { name: "AI-powered Mock Interviews", href: "/virtual-interview/new", icon: Video, current: location === "/virtual-interview/new" || location.startsWith("/virtual-interview") },
+              { name: "Mock Interview", href: "/mock-interview", icon: Users, current: location === "/mock-interview" },
               { name: "AI Chat Interview", href: "/chat-interview", icon: MessageCircle, current: location === "/chat-interview" },
               { name: "Technical Practice", href: "/mock-interview/technical", icon: Code, current: location.includes("/technical") },
               { name: "Behavioral Questions", href: "/mock-interview/behavioral", icon: Brain, current: location.includes("/behavioral") },

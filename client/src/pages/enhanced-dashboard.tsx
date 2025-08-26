@@ -645,7 +645,7 @@ export default function EnhancedDashboard() {
       icon: Brain,
       route: "/career-ai-assistant",
       stats: "Powered by AI",
-      gradient: "from-orange-500 to-red-500",
+      gradient: "from-blue-500 to-blue-600",
       action: "Get Insights",
       helpText:
         "AI analyzes your profile and provides strategic career advice, skill recommendations, and growth pathways",
@@ -660,7 +660,7 @@ export default function EnhancedDashboard() {
       icon: Target,
       route: "/jobs",
       stats: `${Array.isArray(jobPostings) ? jobPostings.length : 0} Jobs Available`,
-      gradient: "from-purple-500 to-pink-500",
+      gradient: "from-gray-600 to-gray-700",
       action: "Browse Jobs",
       helpText:
         "AI matches you with jobs based on skills, experience, and career goals - increasing your success rate by 3x",
@@ -675,7 +675,7 @@ export default function EnhancedDashboard() {
       icon: Video,
       route: "/virtual-interview/new",
       stats: `${interviewsPending} Completed`,
-      gradient: "from-green-500 to-emerald-500",
+      gradient: "from-blue-600 to-indigo-600",
       action: "Start Interview",
       helpText:
         "Practice realistic interviews with AI that simulates real hiring managers - 85% of users improve within 3 sessions",
@@ -690,7 +690,7 @@ export default function EnhancedDashboard() {
       icon: Trophy,
       route: "/ranking-tests",
       stats: `${Array.isArray(rankingTestHistory) ? rankingTestHistory.length : 0} Completed`,
-      gradient: "from-yellow-500 to-orange-500",
+      gradient: "from-slate-500 to-slate-600",
       action: "Join Ranking",
       helpText:
         "Stand out by ranking in top 10% - recruiters actively seek high-performing candidates from our leaderboards",
@@ -705,7 +705,7 @@ export default function EnhancedDashboard() {
       icon: Mic,
       route: "/mock-interview",
       stats: `${mockInterviewStats?.averageScore || 0}% Avg Score`,
-      gradient: "from-indigo-500 to-purple-500",
+      gradient: "from-indigo-500 to-indigo-600",
       action: "Practice Now",
       helpText:
         "Master behavioral questions with AI feedback - users report 40% better performance in real interviews",
@@ -776,7 +776,7 @@ export default function EnhancedDashboard() {
               <div className="flex items-center justify-center gap-2 sm:gap-3">
                 <motion.h1
                   variants={slideInVariants}
-                  className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent"
+                  className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white"
                 >
                   Welcome back, {userName}!
                 </motion.h1>
@@ -793,7 +793,7 @@ export default function EnhancedDashboard() {
 
               {/* User Level & Progress */}
               <div className="flex items-center justify-center gap-2 sm:gap-4 flex-wrap">
-                <Badge className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-semibold">
+                <Badge className="bg-blue-600 text-white px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-semibold">
                   <Star className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                   Level {userLevel}
                 </Badge>
@@ -813,12 +813,11 @@ export default function EnhancedDashboard() {
             </div>
 
             {/* Progress Overview Card */}
-            <Card className="border-0 overflow-hidden relative bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-950 dark:via-purple-950 dark:to-pink-950">
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 opacity-5" />
+            <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
               <CardContent className="p-3 sm:p-6 relative">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500">
+                    <div className="p-3 rounded-xl bg-blue-600">
                       <Gauge className="w-6 h-6 text-white" />
                     </div>
                     <div>
@@ -917,24 +916,24 @@ export default function EnhancedDashboard() {
                 animate="pulse"
                 className="mx-auto max-w-2xl"
               >
-                <Card className="border-2 border-yellow-300 bg-gradient-to-r from-yellow-50 via-orange-50 to-pink-50 dark:from-yellow-950 dark:via-orange-950 dark:to-pink-950 shadow-lg">
+                <Card className="border-2 border-blue-300 bg-blue-50 dark:bg-blue-950 shadow-lg">
                   <CardContent className="p-6">
                     <div className="flex items-center gap-4">
-                      <div className="p-3 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full">
+                      <div className="p-3 bg-blue-600 rounded-full">
                         <Rocket className="w-6 h-6 text-white" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200">
+                        <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
                           🚀 Unlock Premium Features
                         </h3>
-                        <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                        <p className="text-sm text-blue-700 dark:text-blue-300">
                           Get unlimited applications, AI interviews, priority
                           support & exclusive features
                         </p>
                       </div>
                       <Button
                         size="lg"
-                        className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-semibold shadow-lg"
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg"
                         onClick={() => setLocation("/job-seeker-premium")}
                       >
                         Upgrade Now
@@ -952,11 +951,11 @@ export default function EnhancedDashboard() {
             (dailyUsage.aiCoachQuestions >= 2 ||
               dailyUsage.jobApplications >= 7) && (
               <motion.div variants={itemVariants}>
-                <Card className="border-l-4 border-l-orange-500 bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-950 dark:to-yellow-950">
+                <Card className="border-l-4 border-l-blue-500 bg-blue-50 dark:bg-blue-950">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <AlertCircle className="w-5 h-5 text-orange-500" />
+                        <AlertCircle className="w-5 h-5 text-blue-500" />
                         <div>
                           <h4 className="font-semibold">
                             You're almost at your daily limits
@@ -974,7 +973,7 @@ export default function EnhancedDashboard() {
                       </div>
                       <Button
                         size="sm"
-                        className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
                         onClick={() => setLocation("/JobSeekerPremium")}
                       >
                         <Crown className="w-4 h-4 mr-1" />
@@ -989,11 +988,10 @@ export default function EnhancedDashboard() {
           {/* Smart Recommendations */}
           {smartRecommendations.length > 0 && (
             <motion.div variants={itemVariants}>
-              <Card className="border-0 overflow-hidden relative bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950 dark:via-indigo-950 dark:to-purple-950">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500 opacity-5" />
+              <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                 <CardContent className="p-3 sm:p-6 relative">
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500">
+                    <div className="p-3 rounded-xl bg-blue-600">
                       <Compass className="w-6 h-6 text-white" />
                     </div>
                     <div>
