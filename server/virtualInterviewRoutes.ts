@@ -269,11 +269,12 @@ router.get('/:sessionId/question', isAuthenticated, async (req: any, res) => {
     const { sessionId } = req.params;
     const userId = req.user?.id || req.session?.user?.id;
 
-    // Handle "new" session ID - this shouldn't happen but provide helpful error
+    // Handle "new" session ID - redirect to proper start page
     if (sessionId === 'new') {
-      return res.status(400).json({ 
-        message: 'Invalid session ID. Please start a new interview from the virtual interview page.',
-        redirect: '/virtual-interview-start'
+      return res.status(200).json({ 
+        message: 'Please configure your interview settings first.',
+        redirect: '/virtual-interview-start',
+        requiresSetup: true
       });
     }
 

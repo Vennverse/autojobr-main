@@ -535,7 +535,7 @@ export function ContextualSidebar() {
   const sidebarContent = getSidebarContent();
 
   return (
-    <Sidebar collapsible="icon" className="border-r">
+    <Sidebar collapsible="offcanvas" className="border-r">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-2 px-2 py-2">
           <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
