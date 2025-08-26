@@ -246,6 +246,7 @@ function Router() {
                   <Route path="/virtual-interview-start" component={VirtualInterviewStart} />
                   <Route path="/virtual-interview/start" component={VirtualInterviewStart} />
                   <Route path="/virtual-interview/new" component={VirtualInterviewStart} />
+                  <Route path="/virtual-interview-start" component={VirtualInterviewStart} />
                   <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
                   <Route path="/chat-interview/:sessionId" component={ChatInterview} />
                   <Route path="/virtual-interview-complete/:sessionId" component={VirtualInterviewComplete} />

@@ -137,7 +137,7 @@ export function Navbar() {
         }
       ];
     } else {
-      // Job seeker navigation items
+      // Job seeker navigation items - cleaned up as requested
       return [
         {
           name: "Dashboard",
@@ -146,16 +146,11 @@ export function Navbar() {
           current: location === "/"
         },
         {
-          name: "Jobs",
-          href: "/jobs",
-          icon: Briefcase,
-          current: location === "/jobs"
-        },
-        {
-          name: "Applications",
-          href: "/applications",
-          icon: FileText,
-          current: location === "/applications"
+          name: "Premium",
+          href: "/job-seeker-premium",
+          icon: Crown,
+          current: location === "/job-seeker-premium",
+          premium: true
         },
         {
           name: "AI Coach",
@@ -165,38 +160,11 @@ export function Navbar() {
           badge: "AI"
         },
         {
-          name: "Interviews",
-          href: "/mock-interview",
-          icon: Video,
-          current: location === "/mock-interview" || location.startsWith("/mock-interview/") || location.startsWith("/virtual-interview")
-        },
-        {
-          name: "Ranking Tests",
-          href: "/ranking-tests",
-          icon: Trophy,
-          current: location === "/ranking-tests" || location.startsWith("/ranking-test/"),
-          badge: "New"
-        },
-        {
-          name: "Messages",
-          href: "/chat",
-          icon: MessageCircle,
-          current: location === "/chat",
-          badge: totalUnreadCount > 0 ? totalUnreadCount : undefined
-        },
-        {
           name: "Get Referred",
           href: "/referral-marketplace",
           icon: Handshake,
           current: location === "/referral-marketplace" || location === "/become-referrer" || location === "/my-bookings",
           badge: "New"
-        },
-        {
-          name: "Premium",
-          href: "/job-seeker-premium",
-          icon: Crown,
-          current: location === "/job-seeker-premium",
-          premium: true
         },
         {
           name: "Post Jobs",

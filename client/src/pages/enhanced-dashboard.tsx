@@ -762,12 +762,12 @@ export default function EnhancedDashboard() {
               <Navbar />
             </div>
           </header>
-          <div className="flex-1 space-y-4 p-2 sm:p-4 md:p-8 max-w-full overflow-x-hidden">
+          <div className="flex-1 space-y-4 p-2 sm:p-4 md:p-8 w-full overflow-x-hidden">
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="space-y-8"
+          className="space-y-4 sm:space-y-6 lg:space-y-8"
         >
           {/* Enhanced Welcome Header with Progress */}
           <motion.div variants={itemVariants} className="space-y-6">
@@ -855,7 +855,7 @@ export default function EnhancedDashboard() {
                 </div>
 
                 {/* Quick Progress Tasks */}
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 pr-2">
                   {progressTasks.map((task, index) => (
                     <motion.div
                       key={task.id}
