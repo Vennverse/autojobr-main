@@ -5,6 +5,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Navbar } from "@/components/navbar";
+import { ContextualSidebar } from "@/components/contextual-sidebar";
+import { 
+  SidebarProvider, 
+  SidebarInset,
+  SidebarTrigger 
+} from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -753,10 +759,12 @@ export default function EnhancedDashboard() {
   // Duplicate functions removed - using the ones defined earlier
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
-      <Navbar />
-
-      <div className="container mx-auto px-4 py-8">
+    <SidebarProvider>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
+        <ContextualSidebar />
+        <SidebarInset>
+          <Navbar />
+          <div className="flex-1 space-y-4 p-4 md:p-8">
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -2300,7 +2308,9 @@ export default function EnhancedDashboard() {
             )}
           </AnimatePresence>
         </motion.div>
+          </div>
+        </SidebarInset>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

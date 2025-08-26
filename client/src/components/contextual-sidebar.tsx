@@ -1,5 +1,5 @@
 import { useLocation, Link } from "wouter";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Sidebar,
   SidebarContent,
@@ -47,7 +47,7 @@ import {
   Share,
   Filter,
   Globe,
-  Link,
+  Link as LinkIcon,
   Mail,
   Phone,
   MapPin,
