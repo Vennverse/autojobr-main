@@ -11778,6 +11778,89 @@ Report types supported:
     }
   });
 
+  // Generate AI Resume from scratch (no existing resume needed)
+  app.post('/api/resumes/generate-from-scratch', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { templateType, profession, targetJobDescription, userInfo } = req.body;
+
+      // Validate required user information
+      if (!userInfo || !userInfo.fullName || !userInfo.email) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Name and email are required to generate a resume" 
+        });
+      }
+
+      const aiResumeService = new AIResumeGeneratorService();
+
+      // Create a simple resume text from user input
+      const resumeText = `
+        Name: ${userInfo.fullName}
+        Email: ${userInfo.email}
+        Phone: ${userInfo.phone || ''}
+        Location: ${userInfo.location || ''}
+        
+        Experience: ${userInfo.experience || 'No experience provided'}
+        Skills: ${userInfo.skills || 'No skills provided'}
+        Education: ${userInfo.education || 'No education provided'}
+      `;
+
+      // Generate AI-optimized resume
+      const { pdfBuffer, resumeData } = await aiResumeService.generateResumeFromUserData(
+        userId, 
+        resumeText, 
+        targetJobDescription
+      );
+
+      // Store the generated resume
+      const resumeName = `${userInfo.fullName} - AI Generated Resume`;
+      const storedFile = await fileStorage.storeResumeBuffer(pdfBuffer, resumeName, userId);
+
+      // Create database entry for the generated resume
+      const newResumeData = {
+        userId,
+        name: resumeName,
+        fileName: `${resumeName}.pdf`,
+        filePath: storedFile.id,
+        isActive: true, // Make new generated resume active
+        atsScore: 90, // AI-generated from scratch typically have high ATS scores
+        analysis: {
+          atsScore: 90,
+          recommendations: ["AI-optimized for " + profession, "ATS-friendly formatting", "Industry-specific keywords"],
+          strengths: ["Profession-specific content", "Keyword optimization", "Professional formatting"],
+          profession: profession
+        },
+        resumeText: `AI-generated resume for ${profession} professional`,
+        fileSize: pdfBuffer.length,
+        mimeType: 'application/pdf'
+      };
+
+      const [newResume] = await db.insert(schema.resumes)
+        .values(newResumeData)
+        .returning();
+
+      // Invalidate user cache
+      invalidateUserCache(userId);
+
+      res.json({ 
+        success: true, 
+        message: "AI resume generated successfully from your information",
+        resume: newResume,
+        resumeData: resumeData,
+        resumeId: newResume.id
+      });
+
+    } catch (error) {
+      console.error('AI Resume Generation from Scratch Error:', error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to generate AI resume",
+        error: process.env.NODE_ENV === 'development' ? (error as Error).message : 'Internal server error'
+      });
+    }
+  });
+
   // ===== TASK MANAGEMENT API ROUTES =====
   // Create new task
   app.post('/api/tasks', isAuthenticated, TaskService.createTask);

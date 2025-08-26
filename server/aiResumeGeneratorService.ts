@@ -54,6 +54,12 @@ export interface ResumeData {
     databases: string[];
     tools: string[];
     cloudPlatforms: string[];
+    business: string[];
+    marketing: string[];
+    sales: string[];
+    finance: string[];
+    healthcare: string[];
+    education: string[];
   };
   projects: Array<{
     name: string;
@@ -265,26 +271,39 @@ export class OptimizedAIResumeService {
     };
   }
 
-  // High-impact AI enhancement for experience
+  // High-impact AI enhancement for experience - ATS OPTIMIZED
   private async enhanceExperience(
     experienceText: string,
     jobDescription?: string,
   ): Promise<any[]> {
-    const prompt = `Transform this work experience into ATS-optimized bullet points with quantified achievements:
+    const atsActionVerbs = [
+      "Achieved", "Accelerated", "Accomplished", "Administered", "Analyzed", "Architected", 
+      "Built", "Collaborated", "Created", "Decreased", "Delivered", "Developed", "Directed",
+      "Enhanced", "Executed", "Generated", "Implemented", "Improved", "Increased", "Led",
+      "Managed", "Optimized", "Orchestrated", "Reduced", "Streamlined", "Supervised", "Transformed"
+    ];
 
-${jobDescription ? `Target Role: ${jobDescription.substring(0, 200)}...` : ""}
+    const prompt = `Create 100% ATS-optimized experience bullets using EXACT keywords from the job description:
 
-Experience Text:
+${jobDescription ? `TARGET JOB KEYWORDS TO INCLUDE: ${this.extractJobKeywords(jobDescription)}` : ""}
+
+Current Experience:
 ${experienceText}
 
-Rules:
-- Start each point with action verbs
-- Add specific numbers/percentages where possible
-- Use industry keywords
-- Keep each point under 20 words
-- Return as JSON array of experience objects
+ATS OPTIMIZATION REQUIREMENTS:
+1. START each bullet with these action verbs: ${atsActionVerbs.join(", ")}
+2. INCLUDE quantified results (percentages, dollar amounts, timeframes)
+3. USE exact keywords from job description if provided
+4. MATCH industry-standard terminology
+5. AVOID graphics, symbols, or special characters
+6. LIMIT to 15-17 words per bullet for ATS parsing
+7. INCLUDE technical skills and software names
 
-Format: [{"jobTitle":"","company":"","location":"","startDate":"","endDate":"","achievements":["point1","point2"]}]`;
+PROVEN ATS FORMAT:
+- [Action Verb] + [Task/Project] + [Quantified Result] + [Impact/Benefit]
+- Example: "Developed 5 React applications serving 10,000+ users, reducing load time by 40%"
+
+Return JSON: [{"jobTitle":"","company":"","location":"","startDate":"","endDate":"","achievements":["bullet1","bullet2","bullet3","bullet4"]}]`;
 
     try {
       return await this.callAI(prompt, 800); // Much smaller token limit
@@ -293,19 +312,29 @@ Format: [{"jobTitle":"","company":"","location":"","startDate":"","endDate":"","
     }
   }
 
-  // Enhance project descriptions to be more compelling
+  // Enhance project descriptions for ATS optimization
   private async enhanceProjects(projectsText: string): Promise<any[]> {
-    const prompt = `Enhance these project descriptions to be more compelling and ATS-friendly:
+    const prompt = `Transform projects into ATS-optimized format with maximum keyword density:
 
 ${projectsText}
 
-Rules:
-- Add technical impact and outcomes
-- Use action verbs and metrics
-- Keep descriptions concise
-- Return as JSON array of project objects
+ATS PROJECT OPTIMIZATION:
+1. USE technical keywords extensively (frameworks, languages, databases)
+2. INCLUDE quantified metrics (users, performance improvements, time saved)
+3. START descriptions with action verbs: Built, Developed, Created, Implemented
+4. MENTION specific technologies and integrations
+5. INCLUDE project scale and impact
+6. AVOID generic terms, use specific technical language
+7. ENSURE keywords match industry standards
 
-Format: [{"name":"","date":"","description":["point1","point2"],"technologies":["tech1","tech2"]}]`;
+PROVEN ATS FORMAT:
+- Name: [Technical] + [Project Type] (e.g., "E-commerce React Application")
+- Description: [Action] + [Technology Stack] + [Quantified Result]
+- Technologies: List exact framework/library names
+
+Example: "Built full-stack e-commerce platform using React, Node.js, PostgreSQL serving 5000+ users with 99% uptime"
+
+Return JSON: [{"name":"","date":"","description":["bullet1","bullet2"],"technologies":["React","Node.js","PostgreSQL"]}]`;
 
     try {
       return await this.callAI(prompt, 600);
@@ -314,18 +343,78 @@ Format: [{"name":"","date":"","description":["point1","point2"],"technologies":[
     }
   }
 
-  // Generate professional summary only when needed
+  // Extract ATS keywords from job description - ALL PROFESSIONS
+  private extractJobKeywords(jobDescription: string): string {
+    const keywordPatterns = [
+      // Technical Skills
+      /\b(JavaScript|Python|Java|React|Node\.js|Angular|Vue|TypeScript|C\+\+|C#|PHP|Ruby|Go|Rust|Swift|Kotlin|HTML|CSS|SQL)\b/gi,
+      // Technical Tools & Platforms
+      /\b(AWS|Azure|GCP|Docker|Kubernetes|Jenkins|GitLab|Salesforce|HubSpot|Marketo|Adobe|Figma|Sketch|AutoCAD|SAP|Oracle)\b/gi,
+      
+      // Sales & Marketing
+      /\b(CRM|Lead Generation|Pipeline Management|B2B|B2C|Account Management|Territory Management|Cold Calling|Prospecting)\b/gi,
+      /\b(Digital Marketing|SEO|SEM|PPC|Social Media|Content Marketing|Email Marketing|Analytics|Conversion|ROI|KPI)\b/gi,
+      /\b(Salesforce|HubSpot|Pipedrive|Marketo|Mailchimp|Google Analytics|Google Ads|Facebook Ads|LinkedIn Ads)\b/gi,
+      
+      // Finance & Accounting
+      /\b(Financial Analysis|Budgeting|Forecasting|P&L|Balance Sheet|Cash Flow|GAAP|SOX|Internal Controls|Audit)\b/gi,
+      /\b(Excel|QuickBooks|SAP|Oracle Financials|Bloomberg|Tableau|Power BI|SQL|VBA|Python)\b/gi,
+      
+      // HR & Operations
+      /\b(Talent Acquisition|Employee Relations|Performance Management|Training|Onboarding|HRIS|Payroll|Benefits)\b/gi,
+      /\b(Process Improvement|Lean|Six Sigma|Project Management|Supply Chain|Logistics|Vendor Management)\b/gi,
+      
+      // Healthcare & Science
+      /\b(Clinical Research|Regulatory Affairs|FDA|GCP|Clinical Trials|Medical Device|Pharmaceutical|Laboratory)\b/gi,
+      /\b(Epic|Cerner|HL7|HIPAA|EMR|EHR|Clinical Data|Biostatistics|SAS|R|MATLAB)\b/gi,
+      
+      // Education & Training
+      /\b(Curriculum Development|Instructional Design|Learning Management|Assessment|Student Engagement|Academic)\b/gi,
+      /\b(Blackboard|Canvas|Moodle|SCORM|Educational Technology|Distance Learning|Blended Learning)\b/gi,
+      
+      // General Business Skills
+      /\b(Leadership|Team Management|Strategic Planning|Business Development|Client Relations|Stakeholder Management)\b/gi,
+      /\b(Project Management|Agile|Scrum|PMP|Change Management|Cross-functional|Communication|Negotiation)\b/gi,
+      
+      // Certifications (All Industries)
+      /\b(PMP|Six Sigma|CPA|CFA|PHR|SHRM|Google Certified|Microsoft Certified|Salesforce Certified|HubSpot Certified)\b/gi,
+      /\b(AWS Certified|Azure Certified|Certified ScrumMaster|CISSP|CompTIA|Adobe Certified|AutoCAD Certified)\b/gi
+    ];
+    
+    const keywords = new Set<string>();
+    keywordPatterns.forEach(pattern => {
+      const matches = jobDescription.match(pattern);
+      if (matches) {
+        matches.forEach(match => keywords.add(match));
+      }
+    });
+    
+    return Array.from(keywords).slice(0, 20).join(", ");
+  }
+
+  // Generate ATS-optimized professional summary
   private async generateProfessionalSummary(
     content: ExtractedResumeContent,
     jobDescription?: string,
   ): Promise<string> {
-    const prompt = `Create a 3-line professional summary based on:
+    const prompt = `Create a 100% ATS-optimized professional summary that will score maximum points:
 
 Experience: ${content.rawExperience.substring(0, 300)}
 Skills: ${content.rawSkills.substring(0, 100)}
-${jobDescription ? `Target Role: ${jobDescription.substring(0, 150)}` : ""}
+${jobDescription ? `TARGET JOB KEYWORDS: ${this.extractJobKeywords(jobDescription)}` : ""}
 
-Make it compelling and ATS-friendly. 3 lines max.`;
+ATS SUMMARY REQUIREMENTS:
+1. INCLUDE exact keywords from job description
+2. START with years of experience (e.g., "5+ years")
+3. MENTION specific technologies and skills
+4. INCLUDE industry-standard terminology
+5. USE quantifiable achievements when possible
+6. AVOID buzzwords like "passionate," "innovative," "dynamic"
+7. KEEP it 2-3 lines, 50-80 words total
+8. ENSURE keywords appear naturally
+
+FORMAT: [X years] + [Role/Industry] + [Key Skills] + [Quantified Achievement]
+Example: "5+ years Software Engineer with expertise in React, Node.js, and AWS. Built 15+ applications serving 100K+ users with 99.9% uptime."`;
 
     try {
       const result = await this.callAI(prompt, 200); // Very small token limit
@@ -446,6 +535,12 @@ Make it compelling and ATS-friendly. 3 lines max.`;
         databases: [],
         tools: [],
         cloudPlatforms: [],
+        business: [],
+        marketing: [],
+        sales: [],
+        finance: [],
+        healthcare: [],
+        education: []
       };
 
     // Extract skills and categorize them
@@ -461,6 +556,12 @@ Make it compelling and ATS-friendly. 3 lines max.`;
       databases: allSkills.filter((s) => this.isDatabase(s)),
       tools: allSkills.filter((s) => this.isTool(s)),
       cloudPlatforms: allSkills.filter((s) => this.isCloudPlatform(s)),
+      business: allSkills.filter((s) => this.isBusinessSkill(s)),
+      marketing: allSkills.filter((s) => this.isMarketingSkill(s)),
+      sales: allSkills.filter((s) => this.isSalesSkill(s)),
+      finance: allSkills.filter((s) => this.isFinanceSkill(s)),
+      healthcare: allSkills.filter((s) => this.isHealthcareSkill(s)),
+      education: allSkills.filter((s) => this.isEducationSkill(s))
     };
   }
 
@@ -612,6 +713,60 @@ Make it compelling and ATS-friendly. 3 lines max.`;
   private isCloudPlatform(skill: string): boolean {
     const platforms = ["aws", "azure", "gcp", "heroku", "digitalocean"];
     return platforms.some((platform) => skill.includes(platform));
+  }
+
+  private isBusinessSkill(skill: string): boolean {
+    const businessSkills = [
+      "leadership", "project management", "strategic planning", "business development",
+      "team management", "process improvement", "stakeholder management", "negotiation",
+      "communication", "presentation", "analytical", "problem solving", "decision making"
+    ];
+    return businessSkills.some(bSkill => skill.includes(bSkill));
+  }
+
+  private isMarketingSkill(skill: string): boolean {
+    const marketingSkills = [
+      "digital marketing", "seo", "sem", "ppc", "social media", "content marketing",
+      "email marketing", "analytics", "google analytics", "facebook ads", "linkedin ads",
+      "hubspot", "marketo", "mailchimp", "conversion optimization", "a/b testing"
+    ];
+    return marketingSkills.some(mSkill => skill.includes(mSkill));
+  }
+
+  private isSalesSkill(skill: string): boolean {
+    const salesSkills = [
+      "crm", "salesforce", "lead generation", "prospecting", "cold calling",
+      "account management", "territory management", "pipeline management",
+      "b2b sales", "b2c sales", "negotiation", "closing", "relationship building"
+    ];
+    return salesSkills.some(sSkill => skill.includes(sSkill));
+  }
+
+  private isFinanceSkill(skill: string): boolean {
+    const financeSkills = [
+      "financial analysis", "budgeting", "forecasting", "financial modeling",
+      "excel", "quickbooks", "sap", "oracle financials", "gaap", "sox compliance",
+      "audit", "tax preparation", "investment analysis", "risk management"
+    ];
+    return financeSkills.some(fSkill => skill.includes(fSkill));
+  }
+
+  private isHealthcareSkill(skill: string): boolean {
+    const healthcareSkills = [
+      "clinical research", "regulatory affairs", "fda", "gcp", "clinical trials",
+      "epic", "cerner", "hl7", "hipaa", "emr", "ehr", "medical device",
+      "pharmaceutical", "laboratory", "patient care", "medical coding"
+    ];
+    return healthcareSkills.some(hSkill => skill.includes(hSkill));
+  }
+
+  private isEducationSkill(skill: string): boolean {
+    const educationSkills = [
+      "curriculum development", "instructional design", "learning management",
+      "blackboard", "canvas", "moodle", "educational technology", "assessment",
+      "student engagement", "classroom management", "academic research"
+    ];
+    return educationSkills.some(eSkill => skill.includes(eSkill));
   }
 
   private extractDegree(text: string): string | null {
@@ -813,8 +968,107 @@ Make it compelling and ATS-friendly. 3 lines max.`;
       data.professionalSummary,
     );
 
-    // Continue with other replacements...
-    // (Same logic as original populateTemplate method)
+    // Core Skills - ALL PROFESSIONS
+    const allSkills = [
+      ...(data.skills.programming || []),
+      ...(data.skills.frameworks || []),
+      ...(data.skills.databases || []),
+      ...(data.skills.tools || []),
+      ...(data.skills.cloudPlatforms || []),
+      ...(data.skills.business || []),
+      ...(data.skills.marketing || []),
+      ...(data.skills.sales || []),
+      ...(data.skills.finance || []),
+      ...(data.skills.healthcare || []),
+      ...(data.skills.education || [])
+    ].filter(Boolean).join(', ');
+    populated = populated.replace(/\[CORE_SKILLS[^\]]*\]/g, allSkills);
+
+    // Experience Section
+    data.experience.forEach((exp, index) => {
+      const expNum = index + 1;
+      populated = populated.replace(new RegExp(`\\[JOB_TITLE_${expNum}\\]`, 'g'), exp.jobTitle || '');
+      populated = populated.replace(new RegExp(`\\[COMPANY_${expNum}\\]`, 'g'), exp.company || '');
+      populated = populated.replace(new RegExp(`\\[LOCATION_${expNum}\\]`, 'g'), exp.location || '');
+      populated = populated.replace(new RegExp(`\\[START_DATE_${expNum}\\]`, 'g'), exp.startDate || '');
+      populated = populated.replace(new RegExp(`\\[END_DATE_${expNum}\\]`, 'g'), exp.endDate || '');
+      
+      // Achievements
+      exp.achievements.forEach((achievement, achIndex) => {
+        const achNum = achIndex + 1;
+        populated = populated.replace(
+          new RegExp(`\\[ACHIEVEMENT_${expNum}_${achNum}[^\\]]*\\]`, 'g'),
+          achievement
+        );
+      });
+    });
+
+    // Education Section
+    data.education.forEach((edu, index) => {
+      const eduNum = index + 1;
+      populated = populated.replace(new RegExp(`\\[DEGREE_${eduNum}\\]`, 'g'), edu.degree || '');
+      populated = populated.replace(new RegExp(`\\[MAJOR_${eduNum}\\]`, 'g'), edu.major || '');
+      populated = populated.replace(new RegExp(`\\[UNIVERSITY_${eduNum}\\]`, 'g'), edu.university || '');
+      populated = populated.replace(new RegExp(`\\[UNIVERSITY_LOCATION_${eduNum}\\]`, 'g'), edu.location || '');
+      populated = populated.replace(new RegExp(`\\[GRADUATION_DATE_${eduNum}\\]`, 'g'), edu.graduationDate || '');
+    });
+
+    // Skills Section (ALL PROFESSIONS)
+    populated = populated.replace(/\[PROGRAMMING_LANGUAGES\]/g, (data.skills.programming || []).join(', '));
+    populated = populated.replace(/\[FRAMEWORKS_LIBRARIES\]/g, (data.skills.frameworks || []).join(', '));
+    populated = populated.replace(/\[DATABASES\]/g, (data.skills.databases || []).join(', '));
+    populated = populated.replace(/\[TOOLS_SOFTWARE\]/g, [...(data.skills.tools || []), ...(data.skills.business || [])].join(', '));
+    populated = populated.replace(/\[CLOUD_PLATFORMS\]/g, (data.skills.cloudPlatforms || []).join(', '));
+    populated = populated.replace(/\[DATABASE_SYSTEMS\]/g, (data.skills.databases || []).join(', '));
+    populated = populated.replace(/\[CLOUD_DEVOPS_TOOLS\]/g, (data.skills.cloudPlatforms || []).join(', '));
+    populated = populated.replace(/\[DEVELOPMENT_TOOLS\]/g, (data.skills.tools || []).join(', '));
+    
+    // Dynamic methodologies based on profession
+    const methodologies = [
+      ...(data.skills.programming?.length ? ['Agile', 'Scrum', 'DevOps', 'CI/CD'] : []),
+      ...(data.skills.marketing?.length ? ['A/B Testing', 'Data-Driven Marketing', 'Growth Hacking'] : []),
+      ...(data.skills.sales?.length ? ['Consultative Selling', 'SPIN Selling', 'Solution Selling'] : []),
+      ...(data.skills.finance?.length ? ['Financial Modeling', 'Risk Assessment', 'Variance Analysis'] : []),
+      ...(data.skills.healthcare?.length ? ['Evidence-Based Practice', 'Quality Improvement', 'Patient Safety'] : []),
+      ...(data.skills.education?.length ? ['Differentiated Instruction', 'Assessment Strategies', 'Classroom Management'] : [])
+    ];
+    populated = populated.replace(/\[METHODOLOGIES\]/g, methodologies.join(', ') || 'Strategic Planning, Process Improvement, Team Collaboration');
+
+    // Projects Section
+    data.projects.forEach((project, index) => {
+      const projNum = index + 1;
+      populated = populated.replace(new RegExp(`\\[PROJECT_${projNum}_NAME\\]`, 'g'), project.name || '');
+      populated = populated.replace(new RegExp(`\\[PROJECT_${projNum}_DATE\\]`, 'g'), project.date || '');
+      populated = populated.replace(new RegExp(`\\[PROJECT_${projNum}_TECHNOLOGIES\\]`, 'g'), project.technologies.join(', '));
+      populated = populated.replace(new RegExp(`\\[PROJECT_TYPE_${projNum}\\]`, 'g'), 'Personal Project');
+      populated = populated.replace(new RegExp(`\\[PROJECT_${projNum}_IMPACT\\]`, 'g'), 'Enhanced user experience and system performance');
+      
+      // Project descriptions
+      project.description.forEach((desc, descIndex) => {
+        const descNum = descIndex + 1;
+        populated = populated.replace(
+          new RegExp(`\\[PROJECT_${projNum}_DESCRIPTION_${descNum}\\]`, 'g'),
+          desc
+        );
+      });
+    });
+
+    // Certifications Section
+    data.certifications.forEach((cert, index) => {
+      const certNum = index + 1;
+      populated = populated.replace(new RegExp(`\\[CERTIFICATION_${certNum}\\]`, 'g'), cert.name || '');
+      populated = populated.replace(new RegExp(`\\[ISSUING_ORGANIZATION_${certNum}\\]`, 'g'), cert.organization || '');
+      populated = populated.replace(new RegExp(`\\[CERT_DATE_${certNum}\\]`, 'g'), cert.date || '');
+    });
+
+    // Additional Information
+    populated = populated.replace(/\[LANGUAGES_WITH_PROFICIENCY\]/g, data.additionalInfo.languages || 'English (Native)');
+    populated = populated.replace(/\[VOLUNTEER_EXPERIENCE\]/g, data.additionalInfo.volunteer || '');
+    populated = populated.replace(/\[PROFESSIONAL_ASSOCIATIONS\]/g, data.additionalInfo.associations || '');
+    populated = populated.replace(/\[ACADEMIC_PROJECTS\]/g, 'Various coursework projects in software development');
+
+    // Clean up any remaining placeholders
+    populated = populated.replace(/\[[A-Z_0-9]+[^\]]*\]/g, '');
 
     return populated;
   }

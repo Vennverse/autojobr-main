@@ -320,30 +320,57 @@ const AIResumeGenerator: React.FC<{ resumeData: any }> = ({ resumeData }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [templateType, setTemplateType] = useState('professional');
   const [targetJobDescription, setTargetJobDescription] = useState('');
-  const [generatedResume, setGeneratedResume] = useState(null);
+  const [profession, setProfession] = useState('technology');
+  const [generatedResume, setGeneratedResume] = useState<any>(null);
+  const [userInfo, setUserInfo] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    location: '',
+    experience: '',
+    skills: '',
+    education: ''
+  });
   const { toast } = useToast();
 
-  const handleGenerateResume = async () => {
-    if (!resumeData?.id) {
-      toast({
-        title: "Error",
-        description: "Resume data not found",
-        variant: "destructive"
-      });
-      return;
-    }
+  const professions = [
+    { value: 'technology', label: 'Technology & Software' },
+    { value: 'sales', label: 'Sales & Business Development' },
+    { value: 'marketing', label: 'Marketing & Digital Marketing' },
+    { value: 'finance', label: 'Finance & Accounting' },
+    { value: 'healthcare', label: 'Healthcare & Medical' },
+    { value: 'education', label: 'Education & Training' },
+    { value: 'engineering', label: 'Engineering & Manufacturing' },
+    { value: 'consulting', label: 'Consulting & Strategy' },
+    { value: 'hr', label: 'Human Resources' },
+    { value: 'operations', label: 'Operations & Supply Chain' }
+  ];
 
+  const handleGenerateResume = async () => {
     setIsGenerating(true);
     try {
-      const response = await fetch(`/api/resumes/${resumeData.id}/generate-ai`, {
+      // Use different endpoint based on whether we have existing resume data
+      const endpoint = resumeData?.id 
+        ? `/api/resumes/${resumeData.id}/generate-ai`
+        : '/api/resumes/generate-from-scratch';
+      
+      const requestBody = resumeData?.id ? {
+        templateType,
+        profession,
+        targetJobDescription: targetJobDescription.trim() || undefined
+      } : {
+        templateType,
+        profession,
+        targetJobDescription: targetJobDescription.trim() || undefined,
+        userInfo
+      };
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          templateType,
-          targetJobDescription: targetJobDescription.trim() || undefined
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
@@ -385,6 +412,25 @@ const AIResumeGenerator: React.FC<{ resumeData: any }> = ({ resumeData }) => {
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Profession Selection */}
+          <div>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block">
+              Select Your Profession
+            </label>
+            <Select value={profession} onValueChange={setProfession}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Choose your profession" />
+              </SelectTrigger>
+              <SelectContent>
+                {professions.map((prof) => (
+                  <SelectItem key={prof.value} value={prof.value}>
+                    {prof.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Template Selection */}
           <div>
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block">
@@ -400,6 +446,57 @@ const AIResumeGenerator: React.FC<{ resumeData: any }> = ({ resumeData }) => {
               </SelectContent>
             </Select>
           </div>
+
+          {/* User Information (for new resumes) */}
+          {!resumeData?.id && (
+            <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200">
+              <h3 className="font-medium text-blue-800 dark:text-blue-300 flex items-center">
+                <FileText className="h-4 w-4 mr-2" />
+                Your Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  placeholder="Full Name"
+                  value={userInfo.fullName}
+                  onChange={(e) => setUserInfo({...userInfo, fullName: e.target.value})}
+                />
+                <Input
+                  placeholder="Email Address"
+                  type="email"
+                  value={userInfo.email}
+                  onChange={(e) => setUserInfo({...userInfo, email: e.target.value})}
+                />
+                <Input
+                  placeholder="Phone Number"
+                  value={userInfo.phone}
+                  onChange={(e) => setUserInfo({...userInfo, phone: e.target.value})}
+                />
+                <Input
+                  placeholder="Location (City, State)"
+                  value={userInfo.location}
+                  onChange={(e) => setUserInfo({...userInfo, location: e.target.value})}
+                />
+              </div>
+              <Textarea
+                placeholder="Brief work experience (current/recent role, years of experience, key achievements)"
+                value={userInfo.experience}
+                onChange={(e) => setUserInfo({...userInfo, experience: e.target.value})}
+                className="min-h-[80px]"
+              />
+              <Textarea
+                placeholder="Your key skills (separate with commas)"
+                value={userInfo.skills}
+                onChange={(e) => setUserInfo({...userInfo, skills: e.target.value})}
+                className="min-h-[60px]"
+              />
+              <Textarea
+                placeholder="Education background (degree, university, graduation year)"
+                value={userInfo.education}
+                onChange={(e) => setUserInfo({...userInfo, education: e.target.value})}
+                className="min-h-[60px]"
+              />
+            </div>
+          )}
 
           {/* Target Job Description */}
           <div>
