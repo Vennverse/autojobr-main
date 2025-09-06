@@ -434,9 +434,15 @@ class AutoJobrPopup {
     if (!this.jobData || !this.userProfile) return;
 
     try {
-      // Clear any cached analysis first to ensure fresh calculation
-      const cacheKey = `${JSON.stringify(this.jobData)}_${JSON.stringify(this.userProfile)}`;
-      this.cache.delete(cacheKey);
+      // Clear ALL cache to ensure completely fresh calculation
+      this.cache.clear();
+      
+      console.log('Analyzing job with user profile:', {
+        jobTitle: this.jobData.title,
+        userTitle: this.userProfile.professionalTitle,
+        userSkills: this.userProfile.skills?.length || 0,
+        userExperience: this.userProfile.yearsExperience
+      });
       
       const analysis = await this.makeApiRequest('/api/analyze-job-match', {
         method: 'POST',

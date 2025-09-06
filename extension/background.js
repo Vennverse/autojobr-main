@@ -710,7 +710,10 @@ class AutoJobrBackground {
       console.log('Background script analyzing job with fresh API call:', {
         jobTitle: data.jobData?.title,
         company: data.jobData?.company,
-        userSkills: userProfile?.skills?.length || 0
+        userSkills: userProfile?.skills?.length || 0,
+        userProfessionalTitle: userProfile?.professionalTitle,
+        userYearsExperience: userProfile?.yearsExperience,
+        userAuthenticated: userProfile?.authenticated
       });
       
       const headers = {
