@@ -321,16 +321,8 @@ export default function ResumesPage() {
                   <Button
                     className="w-full bg-white/20 hover:bg-white/30 text-white border-0"
                     onClick={() => {
-                      // Open modal directly to AI generation tab
-                      setSelectedResume(null); // No existing resume needed for new generation
-                      setShowEnhancedModal(true);
-                      // Switch to Generate tab
-                      setTimeout(() => {
-                        const generateTab = document.querySelector('[value="generate"]') as HTMLElement;
-                        if (generateTab) {
-                          generateTab.click();
-                        }
-                      }, 100);
+                      // Navigate to the new dedicated AI Resume Generator page
+                      window.location.href = '/ai-resume-generator';
                     }}
                     data-testid="create-ai-resume-btn"
                   >
@@ -438,15 +430,8 @@ export default function ResumesPage() {
                                 size="sm"
                                 className="bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border-purple-200 dark:from-purple-900/20 dark:to-blue-900/20"
                                 onClick={() => {
-                                  setSelectedResume(resume);
-                                  setShowEnhancedModal(true);
-                                  // Automatically switch to the Generate AI Resume tab
-                                  setTimeout(() => {
-                                    const generateTab = document.querySelector('[value="generate"]') as HTMLElement;
-                                    if (generateTab) {
-                                      generateTab.click();
-                                    }
-                                  }, 100);
+                                  // Navigate to the new dedicated AI Resume Generator page
+                                  window.location.href = '/ai-resume-generator';
                                 }}
                               >
                                 <Sparkles className="h-4 w-4 mr-2 text-purple-600" />
