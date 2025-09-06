@@ -888,7 +888,7 @@ Example: "5+ years Software Engineer with expertise in React, Node.js, and AWS. 
       () => puppeteer.launch(launchOptions), // Uses bundled Chromium
       () => puppeteer.launch({ 
         ...launchOptions, 
-        executablePath: "/nix/store/chromium/bin/chromium"
+        executablePath: "/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium"
       }),
       () => puppeteer.launch({
         ...launchOptions,
