@@ -208,6 +208,39 @@ export class FileStorageService {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
+  async storeResumeBuffer(buffer: Buffer, fileName: string, userId: string, mimeType: string = 'application/pdf'): Promise<StoredFile> {
+    // Validate buffer size
+    if (buffer.length > this.maxFileSize) {
+      throw new Error(`File too large. Maximum size: ${this.maxFileSize / (1024 * 1024)}MB`);
+    }
+
+    // Generate unique file ID
+    const fileId = `resume_${userId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const fileExtension = this.getFileExtension(fileName);
+    const storedFileName = `${fileId}${fileExtension}.gz`; // Add .gz for compressed files
+    const filePath = path.join(this.resumesDir, storedFileName);
+
+    // Compress file data to save space
+    const compressedData = await gzip(buffer);
+    await writeFile(filePath, compressedData);
+
+    const storedFile: StoredFile = {
+      id: fileId,
+      originalName: fileName,
+      mimeType: mimeType,
+      size: buffer.length,
+      compressedSize: compressedData.length,
+      path: filePath,
+      compressed: true,
+      createdAt: new Date(),
+      userId,
+    };
+
+    console.log(`📄 Resume buffer stored: ${fileName} (${buffer.length} bytes → ${compressedData.length} bytes, ${((1 - compressedData.length / buffer.length) * 100).toFixed(1)}% compression)`);
+    
+    return storedFile;
+  }
+
   // Cloud storage methods for production deployment
   async uploadToCloud(fileBuffer: Buffer, fileName: string): Promise<string> {
     // TODO: Implement cloud storage upload (AWS S3, Google Cloud Storage, etc.)
