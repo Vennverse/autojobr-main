@@ -476,13 +476,13 @@ Example: "5+ years Software Engineer with expertise in React, Node.js, and AWS. 
       // Use DB data directly (no AI tokens wasted)
       personalInfo: userProfile.personalInfo,
 
-      // Use AI-enhanced content where it adds value
+      // Use AI-enhanced content where it adds value, with fallbacks to empty arrays
       professionalSummary: enhancedContent.professionalSummary,
-      experience: enhancedContent.enhancedExperience,
-      projects: enhancedContent.enhancedProjects || [],
+      experience: Array.isArray(enhancedContent.enhancedExperience) ? enhancedContent.enhancedExperience : [],
+      projects: Array.isArray(enhancedContent.enhancedProjects) ? enhancedContent.enhancedProjects : [],
 
       // Use basic parsing for structured data
-      education: enhancedContent.education || [],
+      education: Array.isArray(enhancedContent.education) ? enhancedContent.education : [],
       skills: enhancedContent.skills || {
         programming: [],
         frameworks: [],
@@ -490,8 +490,8 @@ Example: "5+ years Software Engineer with expertise in React, Node.js, and AWS. 
         tools: [],
         cloudPlatforms: [],
       },
-      certifications: enhancedContent.certifications || [],
-      additionalInfo: {},
+      certifications: Array.isArray(enhancedContent.certifications) ? enhancedContent.certifications : [],
+      additionalInfo: enhancedContent.additionalInfo || {},
     };
   }
 
@@ -984,34 +984,40 @@ Example: "5+ years Software Engineer with expertise in React, Node.js, and AWS. 
     ].filter(Boolean).join(', ');
     populated = populated.replace(/\[CORE_SKILLS[^\]]*\]/g, allSkills);
 
-    // Experience Section
-    data.experience.forEach((exp, index) => {
-      const expNum = index + 1;
-      populated = populated.replace(new RegExp(`\\[JOB_TITLE_${expNum}\\]`, 'g'), exp.jobTitle || '');
-      populated = populated.replace(new RegExp(`\\[COMPANY_${expNum}\\]`, 'g'), exp.company || '');
-      populated = populated.replace(new RegExp(`\\[LOCATION_${expNum}\\]`, 'g'), exp.location || '');
-      populated = populated.replace(new RegExp(`\\[START_DATE_${expNum}\\]`, 'g'), exp.startDate || '');
-      populated = populated.replace(new RegExp(`\\[END_DATE_${expNum}\\]`, 'g'), exp.endDate || '');
-      
-      // Achievements
-      exp.achievements.forEach((achievement, achIndex) => {
-        const achNum = achIndex + 1;
-        populated = populated.replace(
-          new RegExp(`\\[ACHIEVEMENT_${expNum}_${achNum}[^\\]]*\\]`, 'g'),
-          achievement
-        );
+    // Experience Section - ensure data.experience is an array
+    if (Array.isArray(data.experience)) {
+      data.experience.forEach((exp, index) => {
+        const expNum = index + 1;
+        populated = populated.replace(new RegExp(`\\[JOB_TITLE_${expNum}\\]`, 'g'), exp.jobTitle || '');
+        populated = populated.replace(new RegExp(`\\[COMPANY_${expNum}\\]`, 'g'), exp.company || '');
+        populated = populated.replace(new RegExp(`\\[LOCATION_${expNum}\\]`, 'g'), exp.location || '');
+        populated = populated.replace(new RegExp(`\\[START_DATE_${expNum}\\]`, 'g'), exp.startDate || '');
+        populated = populated.replace(new RegExp(`\\[END_DATE_${expNum}\\]`, 'g'), exp.endDate || '');
+        
+        // Achievements - ensure achievements is an array
+        if (Array.isArray(exp.achievements)) {
+          exp.achievements.forEach((achievement, achIndex) => {
+            const achNum = achIndex + 1;
+            populated = populated.replace(
+              new RegExp(`\\[ACHIEVEMENT_${expNum}_${achNum}[^\\]]*\\]`, 'g'),
+              achievement
+            );
+          });
+        }
       });
-    });
+    }
 
-    // Education Section
-    data.education.forEach((edu, index) => {
-      const eduNum = index + 1;
-      populated = populated.replace(new RegExp(`\\[DEGREE_${eduNum}\\]`, 'g'), edu.degree || '');
-      populated = populated.replace(new RegExp(`\\[MAJOR_${eduNum}\\]`, 'g'), edu.major || '');
-      populated = populated.replace(new RegExp(`\\[UNIVERSITY_${eduNum}\\]`, 'g'), edu.university || '');
-      populated = populated.replace(new RegExp(`\\[UNIVERSITY_LOCATION_${eduNum}\\]`, 'g'), edu.location || '');
-      populated = populated.replace(new RegExp(`\\[GRADUATION_DATE_${eduNum}\\]`, 'g'), edu.graduationDate || '');
-    });
+    // Education Section - ensure data.education is an array
+    if (Array.isArray(data.education)) {
+      data.education.forEach((edu, index) => {
+        const eduNum = index + 1;
+        populated = populated.replace(new RegExp(`\\[DEGREE_${eduNum}\\]`, 'g'), edu.degree || '');
+        populated = populated.replace(new RegExp(`\\[MAJOR_${eduNum}\\]`, 'g'), edu.major || '');
+        populated = populated.replace(new RegExp(`\\[UNIVERSITY_${eduNum}\\]`, 'g'), edu.university || '');
+        populated = populated.replace(new RegExp(`\\[UNIVERSITY_LOCATION_${eduNum}\\]`, 'g'), edu.location || '');
+        populated = populated.replace(new RegExp(`\\[GRADUATION_DATE_${eduNum}\\]`, 'g'), edu.graduationDate || '');
+      });
+    }
 
     // Skills Section (ALL PROFESSIONS)
     populated = populated.replace(/\[PROGRAMMING_LANGUAGES\]/g, (data.skills.programming || []).join(', '));
@@ -1034,32 +1040,38 @@ Example: "5+ years Software Engineer with expertise in React, Node.js, and AWS. 
     ];
     populated = populated.replace(/\[METHODOLOGIES\]/g, methodologies.join(', ') || 'Strategic Planning, Process Improvement, Team Collaboration');
 
-    // Projects Section
-    data.projects.forEach((project, index) => {
-      const projNum = index + 1;
-      populated = populated.replace(new RegExp(`\\[PROJECT_${projNum}_NAME\\]`, 'g'), project.name || '');
-      populated = populated.replace(new RegExp(`\\[PROJECT_${projNum}_DATE\\]`, 'g'), project.date || '');
-      populated = populated.replace(new RegExp(`\\[PROJECT_${projNum}_TECHNOLOGIES\\]`, 'g'), project.technologies.join(', '));
-      populated = populated.replace(new RegExp(`\\[PROJECT_TYPE_${projNum}\\]`, 'g'), 'Personal Project');
-      populated = populated.replace(new RegExp(`\\[PROJECT_${projNum}_IMPACT\\]`, 'g'), 'Enhanced user experience and system performance');
-      
-      // Project descriptions
-      project.description.forEach((desc, descIndex) => {
-        const descNum = descIndex + 1;
-        populated = populated.replace(
-          new RegExp(`\\[PROJECT_${projNum}_DESCRIPTION_${descNum}\\]`, 'g'),
-          desc
-        );
+    // Projects Section - ensure data.projects is an array
+    if (Array.isArray(data.projects)) {
+      data.projects.forEach((project, index) => {
+        const projNum = index + 1;
+        populated = populated.replace(new RegExp(`\\[PROJECT_${projNum}_NAME\\]`, 'g'), project.name || '');
+        populated = populated.replace(new RegExp(`\\[PROJECT_${projNum}_DATE\\]`, 'g'), project.date || '');
+        populated = populated.replace(new RegExp(`\\[PROJECT_${projNum}_TECHNOLOGIES\\]`, 'g'), (Array.isArray(project.technologies) ? project.technologies : []).join(', '));
+        populated = populated.replace(new RegExp(`\\[PROJECT_TYPE_${projNum}\\]`, 'g'), 'Personal Project');
+        populated = populated.replace(new RegExp(`\\[PROJECT_${projNum}_IMPACT\\]`, 'g'), 'Enhanced user experience and system performance');
+        
+        // Project descriptions - ensure description is an array
+        if (Array.isArray(project.description)) {
+          project.description.forEach((desc, descIndex) => {
+            const descNum = descIndex + 1;
+            populated = populated.replace(
+              new RegExp(`\\[PROJECT_${projNum}_DESCRIPTION_${descNum}\\]`, 'g'),
+              desc
+            );
+          });
+        }
       });
-    });
+    }
 
-    // Certifications Section
-    data.certifications.forEach((cert, index) => {
-      const certNum = index + 1;
-      populated = populated.replace(new RegExp(`\\[CERTIFICATION_${certNum}\\]`, 'g'), cert.name || '');
-      populated = populated.replace(new RegExp(`\\[ISSUING_ORGANIZATION_${certNum}\\]`, 'g'), cert.organization || '');
-      populated = populated.replace(new RegExp(`\\[CERT_DATE_${certNum}\\]`, 'g'), cert.date || '');
-    });
+    // Certifications Section - ensure data.certifications is an array
+    if (Array.isArray(data.certifications)) {
+      data.certifications.forEach((cert, index) => {
+        const certNum = index + 1;
+        populated = populated.replace(new RegExp(`\\[CERTIFICATION_${certNum}\\]`, 'g'), cert.name || '');
+        populated = populated.replace(new RegExp(`\\[ISSUING_ORGANIZATION_${certNum}\\]`, 'g'), cert.organization || '');
+        populated = populated.replace(new RegExp(`\\[CERT_DATE_${certNum}\\]`, 'g'), cert.date || '');
+      });
+    }
 
     // Additional Information
     populated = populated.replace(/\[LANGUAGES_WITH_PROFICIENCY\]/g, data.additionalInfo.languages || 'English (Native)');
