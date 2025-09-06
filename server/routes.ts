@@ -1916,15 +1916,15 @@ Additional Information:
       }
       
       // Retrieve file from storage using stored file ID
-      const fileBuffer = await fileStorage.retrieveResume(resume.filePath, userId);
+      const fileBuffer = await fileStorage.retrieveResume(resume.file_path, userId);
       
       if (!fileBuffer) {
         return res.status(404).json({ message: "Resume file not found" });
       }
       
       // Set appropriate headers
-      res.setHeader('Content-Type', resume.mimeType);
-      res.setHeader('Content-Disposition', `attachment; filename="${resume.fileName}"`);
+      res.setHeader('Content-Type', resume.mime_type);
+      res.setHeader('Content-Disposition', `attachment; filename="${resume.file_name}"`);
       res.setHeader('Content-Length', fileBuffer.length);
       
       res.send(fileBuffer);
@@ -2167,61 +2167,6 @@ Additional Information:
     }
   });
 
-  // Resume download route
-  app.get('/api/resumes/:id/download', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const resumeId = parseInt(req.params.id);
-      
-      // Resume download request
-      
-      let resume;
-      
-      // Find resume in database
-      const userResumes = await storage.getUserResumes(userId);
-      resume = userResumes.find((r: any) => r.id === resumeId);
-      
-      if (!resume) {
-        // Resume not found
-        return res.status(404).json({ message: "Resume not found" });
-      }
-      
-      // Resume found for download
-      
-      // Get full resume data from database including fileData
-      const fullResume = await db.select().from(schema.resumes).where(eq(schema.resumes.id, resumeId));
-      if (!fullResume || !fullResume[0] || !fullResume[0].fileData) {
-        return res.status(404).json({ message: "Resume file data not found" });
-      }
-      
-      const resumeData = fullResume[0];
-      
-      // Convert base64 file data back to buffer
-      let fileBuffer;
-      try {
-        const base64Data = resumeData.fileData;
-        if (!base64Data) {
-          return res.status(404).json({ message: "Resume file data not found" });
-        }
-        
-        fileBuffer = Buffer.from(base64Data, 'base64');
-        // Converted base64 to buffer
-      } catch (bufferError) {
-        console.error("Error processing resume file:", bufferError);
-        return res.status(500).json({ message: "Error processing resume file" });
-      }
-      
-      res.setHeader('Content-Type', resumeData.mimeType || 'application/octet-stream');
-      res.setHeader('Content-Disposition', `attachment; filename="${resumeData.fileName}"`);
-      res.setHeader('Content-Length', fileBuffer.length.toString());
-      
-      // Sending file to user
-      return res.send(fileBuffer);
-    } catch (error) {
-      console.error("Error downloading resume:", error);
-      res.status(500).json({ message: "Failed to download resume" });
-    }
-  });
 
   // Profile routes
   app.get('/api/profile', isAuthenticated, async (req: any, res) => {
