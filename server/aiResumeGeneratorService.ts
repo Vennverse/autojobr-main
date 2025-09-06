@@ -878,18 +878,32 @@ Example: "5+ years Software Engineer with expertise in React, Node.js, and AWS. 
         "--disable-backgrounding-occluded-windows",
         "--disable-renderer-backgrounding",
         "--disable-web-security",
-        "--disable-features=VizDisplayCompositor"
+        "--disable-features=VizDisplayCompositor",
+        "--disable-software-rasterizer",
+        "--disable-background-networking",
+        "--disable-default-apps",
+        "--disable-sync",
+        "--disable-translate",
+        "--hide-scrollbars",
+        "--metrics-recording-only",
+        "--mute-audio",
+        "--no-default-browser-check",
+        "--no-first-run",
+        "--safebrowsing-disable-auto-update",
+        "--ignore-certificate-errors",
+        "--ignore-ssl-errors",
+        "--ignore-certificate-errors-spki-list"
       ],
     };
 
-    // Strategy 1: Use bundled Chromium (preferred for Replit)
-    // Strategy 2: System-installed browsers as fallback
+    // Strategy 1: Use system Chromium (preferred for Replit)
+    // Strategy 2: Bundled Chromium as fallback
     const strategies = [
-      () => puppeteer.launch(launchOptions), // Uses bundled Chromium
       () => puppeteer.launch({ 
         ...launchOptions, 
         executablePath: "/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium"
       }),
+      () => puppeteer.launch(launchOptions), // Uses bundled Chromium
       () => puppeteer.launch({
         ...launchOptions,
         executablePath: "/usr/bin/chromium",
