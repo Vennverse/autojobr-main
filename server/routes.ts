@@ -10611,8 +10611,14 @@ Host: https://autojobr.com`;
       }
 
       // Enhanced scoring algorithm with better baseline
-      let matchScore = 20; // Base score to avoid 0
+      let matchScore = 0; // Start with 0 and build up score properly
       const factors = [];
+
+      // Basic score for having any profile data at all
+      if (completeUserProfile?.professionalTitle || completeUserProfile?.skills?.length > 0) {
+        matchScore += 15; // Base participation score
+        factors.push('Profile available');
+      }
 
       // Basic scoring based on job title and user profile
       if (completeUserProfile?.professionalTitle && jobData.title) {
@@ -10624,8 +10630,8 @@ Host: https://autojobr.com`;
                           hasCommonKeywords(userTitle, jobTitle);
         
         if (titleMatch) {
-          matchScore += 25;
-          factors.push('Title match');
+          matchScore += 30;
+          factors.push('Strong title match');
         } else {
           // Partial title match
           const titleScore = calculateTitleSimilarity(userTitle, jobTitle);
@@ -10650,20 +10656,31 @@ Host: https://autojobr.com`;
                  hasSkillVariations(skillLower, fullText);
         });
         
-        const skillScore = Math.min(skillMatches.length * 8, 35);
-        matchScore += skillScore;
+        // Calculate skill score with better distribution
+        const totalUserSkills = completeUserProfile.skills.length;
+        const matchedSkills = skillMatches.length;
         
-        if (skillMatches.length > 0) {
-          factors.push(`${skillMatches.length} skill matches: ${skillMatches.slice(0, 3).join(', ')}`);
-        }
-        
-        // Bonus for high skill match ratio
-        if (completeUserProfile.skills.length > 0) {
-          const matchRatio = skillMatches.length / completeUserProfile.skills.length;
-          if (matchRatio > 0.5) {
+        if (matchedSkills > 0) {
+          // Base points for any skill matches
+          const skillScore = Math.min(matchedSkills * 10, 40);
+          matchScore += skillScore;
+          factors.push(`${matchedSkills} skill matches: ${skillMatches.slice(0, 3).join(', ')}`);
+          
+          // Bonus for high skill match ratio
+          const matchRatio = matchedSkills / totalUserSkills;
+          if (matchRatio > 0.7) {
+            matchScore += 15;
+            factors.push('Excellent skill coverage');
+          } else if (matchRatio > 0.4) {
             matchScore += 10;
-            factors.push('High skill match ratio');
+            factors.push('Good skill coverage');
+          } else if (matchRatio > 0.2) {
+            matchScore += 5;
+            factors.push('Partial skill coverage');
           }
+        } else {
+          // Penalty for no skill matches when user has skills
+          factors.push('No skill matches found');
         }
         
         console.log('Enhanced skills analysis:', {
@@ -10698,32 +10715,68 @@ Host: https://autojobr.com`;
         }
       }
 
-      // Experience bonus if no specific requirement found
-      if (!completeUserProfile?.yearsExperience || !jobData.description?.match(/(\d+)\+?\s*years?\s*(of\s*)?experience/i)) {
-        // Give a modest experience bonus if user has any work experience
-        if (completeUserProfile?.workExperience && completeUserProfile.workExperience.length > 0) {
-          matchScore += 10;
-          factors.push('Has relevant work experience');
-        }
+      // General profile completeness bonuses
+      if (completeUserProfile?.workExperience && completeUserProfile.workExperience.length > 0) {
+        matchScore += 8;
+        factors.push('Has work experience');
+      }
+      
+      if (completeUserProfile?.education && completeUserProfile.education.length > 0) {
+        matchScore += 5;
+        factors.push('Has educational background');
+      }
+      
+      // Bonus for complete profile
+      const profileCompleteness = [
+        completeUserProfile?.professionalTitle,
+        completeUserProfile?.skills?.length > 0,
+        completeUserProfile?.workExperience?.length > 0,
+        completeUserProfile?.education?.length > 0,
+        completeUserProfile?.location
+      ].filter(Boolean).length;
+      
+      if (profileCompleteness >= 4) {
+        matchScore += 10;
+        factors.push('Complete profile');
+      } else if (profileCompleteness >= 3) {
+        matchScore += 5;
+        factors.push('Well-developed profile');
+      }
+      
+      // Industry keywords bonus - more comprehensive
+      const industryKeywords = {
+        'tech': ['software', 'developer', 'engineer', 'programmer', 'coding', 'technical', 'it', 'technology', 'web', 'app', 'mobile'],
+        'management': ['manager', 'director', 'lead', 'supervisor', 'coordinator', 'head'],
+        'design': ['designer', 'design', 'ui', 'ux', 'creative', 'graphic', 'visual'],
+        'data': ['analyst', 'data', 'analytics', 'scientist', 'research', 'insights'],
+        'marketing': ['marketing', 'promotion', 'content', 'social', 'digital', 'brand'],
+        'sales': ['sales', 'account', 'business development', 'revenue', 'client'],
+        'finance': ['finance', 'accounting', 'financial', 'budget', 'controller']
+      };
+      
+      let industryMatches = 0;
+      const jobTitleLower = jobData.title.toLowerCase();
+      const userTitleLower = completeUserProfile?.professionalTitle?.toLowerCase() || '';
+      const userSkillsText = completeUserProfile?.skills?.join(' ').toLowerCase() || '';
+      
+      for (const [industry, keywords] of Object.entries(industryKeywords)) {
+        const jobHasKeyword = keywords.some(kw => jobTitleLower.includes(kw));
+        const userHasKeyword = keywords.some(kw => 
+          userTitleLower.includes(kw) || userSkillsText.includes(kw)
+        );
         
-        // Education bonus
-        if (completeUserProfile?.education && completeUserProfile.education.length > 0) {
-          matchScore += 5;
-          factors.push('Has educational background');
+        if (jobHasKeyword && userHasKeyword) {
+          industryMatches++;
+          matchScore += 12;
+          factors.push(`${industry} industry alignment`);
         }
       }
       
-      // Industry keywords bonus
-      const industryKeywords = ['software', 'developer', 'engineer', 'manager', 'analyst', 'designer', 'marketing', 'sales'];
-      const hasIndustryMatch = industryKeywords.some(keyword => 
-        jobData.title.toLowerCase().includes(keyword) && 
-        (completeUserProfile?.professionalTitle?.toLowerCase().includes(keyword) || 
-         completeUserProfile?.skills?.some((skill: string) => skill.toLowerCase().includes(keyword)))
-      );
-      
-      if (hasIndustryMatch) {
-        matchScore += 15;
-        factors.push('Industry alignment');
+      // Cap industry bonus
+      if (industryMatches === 0) {
+        // Small penalty for complete industry mismatch
+        matchScore = Math.max(matchScore - 5, 0);
+        factors.push('No clear industry alignment');
       }
 
       // Cap at 100%
@@ -10737,11 +10790,12 @@ Host: https://autojobr.com`;
         userSkillsCount: completeUserProfile?.skills?.length || 0,
         userProfessionalTitle: completeUserProfile?.professionalTitle,
         calculationBreakdown: {
-          baseScore: 20,
-          titleBonus: factors.filter(f => f.includes('Title')).length * 25,
-          skillBonus: factors.filter(f => f.includes('skill')).length * 8,
-          experienceBonus: factors.filter(f => f.includes('experience')).length * 10,
-          industryBonus: factors.filter(f => f.includes('Industry')).length * 15
+          baseScore: factors.includes('Profile available') ? 15 : 0,
+          titleMatch: factors.filter(f => f.includes('title match')).length > 0,
+          skillMatches: factors.filter(f => f.includes('skill matches')).length,
+          experienceBonus: factors.filter(f => f.includes('experience')).length > 0,
+          industryAlignment: factors.filter(f => f.includes('industry alignment')).length,
+          profileCompleteness: factors.filter(f => f.includes('profile')).length
         }
       });
 
