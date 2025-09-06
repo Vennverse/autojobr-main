@@ -52,7 +52,7 @@ export default function AIResumeGeneratorPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedResume, setGeneratedResume] = useState(null);
+  const [generatedResume, setGeneratedResume] = useState<any>(null);
   const [profession, setProfession] = useState("");
   const [templateType, setTemplateType] = useState("professional");
   const [targetJobDescription, setTargetJobDescription] = useState("");
@@ -148,15 +148,39 @@ export default function AIResumeGeneratorPage() {
     }
   };
 
-  const handleDownloadResume = () => {
-    if (generatedResume?.downloadUrl) {
-      window.open(generatedResume.downloadUrl, '_blank');
+  const handleDownloadResume = async () => {
+    if (generatedResume?.resumeId) {
+      try {
+        const response = await fetch(`/api/resumes/${generatedResume.resumeId}/download`, {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = generatedResume.fileName || 'resume.pdf';
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        } else {
+          throw new Error('Download failed');
+        }
+      } catch (error) {
+        toast({
+          title: "Download Failed",
+          description: "Failed to download resume. Please try again.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
   const handleViewResume = () => {
-    if (generatedResume?.viewUrl) {
-      window.open(generatedResume.viewUrl, '_blank');
+    if (generatedResume?.resumeId) {
+      window.open(`/api/resumes/${generatedResume.resumeId}/download`, '_blank');
     }
   };
 
