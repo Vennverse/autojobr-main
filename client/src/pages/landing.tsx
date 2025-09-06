@@ -1,4 +1,46 @@
 import { useState, useEffect, useRef } from "react";
+
+// Lazy loading component for images
+const LazyImage = ({ src, alt, className, ...props }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [inView, setInView] = useState(false);
+  const imgRef = useRef();
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (imgRef.current) {
+      observer.observe(imgRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={imgRef} className={className}>
+      {inView && (
+        <img
+          src={src}
+          alt={alt}
+          className={`transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'} ${className}`}
+          onLoad={() => setIsLoaded(true)}
+          {...props}
+        />
+      )}
+      {!inView && (
+        <div className={`bg-gray-200 animate-pulse ${className}`} />
+      )}
+    </div>
+  );
+};
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -453,7 +495,7 @@ export default function LandingPage() {
             
             {/* Success Transformation Image */}
             <div className="max-w-5xl mx-auto mb-8 relative overflow-hidden rounded-2xl shadow-2xl group">
-              <img 
+              <LazyImage 
                 src={careerTransformation} 
                 alt="Career transformation from unemployment to success" 
                 className="w-full h-72 object-cover transition-transform duration-700 group-hover:scale-105" 
@@ -470,7 +512,7 @@ export default function LandingPage() {
 
           {/* Celebration Image */}
           <div className="mb-12 max-w-4xl mx-auto relative overflow-hidden rounded-2xl shadow-2xl group">
-            <img 
+            <LazyImage 
               src={jobOfferCelebration} 
               alt="Celebrating job offer success" 
               className="w-full h-64 object-cover transition-transform duration-700 group-hover:scale-105" 
@@ -517,7 +559,7 @@ export default function LandingPage() {
 
           {/* Community Success Image */}
           <div className="mb-8 max-w-5xl mx-auto relative overflow-hidden rounded-2xl shadow-2xl group">
-            <img 
+            <LazyImage 
               src={successCommunity} 
               alt="Community of successful job seekers celebrating" 
               className="w-full h-64 object-cover transition-transform duration-700 group-hover:scale-105" 
@@ -576,7 +618,7 @@ export default function LandingPage() {
 
           {/* Family Impact Image */}
           <div className="mb-12 max-w-4xl mx-auto relative overflow-hidden rounded-2xl shadow-2xl group">
-            <img 
+            <LazyImage 
               src={familySecurity} 
               alt="Parent providing security for family after career success" 
               className="w-full h-64 object-cover transition-transform duration-700 group-hover:scale-105" 
@@ -690,7 +732,7 @@ export default function LandingPage() {
             
             <div className="relative">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-                <img 
+                <LazyImage 
                   src={atsComparisonImage} 
                   alt="ATS Bypass Comparison" 
                   className="w-full h-auto"
@@ -716,7 +758,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="relative">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-                <img 
+                <LazyImage 
                   src={referralMarketplace} 
                   alt="Referral Marketplace" 
                   className="w-full h-auto"
@@ -871,7 +913,7 @@ export default function LandingPage() {
             
             <div className="relative group">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg opacity-20 blur-xl group-hover:opacity-30 transition-opacity duration-300"></div>
-              <img 
+              <LazyImage 
                 src={dashboardMockup} 
                 alt="AutoJobr Dashboard" 
                 className="relative rounded-lg shadow-2xl w-full transform hover:scale-105 transition-all duration-500 hover:shadow-3xl"
