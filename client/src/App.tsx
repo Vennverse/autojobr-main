@@ -110,7 +110,6 @@ function Router() {
     <Switch>
       <Route path="/auth" component={AuthPage} />
       <Route path="/quick-login" component={QuickLogin} />
-      <Route path="/ai-resume-generator" component={AIResumeGenerator} />
       <Route path="/recruiter-login" component={RecruiterAutoLogin} />
       <Route path="/verify-email" component={VerifyEmail} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
