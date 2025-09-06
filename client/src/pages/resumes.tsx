@@ -31,6 +31,7 @@ import {
   Wand2
 } from "lucide-react";
 import ResumeAnalysisModal from "@/components/ResumeAnalysisModal";
+import AIResumeImprovementModal from "@/components/AIResumeImprovementModal";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -62,6 +63,7 @@ export default function ResumesPage() {
   const [selectedResume, setSelectedResume] = useState<any>(null);
   const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
   const [showEnhancedModal, setShowEnhancedModal] = useState(false);
+  const [showAIModal, setShowAIModal] = useState(false);
 
   const { data: resumes, isLoading: resumesLoading } = useQuery({
     queryKey: ["/api/resumes"],
@@ -320,10 +322,7 @@ export default function ResumesPage() {
                   </div>
                   <Button
                     className="w-full bg-white/20 hover:bg-white/30 text-white border-0"
-                    onClick={() => {
-                      // Navigate to the new dedicated AI Resume Generator page
-                      window.location.href = '/ai-resume-generator';
-                    }}
+                    onClick={() => setShowAIModal(true)}
                     data-testid="create-ai-resume-btn"
                   >
                     <Wand2 className="h-4 w-4 mr-2" />
@@ -430,8 +429,8 @@ export default function ResumesPage() {
                                 size="sm"
                                 className="bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border-purple-200 dark:from-purple-900/20 dark:to-blue-900/20"
                                 onClick={() => {
-                                  // Navigate to the new dedicated AI Resume Generator page
-                                  window.location.href = '/ai-resume-generator';
+                                  setSelectedResume(resume);
+                                  setShowAIModal(true);
                                 }}
                               >
                                 <Sparkles className="h-4 w-4 mr-2 text-purple-600" />
@@ -666,6 +665,13 @@ export default function ResumesPage() {
           // In a real implementation, this would trigger the specific optimization
           console.log("Optimizing section:", section);
         }}
+      />
+
+      {/* AI Resume Improvement Modal */}
+      <AIResumeImprovementModal
+        isOpen={showAIModal}
+        onClose={() => setShowAIModal(false)}
+        userResume={selectedResume?.resumeText || ""}
       />
     </div>
   );
