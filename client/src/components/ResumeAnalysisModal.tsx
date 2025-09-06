@@ -946,6 +946,7 @@ export const ResumeAnalysisModal: React.FC<ResumeAnalysisModalProps> = ({
             </ScrollArea>
           </div>
         </Tabs>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
