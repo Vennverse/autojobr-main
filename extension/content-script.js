@@ -780,13 +780,14 @@ class AutoJobrContentScript {
       
       if (jobData.success && jobData.jobData.title) {
         this.currentJobData = jobData.jobData;
-        this.showWidget();
+        // Widget should already be visible from setupAutoAnalysis
         this.updateJobInfo(jobData.jobData);
         
         return { success: true, jobData: jobData.jobData };
       } else {
-        this.hideWidget();
-        return { success: false };
+        // Don't hide widget if job extraction fails - keep it visible
+        console.log('Job extraction failed, but keeping widget visible for manual use');
+        return { success: false, reason: 'Job extraction failed' };
       }
     } catch (error) {
       console.error('Job detection error:', error);
@@ -3121,19 +3122,28 @@ class AutoJobrContentScript {
       
       // Check if this is a job page
       if (this.isJobPage()) {
-        console.log('📍 Job page detected - starting analysis:', currentUrl);
+        console.log('📍 Job page detected - showing widget immediately:', currentUrl);
+        // Show widget immediately on job pages
+        this.showWidget();
+        
+        // Then start job detection and analysis
         this.detectJobPosting().then((result) => {
           if (result && result.success) {
-            // Only perform auto-analysis if widget was shown successfully
+            console.log('✅ Job detected successfully, updating widget with job info');
+            this.updateJobInfo(result.jobData);
+            // Perform auto-analysis after successful detection
             setTimeout(() => {
               this.performAutoAnalysis().finally(() => {
                 this.analysisInProgress = false;
               });
             }, 1000);
           } else {
+            console.log('⚠️ Job detection failed, but keeping widget visible');
+            // Keep widget visible even if job detection fails
             this.analysisInProgress = false;
           }
-        }).catch(() => {
+        }).catch((error) => {
+          console.log('❌ Job detection error, but keeping widget visible:', error);
           this.analysisInProgress = false;
         });
       } else {
