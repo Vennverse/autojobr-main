@@ -46,7 +46,6 @@ import AdminJobSpyPage from "@/pages/admin-jobspy";
 // Import Dashboard for the missing reference
 import Dashboard from "@/pages/dashboard";
 import QuickLogin from "@/pages/quick-login";
-import AIResumeGenerator from "@/pages/ai-resume-generator";
 
 import CareerAIAssistant from "@/pages/career-ai-assistant";
 import RankingTests from "@/pages/ranking-tests";
