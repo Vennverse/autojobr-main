@@ -180,8 +180,19 @@ export default function JobAlertsPage() {
   const loadingMatches = false;
 
   const handleSaveJob = async (jobId: string) => {
-    // Implementation for saving jobs
-    console.log("Saving job:", jobId);
+    try {
+      const response = await fetch('/api/jobs/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ jobId })
+      });
+      if (response.ok) {
+        console.log('Job saved successfully:', jobId);
+      }
+    } catch (error) {
+      console.error('Failed to save job:', error);
+    }
   };
 
   const handleQuickApply = async (jobId: string, applicationUrl?: string) => {
@@ -197,24 +208,63 @@ export default function JobAlertsPage() {
   const [showAlertSettings, setShowAlertSettings] = useState(false);
 
   const createJobAlert = async () => {
-    // Implementation for creating job alerts
-    console.log("Creating job alert:", alertForm);
-    setShowCreateAlert(true);
-    // Reset form
-    setAlertForm({
-      title: "",
-      keywords: "",
-      location: "",
-      salaryMin: "",
-      salaryMax: "",
-      jobType: "all",
-      experienceLevel: "all",
-      isActive: true
-    });
+    try {
+      const alertData = {
+        title: alertForm.title,
+        keywords: alertForm.keywords.split(',').map(k => k.trim()),
+        location: alertForm.location,
+        salaryMin: alertForm.salaryMin ? parseInt(alertForm.salaryMin) : undefined,
+        salaryMax: alertForm.salaryMax ? parseInt(alertForm.salaryMax) : undefined,
+        jobType: alertForm.jobType,
+        experienceLevel: alertForm.experienceLevel,
+        isActive: alertForm.isActive
+      };
+
+      const response = await fetch('/api/job-alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(alertData)
+      });
+
+      if (response.ok) {
+        console.log('Job alert created successfully');
+        setShowCreateAlert(false);
+        // Reset form
+        setAlertForm({
+          title: "",
+          keywords: "",
+          location: "",
+          salaryMin: "",
+          salaryMax: "",
+          jobType: "all",
+          experienceLevel: "all",
+          isActive: true
+        });
+      }
+    } catch (error) {
+      console.error('Failed to create job alert:', error);
+    }
   };
 
   const toggleAlertSettings = () => {
     setShowAlertSettings(!showAlertSettings);
+  };
+
+  const handleDeleteAlert = async (alertId: string) => {
+    try {
+      const response = await fetch(`/api/job-alerts/${alertId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        console.log('Alert deleted successfully:', alertId);
+        // In a real app, you'd refresh the alerts list here
+      }
+    } catch (error) {
+      console.error('Failed to delete alert:', error);
+    }
   };
 
   const getMatchScoreColor = (score: number) => {
@@ -517,11 +567,22 @@ export default function JobAlertsPage() {
                             </div>
                             
                             <div className="flex gap-2 ml-4">
-                              <Button variant="outline" size="sm">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => console.log('View alert:', alert.id)}
+                                data-testid={`button-view-alert-${alert.id}`}
+                              >
                                 <Eye className="w-4 h-4 mr-1" />
                                 View
                               </Button>
-                              <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-red-600 hover:text-red-700"
+                                onClick={() => handleDeleteAlert(alert.id)}
+                                data-testid={`button-delete-alert-${alert.id}`}
+                              >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
@@ -556,8 +617,21 @@ export default function JobAlertsPage() {
                               <p className="text-sm text-gray-600 dark:text-gray-300">{job.company} • {job.location}</p>
                             </div>
                             <div className="flex gap-2">
-                              <Button variant="outline" size="sm">View</Button>
-                              <Button size="sm">Apply</Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => window.location.href = `/jobs/${job.id}`}
+                                data-testid={`button-view-${job.id}`}
+                              >
+                                View
+                              </Button>
+                              <Button 
+                                size="sm"
+                                onClick={() => handleQuickApply(job.id, job.applicationUrl)}
+                                data-testid={`button-apply-quick-${job.id}`}
+                              >
+                                Apply
+                              </Button>
                             </div>
                           </div>
                         </CardContent>
