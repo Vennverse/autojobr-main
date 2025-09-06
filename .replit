@@ -4,7 +4,7 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["jq", "imagemagick", "chromium"]
+packages = ["jq", "imagemagick", "chromium", "glib"]
 
 [deployment]
 deploymentTarget = "autoscale"
