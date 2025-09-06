@@ -11725,9 +11725,38 @@ Report types supported:
       const existingResume = existingResumes[0];
       const aiResumeService = new AIResumeGeneratorService();
 
+      // Get user profile data for resume generation
+      const userProfiles = await db.select()
+        .from(schema.profiles)
+        .where(eq(schema.profiles.userId, userId))
+        .limit(1);
+
+      const userProfile = userProfiles[0] || {};
+      
+      // Create proper UserProfile structure with fallback data
+      const profileData = {
+        id: userId,
+        personalInfo: {
+          fullName: userProfile.fullName || userProfile.firstName || 'Your Name',
+          email: req.user.email || 'your.email@example.com',
+          phone: userProfile.phone || '',
+          location: userProfile.location || ''
+        },
+        experience: userProfile.experience || [],
+        education: userProfile.education || [],
+        skills: userProfile.skills || [],
+        projects: userProfile.projects || [],
+        certifications: userProfile.certifications || [],
+        additionalInfo: {
+          languages: userProfile.languages || '',
+          volunteer: userProfile.volunteer || '',
+          associations: userProfile.associations || ''
+        }
+      };
+
       // Generate AI-optimized resume
       const { pdfBuffer, resumeData } = await aiResumeService.generateResumeFromUserData(
-        userId, 
+        profileData, 
         existingResume.resumeText || '', 
         targetJobDescription
       );

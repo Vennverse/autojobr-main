@@ -769,7 +769,8 @@ export const ResumeAnalysisModal: React.FC<ResumeAnalysisModalProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+        <ScrollArea className="flex-1 max-h-[calc(90vh-120px)]">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
           <TabsList className={`grid w-full ${!analysis ? 'grid-cols-1' : 'grid-cols-6'} flex-shrink-0`}>
             {analysis && (
               <>
