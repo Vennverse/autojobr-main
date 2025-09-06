@@ -46,6 +46,7 @@ import AdminJobSpyPage from "@/pages/admin-jobspy";
 // Import Dashboard for the missing reference
 import Dashboard from "@/pages/dashboard";
 import QuickLogin from "@/pages/quick-login";
+import AIResumeGenerator from "@/pages/ai-resume-generator";
 
 import CareerAIAssistant from "@/pages/career-ai-assistant";
 import RankingTests from "@/pages/ranking-tests";
@@ -109,6 +110,7 @@ function Router() {
     <Switch>
       <Route path="/auth" component={AuthPage} />
       <Route path="/quick-login" component={QuickLogin} />
+      <Route path="/ai-resume-generator" component={AIResumeGenerator} />
       <Route path="/recruiter-login" component={RecruiterAutoLogin} />
       <Route path="/verify-email" component={VerifyEmail} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />

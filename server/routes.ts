@@ -11742,11 +11742,11 @@ Report types supported:
           phone: userProfile.phone || '',
           location: userProfile.location || ''
         },
-        experience: userProfile.experience || [],
-        education: userProfile.education || [],
-        skills: userProfile.skills || [],
-        projects: userProfile.projects || [],
-        certifications: userProfile.certifications || [],
+        experience: Array.isArray(userProfile.experience) ? userProfile.experience : [],
+        education: Array.isArray(userProfile.education) ? userProfile.education : [],
+        skills: Array.isArray(userProfile.skills) ? userProfile.skills : [],
+        projects: Array.isArray(userProfile.projects) ? userProfile.projects : [],
+        certifications: Array.isArray(userProfile.certifications) ? userProfile.certifications : [],
         additionalInfo: {
           languages: userProfile.languages || '',
           volunteer: userProfile.volunteer || '',
@@ -11835,9 +11835,30 @@ Report types supported:
         Education: ${userInfo.education || 'No education provided'}
       `;
 
+      // Create proper UserProfile structure with the user input data
+      const profileData = {
+        id: userId,
+        personalInfo: {
+          fullName: userInfo.fullName,
+          email: userInfo.email,
+          phone: userInfo.phone || '',
+          location: userInfo.location || ''
+        },
+        experience: [],
+        education: [],
+        skills: [],
+        projects: [],
+        certifications: [],
+        additionalInfo: {
+          languages: userInfo.languages || '',
+          volunteer: userInfo.volunteer || '',
+          associations: userInfo.associations || ''
+        }
+      };
+
       // Generate AI-optimized resume
       const { pdfBuffer, resumeData } = await aiResumeService.generateResumeFromUserData(
-        userId, 
+        profileData, 
         resumeText, 
         targetJobDescription
       );
