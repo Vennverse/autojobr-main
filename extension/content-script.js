@@ -2995,8 +2995,8 @@ class AutoJobrContentScript {
 
   // Create floating button that opens extension popup
   createFloatingButton() {
-    // Only show on job application forms
-    if (!this.isJobApplicationPage()) {
+    // Show on any job page, not just application forms
+    if (!this.isJobPage()) {
       return;
     }
 
@@ -3673,12 +3673,12 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     const extension = new AutoJobrContentScript();
     window.autojobrExtension = extension; // Store reference for message handling
-    // Show floating button on job application pages after a delay
-    setTimeout(() => extension.createFloatingButton(), 3000);
+    // Show floating button on job pages after a delay
+    setTimeout(() => extension.createFloatingButton(), 1000);
   });
 } else {
   const extension = new AutoJobrContentScript();
   window.autojobrExtension = extension; // Store reference for message handling
-  // Show floating button on job application pages after a delay  
-  setTimeout(() => extension.createFloatingButton(), 3000);
+  // Show floating button on job pages after a delay  
+  setTimeout(() => extension.createFloatingButton(), 1000);
 }
