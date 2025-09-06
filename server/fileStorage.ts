@@ -139,7 +139,7 @@ export class FileStorageService {
   private async getFileInfo(fileId: string, userId: string): Promise<StoredFile | null> {
     // In a production environment, this would query a database
     // For now, we'll reconstruct the file path and check if it exists
-    const possibleExtensions = ['.pdf', '.doc', '.docx', '.txt'];
+    const possibleExtensions = ['.pdf', '.doc', '.docx', '.txt', '']; // Added empty string for files without extension
     
     for (const ext of possibleExtensions) {
       const fileName = `${fileId}${ext}`;
@@ -152,8 +152,8 @@ export class FileStorageService {
         const stats = await fs.promises.stat(compressedPath);
         return {
           id: fileId,
-          originalName: `resume${ext}`,
-          mimeType: this.getMimeTypeFromExtension(ext),
+          originalName: `resume${ext || '.pdf'}`, // Default to PDF if no extension
+          mimeType: this.getMimeTypeFromExtension(ext || '.pdf'),
           size: 0, // Would be stored in database
           compressedSize: stats.size,
           path: compressedPath,
@@ -168,8 +168,8 @@ export class FileStorageService {
           const stats = await fs.promises.stat(filePath);
           return {
             id: fileId,
-            originalName: `resume${ext}`,
-            mimeType: this.getMimeTypeFromExtension(ext),
+            originalName: `resume${ext || '.pdf'}`,
+            mimeType: this.getMimeTypeFromExtension(ext || '.pdf'),
             size: stats.size,
             compressedSize: stats.size,
             path: filePath,

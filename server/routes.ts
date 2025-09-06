@@ -1916,15 +1916,15 @@ Additional Information:
       }
       
       // Retrieve file from storage using stored file ID
-      const fileBuffer = await fileStorage.retrieveResume(resume.file_path, userId);
+      const fileBuffer = await fileStorage.retrieveResume(resume.filePath, userId);
       
       if (!fileBuffer) {
         return res.status(404).json({ message: "Resume file not found" });
       }
       
       // Set appropriate headers
-      res.setHeader('Content-Type', resume.mime_type);
-      res.setHeader('Content-Disposition', `attachment; filename="${resume.file_name}"`);
+      res.setHeader('Content-Type', resume.mimeType || 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${resume.fileName}"`);
       res.setHeader('Content-Length', fileBuffer.length);
       
       res.send(fileBuffer);
