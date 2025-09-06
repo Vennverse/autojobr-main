@@ -35,7 +35,8 @@ import {
   Heart,
   HeartIcon,
   BookmarkIcon,
-  ExternalLink
+  ExternalLink,
+  X
 } from "lucide-react";
 import { motion } from "framer-motion";
 
