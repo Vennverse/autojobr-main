@@ -1,10 +1,10 @@
-modules = ["nodejs-20", "bash", "web", "python-3.11"]
+modules = ["nodejs-20", "bash", "web", "python-3.11", "python3"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["jq", "imagemagick", "chromium", "glib", "nss", "nspr", "atk", "at-spi2-atk", "gtk3", "gdk-pixbuf", "libxkbcommon", "at-spi2-core", "mesa", "libgbm", "cups"]
+packages = ["at-spi2-atk", "at-spi2-core", "atk", "chromium", "cups", "gdk-pixbuf", "glib", "gtk3", "imagemagick", "jq", "libgbm", "libxkbcommon", "mesa", "nspr", "nss"]
 
 [deployment]
 deploymentTarget = "autoscale"
