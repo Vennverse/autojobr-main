@@ -1856,90 +1856,93 @@ export default function EnhancedDashboard() {
             </Card>
           </motion.div>
 
-          {/* Resume Analysis & AI Tools */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
-            {/* Resume Analysis Tab */}
-            <motion.div variants={itemVariants}>
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-green-500 to-teal-600 text-white">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Upload className="h-5 w-5" />
+          {/* AI-Powered Tools Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Resume Analysis Card */}
+            <motion.div variants={itemVariants} className="h-full">
+              <Card className="h-full border-0 shadow-xl bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-700 text-white overflow-hidden relative">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 bg-white/5 pattern-dots pattern-emerald-300 pattern-bg-transparent pattern-size-4 pattern-opacity-20"></div>
+                
+                <CardHeader className="relative z-10 pb-4">
+                  <CardTitle className="flex items-center gap-3 text-xl font-bold">
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <Upload className="h-6 w-6" />
+                    </div>
                     Resume Analysis
                   </CardTitle>
-                  <p className="text-sm text-green-100">
+                  <p className="text-emerald-100 text-sm leading-relaxed">
                     Upload and optimize your resumes with AI-powered ATS scoring
                   </p>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span>Resumes uploaded:</span>
-                    <span className="font-medium">
-                      {resumes?.length || 0}/
-                      {user?.planType === "premium" ? "∞" : "2"}
-                    </span>
+                
+                <CardContent className="relative z-10 flex flex-col h-full pb-6">
+                  {/* Status Bar */}
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 mb-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-emerald-100">Resumes uploaded:</span>
+                      <Badge variant="secondary" className="bg-white/20 text-white border-0 font-semibold">
+                        {resumes?.length || 0}/{user?.planType === "premium" ? "∞" : "2"}
+                      </Badge>
+                    </div>
                   </div>
 
-                  {(resumes?.length || 0) <
-                  (user?.planType === "premium" ? 999 : 2) ? (
-                    <div>
-                      <input
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleResumeUpload(file);
-                          }
-                        }}
-                        className="w-full p-2 rounded bg-white/20 border border-white/30 text-white placeholder:text-white/70 file:mr-4 file:py-1 file:px-2 file:rounded file:border-0 file:bg-white/30 file:text-white"
-                        disabled={isUploadingResume}
-                      />
-                      {isUploadingResume && (
-                        <div className="mt-2 text-center">
-                          <div className="animate-spin rounded-full h-6 w-6 border-2 border-white/30 border-t-white mx-auto"></div>
-                          <p className="text-xs mt-1 text-green-100">
-                            Analyzing resume...
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-center py-2">
-                      <p className="text-sm text-green-100 mb-2">
-                        {user?.planType === "premium"
-                          ? "Unlimited uploads available"
-                          : "Upload limit reached"}
-                      </p>
-                      {user?.planType !== "premium" && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="bg-white/20 hover:bg-white/30 text-white border-0"
-                          onClick={() => setLocation("/job-seeker-premium")}
-                        >
-                          <Crown className="h-4 w-4 mr-2" />
-                          Upgrade for Unlimited
-                        </Button>
-                      )}
-                    </div>
-                  )}
-
-                  {resumes && resumes.length > 0 && (
-                    <div className="space-y-3">
-                      <div className="text-sm font-medium">
-                        Latest Resume Analysis:
+                  {/* Upload Section */}
+                  <div className="flex-1 space-y-4">
+                    {(resumes?.length || 0) < (user?.planType === "premium" ? 999 : 2) ? (
+                      <div className="space-y-3">
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleResumeUpload(file);
+                          }}
+                          className="w-full p-3 rounded-lg bg-white/15 border border-white/30 text-white placeholder:text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-white/20 file:text-white file:font-medium hover:bg-white/20 transition-colors"
+                          disabled={isUploadingResume}
+                        />
+                        {isUploadingResume && (
+                          <div className="text-center py-4">
+                            <div className="animate-spin rounded-full h-8 w-8 border-3 border-white/30 border-t-white mx-auto"></div>
+                            <p className="text-sm mt-2 text-emerald-100 font-medium">
+                              Analyzing resume...
+                            </p>
+                          </div>
+                        )}
                       </div>
-                      <div className="bg-white/20 rounded-lg p-3 space-y-2">
+                    ) : (
+                      <div className="text-center py-6 bg-white/10 rounded-lg">
+                        <Crown className="h-8 w-8 text-yellow-300 mx-auto mb-3" />
+                        <p className="text-sm text-emerald-100 mb-3 font-medium">
+                          {user?.planType === "premium" ? "Unlimited uploads available" : "Upload limit reached"}
+                        </p>
+                        {user?.planType !== "premium" && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="bg-white/20 hover:bg-white/30 text-white border-0 font-medium"
+                            onClick={() => setLocation("/job-seeker-premium")}
+                          >
+                            <Crown className="h-4 w-4 mr-2" />
+                            Upgrade for Unlimited
+                          </Button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Latest Analysis */}
+                    {resumes && resumes.length > 0 && (
+                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 space-y-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4" />
-                            <span className="text-sm truncate">
+                            <FileText className="h-4 w-4 text-emerald-200" />
+                            <span className="text-sm font-medium truncate">
                               {resumes[0]?.name || "Resume"}
                             </span>
                           </div>
                           <Badge
                             variant="secondary"
-                            className={`text-xs ${
+                            className={`text-xs font-semibold ${
                               (resumes[0]?.atsScore || 0) >= 80
                                 ? "bg-green-100 text-green-800"
                                 : (resumes[0]?.atsScore || 0) >= 60
@@ -1951,152 +1954,152 @@ export default function EnhancedDashboard() {
                           </Badge>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2 text-xs">
-                          <div className="text-center">
-                            <div className="font-medium text-green-200">
-                              {resumes[0]?.analysis?.content?.strengthsFound
-                                ?.length || 0}
+                        <div className="grid grid-cols-3 gap-3 text-xs">
+                          <div className="text-center p-2 bg-white/10 rounded">
+                            <div className="font-bold text-lg text-emerald-200">
+                              {resumes[0]?.analysis?.content?.strengthsFound?.length || 0}
                             </div>
-                            <div>Strengths</div>
+                            <div className="text-emerald-100">Strengths</div>
                           </div>
-                          <div className="text-center">
-                            <div className="font-medium text-orange-200">
-                              {resumes[0]?.analysis?.recommendations?.length ||
-                                0}
+                          <div className="text-center p-2 bg-white/10 rounded">
+                            <div className="font-bold text-lg text-orange-200">
+                              {resumes[0]?.analysis?.recommendations?.length || 0}
                             </div>
-                            <div>Tips</div>
+                            <div className="text-orange-100">Tips</div>
                           </div>
-                          <div className="text-center">
-                            <div className="font-medium text-red-200">
-                              {resumes[0]?.analysis?.keywordOptimization
-                                ?.missingKeywords?.length || 0}
+                          <div className="text-center p-2 bg-white/10 rounded">
+                            <div className="font-bold text-lg text-red-200">
+                              {resumes[0]?.analysis?.keywordOptimization?.missingKeywords?.length || 0}
                             </div>
-                            <div>Missing</div>
+                            <div className="text-red-100">Missing</div>
                           </div>
                         </div>
-
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="w-full bg-white/20 hover:bg-white/30 text-white border-0"
-                          onClick={() => setLocation("/resumes")}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Full Analysis
-                        </Button>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+
+                  {/* Action Button */}
+                  <Button
+                    variant="secondary"
+                    className="w-full mt-4 bg-white/15 hover:bg-white/25 text-white border-0 font-medium h-11"
+                    onClick={() => setLocation("/resumes")}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View Full Analysis
+                  </Button>
                 </CardContent>
               </Card>
             </motion.div>
 
-            {/* Cover Letter Generator */}
-            <motion.div variants={itemVariants}>
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
+            {/* Cover Letter Generator Card */}
+            <motion.div variants={itemVariants} className="h-full">
+              <Card className="h-full border-0 shadow-xl bg-gradient-to-br from-indigo-600 via-purple-600 to-purple-700 text-white overflow-hidden relative">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 bg-white/5 pattern-dots pattern-indigo-300 pattern-bg-transparent pattern-size-4 pattern-opacity-20"></div>
+                
+                <CardHeader className="relative z-10 pb-4">
+                  <CardTitle className="flex items-center gap-3 text-xl font-bold">
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <PenTool className="h-6 w-6" />
+                    </div>
                     Cover Letter Generator
                   </CardTitle>
-                  <p className="text-sm text-blue-100">
+                  <p className="text-indigo-100 text-sm leading-relaxed">
                     Generate personalized cover letters with AI
                   </p>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
+                
+                <CardContent className="relative z-10 flex flex-col h-full pb-6">
+                  {/* Input Section */}
+                  <div className="flex-1 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <Input
                         placeholder="Company name..."
-                        className="bg-white/20 border-white/30 text-white placeholder:text-white/70"
+                        className="bg-white/15 border-white/30 text-white placeholder:text-white/70 h-11"
                         id="company-name-input"
+                        data-testid="input-company-name"
                       />
                       <Input
                         placeholder="Job title..."
-                        className="bg-white/20 border-white/30 text-white placeholder:text-white/70"
+                        className="bg-white/15 border-white/30 text-white placeholder:text-white/70 h-11"
                         id="job-title-input"
+                        data-testid="input-job-title"
                       />
                     </div>
+                    
                     <textarea
                       placeholder="Paste the job description here..."
-                      className="w-full p-3 rounded bg-white/20 border border-white/30 text-white placeholder:text-white/70 min-h-[100px] resize-none"
+                      className="w-full p-3 rounded-lg bg-white/15 border border-white/30 text-white placeholder:text-white/70 min-h-[120px] resize-none font-sans"
                       id="job-description-input"
+                      data-testid="textarea-job-description"
                     />
-                    <Button
-                      variant="secondary"
-                      className="w-full bg-white/20 hover:bg-white/30 text-white border-0"
-                      onClick={() => {
-                        const jobDesc = (
-                          document.getElementById(
-                            "job-description-input",
-                          ) as HTMLTextAreaElement
-                        )?.value;
-                        const companyName =
-                          (
-                            document.getElementById(
-                              "company-name-input",
-                            ) as HTMLInputElement
-                          )?.value || "The Company";
-                        const jobTitle =
-                          (
-                            document.getElementById(
-                              "job-title-input",
-                            ) as HTMLInputElement
-                          )?.value || "The Position";
 
-                        if (jobDesc.trim()) {
-                          generateCoverLetter(jobDesc, companyName, jobTitle);
-                        } else {
-                          toast({
-                            title: "Job Description Required",
-                            description: "Please paste a job description first",
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                      disabled={isGenerating}
-                    >
-                      {isGenerating ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white mr-2"></div>
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          Generate Cover Letter
-                        </>
-                      )}
-                    </Button>
+                    {/* Generated Cover Letter Display */}
+                    {coverLetterResult && (
+                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <CheckCircle className="h-4 w-4 text-green-300" />
+                          Generated Cover Letter:
+                        </div>
+                        <div className="bg-white/10 rounded-lg p-3 max-h-32 overflow-y-auto">
+                          <pre className="text-xs text-white/90 whitespace-pre-wrap font-sans leading-relaxed">
+                            {coverLetterResult}
+                          </pre>
+                        </div>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="w-full bg-white/15 hover:bg-white/25 text-white border-0 font-medium"
+                          onClick={() => {
+                            navigator.clipboard.writeText(coverLetterResult);
+                            toast({
+                              title: "Copied to Clipboard",
+                              description: "Cover letter copied successfully",
+                            });
+                          }}
+                          data-testid="button-copy-cover-letter"
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy to Clipboard
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
-                  {coverLetterResult && (
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium">
-                        Generated Cover Letter:
-                      </div>
-                      <div className="bg-white/20 rounded-lg p-3 max-h-32 overflow-y-auto">
-                        <pre className="text-xs text-white/90 whitespace-pre-wrap font-sans">
-                          {coverLetterResult}
-                        </pre>
-                      </div>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="w-full bg-white/20 hover:bg-white/30 text-white border-0"
-                        onClick={() => {
-                          navigator.clipboard.writeText(coverLetterResult);
-                          toast({
-                            title: "Copied to Clipboard",
-                            description: "Cover letter copied successfully",
-                          });
-                        }}
-                      >
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy to Clipboard
-                      </Button>
-                    </div>
-                  )}
+                  {/* Generate Button */}
+                  <Button
+                    variant="secondary"
+                    className="w-full mt-4 bg-white/15 hover:bg-white/25 text-white border-0 font-medium h-11"
+                    onClick={() => {
+                      const jobDesc = (document.getElementById("job-description-input") as HTMLTextAreaElement)?.value;
+                      const companyName = (document.getElementById("company-name-input") as HTMLInputElement)?.value || "The Company";
+                      const jobTitle = (document.getElementById("job-title-input") as HTMLInputElement)?.value || "The Position";
+
+                      if (jobDesc.trim()) {
+                        generateCoverLetter(jobDesc, companyName, jobTitle);
+                      } else {
+                        toast({
+                          title: "Job Description Required",
+                          description: "Please paste a job description first",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    disabled={isGenerating}
+                    data-testid="button-generate-cover-letter"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white mr-2"></div>
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Generate Cover Letter
+                      </>
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
             </motion.div>
