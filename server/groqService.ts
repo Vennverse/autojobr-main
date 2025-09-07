@@ -405,6 +405,42 @@ Best regards,
 ${userProfile?.fullName || 'Your Name'}`;
     }
   }
+  
+  async generateContent(prompt: string, user?: any): Promise<string> {
+    if (this.developmentMode) {
+      return "AI analysis temporarily unavailable - please check back later.";
+    }
+
+    try {
+      const completion = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
+        return await client.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content: "You are a helpful AI assistant that provides accurate and detailed responses."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          model: this.getModel(user),
+          temperature: 0.3,
+          max_tokens: 1000,
+        });
+      });
+
+      const response = completion.choices[0]?.message?.content?.trim();
+      if (!response) {
+        throw new Error("No response generated");
+      }
+
+      return response;
+    } catch (error) {
+      console.error("Content generation error:", error);
+      return "AI analysis temporarily unavailable - please try again later.";
+    }
+  }
 }
 
 export const groqService = new GroqService();
