@@ -11922,7 +11922,7 @@ Report types supported:
         });
       }
 
-      const groqService = new (require('./groqService')).GroqService();
+      // Use the imported groqService instance instead of creating a new one
       
       // Create AI prompt for resume improvements
       const prompt = `Analyze this resume and provide specific improvements. ${jobDescription ? `The target job description is: ${jobDescription}` : ''}

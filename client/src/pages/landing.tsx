@@ -73,13 +73,13 @@ import {
   ChevronLeft,
   Building2
 } from "lucide-react";
-import logoImage from "@assets/generated_images/AutoJobr_professional_logo_17c702fa.png";
+import logoImage from "@assets/generated_images/AutoJobr_professional_logo_17c702fa_optimized.png";
 import heroBackground from "@assets/generated_images/Professional_hero_background_15f13bf2_optimized.png";
-import dashboardMockup from "@assets/generated_images/Recruitment_dashboard_mockup_2b680657.png";
-import referralMarketplace from "@assets/generated_images/Referral_marketplace_interface_design_86e419f3.png";
-import atsComparisonImage from "@assets/generated_images/Extension_ATS_bypass_comparison_6bd77ec6.png";
-import bundlesImage from "@assets/generated_images/Subscription_bundles_showcase_design_d57dc5e6.png";
-import genuineApplicationImage from "@assets/generated_images/Genuine_application_creation_illustration_3166e23e.png";
+import dashboardMockup from "@assets/generated_images/Recruitment_dashboard_mockup_2b680657_optimized.png";
+import referralMarketplace from "@assets/generated_images/Referral_marketplace_interface_design_86e419f3_optimized.png";
+import atsComparisonImage from "@assets/generated_images/Extension_ATS_bypass_comparison_6bd77ec6_optimized.png";
+import bundlesImage from "@assets/generated_images/Subscription_bundles_showcase_design_d57dc5e6_optimized.png";
+import genuineApplicationImage from "@assets/generated_images/Genuine_application_creation_illustration_3166e23e_optimized.png";
 import jobSearchFrustration from "@assets/generated_images/Job_search_frustration_scene_e5bee723_optimized.png";
 import jobOfferCelebration from "@assets/generated_images/Job_offer_celebration_moment_f7975969_optimized.png";
 import careerTransformation from "@assets/generated_images/Before_after_career_transformation_44ba2440_optimized.png";
