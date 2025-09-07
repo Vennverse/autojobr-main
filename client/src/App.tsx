@@ -85,6 +85,7 @@ import Contact from "@/pages/contact";
 import Blog from "@/pages/blog";
 import ChromeExtension from "@/pages/chrome-extension";
 import ATSOptimizer from "@/pages/ats-optimizer";
+import PrivacyPolicy from "@/pages/privacy-policy";
 
 // Blog Articles
 import BeatATSGuide from "@/pages/blog/beat-ats-systems-2025-guide";
@@ -121,6 +122,8 @@ function Router() {
       {/* Public Pages - Available to Everyone */}
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
+      <Route path="/privacy" component={PrivacyPolicy} />
+      <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/beat-ats-systems-2025-guide" component={BeatATSGuide} />
       <Route path="/blog/linkedin-automation-guide" component={LinkedInAutomationGuide} />
