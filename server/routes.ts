@@ -11911,7 +11911,7 @@ Report types supported:
   });
 
   // AI Resume Improvements endpoint
-  app.post('/api/ai/resume-improvements', isAuthenticated, async (req: any, res) => {
+  app.post('/api/ai/resume-improvements', async (req: any, res) => {
     try {
       const { resumeText, jobDescription } = req.body;
       
