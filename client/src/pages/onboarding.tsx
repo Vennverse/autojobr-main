@@ -260,6 +260,15 @@ export default function Onboarding() {
             const mappedDegree = degreeMap[highestDegree.degree.toLowerCase()] || 'other';
             newFormData.highestDegree = mappedDegree;
           }
+          if (highestDegree.institution) {
+            newFormData.university = highestDegree.institution;
+          }
+          if (highestDegree.fieldOfStudy) {
+            newFormData.majorFieldOfStudy = highestDegree.fieldOfStudy;
+          }
+          if (highestDegree.graduationYear) {
+            newFormData.graduationYear = highestDegree.graduationYear;
+          }
         }
         
         setFormData(newFormData);
@@ -850,6 +859,17 @@ export default function Onboarding() {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="university">University/Institution</Label>
+            <Input
+              id="university"
+              value={formData.university || ""}
+              onChange={(e) => handleInputChange("university", e.target.value)}
+              placeholder="Stanford University"
+              data-testid="input-university"
+            />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
