@@ -271,7 +271,7 @@ export default function LandingPage() {
     enabled: !!user,
   });
 
-  const pendingTasks = tasksData?.tasks?.filter((task: any) => 
+  const pendingTasks = (tasksData as any)?.tasks?.filter((task: any) => 
     task.status === 'pending' || task.status === 'in_progress'
   ).slice(0, 3) || [];
 
