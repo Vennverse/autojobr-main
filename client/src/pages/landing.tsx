@@ -1,46 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
-// Lazy loading component for images
-const LazyImage = ({ src, alt, className, ...props }) => {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [inView, setInView] = useState(false);
-  const imgRef = useRef();
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setInView(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (imgRef.current) {
-      observer.observe(imgRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div ref={imgRef} className={className}>
-      {inView && (
-        <img
-          src={src}
-          alt={alt}
-          className={`transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'} ${className}`}
-          onLoad={() => setIsLoaded(true)}
-          {...props}
-        />
-      )}
-      {!inView && (
-        <div className={`bg-gray-200 animate-pulse ${className}`} />
-      )}
-    </div>
-  );
-};
+// Performance optimized - removed lazy loading for faster initial render
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -411,44 +371,48 @@ export default function LandingPage() {
               </Badge>
               
               <h1 className="text-5xl md:text-7xl font-bold text-slate-900 dark:text-white mb-6 leading-tight">
-                Stop Getting
-                <span className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 bg-clip-text text-transparent animate-gradient-x"> Rejected</span>
+                Land Your
+                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-gradient-x"> Dream Job</span>
                 <br />
-                Start Getting
-                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-gradient-x"> Hired</span>
+                In Days, Not Months
               </h1>
               
               <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-                Tired of sending hundreds of applications into the void? <strong>You're not alone.</strong> We've helped 50,000+ job seekers break through the noise and land their dream jobs. <em>Your next career breakthrough is just one click away.</em>
+                Skip the endless applications. Get <strong>referred directly</strong> to hiring managers at top companies. Our AI tools + referral network = your fast track to internships and full-time roles.
               </p>
               
-              {/* Emotional Pain Point Image */}
-              <div className="mb-8 max-w-4xl mx-auto relative overflow-hidden rounded-2xl shadow-2xl group">
-                <img 
-                  src={jobSearchFrustration} 
-                  alt="Job search frustration and rejection" 
-                  className="w-full h-64 md:h-80 object-cover transition-transform duration-700 group-hover:scale-105" 
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                <div className="absolute bottom-6 left-6 text-white">
-                  <p className="text-lg font-semibold mb-2">"I've been rejected 200+ times..."</p>
-                  <p className="text-sm opacity-90">Sound familiar? You're not alone in this struggle.</p>
+              {/* Key Features Preview */}
+              <div className="mb-8 max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white/10 backdrop-blur rounded-2xl p-6 text-center hover:bg-white/20 transition-all duration-300 hover:scale-105">
+                  <Users className="w-8 h-8 mx-auto mb-3 text-blue-500" />
+                  <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Referral Network</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">Get referred by employees at 500+ top companies</p>
+                </div>
+                <div className="bg-white/10 backdrop-blur rounded-2xl p-6 text-center hover:bg-white/20 transition-all duration-300 hover:scale-105">
+                  <Brain className="w-8 h-8 mx-auto mb-3 text-purple-500" />
+                  <h3 className="font-semibold text-slate-900 dark:text-white mb-2">AI Interview Prep</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">Virtual interviews with real-time feedback</p>
+                </div>
+                <div className="bg-white/10 backdrop-blur rounded-2xl p-6 text-center hover:bg-white/20 transition-all duration-300 hover:scale-105">
+                  <Target className="w-8 h-8 mx-auto mb-3 text-green-500" />
+                  <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Smart Job Tracking</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">Manage applications with AI-powered insights</p>
                 </div>
               </div>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
                 <Link href="/auth">
-                  <Button size="lg" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 px-8 py-4 text-lg relative overflow-hidden group">
+                  <Button size="lg" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 px-8 py-4 text-lg relative overflow-hidden group" data-testid="button-get-started">
                     <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    <Zap className="w-5 h-5 mr-2 relative z-10 group-hover:animate-pulse" />
-                    <span className="relative z-10">End My Job Search Nightmare</span>
+                    <Rocket className="w-5 h-5 mr-2 relative z-10 group-hover:animate-bounce" />
+                    <span className="relative z-10">Start Landing Interviews</span>
                     <ArrowRight className="w-5 h-5 ml-2 relative z-10 group-hover:translate-x-1 transition-transform duration-300" />
                   </Button>
                 </Link>
-                <Link href="/recruiter-features">
-                  <Button variant="outline" size="lg" className="border-2 border-slate-300 hover:border-slate-400 px-8 py-4 text-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-300 hover:scale-105 group">
+                <Link href="/referral-marketplace">
+                  <Button variant="outline" size="lg" className="border-2 border-slate-300 hover:border-slate-400 px-8 py-4 text-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-300 hover:scale-105 group" data-testid="button-referral-marketplace">
                     <Users className="w-5 h-5 mr-2 group-hover:animate-bounce" />
-                    For Recruiters
+                    Referral Marketplace
                     <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
                   </Button>
                 </Link>
@@ -487,40 +451,34 @@ export default function LandingPage() {
               <Sparkles className="w-4 h-4 ml-2" />
             </div>
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4">
-              "I Went From Unemployed to Dream Job in 2 Weeks"
+              "Got 5 Interviews in My First Week Using AutoJobr"
             </h2>
             <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto mb-8">
-              Stop feeling invisible to employers. Every minute you wait, someone else is getting <em>your</em> dream job. Don't let another Monday pass in despair.
+              Skip the black hole of online applications. Get direct access to hiring managers through our verified referral network.
             </p>
-            
-            {/* Success Transformation Image */}
-            <div className="max-w-5xl mx-auto mb-8 relative overflow-hidden rounded-2xl shadow-2xl group">
-              <LazyImage 
-                src={careerTransformation} 
-                alt="Career transformation from unemployment to success" 
-                className="w-full h-72 object-cover transition-transform duration-700 group-hover:scale-105" 
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/40"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center text-white">
-                  <h3 className="text-2xl md:text-3xl font-bold mb-2">Your Transformation Starts Today</h3>
-                  <p className="text-lg opacity-90">From jobless despair to career breakthrough</p>
-                </div>
-              </div>
-            </div>
           </div>
 
-          {/* Celebration Image */}
-          <div className="mb-12 max-w-4xl mx-auto relative overflow-hidden rounded-2xl shadow-2xl group">
-            <LazyImage 
-              src={jobOfferCelebration} 
-              alt="Celebrating job offer success" 
-              className="w-full h-64 object-cover transition-transform duration-700 group-hover:scale-105" 
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
-            <div className="absolute bottom-6 right-6 text-white text-right">
-              <p className="text-lg font-semibold mb-2">"YES! I finally got the job!"</p>
-              <p className="text-sm opacity-90">This could be you in just 2 weeks</p>
+          {/* Feature Highlights Grid */}
+          <div className="mb-12 max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-2xl p-6 text-center hover:shadow-xl transition-all duration-300 hover:scale-105">
+              <Crown className="w-8 h-8 mx-auto mb-3 text-yellow-500" />
+              <h3 className="font-semibold mb-2">Chrome Extension</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-300">Auto-fill applications across 100+ job boards</p>
+            </div>
+            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-2xl p-6 text-center hover:shadow-xl transition-all duration-300 hover:scale-105">
+              <MessageCircle className="w-8 h-8 mx-auto mb-3 text-blue-500" />
+              <h3 className="font-semibold mb-2">AI Interviews</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-300">Practice with virtual interviewers</p>
+            </div>
+            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-2xl p-6 text-center hover:shadow-xl transition-all duration-300 hover:scale-105">
+              <BarChart3 className="w-8 h-8 mx-auto mb-3 text-green-500" />
+              <h3 className="font-semibold mb-2">Task Management</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-300">Track applications and follow-ups</p>
+            </div>
+            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-2xl p-6 text-center hover:shadow-xl transition-all duration-300 hover:scale-105">
+              <Users className="w-8 h-8 mx-auto mb-3 text-purple-500" />
+              <h3 className="font-semibold mb-2">Referral Network</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-300">Connect with 10K+ employees</p>
             </div>
           </div>
           
