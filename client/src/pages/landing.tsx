@@ -5,6 +5,8 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 import { 
   Rocket, 
   Users, 
@@ -49,6 +51,11 @@ const features = [
     icon: Brain,
     title: "AI-Powered Matching",
     description: "Advanced algorithms match candidates with perfect-fit opportunities based on skills, experience, and culture."
+  },
+  {
+    icon: Target,
+    title: "Smart Task Management", 
+    description: "AI-driven task automation that prioritizes your applications, schedules interviews, and sends follow-ups at optimal times for maximum response rates."
   },
   {
     icon: Zap,
@@ -255,6 +262,18 @@ export default function LandingPage() {
   const [isVisible, setIsVisible] = useState(false);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const { user } = useAuth();
+
+  // Fetch pending tasks for authenticated users
+  const { data: tasksData } = useQuery({
+    queryKey: ["/api/tasks"],
+    retry: false,
+    enabled: !!user,
+  });
+
+  const pendingTasks = tasksData?.tasks?.filter((task: any) => 
+    task.status === 'pending' || task.status === 'in_progress'
+  ).slice(0, 3) || [];
 
   useEffect(() => {
     setIsVisible(true);
@@ -828,6 +847,140 @@ export default function LandingPage() {
                 </Card>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* AI Task Management Showcase */}
+      <section className="py-20 bg-gradient-to-r from-green-50 via-blue-50 to-purple-50 dark:from-green-900/10 dark:via-blue-900/10 dark:to-purple-900/10 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <Badge className="mb-6 bg-green-100 text-green-700 border-green-200 hover:scale-105 transition-transform duration-300">
+                <Target className="w-3 h-3 mr-1" />
+                AI Task Management
+              </Badge>
+              
+              <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6">
+                Never Miss an 
+                <span className="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent"> Opportunity</span>
+              </h2>
+              
+              <p className="text-xl text-slate-600 dark:text-slate-300 mb-8">
+                Our AI agent automatically prioritizes your job applications, schedules follow-ups at optimal times, and reminds you about interview deadlines before they slip by.
+              </p>
+              
+              <div className="space-y-4 mb-8">
+                <div className="flex items-center space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  <span className="text-slate-700 dark:text-slate-300">Smart task prioritization based on job importance</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  <span className="text-slate-700 dark:text-slate-300">Automated follow-up reminders at optimal timing</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  <span className="text-slate-700 dark:text-slate-300">Interview prep scheduling and deadline alerts</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  <span className="text-slate-700 dark:text-slate-300">AI-powered task creation from job applications</span>
+                </div>
+              </div>
+              
+              <Link href="/task-management">
+                <Button className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                  <Target className="w-5 h-5 mr-2" />
+                  Try Task Manager
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </Link>
+            </div>
+            
+            <div className="relative">
+              {/* Task Management Preview Card */}
+              <Card className="bg-white/90 dark:bg-slate-800/90 backdrop-blur border-0 shadow-2xl hover:shadow-3xl transition-all duration-500">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center">
+                      <Target className="w-5 h-5 mr-2 text-green-500" />
+                      Your Pending Tasks
+                    </h3>
+                    <Badge className="bg-green-100 text-green-700 border-green-200">
+                      {user ? pendingTasks.length : 3} Active
+                    </Badge>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {user && pendingTasks.length > 0 ? (
+                      pendingTasks.map((task: any, index: number) => (
+                        <div key={task.id} className="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors duration-200">
+                          <div className="w-3 h-3 rounded-full bg-gradient-to-r from-green-500 to-blue-500 animate-pulse"></div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-slate-900 dark:text-white">{task.title}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              Due: {new Date(task.dueDateTime).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <Badge className={`text-xs ${task.priority === 'high' ? 'bg-red-100 text-red-700' : task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}`}>
+                            {task.priority}
+                          </Badge>
+                        </div>
+                      ))
+                    ) : (
+                      <>
+                        <div className="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                          <div className="w-3 h-3 rounded-full bg-gradient-to-r from-green-500 to-blue-500 animate-pulse"></div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-slate-900 dark:text-white">Follow up with Google recruiter</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Due: Tomorrow</p>
+                          </div>
+                          <Badge className="text-xs bg-red-100 text-red-700">High</Badge>
+                        </div>
+                        
+                        <div className="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                          <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 animate-pulse" style={{animationDelay: '0.5s'}}></div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-slate-900 dark:text-white">Prepare for Microsoft interview</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Due: Dec 15</p>
+                          </div>
+                          <Badge className="text-xs bg-yellow-100 text-yellow-700">Medium</Badge>
+                        </div>
+                        
+                        <div className="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                          <div className="w-3 h-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse" style={{animationDelay: '1s'}}></div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-slate-900 dark:text-white">Update LinkedIn profile</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Due: This week</p>
+                          </div>
+                          <Badge className="text-xs bg-blue-100 text-blue-700">Low</Badge>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  
+                  {user && (
+                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600">
+                      <Link href="/task-management">
+                        <Button variant="outline" size="sm" className="w-full hover:bg-green-50 hover:text-green-700 hover:border-green-300 transition-colors duration-200">
+                          View All Tasks
+                          <ChevronRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              {/* Floating AI indicators */}
+              <div className="absolute -top-4 -right-4 bg-green-500 text-white px-4 py-2 rounded-full text-sm font-semibold animate-bounce">
+                🤖 AI Powered
+              </div>
+              <div className="absolute bottom-4 -left-4 bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-semibold animate-pulse">
+                ⚡ Smart Prioritization
+              </div>
+            </div>
           </div>
         </div>
       </section>

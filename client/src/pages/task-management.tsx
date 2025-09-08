@@ -73,9 +73,10 @@ export default function TaskManagement() {
 
   // State management
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("active"); // Default to active (non-completed) tasks
   const [taskTypeFilter, setTaskTypeFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+  const [showCompletedTasks, setShowCompletedTasks] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -336,12 +337,22 @@ export default function TaskManagement() {
   // Extract tasks from response
   const taskList = isRecruiter ? (tasks as Task[] || []) : ((tasks as any)?.tasks || []);
   
-  // Filter tasks
+  // Filter tasks with smart status filtering
   const filteredTasks = taskList.filter((task: any) => {
     const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          task.candidateName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          task.candidateEmail?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || task.status === statusFilter;
+    
+    // Smart status filtering
+    let matchesStatus = true;
+    if (statusFilter === "active") {
+      matchesStatus = task.status !== "completed" && task.status !== "cancelled";
+    } else if (statusFilter === "all") {
+      matchesStatus = showCompletedTasks || (task.status !== "completed");
+    } else {
+      matchesStatus = task.status === statusFilter;
+    }
+    
     const matchesTaskType = taskTypeFilter === "all" || task.taskType === taskTypeFilter;
     const matchesPriority = priorityFilter === "all" || task.priority === priorityFilter;
     
@@ -424,6 +435,7 @@ export default function TaskManagement() {
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="active">Active Tasks</SelectItem>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
@@ -432,6 +444,19 @@ export default function TaskManagement() {
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="show-completed"
+                  checked={showCompletedTasks}
+                  onChange={(e) => setShowCompletedTasks(e.target.checked)}
+                  className="rounded"
+                />
+                <Label htmlFor="show-completed" className="text-sm cursor-pointer">
+                  Show completed
+                </Label>
+              </div>
 
               <Select value={taskTypeFilter} onValueChange={setTaskTypeFilter}>
                 <SelectTrigger className="w-[140px]" data-testid="select-task-type-filter">
