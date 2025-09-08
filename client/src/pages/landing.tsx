@@ -40,11 +40,7 @@ import referralMarketplace from "@assets/generated_images/Referral_marketplace_i
 import atsComparisonImage from "@assets/generated_images/Extension_ATS_bypass_comparison_6bd77ec6_optimized.png";
 import bundlesImage from "@assets/generated_images/Subscription_bundles_showcase_design_d57dc5e6_optimized.png";
 import genuineApplicationImage from "@assets/generated_images/Genuine_application_creation_illustration_3166e23e_optimized.png";
-import jobSearchFrustration from "@assets/generated_images/Job_search_frustration_scene_e5bee723_optimized.png";
-import jobOfferCelebration from "@assets/generated_images/Job_offer_celebration_moment_f7975969_optimized.png";
-import careerTransformation from "@assets/generated_images/Before_after_career_transformation_44ba2440_optimized.png";
-import successCommunity from "@assets/generated_images/Success_community_celebration_1183aa22_optimized.png";
-import familySecurity from "@assets/generated_images/Family_security_emotional_moment_ae442821_optimized.png";
+// Removed unused emotional struggle images for better performance
 
 // Removed stats array - replaced with more compelling social proof section
 
@@ -83,25 +79,25 @@ const features = [
 
 const testimonials = [
   {
-    name: "Sarah Chen",
-    role: "Senior Software Engineer",
+    name: "Alex Thompson",
+    role: "Software Engineer",
     company: "Google",
-    image: "👩‍💻",
-    quote: "I was rejected 200+ times. Felt like a failure. Then AutoJobr got me interviews at Google, Meta, and Apple in ONE WEEK. I'm crying happy tears as I write this."
+    image: "👨‍💻",
+    quote: "Landed my dream internship at Google through AutoJobr's referral network. The AI interview prep was incredibly realistic and helped me ace the technical rounds!"
   },
   {
-    name: "Michael Rodriguez", 
-    role: "Marketing Director",
-    company: "Netflix",
-    image: "👨‍💼",
-    quote: "Unemployed for 8 months. My wife was worried sick. Kids asking why daddy's always sad. AutoJobr changed everything. Got my Netflix job and doubled my salary. My family believes in me again."
-  },
-  {
-    name: "Emily Johnson",
+    name: "Maya Patel", 
     role: "Product Manager",
-    company: "Microsoft",
-    image: "👩‍🎨",
-    quote: "At 35, I thought I was too old to switch careers. Everyone said I'd never make it in tech. AutoJobr proved them wrong. Now I wake up excited for work every single day."
+    company: "Meta",
+    image: "👩‍💼",
+    quote: "As a new grad, I was overwhelmed by job applications. AutoJobr's Chrome extension saved me hours and their task management kept me organized. Got 5 interviews in my first week!"
+  },
+  {
+    name: "Jordan Kim",
+    role: "Data Analyst",
+    company: "Netflix",
+    image: "🧑‍🔬",
+    quote: "The virtual interviews feature was a game-changer. I practiced until I felt confident, then landed my first job at Netflix. The referral marketplace connected me with the hiring manager directly!"
   }
 ];
 
@@ -515,17 +511,24 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Community Success Image */}
-          <div className="mb-8 max-w-5xl mx-auto relative overflow-hidden rounded-2xl shadow-2xl group">
-            <LazyImage 
-              src={successCommunity} 
-              alt="Community of successful job seekers celebrating" 
-              className="w-full h-64 object-cover transition-transform duration-700 group-hover:scale-105" 
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-            <div className="absolute bottom-6 left-6 text-white">
-              <h3 className="text-xl font-bold mb-2">Join 50,000+ Success Stories</h3>
-              <p className="text-sm opacity-90">Your breakthrough moment is waiting</p>
+          {/* Success Stats - No Image */}
+          <div className="mb-8 max-w-5xl mx-auto text-center">
+            <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl p-8 shadow-2xl">
+              <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">Join 50,000+ Students & New Grads Who Landed Jobs</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-white">
+                <div>
+                  <div className="text-3xl font-bold">2.3x</div>
+                  <div className="text-blue-100">Faster Interview Rate</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold">89%</div>
+                  <div className="text-blue-100">Job Offer Success</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold">14 days</div>
+                  <div className="text-blue-100">Average Time to Offer</div>
+                </div>
+              </div>
             </div>
           </div>
           
@@ -574,17 +577,18 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Family Impact Image */}
-          <div className="mb-12 max-w-4xl mx-auto relative overflow-hidden rounded-2xl shadow-2xl group">
-            <LazyImage 
-              src={familySecurity} 
-              alt="Parent providing security for family after career success" 
-              className="w-full h-64 object-cover transition-transform duration-700 group-hover:scale-105" 
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-            <div className="absolute bottom-6 left-6 text-white">
-              <p className="text-lg font-semibold mb-2">"Now I can finally provide for my family"</p>
-              <p className="text-sm opacity-90">Your success impacts everyone you love</p>
+          {/* Modern Call to Action */}
+          <div className="mb-12 max-w-4xl mx-auto text-center">
+            <div className="bg-white/10 backdrop-blur rounded-2xl p-8 border border-white/20">
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Start Your Career Journey Today</h3>
+              <p className="text-slate-600 dark:text-slate-300 mb-6">Join thousands of students and new grads who've fast-tracked their careers</p>
+              <Link href="/auth">
+                <Button size="lg" className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                  <Rocket className="w-5 h-5 mr-2" />
+                  Get Started Free
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </Link>
             </div>
           </div>
           
@@ -690,7 +694,7 @@ export default function LandingPage() {
             
             <div className="relative">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-                <LazyImage 
+                <img 
                   src={atsComparisonImage} 
                   alt="ATS Bypass Comparison" 
                   className="w-full h-auto"
@@ -716,7 +720,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="relative">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-                <LazyImage 
+                <img 
                   src={referralMarketplace} 
                   alt="Referral Marketplace" 
                   className="w-full h-auto"
@@ -871,7 +875,7 @@ export default function LandingPage() {
             
             <div className="relative group">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg opacity-20 blur-xl group-hover:opacity-30 transition-opacity duration-300"></div>
-              <LazyImage 
+              <img 
                 src={dashboardMockup} 
                 alt="AutoJobr Dashboard" 
                 className="relative rounded-lg shadow-2xl w-full transform hover:scale-105 transition-all duration-500 hover:shadow-3xl"
