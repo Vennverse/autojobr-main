@@ -42,7 +42,7 @@ import {
   Wand2,
   TrendingUp,
   Lightbulb,
-  Robot
+  Bot
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -391,7 +391,7 @@ export default function TaskManagement() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent flex items-center">
-              <Robot className="w-8 h-8 mr-3 text-green-500 animate-pulse" />
+              <Bot className="w-8 h-8 mr-3 text-green-500 animate-pulse" />
               AI Task Manager
             </h1>
             <p className="text-gray-600 dark:text-gray-300 mt-1">
@@ -1184,7 +1184,7 @@ export default function TaskManagement() {
               className="w-14 h-14 rounded-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 group"
               data-testid="button-ai-assistant"
             >
-              <Robot className="w-6 h-6 group-hover:animate-pulse" />
+              <Bot className="w-6 h-6 group-hover:animate-pulse" />
             </Button>
             
             {/* Pulsing rings */}
