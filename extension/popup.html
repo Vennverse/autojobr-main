@@ -683,6 +683,196 @@
     .content::-webkit-scrollbar-thumb:hover, .tasks-list::-webkit-scrollbar-thumb:hover {
       background: #94a3b8;
     }
+
+    /* Task Creation Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .task-modal {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      width: 340px;
+      max-width: 90vw;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      transform: scale(0.9);
+      transition: transform 0.2s ease-out;
+    }
+
+    .modal-overlay.show .task-modal {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1f2937;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 20px;
+      color: #9ca3af;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .modal-close:hover {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 8px 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .priority-options {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .priority-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 6px;
+      background: white;
+      color: #6b7280;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .priority-btn.selected {
+      border-color: #3b82f6;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+
+    .priority-btn.high.selected {
+      border-color: #ef4444;
+      background: #fef2f2;
+      color: #dc2626;
+    }
+
+    .priority-btn.medium.selected {
+      border-color: #f59e0b;
+      background: #fffbeb;
+      color: #d97706;
+    }
+
+    .priority-btn.low.selected {
+      border-color: #22c55e;
+      background: #f0fdf4;
+      color: #16a34a;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .modal-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .modal-btn.cancel {
+      background: #f3f4f6;
+      color: #6b7280;
+    }
+
+    .modal-btn.cancel:hover {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .modal-btn.primary {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+    }
+
+    .modal-btn.primary:hover {
+      background: linear-gradient(135deg, #1d4ed8, #1e40af);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .modal-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .form-error {
+      color: #ef4444;
+      font-size: 12px;
+      margin-top: 4px;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -798,6 +988,61 @@
 
     <div class="footer">
       <a href="#" id="openDashboard">🚀 Open Dashboard</a>
+    </div>
+  </div>
+
+  <!-- Task Creation Modal -->
+  <div class="modal-overlay" id="taskModal">
+    <div class="task-modal">
+      <div class="modal-header">
+        <h3 class="modal-title">✨ Create New Task</h3>
+        <button class="modal-close" id="closeTaskModal">×</button>
+      </div>
+      
+      <form id="taskForm">
+        <div class="form-group">
+          <label class="form-label" for="taskTitle">Task Title *</label>
+          <input type="text" id="taskTitle" class="form-input" placeholder="Enter task title..." maxlength="100" required>
+          <div class="form-error" id="titleError">Please enter a task title</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="taskDescription">Description</label>
+          <textarea id="taskDescription" class="form-textarea" placeholder="Add details about this task..." maxlength="500"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Priority</label>
+          <div class="priority-options">
+            <button type="button" class="priority-btn high" data-priority="high">🔴 High</button>
+            <button type="button" class="priority-btn medium selected" data-priority="medium">🟡 Medium</button>
+            <button type="button" class="priority-btn low" data-priority="low">🟢 Low</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="taskCategory">Category</label>
+          <select id="taskCategory" class="form-select">
+            <option value="job_search">🎯 Job Search</option>
+            <option value="follow_up">📞 Follow Up</option>
+            <option value="interview">🤝 Interview</option>
+            <option value="application">📝 Application</option>
+            <option value="networking">👥 Networking</option>
+            <option value="research">🔍 Research</option>
+            <option value="general" selected>📋 General</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="taskDueDate">Due Date (Optional)</label>
+          <input type="datetime-local" id="taskDueDate" class="form-input">
+        </div>
+      </form>
+
+      <div class="modal-actions">
+        <button type="button" class="modal-btn cancel" id="cancelTaskModal">Cancel</button>
+        <button type="button" class="modal-btn primary" id="submitTask">Create Task</button>
+      </div>
     </div>
   </div>
 

@@ -59,6 +59,7 @@ class AutoJobrPopup {
 
     // Task management
     document.getElementById('addTaskBtn').addEventListener('click', () => this.handleAddTask());
+    this.initializeTaskModal();
 
     // Settings toggles
     this.initializeToggle('autofillToggle', 'autofillEnabled');
@@ -68,10 +69,13 @@ class AutoJobrPopup {
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
     
-    // ESC key to close popup
+    // ESC key to close popup (only when modal is not open)
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        window.close();
+        const modal = document.getElementById('taskModal');
+        if (!modal || !modal.classList.contains('show')) {
+          window.close();
+        }
       }
     });
   }
@@ -1076,26 +1080,174 @@ class AutoJobrPopup {
   }
 
   async handleAddTask() {
-    const title = prompt('Enter task title:');
-    if (!title) return;
+    this.showTaskModal();
+  }
+
+  initializeTaskModal() {
+    const modal = document.getElementById('taskModal');
+    const closeBtn = document.getElementById('closeTaskModal');
+    const cancelBtn = document.getElementById('cancelTaskModal');
+    const submitBtn = document.getElementById('submitTask');
+    const form = document.getElementById('taskForm');
+    const priorityBtns = document.querySelectorAll('.priority-btn');
+
+    // Close modal handlers
+    closeBtn.addEventListener('click', () => this.hideTaskModal());
+    cancelBtn.addEventListener('click', () => this.hideTaskModal());
+    
+    // Click outside to close
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        this.hideTaskModal();
+      }
+    });
+
+    // ESC key to close
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('show')) {
+        this.hideTaskModal();
+      }
+    });
+
+    // Priority selection
+    priorityBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        priorityBtns.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+      });
+    });
+
+    // Form submission
+    submitBtn.addEventListener('click', () => this.submitTaskForm());
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.submitTaskForm();
+    });
+
+    // Real-time title validation
+    const titleInput = document.getElementById('taskTitle');
+    titleInput.addEventListener('input', () => this.validateTaskTitle());
+  }
+
+  showTaskModal() {
+    const modal = document.getElementById('taskModal');
+    const form = document.getElementById('taskForm');
+    
+    // Reset form
+    form.reset();
+    
+    // Reset priority to medium
+    document.querySelectorAll('.priority-btn').forEach(btn => {
+      btn.classList.remove('selected');
+    });
+    const mediumBtn = document.querySelector('.priority-btn.medium');
+    if (mediumBtn) {
+      mediumBtn.classList.add('selected');
+    }
+    
+    // Clear any errors and initialize submit button as disabled
+    this.clearTaskFormErrors();
+    document.getElementById('submitTask').disabled = true;
+    
+    // Set default due date to tomorrow at 9 AM (local time)
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(9, 0, 0, 0);
+    const year = tomorrow.getFullYear();
+    const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+    const day = String(tomorrow.getDate()).padStart(2, '0');
+    const hours = String(tomorrow.getHours()).padStart(2, '0');
+    const minutes = String(tomorrow.getMinutes()).padStart(2, '0');
+    document.getElementById('taskDueDate').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+    
+    // Show modal
+    modal.classList.add('show');
+    
+    // Focus title input
+    setTimeout(() => {
+      document.getElementById('taskTitle').focus();
+    }, 200);
+  }
+
+  hideTaskModal() {
+    const modal = document.getElementById('taskModal');
+    modal.classList.remove('show');
+  }
+
+  validateTaskTitle() {
+    const titleInput = document.getElementById('taskTitle');
+    const titleError = document.getElementById('titleError');
+    const submitBtn = document.getElementById('submitTask');
+    
+    const isValid = titleInput.value.trim().length > 0;
+    
+    if (!isValid && titleInput.value.length > 0) {
+      titleError.style.display = 'block';
+      titleInput.style.borderColor = '#ef4444';
+    } else {
+      titleError.style.display = 'none';
+      titleInput.style.borderColor = isValid ? '#22c55e' : '#e5e7eb';
+    }
+    
+    submitBtn.disabled = !isValid;
+    return isValid;
+  }
+
+  clearTaskFormErrors() {
+    document.getElementById('titleError').style.display = 'none';
+    document.getElementById('taskTitle').style.borderColor = '#e5e7eb';
+    document.getElementById('submitTask').disabled = false;
+  }
+
+  getSelectedPriority() {
+    const selected = document.querySelector('.priority-btn.selected');
+    return selected ? selected.dataset.priority : 'medium';
+  }
+
+  async submitTaskForm() {
+    const titleInput = document.getElementById('taskTitle');
+    const descriptionInput = document.getElementById('taskDescription');
+    const categorySelect = document.getElementById('taskCategory');
+    const dueDateInput = document.getElementById('taskDueDate');
+    const submitBtn = document.getElementById('submitTask');
+
+    // Validate form
+    if (!this.validateTaskTitle()) {
+      titleInput.focus();
+      return;
+    }
+
+    const taskData = {
+      title: titleInput.value.trim(),
+      description: descriptionInput.value.trim() || null,
+      priority: this.getSelectedPriority(),
+      category: categorySelect.value,
+      dueDateTime: dueDateInput.value ? new Date(dueDateInput.value).toISOString() : null,
+      reminderEnabled: !!dueDateInput.value
+    };
 
     try {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creating...';
+
       const response = await this.makeApiRequest('/api/tasks', {
         method: 'POST',
-        body: JSON.stringify({
-          title,
-          priority: 'medium',
-          category: 'general'
-        })
+        body: JSON.stringify(taskData)
       });
 
       if (response.ok) {
         await this.loadTasks(); // Refresh tasks
-        this.showNotification('Task added!', 'success');
+        this.hideTaskModal();
+        this.showNotification(`✨ Task "${taskData.title}" created successfully!`, 'success');
+      } else {
+        throw new Error('Failed to create task');
       }
     } catch (error) {
-      console.error('Failed to add task:', error);
-      this.showNotification('Failed to add task', 'error');
+      console.error('Failed to create task:', error);
+      this.showNotification('Failed to create task', 'error');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create Task';
     }
   }
 
