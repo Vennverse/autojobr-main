@@ -873,6 +873,52 @@
       margin-top: 4px;
       display: none;
     }
+
+    /* Template Options */
+    .template-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 6px;
+      margin-bottom: 16px;
+    }
+
+    .template-btn {
+      padding: 10px 8px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      background: white;
+      color: #6b7280;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .template-btn:hover {
+      border-color: #3b82f6;
+      background: #f8fafc;
+      color: #1d4ed8;
+      transform: translateY(-1px);
+    }
+
+    .template-btn.selected {
+      border-color: #3b82f6;
+      background: #eff6ff;
+      color: #1d4ed8;
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+    }
+
+    .template-btn.custom.selected {
+      border-color: #8b5cf6;
+      background: #f3f4f6;
+      color: #7c3aed;
+    }
   </style>
 </head>
 <body>
@@ -1000,6 +1046,17 @@
       </div>
       
       <form id="taskForm">
+        <div class="form-group">
+          <label class="form-label">Quick Templates</label>
+          <div class="template-options">
+            <button type="button" class="template-btn" data-template="follow_up">📞 Follow Up</button>
+            <button type="button" class="template-btn" data-template="interview_prep">📝 Interview Prep</button>
+            <button type="button" class="template-btn" data-template="thank_you">💌 Thank You Note</button>
+            <button type="button" class="template-btn" data-template="research">🔍 Company Research</button>
+            <button type="button" class="template-btn" data-template="custom">✨ Custom Task</button>
+          </div>
+        </div>
+
         <div class="form-group">
           <label class="form-label" for="taskTitle">Task Title *</label>
           <input type="text" id="taskTitle" class="form-input" placeholder="Enter task title..." maxlength="100" required>

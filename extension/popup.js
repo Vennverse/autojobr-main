@@ -1090,6 +1090,7 @@ class AutoJobrPopup {
     const submitBtn = document.getElementById('submitTask');
     const form = document.getElementById('taskForm');
     const priorityBtns = document.querySelectorAll('.priority-btn');
+    const templateBtns = document.querySelectorAll('.template-btn');
 
     // Close modal handlers
     closeBtn.addEventListener('click', () => this.hideTaskModal());
@@ -1127,6 +1128,177 @@ class AutoJobrPopup {
     // Real-time title validation
     const titleInput = document.getElementById('taskTitle');
     titleInput.addEventListener('input', () => this.validateTaskTitle());
+
+    // Template selection
+    templateBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        templateBtns.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        this.applyTemplate(btn.dataset.template);
+      });
+    });
+  }
+
+  getTaskTemplates() {
+    return {
+      follow_up: {
+        title: 'Follow up on application at {company}',
+        description: 'Send a polite follow-up email to check on application status. Include specific details about the role and express continued interest.',
+        priority: 'medium',
+        category: 'job_application',
+        taskType: 'followup',
+        daysOffset: 3
+      },
+      interview_prep: {
+        title: 'Prepare for interview at {company}',
+        description: 'Research the company, review job requirements, prepare answers for common questions, and practice technical skills if needed.',
+        priority: 'high',
+        category: 'interview',
+        taskType: 'interview_prep',
+        daysOffset: 1
+      },
+      thank_you: {
+        title: 'Send thank you note after interview',
+        description: 'Send a personalized thank you email within 24 hours of the interview. Reference specific discussion points and reiterate interest.',
+        priority: 'high',
+        category: 'job_application',
+        taskType: 'followup',
+        daysOffset: 0,
+        hoursOffset: 2
+      },
+      research: {
+        title: 'Research {company} before applying',
+        description: 'Research company culture, recent news, products/services, competitors, and key team members. Prepare thoughtful questions.',
+        priority: 'medium',
+        category: 'career_planning',
+        taskType: 'reminder',
+        daysOffset: 0,
+        hoursOffset: 2
+      },
+      custom: {
+        title: '',
+        description: '',
+        priority: 'medium',
+        category: 'general',
+        taskType: 'reminder',
+        daysOffset: 1
+      }
+    };
+  }
+
+  async applyTemplate(templateKey) {
+    const templates = this.getTaskTemplates();
+    const template = templates[templateKey];
+    
+    if (!template) return;
+
+    // Try to extract company name from current page
+    let companyName = await this.extractCompanyName();
+    
+    // Populate form fields
+    const titleInput = document.getElementById('taskTitle');
+    const descriptionInput = document.getElementById('taskDescription');
+    const categorySelect = document.getElementById('taskCategory');
+    const dueDateInput = document.getElementById('taskDueDate');
+
+    // Set title and description
+    titleInput.value = template.title.replace('{company}', companyName || '[Company Name]');
+    descriptionInput.value = template.description;
+
+    // Set priority
+    document.querySelectorAll('.priority-btn').forEach(btn => {
+      btn.classList.remove('selected');
+    });
+    const priorityBtn = document.querySelector(`.priority-btn.${template.priority}`);
+    if (priorityBtn) {
+      priorityBtn.classList.add('selected');
+    }
+
+    // Set category
+    categorySelect.value = template.category;
+
+    // Set due date based on template
+    const dueDate = new Date();
+    if (template.daysOffset) {
+      dueDate.setDate(dueDate.getDate() + template.daysOffset);
+    }
+    if (template.hoursOffset) {
+      dueDate.setHours(dueDate.getHours() + template.hoursOffset);
+    } else {
+      dueDate.setHours(9, 0, 0, 0); // Default to 9 AM
+    }
+
+    const year = dueDate.getFullYear();
+    const month = String(dueDate.getMonth() + 1).padStart(2, '0');
+    const day = String(dueDate.getDate()).padStart(2, '0');
+    const hours = String(dueDate.getHours()).padStart(2, '0');
+    const minutes = String(dueDate.getMinutes()).padStart(2, '0');
+    dueDateInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+    // Trigger validation
+    this.validateTaskTitle();
+
+    // Focus on title for editing if it contains placeholder
+    if (titleInput.value.includes('[Company Name]')) {
+      titleInput.focus();
+      titleInput.select();
+    }
+  }
+
+  async extractCompanyName() {
+    try {
+      // Try to get company name from page title or meta tags
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab) return null;
+
+      // Execute script to extract company name
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        function: () => {
+          // Try multiple methods to extract company name
+          
+          // Method 1: LinkedIn job posts
+          const linkedinCompany = document.querySelector('.job-details-jobs-unified-top-card__company-name a')?.textContent?.trim();
+          if (linkedinCompany) return linkedinCompany;
+
+          // Method 2: Indeed job posts
+          const indeedCompany = document.querySelector('[data-testid="inlineHeader-companyName"] a')?.textContent?.trim();
+          if (indeedCompany) return indeedCompany;
+
+          // Method 3: Glassdoor
+          const glassdoorCompany = document.querySelector('.employer-name')?.textContent?.trim();
+          if (glassdoorCompany) return glassdoorCompany;
+
+          // Method 4: Company career pages (look for common patterns)
+          const metaTitle = document.querySelector('meta[property="og:site_name"]')?.content?.trim();
+          if (metaTitle && !metaTitle.includes('job') && !metaTitle.includes('career')) return metaTitle;
+
+          // Method 5: Page title extraction
+          const title = document.title;
+          const titleParts = title.split(' - ');
+          if (titleParts.length > 1) {
+            const potentialCompany = titleParts[titleParts.length - 1];
+            if (!potentialCompany.includes('job') && !potentialCompany.includes('career')) {
+              return potentialCompany;
+            }
+          }
+
+          // Method 6: URL hostname as fallback
+          const hostname = window.location.hostname.replace('www.', '');
+          const domainParts = hostname.split('.');
+          if (domainParts.length >= 2) {
+            return domainParts[domainParts.length - 2];
+          }
+
+          return null;
+        }
+      });
+
+      return results[0]?.result || null;
+    } catch (error) {
+      console.error('Failed to extract company name:', error);
+      return null;
+    }
   }
 
   showTaskModal() {
@@ -1135,6 +1307,15 @@ class AutoJobrPopup {
     
     // Reset form
     form.reset();
+    
+    // Reset templates to custom
+    document.querySelectorAll('.template-btn').forEach(btn => {
+      btn.classList.remove('selected');
+    });
+    const customBtn = document.querySelector('.template-btn[data-template="custom"]');
+    if (customBtn) {
+      customBtn.classList.add('selected');
+    }
     
     // Reset priority to medium
     document.querySelectorAll('.priority-btn').forEach(btn => {
@@ -1217,11 +1398,18 @@ class AutoJobrPopup {
       return;
     }
 
+    // Get selected template to determine taskType
+    const selectedTemplate = document.querySelector('.template-btn.selected');
+    const templateKey = selectedTemplate ? selectedTemplate.dataset.template : 'custom';
+    const templates = this.getTaskTemplates();
+    const template = templates[templateKey] || templates.custom;
+
     const taskData = {
       title: titleInput.value.trim(),
       description: descriptionInput.value.trim() || null,
       priority: this.getSelectedPriority(),
       category: categorySelect.value,
+      taskType: template.taskType,
       dueDateTime: dueDateInput.value ? new Date(dueDateInput.value).toISOString() : null,
       reminderEnabled: !!dueDateInput.value
     };

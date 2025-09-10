@@ -48,6 +48,7 @@ interface JobSeekerTask {
   status: 'pending' | 'in_progress' | 'completed' | 'overdue';
   taskType: 'application' | 'followup' | 'interview_prep' | 'networking' | 'skill_development' | 'research' | 'reminder';
   priority: 'low' | 'medium' | 'high' | 'urgent';
+  category?: string;
   dueDateTime?: string;
   reminderDateTime?: string;
   reminderEnabled?: boolean;
@@ -56,6 +57,21 @@ interface JobSeekerTask {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+interface FormData {
+  title: string;
+  description: string;
+  taskType: string;
+  priority: string;
+  category: string;
+  dueDateTime: string;
+  reminderDateTime: string;
+  reminderEnabled: boolean;
+  relatedUrl: string;
+  tags: string[];
+  notes: string;
+  companyName: string;
 }
 
 export default function JobSeekerTasks() {
@@ -73,18 +89,22 @@ export default function JobSeekerTasks() {
   const [selectedTask, setSelectedTask] = useState<JobSeekerTask | null>(null);
 
   // Form data for creating/editing tasks
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     title: "",
     description: "",
     taskType: "application",
     priority: "medium",
+    category: "general",
     dueDateTime: "",
     reminderDateTime: "",
     reminderEnabled: false,
     relatedUrl: "",
-    tags: [] as string[],
-    notes: ""
+    tags: [],
+    notes: "",
+    companyName: ""
   });
+
+  const [selectedTemplate, setSelectedTemplate] = useState("custom");
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -193,19 +213,127 @@ export default function JobSeekerTasks() {
     }
   });
 
+  // Task templates matching extension functionality
+  interface TaskTemplate {
+    title: string;
+    description: string;
+    priority: string;
+    category: string;
+    taskType: string;
+    daysOffset: number;
+    hoursOffset?: number;
+  }
+
+  // Task templates matching extension exactly
+  const getTaskTemplates = (): Record<string, TaskTemplate> => {
+    return {
+      follow_up: {
+        title: 'Follow up on application at {company}',
+        description: 'Send a polite follow-up email to check on application status. Include specific details about the role and express continued interest.',
+        priority: 'medium',
+        category: 'job_application',
+        taskType: 'followup',
+        daysOffset: 3
+      },
+      interview_prep: {
+        title: 'Prepare for interview at {company}',
+        description: 'Research the company, review job requirements, prepare answers for common questions, and practice technical skills if needed.',
+        priority: 'high',
+        category: 'interview',
+        taskType: 'interview_prep',
+        daysOffset: 1
+      },
+      thank_you: {
+        title: 'Send thank you note after interview',
+        description: 'Send a personalized thank you email within 24 hours of the interview. Reference specific discussion points and reiterate interest.',
+        priority: 'high',
+        category: 'job_application',
+        taskType: 'followup',
+        daysOffset: 0,
+        hoursOffset: 2
+      },
+      research: {
+        title: 'Research {company} before applying',
+        description: 'Research company culture, recent news, products/services, competitors, and key team members. Prepare thoughtful questions.',
+        priority: 'medium',
+        category: 'career_planning',
+        taskType: 'reminder',
+        daysOffset: 0,
+        hoursOffset: 2
+      },
+      custom: {
+        title: '',
+        description: '',
+        priority: 'medium',
+        category: 'general',
+        taskType: 'reminder',
+        daysOffset: 1
+      }
+    };
+  };
+
+  // Extract company name from URL or use manual input
+  const extractCompanyFromUrl = (url: string): string => {
+    if (!url) return '';
+    try {
+      const domain = new URL(url).hostname;
+      const parts = domain.split('.');
+      const companyPart = parts.length > 2 ? parts[parts.length - 2] : parts[0];
+      return companyPart.charAt(0).toUpperCase() + companyPart.slice(1);
+    } catch {
+      return '';
+    }
+  };
+
+  const applyTemplate = (templateKey: string) => {
+    const templates = getTaskTemplates();
+    const template = templates[templateKey];
+    if (!template) return;
+
+    // Calculate due date based on template offset
+    let dueDate = new Date();
+    if (template.daysOffset) {
+      dueDate.setDate(dueDate.getDate() + template.daysOffset);
+    }
+    if (template.hoursOffset) {
+      dueDate.setHours(dueDate.getHours() + template.hoursOffset);
+    }
+
+    // Use functional updates to avoid stale closure issues
+    setFormData(prev => {
+      const companyName = prev.companyName || extractCompanyFromUrl(prev.relatedUrl);
+      const title = template.title && companyName ? 
+        template.title.replace('{company}', companyName) : 
+        template.title;
+
+      return {
+        ...prev,
+        title,
+        description: template.description,
+        priority: template.priority,
+        category: template.category,
+        taskType: template.taskType,
+        dueDateTime: dueDate.toISOString().slice(0, 16)
+      };
+    });
+  };
+
   const resetForm = () => {
     setFormData({
       title: "",
       description: "",
       taskType: "application",
       priority: "medium",
+      category: "general",
       dueDateTime: "",
       reminderDateTime: "",
       reminderEnabled: false,
       relatedUrl: "",
       tags: [],
-      notes: ""
+      notes: "",
+      companyName: ""
     });
+    setSelectedTemplate("custom");
   };
 
   const handleCreateTask = () => {
@@ -244,7 +372,7 @@ export default function JobSeekerTasks() {
   };
 
   // Extract tasks from response
-  const taskList = tasksData?.tasks || [];
+  const taskList = (tasksData as any)?.tasks || [];
   
   // Filter tasks
   const filteredTasks = taskList.filter((task: JobSeekerTask) => {
@@ -579,6 +707,32 @@ export default function JobSeekerTasks() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-6">
+              {/* Task Templates */}
+              <div>
+                <Label>Quick Templates</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                  {Object.entries(getTaskTemplates()).map(([key, template]) => (
+                    <Button
+                      key={key}
+                      type="button"
+                      variant={selectedTemplate === key ? "default" : "outline"}
+                      size="sm"
+                      className="text-xs h-auto py-2 px-3"
+                      onClick={() => {
+                        setSelectedTemplate(key);
+                        applyTemplate(key);
+                      }}
+                      data-testid={`template-${key}`}
+                    >
+                      {key === 'follow_up' && '📧 Follow Up'}
+                      {key === 'interview_prep' && '💼 Interview Prep'}
+                      {key === 'thank_you' && '🙏 Thank You Note'}
+                      {key === 'research' && '🔍 Company Research'}
+                      {key === 'custom' && '✏️ Custom Task'}
+                    </Button>
+                  ))}
+                </div>
+              </div>
               <div>
                 <Label htmlFor="title">Task Title *</Label>
                 <Input
@@ -602,7 +756,35 @@ export default function JobSeekerTasks() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="companyName">Company Name (optional)</Label>
+                <Input
+                  id="companyName"
+                  value={formData.companyName}
+                  onChange={(e) => {
+                    const companyName = e.target.value;
+                    setFormData(prev => ({ ...prev, companyName }));
+                    // Auto-update title if using a template with {company} placeholder
+                    if (selectedTemplate !== 'custom' && companyName) {
+                      const templates = getTaskTemplates();
+                      const template = templates[selectedTemplate];
+                      if (template?.title?.includes('{company}')) {
+                        setFormData(prev => ({
+                          ...prev,
+                          title: template.title.replace('{company}', companyName)
+                        }));
+                      }
+                    }
+                  }}
+                  placeholder="e.g., Google, Microsoft, Amazon"
+                  data-testid="input-company-name"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Will auto-populate task titles with company name when using templates
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
                   <Label>Task Type</Label>
                   <Select value={formData.taskType} onValueChange={(value) => setFormData(prev => ({ ...prev, taskType: value }))}>
@@ -617,6 +799,23 @@ export default function JobSeekerTasks() {
                       <SelectItem value="skill_development">Skill Development</SelectItem>
                       <SelectItem value="research">Company Research</SelectItem>
                       <SelectItem value="reminder">Reminder</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Category</Label>
+                  <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
+                    <SelectTrigger data-testid="select-category">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="job_application">Job Application</SelectItem>
+                      <SelectItem value="interview">Interview</SelectItem>
+                      <SelectItem value="career_planning">Career Planning</SelectItem>
+                      <SelectItem value="networking">Networking</SelectItem>
+                      <SelectItem value="skill_development">Skill Development</SelectItem>
+                      <SelectItem value="general">General</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -654,10 +853,23 @@ export default function JobSeekerTasks() {
                   id="relatedUrl"
                   type="url"
                   value={formData.relatedUrl}
-                  onChange={(e) => setFormData(prev => ({ ...prev, relatedUrl: e.target.value }))}
+                  onChange={(e) => {
+                    const url = e.target.value;
+                    setFormData(prev => ({ ...prev, relatedUrl: url }));
+                    // Auto-extract company name from URL if company field is empty
+                    if (url && !formData.companyName) {
+                      const extractedCompany = extractCompanyFromUrl(url);
+                      if (extractedCompany) {
+                        setFormData(prev => ({ ...prev, companyName: extractedCompany }));
+                      }
+                    }
+                  }}
                   placeholder="https://company.com/careers/job-posting"
                   data-testid="input-related-url"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Company name will be auto-extracted from job posting URLs
+                </p>
               </div>
 
               <div>

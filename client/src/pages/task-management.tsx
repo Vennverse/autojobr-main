@@ -42,7 +42,8 @@ import {
   Wand2,
   TrendingUp,
   Lightbulb,
-  Bot
+  Bot,
+  Star
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
