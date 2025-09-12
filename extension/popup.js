@@ -180,10 +180,6 @@ class AutoJobrPopup {
         return { error: 'Authentication required' };
       }
       
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
       // Extract session token from response headers
       const newToken = response.headers.get('X-Session-Token');
       if (newToken) {
@@ -191,6 +187,15 @@ class AutoJobrPopup {
       }
       
       const data = await response.json();
+      
+      if (!response.ok) {
+        // Throw error with server's message and status if available
+        const errorMessage = data?.error || data?.message || `HTTP ${response.status}: ${response.statusText}`;
+        const error = new Error(errorMessage);
+        error.status = response.status;
+        error.data = data;
+        throw error;
+      }
       
       // Cache GET responses
       if (options.method === 'GET') {
@@ -207,6 +212,12 @@ class AutoJobrPopup {
         console.error(`Request timeout for ${endpoint}`);
         return { error: 'Request timeout' };
       }
+      
+      // Re-throw HTTP errors so calling code can handle them properly
+      if (error.status) {
+        throw error;
+      }
+      
       console.error(`API request failed for ${endpoint}:`, error);
       return null;
     }
@@ -942,9 +953,14 @@ class AutoJobrPopup {
     } catch (error) {
       console.error('Cover letter error:', error);
       
-      // Handle specific error cases
-      if (error.message.includes('daily limit')) {
-        this.showError('You have used your daily limit of 2 cover letters. Please upgrade to Premium for unlimited access.');
+      // Handle specific error cases - check status and message from server
+      if (error.status === 429 || 
+          (error.message && (error.message.includes('daily limit') || error.message.includes('upgrade to Premium')))) {
+        // Show the exact server error message if available, otherwise use a default premium upgrade message
+        const message = (error.message && error.message.includes('daily limit')) ? 
+          error.message : 
+          'You have used your daily cover letter generation. Please upgrade to Premium for unlimited access.';
+        this.showError(message);
       } else {
         this.showError('Failed to generate cover letter. Please try again.');
       }
