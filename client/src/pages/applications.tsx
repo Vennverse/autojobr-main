@@ -165,7 +165,7 @@ export default function Applications() {
   // Filter saved jobs based on search
   const filteredSavedJobs = Array.isArray(savedJobs) ? savedJobs.filter((job: any) => {
     const matchesSearch = !searchTerm || 
-      job.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.company?.toLowerCase().includes(searchTerm.toLowerCase());
     
     return matchesSearch;
@@ -921,7 +921,7 @@ export default function Applications() {
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex-1">
                               <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-2">
-                                {job.jobTitle}
+                                {job.title}
                               </h3>
                               <div className="flex items-center gap-2 mb-3">
                                 <Building className="h-4 w-4 text-gray-500" />
@@ -961,7 +961,7 @@ export default function Applications() {
                               <Button 
                                 size="sm" 
                                 className="text-xs h-7 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                                onClick={() => job.jobUrl && window.open(job.jobUrl, '_blank')}
+                                onClick={() => job.url && window.open(job.url, '_blank')}
                               >
                                 Apply Now
                               </Button>
@@ -993,7 +993,7 @@ export default function Applications() {
                           {filteredSavedJobs.map((job: any) => (
                             <tr key={job.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
                               <td className="py-4 px-6">
-                                <div className="font-medium text-gray-900 dark:text-white">{job.jobTitle}</div>
+                                <div className="font-medium text-gray-900 dark:text-white">{job.title}</div>
                               </td>
                               <td className="py-4 px-6 text-gray-900 dark:text-white">{job.company}</td>
                               <td className="py-4 px-6 text-gray-600 dark:text-gray-400">{job.location || 'Not specified'}</td>
@@ -1005,7 +1005,7 @@ export default function Applications() {
                                   <Button 
                                     size="sm" 
                                     className="text-xs h-7"
-                                    onClick={() => job.jobUrl && window.open(job.jobUrl, '_blank')}
+                                    onClick={() => job.url && window.open(job.url, '_blank')}
                                   >
                                     Apply
                                   </Button>
