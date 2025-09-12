@@ -1107,7 +1107,7 @@ class AutoJobrPopup {
         body: JSON.stringify({ status: newStatus })
       });
 
-      if (response.ok) {
+      if (response && response.success) {
         await this.loadTasks(); // Refresh tasks
         this.showNotification(`Task ${newStatus === 'completed' ? 'completed' : 'reopened'}!`, 'success');
       }
@@ -1461,12 +1461,12 @@ class AutoJobrPopup {
         body: JSON.stringify(taskData)
       });
 
-      if (response.ok) {
+      if (response && response.success) {
         await this.loadTasks(); // Refresh tasks
         this.hideTaskModal();
         this.showNotification(`✨ Task "${taskData.title}" created successfully!`, 'success');
       } else {
-        throw new Error('Failed to create task');
+        throw new Error(response?.message || 'Failed to create task');
       }
     } catch (error) {
       console.error('Failed to create task:', error);
