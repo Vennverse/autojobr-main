@@ -860,12 +860,12 @@ class AutoJobrPopup {
       const result = await this.makeApiRequest('/api/saved-jobs', {
         method: 'POST',
         body: JSON.stringify({
-          jobTitle: this.jobData.title,
+          title: this.jobData.title,
           company: this.jobData.company,
           location: this.jobData.location,
-          jobUrl: this.currentTab.url,
+          url: this.currentTab.url,
           description: this.jobData.description,
-          source: 'extension'
+          platform: 'extension'
         })
       });
 
