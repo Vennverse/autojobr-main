@@ -96,6 +96,13 @@ export default function Applications() {
     retry: false,
   });
 
+  // Add saved jobs query
+  const { data: savedJobs = [], isLoading: savedJobsLoading } = useQuery({
+    queryKey: ["/api/saved-jobs"],
+    retry: false,
+    enabled: isAuthenticated,
+  });
+
   // Fetch tasks for task management
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ["/api/tasks"],
@@ -155,6 +162,15 @@ export default function Applications() {
     return matchesSearch && matchesStatus;
   }) : [];
 
+  // Filter saved jobs based on search
+  const filteredSavedJobs = Array.isArray(savedJobs) ? savedJobs.filter((job: any) => {
+    const matchesSearch = !searchTerm || 
+      job.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.company?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return matchesSearch;
+  }) : [];
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
@@ -183,10 +199,10 @@ export default function Applications() {
           >
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Job Applications
+                Job Applications & Saved Jobs
               </h1>
               <p className="text-gray-600 dark:text-gray-300 mt-2">
-                Track and manage your job application journey
+                Track applications and manage your saved jobs
               </p>
             </div>
             
@@ -195,9 +211,10 @@ export default function Applications() {
                 variant="outline"
                 onClick={() => {
                   queryClient.invalidateQueries({ queryKey: ["/api/applications"] });
+                  queryClient.invalidateQueries({ queryKey: ["/api/saved-jobs"] });
                   toast({
                     title: "Synced",
-                    description: "Application data refreshed.",
+                    description: "Application and saved jobs data refreshed.",
                   });
                 }}
               >
@@ -650,14 +667,28 @@ export default function Applications() {
             </CardContent>
           </Card>
 
-          {/* Applications Display */}
-          {applicationsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-64 rounded-xl" />
-              ))}
-            </div>
-          ) : filteredApplications.length === 0 ? (
+          {/* Tabbed Interface for Applications and Saved Jobs */}
+          <Tabs defaultValue="applications" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-8">
+              <TabsTrigger value="applications" className="flex items-center gap-2">
+                <Briefcase className="h-4 w-4" />
+                Applications ({filteredApplications.length})
+              </TabsTrigger>
+              <TabsTrigger value="saved" className="flex items-center gap-2">
+                <Star className="h-4 w-4" />
+                Saved Jobs ({filteredSavedJobs.length})
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Applications Tab */}
+            <TabsContent value="applications">
+              {applicationsLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <Skeleton key={i} className="h-64 rounded-xl" />
+                  ))}
+                </div>
+              ) : filteredApplications.length === 0 ? (
             <Card className="p-12 text-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 to-purple-400/10 rounded-full blur-3xl"></div>
@@ -837,6 +868,162 @@ export default function Applications() {
               </CardContent>
             </Card>
           )}
+            </TabsContent>
+
+            {/* Saved Jobs Tab */}
+            <TabsContent value="saved">
+              {savedJobsLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <Skeleton key={i} className="h-64 rounded-xl" />
+                  ))}
+                </div>
+              ) : filteredSavedJobs.length === 0 ? (
+                <Card className="p-12 text-center bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-amber-400/10 to-orange-400/10 rounded-full blur-3xl"></div>
+                    <Star className="h-20 w-20 text-amber-500 mx-auto mb-6 relative" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                    No Saved Jobs Yet ⭐
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
+                    Use our Chrome extension to save interesting jobs for later. Saved jobs will appear here for easy access and organization.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <Button 
+                      className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 px-8"
+                      onClick={() => window.location.href = '/chrome-extension'}
+                    >
+                      <Star className="h-4 w-4 mr-2" />
+                      Get Extension
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => window.location.href = '/jobs'}
+                    >
+                      <Search className="h-4 w-4 mr-2" />
+                      Browse Jobs
+                    </Button>
+                  </div>
+                </Card>
+              ) : viewMode === "cards" ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredSavedJobs.map((job: any) => (
+                    <motion.div
+                      key={job.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="group"
+                    >
+                      <Card className="h-full border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:shadow-xl transition-all duration-300">
+                        <CardContent className="p-6">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-2">
+                                {job.jobTitle}
+                              </h3>
+                              <div className="flex items-center gap-2 mb-3">
+                                <Building className="h-4 w-4 text-gray-500" />
+                                <span className="text-gray-600 dark:text-gray-300">
+                                  {job.company}
+                                </span>
+                              </div>
+                            </div>
+                            <Star className="h-5 w-5 text-amber-500 fill-current" />
+                          </div>
+                          
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
+                              <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">
+                                <Star className="h-3 w-3 mr-1" />
+                                Saved
+                              </Badge>
+                            </div>
+                            
+                            {job.location && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-600 dark:text-gray-400">Location</span>
+                                <span className="text-sm font-medium">{job.location}</span>
+                              </div>
+                            )}
+                            
+                            <div className="flex items-center justify-between text-xs text-gray-500">
+                              <span>Saved {new Date(job.createdAt).toLocaleDateString()}</span>
+                              <Badge variant="outline" className="text-xs">
+                                extension
+                              </Badge>
+                            </div>
+                            
+                            {/* Action buttons */}
+                            <div className="flex gap-2 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button 
+                                size="sm" 
+                                className="text-xs h-7 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                                onClick={() => job.jobUrl && window.open(job.jobUrl, '_blank')}
+                              >
+                                Apply Now
+                              </Button>
+                              <Button size="sm" variant="outline" className="text-xs h-7">
+                                Remove
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <th className="text-left py-4 px-6 font-medium text-gray-900 dark:text-white">Job Title</th>
+                            <th className="text-left py-4 px-6 font-medium text-gray-900 dark:text-white">Company</th>
+                            <th className="text-left py-4 px-6 font-medium text-gray-900 dark:text-white">Location</th>
+                            <th className="text-left py-4 px-6 font-medium text-gray-900 dark:text-white">Saved</th>
+                            <th className="text-left py-4 px-6 font-medium text-gray-900 dark:text-white">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredSavedJobs.map((job: any) => (
+                            <tr key={job.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                              <td className="py-4 px-6">
+                                <div className="font-medium text-gray-900 dark:text-white">{job.jobTitle}</div>
+                              </td>
+                              <td className="py-4 px-6 text-gray-900 dark:text-white">{job.company}</td>
+                              <td className="py-4 px-6 text-gray-600 dark:text-gray-400">{job.location || 'Not specified'}</td>
+                              <td className="py-4 px-6 text-gray-600 dark:text-gray-400">
+                                {new Date(job.createdAt).toLocaleDateString()}
+                              </td>
+                              <td className="py-4 px-6">
+                                <div className="flex gap-2">
+                                  <Button 
+                                    size="sm" 
+                                    className="text-xs h-7"
+                                    onClick={() => job.jobUrl && window.open(job.jobUrl, '_blank')}
+                                  >
+                                    Apply
+                                  </Button>
+                                  <Button size="sm" variant="outline" className="text-xs h-7">
+                                    Remove
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          </Tabs>
       </div>
     </div>
   );

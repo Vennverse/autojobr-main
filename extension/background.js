@@ -631,9 +631,13 @@ class AutoJobrBackground {
         credentials: 'include',
         mode: 'cors',
         body: JSON.stringify({
-          ...data,
-          savedAt: new Date().toISOString(),
-          source: 'extension_v2'
+          title: data.jobTitle,
+          company: data.company,
+          description: data.description,
+          location: data.location,
+          url: data.jobUrl,
+          platform: data.source || 'extension_v2',
+          extractedAt: new Date().toISOString()
         })
       });
 
