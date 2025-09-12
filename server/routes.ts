@@ -10659,10 +10659,11 @@ Host: https://autojobr.com`;
         // Calculate skill score with better distribution
         const totalUserSkills = completeUserProfile.skills.length;
         const matchedSkills = skillMatches.length;
+        let skillScore = 0; // Define at proper scope level
         
         if (matchedSkills > 0) {
           // Base points for any skill matches
-          const skillScore = Math.min(matchedSkills * 10, 40);
+          skillScore = Math.min(matchedSkills * 10, 40);
           matchScore += skillScore;
           factors.push(`${matchedSkills} skill matches: ${skillMatches.slice(0, 3).join(', ')}`);
           
