@@ -816,14 +816,36 @@ class AutoJobrPopup {
   }
 
   async handleSaveJob() {
-    if (!this.isAuthenticated || !this.jobData) {
-      this.showError('Please ensure you\'re authenticated and on a job page');
+    if (!this.isAuthenticated) {
+      this.showError('Please sign in to save jobs');
       return;
     }
 
     this.showLoading(true);
 
     try {
+      // If job data is not available, try to extract it first
+      if (!this.jobData) {
+        console.log('Job data not available, attempting to extract...');
+        await this.detectJobDetails();
+      }
+
+      // If still no job data, try to extract basic info from page
+      if (!this.jobData || !this.jobData.title) {
+        console.log('Extracting basic job info from page...');
+        const pageTitle = document.title || this.currentTab.title || '';
+        const pageUrl = this.currentTab.url || '';
+        
+        // Basic fallback job data from page title and URL
+        this.jobData = {
+          title: pageTitle.split(' - ')[0] || pageTitle.split(' | ')[0] || 'Job Position',
+          company: pageTitle.split(' - ')[1] || pageTitle.split(' | ')[1] || 'Company',
+          location: 'Location not specified',
+          description: `Job posting from ${new URL(pageUrl).hostname}`,
+          url: pageUrl
+        };
+      }
+
       const result = await this.makeApiRequest('/api/saved-jobs', {
         method: 'POST',
         body: JSON.stringify({
