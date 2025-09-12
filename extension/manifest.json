@@ -14,6 +14,10 @@
   ],
   "host_permissions": [
     "*://*.autojobr.com/*",
+    "*://*.autojobr.com/jobs/*",
+    "*://*.autojobr.com/job/*",
+    "*://*.autojobr.com/apply/*",
+    "*://*.autojobr.com/applications/*",
     "*://*.linkedin.com/jobs/*",
     "*://*.indeed.com/viewjob*",
     "*://*.indeed.com/jobs/*",
@@ -121,6 +125,10 @@
     {
       "matches": [
         "*://*.autojobr.com/*",
+        "*://*.autojobr.com/jobs/*",
+        "*://*.autojobr.com/job/*",
+        "*://*.autojobr.com/apply/*",
+        "*://*.autojobr.com/applications/*",
         "*://*.linkedin.com/jobs/*",
         "*://*.indeed.com/viewjob*",
         "*://*.indeed.com/jobs/*",
