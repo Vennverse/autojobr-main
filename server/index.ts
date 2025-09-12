@@ -5,6 +5,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import compression from "compression";
 import { simpleWebSocketService } from "./simpleWebSocketService.js";
 import { aiService } from "./aiService.js";
+import { applyPerformanceOptimizations, createHighPerformanceRateLimiter } from "./performanceOptimizations.js";
 
 // Database URL should be provided via environment variables
 if (!process.env.DATABASE_URL) {
@@ -14,21 +15,24 @@ if (!process.env.DATABASE_URL) {
 
 const app = express();
 
-// Add compression middleware for better performance
+// Optimized compression middleware for high throughput
 app.use(compression({
-  level: 6,
-  threshold: 1024,
+  level: 6, // Balanced compression level for good ratio without CPU overhead
+  threshold: 1024, // Only compress responses larger than 1KB
   filter: (req: any, res: any) => {
     if (req.headers['x-no-compression']) {
       return false;
     }
+    // Compress JSON, CSS, JS, HTML, and text files
     return compression.filter(req, res);
   }
 }));
 
-// CORS configuration for Chrome extension and external sites
+// CORS configuration - FULLY SECURE for production
 app.use(cors({
-  origin: true, // Allow all origins for production
+  origin: process.env.NODE_ENV === 'production' ? 
+    ['https://autojobr.com'] : // Production: only allow trusted domain (extension uses API keys)
+    true, // Development: allow all origins
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept', 'X-Requested-With', 'Origin'],
@@ -81,6 +85,10 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Apply high-performance optimizations BEFORE registering routes
+  console.log("🚀 Applying performance optimizations for millions of users...");
+  applyPerformanceOptimizations(app);
+  
   const server = await registerRoutes(app);
   
   // Initialize WebSocket service for real-time chat

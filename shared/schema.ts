@@ -63,7 +63,14 @@ export const users = pgTable("users", {
   freeRankingTestsRemaining: integer("freeRankingTestsRemaining").default(1).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+},
+(table) => [
+  index("idx_users_email").on(table.email),
+  index("idx_users_subscription_status").on(table.subscriptionStatus),
+  index("idx_users_plan_type").on(table.planType),
+  index("idx_users_created_at").on(table.createdAt),
+  index("idx_users_user_type").on(table.userType),
+]);
 
 // Password reset tokens table
 export const passwordResetTokens = pgTable("password_reset_tokens", {
@@ -293,7 +300,14 @@ export const jobApplications = pgTable("job_applications", {
   notes: text("notes"),
   source: varchar("source"), // linkedin, indeed, company_website, etc.
   createdAt: timestamp("created_at").defaultNow(),
-});
+},
+(table) => [
+  index("idx_job_applications_user_id").on(table.userId),
+  index("idx_job_applications_status").on(table.status),
+  index("idx_job_applications_applied_date").on(table.appliedDate),
+  index("idx_job_applications_match_score").on(table.matchScore),
+  index("idx_job_applications_user_status").on(table.userId, table.status),
+]);
 
 // Job recommendations
 export const jobRecommendations = pgTable("job_recommendations", {

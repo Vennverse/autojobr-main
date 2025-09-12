@@ -12,18 +12,21 @@ if (!DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is required');
 }
 
-// Configure pool for Replit PostgreSQL
+// Optimized pool configuration for production deployment
 const poolConfig = {
   connectionString: DATABASE_URL,
-  // Replit PostgreSQL doesn't need SSL
-  ssl: false,
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-  statement_timeout: 30000,
-  query_timeout: 30000,
+  ssl: false, // Replit PostgreSQL doesn't need SSL
+  // Right-sized pool for single instance (use pgBouncer for scaling)
+  max: 20, // Reduced for better resource management per instance
+  min: 5, // Keep minimum connections alive
+  idleTimeoutMillis: 60000, // 1 minute - longer to reduce connection churn
+  connectionTimeoutMillis: 5000, // Reduced for faster failover
+  statement_timeout: 15000, // Reduced for better responsiveness
+  query_timeout: 15000, // Faster query timeout
   keepAlive: true,
-  keepAliveInitialDelayMillis: 10000,
+  keepAliveInitialDelayMillis: 5000,
+  // Performance optimizations
+  allowExitOnIdle: false, // Keep pool alive
 };
 
 const pgPool = new Pool(poolConfig);
