@@ -1600,6 +1600,7 @@ export const careerAiAnalysesRelations = relations(careerAiAnalyses, ({ one }) =
   }),
 }));
 
+
 // One-time payments table (for mock interviews, virtual interviews, ranking tests, retakes, premium targeting)
 export const oneTimePayments = pgTable("one_time_payments", {
   id: serial("id").primaryKey(),
@@ -2272,6 +2273,141 @@ export type InsertVirtualInterviewFeedback = z.infer<typeof insertVirtualIntervi
 export type VirtualInterviewStats = typeof virtualInterviewStats.$inferSelect;
 export type InsertVirtualInterviewStats = z.infer<typeof insertVirtualInterviewStatsSchema>;
 
+
+// Scraped internships from external sources (specifically GitHub SimplifyJobs repo)
+export const scrapedInternships = pgTable("scraped_internships", {
+  id: serial("id").primaryKey(),
+  
+  // Basic job info
+  company: varchar("company").notNull(),
+  role: varchar("role").notNull(), // Position title
+  location: varchar("location"),
+  
+  // Application details
+  applicationUrl: varchar("application_url"), // Direct application link
+  applicationStatus: varchar("application_status").default("open"), // open, closed
+  
+  // Internship-specific fields
+  category: varchar("category"), // Software Engineering, Data Science, etc.
+  requirements: text("requirements").array(), // US Citizenship, sponsorship, etc.
+  season: varchar("season").default("Summer 2026"), // Summer 2026, Fall 2025, etc.
+  
+  // Scraping metadata
+  sourcePlatform: varchar("source_platform").default("github_simplifyjobs"),
+  sourceUrl: varchar("source_url").notNull(), // GitHub repo URL
+  externalId: varchar("external_id"), // Unique identifier from source
+  
+  // Tracking and status
+  datePosted: timestamp("date_posted"),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  isActive: boolean("is_active").default(true),
+  
+  // Analytics
+  viewsCount: integer("views_count").default(0),
+  clicksCount: integer("clicks_count").default(0),
+  
+  // Raw data from GitHub
+  rawMarkdownData: text("raw_markdown_data"), // Original markdown row
+  simplifyApplyUrl: varchar("simplify_apply_url"), // Simplify's autofill link
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("scraped_internships_company_idx").on(table.company),
+  index("scraped_internships_category_idx").on(table.category),
+  index("scraped_internships_location_idx").on(table.location),
+  index("scraped_internships_season_idx").on(table.season),
+  index("scraped_internships_active_idx").on(table.isActive),
+  index("scraped_internships_date_idx").on(table.datePosted),
+]);
+
+// User saved/bookmarked internships
+export const userSavedInternships = pgTable("user_saved_internships", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  internshipId: integer("internship_id").references(() => scrapedInternships.id),
+  savedAt: timestamp("saved_at").defaultNow(),
+}, (table) => [
+  index("user_saved_internships_user_idx").on(table.userId),
+]);
+
+// Internship applications tracking
+export const internshipApplications = pgTable("internship_applications", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  internshipId: integer("internship_id").references(() => scrapedInternships.id).notNull(),
+  
+  // Application status
+  status: varchar("status").default("applied"), // applied, in_review, rejected, accepted, withdrawn
+  appliedAt: timestamp("applied_at").defaultNow(),
+  statusUpdatedAt: timestamp("status_updated_at").defaultNow(),
+  
+  // Application details
+  resumeUsed: varchar("resume_used"), // Which resume was used
+  coverLetter: text("cover_letter"), // AI-generated or custom cover letter
+  applicationNotes: text("application_notes"), // User notes
+  
+  // Tracking
+  applicationMethod: varchar("application_method").default("manual"), // manual, autofill, bulk
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("internship_applications_user_idx").on(table.userId),
+  index("internship_applications_status_idx").on(table.status),
+  index("internship_applications_date_idx").on(table.appliedAt),
+]);
+
+// Daily sync tracking for GitHub repository
+export const internshipSyncLog = pgTable("internship_sync_log", {
+  id: serial("id").primaryKey(),
+  syncDate: date("sync_date").notNull(),
+  
+  // Sync statistics
+  totalInternshipsFound: integer("total_internships_found").default(0),
+  newInternshipsAdded: integer("new_internships_added").default(0),
+  internshipsUpdated: integer("internships_updated").default(0),
+  internshipsDeactivated: integer("internships_deactivated").default(0),
+  
+  // Sync metadata
+  githubCommitHash: varchar("github_commit_hash"), // Last processed commit
+  processingTimeMs: integer("processing_time_ms"),
+  syncStatus: varchar("sync_status").default("success"), // success, failed, partial
+  errorMessage: text("error_message"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("internship_sync_log_date_idx").on(table.syncDate),
+]);
+
+// Internship relations
+export const scrapedInternshipsRelations = relations(scrapedInternships, ({ many }) => ({
+  savedBy: many(userSavedInternships),
+  applications: many(internshipApplications),
+}));
+
+export const userSavedInternshipsRelations = relations(userSavedInternships, ({ one }) => ({
+  user: one(users, {
+    fields: [userSavedInternships.userId],
+    references: [users.id],
+  }),
+  internship: one(scrapedInternships, {
+    fields: [userSavedInternships.internshipId],
+    references: [scrapedInternships.id],
+  }),
+}));
+
+export const internshipApplicationsRelations = relations(internshipApplications, ({ one }) => ({
+  user: one(users, {
+    fields: [internshipApplications.userId],
+    references: [users.id],
+  }),
+  internship: one(scrapedInternships, {
+    fields: [internshipApplications.internshipId],
+    references: [scrapedInternships.id],
+  }),
+}));
+
 // Premium targeting jobs table for B2B features
 export const premiumTargetingJobs = pgTable("premium_targeting_jobs", {
   id: serial("id").primaryKey(),
@@ -2595,3 +2731,40 @@ export type ReferralFeedback = typeof referralFeedback.$inferSelect;
 export type InsertReferralFeedback = z.infer<typeof insertReferralFeedbackSchema>;
 export type ReferralPayment = typeof referralPayments.$inferSelect;
 export type InsertReferralPayment = z.infer<typeof insertReferralPaymentSchema>;
+
+// Internship insert schemas and types
+export const insertScrapedInternshipSchema = createInsertSchema(scrapedInternships).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  viewsCount: true,
+  clicksCount: true,
+});
+
+export const insertUserSavedInternshipSchema = createInsertSchema(userSavedInternships).omit({
+  id: true,
+  savedAt: true,
+});
+
+export const insertInternshipApplicationSchema = createInsertSchema(internshipApplications).omit({
+  id: true,
+  appliedAt: true,
+  statusUpdatedAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertInternshipSyncLogSchema = createInsertSchema(internshipSyncLog).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Internship types
+export type ScrapedInternship = typeof scrapedInternships.$inferSelect;
+export type InsertScrapedInternship = z.infer<typeof insertScrapedInternshipSchema>;
+export type UserSavedInternship = typeof userSavedInternships.$inferSelect;
+export type InsertUserSavedInternship = z.infer<typeof insertUserSavedInternshipSchema>;
+export type InternshipApplication = typeof internshipApplications.$inferSelect;
+export type InsertInternshipApplication = z.infer<typeof insertInternshipApplicationSchema>;
+export type InternshipSyncLog = typeof internshipSyncLog.$inferSelect;
+export type InsertInternshipSyncLog = z.infer<typeof insertInternshipSyncLogSchema>;
