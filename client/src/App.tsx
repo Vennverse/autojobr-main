@@ -11,6 +11,7 @@ import EnhancedDashboard from "@/pages/enhanced-dashboard";
 import Profile from "@/pages/profile";
 import Applications from "@/pages/applications";
 import Jobs from "@/pages/jobs";
+import Internships from "@/pages/internships";
 import Subscription from "@/pages/subscription";
 import JobSeekerPremium from "@/pages/JobSeekerPremium";
 import RecruiterPremium from "@/pages/RecruiterPremium";
@@ -173,6 +174,9 @@ function Router() {
       {/* Public job pages - accessible to everyone for discovery */}
       <Route path="/jobs" component={Jobs} />
       <Route path="/jobs/:id" component={ViewJob} />
+      
+      {/* Public internship pages - accessible to everyone for discovery */}
+      <Route path="/internships" component={Internships} />
       
       {isAuthenticated ? (
         <>
