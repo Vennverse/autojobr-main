@@ -13,7 +13,24 @@
     "contextMenus"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "*://*.linkedin.com/*",
+    "*://*.indeed.com/*",
+    "*://*.glassdoor.com/*",
+    "*://*.ziprecruiter.com/*",
+    "*://*.monster.com/*",
+    "*://*.dice.com/*",
+    "*://*.greenhouse.io/*",
+    "*://*.lever.co/*",
+    "*://*.workday.com/*",
+    "*://*.myworkdayjobs.com/*",
+    "*://*.naukri.com/*",
+    "*://*.shine.com/*",
+    "*://*.timesjobs.com/*",
+    "*://*.freshersjobs.com/*",
+    "*://*.instahyre.com/*"
+  ],
+  "optional_host_permissions": [
+    "*://*/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -21,7 +38,21 @@
   "content_scripts": [
     {
       "matches": [
-        "<all_urls>"
+        "*://*.linkedin.com/*",
+        "*://*.indeed.com/*",
+        "*://*.glassdoor.com/*",
+        "*://*.ziprecruiter.com/*",
+        "*://*.monster.com/*",
+        "*://*.dice.com/*",
+        "*://*.greenhouse.io/*",
+        "*://*.lever.co/*",
+        "*://*.workday.com/*",
+        "*://*.myworkdayjobs.com/*",
+        "*://*.naukri.com/*",
+        "*://*.shine.com/*",
+        "*://*.timesjobs.com/*",
+        "*://*.freshersjobs.com/*",
+        "*://*.instahyre.com/*"
       ],
       "js": ["content-script.js"],
       "css": ["popup-styles.css"],
@@ -47,7 +78,23 @@
   "web_accessible_resources": [
     {
       "resources": ["popup-styles.css", "icons/*"],
-      "matches": ["<all_urls>"]
+      "matches": [
+        "*://*.linkedin.com/*",
+        "*://*.indeed.com/*",
+        "*://*.glassdoor.com/*",
+        "*://*.ziprecruiter.com/*",
+        "*://*.monster.com/*",
+        "*://*.dice.com/*",
+        "*://*.greenhouse.io/*",
+        "*://*.lever.co/*",
+        "*://*.workday.com/*",
+        "*://*.myworkdayjobs.com/*",
+        "*://*.naukri.com/*",
+        "*://*.shine.com/*",
+        "*://*.timesjobs.com/*",
+        "*://*.freshersjobs.com/*",
+        "*://*.instahyre.com/*"
+      ]
     }
   ],
   "commands": {
