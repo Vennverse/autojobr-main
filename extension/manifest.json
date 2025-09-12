@@ -94,7 +94,7 @@
     "*://*.bamboohr.com/jobs/apply.php*",
     "*://*.jobvite.com/*/apply/*",
     "*://*.smartrecruiters.com/*/jobs/*/application*",
-    "*://*.success factors.com/*/apply/*",
+    "*://*.successfactors.com/*/apply/*",
     "*://*.successfactors.eu/*/apply/*",
     "*://*.successfactors.com/*/apply/*",
     "*://*.recruiting.ultipro.com/*/apply/*",
@@ -102,16 +102,14 @@
     "*://*.paycomonline.net/*/apply/*",
     "*://*.cornerstonedemand.com/*/apply/*",
     "*://*.jobs.smartrecruiters.com/*/application*",
-    "*://*.phg.tbe.taleo.net/phg*/jobdetail.ftl*",
-    "*://*.*.tbe.taleo.net/*/jobdetail.ftl*",
+    "*://*.tbe.taleo.net/*/jobdetail.ftl*",
     "*://*.wd1.myworkdayjobs.com/*/application/*",
     "*://*.wd3.myworkdayjobs.com/*/application/*",
     "*://*.wd5.myworkdayjobs.com/*/application/*",
     "*://*.newton.newtonsoftware.com/career/*/Apply*",
     "*://*.app.jobvite.com/*/apply/*",
     "*://*.silkroad.com/*/apply/*",
-    "*://*.careers-*.icims.com/jobs/*/apply*",
-    "*://*.*.icims.com/jobs/*/apply*"
+    "*://*.icims.com/jobs/*/apply*"
   ],
   "optional_host_permissions": [
     "*://*/*"
@@ -210,16 +208,14 @@
         "*://*.paycomonline.net/*/apply/*",
         "*://*.cornerstonedemand.com/*/apply/*",
         "*://*.jobs.smartrecruiters.com/*/application*",
-        "*://*.phg.tbe.taleo.net/phg*/jobdetail.ftl*",
-        "*://*.*.tbe.taleo.net/*/jobdetail.ftl*",
+        "*://*.tbe.taleo.net/*/jobdetail.ftl*",
         "*://*.wd1.myworkdayjobs.com/*/application/*",
         "*://*.wd3.myworkdayjobs.com/*/application/*",
         "*://*.wd5.myworkdayjobs.com/*/application/*",
         "*://*.newton.newtonsoftware.com/career/*/Apply*",
         "*://*.app.jobvite.com/*/apply/*",
         "*://*.silkroad.com/*/apply/*",
-        "*://*.careers-*.icims.com/jobs/*/apply*",
-        "*://*.*.icims.com/jobs/*/apply*"
+        "*://*.icims.com/jobs/*/apply*"
       ],
       "js": ["content-script.js"],
       "css": ["popup-styles.css"],
@@ -334,16 +330,14 @@
         "*://*.paycomonline.net/*/apply/*",
         "*://*.cornerstonedemand.com/*/apply/*",
         "*://*.jobs.smartrecruiters.com/*/application*",
-        "*://*.phg.tbe.taleo.net/phg*/jobdetail.ftl*",
-        "*://*.*.tbe.taleo.net/*/jobdetail.ftl*",
+        "*://*.tbe.taleo.net/*/jobdetail.ftl*",
         "*://*.wd1.myworkdayjobs.com/*/application/*",
         "*://*.wd3.myworkdayjobs.com/*/application/*",
         "*://*.wd5.myworkdayjobs.com/*/application/*",
         "*://*.newton.newtonsoftware.com/career/*/Apply*",
         "*://*.app.jobvite.com/*/apply/*",
         "*://*.silkroad.com/*/apply/*",
-        "*://*.careers-*.icims.com/jobs/*/apply*",
-        "*://*.*.icims.com/jobs/*/apply*"
+        "*://*.icims.com/jobs/*/apply*"
       ]
     }
   ],
