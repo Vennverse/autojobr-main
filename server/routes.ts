@@ -266,9 +266,72 @@ import {
   insertJobApplicationSchema,
   insertJobRecommendationSchema,
   insertAiJobAnalysisSchema,
-  companyEmailVerifications
+  companyEmailVerifications,
+  insertInternshipApplicationSchema,
+  insertScrapedInternshipSchema
 } from "@shared/schema";
 import { z } from "zod";
+
+// Validation schemas for internships API
+const internshipIdParamSchema = z.object({
+  id: z.string().transform((val, ctx) => {
+    const parsed = parseInt(val, 10);
+    if (isNaN(parsed) || parsed < 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "ID must be a positive integer",
+      });
+      return z.NEVER;
+    }
+    return parsed;
+  })
+});
+
+const internshipsQuerySchema = z.object({
+  page: z.string().optional().default("1").transform((val, ctx) => {
+    const parsed = parseInt(val, 10);
+    if (isNaN(parsed) || parsed < 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Page must be a positive integer",
+      });
+      return z.NEVER;
+    }
+    return parsed;
+  }),
+  limit: z.string().optional().default("20").transform((val, ctx) => {
+    const parsed = parseInt(val, 10);
+    if (isNaN(parsed) || parsed < 1 || parsed > 100) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Limit must be between 1 and 100",
+      });
+      return z.NEVER;
+    }
+    return parsed;
+  }),
+  company: z.string().optional(),
+  location: z.string().optional(),
+  category: z.string().optional(),
+  season: z.string().optional(),
+  requirements: z.union([z.string(), z.array(z.string())]).optional(),
+  search: z.string().optional(),
+  status: z.enum(["applied", "in_review", "rejected", "accepted", "withdrawn"]).optional()
+});
+
+const internshipApplicationBodySchema = insertInternshipApplicationSchema.pick({
+  resumeUsed: true,
+  coverLetter: true,
+  applicationNotes: true,
+  applicationMethod: true
+}).extend({
+  applicationMethod: z.string().optional().default("manual")
+});
+
+const updateApplicationStatusSchema = z.object({
+  status: z.enum(["applied", "in_review", "rejected", "accepted", "withdrawn"]),
+  applicationNotes: z.string().optional()
+});
 import { mockInterviewRoutes } from "./mockInterviewRoutes";
 import { proctoring } from "./routes/proctoring";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
@@ -467,6 +530,475 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: 'Failed to get sync status',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
+    }
+  });
+
+  // Internships CRUD API endpoints
+  app.get('/api/internships', async (req: any, res) => {
+    try {
+      // Validate query parameters
+      const queryValidation = internshipsQuerySchema.safeParse(req.query);
+      if (!queryValidation.success) {
+        return handleError(res, queryValidation.error, "Invalid query parameters", 400);
+      }
+
+      const { 
+        page, 
+        limit, 
+        company, 
+        location, 
+        category, 
+        season, 
+        requirements,
+        search 
+      } = queryValidation.data;
+
+      const offset = (page - 1) * limit;
+      
+      // Build where conditions
+      const conditions = [
+        eq(schema.scrapedInternships.isActive, true)
+      ];
+
+      if (company) {
+        conditions.push(like(schema.scrapedInternships.company, `%${company}%`));
+      }
+      if (location) {
+        conditions.push(like(schema.scrapedInternships.location, `%${location}%`));
+      }
+      if (category) {
+        conditions.push(eq(schema.scrapedInternships.category, category));
+      }
+      if (season) {
+        conditions.push(eq(schema.scrapedInternships.season, season));
+      }
+      if (requirements) {
+        // Handle requirements filter - check if internship has ANY of the specified requirements
+        const requirementsArray = Array.isArray(requirements) ? requirements : [requirements];
+        const requirementConditions = requirementsArray.map(req => 
+          sql`${schema.scrapedInternships.requirements} @> ARRAY[${req}]::text[]`
+        );
+        conditions.push(or(...requirementConditions));
+      }
+      if (search) {
+        conditions.push(
+          or(
+            like(schema.scrapedInternships.company, `%${search}%`),
+            like(schema.scrapedInternships.role, `%${search}%`),
+            like(schema.scrapedInternships.location, `%${search}%`)
+          )
+        );
+      }
+
+      // Get internships with pagination
+      const internships = await db
+        .select()
+        .from(schema.scrapedInternships)
+        .where(and(...conditions))
+        .orderBy(desc(schema.scrapedInternships.datePosted))
+        .limit(parseInt(limit))
+        .offset(offset);
+
+      // Get total count for pagination
+      const totalResult = await db
+        .select({ count: count() })
+        .from(schema.scrapedInternships)
+        .where(and(...conditions));
+
+      const total = totalResult[0]?.count || 0;
+
+      res.json({
+        internships,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
+      });
+    } catch (error) {
+      return handleError(res, error, "Failed to fetch internships");
+    }
+  });
+
+  app.get('/api/internships/:id', async (req: any, res) => {
+    try {
+      // Validate path parameters
+      const paramValidation = internshipIdParamSchema.safeParse(req.params);
+      if (!paramValidation.success) {
+        return handleError(res, paramValidation.error, "Invalid internship ID", 400);
+      }
+
+      const { id } = paramValidation.data;
+      
+      const internship = await db
+        .select()
+        .from(schema.scrapedInternships)
+        .where(eq(schema.scrapedInternships.id, id))
+        .limit(1);
+
+      if (!internship.length) {
+        return res.status(404).json({ message: 'Internship not found' });
+      }
+
+      // Increment view count
+      await db
+        .update(schema.scrapedInternships)
+        .set({ 
+          viewsCount: sql`${schema.scrapedInternships.viewsCount} + 1` 
+        })
+        .where(eq(schema.scrapedInternships.id, id));
+
+      res.json(internship[0]);
+    } catch (error) {
+      return handleError(res, error, "Failed to fetch internship");
+    }
+  });
+
+  app.post('/api/internships/:id/save', isAuthenticated, rateLimitMiddleware(10, 60), async (req: any, res) => {
+    try {
+      // Validate path parameters
+      const paramValidation = internshipIdParamSchema.safeParse(req.params);
+      if (!paramValidation.success) {
+        return handleError(res, paramValidation.error, "Invalid internship ID", 400);
+      }
+
+      const { id } = paramValidation.data;
+      const userId = req.user.id;
+
+      // Verify internship exists and is active
+      const internship = await db
+        .select({ id: schema.scrapedInternships.id, isActive: schema.scrapedInternships.isActive })
+        .from(schema.scrapedInternships)
+        .where(eq(schema.scrapedInternships.id, id))
+        .limit(1);
+
+      if (!internship.length) {
+        return res.status(404).json({ message: 'Internship not found' });
+      }
+
+      if (!internship[0].isActive) {
+        return res.status(400).json({ message: 'Internship is no longer active' });
+      }
+
+      // Check if already saved
+      const existing = await db
+        .select()
+        .from(schema.userSavedInternships)
+        .where(
+          and(
+            eq(schema.userSavedInternships.userId, userId),
+            eq(schema.userSavedInternships.internshipId, id)
+          )
+        )
+        .limit(1);
+
+      if (existing.length > 0) {
+        return res.status(400).json({ message: 'Internship already saved' });
+      }
+
+      // Save internship
+      await db.insert(schema.userSavedInternships).values({
+        userId,
+        internshipId: id
+      });
+
+      res.json({ message: 'Internship saved successfully' });
+    } catch (error) {
+      return handleError(res, error, "Failed to save internship");
+    }
+  });
+
+  app.delete('/api/internships/:id/save', isAuthenticated, rateLimitMiddleware(10, 60), async (req: any, res) => {
+    try {
+      // Validate path parameters
+      const paramValidation = internshipIdParamSchema.safeParse(req.params);
+      if (!paramValidation.success) {
+        return handleError(res, paramValidation.error, "Invalid internship ID", 400);
+      }
+
+      const { id } = paramValidation.data;
+      const userId = req.user.id;
+
+      await db
+        .delete(schema.userSavedInternships)
+        .where(
+          and(
+            eq(schema.userSavedInternships.userId, userId),
+            eq(schema.userSavedInternships.internshipId, id)
+          )
+        );
+
+      res.json({ message: 'Internship unsaved successfully' });
+    } catch (error) {
+      return handleError(res, error, "Failed to unsave internship");
+    }
+  });
+
+  app.get('/api/internships/saved', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      // Validate query parameters
+      const queryValidation = z.object({
+        page: z.string().optional().default("1"),
+        limit: z.string().optional().default("20")
+      }).safeParse(req.query);
+      
+      if (!queryValidation.success) {
+        return handleError(res, queryValidation.error, "Invalid query parameters", 400);
+      }
+
+      const page = parseInt(queryValidation.data.page);
+      const limit = parseInt(queryValidation.data.limit);
+      const offset = (page - 1) * limit;
+
+      const savedInternships = await db
+        .select({
+          id: schema.scrapedInternships.id,
+          company: schema.scrapedInternships.company,
+          role: schema.scrapedInternships.role,
+          location: schema.scrapedInternships.location,
+          applicationUrl: schema.scrapedInternships.applicationUrl,
+          category: schema.scrapedInternships.category,
+          season: schema.scrapedInternships.season,
+          datePosted: schema.scrapedInternships.datePosted,
+          savedAt: schema.userSavedInternships.savedAt
+        })
+        .from(schema.userSavedInternships)
+        .leftJoin(
+          schema.scrapedInternships,
+          eq(schema.userSavedInternships.internshipId, schema.scrapedInternships.id)
+        )
+        .where(eq(schema.userSavedInternships.userId, userId))
+        .orderBy(desc(schema.userSavedInternships.savedAt))
+        .limit(limit)
+        .offset(offset);
+
+      // Get total count
+      const totalResult = await db
+        .select({ count: count() })
+        .from(schema.userSavedInternships)
+        .where(eq(schema.userSavedInternships.userId, userId));
+
+      const total = totalResult[0]?.count || 0;
+
+      res.json({
+        savedInternships,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
+      });
+    } catch (error) {
+      return handleError(res, error, "Failed to fetch saved internships");
+    }
+  });
+
+  app.post('/api/internships/:id/apply', isAuthenticated, rateLimitMiddleware(5, 60), async (req: any, res) => {
+    try {
+      // Validate path parameters
+      const paramValidation = internshipIdParamSchema.safeParse(req.params);
+      if (!paramValidation.success) {
+        return handleError(res, paramValidation.error, "Invalid internship ID", 400);
+      }
+
+      // Validate request body
+      const bodyValidation = internshipApplicationBodySchema.safeParse(req.body);
+      if (!bodyValidation.success) {
+        return handleError(res, bodyValidation.error, "Invalid application data", 400);
+      }
+
+      const { id } = paramValidation.data;
+      const userId = req.user.id;
+      const applicationData = bodyValidation.data;
+
+      // Verify internship exists and is active
+      const internship = await db
+        .select({ id: schema.scrapedInternships.id, isActive: schema.scrapedInternships.isActive })
+        .from(schema.scrapedInternships)
+        .where(eq(schema.scrapedInternships.id, id))
+        .limit(1);
+
+      if (!internship.length) {
+        return res.status(404).json({ message: 'Internship not found' });
+      }
+
+      if (!internship[0].isActive) {
+        return res.status(400).json({ message: 'Internship is no longer active' });
+      }
+
+      // Check if already applied
+      const existing = await db
+        .select()
+        .from(schema.internshipApplications)
+        .where(
+          and(
+            eq(schema.internshipApplications.userId, userId),
+            eq(schema.internshipApplications.internshipId, id)
+          )
+        )
+        .limit(1);
+
+      if (existing.length > 0) {
+        return res.status(400).json({ message: 'Already applied to this internship' });
+      }
+
+      // Record application
+      await db.insert(schema.internshipApplications).values({
+        userId,
+        internshipId: id,
+        ...applicationData,
+        status: 'applied'
+      });
+
+      // Increment click count on internship
+      await db
+        .update(schema.scrapedInternships)
+        .set({ 
+          clicksCount: sql`${schema.scrapedInternships.clicksCount} + 1` 
+        })
+        .where(eq(schema.scrapedInternships.id, id));
+
+      res.json({ message: 'Application recorded successfully' });
+    } catch (error) {
+      return handleError(res, error, "Failed to record application");
+    }
+  });
+
+  app.get('/api/internships/applications', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      // Validate query parameters
+      const queryValidation = internshipsQuerySchema.pick({
+        page: true,
+        limit: true,
+        status: true
+      }).safeParse(req.query);
+      
+      if (!queryValidation.success) {
+        return handleError(res, queryValidation.error, "Invalid query parameters", 400);
+      }
+
+      const { page, limit, status } = queryValidation.data;
+      const offset = (page - 1) * limit;
+
+      const conditions = [eq(schema.internshipApplications.userId, userId)];
+      if (status) {
+        conditions.push(eq(schema.internshipApplications.status, status));
+      }
+
+      const applications = await db
+        .select({
+          id: schema.internshipApplications.id,
+          company: schema.scrapedInternships.company,
+          role: schema.scrapedInternships.role,
+          location: schema.scrapedInternships.location,
+          status: schema.internshipApplications.status,
+          appliedAt: schema.internshipApplications.appliedAt,
+          statusUpdatedAt: schema.internshipApplications.statusUpdatedAt,
+          applicationMethod: schema.internshipApplications.applicationMethod
+        })
+        .from(schema.internshipApplications)
+        .leftJoin(
+          schema.scrapedInternships,
+          eq(schema.internshipApplications.internshipId, schema.scrapedInternships.id)
+        )
+        .where(and(...conditions))
+        .orderBy(desc(schema.internshipApplications.appliedAt))
+        .limit(limit)
+        .offset(offset);
+
+      // Get total count
+      const totalResult = await db
+        .select({ count: count() })
+        .from(schema.internshipApplications)
+        .where(and(...conditions));
+
+      const total = totalResult[0]?.count || 0;
+
+      res.json({
+        applications,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
+      });
+    } catch (error) {
+      return handleError(res, error, "Failed to fetch applications");
+    }
+  });
+
+  // Add missing PATCH endpoint for updating application status
+  app.patch('/api/internships/applications/:id', isAuthenticated, rateLimitMiddleware(10, 60), async (req: any, res) => {
+    try {
+      // Validate path parameters
+      const paramValidation = z.object({
+        id: z.string().transform((val, ctx) => {
+          const parsed = parseInt(val, 10);
+          if (isNaN(parsed) || parsed < 1) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Application ID must be a positive integer",
+            });
+            return z.NEVER;
+          }
+          return parsed;
+        })
+      }).safeParse(req.params);
+      
+      if (!paramValidation.success) {
+        return handleError(res, paramValidation.error, "Invalid application ID", 400);
+      }
+
+      // Validate request body
+      const bodyValidation = updateApplicationStatusSchema.safeParse(req.body);
+      if (!bodyValidation.success) {
+        return handleError(res, bodyValidation.error, "Invalid update data", 400);
+      }
+
+      const { id } = paramValidation.data;
+      const userId = req.user.id;
+      const { status, applicationNotes } = bodyValidation.data;
+
+      // Verify application exists and belongs to user
+      const application = await db
+        .select({ id: schema.internshipApplications.id })
+        .from(schema.internshipApplications)
+        .where(
+          and(
+            eq(schema.internshipApplications.id, id),
+            eq(schema.internshipApplications.userId, userId)
+          )
+        )
+        .limit(1);
+
+      if (!application.length) {
+        return res.status(404).json({ message: 'Application not found' });
+      }
+
+      // Update application
+      const updateData: any = {
+        status,
+        statusUpdatedAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      if (applicationNotes) {
+        updateData.applicationNotes = applicationNotes;
+      }
+
+      await db
+        .update(schema.internshipApplications)
+        .set(updateData)
+        .where(eq(schema.internshipApplications.id, id));
+
+      res.json({ message: 'Application updated successfully' });
+    } catch (error) {
+      return handleError(res, error, "Failed to update application");
     }
   });
 
