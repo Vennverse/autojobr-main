@@ -51,6 +51,7 @@ import { rankingTestService } from "./rankingTestService.js";
 import { setupSimpleChatRoutes } from "./simpleChatRoutes.js";
 import { simpleWebSocketService } from "./simpleWebSocketService.js";
 import { simplePromotionalEmailService } from "./simplePromotionalEmailService.js";
+import { internshipScrapingService } from "./internshipScrapingService.js";
 import crypto from 'crypto';
 import { 
   checkJobPostingLimit,
@@ -427,6 +428,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       timestamp: new Date().toISOString(),
       service: 'autojobr-api'
     });
+  });
+
+  // Internship scraping endpoints
+  app.post('/api/internships/scrape', isAuthenticated, async (req: any, res) => {
+    try {
+      // Admin check - only admins can trigger scraping
+      if (!req.user || (req.user.email !== 'admin@autojobr.com' && req.user.userType !== 'admin')) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      console.log('🔄 Manual internship scraping triggered by admin');
+      const results = await internshipScrapingService.scrapeInternships();
+      
+      res.json({
+        message: 'Internship scraping completed successfully',
+        results
+      });
+    } catch (error) {
+      console.error('❌ Manual internship scraping failed:', error);
+      res.status(500).json({ 
+        message: 'Internship scraping failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  app.get('/api/internships/sync-status', isAuthenticated, async (req: any, res) => {
+    try {
+      const latestSync = await internshipScrapingService.getLatestSyncStats();
+      res.json({
+        latestSync,
+        status: latestSync ? 'synced' : 'never_synced'
+      });
+    } catch (error) {
+      console.error('❌ Failed to get sync status:', error);
+      res.status(500).json({ 
+        message: 'Failed to get sync status',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
   });
 
   // Email configuration endpoints

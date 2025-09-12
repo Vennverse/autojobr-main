@@ -5,6 +5,7 @@ import {
   timestamp,
   jsonb,
   index,
+  unique,
   serial,
   integer,
   boolean,
@@ -2290,7 +2291,7 @@ export const scrapedInternships = pgTable("scraped_internships", {
   // Internship-specific fields
   category: varchar("category"), // Software Engineering, Data Science, etc.
   requirements: text("requirements").array(), // US Citizenship, sponsorship, etc.
-  season: varchar("season").default("Summer 2026"), // Summer 2026, Fall 2025, etc.
+  season: varchar("season"), // Summer 2026, Fall 2025, etc. - no default to avoid aging
   
   // Scraping metadata
   sourcePlatform: varchar("source_platform").default("github_simplifyjobs"),
@@ -2313,29 +2314,39 @@ export const scrapedInternships = pgTable("scraped_internships", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
+  // Unique constraint to prevent duplicates from same source
+  unique("scraped_internships_source_unique").on(table.sourcePlatform, table.externalId),
+  
+  // Performance indexes
   index("scraped_internships_company_idx").on(table.company),
   index("scraped_internships_category_idx").on(table.category),
   index("scraped_internships_location_idx").on(table.location),
   index("scraped_internships_season_idx").on(table.season),
   index("scraped_internships_active_idx").on(table.isActive),
   index("scraped_internships_date_idx").on(table.datePosted),
+  index("scraped_internships_composite_filter_idx").on(table.company, table.category, table.location, table.isActive),
 ]);
 
 // User saved/bookmarked internships
 export const userSavedInternships = pgTable("user_saved_internships", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
-  internshipId: integer("internship_id").references(() => scrapedInternships.id),
+  internshipId: integer("internship_id").references(() => scrapedInternships.id, { onDelete: "cascade" }).notNull(),
   savedAt: timestamp("saved_at").defaultNow(),
 }, (table) => [
+  // Unique constraint to prevent duplicate saves
+  unique("user_saved_internships_unique").on(table.userId, table.internshipId),
+  
+  // Performance indexes
   index("user_saved_internships_user_idx").on(table.userId),
+  index("user_saved_internships_internship_idx").on(table.internshipId),
 ]);
 
 // Internship applications tracking
 export const internshipApplications = pgTable("internship_applications", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").references(() => users.id).notNull(),
-  internshipId: integer("internship_id").references(() => scrapedInternships.id).notNull(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  internshipId: integer("internship_id").references(() => scrapedInternships.id, { onDelete: "cascade" }).notNull(),
   
   // Application status
   status: varchar("status").default("applied"), // applied, in_review, rejected, accepted, withdrawn
@@ -2353,7 +2364,10 @@ export const internshipApplications = pgTable("internship_applications", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
+  // Performance indexes for dashboard queries
   index("internship_applications_user_idx").on(table.userId),
+  index("internship_applications_user_status_idx").on(table.userId, table.status),
+  index("internship_applications_internship_idx").on(table.internshipId),
   index("internship_applications_status_idx").on(table.status),
   index("internship_applications_date_idx").on(table.appliedAt),
 ]);
