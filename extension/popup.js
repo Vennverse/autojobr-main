@@ -314,6 +314,7 @@ class AutoJobrPopup {
     
     // Fallback to manual site detection and analysis
     const supportedSites = [
+      { domain: 'autojobr.com', name: 'AutoJobr', icon: '🚀' },
       { domain: 'linkedin.com', name: 'LinkedIn', icon: '💼' },
       { domain: 'indeed.com', name: 'Indeed', icon: '🔍' },
       { domain: 'glassdoor.com', name: 'Glassdoor', icon: '🏢' },
