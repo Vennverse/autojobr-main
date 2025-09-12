@@ -201,52 +201,67 @@ class AutoJobrBackground {
   }
 
   createContextMenus() {
+    // Define consistent job site patterns (matches manifest.json)
+    const jobSitePatterns = [
+      '*://*.linkedin.com/jobs/*',
+      '*://*.indeed.com/viewjob*',
+      '*://*.indeed.com/jobs/*',
+      '*://*.glassdoor.com/Job/*',
+      '*://*.glassdoor.com/job-listing/*',
+      '*://*.ziprecruiter.com/jobs/*',
+      '*://*.monster.com/job-openings/*',
+      '*://*.dice.com/jobs/*',
+      '*://*.greenhouse.io/*/jobs/*',
+      '*://*.lever.co/*/jobs/*',
+      '*://*.workday.com/*/job/*',
+      '*://*.myworkdayjobs.com/*/job/*',
+      '*://*.naukri.com/job-listings/*',
+      '*://*.naukri.com/*/jobs*',
+      '*://*.shine.com/jobs/*',
+      '*://*.timesjobs.com/job-detail/*',
+      '*://*.freshersjobs.com/*/jobs/*',
+      '*://*.instahyre.com/jobs/*',
+      '*://*.angel.co/jobs/*',
+      '*://*.wellfound.com/jobs/*',
+      '*://*.stackoverflow.com/jobs/*',
+      '*://*.remoteok.io/remote-jobs/*',
+      '*://*.weworkremotely.com/remote-jobs/*'
+    ];
+
+    const applicationPatterns = [
+      '*://*.linkedin.com/jobs/apply/*',
+      '*://*.indeed.com/apply/*',
+      '*://*.glassdoor.com/job/apply/*',
+      '*://*.greenhouse.io/*/application/*',
+      '*://*.lever.co/*/apply/*',
+      '*://*.workday.com/*/apply/*',
+      '*://*.myworkdayjobs.com/*/application/*',
+      '*://*.boards.greenhouse.io/*/jobs/*/application/*',
+      '*://*.jobs.lever.co/*/apply/*',
+      '*://*.apply.workable.com/*/*',
+      '*://*.taleo.net/careersection/*/jobapply/*',
+      '*://*.icims.com/jobs/*/apply/*'
+    ];
+
     chrome.contextMenus.create({
       id: 'autofill-form',
       title: 'Auto-fill this form',
       contexts: ['page'],
-      documentUrlPatterns: [
-        '*://*.linkedin.com/*',
-        '*://*.indeed.com/*',
-        '*://*.glassdoor.com/*',
-        '*://*.ziprecruiter.com/*',
-        '*://*.monster.com/*',
-        '*://*.dice.com/*',
-        '*://*.greenhouse.io/*',
-        '*://*.lever.co/*',
-        '*://*.workday.com/*',
-        '*://*.myworkdayjobs.com/*',
-        '*://*.naukri.com/*',
-        '*://*.shine.com/*',
-        '*://*.timesjobs.com/*',
-        '*://*.freshersjobs.com/*',
-        '*://*.instahyre.com/*'
-      ]
+      documentUrlPatterns: [...applicationPatterns, ...jobSitePatterns]
     });
 
     chrome.contextMenus.create({
       id: 'analyze-job',
       title: 'Analyze job match',
       contexts: ['page'],
-      documentUrlPatterns: [
-        '*://*.linkedin.com/*',
-        '*://*.indeed.com/*',
-        '*://*.glassdoor.com/*',
-        '*://*.ziprecruiter.com/*',
-        '*://*.monster.com/*',
-        '*://*.dice.com/*',
-        '*://*.naukri.com/*',
-        '*://*.shine.com/*',
-        '*://*.timesjobs.com/*',
-        '*://*.freshersjobs.com/*',
-        '*://*.instahyre.com/*'
-      ]
+      documentUrlPatterns: jobSitePatterns
     });
 
     chrome.contextMenus.create({
       id: 'save-job',
       title: 'Save this job',
-      contexts: ['page']
+      contexts: ['page'],
+      documentUrlPatterns: jobSitePatterns
     });
   }
 
