@@ -6,6 +6,7 @@ import compression from "compression";
 import { simpleWebSocketService } from "./simpleWebSocketService.js";
 import { aiService } from "./aiService.js";
 import { applyPerformanceOptimizations, createHighPerformanceRateLimiter } from "./performanceOptimizations.js";
+import { dailySyncService } from "./dailySyncService.js";
 
 // Database URL should be provided via environment variables
 if (!process.env.DATABASE_URL) {
@@ -96,6 +97,10 @@ app.use((req, res, next) => {
   
   // Initialize unified AI service (this will show available providers in console)
   console.log("AI Service initialized with Groq and OpenRouter support");
+  
+  // Initialize daily sync service for automated internship updates
+  // This will automatically sync internship data every 24 hours
+  console.log("Daily Sync Service for internships initialized");
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

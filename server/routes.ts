@@ -52,6 +52,7 @@ import { setupSimpleChatRoutes } from "./simpleChatRoutes.js";
 import { simpleWebSocketService } from "./simpleWebSocketService.js";
 import { simplePromotionalEmailService } from "./simplePromotionalEmailService.js";
 import { internshipScrapingService } from "./internshipScrapingService.js";
+import { dailySyncService } from "./dailySyncService.js";
 import crypto from 'crypto';
 import { 
   checkJobPostingLimit,
@@ -528,6 +529,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('❌ Failed to get sync status:', error);
       res.status(500).json({ 
         message: 'Failed to get sync status',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  app.get('/api/admin/daily-sync/status', isAuthenticated, async (req: any, res) => {
+    try {
+      // Admin check
+      if (!req.user || (req.user.email !== 'admin@autojobr.com' && req.user.userType !== 'admin')) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const status = dailySyncService.getStatus();
+      const latestSync = await internshipScrapingService.getLatestSyncStats();
+      
+      res.json({
+        message: 'Daily sync service status',
+        syncService: status,
+        latestSync
+      });
+    } catch (error) {
+      console.error('❌ Failed to get daily sync status:', error);
+      res.status(500).json({ 
+        message: 'Failed to get daily sync status',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  app.post('/api/admin/daily-sync/trigger', isAuthenticated, async (req: any, res) => {
+    try {
+      // Admin check
+      if (!req.user || (req.user.email !== 'admin@autojobr.com' && req.user.userType !== 'admin')) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      console.log('🔧 Manual daily sync triggered by admin');
+      await dailySyncService.triggerManualSync();
+      
+      res.json({
+        message: 'Daily sync triggered successfully',
+        status: dailySyncService.getStatus()
+      });
+    } catch (error) {
+      console.error('❌ Manual daily sync failed:', error);
+      res.status(500).json({ 
+        message: 'Daily sync failed',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
