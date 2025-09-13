@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { load } from 'cheerio';
 import { db } from './db';
 import { scrapedInternships, internshipSyncLog } from '@shared/schema';
 import { eq, and, desc, notInArray } from 'drizzle-orm';
@@ -34,8 +35,8 @@ export class InternshipScrapingService {
       // Fetch the README content from GitHub
       const markdownContent = await this.fetchGitHubReadme();
       
-      // Parse internships from markdown table
-      const internships = this.parseInternshipsFromMarkdown(markdownContent);
+      // Parse internships from content (auto-detect format)
+      const internships = this.parseInternshipsFromContent(markdownContent);
       
       console.log(`📊 Found ${internships.length} internships in GitHub repository`);
 
@@ -92,7 +93,142 @@ export class InternshipScrapingService {
   }
 
   /**
-   * Parse internships from markdown table
+   * Parse internships from content with auto-detection
+   * Handles both HTML tables (new format) and markdown tables (legacy)
+   */
+  private parseInternshipsFromContent(content: string): GitHubInternshipEntry[] {
+    // Auto-detect format based on content
+    if (content.includes('<table')) {
+      console.log('🔍 Detected HTML table format - using HTML parser');
+      return this.parseInternshipsFromHtml(content);
+    } else {
+      console.log('🔍 Detected markdown format - using markdown parser');
+      return this.parseInternshipsFromMarkdown(content);
+    }
+  }
+
+  /**
+   * Parse internships from HTML tables (new Summer2026 format)
+   * Handles styled HTML tables with multiple sections
+   */
+  private parseInternshipsFromHtml(content: string): GitHubInternshipEntry[] {
+    const internships: GitHubInternshipEntry[] = [];
+    
+    try {
+      const $ = load(content);
+      let lastCompany = '';
+
+      // Find all table rows in tbody sections
+      $('table tbody tr').each((_, row) => {
+        try {
+          const tds = $(row).find('td');
+          
+          // Skip if not enough columns
+          if (tds.length < 3) return;
+
+          // Extract company (handle continuation rows with ↳)
+          const companyText = $(tds[0]).text().trim();
+          let company: string;
+          
+          if (companyText === '↳' || companyText === '') {
+            company = lastCompany; // Use previous company
+          } else {
+            // Extract company name, removing HTML links if present
+            company = $(tds[0]).find('strong').text().trim() || companyText;
+            lastCompany = company;
+          }
+
+          // Extract role
+          const role = $(tds[1]).text().trim();
+
+          // Extract location (handle <br> tags)
+          let location = $(tds[2]).html() || '';
+          location = location.replace(/<br\s*\/?>/gi, ', ').replace(/<[^>]*>/g, '').trim();
+
+          // Skip if essential data is missing
+          if (!company || !role || company === 'Company' || role === 'Role') {
+            return;
+          }
+
+          // Extract application URLs
+          let applicationUrl: string | undefined;
+          let simplifyApplyUrl: string | undefined;
+
+          // Check role column for links first
+          const roleLink = $(tds[1]).find('a').first();
+          if (roleLink.length && roleLink.attr('href')) {
+            applicationUrl = roleLink.attr('href');
+          }
+
+          // Check application column (usually tds[3])
+          if (tds.length > 3) {
+            $(tds[3]).find('a').each((_, link) => {
+              const href = $(link).attr('href');
+              if (href) {
+                if (href.includes('simplify.jobs')) {
+                  simplifyApplyUrl = href;
+                } else if (!applicationUrl) {
+                  applicationUrl = href;
+                }
+              }
+            });
+          }
+
+          // Extract requirements by scanning all row text
+          const requirements: string[] = [];
+          const fullRowText = $(row).text().toLowerCase();
+          const requirementKeywords = ['citizen', 'visa', 'sponsor', 'clearance', '🛂'];
+          
+          for (const keyword of requirementKeywords) {
+            if (fullRowText.includes(keyword)) {
+              requirements.push(keyword);
+            }
+          }
+
+          // Determine season from URLs
+          let season: string | undefined;
+          const allUrls = [applicationUrl, simplifyApplyUrl].filter(Boolean);
+          for (const url of allUrls) {
+            if (url?.includes('2025')) {
+              season = 'Summer 2025';
+              break;
+            } else if (url?.includes('2026')) {
+              season = 'Summer 2026';
+              break;
+            }
+          }
+
+          // Create internship entry
+          const internship: GitHubInternshipEntry = {
+            company: company.substring(0, 255),
+            role: role.substring(0, 255),
+            location: location.substring(0, 255),
+            applicationUrl,
+            requirements: requirements.length > 0 ? requirements : undefined,
+            season,
+            simplifyApplyUrl
+          };
+
+          internships.push(internship);
+
+        } catch (error) {
+          console.warn(`⚠️ Failed to parse HTML table row:`, error);
+        }
+      });
+
+    } catch (error) {
+      console.error(`❌ Error parsing HTML content:`, error);
+    }
+
+    if (internships.length === 0) {
+      console.warn('⚠️ Could not find internship HTML table in README');
+    }
+
+    return internships;
+  }
+
+  /**
+   * Parse internships from markdown table (legacy format)
    * Handles the complex table format used by SimplifyJobs
    */
   private parseInternshipsFromMarkdown(content: string): GitHubInternshipEntry[] {
