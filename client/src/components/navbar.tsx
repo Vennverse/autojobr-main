@@ -146,6 +146,18 @@ export function Navbar() {
           current: location === "/"
         },
         {
+          name: "Jobs",
+          href: "/jobs",
+          icon: Briefcase,
+          current: location === "/jobs"
+        },
+        {
+          name: "Internships",
+          href: "/internships",
+          icon: Users,
+          current: location === "/internships"
+        },
+        {
           name: "Premium",
           href: "/job-seeker-premium",
           icon: Crown,
@@ -172,13 +184,6 @@ export function Navbar() {
           icon: Handshake,
           current: location === "/referral-marketplace" || location === "/become-referrer" || location === "/my-bookings",
           badge: "New"
-        },
-        {
-          name: "Post Jobs",
-          href: "/post-job",
-          icon: Briefcase,
-          current: location === "/post-job" || location.startsWith("/recruiter"),
-          badge: "Recruit"
         }
       ];
     }
