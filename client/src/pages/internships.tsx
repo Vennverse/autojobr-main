@@ -759,7 +759,7 @@ export default function Internships() {
                       className="w-full sm:w-auto"
                     >
                       <Sparkles className="w-4 h-4 mr-2" />
-                      Apply via Simplify
+                      External Application
                     </Button>
                   </div>
                 )}
