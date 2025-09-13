@@ -152,12 +152,6 @@ export function Navbar() {
           current: location === "/jobs"
         },
         {
-          name: "Internships",
-          href: "/internships",
-          icon: Users,
-          current: location === "/internships"
-        },
-        {
           name: "Premium",
           href: "/job-seeker-premium",
           icon: Crown,

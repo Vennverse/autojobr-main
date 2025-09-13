@@ -179,6 +179,45 @@ export function ContextualSidebar() {
       };
     }
 
+    // Internships Section
+    if (location === "/internships" || location.startsWith("/internship")) {
+      return {
+        title: "Internships",
+        groups: [
+          {
+            label: "Internship Discovery",
+            items: [
+              { name: "Search Internships", href: "/internships", icon: Search, current: location === "/internships" },
+              { name: "Saved Internships", href: "/internships?filter=saved", icon: Bookmark, current: location.includes("saved") },
+              { name: "Summer 2026", href: "/internships?season=summer", icon: Calendar, current: location.includes("summer") },
+              { name: "Remote Internships", href: "/internships?remote=true", icon: Wifi, current: location.includes("remote") },
+              { name: "Tech Companies", href: "/internships?category=tech", icon: Monitor, current: location.includes("tech") },
+              { name: "Recent Postings", href: "/internships?recent=true", icon: Clock, current: location.includes("recent") },
+            ]
+          },
+          {
+            label: "Top Companies",
+            items: [
+              { name: "Apple Internships", href: "/internships?company=apple", icon: Building2, current: location.includes("apple") },
+              { name: "Google Internships", href: "/internships?company=google", icon: Building2, current: location.includes("google") },
+              { name: "Netflix Internships", href: "/internships?company=netflix", icon: Building2, current: location.includes("netflix") },
+              { name: "OpenAI Internships", href: "/internships?company=openai", icon: Building2, current: location.includes("openai") },
+              { name: "NVIDIA Internships", href: "/internships?company=nvidia", icon: Building2, current: location.includes("nvidia") },
+            ]
+          },
+          {
+            label: "Application Tools",
+            items: [
+              { name: "Quick Apply", href: "/quick-apply", icon: Zap, current: location === "/quick-apply" },
+              { name: "Resume Optimizer", href: "/ats-optimizer", icon: Target, current: location === "/ats-optimizer" },
+              { name: "Cover Letter AI", href: "/cover-letter-ai", icon: Brain, current: location === "/cover-letter-ai" },
+              { name: "Application Tracker", href: "/applications", icon: FileText, current: location === "/applications" },
+            ]
+          }
+        ]
+      };
+    }
+
     // Applications Section
     if (location === "/applications" || location.startsWith("/application")) {
       return {
@@ -492,7 +531,8 @@ export function ContextualSidebar() {
         {
           label: "Quick Actions",
           items: [
-            { name: "Find Jobs", href: "/jobs", icon: Search, current: false },
+            { name: "Find Jobs", href: "/jobs", icon: Briefcase, current: false },
+            { name: "Find Internships", href: "/internships", icon: Users, current: false },
             { name: "View Applications", href: "/applications", icon: FileText, current: false },
             { name: "Practice Interview", href: "/mock-interview", icon: Video, current: false },
             { name: "Get Referred", href: "/referral-marketplace", icon: Handshake, current: false },
