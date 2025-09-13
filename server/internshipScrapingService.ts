@@ -14,8 +14,8 @@ export interface GitHubInternshipEntry {
 }
 
 export class InternshipScrapingService {
-  private readonly GITHUB_REPO_URL = 'https://api.github.com/repos/SimplifyJobs/Summer2025-Internships/contents/README.md';
-  private readonly RAW_GITHUB_URL = 'https://raw.githubusercontent.com/SimplifyJobs/Summer2025-Internships/dev/README.md';
+  private readonly GITHUB_REPO_URL = 'https://api.github.com/repos/SimplifyJobs/Summer2026-Internships/contents/README.md';
+  private readonly RAW_GITHUB_URL = 'https://raw.githubusercontent.com/SimplifyJobs/Summer2026-Internships/dev/README.md';
 
   /**
    * Main scraping function that processes the SimplifyJobs GitHub repository
