@@ -303,7 +303,7 @@ export default function Internships() {
     {
       icon: <GraduationCap className="w-5 h-5" />,
       title: "Summer 2026 Internships",
-      description: "1,976+ opportunities from SimplifyJobs GitHub",
+      description: "1,976+ opportunities from Apple, Google, Netflix & more",
       cta: "Explore Now",
       color: "from-blue-500 to-purple-600"
     },
@@ -362,8 +362,8 @@ export default function Internships() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <SEOHead
         title={`${totalInternshipsCount}+ Internships Available - Find Your Perfect Opportunity | AutoJobR`}
-        description={`Discover ${totalInternshipsCount}+ internship opportunities from top companies worldwide. Smart application tracking, one-click applications, and comprehensive internship database from SimplifyJobs.`}
-        keywords="internships, summer internships, tech internships, software engineering internships, student opportunities, career development, SimplifyJobs"
+        description={`Discover ${totalInternshipsCount}+ internship opportunities from Apple, Google, Netflix, OpenAI, NVIDIA and other top tech companies. Smart application tracking, one-click applications, and comprehensive internship database.`}
+        keywords="internships, summer internships, tech internships, software engineering internships, student opportunities, career development, Apple, Google, Netflix, OpenAI, NVIDIA"
         canonicalUrl="https://autojobr.com/internships"
         structuredData={structuredData}
         ogType="website"
@@ -429,7 +429,7 @@ export default function Internships() {
               <p className="text-sm sm:text-lg text-gray-600 dark:text-gray-300 mt-2">
                 {isAuthenticated 
                   ? `Track and apply to the best internship opportunities`
-                  : `${totalInternshipsCount}+ internships from SimplifyJobs and top companies`}
+                  : `${totalInternshipsCount}+ internships from Apple, Google, Netflix, OpenAI, NVIDIA & more`}
               </p>
               <div className="flex items-center gap-4 mt-3">
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
