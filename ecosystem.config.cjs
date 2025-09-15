@@ -2,30 +2,17 @@ module.exports = {
   apps: [{
     name: 'autojobr',
     script: './dist/index.js',
-    instances: 1,
+    instances: "max",
     exec_mode: 'cluster',
     env: {
       NODE_ENV: 'production',
-      PORT: 5000,
-      DATABASE_URL: 'postgresql://autojobr:autojobr123@40.160.50.128:5432/autojobr',
-      SESSION_SECRET: 'supersecretkey123456789',
-      PRODUCTION_DOMAIN: 'https://autojobr.com',
-      
-      // AI Services
-      GROQ_API_KEY: '',
-      
-      // Payment Services
-      STRIPE_SECRET_KEY: 'your_stripe_secret_key_here',
-      STRIPE_PUBLISHABLE_KEY: 'your_stripe_publishable_key_here',
-      PAYPAL_CLIENT_ID: 'AXSSrk5jbYkWs0Feb1nFQ-DeB6wcLNjerMynwzQ3zLFrk7pwbBjAwmg4d5Gd268xSIvSx6pUSOJQRBdR',
-      PAYPAL_CLIENT_SECRET: 'EMLaBH5IxHzSStsrGYGd-026jDUftyxBpW5vyZosLNsMfwNg-XhMDLtBgBqZc03b3neqRpdb7DC2SdQL',
-      
-      // Email Service
-      RESEND_API_KEY: 're_Tm6vhbwR_MZkjUNCnaeoZpgXQWFZqvwQg',
-      
-      // OAuth
-      GOOGLE_CLIENT_ID: '',
-      GOOGLE_CLIENT_SECRET: ''
+      PORT: 5000
+      // All sensitive environment variables should be loaded from .env file
+      // or set as system environment variables, NOT hardcoded here
+    },
+    env_production: {
+      NODE_ENV: 'production',
+      PORT: 5000
     },
     error_file: './logs/err.log',
     out_file: './logs/out.log',
