@@ -1,0 +1,32 @@
+1|autojobr |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+1|autojobr |     at async file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:753:5 {
+1|autojobr |   code: 'ERR_ERL_PERMISSIVE_TRUST_PROXY',
+1|autojobr |   help: 'https://express-rate-limit.github.io/ERR_ERL_PERMISSIVE_TRUST_PROXY/'
+1|autojobr | }
+1|autojobr | 2025-09-15T19:19:51: ValidationError: The Express 'trust proxy' setting is true, which allows anyone to trivially bypass IP-based rate limiting. See https://express-rate-limit.github.io/ERR_ERL_PERMISSIVE_TRUST_PROXY/ for more information.
+1|autojobr |     at Object.trustProxy (file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:319:13)
+1|autojobr |     at wrappedValidations.<computed> [as trustProxy] (file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:609:22)
+1|autojobr |     at Object.keyGenerator (file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:710:20)
+1|autojobr |     at file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:772:32
+1|autojobr |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+1|autojobr |     at async file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:753:5 {
+1|autojobr |   code: 'ERR_ERL_PERMISSIVE_TRUST_PROXY',
+1|autojobr |   help: 'https://express-rate-limit.github.io/ERR_ERL_PERMISSIVE_TRUST_PROXY/'
+1|autojobr | }
+
+/var/www/autojobr-main/logs/err-0.log last 15 lines:
+0|autojobr |     at file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:772:32
+0|autojobr |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|autojobr |     at async file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:753:5 {
+0|autojobr |   code: 'ERR_ERL_PERMISSIVE_TRUST_PROXY',
+0|autojobr |   help: 'https://express-rate-limit.github.io/ERR_ERL_PERMISSIVE_TRUST_PROXY/'
+0|autojobr | }
+0|autojobr | 2025-09-15T19:20:09: ValidationError: The Express 'trust proxy' setting is true, which allows anyone to trivially bypass IP-based rate limiting. See https://express-rate-limit.github.io/ERR_ERL_PERMISSIVE_TRUST_PROXY/ for more information.
+0|autojobr |     at Object.trustProxy (file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:319:13)
+0|autojobr |     at wrappedValidations.<computed> [as trustProxy] (file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:609:22)
+0|autojobr |     at Object.keyGenerator (file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:710:20)
+0|autojobr |     at file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:772:32
+0|autojobr |     at async file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:753:5 {
+0|autojobr |   code: 'ERR_ERL_PERMISSIVE_TRUST_PROXY',
+0|autojobr |   help: 'https://express-rate-limit.github.io/ERR_ERL_PERMISSIVE_TRUST_PROXY/'
+0|autojobr | }
