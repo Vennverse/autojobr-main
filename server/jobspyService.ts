@@ -2,6 +2,9 @@ import { spawn } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { db } from './db';
+import { scrapedJobs } from '@shared/schema';
+import { eq, and, desc, notInArray } from 'drizzle-orm';
 
 // Fix for __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -26,9 +29,64 @@ interface JobSpyResult {
   timestamp: string;
 }
 
+interface JobScrapingResults {
+  totalFound: number;
+  newAdded: number;
+  updated: number;
+  deactivated: number;
+}
+
+interface JobSyncLogEntry {
+  syncDate: string;
+  totalJobsFound: number;
+  newJobsAdded: number;
+  jobsUpdated: number;
+  jobsDeactivated: number;
+  processingTimeMs: number;
+  syncStatus: 'success' | 'failed';
+  errorMessage?: string;
+  searchTerms?: string[];
+  jobSites?: string[];
+}
+
 export class JobSpyService {
   private pythonPath: string;
   private scriptPath: string;
+  private readonly DEFAULT_SEARCH_TERMS = [
+    'software engineer',
+    'frontend developer', 
+    'backend developer',
+    'full stack developer',
+    'data scientist',
+    'devops engineer',
+    'product manager',
+    'ux designer',
+    'mobile developer',
+    'machine learning engineer',
+    'cloud engineer',
+    'python developer',
+    'javascript developer',
+    'react developer',
+    'node.js developer'
+  ];
+  
+  private readonly DEFAULT_LOCATIONS = [
+    'New York, NY',
+    'San Francisco, CA', 
+    'Los Angeles, CA',
+    'Austin, TX',
+    'Seattle, WA',
+    'Chicago, IL',
+    'Boston, MA',
+    'Remote',
+    'Mumbai, India',
+    'Bangalore, India',
+    'Delhi, India',
+    'Hyderabad, India',
+    'Pune, India'
+  ];
+  
+  private readonly DEFAULT_JOB_SITES = ['indeed', 'linkedin', 'zip_recruiter', 'glassdoor', 'naukri'];
 
   constructor() {
     this.pythonPath = 'python3';
@@ -250,10 +308,139 @@ export class JobSpyService {
   }
 
   /**
+   * Main daily scraping function that processes jobs from multiple sources
+   * Returns detailed results similar to internship scraper
+   */
+  async scrapeJobsDaily(): Promise<JobScrapingResults> {
+    console.log('🔄 Starting daily job scraping from multiple job sites...');
+    const startTime = Date.now();
+
+    try {
+      // Use comprehensive configuration for daily scraping
+      const config: JobSpyConfig = {
+        search_terms: this.DEFAULT_SEARCH_TERMS,
+        locations: this.DEFAULT_LOCATIONS,
+        job_sites: this.DEFAULT_JOB_SITES,
+        results_wanted: 50, // Balanced number to avoid rate limits
+        country: 'USA'
+      };
+
+      console.log(`📊 Scraping with ${config.search_terms?.length} search terms across ${config.job_sites?.length} job sites`);
+      
+      // Execute the Python scraper
+      const result = await this.scrapeJobs(config);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'JobSpy scraping failed');
+      }
+
+      console.log(`📊 Found ${result.scraped_count} jobs, ${result.saved_count} saved to database`);
+
+      // Calculate results in the format expected by daily sync
+      const results: JobScrapingResults = {
+        totalFound: result.scraped_count || 0,
+        newAdded: result.saved_count || 0,
+        updated: 0, // The Python script handles deduplication
+        deactivated: 0 // Could be enhanced in future
+      };
+
+      // Log sync results
+      await this.logSyncResults(results, Date.now() - startTime, config);
+
+      console.log(`✅ Daily job scraping completed: ${results.newAdded} new jobs added`);
+      
+      return results;
+
+    } catch (error) {
+      console.error('❌ Error during daily job scraping:', error);
+      await this.logSyncError(error as Error, Date.now() - startTime);
+      throw error;
+    }
+  }
+
+  /**
+   * Log successful sync results to database
+   */
+  private async logSyncResults(
+    results: JobScrapingResults,
+    processingTimeMs: number,
+    config: JobSpyConfig
+  ): Promise<void> {
+    try {
+      // Note: We would create a job_sync_log table similar to internship_sync_log
+      // For now, just log to console for monitoring
+      const logData: JobSyncLogEntry = {
+        syncDate: new Date().toISOString().split('T')[0],
+        totalJobsFound: results.totalFound,
+        newJobsAdded: results.newAdded,
+        jobsUpdated: results.updated,
+        jobsDeactivated: results.deactivated,
+        processingTimeMs,
+        syncStatus: 'success',
+        searchTerms: config.search_terms,
+        jobSites: config.job_sites
+      };
+      
+      console.log('📊 Job sync metrics:', JSON.stringify(logData, null, 2));
+      
+      // TODO: Save to job_sync_log table when implemented
+    } catch (error) {
+      console.error('Failed to log job sync results:', error);
+    }
+  }
+
+  /**
+   * Log sync error to database
+   */
+  private async logSyncError(error: Error, processingTimeMs: number): Promise<void> {
+    try {
+      const logData: JobSyncLogEntry = {
+        syncDate: new Date().toISOString().split('T')[0],
+        totalJobsFound: 0,
+        newJobsAdded: 0,
+        jobsUpdated: 0,
+        jobsDeactivated: 0,
+        processingTimeMs,
+        syncStatus: 'failed',
+        errorMessage: error.message
+      };
+      
+      console.error('🚨 Job sync error log:', JSON.stringify(logData, null, 2));
+      
+      // TODO: Save to job_sync_log table when implemented
+    } catch (logError) {
+      console.error('Failed to log job sync error:', logError);
+    }
+  }
+
+  /**
+   * Get latest sync statistics from database
+   */
+  async getLatestSyncStats(): Promise<any> {
+    try {
+      // TODO: Implement when job_sync_log table is added
+      // For now, return from scraped_jobs table
+      const latest = await db
+        .select({
+          lastScraped: scrapedJobs.lastScraped,
+          totalJobs: scrapedJobs.id
+        })
+        .from(scrapedJobs)
+        .orderBy(desc(scrapedJobs.lastScraped))
+        .limit(1);
+
+      return latest[0] || null;
+    } catch (error) {
+      console.error('Failed to get job sync stats:', error);
+      return null;
+    }
+  }
+
+  /**
    * Get available job sites supported by JobSpy
    */
   getAvailableJobSites(): string[] {
-    return ['indeed', 'linkedin'];
+    return this.DEFAULT_JOB_SITES;
   }
 
   /**
