@@ -345,9 +345,6 @@ export default function Onboarding() {
         if (!formData.highestDegree) errors.push("Highest Degree is required");
         break;
         
-      case "resume":
-        if (!onboardingStatus?.hasResume) errors.push("Please upload your resume to continue");
-        break;
     }
     
     return { isValid: errors.length === 0, errors };
@@ -699,98 +696,6 @@ export default function Onboarding() {
               </Label>
             </div>
           </div>
-        </div>
-      )
-    },
-    {
-      id: "resume",
-      title: "Resume Upload & Analysis",
-      description: "Upload your resume for ATS optimization",
-      content: (
-        <div className="space-y-6">
-          {!onboardingStatus?.hasResume ? (
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-              <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium mb-2">Upload Your Resume</h3>
-              <p className="text-gray-600 mb-4">
-                Upload a PDF file to get instant ATS optimization feedback
-              </p>
-              <Input
-                type="file"
-                accept=".pdf"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    setResumeFile(file);
-                    handleResumeUpload(file);
-                  }
-                }}
-                disabled={isUploadingResume}
-                className="max-w-xs mx-auto"
-              />
-              {isUploadingResume && (
-                <div className="mt-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="text-sm text-gray-600 mt-2">Analyzing resume...</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-green-600">
-                <CheckCircle className="w-5 h-5" />
-                <span className="font-medium">Resume uploaded and analyzed</span>
-              </div>
-              
-              {resumeAnalysis && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Star className="w-5 h-5 text-yellow-500" />
-                      <span className="font-medium">ATS Score:</span>
-                      <Badge variant={(onboardingStatus?.atsScore || 0) >= 80 ? "default" : (onboardingStatus?.atsScore || 0) >= 60 ? "secondary" : "destructive"}>
-                        {onboardingStatus?.atsScore || 'N/A'}/100
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm flex items-center gap-2">
-                          <TrendingUp className="w-4 h-4" />
-                          Strengths
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        {resumeAnalysis.analysis.content.strengthsFound.slice(0, 3).map((strength, index) => (
-                          <div key={index} className="text-sm text-green-700 bg-green-50 p-2 rounded">
-                            {strength}
-                          </div>
-                        ))}
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4" />
-                          Improvements
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        {resumeAnalysis.analysis.recommendations.slice(0, 3).map((rec, index) => (
-                          <div key={index} className="text-sm text-orange-700 bg-orange-50 p-2 rounded">
-                            {rec}
-                          </div>
-                        ))}
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       )
     },
