@@ -1,0 +1,95 @@
+0|autojobr  | 2025-09-15T19:03:25: ValidationError: The 'X-Forwarded-For' header is set but the Express 'trust proxy' setting is false (default). This could indicate a misconfiguration which would prevent express-rate-limit from accurately identifying users. See https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/ for more information.
+0|autojobr  |     at Object.xForwardedForHeader (file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:337:13)
+0|autojobr  |     at wrappedValidations.<computed> [as xForwardedForHeader] (file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:609:22)
+0|autojobr  |     at Object.keyGenerator (file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:711:20)
+0|autojobr  |     at file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:772:32
+0|autojobr  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|autojobr  |     at async file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:753:5 {
+0|autojobr  |   code: 'ERR_ERL_UNEXPECTED_X_FORWARDED_FOR',
+0|autojobr  |   help: 'https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/'
+0|autojobr  | }
+0|autojobr  | 2025-09-15T19:03:25: 7:03:25 PM [express] GET /api/user 401 in 10ms :: {"message":"Not authenticated"}
+1|autojobr  | 2025-09-15T19:03:25: ValidationError: The 'X-Forwarded-For' header is set but the Express 'trust proxy' setting is false (default). This could indicate a misconfiguration which would prevent express-rate-limit from accurately identifying users. See https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/ for more information.
+1|autojobr  |     at Object.xForwardedForHeader (file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:337:13)
+1|autojobr  |     at wrappedValidations.<computed> [as xForwardedForHeader] (file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:609:22)
+1|autojobr  |     at Object.keyGenerator (file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:711:20)
+1|autojobr  |     at file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:772:32
+1|autojobr  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+1|autojobr  |     at async file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:753:5 {
+1|autojobr  |   code: 'ERR_ERL_UNEXPECTED_X_FORWARDED_FOR',
+1|autojobr  |   help: 'https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/'
+1|autojobr  | }
+1|autojobr  | 2025-09-15T19:03:25: [AUTH DEBUG] GET /api/reminders/pending: {
+1|autojobr  |   hasSession: true,
+1|autojobr  |   sessionUser: false,
+1|autojobr  |   passportUser: false,
+1|autojobr  |   sessionId: '4k1sVfsOlUpGx5jhbUqhOkq-RcutOlmx',
+1|autojobr  |   cookies: 'present'
+1|autojobr  | }
+1|autojobr  | 2025-09-15T19:03:25: 7:03:25 PM [express] GET /api/reminders/pending 401 in 10ms :: {"message":"Not authenticated"}
+1|autojobr  | 2025-09-15T19:04:47: 7:04:47 PM [express] POST /api/auth/signin 200 in 2ms :: {"redirectUrl":"/api/auth/google"}
+0|autojobr  | 2025-09-15T19:04:48: 7:04:48 PM [express] GET /api/auth/google 302 in 1ms
+1|autojobr  | 2025-09-15T19:04:51: ✅ Google OAuth user authenticated: shubhamdubeyskd2001@gmail.com
+1|autojobr  | 2025-09-15T19:04:51: ✅ Google OAuth successful for user: shubhamdubeyskd2001@gmail.com
+1|autojobr  | 2025-09-15T19:04:51: ✅ Google OAuth session saved for user: shubhamdubeyskd2001@gmail.com
+1|autojobr  | 2025-09-15T19:04:51: 7:04:51 PM [express] GET /api/auth/google/callback 302 in 187ms
+1|autojobr  | 2025-09-15T19:04:52: 7:04:52 PM [express] GET /api/user 304 in 9ms :: {"id":"user-1757962564698-pz56vtr0w","email":"shubh…
+0|autojobr  | 2025-09-15T19:04:53: [AUTH DEBUG] GET /api/reminders/pending: {
+0|autojobr  |   hasSession: true,
+0|autojobr  |   sessionUser: false,
+0|autojobr  |   passportUser: false,
+0|autojobr  |   sessionId: 'JzZ2LF4EFrSzPQopkhpEJvo1psO7JGX2',
+0|autojobr  |   cookies: 'present'
+0|autojobr  | }
+0|autojobr  | 2025-09-15T19:04:53: 7:04:53 PM [express] GET /api/reminders/pending 401 in 2ms :: {"message":"Not authenticated"}
+1|autojobr  | 2025-09-15T19:04:53: [AUTH DEBUG] GET /api/onboarding/status: {
+1|autojobr  |   hasSession: true,
+1|autojobr  |   sessionUser: true,
+1|autojobr  |   passportUser: true,
+1|autojobr  |   sessionId: '-YwIuC1FSkly0oPskiO_i2XuNgK50QnL',
+1|autojobr  |   cookies: 'present'
+1|autojobr  | }
+1|autojobr  | 2025-09-15T19:04:53: [DEBUG] Fetching resumes for user: user-1757962564698-pz56vtr0w
+1|autojobr  | 2025-09-15T19:04:53: ✅ Connected to Replit PostgreSQL database
+1|autojobr  | 2025-09-15T19:04:53: ✅ Connected to Replit PostgreSQL database
+1|autojobr  | 2025-09-15T19:04:53: ✅ Connected to Replit PostgreSQL database
+1|autojobr  | 2025-09-15T19:04:53: ✅ Connected to Replit PostgreSQL database
+1|autojobr  | 2025-09-15T19:04:53: [DEBUG] Found 0 resumes for user user-1757962564698-pz56vtr0w
+1|autojobr  | 2025-09-15T19:04:53: [DEBUG] Returning 0 formatted resumes for user user-1757962564698-pz56vtr0w
+1|autojobr  | 2025-09-15T19:04:53: 7:04:53 PM [express] GET /api/onboarding/status 304 in 28ms
+0|autojobr  | 2025-09-15T19:04:53: [AUTH DEBUG] GET /api/profile: {
+0|autojobr  |   hasSession: true,
+0|autojobr  |   sessionUser: false,
+0|autojobr  |   passportUser: false,
+0|autojobr  |   sessionId: 'eB-Pn8aqilyG_Eu1P8Gq1E-e6Y0jqbjg',
+0|autojobr  |   cookies: 'present'
+0|autojobr  | }
+0|autojobr  | 2025-09-15T19:04:53: 7:04:53 PM [express] GET /api/profile 401 in 2ms :: {"message":"Not authenticated"}
+1|autojobr  | 2025-09-15T19:04:53: [AUTH DEBUG] GET /api/resume/analysis: {
+1|autojobr  |   hasSession: true,
+1|autojobr  |   sessionUser: true,
+1|autojobr  |   passportUser: true,
+1|autojobr  |   sessionId: '-YwIuC1FSkly0oPskiO_i2XuNgK50QnL',
+1|autojobr  |   cookies: 'present'
+1|autojobr  | }
+1|autojobr  | 2025-09-15T19:04:53: [DEBUG] Fetching resumes for user: user-1757962564698-pz56vtr0w
+1|autojobr  | 2025-09-15T19:04:53: [DEBUG] Found 0 resumes for user user-1757962564698-pz56vtr0w
+1|autojobr  | 2025-09-15T19:04:53: [DEBUG] Returning 0 formatted resumes for user user-1757962564698-pz56vtr0w
+1|autojobr  | 2025-09-15T19:04:53: 7:04:53 PM [express] GET /api/resume/analysis 404 in 6ms :: {"message":"No resume found. Please uplo…
+0|autojobr  | 2025-09-15T19:05:00: ValidationError: The 'X-Forwarded-For' header is set but the Express 'trust proxy' setting is false (default). This could indicate a misconfiguration which would prevent express-rate-limit from accurately identifying users. See https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/ for more information.
+0|autojobr  |     at Object.xForwardedForHeader (file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:337:13)
+0|autojobr  |     at wrappedValidations.<computed> [as xForwardedForHeader] (file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:609:22)
+0|autojobr  |     at Object.keyGenerator (file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:711:20)
+0|autojobr  |     at file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:772:32
+0|autojobr  |     at async file:///var/www/autojobr-main/node_modules/express-rate-limit/dist/index.mjs:753:5 {
+0|autojobr  |   code: 'ERR_ERL_UNEXPECTED_X_FORWARDED_FOR',
+0|autojobr  |   help: 'https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/'
+0|autojobr  | }
+0|autojobr  | 2025-09-15T19:05:00: [AUTH DEBUG] POST /api/resumes/upload: {
+0|autojobr  |   hasSession: true,
+0|autojobr  |   sessionUser: false,
+0|autojobr  |   passportUser: false,
+0|autojobr  |   sessionId: 'VMhVKHQ1Llc232BQR3DD2Hiwtg4rBYmP',
+0|autojobr  |   cookies: 'present'
+0|autojobr  | }
+0|autojobr  | 2025-09-15T19:05:00: 7:05:00 PM [express] POST /api/resumes/upload 401 in 3ms :: {"message":"Not authenticated"}
