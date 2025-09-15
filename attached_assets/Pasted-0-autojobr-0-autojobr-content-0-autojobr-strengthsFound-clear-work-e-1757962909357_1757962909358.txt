@@ -1,0 +1,38 @@
+0|autojobr  |   },
+0|autojobr  |   "content": {
+0|autojobr  |     "strengthsFound": ["clear work experience section", "relevant education"],
+0|autojobr  |     "weaknesses": ["lack of detail in skills section", "no clear career summary"],
+0|autojobr  |     "suggestions": ["add specific examples to the skills section", "create a clear career summary"],
+0|autojobr  |     "missingElements": ["relevant certifications", "volunteer experience"],
+0|autojobr  |     "quantificationOpportunities": ["increased sales by X%", "improved efficiency by Y%"]
+0|autojobr  |   },
+0|autojobr  |   "rewriteSuggestions": [
+0|autojobr  |     {
+0|autojobr  |       "original": "Responsible for managing a team of developers",
+0|autojobr  |       "improved": "Managed a team of 10 developers, resulting in a 25% increase in project efficiency",
+0|autojobr  |       "reason": "Adding specific metrics and details to the work experience section"
+0|autojobr  |     }
+0|autojobr  |   ],
+0|autojobr  |   "industrySpecific": {
+0|autojobr  |     "detectedIndustry": "technology",
+0|autojobr  |     "industryKeywords": ["software development", "data science", "cybersecurity"],
+0|autojobr  |     "industryStandards": ["bachelor's degree in computer science", "certifications in agile development"]
+0|autojobr  |   }
+0|autojobr  | }
+0|autojobr  | ```
+0|autojobr  | 2025-09-15T19:00:51: === RESUME UPLOAD ERROR ===
+0|autojobr  | 2025-09-15T19:00:51: Error details: [Error: EACCES: permission denied, open 'uploads/resumes/resume_user-1757962564698-pz56vtr0w_1757962851662_15vj33t7f.pdf.gz'] {
+0|autojobr  |   errno: -13,
+0|autojobr  |   code: 'EACCES',
+0|autojobr  |   syscall: 'open',
+0|autojobr  |   path: 'uploads/resumes/resume_user-1757962564698-pz56vtr0w_1757962851662_15vj33t7f.pdf.gz'
+0|autojobr  | }
+0|autojobr  | 2025-09-15T19:00:51: Error stack: Error: EACCES: permission denied, open 'uploads/resumes/resume_user-1757962564698-pz56vtr0w_1757962851662_15vj33t7f.pdf.gz'
+0|autojobr  | 2025-09-15T19:00:51: User ID: user-1757962564698-pz56vtr0w
+0|autojobr  | 2025-09-15T19:00:51: File info: {
+0|autojobr  |   name: 'Shubham_Dubey_Resume_With_Photo.pdf',
+0|autojobr  |   size: 99492,
+0|autojobr  |   type: 'application/pdf'
+0|autojobr  | }
+0|autojobr  | 2025-09-15T19:00:51: === END ERROR LOG ===
+0|autojobr  | 2025-09-15T19:00:51: 🐌 SLOW REQUEST: POST /api/resumes/upload 500 in 2415ms :: {"message":"Failed to upload resume",…
