@@ -457,7 +457,7 @@ export class InternshipScrapingService {
           )
         );
       
-      deactivated = deactivatedResult.changes || 0;
+      deactivated = deactivatedResult.rowCount || 0;
     } else {
       // If no internships found, deactivate all from this source
       const deactivatedResult = await db
@@ -470,7 +470,7 @@ export class InternshipScrapingService {
           )
         );
       
-      deactivated = deactivatedResult.changes || 0;
+      deactivated = deactivatedResult.rowCount || 0;
     }
 
     return {
