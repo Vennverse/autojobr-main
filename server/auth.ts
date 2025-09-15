@@ -59,14 +59,14 @@ export async function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: isSecure, // Only require HTTPS when explicitly configured
+      secure: false, // Set to false for now, enable with proper HTTPS setup
       httpOnly: true,
       maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year for persistent extension auth
-      sameSite: isSecure ? 'none' : 'lax', // 'none' only when secure, 'lax' otherwise
-      domain: isProduction && process.env.COOKIE_DOMAIN ? process.env.COOKIE_DOMAIN : undefined,
+      sameSite: 'lax', // Use 'lax' for better compatibility
+      domain: undefined, // Don't set domain to avoid cross-subdomain issues
     },
     name: 'autojobr.sid', // Custom session name
-    proxy: isProduction // Trust proxy only in production
+    proxy: true // Trust proxy since we're behind Nginx
   }));
   console.log('✅ Session middleware configured successfully with MemoryStore');
 

@@ -18,8 +18,12 @@ export const createHighPerformanceRateLimiter = () => {
     skipSuccessfulRequests: false,
     keyGenerator: (req) => {
       // Use user ID if authenticated, otherwise IP
-      return (req as any).user?.id || req.ip;
+      // Get real IP from X-Forwarded-For header when behind proxy
+      const userIP = req.ip || req.connection.remoteAddress;
+      return (req as any).user?.id || userIP;
     },
+    // Skip rate limiting validation warnings in development
+    validate: false,
     // Custom store for better performance (in production, use Redis)
     store: undefined, // Will use memory store by default
   });
@@ -32,6 +36,7 @@ export const apiRateLimiter = rateLimit({
   message: { error: 'API rate limit exceeded' },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false, // Skip validation warnings
 });
 
 // Strict rate limiter for expensive operations
@@ -41,6 +46,7 @@ export const strictRateLimiter = rateLimit({
   message: { error: 'Please wait before making another AI request' },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false, // Skip validation warnings
 });
 
 // Response optimization middleware - FIXED for security and performance
