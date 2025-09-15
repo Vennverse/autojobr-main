@@ -1,8 +1,9 @@
 import { internshipScrapingService } from './internshipScrapingService.js';
+import { jobSpyService } from './jobspyService.js';
 
 /**
  * Daily Synchronization Service
- * Handles automated daily synchronization of internship data
+ * Handles automated daily synchronization of internship and job data
  */
 export class DailySyncService {
   private syncInterval: NodeJS.Timeout | null = null;
@@ -15,6 +16,9 @@ export class DailySyncService {
 
   private init() {
     console.log('🔄 Daily Sync Service initialized');
+    console.log('📋 Services configured:');
+    console.log('   - Internship scraping from SimplifyJobs GitHub');
+    console.log('   - Job scraping from major job sites (Indeed, LinkedIn, Naukri, etc.)');
     
     // Start the daily sync cycle
     this.startDailySync();
@@ -73,7 +77,7 @@ export class DailySyncService {
   }
 
   /**
-   * Perform the daily synchronization
+   * Perform the daily synchronization for both internships and jobs
    */
   private async performDailySync() {
     if (this.isRunning) {
@@ -82,24 +86,59 @@ export class DailySyncService {
     }
 
     this.isRunning = true;
-    console.log('🔄 Starting daily internship synchronization...');
+    console.log('🔄 Starting daily data synchronization (internships + jobs)...');
+
+    const overallStartTime = Date.now();
+    const syncResults = {
+      internships: null as any,
+      jobs: null as any,
+      errors: [] as string[]
+    };
 
     try {
-      const startTime = Date.now();
-      const results = await internshipScrapingService.scrapeInternships();
-      const duration = Date.now() - startTime;
+      // 1. Scrape internships first
+      console.log('📚 Phase 1: Scraping internships...');
+      try {
+        const internshipResults = await internshipScrapingService.scrapeInternships();
+        syncResults.internships = internshipResults;
+        console.log(`✅ Internships: ${internshipResults.newAdded} new, ${internshipResults.updated} updated`);
+      } catch (error) {
+        const errorMsg = `Internship scraping failed: ${error instanceof Error ? error.message : String(error)}`;
+        console.error('❌', errorMsg);
+        syncResults.errors.push(errorMsg);
+      }
 
+      // 2. Scrape jobs second
+      console.log('💼 Phase 2: Scraping jobs from major job sites...');
+      try {
+        const jobResults = await jobSpyService.scrapeJobsDaily();
+        syncResults.jobs = jobResults;
+        console.log(`✅ Jobs: ${jobResults.newAdded} new from ${jobSpyService.getAvailableJobSites().join(', ')}`);
+      } catch (error) {
+        const errorMsg = `Job scraping failed: ${error instanceof Error ? error.message : String(error)}`;
+        console.error('❌', errorMsg);
+        syncResults.errors.push(errorMsg);
+      }
+
+      const totalDuration = Date.now() - overallStartTime;
       this.lastSyncTime = new Date();
 
-      console.log(`✅ Daily sync completed successfully in ${duration}ms:`, {
-        totalFound: results.totalFound,
-        newAdded: results.newAdded,
-        updated: results.updated,
-        deactivated: results.deactivated
-      });
+      // Calculate combined metrics
+      const combinedResults = {
+        internships: syncResults.internships || { totalFound: 0, newAdded: 0, updated: 0, deactivated: 0 },
+        jobs: syncResults.jobs || { totalFound: 0, newAdded: 0, updated: 0, deactivated: 0 },
+        totalDuration,
+        errors: syncResults.errors
+      };
+
+      if (syncResults.errors.length === 0) {
+        console.log(`🎉 Daily sync completed successfully in ${totalDuration}ms`);
+      } else {
+        console.log(`⚠️ Daily sync completed with ${syncResults.errors.length} error(s) in ${totalDuration}ms`);
+      }
 
       // Log success to help with monitoring
-      this.logSyncSuccess(results, duration);
+      this.logSyncSuccess(combinedResults, totalDuration);
 
     } catch (error) {
       console.error('❌ Daily sync failed:', error);
@@ -118,10 +157,20 @@ export class DailySyncService {
       status: 'success',
       duration: `${duration}ms`,
       metrics: {
-        totalFound: results.totalFound,
-        newAdded: results.newAdded,
-        updated: results.updated,
-        deactivated: results.deactivated
+        internships: {
+          totalFound: results.internships?.totalFound || 0,
+          newAdded: results.internships?.newAdded || 0,
+          updated: results.internships?.updated || 0,
+          deactivated: results.internships?.deactivated || 0
+        },
+        jobs: {
+          totalFound: results.jobs?.totalFound || 0,
+          newAdded: results.jobs?.newAdded || 0,
+          updated: results.jobs?.updated || 0,
+          deactivated: results.jobs?.deactivated || 0
+        },
+        errors: results.errors || [],
+        totalNewData: (results.internships?.newAdded || 0) + (results.jobs?.newAdded || 0)
       }
     };
 
