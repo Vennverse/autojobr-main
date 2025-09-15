@@ -16,6 +16,9 @@ if (!process.env.DATABASE_URL) {
 
 const app = express();
 
+// Trust proxy - required when behind Nginx reverse proxy
+app.set('trust proxy', true);
+
 // Optimized compression middleware for high throughput
 app.use(compression({
   level: 6, // Balanced compression level for good ratio without CPU overhead
