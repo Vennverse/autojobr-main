@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { CheckCircle, Upload, FileText, AlertCircle, Star, TrendingUp, Zap, Target } from "lucide-react";
+import { CheckCircle, Upload, FileText, AlertCircle, Star, TrendingUp, Zap, Target, Chrome, Download } from "lucide-react";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { useLocation } from "wouter";
 
@@ -934,9 +934,10 @@ export default function Onboarding() {
               <Button 
                 size="lg" 
                 className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold px-8 py-3"
-                onClick={() => window.open("https://chrome.google.com/webstore", "_blank")}
+                onClick={() => window.open('https://chromewebstore.google.com/detail/mmldcjloipcifbkacnkmllkkjhdaghgk?utm_source=item-share-cb', '_blank')}
+                data-testid="button-download-extension-onboarding"
               >
-                <Upload className="w-5 h-5 mr-2" />
+                <Chrome className="w-5 h-5 mr-2" />
                 Download Chrome Extension
               </Button>
               <p className="text-sm text-muted-foreground">

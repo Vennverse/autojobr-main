@@ -80,7 +80,12 @@ export default function ChromeExtension() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-              <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 text-lg">
+              <Button 
+                size="lg" 
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 text-lg"
+                onClick={() => window.open('https://chromewebstore.google.com/detail/mmldcjloipcifbkacnkmllkkjhdaghgk?utm_source=item-share-cb', '_blank')}
+                data-testid="button-download-extension"
+              >
                 <Chrome className="mr-2 h-5 w-5" />
                 Add to Chrome - FREE
               </Button>
@@ -265,7 +270,12 @@ export default function ChromeExtension() {
               Join 100,000+ job seekers who have automated their way to career success with our Chrome extension.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 text-lg">
+              <Button 
+                size="lg" 
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 text-lg"
+                onClick={() => window.open('https://chromewebstore.google.com/detail/mmldcjloipcifbkacnkmllkkjhdaghgk?utm_source=item-share-cb', '_blank')}
+                data-testid="button-install-extension"
+              >
                 <Chrome className="mr-2 h-5 w-5" />
                 Install Extension FREE
               </Button>

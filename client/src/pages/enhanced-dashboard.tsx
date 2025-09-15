@@ -363,7 +363,7 @@ export default function EnhancedDashboard() {
       title: "Skill Champion",
       description: "Complete 5+ skill tests",
       icon: Trophy,
-      unlocked: (rankingTestHistory?.length || 0) >= 5,
+      unlocked: Array.isArray(rankingTestHistory) && rankingTestHistory.length >= 5,
       rarity: "legendary",
     },
   ];
@@ -704,13 +704,13 @@ export default function EnhancedDashboard() {
         "Practice behavioral interviews with personalized feedback and improvement suggestions",
       icon: Mic,
       route: "/mock-interview",
-      stats: `${mockInterviewStats?.averageScore || 0}% Avg Score`,
+      stats: `${(mockInterviewStats as any)?.averageScore || 0}% Avg Score`,
       gradient: "from-indigo-500 to-indigo-600",
       action: "Practice Now",
       helpText:
         "Master behavioral questions with AI feedback - users report 40% better performance in real interviews",
-      isImproving: (mockInterviewStats?.averageScore || 0) > 0,
-      usageCount: mockInterviewStats?.totalSessions || 0,
+      isImproving: ((mockInterviewStats as any)?.averageScore || 0) > 0,
+      usageCount: (mockInterviewStats as any)?.totalSessions || 0,
       successRate: "89%",
     },
   ];
@@ -746,7 +746,7 @@ export default function EnhancedDashboard() {
     },
   ];
 
-  const recentApplications = applications?.slice(0, 3) || [];
+  const recentApplications = Array.isArray(applications) ? applications.slice(0, 3) : [];
 
   // Duplicate functions removed - using the ones defined earlier
 
@@ -1931,7 +1931,7 @@ export default function EnhancedDashboard() {
                     )}
 
                     {/* Latest Analysis */}
-                    {resumes && resumes.length > 0 && (
+                    {Array.isArray(resumes) && resumes.length > 0 && (
                       <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 space-y-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -1957,19 +1957,19 @@ export default function EnhancedDashboard() {
                         <div className="grid grid-cols-3 gap-3 text-xs">
                           <div className="text-center p-2 bg-white/10 rounded">
                             <div className="font-bold text-lg text-emerald-200">
-                              {resumes[0]?.analysis?.content?.strengthsFound?.length || 0}
+                              {Array.isArray(resumes[0]?.analysis?.content?.strengthsFound) ? resumes[0].analysis.content.strengthsFound.length : 0}
                             </div>
                             <div className="text-emerald-100">Strengths</div>
                           </div>
                           <div className="text-center p-2 bg-white/10 rounded">
                             <div className="font-bold text-lg text-orange-200">
-                              {resumes[0]?.analysis?.recommendations?.length || 0}
+                              {Array.isArray(resumes[0]?.analysis?.recommendations) ? resumes[0].analysis.recommendations.length : 0}
                             </div>
                             <div className="text-orange-100">Tips</div>
                           </div>
                           <div className="text-center p-2 bg-white/10 rounded">
                             <div className="font-bold text-lg text-red-200">
-                              {resumes[0]?.analysis?.keywordOptimization?.missingKeywords?.length || 0}
+                              {Array.isArray(resumes[0]?.analysis?.keywordOptimization?.missingKeywords) ? resumes[0].analysis.keywordOptimization.missingKeywords.length : 0}
                             </div>
                             <div className="text-red-100">Missing</div>
                           </div>
