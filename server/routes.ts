@@ -8340,7 +8340,7 @@ Host: https://autojobr.com`;
 
       // Generate unique shareable link
       const shareToken = crypto.randomBytes(16).toString('hex');
-      const shareableLink = `${process.env.NEXTAUTH_URL || 'http://localhost:5000'}/jobs/shared/${shareToken}`;
+      const shareableLink = `${process.env.NEXTAUTH_URL || 'https://autojobr.com'}/jobs/shared/${shareToken}`;
       
       // Update job posting with shareable link
       const updatedJob = await storage.updateJobPosting(jobId, {

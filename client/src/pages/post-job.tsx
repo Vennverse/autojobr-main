@@ -55,6 +55,11 @@ export default function PostJob() {
     const domain = email.split('@')[1]?.toLowerCase();
     if (!domain) return "";
     
+    // Special case for autojobr.com domain
+    if (domain === 'autojobr.com') {
+      return 'Autojobr';
+    }
+    
     // Remove common TLDs and create a readable company name
     const companyName = domain
       .replace(/\.(com|org|net|edu|gov|co\.uk|co\.in|co\.jp)$/, '')
