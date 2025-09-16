@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { User, JobPosting, JobPostingApplication, Conversation, UserProfile, UserSkill, WorkExperience, Education, Resume } from "@shared/schema";
 import {
   Card,
   CardContent,
@@ -42,7 +43,6 @@ import {
   XCircle,
   Clock,
   Download,
-  User,
   Phone,
   MapPin,
   GraduationCap,
@@ -76,6 +76,21 @@ export default function RecruiterDashboard() {
   const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(
     null,
   );
+
+  // Define interface for applicant details with all related data
+  interface ApplicantDetails {
+    user?: User;
+    profile?: UserProfile;
+    skills?: UserSkill[];
+    workExperience?: WorkExperience[];
+    education?: Education[];
+    resumes?: Resume[];
+  }
+
+  // Define interface for conversation with hasUnread property
+  interface ConversationWithUnread extends Conversation {
+    hasUnread?: boolean;
+  }
   const [showResumePreview, setShowResumePreview] = useState(false);
   const [resumePreview, setResumePreview] = useState("");
   const [jobCompatibility, setJobCompatibility] = useState<any>(null);
@@ -87,33 +102,33 @@ export default function RecruiterDashboard() {
   const [selectedJobForPromote, setSelectedJobForPromote] = useState<any>(null);
 
   // Fetch recruiter's job postings
-  const { data: jobPostings, isLoading: jobsLoading } = useQuery({
+  const { data: jobPostings, isLoading: jobsLoading, error: jobsError } = useQuery<JobPosting[]>({
     queryKey: ["/api/recruiter/jobs"],
   });
 
   // Fetch applications for recruiter's jobs
-  const { data: applications, isLoading: applicationsLoading } = useQuery({
+  const { data: applications, isLoading: applicationsLoading, error: applicationsError } = useQuery<JobPostingApplication[]>({
     queryKey: ["/api/recruiter/applications"],
   });
 
   // Fetch current user
-  const { data: user } = useQuery({
+  const { data: user, isLoading: userLoading, error: userError } = useQuery<User>({
     queryKey: ["/api/user"],
     retry: false,
   });
 
   // Fetch chat conversations
-  const { data: conversations, isLoading: conversationsLoading } = useQuery({
+  const { data: conversations, isLoading: conversationsLoading, error: conversationsError } = useQuery<ConversationWithUnread[]>({
     queryKey: ["/api/chat/conversations"],
   });
 
   // Safe array access with proper fallbacks
   const safeJobPostings = Array.isArray(jobPostings) ? jobPostings : [];
   const safeApplications = Array.isArray(applications) ? applications : [];
-  const safeConversations = Array.isArray(conversations) ? conversations : [];
+  const safeConversations = Array.isArray(conversations) ? conversations : [] as ConversationWithUnread[];
 
   // Show loading state while user data is being fetched
-  if (!user) {
+  if (userLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -121,8 +136,23 @@ export default function RecruiterDashboard() {
     );
   }
 
+  // Show error state if user fetch failed
+  if (userError || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-lg font-semibold text-red-600">Authentication Error</p>
+          <p className="text-sm text-gray-600 mt-2">Please log in to access the recruiter dashboard.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Type assertion for user to handle null properties
+  const typedUser = user as User;
+
   // Fetch applicant details when selected
-  const { data: applicantDetails, isLoading: applicantLoading } = useQuery({
+  const { data: applicantDetails, isLoading: applicantLoading } = useQuery<ApplicantDetails>({
     queryKey: [`/api/recruiter/applicant/${selectedApplicantId}`],
     enabled: !!selectedApplicantId,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -190,7 +220,7 @@ export default function RecruiterDashboard() {
   // Mutation for generating shareable links
   const shareJobMutation = useMutation({
     mutationFn: async (jobId: number) => {
-      return await apiRequest("POST", `/api/recruiter/jobs/${jobId}/share`);
+      return await apiRequest(`/api/recruiter/jobs/${jobId}/share`, "POST");
     },
     onSuccess: (data: any) => {
       setShareLink(data.shareableLink);
@@ -211,7 +241,7 @@ export default function RecruiterDashboard() {
   // Mutation for promoting jobs
   const promoteJobMutation = useMutation({
     mutationFn: async (jobId: number) => {
-      return await apiRequest("POST", `/api/recruiter/jobs/${jobId}/promote`);
+      return await apiRequest(`/api/recruiter/jobs/${jobId}/promote`, "POST");
     },
     onSuccess: (data: any) => {
       toast({
@@ -329,14 +359,25 @@ export default function RecruiterDashboard() {
                   <Briefcase className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{safeJobPostings.length}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Active Jobs</p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400">+{safeJobPostings.filter((j: any) => {
-                    const createdAt = new Date(j.createdAt);
-                    const weekAgo = new Date();
-                    weekAgo.setDate(weekAgo.getDate() - 7);
-                    return createdAt > weekAgo;
-                  }).length} this week</p>
+                  {jobsLoading ? (
+                    <div className="space-y-2">
+                      <div className="h-8 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">{safeJobPostings.length}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Active Jobs</p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400">+{safeJobPostings.filter((j: JobPosting) => {
+                        if (!j.createdAt) return false;
+                        const createdAt = new Date(j.createdAt);
+                        const weekAgo = new Date();
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+                        return createdAt > weekAgo;
+                      }).length} this week</p>
+                    </>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -349,11 +390,21 @@ export default function RecruiterDashboard() {
                   <Users className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{safeApplications.length}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Applications</p>
-                  <p className="text-xs text-green-600 dark:text-green-400">
-                    {safeApplications.filter((a: any) => a.status === 'pending').length} pending review
-                  </p>
+                  {applicationsLoading ? (
+                    <div className="space-y-2">
+                      <div className="h-8 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-3 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">{safeApplications.length}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Applications</p>
+                      <p className="text-xs text-green-600 dark:text-green-400">
+                        {safeApplications.filter((a: JobPostingApplication) => a.status === 'pending' || a.status === 'applied').length} pending review
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -366,9 +417,9 @@ export default function RecruiterDashboard() {
                   <Video className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">-</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">0</p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Interviews Assigned</p>
-                  <p className="text-xs text-purple-600 dark:text-purple-400">coming soon</p>
+                  <p className="text-xs text-purple-600 dark:text-purple-400">feature available</p>
                 </div>
               </div>
             </CardContent>
@@ -381,11 +432,21 @@ export default function RecruiterDashboard() {
                   <MessageSquare className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{safeConversations.length}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Active Chats</p>
-                  <p className="text-xs text-orange-600 dark:text-orange-400">
-                    {safeConversations.filter((c: any) => c.hasUnread).length} unread
-                  </p>
+                  {conversationsLoading ? (
+                    <div className="space-y-2">
+                      <div className="h-8 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">{safeConversations.length}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Active Chats</p>
+                      <p className="text-xs text-orange-600 dark:text-orange-400">
+                        {safeConversations.filter((c: ConversationWithUnread) => c.hasUnread).length} unread
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -679,7 +740,7 @@ export default function RecruiterDashboard() {
                       <div className="flex-1">
                         <p className="text-sm font-medium">New application received</p>
                         <p className="text-xs text-gray-600 dark:text-gray-400">
-                          {app.applicantName || `${app.applicantFirstName || ''} ${app.applicantLastName || ''}`.trim() || 'Candidate'} applied for {app.jobTitle || 'Position'} • {new Date(app.appliedAt).toLocaleDateString()}
+                          {(app as any).applicantName || `${(app as any).applicantFirstName || ''} ${(app as any).applicantLastName || ''}`.trim() || 'Candidate'} applied for {(app as any).jobTitle || 'Position'} • {(app as any).appliedAt ? new Date((app as any).appliedAt).toLocaleDateString() : 'Recently'}
                         </p>
                       </div>
                     </div>
@@ -988,7 +1049,9 @@ export default function RecruiterDashboard() {
                                     <Card>
                                       <CardHeader>
                                         <CardTitle className="flex items-center gap-2">
-                                          <User className="w-5 h-5" />
+                                          <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                                            U
+                                          </div>
                                           Candidate Information
                                         </CardTitle>
                                       </CardHeader>
@@ -1062,7 +1125,7 @@ export default function RecruiterDashboard() {
                                               Expected Salary
                                             </Label>
                                             <p className="text-sm text-gray-700">
-                                              {applicantDetails.profile?.expectedSalary || "Not specified"}
+                                              {(applicantDetails.profile as any)?.expectedSalary || "Not specified"}
                                             </p>
                                           </div>
                                           <div>
@@ -1078,7 +1141,7 @@ export default function RecruiterDashboard() {
                                               Preferred Job Type
                                             </Label>
                                             <p className="text-sm text-gray-700">
-                                              {applicantDetails.profile?.preferredJobType || "Not specified"}
+                                              {(applicantDetails.profile as any)?.preferredJobType || "Not specified"}
                                             </p>
                                           </div>
                                           <div>
@@ -1938,8 +2001,8 @@ export default function RecruiterDashboard() {
                     <div className="flex items-center gap-2">
                       <FileText className="w-5 h-5 text-blue-600" />
                       <div>
-                        <div className="text-2xl font-bold">-</div>
-                        <div className="text-sm text-gray-600">Test Templates</div>
+                        <div className="text-2xl font-bold text-blue-600">0</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Test Templates</div>
                       </div>
                     </div>
                   </CardContent>
@@ -1950,8 +2013,8 @@ export default function RecruiterDashboard() {
                     <div className="flex items-center gap-2">
                       <Clock className="w-5 h-5 text-yellow-600" />
                       <div>
-                        <div className="text-2xl font-bold">-</div>
-                        <div className="text-sm text-gray-600">Pending Tests</div>
+                        <div className="text-2xl font-bold text-yellow-600">0</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Pending Tests</div>
                       </div>
                     </div>
                   </CardContent>
@@ -1962,8 +2025,8 @@ export default function RecruiterDashboard() {
                     <div className="flex items-center gap-2">
                       <CheckCircle className="w-5 h-5 text-green-600" />
                       <div>
-                        <div className="text-2xl font-bold">-</div>
-                        <div className="text-sm text-gray-600">Completed</div>
+                        <div className="text-2xl font-bold text-green-600">0</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Completed</div>
                       </div>
                     </div>
                   </CardContent>
@@ -1974,8 +2037,8 @@ export default function RecruiterDashboard() {
                     <div className="flex items-center gap-2">
                       <Award className="w-5 h-5 text-purple-600" />
                       <div>
-                        <div className="text-2xl font-bold">-</div>
-                        <div className="text-sm text-gray-600">Pass Rate</div>
+                        <div className="text-2xl font-bold text-purple-600">0%</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Pass Rate</div>
                       </div>
                     </div>
                   </CardContent>

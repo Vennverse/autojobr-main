@@ -230,7 +230,6 @@ export async function setupAuth(app: Express) {
           }
           
           console.log(`✅ Session saved successfully for user: ${user.email} (${user.userType})`);
-          console.log(`🔑 Session ID: ${req.session.id}`);
           
           res.json({ 
             message: "Login successful", 
@@ -269,9 +268,8 @@ export async function setupAuth(app: Express) {
   app.get('/api/user', async (req: any, res) => {
     try {
       const sessionUser = req.session?.user;
-      const sessionId = req.session?.id;
       
-      console.log(`🔍 [AUTH DEBUG] GET /api/user: sessionId=${sessionId}, hasSession=${!!req.session}, sessionUser=${!!sessionUser}`);
+      console.log(`🔍 [AUTH DEBUG] GET /api/user: hasSession=${!!req.session}, sessionUser=${!!sessionUser}`);
       
       if (!sessionUser) {
         console.log(`🚫 [AUTH DEBUG] No session user found`);
@@ -279,6 +277,20 @@ export async function setupAuth(app: Express) {
       }
       
       console.log(`✅ [AUTH DEBUG] Session user found: ${sessionUser.email} (${sessionUser.userType})`);
+
+      // Force session regeneration and save for better persistence
+      req.session.regenerate = req.session.regenerate || function(callback) {
+        if (callback) callback();
+      };
+
+      // Ensure session is saved after any modifications
+      req.session.save((saveErr: any) => {
+        if (saveErr) {
+          console.error('❌ [AUTH DEBUG] Session save error:', saveErr);
+        } else {
+          console.log('💾 [AUTH DEBUG] Session saved successfully');
+        }
+      });
 
       // Fetch onboarding status from database
       let onboardingCompleted = false;
@@ -757,16 +769,21 @@ export async function setupAuth(app: Express) {
     }
   });
 
-  // Demo login endpoint for testing
+  // Demo login endpoint for testing with enhanced debugging
   app.post('/api/auth/demo-login', async (req, res) => {
     try {
+      console.log('🎭 [DEMO LOGIN] Starting demo login process...');
+      
       // Get the existing user
       const [user] = await db.select().from(users).where(eq(users.email, 'shubhamdubeyskd2001@gmail.com'));
       if (!user) {
+        console.log('❌ [DEMO LOGIN] Demo user not found in database');
         return res.status(404).json({ message: 'Demo user not found' });
       }
 
-      // Store session
+      console.log(`✅ [DEMO LOGIN] Found demo user: ${user.email} (${user.userType})`);
+
+      // Store session with comprehensive user data
       (req as any).session.user = {
         id: user.id,
         email: user.email,
