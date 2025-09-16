@@ -127,12 +127,6 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
       current: location === "/recruiter/dashboard" || location === "/recruiter/analytics"
     },
     {
-      name: "Talent Pipeline",
-      href: "/enhanced-pipeline-management", 
-      icon: GitBranch,
-      current: location === "/enhanced-pipeline-management"
-    },
-    {
       name: "Applicants",
       href: "/recruiter/applicants",
       icon: Users,
