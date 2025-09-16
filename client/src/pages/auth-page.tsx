@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Github, Mail, Linkedin, Eye, EyeOff } from "lucide-react";
+import { Mail, Eye, EyeOff } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 
 export default function AuthPage() {
@@ -29,9 +29,7 @@ export default function AuthPage() {
     return '/';
   };
   const [availableProviders, setAvailableProviders] = useState({
-    google: false,
-    github: false,
-    linkedin: false
+    google: false
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -398,32 +396,6 @@ export default function AuthPage() {
                 <FcGoogle className="w-4 h-4 mr-2" />
                 Continue with Google
                 {!availableProviders.google && (
-                  <span className="ml-auto text-xs text-muted-foreground">Setup Required</span>
-                )}
-              </Button>
-              
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => handleSocialLogin('github')}
-                disabled={isLoading || !availableProviders.github}
-              >
-                <Github className="w-4 h-4 mr-2" />
-                Continue with GitHub
-                {!availableProviders.github && (
-                  <span className="ml-auto text-xs text-muted-foreground">Setup Required</span>
-                )}
-              </Button>
-              
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => handleSocialLogin('linkedin')}
-                disabled={isLoading || !availableProviders.linkedin}
-              >
-                <Linkedin className="w-4 h-4 mr-2" />
-                Continue with LinkedIn
-                {!availableProviders.linkedin && (
                   <span className="ml-auto text-xs text-muted-foreground">Setup Required</span>
                 )}
               </Button>
