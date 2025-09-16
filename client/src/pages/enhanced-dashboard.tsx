@@ -170,46 +170,7 @@ export default function EnhancedDashboard() {
     interviewPractices: 1, // Free users get 2 per day
   });
 
-  // Define key variables early to avoid hoisting issues
-  const userName = user?.firstName || user?.name || "Job Seeker";
-  const isPremium = user?.planType === "premium";
-
-  // Freemium limits - moved to top to avoid hoisting issues
-  const freemiumLimits = {
-    aiCoachQuestions: { free: 3, premium: "unlimited" },
-    jobApplications: { free: 10, premium: "unlimited" },
-    resumeAnalyses: { free: 2, premium: "unlimited" },
-    interviewPractices: { free: 2, premium: "unlimited" },
-    advancedInsights: { free: false, premium: true },
-    prioritySupport: { free: false, premium: true },
-  };
-
-  // Show loading while checking authentication
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Redirect to auth if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      window.location.href = "/auth";
-      return;
-    }
-  }, [isAuthenticated, isLoading]);
-
-  // Exit-intent detection for premium modal - DISABLED
-  useEffect(() => {
-    // Disabled exit intent popup to prevent intrusive behavior
-    return;
-  }, [isPremium, showExitModal]);
-
+  // All useQuery hooks must be called before any conditional returns
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/applications/stats"],
     retry: false,
@@ -254,6 +215,47 @@ export default function EnhancedDashboard() {
     queryKey: ["/api/jobs/postings"],
     retry: false,
   });
+
+  // Define key variables early to avoid hoisting issues
+  const userName = user?.firstName || user?.name || "Job Seeker";
+  const isPremium = user?.planType === "premium";
+
+  // Freemium limits - moved to top to avoid hoisting issues
+  const freemiumLimits = {
+    aiCoachQuestions: { free: 3, premium: "unlimited" },
+    jobApplications: { free: 10, premium: "unlimited" },
+    resumeAnalyses: { free: 2, premium: "unlimited" },
+    interviewPractices: { free: 2, premium: "unlimited" },
+    advancedInsights: { free: false, premium: true },
+    prioritySupport: { free: false, premium: true },
+  };
+
+  // All useEffect hooks must be called after other hooks but before conditional returns
+  // Redirect to auth if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      window.location.href = "/auth";
+      return;
+    }
+  }, [isAuthenticated, isLoading]);
+
+  // Exit-intent detection for premium modal - DISABLED
+  useEffect(() => {
+    // Disabled exit intent popup to prevent intrusive behavior
+    return;
+  }, [isPremium, showExitModal]);
+
+  // Show loading while checking authentication - AFTER all hooks
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Safe data access with proper fallbacks
   const profileCompletion = (profile as any)?.profileCompletion || 0;
