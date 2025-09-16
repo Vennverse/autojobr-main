@@ -48,6 +48,23 @@ export default function PostJob() {
 
   const [skillInput, setSkillInput] = useState("");
 
+  // Function to extract company name from email domain
+  const getCompanyNameFromEmail = (email: string): string => {
+    if (!email) return "";
+    
+    const domain = email.split('@')[1]?.toLowerCase();
+    if (!domain) return "";
+    
+    // Remove common TLDs and create a readable company name
+    const companyName = domain
+      .replace(/\.(com|org|net|edu|gov|co\.uk|co\.in|co\.jp)$/, '')
+      .split('.')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    
+    return companyName;
+  };
+
   useEffect(() => {
     // Check for verification success in URL params
     const urlParams = new URLSearchParams(window.location.search);
@@ -71,9 +88,10 @@ export default function PostJob() {
           
           if (verification.isVerified) {
             setCurrentStep('post');
-            // Set company name from verification data if available
-            if (verification.companyName && !formData.companyName) {
-              setFormData(prev => ({ ...prev, companyName: verification.companyName }));
+            // Set company name from verification data or derive from email
+            const verifiedCompanyName = verification.companyName || getCompanyNameFromEmail(user.email || '');
+            if (verifiedCompanyName && !formData.companyName) {
+              setFormData(prev => ({ ...prev, companyName: verifiedCompanyName }));
             }
           } else {
             setCurrentStep('verify');
@@ -83,6 +101,11 @@ export default function PostJob() {
           // Fallback to user type check
           if ((user as any)?.userType === 'recruiter' && (user as any)?.emailVerified) {
             setCurrentStep('post');
+            // Set company name from email domain for security
+            const domainCompanyName = getCompanyNameFromEmail(user.email || '');
+            if (domainCompanyName && !formData.companyName) {
+              setFormData(prev => ({ ...prev, companyName: domainCompanyName }));
+            }
           } else {
             setCurrentStep('verify');
           }
@@ -91,6 +114,10 @@ export default function PostJob() {
         setCurrentStep('auth');
       } else if (user?.id === 'demo-user-id') {
         setCurrentStep('post');
+        // For demo user, allow editable company name
+        if (!formData.companyName) {
+          setFormData(prev => ({ ...prev, companyName: "Demo Company" }));
+        }
       }
     };
     
@@ -99,7 +126,7 @@ export default function PostJob() {
 
   const verificationMutation = useMutation({
     mutationFn: async (data: typeof verificationData) => {
-      return await apiRequest("POST", "/api/auth/send-verification", data);
+      return await apiRequest("/api/auth/send-verification", "POST", data);
     },
     onSuccess: () => {
       setEmailSent(true);
@@ -119,7 +146,7 @@ export default function PostJob() {
 
   const createJobMutation = useMutation({
     mutationFn: async (jobData: any) => {
-      return await apiRequest("POST", "/api/recruiter/jobs", jobData);
+      return await apiRequest("/api/recruiter/jobs", "POST", jobData);
     },
     onSuccess: () => {
       toast({
@@ -394,13 +421,28 @@ export default function PostJob() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="companyName">Company Name *</Label>
-                      <Input
-                        id="companyName"
-                        placeholder="Your Company Inc."
-                        value={formData.companyName}
-                        onChange={(e) => handleInputChange("companyName", e.target.value)}
-                        required
-                      />
+                      <div className="relative">
+                        <Input
+                          id="companyName"
+                          placeholder="Your Company Inc."
+                          value={formData.companyName}
+                          onChange={(e) => handleInputChange("companyName", e.target.value)}
+                          required
+                          readOnly={user?.id !== 'demo-user-id'}
+                          className={user?.id !== 'demo-user-id' ? "bg-gray-50 dark:bg-gray-800 cursor-not-allowed" : ""}
+                          data-testid="input-company-name"
+                        />
+                        {user?.id !== 'demo-user-id' && (
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <CheckCircle className="w-4 h-4 text-green-500" />
+                          </div>
+                        )}
+                      </div>
+                      {user?.id !== 'demo-user-id' && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          🔒 Company name is automatically set based on your verified email domain for security
+                        </p>
+                      )}
                     </div>
                   </div>
 
