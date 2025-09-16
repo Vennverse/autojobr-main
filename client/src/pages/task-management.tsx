@@ -38,11 +38,6 @@ import {
   Users,
   CalendarDays,
   Link2,
-  Brain,
-  Wand2,
-  TrendingUp,
-  Lightbulb,
-  Bot,
   Star
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -391,12 +386,11 @@ export default function TaskManagement() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent flex items-center">
-              <Bot className="w-8 h-8 mr-3 text-green-500 animate-pulse" />
-              AI Task Manager
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Task Management
             </h1>
             <p className="text-gray-600 dark:text-gray-300 mt-1">
-              Intelligent task automation that prioritizes your success
+              Manage and track your recruiting tasks efficiently
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -501,117 +495,6 @@ export default function TaskManagement() {
           </CardContent>
         </Card>
 
-        {/* AI Assistant Panel */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          {/* AI Suggestions */}
-          <Card className="lg:col-span-2 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-700">
-            <CardHeader>
-              <CardTitle className="flex items-center text-green-700 dark:text-green-300">
-                <Brain className="w-5 h-5 mr-2" />
-                AI Recommendations
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-start space-x-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                  <div className="w-2 h-2 rounded-full bg-green-500 mt-2 animate-pulse"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      <Lightbulb className="w-4 h-4 inline mr-1 text-yellow-500" />
-                      Follow up with Google recruiter now
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-300">
-                      Optimal timing: Studies show Tuesday 10-11 AM gets 67% higher response rates
-                    </p>
-                  </div>
-                  <Button size="sm" className="bg-green-500 hover:bg-green-600 text-white">
-                    <Wand2 className="w-3 h-3 mr-1" />
-                    Create
-                  </Button>
-                </div>
-                
-                <div className="flex items-start space-x-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                  <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 animate-pulse" style={{animationDelay: '0.5s'}}></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      <Target className="w-4 h-4 inline mr-1 text-blue-500" />
-                      Schedule Microsoft interview prep
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-300">
-                      Recommended: 3 days before interview for optimal confidence building
-                    </p>
-                  </div>
-                  <Button size="sm" variant="outline" className="border-blue-500 text-blue-500 hover:bg-blue-50">
-                    <Wand2 className="w-3 h-3 mr-1" />
-                    Create
-                  </Button>
-                </div>
-                
-                <div className="flex items-start space-x-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                  <div className="w-2 h-2 rounded-full bg-purple-500 mt-2 animate-pulse" style={{animationDelay: '1s'}}></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      <TrendingUp className="w-4 h-4 inline mr-1 text-purple-500" />
-                      Update resume for Apple role
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-300">
-                      AI detected 3 missing keywords: "SwiftUI", "Core Data", "UIKit"
-                    </p>
-                  </div>
-                  <Button size="sm" variant="outline" className="border-purple-500 text-purple-500 hover:bg-purple-50">
-                    <Wand2 className="w-3 h-3 mr-1" />
-                    Create
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Smart Insights */}
-          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-blue-200 dark:border-blue-700">
-            <CardHeader>
-              <CardTitle className="flex items-center text-blue-700 dark:text-blue-300">
-                <TrendingUp className="w-5 h-5 mr-2" />
-                Performance Insights
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {filteredTasks.filter((t: any) => t.status === 'completed').length}
-                  </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-300">Tasks completed this week</div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600 dark:text-gray-300">Response Rate</span>
-                    <span className="text-xs font-semibold text-green-600">+23%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full" style={{width: '78%'}}></div>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600 dark:text-gray-300">Interview Conversion</span>
-                    <span className="text-xs font-semibold text-blue-600">34%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-gradient-to-r from-blue-400 to-purple-500 h-2 rounded-full" style={{width: '34%'}}></div>
-                  </div>
-                </div>
-                
-                <Badge className="w-full justify-center bg-gradient-to-r from-green-500 to-blue-500 text-white border-0">
-                  <Star className="w-3 h-3 mr-1" />
-                  Top 10% Performer
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
         {/* Bulk Actions */}
         {bulkSelection.size > 0 && (
@@ -1177,27 +1060,6 @@ export default function TaskManagement() {
           </DialogContent>
         </Dialog>
 
-        {/* Floating AI Assistant */}
-        <div className="fixed bottom-6 right-6 z-50">
-          <div className="relative">
-            {/* AI Assistant Button */}
-            <Button 
-              className="w-14 h-14 rounded-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 group"
-              data-testid="button-ai-assistant"
-            >
-              <Bot className="w-6 h-6 group-hover:animate-pulse" />
-            </Button>
-            
-            {/* Pulsing rings */}
-            <div className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-20"></div>
-            <div className="absolute inset-2 rounded-full bg-blue-400 animate-ping opacity-30" style={{animationDelay: '1s'}}></div>
-            
-            {/* AI Badge */}
-            <div className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 text-xs px-2 py-1 rounded-full font-semibold animate-bounce">
-              AI
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
