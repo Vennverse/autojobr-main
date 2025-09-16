@@ -46,29 +46,35 @@ export async function setupAuth(app: Express) {
   
   const MemoryStoreConstructor = MemoryStore(session);
   const sessionStore = new MemoryStoreConstructor({
-    checkPeriod: 86400000 // prune expired entries every 24h
+    checkPeriod: 86400000, // prune expired entries every 24h
+    max: 500000, // max entries
+    ttl: 365 * 24 * 60 * 60 * 1000, // 1 year TTL
   });
   
-  // Determine if we're in a secure environment (production with HTTPS)
-  const isSecure = process.env.NODE_ENV === 'production' && process.env.HTTPS === 'true';
+  // Enhanced production configuration
   const isProduction = process.env.NODE_ENV === 'production';
+  const baseUrl = process.env.BASE_URL || process.env.REPL_URL || 'http://localhost:5000';
+  const isSecure = isProduction && (baseUrl.startsWith('https://') || process.env.HTTPS === 'true');
+  
+  console.log(`🔒 Session config: production=${isProduction}, secure=${isSecure}, baseUrl=${baseUrl}`);
   
   app.use(session({
     store: sessionStore,
     secret: authConfig.session.secret,
     resave: false,
     saveUninitialized: false,
+    rolling: true, // Reset maxAge on every request
     cookie: {
-      secure: false, // Set to false for now, enable with proper HTTPS setup
+      secure: isSecure, // Enable for HTTPS in production
       httpOnly: true,
-      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year for persistent extension auth
-      sameSite: 'lax', // Use 'lax' for better compatibility
-      domain: undefined, // Don't set domain to avoid cross-subdomain issues
+      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year for persistent auth
+      sameSite: isProduction ? 'strict' : 'lax', // Stricter in production
+      domain: isProduction ? undefined : undefined, // Let browser handle domain
     },
-    name: 'autojobr.sid', // Custom session name
-    proxy: true // Trust proxy since we're behind Nginx
+    name: 'autojobr.session', // Consistent session name
+    proxy: true // Trust proxy for production deployments
   }));
-  console.log('✅ Session middleware configured successfully with MemoryStore');
+  console.log('✅ Session middleware configured successfully with enhanced security');
 
   // Initialize Passport
   app.use(passport.initialize());
@@ -216,14 +222,15 @@ export async function setupAuth(app: Express) {
           currentRole: user.currentRole || user.userType
         };
 
-        // Save session before responding
+        // Save session before responding with enhanced logging
         (req as any).session.save((err: any) => {
           if (err) {
-            console.error('Session save error during login:', err);
+            console.error('❌ Session save error during login:', err);
             return res.status(500).json({ message: 'Login failed - session error' });
           }
           
-          console.log('✅ Session saved successfully for user:', user.email);
+          console.log(`✅ Session saved successfully for user: ${user.email} (${user.userType})`);
+          console.log(`🔑 Session ID: ${req.session.id}`);
           
           res.json({ 
             message: "Login successful", 
@@ -231,6 +238,8 @@ export async function setupAuth(app: Express) {
               id: user.id,
               email: user.email,
               name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+              userType: user.userType,
+              currentRole: user.currentRole || user.userType
             }
           });
         });
@@ -243,11 +252,11 @@ export async function setupAuth(app: Express) {
       if (provider === 'google' && authConfig.providers.google.enabled) {
         res.json({ redirectUrl: '/api/auth/google' });
       } else if (provider === 'github' && authConfig.providers.github.enabled) {
-        const baseUrl = 'https://autojobr.com';
+        const baseUrl = process.env.BASE_URL || process.env.REPL_URL || 'http://localhost:5000';
         const authUrl = `https://github.com/login/oauth/authorize?client_id=${authConfig.providers.github.clientId}&redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/callback/github`)}&scope=user:email`;
         res.json({ redirectUrl: authUrl });
       } else if (provider === 'linkedin' && authConfig.providers.linkedin.enabled) {
-        const baseUrl = 'https://autojobr.com';
+        const baseUrl = process.env.BASE_URL || process.env.REPL_URL || 'http://localhost:5000';
         const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${authConfig.providers.linkedin.clientId}&redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/callback/linkedin`)}&scope=r_liteprofile%20r_emailaddress`;
         res.json({ redirectUrl: authUrl });
       } else {
@@ -256,14 +265,20 @@ export async function setupAuth(app: Express) {
     }
   });
 
-  // User info endpoint
+  // User info endpoint with enhanced debugging
   app.get('/api/user', async (req: any, res) => {
     try {
       const sessionUser = req.session?.user;
+      const sessionId = req.session?.id;
+      
+      console.log(`🔍 [AUTH DEBUG] GET /api/user: sessionId=${sessionId}, hasSession=${!!req.session}, sessionUser=${!!sessionUser}`);
       
       if (!sessionUser) {
+        console.log(`🚫 [AUTH DEBUG] No session user found`);
         return res.status(401).json({ message: "Not authenticated" });
       }
+      
+      console.log(`✅ [AUTH DEBUG] Session user found: ${sessionUser.email} (${sessionUser.userType})`);
 
       // Fetch onboarding status from database
       let onboardingCompleted = false;

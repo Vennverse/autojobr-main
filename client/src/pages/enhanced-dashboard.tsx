@@ -750,7 +750,83 @@ export default function EnhancedDashboard() {
 
   const recentApplications = Array.isArray(applications) ? applications.slice(0, 3) : [];
 
-  // Duplicate functions removed - using the ones defined earlier
+  // Cover Letter Generation function
+  const generateCoverLetter = async (jobDescription: string, companyName: string, jobTitle: string) => {
+    setIsGenerating(true);
+    try {
+      const response = await apiRequest('/api/ai/generate-cover-letter', {
+        method: 'POST',
+        body: JSON.stringify({
+          jobDescription,
+          companyName,
+          jobTitle,
+          resumeContent: resumes?.[0]?.content || ""
+        })
+      });
+
+      if (response.coverLetter) {
+        setCoverLetterResult(response.coverLetter);
+        toast({
+          title: "Cover Letter Generated",
+          description: "Your personalized cover letter is ready!",
+        });
+      } else {
+        throw new Error("Failed to generate cover letter");
+      }
+    } catch (error) {
+      console.error('Cover letter generation error:', error);
+      toast({
+        title: "Generation Failed",
+        description: "Unable to generate cover letter. Please try again.",
+        variant: "destructive",
+      });
+      // Fallback cover letter for demo
+      setCoverLetterResult(`Dear ${companyName} Hiring Manager,
+
+I am writing to express my strong interest in the ${jobTitle} position at ${companyName}. With my background in technology and passion for innovation, I am excited about the opportunity to contribute to your team.
+
+My experience aligns well with the requirements outlined in your job posting. I bring a combination of technical skills, problem-solving abilities, and enthusiasm for continuous learning that would make me a valuable addition to your organization.
+
+I would welcome the opportunity to discuss how my background and skills can benefit ${companyName}. Thank you for considering my application.
+
+Best regards,
+${userName}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleResumeUpload = async (file: File) => {
+    setIsUploadingResume(true);
+    try {
+      const formData = new FormData();
+      formData.append('resume', file);
+
+      const response = await fetch('/api/resumes/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        queryClient.invalidateQueries({ queryKey: ['/api/resumes'] });
+        toast({
+          title: "Resume Uploaded",
+          description: "Your resume has been analyzed successfully!",
+        });
+      } else {
+        throw new Error("Upload failed");
+      }
+    } catch (error) {
+      console.error('Resume upload error:', error);
+      toast({
+        title: "Upload Failed",
+        description: "Unable to upload resume. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingResume(false);
+    }
+  };
 
   return (
     <SidebarProvider defaultOpen={false}>

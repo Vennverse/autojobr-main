@@ -188,6 +188,7 @@ function Router() {
               <Route path="/recruiter/dashboard" component={UnifiedRecruiterDashboard} />
               <Route path="/enhanced-dashboard" component={UnifiedRecruiterDashboard} />
               <Route path="/advanced-dashboard" component={UnifiedRecruiterDashboard} />
+              <Route path="/dashboard" component={UnifiedRecruiterDashboard} />
               <Route path="/recruiter/post-job" component={PostJob} />
               <Route path="/recruiter/edit-job/:id" component={EditJob} />
               <Route path="/premium-targeting" component={PremiumTargetingPage} />
