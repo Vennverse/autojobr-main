@@ -8359,6 +8359,27 @@ Host: https://autojobr.com`;
     }
   });
 
+  // Resolve shared job links by token
+  app.get('/jobs/shared/:token', async (req, res) => {
+    try {
+      const shareToken = req.params.token;
+      
+      // Find job by shareable link
+      const jobs = await storage.getJobPostings();
+      const job = jobs.find(j => j.shareableLink && j.shareableLink.includes(shareToken));
+      
+      if (!job) {
+        return res.status(404).send('Job not found or link has expired');
+      }
+      
+      // Redirect to the main job page with the job ID
+      return res.redirect(`/jobs/${job.id}`);
+    } catch (error) {
+      console.error("Error resolving shared job link:", error);
+      res.status(500).send('Error loading job posting');
+    }
+  });
+
   // Promote job posting for $10/month
   app.post('/api/recruiter/jobs/:id/promote', isAuthenticated, async (req: any, res) => {
     try {

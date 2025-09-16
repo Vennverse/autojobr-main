@@ -524,8 +524,8 @@ async function loginAndCreateJobs() {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      email: 'shubham.dubey@autojobr.com',
-      password: '12345678'
+      email: process.env.RECRUITER_EMAIL || 'test@example.com',
+      password: process.env.RECRUITER_PASSWORD || 'defaultpassword'
     })
   });
   
