@@ -1981,7 +1981,7 @@ export default function EnhancedDashboard() {
                   {/* Action Button */}
                   <Button
                     variant="secondary"
-                    className="w-full mt-4 bg-white/15 hover:bg-white/25 text-white border-0 font-medium h-11"
+                    className="w-full mt-4 bg-white hover:bg-gray-100 text-emerald-700 border-0 font-medium h-11 shadow-lg"
                     onClick={() => setLocation("/resumes")}
                   >
                     <Eye className="h-4 w-4 mr-2" />
@@ -2049,7 +2049,7 @@ export default function EnhancedDashboard() {
                         <Button
                           variant="secondary"
                           size="sm"
-                          className="w-full bg-white/15 hover:bg-white/25 text-white border-0 font-medium"
+                          className="w-full bg-green-600 hover:bg-green-700 text-white border-0 font-medium shadow-md"
                           onClick={() => {
                             navigator.clipboard.writeText(coverLetterResult);
                             toast({
@@ -2069,7 +2069,7 @@ export default function EnhancedDashboard() {
                   {/* Generate Button */}
                   <Button
                     variant="secondary"
-                    className="w-full mt-4 bg-white/15 hover:bg-white/25 text-white border-0 font-medium h-11"
+                    className="w-full mt-4 bg-white hover:bg-gray-100 text-purple-700 border-0 font-medium h-11 shadow-lg"
                     onClick={() => {
                       const jobDesc = (document.getElementById("job-description-input") as HTMLTextAreaElement)?.value;
                       const companyName = (document.getElementById("company-name-input") as HTMLInputElement)?.value || "The Company";
@@ -2090,7 +2090,7 @@ export default function EnhancedDashboard() {
                   >
                     {isGenerating ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white mr-2"></div>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-400 border-t-purple-700 mr-2"></div>
                         Generating...
                       </>
                     ) : (
