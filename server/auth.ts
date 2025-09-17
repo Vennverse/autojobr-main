@@ -98,6 +98,7 @@ export async function setupAuth(app: Express) {
     const callbackURL = 'https://autojobr.com/api/auth/google/callback';
     console.log('🔑 Setting up Google OAuth strategy with callback URL:', callbackURL);
     console.log('🔑 Using Google Client ID:', authConfig.providers.google.clientId?.substring(0, 20) + '...');
+    
     passport.use(new GoogleStrategy({
       clientID: authConfig.providers.google.clientId!,
       clientSecret: authConfig.providers.google.clientSecret || 'temp-secret-placeholder',
@@ -116,7 +117,7 @@ export async function setupAuth(app: Express) {
         if (!user) {
           // Create new user with intelligent role detection
           const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          const { UserRoleService } = await import('./userRoleService.js');
+          const { UserRoleService } = await import('./userRoleService.js') as any;
           const roleAssignment = await UserRoleService.assignUserRole(email);
           
           user = await storage.upsertUser({
@@ -180,9 +181,19 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser(async (id: string, done) => {
     try {
       const user = await storage.getUser(id);
-      done(null, user);
+      if (user) {
+        done(null, {
+          id: user.id,
+          email: user.email || '',
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
+          userType: user.userType || 'job_seeker'
+        });
+      } else {
+        done(null, false);
+      }
     } catch (error) {
-      done(error, null);
+      done(error, false);
     }
   });
 
@@ -291,7 +302,7 @@ export async function setupAuth(app: Express) {
       console.log(`✅ [AUTH DEBUG] Session user found: ${sessionUser.email} (${sessionUser.userType})`);
 
       // Force session regeneration and save for better persistence
-      req.session.regenerate = req.session.regenerate || function(callback) {
+      req.session.regenerate = req.session.regenerate || function(callback: any) {
         if (callback) callback();
       };
 
@@ -453,24 +464,32 @@ export async function setupAuth(app: Express) {
     (req: any, res) => {
       console.log(`✅ Google OAuth successful for user: ${req.user?.email}`);
       
-      // Set session to match existing session format
-      req.session.user = {
-        id: req.user.id,
-        email: req.user.email,
-        name: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim(),
-        firstName: req.user.firstName,
-        lastName: req.user.lastName,
-        userType: req.user.userType
-      };
-
-      // Save session before redirect
-      req.session.save((err: any) => {
+      // Regenerate session ID for security after successful OAuth
+      req.session.regenerate((err: any) => {
         if (err) {
-          console.error('Session save error after Google OAuth:', err);
-          return res.redirect('/auth?error=session_save_failed');
+          console.error('Session regeneration failed after OAuth:', err);
+          return res.redirect('/auth?error=session_regeneration_failed');
         }
-        console.log('✅ Google OAuth session saved for user:', req.user.email);
-        res.redirect('/');
+        
+        // Set session to match existing session format
+        req.session.user = {
+          id: req.user.id,
+          email: req.user.email,
+          name: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim(),
+          firstName: req.user.firstName,
+          lastName: req.user.lastName,
+          userType: req.user.userType
+        };
+
+        // Save session before redirect
+        req.session.save((saveErr: any) => {
+          if (saveErr) {
+            console.error('Session save error after Google OAuth:', saveErr);
+            return res.redirect('/auth?error=session_save_failed');
+          }
+          console.log('✅ Google OAuth session saved for user:', req.user.email);
+          res.redirect('/');
+        });
       });
     }
   );
@@ -1508,49 +1527,80 @@ export async function setupAuth(app: Express) {
       return res.redirect('/auth/extension-login');
     }
     
-    res.send(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>AutoJobr Extension - Success</title>
-        <style>
-          body { 
-            font-family: Arial, sans-serif; 
-            max-width: 400px; 
-            margin: 50px auto; 
-            padding: 20px;
-            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
-            color: white;
-            text-align: center;
-          }
-          .container {
-            background: rgba(255,255,255,0.1);
-            padding: 30px;
-            border-radius: 10px;
-            backdrop-filter: blur(10px);
-          }
-          h2 { margin-bottom: 20px; }
-          .success { font-size: 48px; margin: 20px 0; }
-          p { margin: 15px 0; line-height: 1.6; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="success">✅</div>
-          <h2>Authentication Successful!</h2>
-          <p>You can now close this tab and return to your Chrome extension.</p>
-          <p>Your AutoJobr extension is now connected and ready to use.</p>
-        </div>
-        
-        <script>
-          // Auto-close after 3 seconds
-          setTimeout(() => {
-            window.close();
-          }, 3000);
-        </script>
-      </body>
-      </html>
-    `);
+    try {
+      // Generate JWT token for extension
+      const user = req.session.user;
+      const token = jwt.sign(
+        {
+          id: user.id,
+          email: user.email,
+          userType: user.userType || 'job_seeker'
+        },
+        authConfig.session.secret,
+        {
+          expiresIn: '30d', // Extension tokens last longer
+          issuer: 'autojobr',
+          audience: 'extension'
+        }
+      );
+      
+      // Redirect with token and user ID as URL parameters (as expected by extension)
+      const redirectUrl = `/auth/extension-success?token=${encodeURIComponent(token)}&userId=${encodeURIComponent(user.id)}`;
+      
+      // Check if we already have URL parameters (prevent infinite redirect)
+      if (req.query.token && req.query.userId) {
+        // Display success page with the token
+        res.send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>AutoJobr Extension - Success</title>
+            <style>
+              body { 
+                font-family: Arial, sans-serif; 
+                max-width: 400px; 
+                margin: 50px auto; 
+                padding: 20px;
+                background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+                color: white;
+                text-align: center;
+              }
+              .container {
+                background: rgba(255,255,255,0.1);
+                padding: 30px;
+                border-radius: 10px;
+                backdrop-filter: blur(10px);
+              }
+              h2 { margin-bottom: 20px; }
+              .success { font-size: 48px; margin: 20px 0; }
+              p { margin: 15px 0; line-height: 1.6; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="success">✅</div>
+              <h2>Extension Connected!</h2>
+              <p>Authentication successful! Your Chrome extension is now connected.</p>
+              <p>You can close this tab and return to the extension.</p>
+            </div>
+            
+            <script>
+              // Auto-close after 3 seconds
+              setTimeout(() => {
+                window.close();
+              }, 3000);
+            </script>
+          </body>
+          </html>
+        `);
+      } else {
+        // Redirect to add token parameters for extension to pick up
+        res.redirect(redirectUrl);
+      }
+    } catch (error) {
+      console.error('Extension token generation error:', error);
+      res.status(500).send('Failed to generate extension token');
+    }
   });
 
 
@@ -1645,10 +1695,50 @@ export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
   }
 };
 
+// Extension-compatible authentication middleware for JWT + session support
+export const isAuthenticatedExtension: RequestHandler = async (req: any, res, next) => {
+  try {
+    // Try session authentication first (webapp)
+    const sessionUser = req.session?.user;
+    if (sessionUser) {
+      req.user = sessionUser;
+      return next();
+    }
+
+    // Try JWT authentication (extension)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      try {
+        const decoded = jwt.verify(token, authConfig.session.secret, {
+          issuer: 'autojobr',
+          audience: 'extension'
+        }) as any;
+
+        // Set user data for request
+        req.user = {
+          id: decoded.id,
+          email: decoded.email,
+          userType: decoded.userType
+        };
+        return next();
+      } catch (jwtError) {
+        console.log('JWT verification failed:', jwtError);
+      }
+    }
+
+    return res.status(401).json({ message: "Not authenticated" });
+  } catch (error) {
+    console.error("Extension authentication error:", error);
+    res.status(401).json({ message: "Authentication failed" });
+  }
+};
+
 // Clean up stale cache entries periodically
 setInterval(() => {
   const now = Date.now();
-  for (const [userId, cached] of userSessionCache.entries()) {
+  const entries = Array.from(userSessionCache.entries());
+  for (const [userId, cached] of entries) {
     if ((now - cached.lastCheck) > USER_CACHE_TTL * 2) {
       userSessionCache.delete(userId);
     }

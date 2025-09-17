@@ -250,7 +250,7 @@ const processResumeUpload = async (file: any, userId: string, resumeText: string
 };
 // Dynamic import for pdf-parse to avoid startup issues
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./auth";
+import { setupAuth, isAuthenticated, isAuthenticatedExtension } from "./auth";
 import { groqService } from "./groqService";
 import { recruiterAnalytics } from "./recruiterAnalytics.js";
 // subscriptionService is already initialized above
@@ -1136,7 +1136,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Extension API for Chrome extension - provides profile data for form filling
-  app.get('/api/extension/profile', async (req: any, res) => {
+  app.get('/api/extension/profile', isAuthenticatedExtension, async (req: any, res) => {
     try {
       console.log('Extension profile request received');
       
@@ -1199,7 +1199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(extensionProfile);
       }
       
-      // Return error when not authenticated - no demo data fallback
+      // Fallback: should not reach here due to isAuthenticatedExtension middleware
       console.log('No authenticated user, requiring login');
       res.status(401).json({ 
         authenticated: false,
