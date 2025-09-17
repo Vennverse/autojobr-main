@@ -94,9 +94,13 @@ export default function ViewJob() {
     }
   };
 
-  const { data: job, isLoading, error } = useQuery({
+  // Determine if this is a scraped job (heuristic: scraped jobs have larger IDs)
+  const isScrapedJob = jobId && (parseInt(jobId) > 100000);
+  
+  // Fetch platform job details
+  const { data: platformJob, isLoading: platformLoading, error: platformError } = useQuery({
     queryKey: [`/api/jobs/postings/${jobId}`],
-    enabled: !!jobId,
+    enabled: !!jobId && !isScrapedJob,
     queryFn: async () => {
       const response = await fetch(`/api/jobs/postings/${jobId}`, {
         credentials: 'include',
@@ -112,6 +116,32 @@ export default function ViewJob() {
       return response.json();
     }
   });
+  
+  // Fetch scraped jobs when needed
+  const { data: scrapedJobs, isLoading: scrapedLoading } = useQuery({
+    queryKey: ['/api/scraped-jobs?limit=2000'],
+    enabled: !!jobId && isScrapedJob,
+    queryFn: async () => {
+      const response = await fetch('/api/scraped-jobs?limit=2000', {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch scraped jobs');
+      }
+      return response.json();
+    }
+  });
+  
+  // Find the scraped job by ID
+  const scrapedJob = Array.isArray(scrapedJobs) ? 
+    scrapedJobs.find((job: any) => job.id?.toString() === jobId) : null;
+  
+  // Use the appropriate job data
+  const job = isScrapedJob ? scrapedJob : platformJob;
+  const isLoading = isScrapedJob ? scrapedLoading : platformLoading;
+  const error = isScrapedJob ? 
+    (scrapedJob ? null : (scrapedJobs ? new Error('Scraped job not found') : null)) : 
+    platformError;
 
   console.log('ViewJob - jobId:', jobId, 'job:', job, 'error:', error);
 
@@ -568,39 +598,58 @@ export default function ViewJob() {
                     <Button 
                       className="w-full" 
                       onClick={() => {
-                        // Apply to job functionality
+                        // Handle scraped vs platform jobs differently
                         if (job.id) {
-                          fetch(`/api/jobs/postings/${job.id}/apply`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                          })
-                          .then(response => response.json())
-                          .then(data => {
-                            if (data.id) {
+                          if (isScrapedJob) {
+                            // For scraped jobs, open external URL
+                            const externalUrl = job?.sourceUrl || job?.source_url;
+                            if (externalUrl) {
+                              window.open(externalUrl, '_blank');
                               toast({
-                                title: "Application Submitted",
-                                description: "Your application has been submitted successfully!",
+                                title: "Redirected to External Site",
+                                description: "Complete your application on the company's website."
                               });
                             } else {
                               toast({
-                                title: "Application Failed",
-                                description: data.message || "Failed to submit application",
-                                variant: "destructive",
+                                title: "No Application URL",
+                                description: "This job doesn't have a valid application URL.",
+                                variant: "destructive"
                               });
                             }
-                          })
-                          .catch(error => {
-                            toast({
-                              title: "Application Failed",
-                              description: "An error occurred while submitting your application",
-                              variant: "destructive",
+                          } else {
+                            // For platform jobs, use internal API
+                            fetch(`/api/jobs/postings/${job.id}/apply`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              credentials: 'include',
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                              if (data.id) {
+                                toast({
+                                  title: "Application Submitted",
+                                  description: "Your application has been submitted successfully!",
+                                });
+                              } else {
+                                toast({
+                                  title: "Application Failed",
+                                  description: data.message || "Failed to submit application",
+                                  variant: "destructive",
+                                });
+                              }
+                            })
+                            .catch(error => {
+                              toast({
+                                title: "Application Failed",
+                                description: "An error occurred while submitting your application",
+                                variant: "destructive",
+                              });
                             });
-                          });
+                          }
                         }
                       }}
                     >
-                      Apply Now
+                      {isScrapedJob ? 'Apply on Company Site' : 'Apply Now'}
                     </Button>
                     <Button 
                       variant="outline" 
