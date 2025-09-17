@@ -3,7 +3,7 @@ import { db } from './db.js';
 import { virtualInterviews, virtualInterviewMessages } from '../shared/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { chatInterviewService } from './chatInterviewService.js';
-import { isAuthenticated } from './auth.js';
+import { isAuthenticated, requireAuthForInterview } from './auth.js';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -117,7 +117,7 @@ router.post('/start-chat', isAuthenticated, async (req: any, res) => {
 });
 
 // Get interview messages (chat history)
-router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
+router.get('/:sessionId/messages', requireAuthForInterview, async (req: any, res) => {
   try {
     const { sessionId } = req.params;
     const userId = req.user?.id || req.session?.user?.id;
@@ -198,7 +198,7 @@ router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
 });
 
 // Send a message (user response)
-router.post('/:sessionId/message', isAuthenticated, async (req: any, res) => {
+router.post('/:sessionId/message', requireAuthForInterview, async (req: any, res) => {
   try {
     const { sessionId } = req.params;
     const { message } = req.body;
@@ -295,7 +295,7 @@ router.post('/:sessionId/message', isAuthenticated, async (req: any, res) => {
 });
 
 // Complete interview manually
-router.post('/:sessionId/complete', isAuthenticated, async (req: any, res) => {
+router.post('/:sessionId/complete', requireAuthForInterview, async (req: any, res) => {
   try {
     const { sessionId } = req.params;
     const userId = req.user?.id || req.session?.user?.id;
@@ -457,7 +457,7 @@ router.post('/assign', isAuthenticated, async (req: any, res) => {
 });
 
 // Get interview feedback for completed interviews
-router.get('/:sessionId/feedback', isAuthenticated, async (req: any, res) => {
+router.get('/:sessionId/feedback', requireAuthForInterview, async (req: any, res) => {
   try {
     const { sessionId } = req.params;
     const userId = req.user?.id || req.session?.user?.id;

@@ -93,6 +93,14 @@ function ChatInterview() {
 
     } catch (error: any) {
       console.error('Error loading messages:', error);
+      
+      // Check if this is an authentication error with redirect URL
+      if (error.response?.status === 401 && error.response?.data?.redirectUrl) {
+        console.log('🎭 Redirecting to auth page:', error.response.data.redirectUrl);
+        window.location.href = error.response.data.redirectUrl;
+        return;
+      }
+      
       toast({
         title: "Error",
         description: "Failed to load interview chat",
@@ -153,6 +161,14 @@ function ChatInterview() {
 
     } catch (error: any) {
       console.error('Error sending message:', error);
+      
+      // Check if this is an authentication error with redirect URL
+      if (error.response?.status === 401 && error.response?.data?.redirectUrl) {
+        console.log('🎭 Redirecting to auth page:', error.response.data.redirectUrl);
+        window.location.href = error.response.data.redirectUrl;
+        return;
+      }
+      
       toast({
         title: "Error",
         description: "Failed to send message",

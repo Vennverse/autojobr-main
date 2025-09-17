@@ -1695,6 +1695,80 @@ export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
   }
 };
 
+// Authentication middleware for interview access that redirects instead of 401
+export const requireAuthForInterview: RequestHandler = async (req: any, res, next) => {
+  console.log(`🎭 [INTERVIEW AUTH] ${req.method} ${req.originalUrl}: checking authentication`);
+  try {
+    const sessionUser = req.session?.user;
+    
+    if (sessionUser) {
+      try {
+        // Try to get user from database
+        const [dbUser] = await db.select().from(users).where(eq(users.id, sessionUser.id)).limit(1);
+        if (dbUser) {
+          req.user = dbUser;
+          return next();
+        }
+      } catch (dbError) {
+        console.warn('DB lookup failed, falling back to session user:', dbError);
+      }
+      
+      // Fallback to session user if DB lookup fails (for resilience)
+      req.user = {
+        id: sessionUser.id,
+        email: sessionUser.email,
+        name: sessionUser.name || `${sessionUser.firstName || ''} ${sessionUser.lastName || ''}`.trim(),
+        firstName: sessionUser.firstName || 'User',
+        lastName: sessionUser.lastName || 'Name',
+        userType: sessionUser.userType || 'job_seeker'
+      };
+      return next();
+    }
+    
+    // If not authenticated, prepare redirect
+    // Extract sessionId from URL to build proper page redirect
+    const sessionIdMatch = req.originalUrl.match(/\/chat-interview\/([^/]+)/);
+    const pageUrl = sessionIdMatch ? `/chat-interview/${sessionIdMatch[1]}` : req.originalUrl;
+    const authUrl = `/auth-page?redirect=${encodeURIComponent(pageUrl)}`;
+    
+    console.log(`🎭 [INTERVIEW AUTH] Redirecting unauthenticated user. Original: ${req.originalUrl}, Page: ${pageUrl}, Auth: ${authUrl}`);
+    
+    // Check if this is an API request by looking at originalUrl or baseUrl
+    const isApiRequest = req.originalUrl.startsWith('/api/') || (req.baseUrl && req.baseUrl.includes('/api'));
+    
+    if (isApiRequest) {
+      // For API requests, return JSON with redirect URL
+      return res.status(401).json({ 
+        message: 'Authentication required', 
+        redirectUrl: authUrl,
+        requiresAuth: true
+      });
+    } else {
+      // For page requests, redirect directly
+      return res.redirect(authUrl);
+    }
+  } catch (error) {
+    console.error('Interview auth middleware error:', error);
+    
+    // Extract sessionId from URL to build proper page redirect  
+    const sessionIdMatch = req.originalUrl.match(/\/chat-interview\/([^/]+)/);
+    const pageUrl = sessionIdMatch ? `/chat-interview/${sessionIdMatch[1]}` : req.originalUrl;
+    const authUrl = `/auth-page?redirect=${encodeURIComponent(pageUrl)}`;
+    
+    const isApiRequest = req.originalUrl.startsWith('/api/') || (req.baseUrl && req.baseUrl.includes('/api'));
+    
+    if (isApiRequest) {
+      return res.status(401).json({ 
+        message: 'Authentication required', 
+        redirectUrl: authUrl,
+        requiresAuth: true
+      });
+    } else {
+      return res.redirect(authUrl);
+    }
+  }
+};
+
 // Extension-compatible authentication middleware for JWT + session support
 export const isAuthenticatedExtension: RequestHandler = async (req: any, res, next) => {
   try {
