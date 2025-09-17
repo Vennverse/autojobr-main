@@ -1,6 +1,6 @@
 import express from "express";
 import session from "express-session";
-import MemoryStore from "memorystore";
+import ConnectPgSimple from "connect-pg-simple";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
 import { storage } from "./storage";
@@ -11,6 +11,7 @@ import { sendEmail, generatePasswordResetEmail, generateVerificationEmail } from
 import crypto from "crypto";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import pg from "pg";
 
 // Simple auth configuration
 const authConfig = {
@@ -41,14 +42,25 @@ const authConfig = {
 };
 
 export async function setupAuth(app: Express) {
-  // Setup session middleware with proper memory store
-  console.log('🔑 Setting up session middleware...');
+  // Setup session middleware with PostgreSQL store for multi-instance support
+  console.log('🔑 Setting up session middleware with PostgreSQL store...');
   
-  const MemoryStoreConstructor = MemoryStore(session);
-  const sessionStore = new MemoryStoreConstructor({
-    checkPeriod: 86400000, // prune expired entries every 24h
-    max: 500000, // max entries
-    ttl: 365 * 24 * 60 * 60 * 1000, // 1 year TTL
+  const PgStore = ConnectPgSimple(session);
+  
+  // Create PostgreSQL connection pool for sessions
+  const pgPool = new pg.Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    max: 10, // Maximum number of connections in the pool
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+  });
+  
+  // Create session store with PostgreSQL
+  const sessionStore = new PgStore({
+    pool: pgPool,
+    tableName: 'session', // Use default table name
+    createTableIfMissing: true, // Create table if it doesn't exist
   });
   
   // Enhanced production configuration
@@ -74,7 +86,7 @@ export async function setupAuth(app: Express) {
     name: 'autojobr.session', // Consistent session name
     proxy: true // Trust proxy for production deployments
   }));
-  console.log('✅ Session middleware configured successfully with enhanced security');
+  console.log('✅ Session middleware configured successfully with PostgreSQL store for multi-instance support');
 
   // Initialize Passport
   app.use(passport.initialize());

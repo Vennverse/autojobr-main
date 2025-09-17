@@ -1,0 +1,128 @@
+1|autojobr | 2025-09-17T05:03:02: [CACHE_SECURITY] Cache key "profile_user-1758040629332-yqhpcngbc" used without user ID scoping
+
+/var/www/autojobr-main/logs/out-1.log last 15 lines:
+1|autojobr |   cookies: 'present'
+1|autojobr | }
+1|autojobr | 2025-09-17T05:03:06: 5:03:06 AM [express] GET /api/applications/stats 401 in 2ms :: {"message":"Not authenticated"}
+1|autojobr | 2025-09-17T05:03:06: 🔍 [AUTH DEBUG] GET /api/user: hasSession=true, sessionUser=false
+1|autojobr | 2025-09-17T05:03:06: 🚫 [AUTH DEBUG] No session user found
+1|autojobr | 2025-09-17T05:03:06: 5:03:06 AM [express] GET /api/user 401 in 2ms :: {"message":"Not authenticated"}
+1|autojobr | 2025-09-17T05:03:08: 5:03:08 AM [express] POST /api/auth/signin 200 in 1ms :: {"redirectUrl":"/api/auth/google"}
+1|autojobr | 2025-09-17T05:03:09: ✅ Google OAuth user authenticated: vennverse@gmail.com
+1|autojobr | 2025-09-17T05:03:09: ✅ Google OAuth successful for user: vennverse@gmail.com
+1|autojobr | 2025-09-17T05:03:09: ✅ Google OAuth session saved for user: vennverse@gmail.com
+1|autojobr | 2025-09-17T05:03:09: 5:03:09 AM [express] GET /api/auth/google/callback 302 in 140ms
+1|autojobr | 2025-09-17T05:03:10: 🔍 [AUTH DEBUG] GET /api/user: hasSession=true, sessionUser=true
+1|autojobr | 2025-09-17T05:03:10: ✅ [AUTH DEBUG] Session user found: vennverse@gmail.com (job_seeker)
+1|autojobr | 2025-09-17T05:03:10: 💾 [AUTH DEBUG] Session saved successfully
+1|autojobr | 2025-09-17T05:03:10: 5:03:10 AM [express] GET /api/user 304 in 8ms :: {"id":"user-1758040629332-yqhpcngbc","email":"vennv…
+
+/var/www/autojobr-main/logs/out-0.log last 15 lines:
+0|autojobr |   cookies: 'present'
+0|autojobr | }
+0|autojobr | 2025-09-17T05:03:02: 5:03:02 AM [express] GET /api/applications/stats 401 in 2ms :: {"message":"Not authenticated"}
+0|autojobr | 2025-09-17T05:03:06: 🔍 [AUTH DEBUG] GET /api/user: hasSession=true, sessionUser=false
+0|autojobr | 2025-09-17T05:03:06: 🚫 [AUTH DEBUG] No session user found
+0|autojobr | 2025-09-17T05:03:06: 5:03:06 AM [express] GET /api/user 401 in 1ms :: {"message":"Not authenticated"}
+0|autojobr | 2025-09-17T05:03:09: 5:03:09 AM [express] GET /api/auth/google 302 in 0ms
+0|autojobr | 2025-09-17T05:03:10: [AUTH DEBUG] GET /api/applications/stats: {
+0|autojobr |   hasSession: true,
+0|autojobr |   sessionUser: false,
+0|autojobr |   passportUser: false,
+0|autojobr |   sessionId: '_Q4Ab848wsU_0UmopBkTfoVhx4FIK2Ex',
+0|autojobr |   cookies: 'present'
+0|autojobr | }
+0|autojobr | 2025-09-17T05:03:10: 5:03:10 AM [express] GET /api/applications/stats 401 in 1ms :: {"message":"Not authenticated"}
+
+0|autojobr  | 2025-09-17T05:05:44: 5:05:44 AM [express] GET /api/health 200 in 2ms :: {"status":"ok","timestamp":"2025-09-17T05:05:44.5…
+0|autojobr  | 2025-09-17T05:14:06: 5:14:06 AM [express] GET /api/sitemap.xml 200 in 3ms
+0|autojobr  | 2025-09-17T05:38:10: 5:38:10 AM [express] GET /api/health 200 in 1ms :: {"status":"ok","timestamp":"2025-09-17T05:38:10.1…
+1|autojobr  | 2025-09-17T05:38:16: 5:38:16 AM [express] POST /api/auth/logout 200 in 3ms :: {"message":"Logged out successfully"}
+0|autojobr  | 2025-09-17T05:38:17: [AUTH DEBUG] GET /api/applications/stats: {
+0|autojobr  |   hasSession: true,
+0|autojobr  |   sessionUser: false,
+0|autojobr  |   passportUser: false,
+0|autojobr  |   sessionId: 'UqLaCEl2bQwPKF4klVGTUtQ_uRjIg50l',
+0|autojobr  |   cookies: 'present'
+0|autojobr  | }
+0|autojobr  | 2025-09-17T05:38:17: 5:38:17 AM [express] GET /api/applications/stats 401 in 1ms :: {"message":"Not authenticated"}
+0|autojobr  | 2025-09-17T05:38:17: 🔍 [AUTH DEBUG] GET /api/user: hasSession=true, sessionUser=false
+0|autojobr  | 2025-09-17T05:38:17: 🚫 [AUTH DEBUG] No session user found
+0|autojobr  | 2025-09-17T05:38:17: 5:38:17 AM [express] GET /api/user 401 in 1ms :: {"message":"Not authenticated"}
+0|autojobr  | 2025-09-17T05:38:17: [AUTH DEBUG] GET /api/applications: {
+0|autojobr  |   hasSession: true,
+0|autojobr  |   sessionUser: false,
+0|autojobr  |   passportUser: false,
+0|autojobr  |   sessionId: 'YLhVSnfH19LBp0xVP0tlU3F-d6IZD5e3',
+0|autojobr  |   cookies: 'present'
+0|autojobr  | }
+0|autojobr  | 2025-09-17T05:38:17: 5:38:17 AM [express] GET /api/applications 401 in 1ms :: {"message":"Not authenticated"}
+1|autojobr  | 2025-09-17T05:38:17: [AUTH DEBUG] GET /api/resumes: {
+1|autojobr  |   hasSession: true,
+1|autojobr  |   sessionUser: false,
+1|autojobr  |   passportUser: false,
+1|autojobr  |   sessionId: 'PN4quRwoCpXueil6fSWNFTDr_WfuiWL3',
+1|autojobr  |   cookies: 'present'
+1|autojobr  | }
+1|autojobr  | 2025-09-17T05:38:17: 5:38:17 AM [express] GET /api/resumes 401 in 2ms :: {"message":"Not authenticated"}
+0|autojobr  | 2025-09-17T05:38:17: [AUTH DEBUG] GET /api/profile: {
+0|autojobr  |   hasSession: true,
+0|autojobr  |   sessionUser: false,
+0|autojobr  |   passportUser: false,
+0|autojobr  |   sessionId: 'gZROFDtAtTkiRDs9ScmKBodM9drPZ4Iu',
+0|autojobr  |   cookies: 'present'
+0|autojobr  | }
+0|autojobr  | 2025-09-17T05:38:17: 5:38:17 AM [express] GET /api/profile 401 in 1ms :: {"message":"Not authenticated"}
+1|autojobr  | 2025-09-17T05:38:17: 5:38:17 AM [express] GET /api/jobs/postings 304 in 3ms
+0|autojobr  | 2025-09-17T05:38:17: [AUTH DEBUG] GET /api/jobseeker/test-assignments: {
+0|autojobr  |   hasSession: true,
+0|autojobr  |   sessionUser: false,
+0|autojobr  |   passportUser: false,
+0|autojobr  |   sessionId: 'rSgR4WYpC5Q9T1uNPVAaCaTtPWpHCVkK',
+0|autojobr  |   cookies: 'present'
+0|autojobr  | }
+0|autojobr  | 2025-09-17T05:38:17: 5:38:17 AM [express] GET /api/jobseeker/test-assignments 401 in 2ms :: {"message":"Not authenticated…
+1|autojobr  | 2025-09-17T05:38:17: [AUTH DEBUG] GET /api/ranking-tests/history: {
+1|autojobr  |   hasSession: true,
+1|autojobr  |   sessionUser: false,
+1|autojobr  |   passportUser: false,
+1|autojobr  |   sessionId: 'jNikP1e5UQHUXWz_OPXJun_VETIfvIc6',
+1|autojobr  |   cookies: 'present'
+1|autojobr  | }
+1|autojobr  | 2025-09-17T05:38:17: 5:38:17 AM [express] GET /api/ranking-tests/history 401 in 2ms :: {"message":"Not authenticated"}
+0|autojobr  | 2025-09-17T05:38:17: [AUTH DEBUG] GET /stats: {
+0|autojobr  |   hasSession: true,
+0|autojobr  |   sessionUser: false,
+0|autojobr  |   passportUser: false,
+0|autojobr  |   sessionId: 'vg4nflLjdfZOYvv1mrgRoXm3CDdsmQbB',
+0|autojobr  |   cookies: 'present'
+0|autojobr  | }
+0|autojobr  | 2025-09-17T05:38:17: 5:38:17 AM [express] GET /api/mock-interview/stats 401 in 2ms :: {"message":"Not authenticated"}
+1|autojobr  | 2025-09-17T05:38:18: 🔍 [AUTH DEBUG] GET /api/user: hasSession=true, sessionUser=false
+1|autojobr  | 2025-09-17T05:38:18: 🚫 [AUTH DEBUG] No session user found
+1|autojobr  | 2025-09-17T05:38:18: 5:38:18 AM [express] GET /api/user 401 in 2ms :: {"message":"Not authenticated"}
+0|autojobr  | 2025-09-17T05:38:18: [AUTH DEBUG] GET /api/reminders/pending: {
+0|autojobr  |   hasSession: true,
+0|autojobr  |   sessionUser: false,
+0|autojobr  |   passportUser: false,
+0|autojobr  |   sessionId: 'dqQ6mTgYB0DvdRXSsY4uMZ84b4MrGygQ',
+0|autojobr  |   cookies: 'present'
+0|autojobr  | }
+0|autojobr  | 2025-09-17T05:38:18: 5:38:18 AM [express] GET /api/reminders/pending 401 in 1ms :: {"message":"Not authenticated"}
+1|autojobr  | 2025-09-17T05:39:02: 5:39:02 AM [express] POST /api/auth/signin 200 in 1ms :: {"redirectUrl":"/api/auth/google"}
+0|autojobr  | 2025-09-17T05:39:03: 5:39:03 AM [express] GET /api/auth/google 302 in 1ms
+1|autojobr  | 2025-09-17T05:39:03: ✅ Google OAuth user authenticated: vennverse@gmail.com
+1|autojobr  | 2025-09-17T05:39:03: ✅ Google OAuth successful for user: vennverse@gmail.com
+1|autojobr  | 2025-09-17T05:39:03: ✅ Google OAuth session saved for user: vennverse@gmail.com
+1|autojobr  | 2025-09-17T05:39:03: 5:39:03 AM [express] GET /api/auth/google/callback 302 in 136ms
+0|autojobr  | 2025-09-17T05:39:05: 🔍 [AUTH DEBUG] GET /api/user: hasSession=true, sessionUser=false
+0|autojobr  | 2025-09-17T05:39:05: 🚫 [AUTH DEBUG] No session user found
+0|autojobr  | 2025-09-17T05:39:05: 5:39:05 AM [express] GET /api/user 401 in 1ms :: {"message":"Not authenticated"}
+1|autojobr  | 2025-09-17T05:39:05: [AUTH DEBUG] GET /api/reminders/pending: {
+1|autojobr  |   hasSession: true,
+1|autojobr  |   sessionUser: true,
+1|autojobr  |   passportUser: true,
+1|autojobr  |   sessionId: 'NGJBBfsWG89TKVUgLDmThC-1abKCJcu1',
+1|autojobr  |   cookies: 'present'
+1|autojobr  | }
+1|autojobr  | 2025-09-17T05:39:05: 5:39:05 AM [express] GET /api/reminders/pending 200 in 6ms :: {"success":true,"reminders":[],"count"…
