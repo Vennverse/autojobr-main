@@ -9,6 +9,37 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 
+// Utility functions for professional job formatting
+const formatJobType = (jobType?: string) => {
+  if (!jobType) return '';
+  
+  const typeMap: { [key: string]: string } = {
+    'platform': 'Full-time',
+    'scraped': 'Full-time', 
+    'full_time': 'Full-time',
+    'part_time': 'Part-time',
+    'contract': 'Contract-based',
+    'freelance': 'Freelance', 
+    'temporary': 'Temporary',
+    'internship': 'Internship'
+  };
+  
+  return typeMap[jobType.toLowerCase()] || 'Full-time';
+};
+
+const formatWorkMode = (workMode?: string) => {
+  if (!workMode) return '';
+  
+  const modeMap: { [key: string]: string } = {
+    'onsite': 'On-site',
+    'remote': 'Remote',
+    'hybrid': 'Hybrid', 
+    'field': 'Field-based'
+  };
+  
+  return modeMap[workMode.toLowerCase()] || workMode;
+};
+
 export default function ViewJob() {
   const params = useParams();
   const jobId = params.id;
@@ -246,13 +277,13 @@ export default function ViewJob() {
                     {job.workMode && (
                       <div className="flex items-center gap-1">
                         <Building className="w-4 h-4" />
-                        {job.workMode}
+                        {formatWorkMode(job.workMode)}
                       </div>
                     )}
                     {job.jobType && (
                       <div className="flex items-center gap-1">
                         <Clock className="w-4 h-4" />
-                        {job.jobType}
+                        {formatJobType(job.jobType)}
                       </div>
                     )}
                     {(job.minSalary || job.maxSalary) && (

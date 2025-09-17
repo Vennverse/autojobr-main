@@ -59,6 +59,37 @@ import {
   X
 } from "lucide-react";
 
+// Utility functions for professional job formatting
+const formatJobType = (jobType?: string) => {
+  if (!jobType) return '';
+  
+  const typeMap: { [key: string]: string } = {
+    'platform': 'Full-time',
+    'scraped': 'Full-time', 
+    'full_time': 'Full-time',
+    'part_time': 'Part-time',
+    'contract': 'Contract-based',
+    'freelance': 'Freelance', 
+    'temporary': 'Temporary',
+    'internship': 'Internship'
+  };
+  
+  return typeMap[jobType.toLowerCase()] || 'Full-time';
+};
+
+const formatWorkMode = (workMode?: string) => {
+  if (!workMode) return '';
+  
+  const modeMap: { [key: string]: string } = {
+    'onsite': 'On-site',
+    'remote': 'Remote',
+    'hybrid': 'Hybrid', 
+    'field': 'Field-based'
+  };
+  
+  return modeMap[workMode.toLowerCase()] || workMode;
+};
+
 interface JobPosting {
   id: number;
   title: string;
@@ -740,7 +771,12 @@ export default function Jobs() {
                       <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-3">
                         {job.workMode && (
                           <Badge variant="secondary" className="text-xs px-2 py-1">
-                            {job.workMode}
+                            {formatWorkMode(job.workMode)}
+                          </Badge>
+                        )}
+                        {job.jobType && (
+                          <Badge variant="outline" className="text-xs px-2 py-1">
+                            {formatJobType(job.jobType)}
                           </Badge>
                         )}
                         {job.experienceLevel && (

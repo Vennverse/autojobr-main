@@ -28,6 +28,39 @@ interface JobCardProps {
   };
 }
 
+// Utility function to format job types professionally
+const formatJobType = (jobType?: string) => {
+  if (!jobType) return '';
+  
+  // Map technical terms to professional descriptions
+  const typeMap: { [key: string]: string } = {
+    'platform': 'Full-time',
+    'scraped': 'Full-time',
+    'full_time': 'Full-time',
+    'part_time': 'Part-time', 
+    'contract': 'Contract-based',
+    'freelance': 'Freelance',
+    'temporary': 'Temporary',
+    'internship': 'Internship'
+  };
+  
+  return typeMap[jobType.toLowerCase()] || 'Full-time';
+};
+
+// Utility function to format work modes professionally
+const formatWorkMode = (workMode?: string) => {
+  if (!workMode) return '';
+  
+  const modeMap: { [key: string]: string } = {
+    'onsite': 'On-site',
+    'remote': 'Remote', 
+    'hybrid': 'Hybrid',
+    'field': 'Field-based'
+  };
+  
+  return modeMap[workMode.toLowerCase()] || workMode;
+};
+
 export function JobCard({ job }: JobCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -126,13 +159,13 @@ export function JobCard({ job }: JobCardProps) {
           {job.jobType && (
             <span className="flex items-center">
               <Briefcase className="w-3 h-3 mr-1" />
-              {job.jobType}
+              {formatJobType(job.jobType)}
             </span>
           )}
           {job.workMode && (
             <span className="flex items-center">
               <MapPin className="w-3 h-3 mr-1" />
-              {job.workMode}
+              {formatWorkMode(job.workMode)}
             </span>
           )}
           {job.salary && (

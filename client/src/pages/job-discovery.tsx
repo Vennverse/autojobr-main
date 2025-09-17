@@ -21,6 +21,37 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
+// Utility functions for professional job formatting
+const formatJobType = (jobType?: string) => {
+  if (!jobType) return '';
+  
+  const typeMap: { [key: string]: string } = {
+    'platform': 'Full-time',
+    'scraped': 'Full-time', 
+    'full_time': 'Full-time',
+    'part_time': 'Part-time',
+    'contract': 'Contract-based',
+    'freelance': 'Freelance', 
+    'temporary': 'Temporary',
+    'internship': 'Internship'
+  };
+  
+  return typeMap[jobType.toLowerCase()] || 'Full-time';
+};
+
+const formatWorkMode = (workMode?: string) => {
+  if (!workMode) return '';
+  
+  const modeMap: { [key: string]: string } = {
+    'onsite': 'On-site',
+    'remote': 'Remote',
+    'hybrid': 'Hybrid', 
+    'field': 'Field-based'
+  };
+  
+  return modeMap[workMode.toLowerCase()] || workMode;
+};
+
 export default function JobDiscoveryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState({
@@ -46,13 +77,13 @@ export default function JobDiscoveryPage() {
 
   // Combine and process all jobs
   const allJobs = [
-    ...platformJobs.map((job: any) => ({
+    ...(Array.isArray(platformJobs) ? platformJobs : []).map((job: any) => ({
       ...job,
       company: job.company_name || job.company,
       jobType: 'platform',
       applyType: 'easy'
     })),
-    ...scrapedJobs.map((job: any) => ({
+    ...(Array.isArray(scrapedJobs) ? scrapedJobs : []).map((job: any) => ({
       ...job,
       company: job.company,
       jobType: 'scraped', 
@@ -186,7 +217,7 @@ export default function JobDiscoveryPage() {
           {/* Jobs Results Summary */}
           <motion.div variants={itemVariants} className="text-center">
             <p className="text-gray-600 dark:text-gray-300">
-              {isLoading ? 'Loading jobs...' : `Found ${allJobs.length} jobs (${platformJobs.length} platform jobs + ${scrapedJobs.length} external jobs)`}
+              {isLoading ? 'Loading jobs...' : `Found ${allJobs.length} jobs (${Array.isArray(platformJobs) ? platformJobs.length : 0} platform jobs + ${Array.isArray(scrapedJobs) ? scrapedJobs.length : 0} external jobs)`}
             </p>
           </motion.div>
 
@@ -303,7 +334,7 @@ function JobCard({ job, onSave }: { job: any; onSave: () => void }) {
           {job.workMode && (
             <span className="flex items-center gap-1">
               <Clock className="h-4 w-4" />
-              {job.workMode}
+              {formatWorkMode(job.workMode)}
             </span>
           )}
           {job.salaryRange && (
