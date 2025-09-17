@@ -134,16 +134,46 @@ router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
     if (!interview.length) {
       return res.status(404).json({ message: 'Interview not found' });
     }
+    
+    const currentInterview = interview[0];
+    
+    // If this is an assigned interview that hasn't been started, initialize it
+    if (currentInterview.status === 'assigned') {
+      const context = {
+        role: currentInterview.role || 'software_engineer',
+        interviewType: currentInterview.interviewType || 'technical',
+        difficulty: currentInterview.difficulty || 'medium',
+        totalQuestions: currentInterview.totalQuestions || 5,
+        currentQuestionCount: 0,
+        personality: currentInterview.interviewerPersonality || 'professional',
+        companyName: currentInterview.company,
+        jobDescription: currentInterview.jobDescription
+      };
+      
+      // Start the interview with a greeting
+      const greeting = await chatInterviewService.startInterviewChat(currentInterview.id, context);
+      
+      // Update status to active
+      await db.update(virtualInterviews)
+        .set({ 
+          status: 'active',
+          startTime: new Date()
+        })
+        .where(eq(virtualInterviews.id, currentInterview.id));
+      
+      currentInterview.status = 'active';
+      currentInterview.startTime = new Date();
+    }
 
     // Get all messages
     const messages = await db.select()
       .from(virtualInterviewMessages)
-      .where(eq(virtualInterviewMessages.interviewId, interview[0].id))
+      .where(eq(virtualInterviewMessages.interviewId, currentInterview.id))
       .orderBy(virtualInterviewMessages.messageIndex);
 
     // Calculate remaining time
-    const startTime = interview[0].startTime ? new Date(interview[0].startTime).getTime() : Date.now();
-    const durationMs = (interview[0].duration || 30) * 60 * 1000;
+    const startTime = currentInterview.startTime ? new Date(currentInterview.startTime).getTime() : Date.now();
+    const durationMs = (currentInterview.duration || 30) * 60 * 1000;
     const elapsed = Date.now() - startTime;
     const timeRemaining = Math.max(0, Math.floor((durationMs - elapsed) / 1000));
 
@@ -155,10 +185,10 @@ router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
         timestamp: msg.createdAt,
         messageIndex: msg.messageIndex
       })),
-      currentQuestionCount: interview[0].questionsAsked || 0,
-      totalQuestions: interview[0].totalQuestions || 5,
+      currentQuestionCount: currentInterview.questionsAsked || 0,
+      totalQuestions: currentInterview.totalQuestions || 5,
       timeRemaining,
-      status: interview[0].status
+      status: currentInterview.status
     });
 
   } catch (error) {

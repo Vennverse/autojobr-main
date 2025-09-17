@@ -494,7 +494,10 @@ Remember: Your goal is to uncover the candidate's true capabilities through stra
                           /next question|let me ask|moving on/i.test(assistantMessage);
 
     const shouldAdvance = isSubstantialResponse && hasNewQuestion && !responseAnalysis.needsRedirection;
-    const shouldComplete = context.currentQuestionCount >= context.totalQuestions;
+    
+    // Fix: Interview should complete when we've processed totalQuestions responses
+    // currentQuestionCount starts at 0, so after processing question 1,2,3,4,5 it should be 5
+    const shouldComplete = (context.currentQuestionCount + 1) >= context.totalQuestions;
 
     let suggestedFollowUp;
     if (responseAnalysis.technicalDepth > 0.7) {
@@ -869,7 +872,7 @@ Keep it warm but professional, matching the ${context.personality} personality s
     ];
 
     const selectedResponse = fallbackResponses[context.currentQuestionCount % fallbackResponses.length];
-    const shouldComplete = context.currentQuestionCount >= context.totalQuestions;
+    const shouldComplete = (context.currentQuestionCount + 1) >= context.totalQuestions;
 
     return {
       message: selectedResponse,

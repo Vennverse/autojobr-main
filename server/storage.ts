@@ -439,6 +439,11 @@ export class DatabaseStorage implements IStorage {
       .set({ ...applicationData, lastUpdated: new Date() })
       .where(eq(jobApplications.id, id))
       .returning();
+    
+    if (!updatedApplication) {
+      throw new Error(`Application with id ${id} not found`);
+    }
+    
     return updatedApplication;
   }
 

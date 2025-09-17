@@ -3598,11 +3598,21 @@ Additional Information:
   app.patch('/api/applications/:id', isAuthenticated, async (req: any, res) => {
     try {
       const applicationId = parseInt(req.params.id);
+      
+      if (isNaN(applicationId)) {
+        return res.status(400).json({ message: "Invalid application ID" });
+      }
+      
       const updateData = req.body;
       const application = await storage.updateJobApplication(applicationId, updateData);
       res.json(application);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating application:", error);
+      
+      if (error.message?.includes('not found')) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+      
       res.status(500).json({ message: "Failed to update application" });
     }
   });
