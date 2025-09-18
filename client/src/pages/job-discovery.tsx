@@ -86,7 +86,8 @@ export default function JobDiscoveryPage() {
     ...(Array.isArray(scrapedJobs) ? scrapedJobs : []).map((job: any) => ({
       ...job,
       company: job.company,
-      jobType: 'scraped', 
+      jobType: job.jobType || job.job_type || 'full_time',
+      source: 'scraped',
       applyType: 'external'
     }))
   ].filter((job: any) => {

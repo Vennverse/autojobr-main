@@ -192,9 +192,10 @@ export default function Jobs() {
       ...job,
       company: job.company,
       companyName: job.company,
-      jobType: 'scraped',
+      jobType: job.jobType || job.job_type || 'full_time', // Use actual job type from scraped data
       applyType: 'external',
       priority: 2, // Scraped jobs get lower priority
+      source: 'scraped', // Add source identifier instead of overriding jobType
       sourceUrl: job.sourceUrl || job.source_url // Use API field first, then database field as fallback
     }))
   ].filter((job: any) => {
@@ -396,7 +397,7 @@ export default function Jobs() {
     });
 
     // Handle external scraped jobs - check both sourceUrl and source_url fields
-    if (job.jobType === 'scraped' || job.applyType === 'external') {
+    if (job.source === 'scraped' || job.applyType === 'external') {
       const externalUrl = job.sourceUrl || job.source_url;
       if (externalUrl) {
         window.open(externalUrl, '_blank');
@@ -416,7 +417,7 @@ export default function Jobs() {
     }
 
     // Handle platform jobs
-    if (job.jobType === 'platform') {
+    if (job.applyType === 'easy' && !job.source) {
       applyMutation.mutate(job.id);
       return;
     }
@@ -490,7 +491,11 @@ export default function Jobs() {
         "@type": "Place",
         "address": job.location
       },
-      "employmentType": job.jobType?.toUpperCase() || "FULL_TIME",
+      "employmentType": (() => {
+        const type = formatJobType(job.jobType).toLowerCase().replace('-', '_');
+        const validTypes = { 'full_time': 'FULL_TIME', 'part_time': 'PART_TIME', 'contract_based': 'CONTRACTOR', 'freelance': 'CONTRACTOR', 'temporary': 'TEMPORARY', 'internship': 'INTERN' };
+        return validTypes[type as keyof typeof validTypes] || 'FULL_TIME';
+      })(),
       "workHours": job.workMode === 'remote' ? "REMOTE" : "FULL_TIME",
       "datePosted": job.createdAt || job.created_at
     }))
