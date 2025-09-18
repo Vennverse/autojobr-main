@@ -41,7 +41,8 @@ import {
   Zap,
   Users,
   Star,
-  Handshake
+  Handshake,
+  GraduationCap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -150,6 +151,12 @@ export function Navbar() {
           href: "/jobs",
           icon: Briefcase,
           current: location === "/jobs"
+        },
+        {
+          name: "Internships",
+          href: "/internships",
+          icon: GraduationCap,
+          current: location === "/internships"
         },
         {
           name: "Premium",
