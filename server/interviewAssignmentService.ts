@@ -721,7 +721,7 @@ export class InterviewAssignmentService {
 
     const interviewTypeText = interviewType === 'virtual' ? 'Virtual AI Interview' : 'Mock Interview';
     const companyText = company ? ` at ${company}` : '';
-    const interviewUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/${interviewType}-interview/${sessionId}`;
+    const interviewUrl = `${process.env.FRONTEND_URL || 'https://autojobr.com'}/${interviewType}-interview/${sessionId}`;
 
     const emailContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

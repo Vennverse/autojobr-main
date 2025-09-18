@@ -24,7 +24,7 @@ export class CompanyVerificationService {
       });
 
       // Send company-specific verification email
-      const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/api/auth/verify-company-email?token=${verificationToken}`;
+      const verificationUrl = `${process.env.FRONTEND_URL || 'https://autojobr.com'}/api/auth/verify-company-email?token=${verificationToken}`;
       
       const emailHtml = this.generateCompanyVerificationEmail(verificationUrl, companyName);
       
