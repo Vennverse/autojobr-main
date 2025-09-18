@@ -91,7 +91,7 @@ export default function EnhancedChatPage() {
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (messageData: { message: string }) => {
-      return apiRequest('POST', `/api/simple-chat/conversations/${selectedConversation}/messages`, messageData);
+      return apiRequest(`/api/simple-chat/conversations/${selectedConversation}/messages`, 'POST', messageData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/messages', selectedConversation] });
@@ -103,7 +103,7 @@ export default function EnhancedChatPage() {
   // Mark messages as read mutation
   const markAsReadMutation = useMutation({
     mutationFn: async (conversationId: number) => {
-      return apiRequest('POST', `/api/simple-chat/conversations/${conversationId}/read`, {});
+      return apiRequest(`/api/simple-chat/conversations/${conversationId}/read`, 'POST', {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/conversations'] });

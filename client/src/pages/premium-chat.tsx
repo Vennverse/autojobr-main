@@ -82,7 +82,7 @@ export default function PremiumChatPage() {
   // Create conversation mutation
   const createConversationMutation = useMutation({
     mutationFn: async (otherUserId: string) => {
-      return apiRequest('POST', '/api/chat/conversations', { otherUserId });
+      return apiRequest('/api/chat/conversations', 'POST', { otherUserId });
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
@@ -104,7 +104,7 @@ export default function PremiumChatPage() {
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (messageData: { message: string }) => {
-      return apiRequest('POST', `/api/chat/conversations/${selectedConversation}/messages`, { 
+      return apiRequest(`/api/chat/conversations/${selectedConversation}/messages`, 'POST', { 
         message: messageData.message 
       });
     },
@@ -119,7 +119,7 @@ export default function PremiumChatPage() {
   // Mark messages as read
   const markAsReadMutation = useMutation({
     mutationFn: async (conversationId: number) => {
-      return apiRequest('POST', `/api/chat/conversations/${conversationId}/read`, {});
+      return apiRequest(`/api/chat/conversations/${conversationId}/read`, 'POST', {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });

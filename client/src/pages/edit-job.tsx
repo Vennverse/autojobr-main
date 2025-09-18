@@ -74,7 +74,7 @@ export default function EditJob() {
 
   const updateJobMutation = useMutation({
     mutationFn: async (jobData: any) => {
-      return await apiRequest("PUT", `/api/recruiter/jobs/${jobId}`, jobData);
+      return await apiRequest(`/api/recruiter/jobs/${jobId}`, "PUT", jobData);
     },
     onSuccess: () => {
       toast({
@@ -96,7 +96,7 @@ export default function EditJob() {
 
   const deleteJobMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("DELETE", `/api/recruiter/jobs/${jobId}`);
+      return await apiRequest(`/api/recruiter/jobs/${jobId}`, "DELETE");
     },
     onSuccess: () => {
       toast({

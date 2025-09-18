@@ -49,7 +49,7 @@ export default function RecruiterSubscription() {
 
   const upgradeMutation = useMutation({
     mutationFn: async (paymentData: any) => {
-      return apiRequest('POST', '/api/subscription/upgrade', paymentData);
+      return apiRequest('/api/subscription/upgrade', 'POST', paymentData);
     },
     onSuccess: async (response) => {
       queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
@@ -57,7 +57,7 @@ export default function RecruiterSubscription() {
       // If there's a pending targeting job, create it now
       if (pendingTargetingJob) {
         try {
-          await apiRequest('POST', '/api/jobs/targeted', pendingTargetingJob);
+          await apiRequest('/api/jobs/targeted', 'POST', pendingTargetingJob);
           localStorage.removeItem('pendingTargetingJob');
           toast({
             title: "Premium Targeting Job Created!",
@@ -90,7 +90,7 @@ export default function RecruiterSubscription() {
 
   const cancelMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('POST', '/api/subscription/cancel');
+      return apiRequest('/api/subscription/cancel', 'POST');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
@@ -113,7 +113,7 @@ export default function RecruiterSubscription() {
     // Determine payment amount based on pending targeting job or default subscription
     const amount = pendingTargetingJob ? (pendingTargetingJob.estimatedCost * 100) : 4900; // $49 for basic, or targeting cost
     
-    const response = await apiRequest('POST', '/api/create-payment-intent', {
+    const response = await apiRequest('/api/create-payment-intent', 'POST', {
       amount: amount,
       currency: 'usd',
     });

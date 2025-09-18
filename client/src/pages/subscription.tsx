@@ -49,7 +49,7 @@ export default function Subscription() {
 
   const upgradeMutation = useMutation({
     mutationFn: async (paymentData: any) => {
-      return apiRequest('POST', '/api/subscription/upgrade', paymentData);
+      return apiRequest('/api/subscription/upgrade', 'POST', paymentData);
     },
     onSuccess: async (response) => {
       queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
@@ -57,7 +57,7 @@ export default function Subscription() {
       // If there's a pending targeting job, create it now
       if (pendingTargetingJob) {
         try {
-          await apiRequest('POST', '/api/jobs/targeted', pendingTargetingJob);
+          await apiRequest('/api/jobs/targeted', 'POST', pendingTargetingJob);
           localStorage.removeItem('pendingTargetingJob');
           toast({
             title: "Premium Targeting Job Created!",
@@ -90,7 +90,7 @@ export default function Subscription() {
 
   const cancelMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('POST', '/api/subscription/cancel');
+      return apiRequest('/api/subscription/cancel', 'POST');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
@@ -134,7 +134,7 @@ export default function Subscription() {
   const handleStripePayment = async () => {
     // Create Stripe Checkout session
     try {
-      const response = await apiRequest('POST', '/api/payments/stripe/create-checkout', {
+      const response = await apiRequest('/api/payments/stripe/create-checkout', 'POST', {
         amount: 1000, // $10 in cents
         currency: 'usd'
       });
@@ -154,7 +154,7 @@ export default function Subscription() {
   const handlePayPalPayment = async () => {
     // Create PayPal order
     try {
-      const response = await apiRequest('POST', '/api/payments/paypal/create-order', {
+      const response = await apiRequest('/api/payments/paypal/create-order', 'POST', {
         amount: '10.00',
         currency: 'USD'
       });
@@ -174,7 +174,7 @@ export default function Subscription() {
   const handleRazorpayPayment = async () => {
     // Create Razorpay order
     try {
-      const response = await apiRequest('POST', '/api/payments/razorpay/create-order', {
+      const response = await apiRequest('/api/payments/razorpay/create-order', 'POST', {
         amount: 1000, // ₹10 in paise
         currency: 'INR'
       });

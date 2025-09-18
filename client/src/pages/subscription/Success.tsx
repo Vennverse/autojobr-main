@@ -31,7 +31,7 @@ export default function SubscriptionSuccess() {
 
   const activateSubscription = async (subscriptionId: string) => {
     try {
-      const response = await apiRequest('POST', `/api/subscription/activate/${subscriptionId}`);
+      const response = await apiRequest(`/api/subscription/activate/${subscriptionId}`, 'POST');
       
       if (response.ok) {
         setActivationComplete(true);

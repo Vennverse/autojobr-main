@@ -46,7 +46,7 @@ export default function PremiumTargetingPayment() {
 
   const paymentMutation = useMutation({
     mutationFn: async (paymentData: any) => {
-      return apiRequest('POST', '/api/premium-targeting/payment', paymentData);
+      return apiRequest('/api/premium-targeting/payment', 'POST', paymentData);
     },
     onSuccess: async (response) => {
       // Clear the pending job
@@ -55,7 +55,7 @@ export default function PremiumTargetingPayment() {
       // Create the targeted job posting
       if (targetingJob) {
         try {
-          await apiRequest('POST', '/api/jobs/targeted', {
+          await apiRequest('/api/jobs/targeted', 'POST', {
             ...targetingJob,
             isPremiumTargeting: true,
             paymentId: response.paymentId
@@ -92,7 +92,7 @@ export default function PremiumTargetingPayment() {
     setIsProcessingPayment(true);
     
     try {
-      const response = await apiRequest('POST', '/api/create-payment-intent', {
+      const response = await apiRequest('/api/create-payment-intent', 'POST', {
         amount: targetingJob.estimatedCost * 100, // Convert to cents
         currency: 'usd',
         metadata: {

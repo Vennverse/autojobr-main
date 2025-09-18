@@ -29,7 +29,7 @@ export default function EmailVerificationPage({ email: propEmail }: EmailVerific
 
   const resendMutation = useMutation({
     mutationFn: async (email: string) => {
-      const res = await apiRequest("POST", "/api/auth/resend-verification", { email });
+      const res = await apiRequest("/api/auth/resend-verification", "POST", { email });
       return res.json();
     },
     onSuccess: () => {

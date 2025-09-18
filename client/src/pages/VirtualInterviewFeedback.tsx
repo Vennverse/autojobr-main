@@ -56,7 +56,7 @@ export default function VirtualInterviewFeedback() {
   // Fetch interview feedback from database
   const { data: feedbackData, isLoading, error } = useQuery<InterviewFeedback>({
     queryKey: ['/api/virtual-interview/feedback', sessionId],
-    queryFn: () => apiRequest('GET', `/api/virtual-interview/${sessionId}/feedback`),
+    queryFn: () => apiRequest(`/api/virtual-interview/${sessionId}/feedback`, 'GET'),
     enabled: !!sessionId,
     retry: false
   });
