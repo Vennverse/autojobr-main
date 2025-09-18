@@ -688,9 +688,9 @@ export default function Jobs() {
 
       {/* Main Content - Mobile Optimized */}
       <div className="flex-1 max-w-7xl mx-auto w-full px-2 sm:px-4 py-4 sm:py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-6 h-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6 h-full">
           {/* Job List - Mobile Optimized */}
-          <div className="lg:col-span-2 h-full">
+          <div className="h-full">
             <div className="h-[calc(100vh-200px)] sm:h-[calc(100vh-240px)] overflow-y-auto pr-1 lg:pr-2 space-y-3 lg:space-y-4">
             {jobsLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
@@ -982,13 +982,13 @@ export default function Jobs() {
                       {selectedJob.workMode && (
                         <div>
                           <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Work Mode</span>
-                          <p className="text-gray-900 dark:text-white font-medium">{selectedJob.workMode}</p>
+                          <p className="text-gray-900 dark:text-white font-medium">{formatWorkMode(selectedJob.workMode)}</p>
                         </div>
                       )}
                       {selectedJob.jobType && (
                         <div>
                           <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Job Type</span>
-                          <p className="text-gray-900 dark:text-white font-medium">{selectedJob.jobType}</p>
+                          <p className="text-gray-900 dark:text-white font-medium">{formatJobType(selectedJob.jobType)}</p>
                         </div>
                       )}
                       {selectedJob.experienceLevel && (
