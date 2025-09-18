@@ -279,21 +279,80 @@ export default function Internships() {
     setSelectedInternship(internship);
   };
 
-  // SEO and Structured Data
+  // Enhanced SEO and Structured Data for better rankings
   const totalInternshipsCount = pagination.total || 0;
-  const structuredData = {
+  const enhancedStructuredData = {
     "@context": "https://schema.org",
     "@type": "JobBoard",
-    "name": "AutoJobR Internships",
-    "description": "Find your perfect internship opportunity. Browse 1000+ internships from top companies worldwide.",
+    "name": "AutoJobR - Top Tech Internships 2025",
+    "description": "The #1 platform for finding summer 2025 internships at Apple, Google, Netflix, OpenAI, NVIDIA, Meta, Amazon, Microsoft, Tesla, and 1000+ other companies. Software engineering, data science, AI/ML, product management, design, and more.",
     "url": "https://autojobr.com/internships",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": {
-        "@type": "EntryPoint",
-        "urlTemplate": "https://autojobr.com/internships?search={search_term_string}"
+    "applicationCategory": "InternshipPlatform",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "category": "Internship Opportunities",
+      "priceCurrency": "USD",
+      "price": "0",
+      "description": "Free access to premium internship search and application tools"
+    },
+    "potentialAction": [
+      {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://autojobr.com/internships?search={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
       },
-      "query-input": "required name=search_term_string"
+      {
+        "@type": "ApplyAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://autojobr.com/auth"
+        }
+      }
+    ],
+    "mainEntity": [
+      {
+        "@type": "JobPosting",
+        "title": "Summer 2025 Software Engineering Internships",
+        "description": "Paid software engineering internships at top tech companies including Apple, Google, Netflix, OpenAI, NVIDIA, Meta, Amazon",
+        "datePosted": new Date().toISOString().split('T')[0],
+        "validThrough": "2025-12-31",
+        "employmentType": "INTERN",
+        "jobLocation": {
+          "@type": "Place",
+          "address": "Multiple locations including Silicon Valley, Seattle, Austin, New York, Remote"
+        },
+        "hiringOrganization": {
+          "@type": "Organization",
+          "name": "Multiple Top Tech Companies",
+          "url": "https://autojobr.com/internships"
+        }
+      },
+      {
+        "@type": "EducationalOrganization",
+        "name": "AutoJobR Career Development",
+        "description": "Connecting students with career opportunities at leading technology companies",
+        "url": "https://autojobr.com/internships"
+      }
+    ],
+    "keywords": "summer internships 2025, tech internships, software engineering internships, computer science internships, paid internships, google internships, apple internships, FAANG internships, remote internships, engineering internships, student opportunities",
+    "audience": {
+      "@type": "EducationalAudience",
+      "audienceType": "College Students, Graduate Students, Recent Graduates",
+      "educationalRole": "student"
+    },
+    "provider": {
+      "@type": "Organization",
+      "name": "AutoJobR",
+      "url": "https://autojobr.com",
+      "logo": "https://autojobr.com/logo.png",
+      "sameAs": [
+        "https://linkedin.com/company/autojobr",
+        "https://twitter.com/autojobr"
+      ]
     },
     "numberOfJobs": totalInternshipsCount
   };
@@ -302,9 +361,9 @@ export default function Internships() {
   const promoContent = [
     {
       icon: <GraduationCap className="w-5 h-5" />,
-      title: "Summer 2026 Internships",
-      description: "1,976+ opportunities from Apple, Google, Netflix & more",
-      cta: "Explore Now",
+      title: "Summer 2025 Tech Internships",
+      description: "2,500+ paid opportunities at FAANG & top startups",
+      cta: "Apply Now",
       color: "from-blue-500 to-purple-600"
     },
     {
@@ -361,11 +420,11 @@ export default function Internships() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <SEOHead
-        title={`${totalInternshipsCount}+ Internships Available - Find Your Perfect Opportunity | AutoJobR`}
-        description={`Discover ${totalInternshipsCount}+ internship opportunities from Apple, Google, Netflix, OpenAI, NVIDIA and other top tech companies. Smart application tracking, one-click applications, and comprehensive internship database.`}
-        keywords="internships, summer internships, tech internships, software engineering internships, student opportunities, career development, Apple, Google, Netflix, OpenAI, NVIDIA"
+        title={`${totalInternshipsCount}+ Summer 2025 Tech Internships - Apply to Apple, Google, NVIDIA | AutoJobR`}
+        description={`Find ${totalInternshipsCount}+ paid summer 2025 internships at Apple, Google, Netflix, OpenAI, NVIDIA, Meta, Amazon, Microsoft & top tech companies. Software engineering, data science, AI/ML, product management internships. One-click applications.`}
+        keywords="summer internships 2025, tech internships, software engineering internships, computer science internships, paid internships, google internships, apple internships, netflix internships, remote internships, engineering internships, college internships, student internships, data science internships, product management internships, design internships, startup internships, FAANG internships, silicon valley internships, internships for students, programming internships, AI internships, machine learning internships, cybersecurity internships, fintech internships, biotech internships, consulting internships, marketing internships, microsoft internships, amazon internships, meta internships, tesla internships, nvidia internships, openai internships"
         canonicalUrl="https://autojobr.com/internships"
-        structuredData={structuredData}
+        structuredData={enhancedStructuredData}
         ogType="website"
       />
       <Navbar />
@@ -424,13 +483,18 @@ export default function Internships() {
           <div className="flex flex-col gap-3 sm:gap-4">
             <div>
               <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-purple-800 bg-clip-text text-transparent leading-tight">
-                {isAuthenticated ? 'Your Internship Opportunities' : 'Discover Amazing Internships'}
+                {isAuthenticated ? 'Your Summer 2025 Tech Internships' : 'Summer 2025 Tech Internships - Apply Now'}
               </h1>
               <p className="text-sm sm:text-lg text-gray-600 dark:text-gray-300 mt-2">
                 {isAuthenticated 
-                  ? `Track and apply to the best internship opportunities`
-                  : `${totalInternshipsCount}+ internships from Apple, Google, Netflix, OpenAI, NVIDIA & more`}
+                  ? `Track and apply to ${totalInternshipsCount}+ paid internships at top tech companies`
+                  : `${totalInternshipsCount}+ paid internships at Apple, Google, Netflix, OpenAI, NVIDIA, Meta, Amazon, Microsoft & top tech companies`}
               </p>
+              <div className="hidden sm:block mt-3">
+                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                  <strong>Popular searches:</strong> Software Engineering Internships • Data Science Internships • Product Management Internships • Remote Internships • FAANG Internships • AI/ML Internships • Cybersecurity Internships • Design Internships
+                </p>
+              </div>
               <div className="flex items-center gap-4 mt-3">
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                   {totalInternshipsCount} results
