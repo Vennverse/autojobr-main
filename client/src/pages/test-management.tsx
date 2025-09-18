@@ -96,12 +96,12 @@ export default function TestManagement() {
   const [useQuestionBank, setUseQuestionBank] = useState(false);
 
   // Fetch test templates
-  const { data: templates = [], isLoading } = useQuery({
+  const { data: templates = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/test-templates"],
   });
 
   // Fetch applications for assignment
-  const { data: applications = [] } = useQuery({
+  const { data: applications = [] } = useQuery<any[]>({
     queryKey: ["/api/recruiter/applications"],
   });
 

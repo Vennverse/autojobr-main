@@ -118,16 +118,18 @@ Requirements:
 - Keep sample answers professional and concise`;
 
     try {
-      if (!groqService.client && groqService.developmentMode) {
+      if (!groqService.client) {
         console.log('⚠️ Groq client not available, using fallback questions');
         return [];
       }
       
-      const response = await groqService.makeRequest({
-        model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7,
-        max_tokens: 1200,
+      const response = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
+        return await client.chat.completions.create({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+          max_tokens: 1200,
+        });
       });
 
       const content = response.choices[0]?.message?.content;
@@ -505,7 +507,7 @@ Test Cases: ${question.testCases || '[]'}
 Return only the numeric score (0-100).`;
 
       try {
-        if (!groqService.client && groqService.developmentMode) {
+        if (!groqService.client) {
           // Fallback: analyze code length and basic structure
           const codeLines = code.trim().split('\n').length;
           const hasFunction = /function|=>|\{/.test(code);
@@ -520,11 +522,13 @@ Return only the numeric score (0-100).`;
           return Math.min(score, 95);
         }
 
-        const response = await groqService.makeRequest({
-          model: 'llama-3.3-70b-versatile',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.2,
-          max_tokens: 20,
+        const response = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
+          return await client.chat.completions.create({
+            model: 'llama-3.3-70b-versatile',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.2,
+            max_tokens: 20,
+          });
         });
 
         const scoreText = response.choices[0]?.message?.content?.trim() || '50';

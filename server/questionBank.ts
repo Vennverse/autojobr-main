@@ -181,6 +181,37 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     companies: ['Amazon', 'Google', 'Facebook']
   },
 
+  // ==================== CODING QUESTIONS - EXTREME (1% SUCCESS RATE) ====================
+  {
+    id: 'c901',
+    question: 'Given a stream of characters, implement a data structure that can efficiently find the K-th smallest character in the current stream. The stream can have up to 10^9 characters. Optimize for both time and space complexity.',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'algorithms',
+    hints: ['Consider using multiple data structures', 'Think about order statistics', 'Space-time tradeoffs are crucial'],
+    testCases: [
+      { input: { stream: ['d', 'a', 'c', 'b'], k: 2 }, expected: 'b', description: 'Second smallest in stream' },
+      { input: { stream: ['z', 'y', 'x', 'w', 'v'], k: 1 }, expected: 'v', description: 'Smallest in descending stream' }
+    ],
+    sampleAnswer: 'class StreamKthSmallest { constructor(k) { this.k = k; this.heap = new MinHeap(); this.count = new Map(); } add(char) { this.count.set(char, (this.count.get(char) || 0) + 1); if (this.heap.size() < this.k) { this.heap.push(char); } else if (char < this.heap.peek()) { this.heap.pop(); this.heap.push(char); } } getKthSmallest() { return this.heap.peek(); } }',
+    timeLimit: 90,
+    companies: ['Google', 'Facebook', 'Microsoft']
+  },
+  {
+    id: 'c902',
+    question: 'Design and implement a concurrent lock-free hash table that supports get, put, and remove operations with O(1) average time complexity. Handle hash collisions and ensure thread safety without using any locks.',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'concurrency',
+    hints: ['Compare-and-swap operations', 'Memory ordering constraints', 'ABA problem prevention'],
+    testCases: [
+      { input: { ops: [['put', 'key1', 'val1'], ['get', 'key1'], ['remove', 'key1']] }, expected: ['null', 'val1', 'val1'], description: 'Basic operations' }
+    ],
+    sampleAnswer: 'class LockFreeHashTable { constructor() { this.buckets = new Array(16).fill(null); this.size = 0; } hash(key) { let hash = 0; for (let i = 0; i < key.length; i++) { hash = ((hash << 5) - hash + key.charCodeAt(i)) & 0x7fffffff; } return hash % this.buckets.length; } put(key, value) { const index = this.hash(key); let current = this.buckets[index]; while (current && current.key !== key) { current = current.next; } if (current) { current.value = value; } else { const newNode = { key, value, next: this.buckets[index] }; this.buckets[index] = newNode; this.size++; } } }',
+    timeLimit: 120,
+    companies: ['Intel', 'NVIDIA', 'AMD']
+  },
+
   // ==================== CODING QUESTIONS - HARD ====================
   {
     id: 'c201',
@@ -286,6 +317,54 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     sampleAnswer: 'I once underestimated the complexity of a database migration, causing a production outage. I immediately took ownership, communicated transparently with stakeholders, and worked with the team to restore service within 2 hours. I then conducted a thorough post-mortem, implemented better testing procedures, and created a rollback plan. This experience taught me to always have contingency plans and improved our team\'s deployment practices.',
     timeLimit: 5,
     companies: ['Amazon', 'Netflix', 'Uber', 'Airbnb']
+  },
+
+  // ==================== EXTREME BEHAVIORAL QUESTIONS (1% SUCCESS RATE) ====================
+  {
+    id: 'b901',
+    question: 'You discovered that your team\'s most critical production system has a fundamental architectural flaw that affects 10 million users daily. Fixing it requires 6 months of work and will temporarily reduce system performance by 50%. Your CEO wants the issue hidden until after a major product launch in 3 months. How do you handle this situation?',
+    type: 'behavioral',
+    difficulty: 'hard',
+    category: 'leadership',
+    hints: ['Consider multiple stakeholders', 'Think long-term consequences', 'Balance business and technical concerns'],
+    sampleAnswer: 'I would immediately document the issue comprehensively, including potential risks and impact. I\'d schedule a meeting with the CEO and CTO to present three options: (1) immediate fix with performance trade-offs, (2) phased approach with risk mitigation, (3) temporary workarounds with full disclosure. I\'d emphasize that hiding critical flaws violates engineering ethics and could lead to catastrophic failure. I\'d propose a compromise: implement immediate safety measures, communicate transparently with stakeholders about timeline, and dedicate additional resources to minimize the impact. If leadership insists on hiding the issue, I would document my objections and consider escalating to the board or seeking legal counsel, as professional integrity cannot be compromised.',
+    timeLimit: 8,
+    companies: ['Uber', 'Facebook', 'Boeing', 'Tesla']
+  },
+  {
+    id: 'b902', 
+    question: 'Your startup is running out of funding and you have 2 months left. Your biggest potential investor wants you to fire 40% of your engineering team to extend runway, but this would cripple the product development needed to secure the next funding round. Meanwhile, a competitor has offered to acquire your team (but not the company) for enough money to pay everyone\'s salaries for a year. What is your decision-making process?',
+    type: 'behavioral',
+    difficulty: 'hard',
+    category: 'leadership',
+    hints: ['Fiduciary responsibility', 'Team welfare', 'Strategic thinking under pressure'],
+    sampleAnswer: 'I would call an emergency leadership meeting to analyze all options with complete financial transparency. First, I\'d explore alternative funding sources (bridge loans, existing investor follow-on, revenue acceleration). Second, I\'d model different scenarios: reduced team size vs. full team acquisition vs. finding new funding. I\'d consult with our legal counsel about fiduciary duties to shareholders and employees. I would then present options to the board with my recommendation based on maximum long-term value creation. If the acquisition offer provides better outcomes for the team and preserves the technology, I\'d negotiate to include intellectual property transfer. Throughout this process, I\'d communicate honestly with the team about the situation while maintaining confidentiality about ongoing negotiations. The decision would prioritize both stakeholder value and team welfare.',
+    timeLimit: 8,
+    companies: ['Theranos', 'WeWork', 'Quibi', 'FTX']
+  },
+
+  // ==================== EXTREME FINANCE QUESTIONS (1% SUCCESS RATE) ====================
+  {
+    id: 'f901',
+    question: 'A pension fund with $50B AUM needs to maintain a 7% annual return to meet obligations. Current portfolio: 60% equities (expected 8% return, 18% volatility), 40% bonds (expected 4% return, 6% volatility). Correlation is 0.3. The fund manager wants to add a new asset class with 12% expected return and 25% volatility, correlation 0.1 with equities and -0.2 with bonds. What is the optimal allocation to maximize Sharpe ratio while maintaining the 7% return target? Show your work with mathematical derivation.',
+    type: 'behavioral',
+    difficulty: 'hard',
+    category: 'finance',
+    hints: ['Mean-variance optimization', 'Lagrange multipliers', 'Portfolio constraint handling'],
+    sampleAnswer: 'Using modern portfolio theory, I\'d set up the Lagrangian: L = w\'Σw - λ(w\'μ - 7%) - γ(∑w - 1). Taking derivatives and solving the system of equations with the covariance matrix Σ = [[0.0324, 0.00324, 0.00045], [0.00324, 0.0036, -0.003], [0.00045, -0.003, 0.0625]] and expected returns μ = [8%, 4%, 12%]. The optimal allocation considering the constraint is approximately 45% equities, 25% bonds, 30% new asset class. This yields a portfolio return of ~7.8% with volatility of ~14.2%, significantly improving the Sharpe ratio from 0.28 to 0.41. However, I\'d recommend stress testing this allocation under different market scenarios and implementing gradually to avoid concentration risk.',
+    timeLimit: 15,
+    companies: ['Goldman Sachs', 'BlackRock', 'Bridgewater', 'Renaissance Technologies']
+  },
+  {
+    id: 'f902',
+    question: 'You\'re valuing a biotech company with one drug in Phase III trials. The drug has a 60% chance of approval, market size is $10B, and the company could capture 15% market share. Development costs are $500M remaining. If successful, the drug launches in 2 years with a 10-year patent life. Assume 15% discount rate, 25% tax rate, and competitive generics reduce market share by 80% post-patent. The company has $200M cash, $50M debt, and 10M shares outstanding. What is your price target per share? Include a probability-weighted DCF model.',
+    type: 'behavioral',
+    difficulty: 'hard',
+    category: 'finance',
+    hints: ['Risk-adjusted NPV', 'Probability-weighted scenarios', 'Patent cliff analysis'],
+    sampleAnswer: 'Success scenario DCF: Revenue years 1-8: $1.5B * (1-growth_decline), years 9-10: $1.5B * 0.5. EBITDA margin: 85% (high margin biotech). NPV of success scenario: $4.2B. Failure scenario: -$500M development costs. Risk-adjusted NPV: 0.6 * $4.2B + 0.4 * (-$0.5B) = $2.32B. Enterprise value: $2.32B. Equity value: $2.32B + $200M cash - $50M debt = $2.47B. Price per share: $247. However, I\'d apply additional risk discounts for regulatory uncertainty (10-15%), competitive risks (5-10%), and execution risks (5%). Final target range: $190-220 per share.',
+    timeLimit: 20,
+    companies: ['J.P. Morgan', 'Morgan Stanley', 'Evercore', 'Centerview Partners']
   },
 
   // ==================== SYSTEM DESIGN QUESTIONS ====================

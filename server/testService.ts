@@ -29,73 +29,123 @@ export class TestService {
 
   private getPredefinedTemplates(): InsertTestTemplate[] {
     return [
-      // Software Engineer Templates
+      // TECH PLATFORM TEMPLATES (3) - With CS questions and extreme difficulty
       {
-        title: "JavaScript Fundamentals",
-        description: "Test covering JavaScript basics, ES6+, and modern programming concepts",
+        title: "Senior Software Engineer Assessment",
+        description: "Comprehensive technical evaluation for senior software engineering roles including algorithms, system design, and coding best practices. Only top 1% candidates pass.",
         category: "technical",
         jobProfile: "software_engineer",
-        difficultyLevel: "intermediate",
-        timeLimit: 45,
-        passingScore: 70,
+        difficultyLevel: "expert",
+        timeLimit: 120,
+        passingScore: 80,
         isGlobal: true,
-        questions: this.getJavaScriptQuestions(),
+        questions: this.getExpertSoftwareEngineerQuestions(),
       },
       {
-        title: "React Development Assessment",
-        description: "Advanced React concepts, hooks, state management, and best practices",
+        title: "Full Stack Developer Challenge",
+        description: "End-to-end assessment covering frontend, backend, databases, and system architecture. Designed for exceptional full-stack developers.",
         category: "technical",
-        jobProfile: "frontend_developer",
-        difficultyLevel: "advanced",
-        timeLimit: 60,
+        jobProfile: "fullstack_developer", 
+        difficultyLevel: "expert",
+        timeLimit: 90,
         passingScore: 75,
         isGlobal: true,
-        questions: this.getReactQuestions(),
+        questions: this.getExpertFullStackQuestions(),
       },
       {
-        title: "Python Programming Challenge",
-        description: "Python fundamentals, data structures, algorithms, and object-oriented programming",
+        title: "Principal Engineer Technical Deep Dive",
+        description: "Expert-level assessment for principal/staff engineering roles focusing on architectural decisions and complex problem solving. Extremely challenging.",
         category: "technical",
-        jobProfile: "python_developer",
-        difficultyLevel: "intermediate",
-        timeLimit: 50,
-        passingScore: 70,
+        jobProfile: "software_engineer",
+        difficultyLevel: "expert",
+        timeLimit: 150,
+        passingScore: 85,
         isGlobal: true,
-        questions: this.getPythonQuestions(),
+        questions: this.getPrincipalEngineerQuestions(),
+      },
+
+      // FINANCE PLATFORM TEMPLATES (2) - With finance questions
+      {
+        title: "Investment Banking Analyst Assessment", 
+        description: "Rigorous evaluation covering financial modeling, valuation, market analysis, and quantitative reasoning. Only top finance professionals pass.",
+        category: "technical",
+        jobProfile: "finance",
+        difficultyLevel: "expert",
+        timeLimit: 120,
+        passingScore: 80,
+        isGlobal: true,
+        questions: this.getInvestmentBankingQuestions(),
       },
       {
-        title: "Data Science & Analytics",
-        description: "Statistics, data analysis, machine learning concepts, and Python/R",
-        category: "technical",
-        jobProfile: "data_scientist",
+        title: "Financial Risk Management Evaluation",
+        description: "Specialized assessment for risk management roles including derivatives, portfolio theory, and regulatory compliance. Expert level only.",
+        category: "technical", 
+        jobProfile: "finance",
+        difficultyLevel: "expert",
+        timeLimit: 100,
+        passingScore: 82,
+        isGlobal: true,
+        questions: this.getRiskManagementQuestions(),
+      },
+
+      // SALES & MARKETING PLATFORM TEMPLATES (2)
+      {
+        title: "Enterprise Sales Executive Assessment",
+        description: "Comprehensive evaluation for B2B sales roles including negotiation, relationship building, and strategic account management.",
+        category: "behavioral",
+        jobProfile: "sales",
         difficultyLevel: "advanced",
         timeLimit: 75,
+        passingScore: 75,
+        isGlobal: true,
+        questions: this.getEnterpriseSalesQuestions(),
+      },
+      {
+        title: "Digital Marketing Specialist Evaluation",
+        description: "Modern marketing assessment covering analytics, campaign optimization, content strategy, and performance metrics.",
+        category: "technical",
+        jobProfile: "marketing",
+        difficultyLevel: "advanced", 
+        timeLimit: 60,
+        passingScore: 78,
+        isGlobal: true,
+        questions: this.getDigitalMarketingQuestions(),
+      },
+
+      // ADDITIONAL ROLE TEMPLATES
+      {
+        title: "Data Science & Analytics Assessment",
+        description: "Advanced evaluation for data roles including statistics, machine learning, data visualization, and business insights.",
+        category: "technical",
+        jobProfile: "data_scientist", 
+        difficultyLevel: "expert",
+        timeLimit: 110,
         passingScore: 80,
         isGlobal: true,
         questions: this.getDataScienceQuestions(),
       },
       {
-        title: "Digital Marketing Fundamentals",
-        description: "SEO, SEM, social media marketing, analytics, and campaign management",
-        category: "general",
-        jobProfile: "marketing",
-        difficultyLevel: "intermediate",
-        timeLimit: 40,
-        passingScore: 65,
+        title: "Business Operations Management Test",
+        description: "Strategic assessment for operations roles covering process optimization, stakeholder management, and strategic planning.",
+        category: "behavioral",
+        jobProfile: "product_manager",
+        difficultyLevel: "advanced",
+        timeLimit: 80,
+        passingScore: 75,
         isGlobal: true,
-        questions: this.getMarketingQuestions(),
+        questions: this.getBusinessOpsQuestions(),
       },
       {
-        title: "System Design & Architecture",
-        description: "Distributed systems, scalability, microservices, and architectural patterns",
-        category: "technical",
-        jobProfile: "software_engineer",
+        title: "DevOps & Infrastructure Engineer Test",
+        description: "Technical evaluation for DevOps roles including cloud architecture, CI/CD, monitoring, and infrastructure as code.",
+        category: "technical", 
+        jobProfile: "devops_engineer",
         difficultyLevel: "expert",
-        timeLimit: 90,
-        passingScore: 85,
+        timeLimit: 100,
+        passingScore: 78,
         isGlobal: true,
-        questions: this.getSystemDesignQuestions(),
-      },
+        questions: this.getDevOpsQuestions(),
+      }
     ];
   }
 
@@ -474,6 +524,170 @@ export class TestService {
       console.error('Error processing retake payment:', error);
       return false;
     }
+  }
+
+  // EXTREME DIFFICULTY QUESTIONS - TECH PLATFORM TEMPLATES
+
+  private getExpertSoftwareEngineerQuestions(): TestQuestion[] {
+    return [
+      {
+        id: "expert_se_1",
+        type: "coding",
+        question: "Implement a concurrent lock-free hash table that supports get, put, and remove operations with O(1) average time complexity. Handle hash collisions and ensure thread safety without using any locks or synchronized blocks. Your solution must handle the ABA problem and provide strong consistency guarantees.",
+        points: 35,
+        explanation: "This requires deep understanding of compare-and-swap operations, memory ordering, and concurrent data structures. Only top 1% of engineers can implement this correctly."
+      },
+      {
+        id: "expert_se_2", 
+        type: "multiple_choice",
+        question: "Given this complex memory management scenario in a distributed system: You have 1000 nodes, each with 32GB RAM. Your application creates objects at 10^6 ops/sec, each object is 1KB average. GC runs every 30 seconds with 50ms STW pause. Network latency between nodes is 2ms avg, 99th percentile 15ms. What's the maximum sustainable throughput before GC pressure causes cascading failures?",
+        options: ["~850K ops/sec", "~1.2M ops/sec", "~650K ops/sec", "~2M ops/sec"],
+        correctAnswer: 2,
+        points: 25,
+        explanation: "Must account for GC pressure, memory allocation rate, network backpressure, and cascading failure thresholds. Complex distributed systems analysis."
+      },
+      {
+        id: "expert_se_3",
+        type: "essay", 
+        question: "Design a globally distributed system that processes 10 billion financial transactions per day with 99.999% availability, ACID guarantees, and regulatory compliance across 50+ jurisdictions. Address: consensus algorithms, Byzantine fault tolerance, geographic data sovereignty, audit trails, real-time fraud detection, and disaster recovery. Provide detailed architecture with failure mode analysis.",
+        points: 40,
+        explanation: "Requires expert knowledge of distributed systems, consensus algorithms, financial regulations, and fault tolerance. Extremely complex system design."
+      }
+    ];
+  }
+
+  private getExpertFullStackQuestions(): TestQuestion[] {
+    return [
+      {
+        id: "expert_fs_1",
+        type: "coding",
+        question: "Build a real-time collaborative code editor (like VS Code Live Share) that supports: operational transformation for conflict resolution, WebRTC peer-to-peer connections with STUN/TURN fallback, syntax highlighting for 20+ languages, extension marketplace, integrated terminal sharing, and works offline with sync. Provide complete full-stack implementation including WebSocket scaling strategy.",
+        points: 45,
+        explanation: "Requires mastery of operational transformation, WebRTC, real-time systems, and complex state management. Extremely challenging full-stack problem."
+      },
+      {
+        id: "expert_fs_2",
+        type: "multiple_choice", 
+        question: "You're optimizing a React app with 10,000 dynamic components. Bundle size is 2MB, FCP is 3.2s, LCP is 4.8s. Your SSR setup uses Node.js cluster with 8 workers, Redis for session store, and CDN with edge caching. Database has 500M records with complex joins. What's the MOST impactful optimization sequence?",
+        options: [
+          "Code splitting → SSG → Service Workers → DB indexing",
+          "Bundle optimization → CDN headers → React.memo → Query optimization", 
+          "Lazy loading → Tree shaking → SSR streaming → Connection pooling",
+          "Critical CSS → Component lazy loading → Database sharding → Redis clustering"
+        ],
+        correctAnswer: 3,
+        points: 30,
+        explanation: "Must understand performance bottlenecks across the entire stack and prioritize optimizations by impact. Complex full-stack performance analysis."
+      }
+    ];
+  }
+
+  private getPrincipalEngineerQuestions(): TestQuestion[] {
+    return [
+      {
+        id: "principal_1",
+        type: "essay",
+        question: "You're the principal engineer for a system handling 50M users. Your current monolith is showing strain: 99th percentile latency is 2.3s, error rate is 0.3%, and deployments take 2 hours with 15% rollback rate. The CEO wants to double user growth in 6 months while improving all metrics by 10x. Board wants cost reduction of 40%. Design a comprehensive transformation strategy including: technical architecture evolution, team structure changes, migration timeline, risk mitigation, success metrics, and budget justification. Address organizational change management.",
+        points: 50,
+        explanation: "Principal-level question requiring strategic thinking, technical depth, business acumen, and organizational leadership. Only top architects can handle this complexity."
+      },
+      {
+        id: "principal_2",
+        type: "coding",
+        question: "Implement a distributed consensus protocol (similar to Raft) that can handle Byzantine failures, dynamic membership changes, and network partitions while maintaining linearizability. Your implementation must support: leader election with priority-based selection, log compaction with snapshots, configuration changes without downtime, and recovery from arbitrary node failures. Provide complete implementation with formal correctness proofs.",
+        points: 55,
+        explanation: "Requires deep understanding of distributed consensus, Byzantine fault tolerance, and formal verification. PhD-level distributed systems knowledge."
+      }
+    ];
+  }
+
+  // EXTREME DIFFICULTY QUESTIONS - FINANCE PLATFORM TEMPLATES
+
+  private getInvestmentBankingQuestions(): TestQuestion[] {
+    return [
+      {
+        id: "ib_extreme_1",
+        type: "essay",
+        question: "You're valuing a biotech company with 3 drugs in different trial phases: Phase I (oncology, $2B market, 15% success rate), Phase II (rare disease, $800M market, 35% success rate), Phase III (diabetes, $15B market, 60% success rate). Each has different competitive landscapes, regulatory pathways, and development costs ($200M, $500M, $800M remaining respectively). Model this using real options framework with jump-diffusion processes for underlying asset prices. Account for correlation between development programs, regulatory approval dependencies, and market competition evolution. Provide complete DCF with Monte Carlo simulation (10,000 iterations) and sensitivity analysis.",
+        points: 45,
+        explanation: "Requires advanced knowledge of real options, stochastic processes, biotech valuation, and complex financial modeling. Only top 1% of finance professionals can handle this complexity."
+      },
+      {
+        id: "ib_extreme_2",
+        type: "multiple_choice",
+        question: "A structured note has payoff: max(0, ∑(Stock_i * Weight_i) - Strike) * Barrier_multiplier, where barriers are monitored daily with American knock-out features. Portfolio has 50 stocks, correlations range from -0.3 to 0.8, individual volatilities 15%-45%. Using Heston stochastic volatility model with jump components, what's the fair value using quasi-Monte Carlo with Sobol sequences (1M paths, Brownian bridge construction)?",
+        options: ["$23.67", "$31.84", "$28.92", "$35.21"],
+        correctAnswer: 2,
+        points: 35,
+        explanation: "Requires expertise in exotic derivatives, stochastic volatility models, Monte Carlo methods, and complex correlation structures. Extremely advanced quantitative finance."
+      }
+    ];
+  }
+
+  private getRiskManagementQuestions(): TestQuestion[] {
+    return [
+      {
+        id: "risk_extreme_1", 
+        type: "essay",
+        question: "Design a comprehensive risk management framework for a multi-strategy hedge fund ($50B AUM) with: long/short equity (40%), fixed income arbitrage (25%), merger arbitrage (15%), volatility trading (10%), and crypto assets (10%). Address: tail risk measurement using extreme value theory, dynamic hedging with options and futures, counterparty risk with netting agreements, liquidity risk in stressed markets, operational risk from algorithmic trading, regulatory capital requirements across jurisdictions (US, EU, UK), and real-time risk monitoring with automatic position limits. Include stress testing scenarios for: 2008-style credit crisis, flash crash, crypto winter, and geopolitical shock.",
+        points: 50,
+        explanation: "Requires expert knowledge of portfolio risk management, derivatives, regulatory frameworks, and quantitative methods. Only senior risk professionals can handle this complexity."
+      }
+    ];
+  }
+
+  // EXTREME DIFFICULTY QUESTIONS - SALES & MARKETING TEMPLATES
+
+  private getEnterpriseSalesQuestions(): TestQuestion[] {
+    return [
+      {
+        id: "sales_extreme_1",
+        type: "essay", 
+        question: "You're leading enterprise sales for a $500M ARR SaaS company. Your largest prospect (Fortune 10, $2M ARR potential) has been in your pipeline for 18 months. They're evaluating 4 vendors, have 23 stakeholders across 8 departments, complex compliance requirements (SOX, HIPAA, GDPR), and a 14-month procurement process. Their current legacy system has 50,000 users and $20M in sunk costs. Your solution requires significant IT infrastructure changes and user training. The economic buyer supports you, but technical buyers prefer the incumbent, and legal is concerned about data sovereignty. Procurement wants 40% price reduction. How do you close this deal? Provide detailed strategy including: stakeholder mapping, value proposition alignment, risk mitigation, competitive differentiation, pricing justification, implementation timeline, success metrics, and relationship management plan.",
+        points: 40,
+        explanation: "Requires mastery of complex enterprise sales, stakeholder management, and strategic negotiation. Only top 1% of enterprise sales professionals can handle this complexity."
+      }
+    ];
+  }
+
+  private getDigitalMarketingQuestions(): TestQuestion[] {
+    return [
+      {
+        id: "marketing_extreme_1",
+        type: "multiple_choice",
+        question: "Your multi-touch attribution model shows: Search Ads (30% of touches, $50 CPC, 2.3% CVR), Social Media (45% touches, $8 CPM, 0.8% CVR), Email (15% touches, $0.05 per send, 12% CVR), Display (10% touches, $12 CPM, 0.4% CVR). Customer LTV is $850, average purchase cycle 90 days, 7.2 touchpoints per conversion. Using data-driven attribution with Shapley value calculation, what's the optimal budget allocation for 40% growth while maintaining 3.5:1 ROAS?",
+        options: ["Search 35%, Social 30%, Email 25%, Display 10%", "Search 25%, Social 35%, Email 35%, Display 5%", "Search 40%, Social 25%, Email 20%, Display 15%", "Search 30%, Social 40%, Email 20%, Display 10%"],
+        correctAnswer: 1,
+        points: 30,
+        explanation: "Requires advanced understanding of attribution modeling, Shapley values, and complex marketing optimization. Top-tier marketing analytics knowledge."
+      }
+    ];
+  }
+
+  // EXTREME DIFFICULTY QUESTIONS - ADDITIONAL ROLES
+
+  private getBusinessOpsQuestions(): TestQuestion[] {
+    return [
+      {
+        id: "ops_extreme_1",
+        type: "essay",
+        question: "You're VP of Operations for a fast-growing startup (500 employees, $100M ARR, 200% YoY growth). The company is expanding to 12 new markets simultaneously while launching 3 new product lines. Current challenges: 23% employee turnover, 15% customer churn, supply chain disruptions affecting 40% of inventory, regulatory compliance issues in 5 jurisdictions, and operational costs growing faster than revenue. Board wants to IPO in 18 months and achieve 85% gross margins (currently 72%). Design a comprehensive operational transformation strategy addressing: process automation and optimization, organizational restructuring, supply chain resilience, quality management systems, regulatory compliance framework, performance metrics and KPIs, change management plan, and resource allocation strategy. Include detailed implementation timeline, risk assessment, and success measurement framework.",
+        points: 45,
+        explanation: "Requires strategic operations expertise, change management skills, and comprehensive business acumen. Only top operations leaders can handle this complexity."
+      }
+    ];
+  }
+
+  private getDevOpsQuestions(): TestQuestion[] {
+    return [
+      {
+        id: "devops_extreme_1",
+        type: "coding",
+        question: "Design and implement a complete GitOps-based CI/CD platform that handles: 500 microservices across 15 teams, multi-cloud deployment (AWS, GCP, Azure), blue-green deployments with automated rollback, progressive delivery with feature flags, security scanning integration (SAST, DAST, container scanning), compliance reporting (SOX, PCI-DSS), infrastructure as code with drift detection, observability stack with distributed tracing, cost optimization with resource right-sizing, and disaster recovery with RTO < 15 minutes. Provide complete implementation including: Kubernetes operators, Terraform modules, CI/CD pipeline definitions, monitoring configurations, security policies, and operational runbooks.",
+        points: 50,
+        explanation: "Requires expert knowledge of cloud architecture, Kubernetes, GitOps, security, and large-scale operations. Only top DevOps engineers can implement this complexity."
+      }
+    ];
   }
 }
 
