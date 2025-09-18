@@ -148,15 +148,29 @@ export default function VirtualInterviewComplete() {
                         purpose="virtual_interview"
                         amount={5}
                         itemName={`${(interviewData?.role || 'Interview').replace(/_/g, ' ')} Retake`}
-                        onPaymentSuccess={() => {
-                          toast({
-                            title: "Payment Successful!",
-                            description: "Your interview retake access has been granted. Starting new interview...",
-                          });
-                          
-                          setTimeout(() => {
-                            setLocation('/virtual-interview-start');
-                          }, 1500);
+                        onPaymentSuccess={async (paymentData) => {
+                          try {
+                            // Call existing backend retake payment endpoint
+                            await apiRequest(`/api/interviews/virtual/${interviewId}/retake-payment`, 'POST', {
+                              paymentProvider: 'paypal',
+                              amount: 500 // $5 in cents
+                            });
+                            
+                            toast({
+                              title: "Payment Successful!",
+                              description: "Your interview retake access has been granted. Starting new interview...",
+                            });
+                            
+                            setTimeout(() => {
+                              setLocation('/virtual-interview-start');
+                            }, 1500);
+                          } catch (error: any) {
+                            toast({
+                              title: "Payment Processing Error",
+                              description: error.message || "Failed to process retake payment",
+                              variant: "destructive"
+                            });
+                          }
                         }}
                         onPaymentError={(error) => {
                           toast({

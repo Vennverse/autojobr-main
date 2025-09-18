@@ -331,9 +331,11 @@ export default function MockInterview() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="technical">Technical Interview</SelectItem>
-                        <SelectItem value="behavioral">Behavioral Interview</SelectItem>
-                        <SelectItem value="system_design">System Design</SelectItem>
+                        <SelectItem value="technical">🖥️ Technical Interview</SelectItem>
+                        <SelectItem value="algorithmic">🧠 Algorithmic Challenges</SelectItem>
+                        <SelectItem value="data_structures">📊 Data Structures</SelectItem>
+                        <SelectItem value="system_design">🏗️ System Design</SelectItem>
+                        <SelectItem value="behavioral">💭 Behavioral Interview</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -348,9 +350,10 @@ export default function MockInterview() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="easy">Easy</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="hard">Hard</SelectItem>
+                        <SelectItem value="easy">🟢 Easy (Beginner friendly)</SelectItem>
+                        <SelectItem value="medium">🟡 Medium (FAANG level)</SelectItem>
+                        <SelectItem value="hard">🔴 Hard (Expert level)</SelectItem>
+                        <SelectItem value="expert">⚫ Expert (Competitive programming)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -366,12 +369,18 @@ export default function MockInterview() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="javascript">JavaScript</SelectItem>
-                          <SelectItem value="python">Python</SelectItem>
-                          <SelectItem value="java">Java</SelectItem>
-                          <SelectItem value="cpp">C++</SelectItem>
-                          <SelectItem value="go">Go</SelectItem>
-                          <SelectItem value="rust">Rust</SelectItem>
+                          <SelectItem value="javascript">🟨 JavaScript</SelectItem>
+                          <SelectItem value="python">🐍 Python</SelectItem>
+                          <SelectItem value="java">☕ Java</SelectItem>
+                          <SelectItem value="cpp">⚡ C++</SelectItem>
+                          <SelectItem value="c">🔧 C</SelectItem>
+                          <SelectItem value="csharp">💎 C#</SelectItem>
+                          <SelectItem value="go">🔷 Go</SelectItem>
+                          <SelectItem value="rust">🦀 Rust</SelectItem>
+                          <SelectItem value="typescript">📘 TypeScript</SelectItem>
+                          <SelectItem value="kotlin">🎯 Kotlin</SelectItem>
+                          <SelectItem value="swift">🦉 Swift</SelectItem>
+                          <SelectItem value="ruby">💎 Ruby</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

@@ -56,15 +56,13 @@ export default function MockInterviewResults() {
     enabled: !!sessionId,
   });
 
-  // Process retake payment mutation
+  // Process retake payment mutation  
   const retakePaymentMutation = useMutation({
     mutationFn: async (paymentData: any) => {
-      return await apiRequest(`/api/mock-interview/${sessionId}/retake/payment`, 'POST', {
+      // Use existing backend retake payment endpoint
+      return await apiRequest(`/api/interviews/mock/${results?.sessionId}/retake-payment`, 'POST', {
         paymentProvider: 'paypal',
-        paymentIntentId: paymentData.paymentId,
-        amount: 500, // $5 in cents
-        currency: 'USD',
-        sessionId: sessionId
+        amount: 500 // $5 in cents
       });
     },
     onSuccess: () => {
@@ -302,8 +300,16 @@ export default function MockInterviewResults() {
                     purpose="mock_interview"
                     amount={5}
                     itemName={`${results.role.replace(/_/g, ' ')} Mock Interview Retake`}
-                    onPaymentSuccess={(paymentData) => {
-                      retakePaymentMutation.mutate(paymentData);
+                    onPaymentSuccess={async (paymentData) => {
+                      try {
+                        await retakePaymentMutation.mutateAsync(paymentData);
+                      } catch (error: any) {
+                        toast({
+                          title: "Payment Processing Error",
+                          description: error.message || "Failed to process retake payment",
+                          variant: "destructive"
+                        });
+                      }
                     }}
                     onPaymentError={(error) => {
                       toast({
