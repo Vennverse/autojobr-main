@@ -14,6 +14,29 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+interface Job {
+  id: number;
+  title: string;
+  companyName: string;
+  companyLogo?: string;
+  location: string;
+  description: string;
+  minSalary?: number;
+  maxSalary?: number;
+  currency?: string;
+  createdAt: string;
+  jobType?: string;
+  workMode?: string;
+  experienceLevel?: string;
+  skills?: string[];
+  benefits?: string;
+  requirements?: string;
+  responsibilities?: string;
+  isActive: boolean;
+  recruiterName?: string;
+  applicationsCount?: number;
+}
+
 export default function EditJob() {
   const params = useParams();
   const jobId = params.id;
@@ -43,7 +66,7 @@ export default function EditJob() {
   const [skillInput, setSkillInput] = useState("");
 
   // Fetch existing job data
-  const { data: job, isLoading } = useQuery({
+  const { data: job, isLoading } = useQuery<Job>({
     queryKey: [`/api/recruiter/jobs/${jobId}`],
     enabled: !!jobId,
   });

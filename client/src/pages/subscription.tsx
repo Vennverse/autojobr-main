@@ -506,11 +506,11 @@ export default function Subscription() {
                         Job Analyses
                       </span>
                       <span className="text-sm font-medium">
-                        {subscriptionData?.usage.jobAnalyses || 0}/{subscriptionData?.limits?.jobAnalyses || 0}
+                        {subscriptionData?.usage?.jobAnalyses || 0}/{subscriptionData?.limits?.jobAnalyses || 0}
                       </span>
                     </div>
                     <Progress 
-                      value={getUsagePercentage(subscriptionData?.usage.jobAnalyses || 0, subscriptionData?.limits?.jobAnalyses || 1)}
+                      value={getUsagePercentage(subscriptionData?.usage?.jobAnalyses || 0, subscriptionData?.limits?.jobAnalyses || 1)}
                       className="h-2"
                     />
                   </div>
@@ -522,11 +522,11 @@ export default function Subscription() {
                         Resume Analyses
                       </span>
                       <span className="text-sm font-medium">
-                        {subscriptionData?.usage.resumeAnalyses || 0}/{subscriptionData?.limits?.resumeAnalyses || 0}
+                        {subscriptionData?.usage?.resumeAnalyses || 0}/{subscriptionData?.limits?.resumeAnalyses || 0}
                       </span>
                     </div>
                     <Progress 
-                      value={getUsagePercentage(subscriptionData?.usage.resumeAnalyses || 0, subscriptionData?.limits?.resumeAnalyses || 1)}
+                      value={getUsagePercentage(subscriptionData?.usage?.resumeAnalyses || 0, subscriptionData?.limits?.resumeAnalyses || 1)}
                       className="h-2"
                     />
                   </div>
@@ -535,11 +535,11 @@ export default function Subscription() {
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm">Applications</span>
                       <span className="text-sm font-medium">
-                        {subscriptionData?.usage.applications || 0}/{subscriptionData?.limits?.applications || 0}
+                        {subscriptionData?.usage?.applications || 0}/{subscriptionData?.limits?.applications || 0}
                       </span>
                     </div>
                     <Progress 
-                      value={getUsagePercentage(subscriptionData?.usage.applications || 0, subscriptionData?.limits?.applications || 1)}
+                      value={getUsagePercentage(subscriptionData?.usage?.applications || 0, subscriptionData?.limits?.applications || 1)}
                       className="h-2"
                     />
                   </div>
@@ -548,11 +548,11 @@ export default function Subscription() {
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm">Auto-fills</span>
                       <span className="text-sm font-medium">
-                        {subscriptionData?.usage.autoFills || 0}/{subscriptionData?.limits?.autoFills || 0}
+                        {subscriptionData?.usage?.autoFills || 0}/{subscriptionData?.limits?.autoFills || 0}
                       </span>
                     </div>
                     <Progress 
-                      value={getUsagePercentage(subscriptionData?.usage.autoFills || 0, subscriptionData?.limits?.autoFills || 1)}
+                      value={getUsagePercentage(subscriptionData?.usage?.autoFills || 0, subscriptionData?.limits?.autoFills || 1)}
                       className="h-2"
                     />
                   </div>
