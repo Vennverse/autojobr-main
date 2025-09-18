@@ -27,6 +27,30 @@ import {
   CheckCircle 
 } from "lucide-react";
 
+interface TestTemplate {
+  passingScore: number;
+  title: string;
+  description?: string;
+  timeLimit?: number;
+}
+
+interface TestAssignment {
+  id: number;
+  status: string;
+  score?: number;
+  retakeAllowed: boolean;
+  testTemplate: TestTemplate;
+}
+
+interface TestQuestion {
+  id: number;
+  type: string;
+  question: string;
+  options?: string[];
+  correctAnswer?: string;
+  points: number;
+}
+
 export default function TestTaking() {
   const { id: assignmentId } = useParams();
   const [, setLocation] = useLocation();
@@ -266,7 +290,7 @@ export default function TestTaking() {
   const getWebGLFingerprint = (): string => {
     try {
       const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      const gl = canvas.getContext('webgl') as WebGLRenderingContext || canvas.getContext('experimental-webgl') as WebGLRenderingContext;
       if (!gl) return '';
       
       const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
@@ -345,12 +369,12 @@ export default function TestTaking() {
     }
   };
 
-  const { data: assignment, isLoading } = useQuery({
+  const { data: assignment, isLoading } = useQuery<TestAssignment>({
     queryKey: [`/api/test-assignments/${assignmentId}`],
     enabled: !!assignmentId && isAuthenticated,
   });
 
-  const { data: questions = [] } = useQuery({
+  const { data: questions = [] } = useQuery<TestQuestion[]>({
     queryKey: [`/api/test-assignments/${assignmentId}/questions`],
     enabled: !!assignmentId && isAuthenticated,
   });
