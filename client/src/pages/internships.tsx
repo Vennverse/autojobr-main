@@ -279,83 +279,83 @@ export default function Internships() {
     setSelectedInternship(internship);
   };
 
-  // Enhanced SEO and Structured Data for better rankings
+  // Valid schema.org structured data for better SEO rankings
   const totalInternshipsCount = pagination.total || 0;
-  const enhancedStructuredData = {
-    "@context": "https://schema.org",
-    "@type": "JobBoard",
-    "name": "AutoJobR - Top Tech Internships 2025",
-    "description": "The #1 platform for finding summer 2025 internships at Apple, Google, Netflix, OpenAI, NVIDIA, Meta, Amazon, Microsoft, Tesla, and 1000+ other companies. Software engineering, data science, AI/ML, product management, design, and more.",
-    "url": "https://autojobr.com/internships",
-    "applicationCategory": "InternshipPlatform",
-    "operatingSystem": "Web",
-    "offers": {
-      "@type": "Offer",
-      "category": "Internship Opportunities",
-      "priceCurrency": "USD",
-      "price": "0",
-      "description": "Free access to premium internship search and application tools"
-    },
-    "potentialAction": [
-      {
+  const enhancedStructuredData = [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "AutoJobR",
+      "url": "https://autojobr.com",
+      "potentialAction": {
         "@type": "SearchAction",
         "target": {
           "@type": "EntryPoint",
           "urlTemplate": "https://autojobr.com/internships?search={search_term_string}"
         },
         "query-input": "required name=search_term_string"
-      },
-      {
-        "@type": "ApplyAction",
-        "target": {
-          "@type": "EntryPoint",
-          "urlTemplate": "https://autojobr.com/auth"
-        }
       }
-    ],
-    "mainEntity": [
-      {
-        "@type": "JobPosting",
-        "title": "Summer 2025 Software Engineering Internships",
-        "description": "Paid software engineering internships at top tech companies including Apple, Google, Netflix, OpenAI, NVIDIA, Meta, Amazon",
-        "datePosted": new Date().toISOString().split('T')[0],
-        "validThrough": "2025-12-31",
-        "employmentType": "INTERN",
-        "jobLocation": {
-          "@type": "Place",
-          "address": "Multiple locations including Silicon Valley, Seattle, Austin, New York, Remote"
-        },
-        "hiringOrganization": {
-          "@type": "Organization",
-          "name": "Multiple Top Tech Companies",
-          "url": "https://autojobr.com/internships"
-        }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      "name": "Summer 2025 Tech Internships - AutoJobR",
+      "description": "Find paid summer 2025 internships at Apple, Google, Netflix, OpenAI, NVIDIA, Meta, Amazon, Microsoft & top tech companies. Software engineering, data science, AI/ML, product management internships.",
+      "url": "https://autojobr.com/internships",
+      "keywords": "summer internships 2025, tech internships, software engineering internships, computer science internships, paid internships, google internships, apple internships, FAANG internships, remote internships, engineering internships, student opportunities",
+      "mainEntity": {
+        "@type": "ItemList",
+        "name": "Technology Internships",
+        "description": "Comprehensive list of internship opportunities at top technology companies",
+        "numberOfItems": totalInternshipsCount,
+        "itemListElement": [
+          {
+            "@type": "JobPosting",
+            "title": "Summer 2025 Software Engineering Internships",
+            "description": "Paid software engineering internships at top tech companies including Apple, Google, Netflix, OpenAI, NVIDIA, Meta, Amazon",
+            "datePosted": new Date().toISOString().split('T')[0],
+            "validThrough": "2025-12-31",
+            "employmentType": "INTERN",
+            "jobLocation": {
+              "@type": "Place",
+              "address": "Multiple locations including Silicon Valley, Seattle, Austin, New York, Remote"
+            },
+            "hiringOrganization": {
+              "@type": "Organization",
+              "name": "Multiple Top Tech Companies",
+              "url": "https://autojobr.com/internships"
+            },
+            "workHours": "Full-time",
+            "baseSalary": {
+              "@type": "MonetaryAmount",
+              "currency": "USD",
+              "value": {
+                "@type": "QuantitativeValue",
+                "minValue": 5000,
+                "maxValue": 10000,
+                "unitText": "MONTH"
+              }
+            }
+          }
+        ]
       },
-      {
-        "@type": "EducationalOrganization",
-        "name": "AutoJobR Career Development",
-        "description": "Connecting students with career opportunities at leading technology companies",
-        "url": "https://autojobr.com/internships"
+      "audience": {
+        "@type": "EducationalAudience",
+        "audienceType": "College Students, Graduate Students, Recent Graduates",
+        "educationalRole": "student"
+      },
+      "provider": {
+        "@type": "Organization",
+        "name": "AutoJobR",
+        "url": "https://autojobr.com",
+        "logo": "https://autojobr.com/logo.png",
+        "sameAs": [
+          "https://linkedin.com/company/autojobr",
+          "https://twitter.com/autojobr"
+        ]
       }
-    ],
-    "keywords": "summer internships 2025, tech internships, software engineering internships, computer science internships, paid internships, google internships, apple internships, FAANG internships, remote internships, engineering internships, student opportunities",
-    "audience": {
-      "@type": "EducationalAudience",
-      "audienceType": "College Students, Graduate Students, Recent Graduates",
-      "educationalRole": "student"
-    },
-    "provider": {
-      "@type": "Organization",
-      "name": "AutoJobR",
-      "url": "https://autojobr.com",
-      "logo": "https://autojobr.com/logo.png",
-      "sameAs": [
-        "https://linkedin.com/company/autojobr",
-        "https://twitter.com/autojobr"
-      ]
-    },
-    "numberOfJobs": totalInternshipsCount
-  };
+    }
+  ];
 
   // Promotional content
   const promoContent = [

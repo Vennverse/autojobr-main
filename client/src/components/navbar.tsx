@@ -156,7 +156,7 @@ export function Navbar() {
           name: "Internships",
           href: "/internships",
           icon: GraduationCap,
-          current: location === "/internships"
+          current: location === "/internships" || location.startsWith("/internships")
         },
         {
           name: "Premium",
