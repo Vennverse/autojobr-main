@@ -1398,7 +1398,7 @@ export default function RecruiterDashboard() {
                                                         try {
                                                           const response =
                                                             await fetch(
-                                                              `/api/resumes/download/${resume.id}`,
+                                                              `/api/resumes/${resume.id}/download`,
                                                               {
                                                                 credentials: "include",
                                                               },
