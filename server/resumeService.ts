@@ -7,6 +7,7 @@ import multer from 'multer';
 import fs from 'fs/promises';
 import path from 'path';
 import { ResumeParser } from './resumeParser';
+import { fileStorage } from './fileStorage';
 
 // Configure multer for resume file uploads
 const storage = multer.memoryStorage();
@@ -97,15 +98,18 @@ export class ResumeService {
           .where(eq(userResumes.userId, userId));
       }
 
-      // Store resume in database (Base64 encoded)
+      // Store resume using secure FileStorageService (preserves original file)
+      const storedFile = await fileStorage.storeResume(file, userId);
+      
+      // Store metadata in database with FileStorageService ID
       const resumeData: InsertUserResume = {
         userId,
         name: name || file.originalname,
         fileName: file.originalname,
         fileSize: file.size,
         mimeType: file.mimetype,
-        fileData: file.buffer.toString('base64'),
-        storageMethod: 'database',
+        storedFileId: storedFile.id, // Secure filesystem storage ID
+        storageMethod: 'filesystem',
         resumeText,
         isDefault: makeDefault,
         isActive: makeActive,
@@ -216,12 +220,28 @@ export class ResumeService {
         })
         .where(eq(userResumes.id, resume[0].id));
 
-      // Return resume as blob data for extension
+      // Get resume file securely (preserves original formatting for recruiters)
+      let fileBuffer: Buffer | null = null;
+      
+      // Try secure filesystem storage first
+      if (resume[0].storedFileId) {
+        fileBuffer = await fileStorage.retrieveResume(resume[0].storedFileId, userId);
+      }
+      
+      // Legacy fallback for old base64 stored resumes
+      if (!fileBuffer && resume[0].fileData) {
+        fileBuffer = Buffer.from(resume[0].fileData, 'base64');
+      }
+      
+      if (!fileBuffer) {
+        return res.status(404).json({ error: 'Resume file not found' });
+      }
+      
+      // Return original file with proper headers
       res.setHeader('Content-Type', resume[0].mimeType || 'application/octet-stream');
       res.setHeader('Content-Disposition', `attachment; filename="${resume[0].fileName}"`);
+      res.setHeader('X-Content-Type-Options', 'nosniff'); // Security header
       
-      // Convert base64 back to buffer
-      const fileBuffer = Buffer.from(resume[0].fileData || '', 'base64');
       res.send(fileBuffer);
 
     } catch (error) {
