@@ -504,6 +504,28 @@ export default function RecruiterDashboard() {
                   <span className="text-sm">Premium Targeting</span>
                 </div>
               </Button>
+              
+              <Button
+                onClick={() => {
+                  if (typedUser?.companyName) {
+                    const careerUrl = `/career/${encodeURIComponent(typedUser.companyName.toLowerCase().replace(/\s+/g, '-'))}`;
+                    window.open(careerUrl, '_blank');
+                  } else {
+                    toast({
+                      title: "Company Not Set",
+                      description: "Please set your company name in your profile to view the career page.",
+                      variant: "destructive"
+                    });
+                  }
+                }}
+                className="h-20 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                size="lg"
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <Building className="w-6 h-6" />
+                  <span className="text-sm">Company Career Page</span>
+                </div>
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -643,6 +665,60 @@ export default function RecruiterDashboard() {
                 <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                   Integrated chat
                 </Badge>
+              </div>
+              
+              <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <Building className="w-4 h-4 text-blue-600" />
+                  <span className="font-semibold">Company Career Page</span>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Your branded career page with all company jobs
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      if (typedUser?.companyName) {
+                        const careerUrl = `/career/${encodeURIComponent(typedUser.companyName.toLowerCase().replace(/\s+/g, '-'))}`;
+                        window.open(careerUrl, '_blank');
+                      } else {
+                        toast({
+                          title: "Company Not Set",
+                          description: "Please set your company name in your profile to view the career page.",
+                          variant: "destructive"
+                        });
+                      }
+                    }}
+                  >
+                    <Eye className="w-3 h-3 mr-1" />
+                    View Page
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      if (typedUser?.companyName) {
+                        const careerUrl = `${window.location.origin}/career/${encodeURIComponent(typedUser.companyName.toLowerCase().replace(/\s+/g, '-'))}`;
+                        navigator.clipboard.writeText(careerUrl);
+                        toast({
+                          title: "Link Copied!",
+                          description: "Career page URL copied to clipboard"
+                        });
+                      } else {
+                        toast({
+                          title: "Company Not Set",
+                          description: "Please set your company name in your profile.",
+                          variant: "destructive"
+                        });
+                      }
+                    }}
+                  >
+                    <Copy className="w-3 h-3" />
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>

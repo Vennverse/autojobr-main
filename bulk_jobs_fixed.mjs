@@ -126,7 +126,7 @@ async function loginAndCreateJobs() {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      email: 'shubhamdubexskd2001@gmail.com',
+      email: 'shubham.dubey@autojobr.com',
       password: '12345678'
     })
   });
