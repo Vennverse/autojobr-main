@@ -28,7 +28,7 @@ const broadcastToUser = (userId: string, message: any) => {
 import { db } from "./db";
 import { eq, desc, and, or, like, isNotNull, count, asc, isNull, sql } from "drizzle-orm";
 import * as schema from "@shared/schema";
-import { resumes } from "@shared/schema";
+import { resumes, userResumes } from "@shared/schema";
 import { apiKeyRotationService } from "./apiKeyRotationService.js";
 import { companyVerificationService } from "./companyVerificationService.js";
 import { adminFixService } from "./adminFixService.js";
@@ -2521,26 +2521,35 @@ Additional Information:
     }
   });
 
-  // Download resume file
+  // Download resume file - FIXED: Using userResumes table with proper security
   app.get('/api/resumes/:id/download', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const resumeId = parseInt(req.params.id);
       
-      // Get resume record
-      const [resume] = await db.select().from(resumes).where(
-        and(eq(resumes.id, resumeId), eq(resumes.userId, userId))
+      // Get resume record from userResumes table with ownership verification
+      const [resume] = await db.select().from(userResumes).where(
+        and(eq(userResumes.id, resumeId), eq(userResumes.userId, userId))
       );
       
       if (!resume) {
         return res.status(404).json({ message: "Resume not found" });
       }
       
-      // Retrieve file from storage using stored file ID
-      const fileBuffer = await fileStorage.retrieveResume(resume.filePath, userId);
+      let fileBuffer: Buffer;
       
-      if (!fileBuffer) {
-        return res.status(404).json({ message: "Resume file not found" });
+      // Handle both database and filesystem storage
+      if (resume.fileData) {
+        // Database storage: decode base64
+        fileBuffer = Buffer.from(resume.fileData, 'base64');
+      } else if (resume.filePath) {
+        // Filesystem storage: retrieve with ownership verification
+        fileBuffer = await fileStorage.retrieveResume(resume.filePath, userId);
+        if (!fileBuffer) {
+          return res.status(404).json({ message: "Resume file not found in storage" });
+        }
+      } else {
+        return res.status(404).json({ message: "Resume file data not available" });
       }
       
       // Set appropriate headers

@@ -6,6 +6,7 @@ import { userResumes, users, type InsertUserResume } from '@shared/schema';
 import multer from 'multer';
 import fs from 'fs/promises';
 import path from 'path';
+import { ResumeParser } from './resumeParser';
 
 // Configure multer for resume file uploads
 const storage = multer.memoryStorage();
@@ -46,10 +47,41 @@ export class ResumeService {
         return res.status(400).json({ error: 'No file provided' });
       }
 
-      // Extract text content (simplified - in production you'd use proper PDF parsing)
-      const resumeText = file.mimetype === 'text/plain' ? 
-        file.buffer.toString('utf-8') : 
-        'Binary file content - text extraction needed';
+      // Extract text content using ResumeParser for proper PDF/DOC parsing
+      const resumeParser = new ResumeParser();
+      let resumeText = '';
+      
+      try {
+        if (file.mimetype === 'text/plain') {
+          resumeText = file.buffer.toString('utf-8');
+        } else {
+          // Use ResumeParser to extract text from PDF/DOC files
+          const parsedData = await resumeParser.parseResumeFile(file.buffer, file.mimetype);
+          // Combine all extracted text content for analysis
+          resumeText = [
+            parsedData.fullName || '',
+            parsedData.email || '',
+            parsedData.phone || '',
+            parsedData.professionalTitle || '',
+            parsedData.summary || '',
+            (parsedData.skills || []).join(', '),
+            (parsedData.workExperience || []).map(exp => 
+              `${exp.title} at ${exp.company}: ${exp.description}`
+            ).join('\n'),
+            (parsedData.education || []).map(edu => 
+              `${edu.degree} from ${edu.institution}`
+            ).join('\n')
+          ].filter(text => text.trim().length > 0).join('\n');
+          
+          // Fallback to basic text if parsing didn't extract much
+          if (resumeText.trim().length < 50) {
+            resumeText = file.buffer.toString('utf-8');
+          }
+        }
+      } catch (error) {
+        console.warn('Resume text extraction failed, using fallback:', error);
+        resumeText = file.buffer.toString('utf-8');
+      }
 
       // If making this the default, unset other defaults
       if (makeDefault) {
