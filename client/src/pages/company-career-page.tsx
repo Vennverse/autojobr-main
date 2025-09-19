@@ -237,10 +237,17 @@ export default function CompanyCareerPage() {
       const jobs = await response.json();
       
       // Client-side filtering as definitive guard
-      return jobs.filter((job: any) => {
+      console.log(`🔍 [CAREER PAGE DEBUG] Filtering ${jobs.length} platform jobs for company: "${companyName}"`);
+      const filteredJobs = jobs.filter((job: any) => {
         const jobCompany = job.companyName || job.company_name || job.company || '';
-        return isCompanyMatch(jobCompany, companyName);
+        const matches = isCompanyMatch(jobCompany, companyName);
+        if (matches) {
+          console.log(`✅ [CAREER PAGE DEBUG] Match found: "${jobCompany}" matches "${companyName}"`);
+        }
+        return matches;
       });
+      console.log(`🎯 [CAREER PAGE DEBUG] Found ${filteredJobs.length} matching platform jobs`);
+      return filteredJobs;
     },
     enabled: !!companyName
   });
@@ -256,10 +263,17 @@ export default function CompanyCareerPage() {
       const jobs = await response.json();
       
       // Robust client-side filtering by company name
-      return jobs.filter((job: any) => {
+      console.log(`🔍 [CAREER PAGE DEBUG] Filtering ${jobs.length} scraped jobs for company: "${companyName}"`);
+      const filteredJobs = jobs.filter((job: any) => {
         const jobCompany = job.company || job.companyName || '';
-        return isCompanyMatch(jobCompany, companyName);
+        const matches = isCompanyMatch(jobCompany, companyName);
+        if (matches) {
+          console.log(`✅ [CAREER PAGE DEBUG] Match found: "${jobCompany}" matches "${companyName}"`);
+        }
+        return matches;
       });
+      console.log(`🎯 [CAREER PAGE DEBUG] Found ${filteredJobs.length} matching scraped jobs`);
+      return filteredJobs;
     },
     enabled: !!companyName
   });
