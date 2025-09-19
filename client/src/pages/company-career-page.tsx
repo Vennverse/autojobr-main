@@ -1056,7 +1056,7 @@ export default function CompanyCareerPage() {
                         </div>
                       </div>
 
-                      {selectedJob.requiredSkills && selectedJob.requiredSkills.length > 0 && (
+                      {selectedJob.requiredSkills && Array.isArray(selectedJob.requiredSkills) && selectedJob.requiredSkills.length > 0 && (
                         <div>
                           <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Required Skills</h4>
                           <div className="flex flex-wrap gap-2">
@@ -1069,11 +1069,17 @@ export default function CompanyCareerPage() {
                         </div>
                       )}
 
-                      {selectedJob.benefits && selectedJob.benefits.length > 0 && (
+                      {(() => {
+                        const benefits = Array.isArray(selectedJob.benefits) 
+                          ? selectedJob.benefits 
+                          : typeof selectedJob.benefits === 'string' 
+                            ? selectedJob.benefits.split(',').map((s: string) => s.trim()).filter(Boolean)
+                            : [];
+                        return benefits.length > 0 ? (
                         <div>
                           <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Benefits</h4>
                           <div className="space-y-1">
-                            {selectedJob.benefits.map((benefit: string, index: number) => (
+                            {benefits.map((benefit: string, index: number) => (
                               <div key={index} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                 <CheckCircle className="w-4 h-4 text-green-500" />
                                 <span>{benefit}</span>
@@ -1081,7 +1087,8 @@ export default function CompanyCareerPage() {
                             ))}
                           </div>
                         </div>
-                      )}
+                        ) : null;
+                      })()}
 
                       <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
                         <Button

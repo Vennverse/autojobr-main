@@ -100,6 +100,12 @@ export class FileStorageService {
 
   async retrieveResume(fileId: string, userId: string): Promise<Buffer | null> {
     try {
+      // SECURITY: Validate fileId matches userId to prevent unauthorized access
+      if (!fileId.startsWith(`resume_${userId}_`)) {
+        console.error(`[SECURITY] FileId ${fileId} does not belong to user ${userId}`);
+        return null;
+      }
+
       // For security, ensure the file belongs to the user
       const fileInfo = await this.getFileInfo(fileId, userId);
       if (!fileInfo) {
