@@ -1785,11 +1785,24 @@ export default function RecruiterDashboard() {
                                                 <Label className="text-sm font-medium">
                                                   AI Recommendation
                                                 </Label>
-                                                <p className="text-sm text-gray-700 mt-1 p-3 bg-gray-50 rounded-md">
-                                                  {
-                                                    jobCompatibility.applicationRecommendation
+                                                <div className="text-sm text-gray-700 mt-1 p-3 bg-gray-50 rounded-md">
+                                                  {typeof jobCompatibility.applicationRecommendation === 'string' 
+                                                    ? jobCompatibility.applicationRecommendation
+                                                    : (
+                                                      <div className="space-y-2">
+                                                        {jobCompatibility.applicationRecommendation.reasoning && (
+                                                          <p><strong>Recommendation:</strong> {jobCompatibility.applicationRecommendation.reasoning}</p>
+                                                        )}
+                                                        {jobCompatibility.applicationRecommendation.action && (
+                                                          <p><strong>Action:</strong> {jobCompatibility.applicationRecommendation.action}</p>
+                                                        )}
+                                                        {jobCompatibility.applicationRecommendation.timeline && (
+                                                          <p><strong>Timeline:</strong> {jobCompatibility.applicationRecommendation.timeline}</p>
+                                                        )}
+                                                      </div>
+                                                    )
                                                   }
-                                                </p>
+                                                </div>
                                               </div>
                                             )}
                                           </div>
