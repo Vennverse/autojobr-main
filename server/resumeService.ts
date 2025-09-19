@@ -211,7 +211,7 @@ export class ResumeService {
       // Increment usage count
       await db.update(userResumes)
         .set({ 
-          timesUsed: resume[0].timesUsed + 1,
+          timesUsed: (resume[0].timesUsed || 0) + 1,
           lastUsed: new Date()
         })
         .where(eq(userResumes.id, resume[0].id));
