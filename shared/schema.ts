@@ -382,10 +382,11 @@ export const userResumes = pgTable("user_resumes", {
   mimeType: varchar("mime_type"), // application/pdf, application/msword, etc.
   
   // Storage options
-  fileData: text("file_data"), // Base64 encoded file data for database storage
+  fileData: text("file_data"), // Base64 encoded file data for database storage (legacy)
   filePath: varchar("file_path"), // Local/cloud file system path
   cloudUrl: varchar("cloud_url"), // Cloud storage URL (S3, CloudFlare, etc.)
-  storageMethod: varchar("storage_method").default("database"), // database, filesystem, cloud
+  storedFileId: varchar("stored_file_id"), // FileStorageService ID for secure filesystem storage
+  storageMethod: varchar("storage_method").default("filesystem"), // database, filesystem, cloud
   
   // Resume content and analysis
   resumeText: text("resume_text"), // Extracted text content for analysis
