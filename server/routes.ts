@@ -2543,9 +2543,40 @@ Additional Information:
         // Database storage: decode base64
         fileBuffer = Buffer.from(resume.fileData, 'base64');
       } else if (resume.filePath) {
-        // Filesystem storage: retrieve with ownership verification
-        fileBuffer = await fileStorage.retrieveResume(resume.filePath, userId);
-        if (!fileBuffer) {
+        // Filesystem storage: SECURE - use exact path from ownership-validated record
+        try {
+          const fs = await import('fs/promises');
+          const path = await import('path');
+          const zlib = await import('zlib');
+          
+          // Use the exact filePath from the ownership-validated userResumes record
+          const fullPath = path.resolve(resume.filePath);
+          
+          // Security check: ensure path is within expected uploads directory
+          const uploadsDir = path.resolve('./uploads');
+          if (!fullPath.startsWith(uploadsDir)) {
+            console.error(`Security violation: attempted access to ${fullPath} outside uploads directory`);
+            return res.status(403).json({ message: "Access denied" });
+          }
+          
+          // Read file directly from validated path
+          const rawBuffer = await fs.readFile(fullPath);
+          
+          // Handle compressed files (if path ends with .gz)
+          if (fullPath.endsWith('.gz')) {
+            fileBuffer = await new Promise((resolve, reject) => {
+              zlib.gunzip(rawBuffer, (err, decompressed) => {
+                if (err) reject(err);
+                else resolve(decompressed);
+              });
+            });
+          } else {
+            fileBuffer = rawBuffer;
+          }
+          
+          console.log(`✅ Secure file access: userId=${userId}, file=${resume.fileName}, size=${fileBuffer.length} bytes`);
+        } catch (error) {
+          console.error(`File access error for userId=${userId}, path=${resume.filePath}:`, error);
           return res.status(404).json({ message: "Resume file not found in storage" });
         }
       } else {
