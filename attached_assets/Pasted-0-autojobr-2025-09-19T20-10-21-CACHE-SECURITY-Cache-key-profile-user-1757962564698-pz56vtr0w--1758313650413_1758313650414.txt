@@ -1,0 +1,36 @@
+0|autojobr | 2025-09-19T20:10:21: [CACHE_SECURITY] Cache key "profile_user-1757962564698-pz56vtr0w" used without user ID scoping
+0|autojobr | 2025-09-19T20:21:53: ⚠️ No skills found - adding demo skills for testing
+
+/var/www/autojobr-main/logs/out-1.log last 15 lines:
+1|autojobr | }
+1|autojobr | 2025-09-19T20:21:58: [DEBUG] Fetching resumes for user: user-1757962564698-pz56vtr0w
+1|autojobr | 2025-09-19T20:21:58: ✅ Connected to Replit PostgreSQL database
+1|autojobr | 2025-09-19T20:21:58: ✅ Connected to Replit PostgreSQL database
+1|autojobr | 2025-09-19T20:21:58: [DEBUG] Found 2 resumes for user user-1757962564698-pz56vtr0w
+1|autojobr | 2025-09-19T20:21:58: [DEBUG] Returning 2 formatted resumes for user user-1757962564698-pz56vtr0w
+1|autojobr | 2025-09-19T20:21:58: 8:21:58 PM [express] GET /api/recruiter/applicant/user-1757962564698-pz56vtr0w 304 in 22ms
+1|autojobr | 2025-09-19T20:22:08: [AUTH DEBUG] GET /api/resumes/3/download: {
+1|autojobr |   hasSession: true,
+1|autojobr |   sessionUser: true,
+1|autojobr |   passportUser: false,
+1|autojobr |   sessionId: 'O6PO4eD9v_dAYGEwDG7usWVC_WgYwvP5',
+1|autojobr |   cookies: 'present'
+1|autojobr | }
+1|autojobr | 2025-09-19T20:22:08: 8:22:08 PM [express] GET /api/resumes/3/download 404 in 7ms :: {"message":"Resume not found"}
+
+/var/www/autojobr-main/logs/out-0.log last 15 lines:
+0|autojobr |   passportUser: false,
+0|autojobr |   sessionId: 'O6PO4eD9v_dAYGEwDG7usWVC_WgYwvP5',
+0|autojobr |   cookies: 'present'
+0|autojobr | }
+0|autojobr | 2025-09-19T20:22:05: 8:22:05 PM [express] GET /api/resumes/2/download 404 in 8ms :: {"message":"Resume not found"}
+0|autojobr | 2025-09-19T20:22:10: [AUTH DEBUG] GET /api/recruiter/job-compatibility/user-1757962564698-pz56vtr0w/2: {
+0|autojobr |   hasSession: true,
+0|autojobr |   sessionUser: true,
+0|autojobr |   passportUser: false,
+0|autojobr |   sessionId: 'O6PO4eD9v_dAYGEwDG7usWVC_WgYwvP5',
+0|autojobr |   cookies: 'present'
+0|autojobr | }
+0|autojobr | 2025-09-19T20:22:10: ⚠️  No resume text found for applicant user-1757962564698-pz56vtr0w, using profile data only
+0|autojobr | 2025-09-19T20:22:10: 🌍 Global NLP Analysis - Language: en, Region: north america
+0|autojobr | 2025-09-19T20:22:11: 8:22:11 PM [express] GET /api/recruiter/job-compatibility/user-1757962564698-pz56vtr0w/2 304 in 44ms
