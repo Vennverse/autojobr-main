@@ -95,6 +95,7 @@ import LinkedInAutomationGuide from "@/pages/blog/linkedin-automation-guide";
 import AICoverLettersGuide from "@/pages/blog/ai-cover-letters-guide";
 import RemoteJobSearch2025 from "@/pages/blog/remote-job-search-2025";
 import JobAlertsPage from "@/pages/job-alerts";
+import CompanyCareerPage from "@/pages/company-career-page";
 
 
 function Router() {
@@ -175,6 +176,10 @@ function Router() {
       {/* Public job pages - accessible to everyone for discovery */}
       <Route path="/jobs" component={Jobs} />
       <Route path="/jobs/:id" component={ViewJob} />
+      
+      {/* Company career pages - accessible to everyone */}
+      <Route path="/career/:companyName" component={CompanyCareerPage} />
+      <Route path="/careers/:companyName" component={CompanyCareerPage} />
       
       {/* Public internship pages - accessible to everyone for discovery */}
       <Route path="/internships" component={Internships} />

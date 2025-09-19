@@ -60,6 +60,29 @@ import {
   Globe
 } from "lucide-react";
 
+// Utility function to normalize company names for comparison
+const normalizeCompany = (companyName: string): string => {
+  if (!companyName) return '';
+  
+  return companyName
+    .toLowerCase()
+    .trim()
+    .replace(/[-_]/g, ' ') // Replace hyphens and underscores with spaces
+    .replace(/[&.,]/g, '') // Remove common punctuation
+    .replace(/\s+/g, ' ') // Normalize multiple spaces to single
+    .replace(/\b(inc|llc|ltd|corp|corporation|company|co)\b/g, '') // Remove business suffixes
+    .trim();
+};
+
+// Utility function to check if company names match
+const isCompanyMatch = (companyName: string, targetCompany: string): boolean => {
+  const normalized1 = normalizeCompany(companyName);
+  const normalized2 = normalizeCompany(targetCompany);
+  
+  return normalized1.includes(normalized2) || normalized2.includes(normalized1) || 
+         normalized1 === normalized2;
+};
+
 // Utility functions for professional job formatting
 const formatJobType = (jobType?: string) => {
   if (!jobType) return '';
@@ -131,7 +154,12 @@ interface CompanyInfo {
 
 export default function CompanyCareerPage() {
   const params = useParams();
-  const companyName = params?.companyName ? decodeURIComponent(params.companyName) : '';
+  // Handle company name from URL with proper slug conversion
+  const rawCompanyName = params?.companyName ? decodeURIComponent(params.companyName) : '';
+  const companyName = rawCompanyName
+    .replace(/-/g, ' ') // Convert kebab-case to spaces
+    .replace(/\b\w/g, l => l.toUpperCase()) // Title case
+    .trim();
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
   const [_, setLocation] = useLocation();
@@ -154,12 +182,13 @@ export default function CompanyCareerPage() {
     category: ""
   });
 
-  // Fetch platform jobs filtered by company
+  // Fetch platform jobs (we'll filter client-side for reliability)
   const { data: platformJobs = [], isLoading: platformJobsLoading } = useQuery({
-    queryKey: ["/api/jobs/postings", searchQuery, filterPreferences, companyName],
+    queryKey: ["/api/jobs/postings", searchQuery, JSON.stringify(filterPreferences), companyName],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchQuery) params.append('search', searchQuery);
+      // Try backend company filtering but don't rely on it
       if (companyName) params.append('company', companyName);
       
       Object.entries(filterPreferences).forEach(([key, value]) => {
@@ -171,8 +200,15 @@ export default function CompanyCareerPage() {
       });
       
       if (!response.ok) throw new Error('Failed to fetch jobs');
-      return response.json();
-    }
+      const jobs = await response.json();
+      
+      // Client-side filtering as definitive guard
+      return jobs.filter((job: any) => {
+        const jobCompany = job.companyName || job.company_name || job.company || '';
+        return isCompanyMatch(jobCompany, companyName);
+      });
+    },
+    enabled: !!companyName
   });
 
   // Fetch scraped jobs filtered by company
@@ -185,11 +221,11 @@ export default function CompanyCareerPage() {
       if (!response.ok) throw new Error('Failed to fetch scraped jobs');
       const jobs = await response.json();
       
-      // Filter by company name
-      return jobs.filter((job: any) => 
-        job.company?.toLowerCase().includes(companyName.toLowerCase()) ||
-        job.companyName?.toLowerCase().includes(companyName.toLowerCase())
-      );
+      // Robust client-side filtering by company name
+      return jobs.filter((job: any) => {
+        const jobCompany = job.company || job.companyName || '';
+        return isCompanyMatch(jobCompany, companyName);
+      });
     },
     enabled: !!companyName
   });
@@ -234,10 +270,16 @@ export default function CompanyCareerPage() {
     return true;
   });
 
-  // Get company info from the first job
+  // Get company info from the first job with improved logo resolution
   const companyInfo: CompanyInfo = {
     name: companyName,
-    logo: allJobsUnsorted[0]?.companyLogo || allJobsUnsorted[0]?.company_logo,
+    logo: allJobsUnsorted[0]?.companyLogo || 
+          allJobsUnsorted[0]?.company_logo || 
+          allJobsUnsorted[0]?.logo ||
+          // Check other jobs for logos if first job doesn't have one
+          allJobsUnsorted.find(job => job.companyLogo || job.company_logo || job.logo)?.companyLogo ||
+          allJobsUnsorted.find(job => job.companyLogo || job.company_logo || job.logo)?.company_logo ||
+          allJobsUnsorted.find(job => job.companyLogo || job.company_logo || job.logo)?.logo,
     totalJobs: allJobsUnsorted.length
   };
 
@@ -546,17 +588,32 @@ export default function CompanyCareerPage() {
             {/* Company Logo */}
             <div className="flex-shrink-0">
               {companyInfo.logo ? (
-                <img 
-                  src={companyInfo.logo} 
-                  alt={`${companyInfo.name} logo`}
-                  className="w-20 h-20 rounded-lg object-contain bg-white shadow-md border"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
+                <div className="relative">
+                  <img 
+                    src={companyInfo.logo} 
+                    alt={`${companyInfo.name} logo`}
+                    className="w-20 h-20 rounded-lg object-contain bg-white shadow-md border"
+                    onError={(e) => {
+                      // Hide broken image and show fallback
+                      (e.target as HTMLImageElement).style.display = 'none';
+                      const parent = (e.target as HTMLImageElement).parentElement;
+                      if (parent) {
+                        const fallback = parent.querySelector('.logo-fallback') as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                      }
+                    }}
+                  />
+                  <div className="logo-fallback w-20 h-20 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md absolute top-0 left-0" style={{display: 'none'}}>
+                    <span className="text-white font-bold text-lg">
+                      {companyInfo.name.split(' ').map(word => word.charAt(0)).join('').slice(0, 2).toUpperCase()}
+                    </span>
+                  </div>
+                </div>
               ) : (
                 <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md">
-                  <Building2 className="w-10 h-10 text-white" />
+                  <span className="text-white font-bold text-lg">
+                    {companyInfo.name.split(' ').map(word => word.charAt(0)).join('').slice(0, 2).toUpperCase()}
+                  </span>
                 </div>
               )}
             </div>
