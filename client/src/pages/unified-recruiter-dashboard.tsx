@@ -507,9 +507,24 @@ export default function RecruiterDashboard() {
               
               <Button
                 onClick={() => {
-                  if (typedUser?.companyName) {
-                    const careerUrl = `/career/${encodeURIComponent(typedUser.companyName.toLowerCase().replace(/\s+/g, '-'))}`;
-                    window.open(careerUrl, '_blank');
+                  if (typedUser?.companyName?.trim()) {
+                    const companySlug = typedUser.companyName
+                      .trim()
+                      .toLowerCase()
+                      .replace(/[^a-z0-9\s-]/g, '') // Remove special chars except spaces and hyphens
+                      .replace(/\s+/g, '-') // Replace spaces with hyphens
+                      .replace(/-+/g, '-') // Replace multiple hyphens with single
+                      .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+                    
+                    if (companySlug) {
+                      window.open(`/career/${companySlug}`, '_blank', 'noopener,noreferrer');
+                    } else {
+                      toast({
+                        title: "Invalid Company Name",
+                        description: "Please update your company name in your profile settings.",
+                        variant: "destructive"
+                      });
+                    }
                   } else {
                     toast({
                       title: "Company Not Set",
@@ -520,6 +535,8 @@ export default function RecruiterDashboard() {
                 }}
                 className="h-20 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
                 size="lg"
+                data-testid="button-career-page-quick"
+                aria-label="Open company career page in new tab"
               >
                 <div className="flex flex-col items-center gap-2">
                   <Building className="w-6 h-6" />
@@ -680,10 +697,26 @@ export default function RecruiterDashboard() {
                     size="sm"
                     variant="outline"
                     className="flex-1"
+                    data-testid="button-view-career-page"
                     onClick={() => {
-                      if (typedUser?.companyName) {
-                        const careerUrl = `/career/${encodeURIComponent(typedUser.companyName.toLowerCase().replace(/\s+/g, '-'))}`;
-                        window.open(careerUrl, '_blank');
+                      if (typedUser?.companyName?.trim()) {
+                        const companySlug = typedUser.companyName
+                          .trim()
+                          .toLowerCase()
+                          .replace(/[^a-z0-9\s-]/g, '')
+                          .replace(/\s+/g, '-')
+                          .replace(/-+/g, '-')
+                          .replace(/^-|-$/g, '');
+                        
+                        if (companySlug) {
+                          window.open(`/career/${companySlug}`, '_blank', 'noopener,noreferrer');
+                        } else {
+                          toast({
+                            title: "Invalid Company Name",
+                            description: "Please update your company name in your profile settings.",
+                            variant: "destructive"
+                          });
+                        }
                       } else {
                         toast({
                           title: "Company Not Set",
@@ -699,14 +732,32 @@ export default function RecruiterDashboard() {
                   <Button
                     size="sm"
                     variant="outline"
+                    data-testid="button-copy-career-link"
+                    aria-label="Copy career page link to clipboard"
                     onClick={() => {
-                      if (typedUser?.companyName) {
-                        const careerUrl = `${window.location.origin}/career/${encodeURIComponent(typedUser.companyName.toLowerCase().replace(/\s+/g, '-'))}`;
-                        navigator.clipboard.writeText(careerUrl);
-                        toast({
-                          title: "Link Copied!",
-                          description: "Career page URL copied to clipboard"
-                        });
+                      if (typedUser?.companyName?.trim()) {
+                        const companySlug = typedUser.companyName
+                          .trim()
+                          .toLowerCase()
+                          .replace(/[^a-z0-9\s-]/g, '')
+                          .replace(/\s+/g, '-')
+                          .replace(/-+/g, '-')
+                          .replace(/^-|-$/g, '');
+                        
+                        if (companySlug) {
+                          const careerUrl = `${window.location.origin}/career/${companySlug}`;
+                          navigator.clipboard.writeText(careerUrl);
+                          toast({
+                            title: "Link Copied!",
+                            description: "Career page URL copied to clipboard"
+                          });
+                        } else {
+                          toast({
+                            title: "Invalid Company Name",
+                            description: "Please update your company name in your profile settings.",
+                            variant: "destructive"
+                          });
+                        }
                       } else {
                         toast({
                           title: "Company Not Set",
