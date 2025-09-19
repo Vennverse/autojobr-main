@@ -1374,6 +1374,235 @@ export class EnhancedNLPService {
     
     return Math.min(100, confidence);
   }
+
+  /**
+   * Extract structured profile data from resume text to enhance job compatibility analysis
+   */
+  extractProfileFromResumeText(resumeText: string): any {
+    if (!resumeText || resumeText.trim().length < 50) {
+      return { skills: [], workExperience: [], education: [] };
+    }
+
+    const text = resumeText.toLowerCase();
+    const lines = resumeText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+    // Extract skills from resume text
+    const extractedSkills: any[] = [];
+    for (const [category, categoryData] of Object.entries(this.skillTaxonomy)) {
+      for (const skill of categoryData.skills) {
+        const skillRegex = new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+        if (skillRegex.test(resumeText)) {
+          extractedSkills.push({
+            skillName: skill.charAt(0).toUpperCase() + skill.slice(1),
+            proficiencyLevel: "intermediate", // Default proficiency
+            yearsExperience: this.estimateSkillExperience(resumeText, skill),
+            category: category
+          });
+        }
+      }
+    }
+
+    // Extract work experience from resume text
+    const workExperience = this.extractWorkExperienceFromText(resumeText);
+
+    // Extract education from resume text  
+    const education = this.extractEducationFromText(resumeText);
+
+    // Extract years of experience
+    const yearsExperience = this.extractTotalYearsExperience(resumeText);
+
+    // Extract professional title
+    const professionalTitle = this.extractProfessionalTitleFromText(resumeText);
+
+    return {
+      skills: extractedSkills.slice(0, 20), // Limit to top 20 skills
+      workExperience,
+      education,
+      yearsExperience,
+      professionalTitle,
+      summary: this.extractSummaryFromText(resumeText)
+    };
+  }
+
+  private estimateSkillExperience(resumeText: string, skill: string): number {
+    // Look for years mentioned near the skill
+    const skillContext = this.getContextAroundSkill(resumeText, skill);
+    const yearMatch = skillContext.match(/(\d+)\s*(?:years?|yrs?)/i);
+    return yearMatch ? Math.min(parseInt(yearMatch[1]), 15) : 1;
+  }
+
+  private getContextAroundSkill(text: string, skill: string): string {
+    const skillIndex = text.toLowerCase().indexOf(skill.toLowerCase());
+    if (skillIndex === -1) return '';
+    
+    const start = Math.max(0, skillIndex - 100);
+    const end = Math.min(text.length, skillIndex + skill.length + 100);
+    return text.slice(start, end);
+  }
+
+  private extractWorkExperienceFromText(resumeText: string): any[] {
+    const workExperience: any[] = [];
+    const lines = resumeText.split('\n');
+    
+    // Look for common work experience patterns
+    const experienceSection = this.findSection(lines, ['experience', 'work', 'employment', 'career']);
+    if (experienceSection.length > 0) {
+      let currentJob: any = {};
+      
+      for (const line of experienceSection) {
+        // Look for job titles (often followed by @ or at)
+        const jobTitleMatch = line.match(/^([^@\-\|]+?)(?:\s*[@\-\|]\s*(.+?))?(?:\s*\|\s*(.+?))?$/);
+        if (jobTitleMatch && line.length > 10 && line.length < 100) {
+          if (currentJob.position) {
+            workExperience.push(currentJob);
+          }
+          currentJob = {
+            position: jobTitleMatch[1].trim(),
+            company: jobTitleMatch[2]?.trim() || 'Unknown Company',
+            description: []
+          };
+        } else if (currentJob.position && line.trim().length > 5) {
+          // Add to description if we have a current job
+          if (!currentJob.description) currentJob.description = [];
+          currentJob.description.push(line.trim());
+        }
+      }
+      
+      if (currentJob.position) {
+        workExperience.push(currentJob);
+      }
+    }
+    
+    return workExperience.slice(0, 5); // Limit to 5 most recent jobs
+  }
+
+  private extractEducationFromText(resumeText: string): any[] {
+    const education: any[] = [];
+    const lines = resumeText.split('\n');
+    
+    const educationSection = this.findSection(lines, ['education', 'academic', 'degree', 'university', 'college']);
+    
+    for (const line of educationSection) {
+      // Look for degree patterns
+      const degreePattern = /(bachelor|master|phd|doctorate|associate|diploma|certificate|b\.?[a-z]\.?|m\.?[a-z]\.?|ph\.?d\.?)/i;
+      if (degreePattern.test(line) && line.length > 5) {
+        const parts = line.split(/\s*[@\-\|]\s*/);
+        education.push({
+          degree: parts[0]?.trim() || 'Degree',
+          institution: parts[1]?.trim() || 'Institution',
+          fieldOfStudy: this.extractFieldOfStudy(line)
+        });
+      }
+    }
+    
+    return education.slice(0, 3); // Limit to 3 education entries
+  }
+
+  private extractTotalYearsExperience(resumeText: string): number {
+    // Look for total years experience mentions
+    const experienceMatch = resumeText.match(/(?:over|more than|about|\+)?\s*(\d+)\s*(?:\+)?\s*years?\s*(?:of)?\s*(?:professional|work|total)?\s*experience/i);
+    if (experienceMatch) {
+      return parseInt(experienceMatch[1]);
+    }
+    
+    // Estimate from work experience dates
+    const dateMatches = resumeText.match(/\b(19|20)\d{2}\b/g);
+    if (dateMatches && dateMatches.length >= 2) {
+      const years = dateMatches.map(y => parseInt(y)).sort((a, b) => b - a);
+      const yearRange = years[0] - years[years.length - 1];
+      return Math.min(yearRange, 30); // Cap at 30 years
+    }
+    
+    return 2; // Default estimate
+  }
+
+  private extractProfessionalTitleFromText(resumeText: string): string {
+    const lines = resumeText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    
+    // Look for title in first few lines after name
+    for (let i = 1; i < Math.min(5, lines.length); i++) {
+      const line = lines[i];
+      if (line.length > 5 && line.length < 60 && 
+          !line.includes('@') && !line.includes('phone') && !line.includes('email')) {
+        // Check if it contains job-related keywords
+        const jobKeywords = ['engineer', 'developer', 'manager', 'analyst', 'specialist', 'consultant', 'director', 'lead', 'senior', 'junior'];
+        if (jobKeywords.some(keyword => line.toLowerCase().includes(keyword))) {
+          return line;
+        }
+      }
+    }
+    
+    return 'Professional';
+  }
+
+  private extractSummaryFromText(resumeText: string): string {
+    const lines = resumeText.split('\n');
+    const summarySection = this.findSection(lines, ['summary', 'objective', 'profile', 'about']);
+    
+    if (summarySection.length > 0) {
+      return summarySection.slice(0, 3).join(' ').substring(0, 300);
+    }
+    
+    // Fallback: use first paragraph that's not contact info
+    for (const line of lines.slice(0, 10)) {
+      if (line.length > 50 && !line.includes('@') && !line.includes('phone')) {
+        return line.substring(0, 300);
+      }
+    }
+    
+    return 'Professional with diverse experience';
+  }
+
+  private extractFieldOfStudy(educationLine: string): string {
+    const fields = ['computer science', 'engineering', 'business', 'marketing', 'finance', 'psychology', 'biology', 'chemistry', 'physics', 'mathematics'];
+    const line = educationLine.toLowerCase();
+    
+    for (const field of fields) {
+      if (line.includes(field)) {
+        return field.charAt(0).toUpperCase() + field.slice(1);
+      }
+    }
+    
+    return 'General Studies';
+  }
+
+  private findSection(lines: string[], keywords: string[]): string[] {
+    const sectionLines: string[] = [];
+    let inSection = false;
+    let sectionStartIndex = -1;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].toLowerCase().trim();
+      
+      // Check if this line is a section header
+      const isHeader = keywords.some(keyword => {
+        return line.includes(keyword) && line.length < 50;
+      });
+      
+      if (isHeader) {
+        inSection = true;
+        sectionStartIndex = i;
+        continue;
+      }
+      
+      // Check if we've reached another section
+      const isAnotherSection = inSection && (
+        line.includes('education') || line.includes('experience') || 
+        line.includes('skills') || line.includes('projects') ||
+        line.includes('certifications')
+      ) && line.length < 50 && i > sectionStartIndex + 2;
+      
+      if (isAnotherSection) {
+        break;
+      }
+      
+      if (inSection && line.length > 0) {
+        sectionLines.push(lines[i].trim());
+      }
+    }
+    
+    return sectionLines;
+  }
 }
 
 // Global NLP service instance with comprehensive profession and region support

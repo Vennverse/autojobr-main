@@ -4177,9 +4177,67 @@ Additional Information:
       } catch (error) {
         console.log("Could not fetch additional applicant data:", error);
       }
+
+      // ENHANCED: Get applicant's resume text and extract additional profile data
+      try {
+        // Get applicant's active or most recent resume from userResumes table
+        const applicantResumes = await db.select()
+          .from(userResumes)
+          .where(eq(userResumes.userId, applicantId))
+          .orderBy(desc(userResumes.isActive), desc(userResumes.createdAt))
+          .limit(1);
+
+        if (applicantResumes.length > 0 && applicantResumes[0].resumeText) {
+          const resumeText = applicantResumes[0].resumeText;
+          console.log(`🔍 Found resume text for applicant ${applicantId}, length: ${resumeText.length} chars`);
+          
+          // Extract additional profile data from resume text using NLP
+          const extractedProfile = customNLPService.extractProfileFromResumeText(resumeText);
+          
+          // Merge extracted data with existing profile data (extracted data takes precedence for skills)
+          if (extractedProfile.skills && extractedProfile.skills.length > 0) {
+            // Combine database skills with extracted skills, removing duplicates
+            const existingSkillNames = new Set(userProfile.skills.map(s => s.skillName.toLowerCase()));
+            const newSkills = extractedProfile.skills.filter(skill => 
+              !existingSkillNames.has(skill.skillName.toLowerCase())
+            );
+            userProfile.skills = [...userProfile.skills, ...newSkills];
+            console.log(`📋 Enhanced skills: ${userProfile.skills.length} total (${newSkills.length} from resume)`);
+          }
+          
+          // Enhance work experience with resume data
+          if (extractedProfile.workExperience && extractedProfile.workExperience.length > 0) {
+            userProfile.workExperience = [...userProfile.workExperience, ...extractedProfile.workExperience];
+          }
+          
+          // Enhance education with resume data
+          if (extractedProfile.education && extractedProfile.education.length > 0) {
+            userProfile.education = [...userProfile.education, ...extractedProfile.education];
+          }
+          
+          // Use extracted data to fill missing profile fields
+          if (!userProfile.professionalTitle && extractedProfile.professionalTitle) {
+            userProfile.professionalTitle = extractedProfile.professionalTitle;
+          }
+          
+          if (!userProfile.yearsExperience && extractedProfile.yearsExperience) {
+            userProfile.yearsExperience = extractedProfile.yearsExperience;
+          }
+          
+          if (!userProfile.summary && extractedProfile.summary) {
+            userProfile.summary = extractedProfile.summary;
+          }
+          
+          console.log(`✅ Enhanced profile for compatibility analysis: ${userProfile.skills.length} skills, ${userProfile.workExperience.length} work experiences`);
+        } else {
+          console.log(`⚠️  No resume text found for applicant ${applicantId}, using profile data only`);
+        }
+      } catch (error) {
+        console.log("Could not enhance profile with resume data:", error);
+      }
       
-      // Analyze job compatibility with custom NLP
-      const analysis = await customNLPService.analyzeJob(jobData.description, userProfile); // Fix: await the Promise
+      // Analyze job compatibility with custom NLP using enhanced profile
+      const analysis = await customNLPService.analyzeJob(jobData.description, userProfile);
 
       res.json({
         matchScore: analysis.matchScore,
