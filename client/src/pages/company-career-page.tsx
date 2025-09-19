@@ -216,89 +216,42 @@ export default function CompanyCareerPage() {
     category: ""
   });
 
-  // Fetch platform jobs (we'll filter client-side for reliability)
+  // Fetch platform jobs filtered by company (no auth required)
   const { data: platformJobs = [], isLoading: platformJobsLoading } = useQuery({
     queryKey: ["/api/jobs/postings", searchQuery, JSON.stringify(filterPreferences), companyName],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchQuery) params.append('search', searchQuery);
-      // Try backend company filtering but don't rely on it
       if (companyName) params.append('company', companyName);
       
       Object.entries(filterPreferences).forEach(([key, value]) => {
         if (value && typeof value === 'string' && value !== 'all') params.append(key, value);
       });
       
-      const response = await fetch(`/api/jobs/postings?${params}`, {
-        credentials: 'include'
-      });
+      const response = await fetch(`/api/jobs/postings?${params}`);
       
       if (!response.ok) throw new Error('Failed to fetch jobs');
       const jobs = await response.json();
       
-      // Client-side filtering as definitive guard
-      console.log(`🔍 [CAREER PAGE DEBUG] Filtering ${jobs.length} platform jobs for company: "${companyName}"`);
-      const filteredJobs = jobs.filter((job: any) => {
+      // Filter by company name
+      return jobs.filter((job: any) => {
         const jobCompany = job.companyName || job.company_name || job.company || '';
-        const matches = isCompanyMatch(jobCompany, companyName);
-        if (matches) {
-          console.log(`✅ [CAREER PAGE DEBUG] Match found: "${jobCompany}" matches "${companyName}"`);
-        }
-        return matches;
+        return isCompanyMatch(jobCompany, companyName);
       });
-      console.log(`🎯 [CAREER PAGE DEBUG] Found ${filteredJobs.length} matching platform jobs`);
-      return filteredJobs;
     },
     enabled: !!companyName
   });
 
-  // Fetch scraped jobs filtered by company
-  const { data: scrapedJobs = [], isLoading: scrapedJobsLoading } = useQuery({
-    queryKey: ["/api/scraped-jobs", companyName],
-    queryFn: async () => {
-      const response = await fetch("/api/scraped-jobs?limit=2000", {
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Failed to fetch scraped jobs');
-      const jobs = await response.json();
-      
-      // Robust client-side filtering by company name
-      console.log(`🔍 [CAREER PAGE DEBUG] Filtering ${jobs.length} scraped jobs for company: "${companyName}"`);
-      const filteredJobs = jobs.filter((job: any) => {
-        const jobCompany = job.company || job.companyName || '';
-        const matches = isCompanyMatch(jobCompany, companyName);
-        if (matches) {
-          console.log(`✅ [CAREER PAGE DEBUG] Match found: "${jobCompany}" matches "${companyName}"`);
-        }
-        return matches;
-      });
-      console.log(`🎯 [CAREER PAGE DEBUG] Found ${filteredJobs.length} matching scraped jobs`);
-      return filteredJobs;
-    },
-    enabled: !!companyName
-  });
 
-  // Combine and filter jobs by company
-  const allJobsUnsorted = [
-    ...platformJobs.map((job: any) => ({
-      ...job,
-      company: job.companyName || job.company_name || job.company,
-      companyName: job.companyName || job.company_name || job.company,
-      jobType: 'platform',
-      applyType: 'easy',
-      priority: 1
-    })),
-    ...scrapedJobs.map((job: any) => ({
-      ...job,
-      company: job.company,
-      companyName: job.company,
-      jobType: job.jobType || job.job_type || 'full_time',
-      applyType: 'external',
-      priority: 2,
-      source: 'scraped',
-      sourceUrl: job.sourceUrl || job.source_url
-    }))
-  ].filter((job: any) => {
+  // Use only platform jobs with additional filtering
+  const allJobsUnsorted = platformJobs.map((job: any) => ({
+    ...job,
+    company: job.companyName || job.company_name || job.company,
+    companyName: job.companyName || job.company_name || job.company,
+    jobType: 'platform',
+    applyType: 'easy',
+    priority: 1
+  })).filter((job: any) => {
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -331,9 +284,14 @@ export default function CompanyCareerPage() {
     totalJobs: allJobsUnsorted.length
   };
 
-  // Get user profile for compatibility scoring
+  // Get user profile for compatibility scoring (only if authenticated)
   const { data: userProfile } = useQuery<UserProfile>({
     queryKey: ["/api/profile"],
+    queryFn: async () => {
+      const response = await fetch('/api/profile', { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch profile');
+      return response.json();
+    },
     enabled: isAuthenticated
   });
 
@@ -424,7 +382,7 @@ export default function CompanyCareerPage() {
     }
   });
 
-  const jobsLoading = platformJobsLoading || scrapedJobsLoading;
+  const jobsLoading = platformJobsLoading;
 
   // Check applied jobs
   const { data: applications = [] } = useQuery({
