@@ -73,6 +73,7 @@ import BackgroundCheckIntegration from "@/pages/background-check-integration";
 import SSOConfiguration from "@/pages/sso-configuration";
 import SubscriptionSuccess from "@/pages/subscription/Success";
 import SubscriptionCancel from "@/pages/subscription/Cancel";
+import BidderDashboard from "@/pages/bidder-dashboard";
 
 // SEO Landing Pages to Beat Competition
 import FreeJobApplicationAutomation from "@/pages/seo/FreeJobApplicationAutomation";
@@ -273,6 +274,7 @@ function Router() {
                   <Route path="/become-referrer" component={BecomeReferrer} />
                   <Route path="/my-bookings" component={MyBookings} />
                   <Route path="/job-alerts" component={JobAlertsPage} />
+                  <Route path="/bidder-dashboard" component={BidderDashboard} />
                   <Route path="/chat" component={SimpleChatPage} />
                   <Route path="/messaging" component={SimpleChatPage} />
                 </>
@@ -301,6 +303,7 @@ function Router() {
               <Route path="/referral-marketplace" component={ReferralMarketplace} />
               <Route path="/become-referrer" component={BecomeReferrer} />
               <Route path="/my-bookings" component={MyBookings} />
+              <Route path="/bidder-dashboard" component={BidderDashboard} />
               <Route path="/chat" component={SimpleChatPage} />
               <Route path="/messaging" component={SimpleChatPage} />
             </>

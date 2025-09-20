@@ -33,7 +33,9 @@ import {
   Globe,
   Layers,
   ChevronLeft,
-  Building2
+  Building2,
+  Handshake,
+  DollarSign
 } from "lucide-react";
 import logoImage from "@assets/generated_images/AutoJobr_professional_logo_17c702fa_optimized.png";
 import heroBackground from "@assets/generated_images/Professional_hero_background_15f13bf2_optimized.png";
@@ -81,6 +83,11 @@ const features = [
     icon: Crown,
     title: "Chrome Extension Advantage",
     description: "Our intelligent extension creates human-like applications across 100+ job boards, ensuring you never get flagged as a bot."
+  },
+  {
+    icon: Handshake,
+    title: "Freelance & Project Marketplace", 
+    description: "Post projects or offer your services in our hybrid outsourcing platform. Track A for short-term projects (10-15% commission) and Track B for long-term partnerships (10-25% commission)."
   }
 ];
 
@@ -494,6 +501,33 @@ export default function LandingPage() {
               <Users className="w-8 h-8 mx-auto mb-3 text-purple-500" />
               <h3 className="font-semibold mb-2">Referral Network</h3>
               <p className="text-sm text-slate-600 dark:text-slate-300">Connect with 10K+ employees</p>
+            </div>
+          </div>
+          
+          {/* NEW: Bidder System Feature Highlight */}
+          <div className="mt-12 max-w-4xl mx-auto">
+            <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-500/20 dark:to-purple-500/20 backdrop-blur rounded-3xl p-8 text-center hover:shadow-xl transition-all duration-300 hover:scale-105 border border-blue-200/50 dark:border-blue-500/30">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
+                    <Handshake className="w-8 h-8 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                      🚀 NEW: Freelance Marketplace
+                    </h3>
+                    <p className="text-slate-600 dark:text-slate-300">
+                      Post projects, bid on opportunities, and grow your freelance business
+                    </p>
+                  </div>
+                </div>
+                <Link href="/bidder-dashboard">
+                  <Button size="lg" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300">
+                    Explore Marketplace
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
           
