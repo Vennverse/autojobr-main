@@ -12,6 +12,7 @@ import crypto from "crypto";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import pg from "pg";
+import jwt from "jsonwebtoken";
 
 // Simple auth configuration
 const authConfig = {
@@ -117,7 +118,8 @@ export async function setupAuth(app: Express) {
         if (!user) {
           // Create new user with intelligent role detection
           const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          const { UserRoleService } = await import('./userRoleService.js') as any;
+          // Simple role assignment based on email domain
+          const userType = email.includes('@company.com') ? 'recruiter' : 'job_seeker';
           const roleAssignment = await UserRoleService.assignUserRole(email);
           
           user = await storage.upsertUser({
@@ -126,8 +128,8 @@ export async function setupAuth(app: Express) {
             firstName: profile.name?.givenName || 'User',
             lastName: profile.name?.familyName || '',
             profileImageUrl: profile.photos?.[0]?.value || null,
-            userType: roleAssignment.userType,
-            currentRole: roleAssignment.currentRole,
+            userType: userType,
+            currentRole: userType,
             emailVerified: true,
             password: null,
           });

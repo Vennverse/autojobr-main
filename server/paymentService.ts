@@ -5,7 +5,7 @@ import crypto from 'crypto';
 let stripe: Stripe | null = null;
 if (process.env.STRIPE_SECRET_KEY) {
   stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2025-05-28.basil',
+    apiVersion: '2025-08-27.basil',
   });
   console.log('Stripe initialized successfully');
 } else {
@@ -139,6 +139,10 @@ class PaymentService {
   async createStripeSubscription(customerId: string, email: string): Promise<string | null> {
     try {
       let customer;
+      
+      if (!stripe) {
+        throw new Error('Stripe not initialized');
+      }
       
       if (customerId) {
         customer = await stripe.customers.retrieve(customerId);
