@@ -2747,6 +2747,71 @@ export type InsertReferralFeedback = z.infer<typeof insertReferralFeedbackSchema
 export type ReferralPayment = typeof referralPayments.$inferSelect;
 export type InsertReferralPayment = z.infer<typeof insertReferralPaymentSchema>;
 
+// REFERRAL MARKETPLACE TABLES (Simple Listings & Requests System)
+
+// Referral Listings - User-created listings offering referrals at their companies
+export const referralListings = pgTable("referral_listings", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Company details
+  companyName: varchar("company_name").notNull(),
+  companyDomain: varchar("company_domain").notNull(),
+  description: text("description").notNull(),
+  
+  // Pricing and compensation
+  price: numeric("price", { precision: 10, scale: 2 }).notNull(),
+  compensationType: varchar("compensation_type").notNull(), // fixed, percentage, hourly
+  
+  // Availability
+  slotsAvailable: integer("slots_available").default(1).notNull(),
+  
+  // Status
+  status: varchar("status").default("active").notNull(), // active, paused, closed, expired
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("referral_listings_user_idx").on(table.userId),
+  index("referral_listings_company_domain_idx").on(table.companyDomain),
+  index("referral_listings_status_idx").on(table.status),
+  index("referral_listings_price_idx").on(table.price),
+]);
+
+// Referral Requests - Job seekers' requests for specific referral listings
+export const referralRequests = pgTable("referral_requests", {
+  id: serial("id").primaryKey(),
+  seekerId: varchar("seeker_id").references(() => users.id).notNull(),
+  listingId: integer("listing_id").references(() => referralListings.id).notNull(),
+  
+  // Request details
+  notes: text("notes"),
+  status: varchar("status").default("pending").notNull(), // pending, accepted, rejected, completed
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("referral_requests_seeker_idx").on(table.seekerId),
+  index("referral_requests_listing_idx").on(table.listingId),
+  index("referral_requests_listing_seeker_idx").on(table.listingId, table.seekerId),
+  index("referral_requests_status_idx").on(table.status),
+]);
+
+// Insert schemas for referral marketplace tables
+export const insertReferralListingSchema = createInsertSchema(referralListings).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertReferralRequestSchema = createInsertSchema(referralRequests).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Referral marketplace types
+export type ReferralListing = typeof referralListings.$inferSelect;
+export type InsertReferralListing = z.infer<typeof insertReferralListingSchema>;
+export type ReferralRequest = typeof referralRequests.$inferSelect;
+export type InsertReferralRequest = z.infer<typeof insertReferralRequestSchema>;
+
 // Internship insert schemas and types
 export const insertScrapedInternshipSchema = createInsertSchema(scrapedInternships).omit({
   id: true,
