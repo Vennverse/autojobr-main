@@ -292,9 +292,10 @@ export async function setupAuth(app: Express) {
   // User info endpoint with enhanced debugging
   app.get('/api/user', async (req: any, res) => {
     try {
-      const sessionUser = req.session?.user;
+      // Check both passport user and session user for compatibility
+      const sessionUser = req.session?.user || req.user;
       
-      console.log(`🔍 [AUTH DEBUG] GET /api/user: hasSession=${!!req.session}, sessionUser=${!!sessionUser}`);
+      console.log(`🔍 [AUTH DEBUG] GET /api/user: hasSession=${!!req.session}, sessionUser=${!!sessionUser}, passportUser=${!!req.user}`);
       
       if (!sessionUser) {
         console.log(`🚫 [AUTH DEBUG] No session user found`);
@@ -1623,7 +1624,8 @@ export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
     cookies: req.headers.cookie ? 'present' : 'missing'
   });
   try {
-    const sessionUser = req.session?.user;
+    // Check both passport user and session user for compatibility
+    const sessionUser = req.session?.user || req.user;
     
     if (!sessionUser) {
       return res.status(401).json({ message: "Not authenticated" });
