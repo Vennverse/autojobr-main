@@ -226,6 +226,7 @@ function Router() {
               <Route path="/recruiter-premium" component={RecruiterPremium} />
               <Route path="/chat" component={SimpleChatPage} />
               <Route path="/messaging" component={SimpleChatPage} />
+              <Route path="/bidder-dashboard" component={BidderDashboard} />
               <Route path="/job-seeker-view" component={Dashboard} />
             </>
           ) : user?.userType === 'job_seeker' ? (
