@@ -606,85 +606,211 @@ export default function BidderDashboard() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">
-          Bidder Dashboard
-        </h1>
-        <p className="text-muted-foreground" data-testid="text-page-description">
-          Manage your projects, bids, and freelance work
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent" data-testid="text-page-title">
+                Bidder Dashboard
+              </h1>
+              <p className="text-muted-foreground text-lg" data-testid="text-page-description">
+                Manage your projects, bids, and freelance work
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.href = '/bidder-profile'}
+                data-testid="button-edit-profile"
+                className="hover:bg-blue-50 dark:hover:bg-blue-900"
+              >
+                <User className="mr-2 h-4 w-4" />
+                Edit Profile
+              </Button>
+              <Button 
+                onClick={() => setActiveTab('post')}
+                data-testid="button-post-project"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                disabled={!bidderRegistration}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Post Project
+              </Button>
+            </div>
+          </div>
+        </div>
 
-      {!bidderRegistration && (
-        <Card className="mb-8 border-blue-200 bg-blue-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-blue-600" />
-              Complete Your Bidder Registration
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              To start bidding on projects and posting your own, please complete your bidder profile.
-            </p>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button data-testid="button-register-bidder">
-                  Register as Bidder
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Bidder Registration</DialogTitle>
-                </DialogHeader>
-                <BidderRegistrationForm 
-                  onSuccess={() => {
-                    queryClient.invalidateQueries({ queryKey: ['/api/bidders/registration'] });
-                  }} 
-                />
-              </DialogContent>
-            </Dialog>
-          </CardContent>
-        </Card>
-      )}
+        {!bidderRegistration && (
+          <Card className="mb-8 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                <AlertCircle className="h-6 w-6" />
+                Complete Your Bidder Registration
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-muted-foreground mb-2 text-base">
+                    To start bidding on projects and posting your own, please complete your bidder profile.
+                  </p>
+                  <p className="text-sm text-blue-600 dark:text-blue-400">
+                    Get verified and start earning today!
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <Button 
+                    variant="outline"
+                    onClick={() => window.location.href = '/bidder-profile'}
+                    data-testid="button-create-profile"
+                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                  >
+                    Create Profile
+                  </Button>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button 
+                        data-testid="button-register-bidder"
+                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                      >
+                        Quick Register
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Bidder Registration</DialogTitle>
+                      </DialogHeader>
+                      <BidderRegistrationForm 
+                        onSuccess={() => {
+                          queryClient.invalidateQueries({ queryKey: ['/api/bidders/registration'] });
+                        }} 
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
-          <TabsTrigger value="browse" data-testid="tab-browse">Browse Projects</TabsTrigger>
-          <TabsTrigger value="post" data-testid="tab-post" disabled={!bidderRegistration}>
-            Post Project
-          </TabsTrigger>
-          <TabsTrigger value="bids" data-testid="tab-bids">My Bids</TabsTrigger>
-          <TabsTrigger value="projects" data-testid="tab-projects">My Projects</TabsTrigger>
-        </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+          <TabsList className="grid w-full grid-cols-5 bg-white dark:bg-slate-800 shadow-lg rounded-xl p-1">
+            <TabsTrigger value="overview" data-testid="tab-overview" className="rounded-lg">
+              <Briefcase className="mr-2 h-4 w-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="browse" data-testid="tab-browse" className="rounded-lg">
+              <Eye className="mr-2 h-4 w-4" />
+              Browse Projects
+            </TabsTrigger>
+            <TabsTrigger value="post" data-testid="tab-post" disabled={!bidderRegistration} className="rounded-lg">
+              <Plus className="mr-2 h-4 w-4" />
+              Post Project
+            </TabsTrigger>
+            <TabsTrigger value="bids" data-testid="tab-bids" className="rounded-lg">
+              <Send className="mr-2 h-4 w-4" />
+              My Bids
+            </TabsTrigger>
+            <TabsTrigger value="projects" data-testid="tab-projects" className="rounded-lg">
+              <Star className="mr-2 h-4 w-4" />
+              My Projects
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Bids</CardTitle>
-                <Send className="h-4 w-4 text-muted-foreground" />
+        <TabsContent value="overview" className="space-y-8">
+          {/* Profile Status Card */}
+          {bidderRegistration && (
+            <Card className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
+                  <CheckCircle className="h-6 w-6" />
+                  Profile Status
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold" data-testid="text-active-bids-count">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="font-medium text-green-800 dark:text-green-200">
+                      {bidderRegistration.businessName || 'Freelancer Profile'} - Active
+                    </p>
+                    <p className="text-sm text-green-600 dark:text-green-400">
+                      Rating: {bidderRegistration.rating || '0.00'} ⭐ | 
+                      Completed: {bidderRegistration.completedProjects || 0} projects
+                    </p>
+                  </div>
+                  <Badge variant={bidderRegistration.verified ? 'default' : 'outline'} className="bg-green-100 text-green-800">
+                    {bidderRegistration.verified ? 'Verified' : 'Pending'}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 border-blue-200 shadow-lg hover:shadow-xl transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">Active Bids</CardTitle>
+                <Send className="h-5 w-5 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-blue-800 dark:text-blue-200" data-testid="text-active-bids-count">
                   {Array.isArray(userBids) ? userBids.filter((bid: SelectBid) => bid.status === 'pending').length : 0}
                 </div>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  Awaiting response
+                </p>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 border-purple-200 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Posted Projects</CardTitle>
-                <Briefcase className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">Posted Projects</CardTitle>
+                <Briefcase className="h-5 w-5 text-purple-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold" data-testid="text-posted-projects-count">
+                <div className="text-3xl font-bold text-purple-800 dark:text-purple-200" data-testid="text-posted-projects-count">
                   {Array.isArray(userProjects) ? userProjects.length : 0}
                 </div>
+                <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                  Total projects
+                </p>
               </CardContent>
             </Card>
+
+            <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 border-green-200 shadow-lg hover:shadow-xl transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">Total Earnings</CardTitle>
+                <DollarSign className="h-5 w-5 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-green-800 dark:text-green-200" data-testid="text-total-earnings">
+                  {bidderRegistration ? formatCurrency(bidderRegistration.totalEarnings || 0) : '$0.00'}
+                </div>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                  All time
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/30 border-orange-200 shadow-lg hover:shadow-xl transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300">Success Rate</CardTitle>
+                <Star className="h-5 w-5 text-orange-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-orange-800 dark:text-orange-200">
+                  {bidderRegistration && bidderRegistration.completedProjects > 0 
+                    ? Math.round((Array.isArray(userBids) ? userBids.filter((bid: SelectBid) => bid.status === 'accepted').length : 0) / bidderRegistration.completedProjects * 100)
+                    : 0}%
+                </div>
+                <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                  Bid acceptance
+                </p>
+              </CardContent>
+            </Card>
+          </div>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -990,6 +1116,7 @@ export default function BidderDashboard() {
           )}
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
