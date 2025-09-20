@@ -1,5 +1,8 @@
 import express from "express";
+import multer from "multer";
+import path from "path";
 import { storage } from "./storage.js";
+import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal.js";
 
 const router = express.Router();
 
@@ -256,6 +259,78 @@ router.put('/milestones/:id', isAuthenticated, async (req: any, res) => {
     res.json(milestone);
   } catch (error: any) {
     console.error('Update project milestone error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ===== PAYPAL INTEGRATION ROUTES =====
+// Referenced from the PayPal blueprint integration
+
+router.get("/paypal/setup", async (req, res) => {
+    await loadPaypalDefault(req, res);
+});
+
+router.post("/paypal/order", async (req, res) => {
+  // Request body should contain: { intent, amount, currency }
+  await createPaypalOrder(req, res);
+});
+
+router.post("/paypal/order/:orderID/capture", async (req, res) => {
+  await capturePaypalOrder(req, res);
+});
+
+// ===== FILE UPLOAD ROUTES =====
+
+// Configure multer for photo uploads
+const upload = multer({
+  dest: 'uploads/bidder-photos/',
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG, and WebP are allowed.'), false);
+    }
+  }
+});
+
+router.post('/upload/bidder-photo', isAuthenticated, upload.single('file'), async (req: any, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const { type } = req.body; // 'profile' or 'logo'
+    const file = req.file;
+    
+    // Generate unique filename
+    const timestamp = Date.now();
+    const extension = path.extname(file.originalname);
+    const fileName = `${type}-${timestamp}${extension}`;
+    const relativePath = `uploads/bidder-photos/${fileName}`;
+    
+    // Move file to proper location with new name
+    const fs = await import('fs');
+    const oldPath = file.path;
+    const newPath = path.join(process.cwd(), relativePath);
+    
+    // Ensure directory exists
+    const dir = path.dirname(newPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    
+    fs.renameSync(oldPath, newPath);
+    
+    // Return the URL path that can be used in the frontend
+    const url = `/${relativePath}`;
+    res.json({ url, fileName });
+    
+  } catch (error: any) {
+    console.error('File upload error:', error);
     res.status(500).json({ error: error.message });
   }
 });

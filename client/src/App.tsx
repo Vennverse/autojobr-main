@@ -75,6 +75,7 @@ import SubscriptionSuccess from "@/pages/subscription/Success";
 import SubscriptionCancel from "@/pages/subscription/Cancel";
 import BidderDashboard from "@/pages/bidder-dashboard";
 import BidderLanding from "@/pages/bidder-landing";
+import BidderProfile from "@/pages/bidder-profile";
 
 // SEO Landing Pages to Beat Competition
 import FreeJobApplicationAutomation from "@/pages/seo/FreeJobApplicationAutomation";
@@ -227,6 +228,7 @@ function Router() {
               <Route path="/chat" component={SimpleChatPage} />
               <Route path="/messaging" component={SimpleChatPage} />
               <Route path="/bidder-dashboard" component={BidderDashboard} />
+              <Route path="/bidder-profile" component={BidderProfile} />
               <Route path="/job-seeker-view" component={Dashboard} />
             </>
           ) : user?.userType === 'job_seeker' ? (
@@ -277,6 +279,7 @@ function Router() {
                   <Route path="/my-bookings" component={MyBookings} />
                   <Route path="/job-alerts" component={JobAlertsPage} />
                   <Route path="/bidder-dashboard" component={BidderDashboard} />
+                  <Route path="/bidder-profile" component={BidderProfile} />
                   <Route path="/chat" component={SimpleChatPage} />
                   <Route path="/messaging" component={SimpleChatPage} />
                 </>
@@ -306,6 +309,7 @@ function Router() {
               <Route path="/become-referrer" component={BecomeReferrer} />
               <Route path="/my-bookings" component={MyBookings} />
               <Route path="/bidder-dashboard" component={BidderDashboard} />
+              <Route path="/bidder-profile" component={BidderProfile} />
               <Route path="/chat" component={SimpleChatPage} />
               <Route path="/messaging" component={SimpleChatPage} />
             </>
