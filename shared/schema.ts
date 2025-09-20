@@ -2795,6 +2795,17 @@ export const bidderRegistrations = pgTable("bidder_registrations", {
   hourlyRate: integer("hourly_rate"), // Rate in cents
   portfolioUrl: varchar("portfolio_url"),
   bio: text("bio"),
+  profilePhotoUrl: varchar("profile_photo_url"), // Profile photo/logo
+  businessLogoUrl: varchar("business_logo_url"), // Business logo
+  preferredPaymentMethod: varchar("preferred_payment_method"), // paypal, stripe, bank_transfer
+  paypalEmail: varchar("paypal_email"), // PayPal email for payments
+  stripeAccountId: varchar("stripe_account_id"), // Stripe connect account ID
+  bankAccountInfo: jsonb("bank_account_info"), // Encrypted bank details for direct transfer
+  taxId: varchar("tax_id"), // Business tax ID
+  address: text("address"), // Business address
+  phone: varchar("phone"), // Contact phone
+  websiteUrl: varchar("website_url"), // Business website
+  socialLinks: jsonb("social_links"), // LinkedIn, Twitter, etc.
   verified: boolean("verified").default(false),
   rating: numeric("rating", { precision: 3, scale: 2 }).default("0.00"),
   completedProjects: integer("completed_projects").default(0),
