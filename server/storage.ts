@@ -22,6 +22,11 @@ import {
   mockInterviewQuestions,
   interviewPayments,
   userInterviewStats,
+  bidderRegistrations,
+  projects,
+  bids,
+  projectPayments,
+  projectMilestones,
   type User,
   type UpsertUser,
   type UserProfile,
@@ -66,6 +71,16 @@ import {
   type InsertInterviewPayment,
   type UserInterviewStats,
   type InsertUserInterviewStats,
+  type SelectBidderRegistration,
+  type InsertBidderRegistration,
+  type SelectProject,
+  type InsertProject,
+  type SelectBid,
+  type InsertBid,
+  type SelectProjectPayment,
+  type InsertProjectPayment,
+  type SelectProjectMilestone,
+  type InsertProjectMilestone,
   questionBank,
 } from "@shared/schema";
 import { db } from "./db";
@@ -235,6 +250,40 @@ export interface IStorage {
   // User interview stats
   getUserInterviewStats(userId: string): Promise<UserInterviewStats | undefined>;
   upsertUserInterviewStats(stats: InsertUserInterviewStats): Promise<UserInterviewStats>;
+
+  // ===== BIDDER SYSTEM OPERATIONS =====
+  
+  // Bidder registration operations
+  getBidderRegistration(userId: string): Promise<SelectBidderRegistration | undefined>;
+  createBidderRegistration(registration: InsertBidderRegistration): Promise<SelectBidderRegistration>;
+  updateBidderRegistration(userId: string, updates: Partial<InsertBidderRegistration>): Promise<SelectBidderRegistration>;
+  
+  // Project operations
+  getProjects(filters?: { status?: string; type?: string; category?: string }): Promise<SelectProject[]>;
+  getProject(id: number): Promise<SelectProject | undefined>;
+  getUserProjects(userId: string): Promise<SelectProject[]>;
+  createProject(project: InsertProject): Promise<SelectProject>;
+  updateProject(id: number, updates: Partial<InsertProject>): Promise<SelectProject>;
+  deleteProject(id: number): Promise<void>;
+  
+  // Bid operations
+  getProjectBids(projectId: number): Promise<SelectBid[]>;
+  getUserBids(userId: string): Promise<SelectBid[]>;
+  getBid(id: number): Promise<SelectBid | undefined>;
+  createBid(bid: InsertBid): Promise<SelectBid>;
+  updateBid(id: number, updates: Partial<InsertBid>): Promise<SelectBid>;
+  deleteBid(id: number): Promise<void>;
+  acceptBid(bidId: number): Promise<SelectBid>;
+  
+  // Project payment operations
+  getProjectPayment(projectId: number): Promise<SelectProjectPayment | undefined>;
+  createProjectPayment(payment: InsertProjectPayment): Promise<SelectProjectPayment>;
+  updateProjectPayment(id: number, updates: Partial<InsertProjectPayment>): Promise<SelectProjectPayment>;
+  
+  // Project milestone operations
+  getProjectMilestones(projectId: number): Promise<SelectProjectMilestone[]>;
+  createProjectMilestone(milestone: InsertProjectMilestone): Promise<SelectProjectMilestone>;
+  updateProjectMilestone(id: number, updates: Partial<InsertProjectMilestone>): Promise<SelectProjectMilestone>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1521,6 +1570,264 @@ export class DatabaseStorage implements IStorage {
         })
         .returning();
       return upsertedStats;
+    });
+  }
+
+  // ===== BIDDER SYSTEM IMPLEMENTATIONS =====
+  
+  // Bidder registration operations
+  async getBidderRegistration(userId: string): Promise<SelectBidderRegistration | undefined> {
+    return await handleDbOperation(async () => {
+      const [registration] = await db
+        .select()
+        .from(bidderRegistrations)
+        .where(eq(bidderRegistrations.userId, userId));
+      return registration;
+    }, undefined);
+  }
+
+  async createBidderRegistration(registration: InsertBidderRegistration): Promise<SelectBidderRegistration> {
+    return await handleDbOperation(async () => {
+      const [newRegistration] = await db
+        .insert(bidderRegistrations)
+        .values(registration)
+        .returning();
+      return newRegistration;
+    });
+  }
+
+  async updateBidderRegistration(userId: string, updates: Partial<InsertBidderRegistration>): Promise<SelectBidderRegistration> {
+    return await handleDbOperation(async () => {
+      const [updatedRegistration] = await db
+        .update(bidderRegistrations)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(bidderRegistrations.userId, userId))
+        .returning();
+      return updatedRegistration;
+    });
+  }
+
+  // Project operations
+  async getProjects(filters?: { status?: string; type?: string; category?: string }): Promise<SelectProject[]> {
+    return await handleDbOperation(async () => {
+      let query = db.select().from(projects);
+      
+      if (filters) {
+        const conditions = [];
+        if (filters.status) conditions.push(eq(projects.status, filters.status));
+        if (filters.type) conditions.push(eq(projects.type, filters.type));
+        if (filters.category) conditions.push(eq(projects.category, filters.category));
+        
+        if (conditions.length > 0) {
+          query = query.where(and(...conditions));
+        }
+      }
+      
+      return await query.orderBy(desc(projects.createdAt));
+    }, []);
+  }
+
+  async getProject(id: number): Promise<SelectProject | undefined> {
+    return await handleDbOperation(async () => {
+      const [project] = await db
+        .select()
+        .from(projects)
+        .where(eq(projects.id, id));
+      return project;
+    }, undefined);
+  }
+
+  async getUserProjects(userId: string): Promise<SelectProject[]> {
+    return await handleDbOperation(async () => {
+      return await db
+        .select()
+        .from(projects)
+        .where(eq(projects.userId, userId))
+        .orderBy(desc(projects.createdAt));
+    }, []);
+  }
+
+  async createProject(project: InsertProject): Promise<SelectProject> {
+    return await handleDbOperation(async () => {
+      const [newProject] = await db
+        .insert(projects)
+        .values(project)
+        .returning();
+      return newProject;
+    });
+  }
+
+  async updateProject(id: number, updates: Partial<InsertProject>): Promise<SelectProject> {
+    return await handleDbOperation(async () => {
+      const [updatedProject] = await db
+        .update(projects)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(projects.id, id))
+        .returning();
+      return updatedProject;
+    });
+  }
+
+  async deleteProject(id: number): Promise<void> {
+    return await handleDbOperation(async () => {
+      await db.delete(projects).where(eq(projects.id, id));
+    });
+  }
+
+  // Bid operations
+  async getProjectBids(projectId: number): Promise<SelectBid[]> {
+    return await handleDbOperation(async () => {
+      return await db
+        .select()
+        .from(bids)
+        .where(eq(bids.projectId, projectId))
+        .orderBy(asc(bids.amount)); // Order by lowest bid first
+    }, []);
+  }
+
+  async getUserBids(userId: string): Promise<SelectBid[]> {
+    return await handleDbOperation(async () => {
+      return await db
+        .select()
+        .from(bids)
+        .where(eq(bids.bidderId, userId))
+        .orderBy(desc(bids.submittedAt));
+    }, []);
+  }
+
+  async getBid(id: number): Promise<SelectBid | undefined> {
+    return await handleDbOperation(async () => {
+      const [bid] = await db
+        .select()
+        .from(bids)
+        .where(eq(bids.id, id));
+      return bid;
+    }, undefined);
+  }
+
+  async createBid(bid: InsertBid): Promise<SelectBid> {
+    return await handleDbOperation(async () => {
+      const [newBid] = await db
+        .insert(bids)
+        .values(bid)
+        .returning();
+      return newBid;
+    });
+  }
+
+  async updateBid(id: number, updates: Partial<InsertBid>): Promise<SelectBid> {
+    return await handleDbOperation(async () => {
+      const [updatedBid] = await db
+        .update(bids)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(bids.id, id))
+        .returning();
+      return updatedBid;
+    });
+  }
+
+  async deleteBid(id: number): Promise<void> {
+    return await handleDbOperation(async () => {
+      await db.delete(bids).where(eq(bids.id, id));
+    });
+  }
+
+  async acceptBid(bidId: number): Promise<SelectBid> {
+    return await handleDbOperation(async () => {
+      // Get the bid first
+      const [bid] = await db.select().from(bids).where(eq(bids.id, bidId));
+      if (!bid) throw new Error('Bid not found');
+
+      // Reject all other bids for this project
+      await db
+        .update(bids)
+        .set({ status: 'rejected', updatedAt: new Date() })
+        .where(and(eq(bids.projectId, bid.projectId), ne(bids.id, bidId)));
+
+      // Accept this bid
+      const [acceptedBid] = await db
+        .update(bids)
+        .set({ status: 'accepted', updatedAt: new Date() })
+        .where(eq(bids.id, bidId))
+        .returning();
+
+      // Update project with selected bidder
+      await db
+        .update(projects)
+        .set({
+          selectedBidderId: bid.bidderId,
+          selectedBidAmount: bid.amount,
+          status: 'in_progress',
+          startDate: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(projects.id, bid.projectId));
+
+      return acceptedBid;
+    });
+  }
+
+  // Project payment operations
+  async getProjectPayment(projectId: number): Promise<SelectProjectPayment | undefined> {
+    return await handleDbOperation(async () => {
+      const [payment] = await db
+        .select()
+        .from(projectPayments)
+        .where(eq(projectPayments.projectId, projectId));
+      return payment;
+    }, undefined);
+  }
+
+  async createProjectPayment(payment: InsertProjectPayment): Promise<SelectProjectPayment> {
+    return await handleDbOperation(async () => {
+      const [newPayment] = await db
+        .insert(projectPayments)
+        .values(payment)
+        .returning();
+      return newPayment;
+    });
+  }
+
+  async updateProjectPayment(id: number, updates: Partial<InsertProjectPayment>): Promise<SelectProjectPayment> {
+    return await handleDbOperation(async () => {
+      const [updatedPayment] = await db
+        .update(projectPayments)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(projectPayments.id, id))
+        .returning();
+      return updatedPayment;
+    });
+  }
+
+  // Project milestone operations
+  async getProjectMilestones(projectId: number): Promise<SelectProjectMilestone[]> {
+    return await handleDbOperation(async () => {
+      return await db
+        .select()
+        .from(projectMilestones)
+        .where(eq(projectMilestones.projectId, projectId))
+        .orderBy(asc(projectMilestones.dueDate));
+    }, []);
+  }
+
+  async createProjectMilestone(milestone: InsertProjectMilestone): Promise<SelectProjectMilestone> {
+    return await handleDbOperation(async () => {
+      const [newMilestone] = await db
+        .insert(projectMilestones)
+        .values(milestone)
+        .returning();
+      return newMilestone;
+    });
+  }
+
+  async updateProjectMilestone(id: number, updates: Partial<InsertProjectMilestone>): Promise<SelectProjectMilestone> {
+    return await handleDbOperation(async () => {
+      const [updatedMilestone] = await db
+        .update(projectMilestones)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(projectMilestones.id, id))
+        .returning();
+      return updatedMilestone;
     });
   }
 }
