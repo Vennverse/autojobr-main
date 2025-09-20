@@ -34,7 +34,8 @@ import {
   Send,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  User
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -812,64 +813,16 @@ export default function BidderDashboard() {
             </Card>
           </div>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-                <Star className="h-4 w-4 text-muted-foreground" />
+          {bidderRegistration && (
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Recent Activity
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold" data-testid="text-success-rate">
-                  {bidderRegistration?.rating ? `${bidderRegistration.rating}/5.0` : 'N/A'}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {bidderRegistration && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Profile</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium">Business Name</p>
-                    <p className="text-sm text-muted-foreground" data-testid="text-business-name">
-                      {bidderRegistration.businessName || 'Individual Freelancer'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Hourly Rate</p>
-                    <p className="text-sm text-muted-foreground" data-testid="text-hourly-rate">
-                      {bidderRegistration.hourlyRate ? formatCurrency(bidderRegistration.hourlyRate) : 'Not set'}
-                    </p>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Skills</p>
-                  <p className="text-sm text-muted-foreground" data-testid="text-skills">
-                    {bidderRegistration.skills || 'No skills listed'}
-                  </p>
-                </div>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" data-testid="button-edit-profile">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Profile
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle>Edit Bidder Profile</DialogTitle>
-                    </DialogHeader>
-                    <BidderRegistrationForm 
-                      existingRegistration={bidderRegistration}
-                      onSuccess={() => {
-                        queryClient.invalidateQueries({ queryKey: ['/api/bidders/registration'] });
-                      }} 
-                    />
-                  </DialogContent>
-                </Dialog>
+                <p className="text-muted-foreground">No recent activity</p>
               </CardContent>
             </Card>
           )}
