@@ -74,6 +74,7 @@ import SSOConfiguration from "@/pages/sso-configuration";
 import SubscriptionSuccess from "@/pages/subscription/Success";
 import SubscriptionCancel from "@/pages/subscription/Cancel";
 import BidderDashboard from "@/pages/bidder-dashboard";
+import BidderLanding from "@/pages/bidder-landing";
 
 // SEO Landing Pages to Beat Competition
 import FreeJobApplicationAutomation from "@/pages/seo/FreeJobApplicationAutomation";
@@ -318,6 +319,8 @@ function Router() {
           <Route path="/recruiters" component={RecruiterFeatures} />
           <Route path="/recruiter-features" component={RecruiterFeatures} />
           <Route path="/test/:id" component={TestTaking} />
+          {/* Bidder dashboard - show landing page for unauthenticated users */}
+          <Route path="/bidder-dashboard" component={BidderLanding} />
           {/* Redirect unauthenticated users trying to access interviews to login with redirect */}
           <Route path="/virtual-interview/:sessionId">
             {(params) => {

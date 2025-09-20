@@ -184,13 +184,15 @@ export async function setupAuth(app: Express) {
     try {
       const user = await storage.getUser(id);
       if (user) {
-        done(null, {
+        const userData = {
           id: user.id,
           email: user.email || '',
           firstName: user.firstName || '',
           lastName: user.lastName || '',
-          userType: user.userType || 'job_seeker'
-        });
+          userType: user.userType || 'job_seeker',
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim()
+        };
+        done(null, userData);
       } else {
         done(null, false);
       }
