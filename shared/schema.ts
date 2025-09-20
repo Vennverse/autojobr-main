@@ -2783,3 +2783,193 @@ export type InternshipApplication = typeof internshipApplications.$inferSelect;
 export type InsertInternshipApplication = z.infer<typeof insertInternshipApplicationSchema>;
 export type InternshipSyncLog = typeof internshipSyncLog.$inferSelect;
 export type InsertInternshipSyncLog = z.infer<typeof insertInternshipSyncLogSchema>;
+
+// ====== BIDDER SYSTEM TABLES ======
+
+// Bidder registrations - Users can register as bidders to post/bid on projects
+export const bidderRegistrations = pgTable("bidder_registrations", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  businessName: varchar("business_name"), // Optional for freelancers
+  skills: text("skills"), // Comma-separated skills
+  hourlyRate: integer("hourly_rate"), // Rate in cents
+  portfolioUrl: varchar("portfolio_url"),
+  bio: text("bio"),
+  verified: boolean("verified").default(false),
+  rating: numeric("rating", { precision: 3, scale: 2 }).default("0.00"),
+  completedProjects: integer("completed_projects").default(0),
+  totalEarnings: integer("total_earnings").default(0), // In cents
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Projects - Both Track A (short-term) and Track B (long-term) projects
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(), // Project poster
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  type: varchar("type").notNull(), // 'short_term' or 'long_term'
+  category: varchar("category").notNull(), // 'web_development', 'design', 'marketing', etc.
+  budget: integer("budget").notNull(), // In cents
+  timeline: varchar("timeline").notNull(), // '1 week', '2 months', etc.
+  skillsRequired: text("skills_required"), // Comma-separated
+  status: varchar("status").default("open").notNull(), // open, in_progress, completed, cancelled
+  selectedBidderId: varchar("selected_bidder_id").references(() => users.id),
+  selectedBidAmount: integer("selected_bid_amount"), // In cents
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  completionDate: timestamp("completion_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+},
+(table) => [
+  index("idx_projects_status").on(table.status),
+  index("idx_projects_type").on(table.type),
+  index("idx_projects_category").on(table.category),
+  index("idx_projects_user_id").on(table.userId),
+]);
+
+// Bids - Bidder proposals for projects
+export const bids = pgTable("bids", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => projects.id).notNull(),
+  bidderId: varchar("bidder_id").references(() => users.id).notNull(),
+  amount: integer("amount").notNull(), // In cents
+  timeline: varchar("timeline").notNull(),
+  proposal: text("proposal").notNull(),
+  status: varchar("status").default("pending").notNull(), // pending, accepted, rejected
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+},
+(table) => [
+  index("idx_bids_project_id").on(table.projectId),
+  index("idx_bids_bidder_id").on(table.bidderId),
+  index("idx_bids_status").on(table.status),
+]);
+
+// Project payments - PayPal escrow functionality
+export const projectPayments = pgTable("project_payments", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => projects.id).notNull(),
+  amount: integer("amount").notNull(), // In cents
+  commission: integer("commission").notNull(), // Platform commission in cents
+  paypalOrderId: varchar("paypal_order_id"),
+  paypalPaymentId: varchar("paypal_payment_id"),
+  status: varchar("status").default("pending").notNull(), // pending, escrowed, released, refunded
+  escrowedAt: timestamp("escrowed_at"),
+  releasedAt: timestamp("released_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+},
+(table) => [
+  index("idx_project_payments_project_id").on(table.projectId),
+  index("idx_project_payments_status").on(table.status),
+]);
+
+// Project milestones - For tracking progress
+export const projectMilestones = pgTable("project_milestones", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => projects.id).notNull(),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  amount: integer("amount").notNull(), // In cents
+  status: varchar("status").default("pending").notNull(), // pending, completed, approved, paid
+  dueDate: timestamp("due_date"),
+  completedAt: timestamp("completed_at"),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+},
+(table) => [
+  index("idx_project_milestones_project_id").on(table.projectId),
+  index("idx_project_milestones_status").on(table.status),
+]);
+
+// Relations
+export const bidderRegistrationsRelations = relations(bidderRegistrations, ({ one }) => ({
+  user: one(users, {
+    fields: [bidderRegistrations.userId],
+    references: [users.id],
+  }),
+}));
+
+export const projectsRelations = relations(projects, ({ one, many }) => ({
+  user: one(users, {
+    fields: [projects.userId],
+    references: [users.id],
+  }),
+  selectedBidder: one(users, {
+    fields: [projects.selectedBidderId],
+    references: [users.id],
+  }),
+  bids: many(bids),
+  payments: many(projectPayments),
+  milestones: many(projectMilestones),
+}));
+
+export const bidsRelations = relations(bids, ({ one }) => ({
+  project: one(projects, {
+    fields: [bids.projectId],
+    references: [projects.id],
+  }),
+  bidder: one(users, {
+    fields: [bids.bidderId],
+    references: [users.id],
+  }),
+}));
+
+export const projectPaymentsRelations = relations(projectPayments, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectPayments.projectId],
+    references: [projects.id],
+  }),
+}));
+
+export const projectMilestonesRelations = relations(projectMilestones, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectMilestones.projectId],
+    references: [projects.id],
+  }),
+}));
+
+// Insert schemas for bidder system
+export const insertBidderRegistrationSchema = createInsertSchema(bidderRegistrations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertBidderRegistration = z.infer<typeof insertBidderRegistrationSchema>;
+export type SelectBidderRegistration = typeof bidderRegistrations.$inferSelect;
+
+export const insertProjectSchema = createInsertSchema(projects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertProject = z.infer<typeof insertProjectSchema>;
+export type SelectProject = typeof projects.$inferSelect;
+
+export const insertBidSchema = createInsertSchema(bids).omit({
+  id: true,
+  submittedAt: true,
+  updatedAt: true,
+});
+export type InsertBid = z.infer<typeof insertBidSchema>;
+export type SelectBid = typeof bids.$inferSelect;
+
+export const insertProjectPaymentSchema = createInsertSchema(projectPayments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertProjectPayment = z.infer<typeof insertProjectPaymentSchema>;
+export type SelectProjectPayment = typeof projectPayments.$inferSelect;
+
+export const insertProjectMilestoneSchema = createInsertSchema(projectMilestones).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertProjectMilestone = z.infer<typeof insertProjectMilestoneSchema>;
+export type SelectProjectMilestone = typeof projectMilestones.$inferSelect;
