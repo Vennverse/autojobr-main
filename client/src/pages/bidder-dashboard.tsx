@@ -184,7 +184,7 @@ function BidderRegistrationForm({ existingRegistration, onSuccess }: {
                 />
               </FormControl>
               <FormMessage />
-            </FormMessage>
+            </FormItem>
           )}
         />
 
