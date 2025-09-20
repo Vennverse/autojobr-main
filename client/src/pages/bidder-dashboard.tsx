@@ -542,27 +542,55 @@ export default function BidderDashboard() {
   // Get bidder registration
   const { data: bidderRegistration } = useQuery({
     queryKey: ['/api/bidders/registration', user?.id],
-    queryFn: () => fetch(`/api/bidders/registration/${user?.id}`).then(res => res.ok ? res.json() : null),
+    queryFn: async () => {
+      const res = await fetch(`/api/bidders/registration/${user?.id}`);
+      if (!res.ok) {
+        console.warn('Failed to fetch bidder registration:', res.status);
+        return null;
+      }
+      return res.json();
+    },
     enabled: !!user?.id,
   });
 
   // Get projects (for browsing)
   const { data: projects = [] } = useQuery({
     queryKey: ['/api/projects'],
-    queryFn: () => fetch('/api/projects').then(res => res.json()),
+    queryFn: async () => {
+      const res = await fetch('/api/projects');
+      if (!res.ok) {
+        console.warn('Failed to fetch projects:', res.status);
+        return [];
+      }
+      return res.json();
+    },
   });
 
   // Get user's projects (posted by user)
   const { data: userProjects = [] } = useQuery({
     queryKey: ['/api/users', user?.id, 'projects'],
-    queryFn: () => fetch(`/api/users/${user?.id}/projects`).then(res => res.json()),
+    queryFn: async () => {
+      const res = await fetch(`/api/users/${user?.id}/projects`);
+      if (!res.ok) {
+        console.warn('Failed to fetch user projects:', res.status);
+        return [];
+      }
+      return res.json();
+    },
     enabled: !!user?.id,
   });
 
   // Get user's bids
   const { data: userBids = [] } = useQuery({
     queryKey: ['/api/users', user?.id, 'bids'],
-    queryFn: () => fetch(`/api/users/${user?.id}/bids`).then(res => res.json()),
+    queryFn: async () => {
+      const res = await fetch(`/api/users/${user?.id}/bids`);
+      if (!res.ok) {
+        console.warn('Failed to fetch user bids:', res.status);
+        return [];
+      }
+      return res.json();
+    },
     enabled: !!user?.id,
   });
 
@@ -641,7 +669,7 @@ export default function BidderDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold" data-testid="text-active-bids-count">
-                  {userBids.filter((bid: SelectBid) => bid.status === 'pending').length}
+                  {Array.isArray(userBids) ? userBids.filter((bid: SelectBid) => bid.status === 'pending').length : 0}
                 </div>
               </CardContent>
             </Card>
@@ -653,7 +681,7 @@ export default function BidderDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold" data-testid="text-posted-projects-count">
-                  {userProjects.length}
+                  {Array.isArray(userProjects) ? userProjects.length : 0}
                 </div>
               </CardContent>
             </Card>
@@ -730,7 +758,7 @@ export default function BidderDashboard() {
           </div>
 
           <div className="grid gap-6">
-            {projects.map((project: SelectProject) => (
+            {Array.isArray(projects) && projects.map((project: SelectProject) => (
               <Card key={project.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex justify-between items-start">
@@ -843,7 +871,7 @@ export default function BidderDashboard() {
           </div>
 
           <div className="grid gap-4">
-            {userBids.map((bid: SelectBid) => (
+            {Array.isArray(userBids) && userBids.map((bid: SelectBid) => (
               <Card key={bid.id}>
                 <CardContent className="pt-6">
                   <div className="flex justify-between items-start">
@@ -889,7 +917,7 @@ export default function BidderDashboard() {
           </div>
 
           <div className="grid gap-6">
-            {userProjects.map((project: SelectProject) => (
+            {Array.isArray(userProjects) && userProjects.map((project: SelectProject) => (
               <Card key={project.id}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
