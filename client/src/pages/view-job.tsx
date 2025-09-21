@@ -366,8 +366,24 @@ export default function ViewJob() {
     );
   }
 
+  // Generate structured data for this job
+  const jobStructuredData = generateJobPostingStructuredData(job, jobId || '');
+  
+  // SEO metadata for this job
+  const jobTitle = job ? `${job.title} at ${job.companyName} | AutoJobR` : "Job Details | AutoJobR";
+  const jobDescription = job ? `Apply for ${job.title} at ${job.companyName}. ${job.location ? `Location: ${job.location}. ` : ''}${job.description ? job.description.substring(0, 155).replace(/[\r\n]+/g, ' ') + '...' : 'Explore this exciting opportunity and apply instantly with AutoJobR.'}` : "Explore job opportunities with AutoJobR";
+  const canonicalUrl = `https://autojobr.com/jobs/${jobId}`;
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <SEOHead 
+        title={jobTitle}
+        description={jobDescription}
+        canonicalUrl={canonicalUrl}
+        structuredData={jobStructuredData}
+        ogType="article"
+        keywords={`${job?.title || 'job'}, ${job?.companyName || 'company'}, ${job?.location || 'remote'}, job application, career opportunity, AutoJobR`}
+      />
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b">
         <div className="container mx-auto px-4 py-6">
