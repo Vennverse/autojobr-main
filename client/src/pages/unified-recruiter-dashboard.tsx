@@ -2264,7 +2264,13 @@ export default function RecruiterDashboard() {
                               ).toLocaleDateString()}
                             </p>
                           </div>
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              window.open(`/simple-chat?conversation=${conversation.id}`, '_blank');
+                            }}
+                          >
                             Open Chat
                           </Button>
                         </div>

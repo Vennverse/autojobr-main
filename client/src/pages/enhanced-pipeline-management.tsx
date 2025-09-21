@@ -1796,11 +1796,61 @@ Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
                           <CardTitle className="text-lg">Communication</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                          <Button className="w-full" variant="outline" data-testid="button-send-email">
+                          <Button 
+                            className="w-full" 
+                            variant="outline" 
+                            onClick={() => {
+                              const emailSubject = `Regarding your application for ${selectedApplication.jobPostingTitle}`;
+                              const emailBody = `Dear ${selectedApplication.applicantFirstName || 'Candidate'},\n\nThank you for your application for the ${selectedApplication.jobPostingTitle} position.\n\nBest regards,\nThe Recruitment Team`;
+                              const mailto = `mailto:${selectedApplication.applicantEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+                              window.open(mailto, '_blank');
+                            }}
+                            data-testid="button-send-email"
+                          >
                             <Mail className="w-4 h-4 mr-2" />
                             Send Email
                           </Button>
-                          <Button className="w-full" variant="outline" data-testid="button-open-chat">
+                          <Button 
+                            className="w-full" 
+                            variant="outline"
+                            onClick={async () => {
+                              try {
+                                // Create or find existing conversation with this applicant
+                                const response = await fetch('/api/simple-chat/conversations', {
+                                  method: 'POST',
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                  },
+                                  credentials: 'include',
+                                  body: JSON.stringify({
+                                    participantId: selectedApplication.applicantId,
+                                    initialMessage: `Hi ${selectedApplication.applicantFirstName || 'there'}, I wanted to discuss your application for the ${selectedApplication.jobPostingTitle} position.`
+                                  }),
+                                });
+                                
+                                if (response.ok) {
+                                  const { conversationId } = await response.json();
+                                  // Redirect to simple chat page with the conversation ID
+                                  window.open(`/simple-chat?conversation=${conversationId}`, '_blank');
+                                } else {
+                                  console.error('Failed to create conversation');
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to start chat. Please try again.",
+                                    variant: "destructive",
+                                  });
+                                }
+                              } catch (error) {
+                                console.error('Error starting chat:', error);
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to start chat. Please try again.",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                            data-testid="button-open-chat"
+                          >
                             <MessageCircle className="w-4 h-4 mr-2" />
                             Open Chat
                           </Button>
