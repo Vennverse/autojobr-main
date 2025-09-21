@@ -46,6 +46,7 @@ const ReferralMarketplace: React.FC = () => {
   const { user } = useAuth();
   const [services, setServices] = useState<ReferralService[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedServices, setExpandedServices] = useState<Record<number, boolean>>({});
   const [filter, setFilter] = useState({
     serviceType: '',
     includesReferral: '',
@@ -135,6 +136,13 @@ const ReferralMarketplace: React.FC = () => {
       case 'ongoing_mentorship': return 'Ongoing Mentorship';
       default: return type;
     }
+  };
+
+  const toggleServiceExpansion = (serviceId: number) => {
+    setExpandedServices(prev => ({
+      ...prev,
+      [serviceId]: !prev[serviceId]
+    }));
   };
 
   const getVerificationBadge = (level: string) => {
@@ -396,15 +404,27 @@ const ReferralMarketplace: React.FC = () => {
               <div>
                 <h5 className="font-medium mb-2">What's included:</h5>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  {service.features.slice(0, 3).map((feature, index) => (
+                  {(expandedServices[service.serviceId] 
+                    ? service.features 
+                    : service.features.slice(0, 3)
+                  ).map((feature, index) => (
                     <li key={index} className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
                       {feature}
                     </li>
                   ))}
                   {service.features.length > 3 && (
-                    <li className="text-xs text-gray-500">
-                      +{service.features.length - 3} more...
+                    <li>
+                      <button
+                        onClick={() => toggleServiceExpansion(service.serviceId)}
+                        className="text-xs text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                        data-testid={`button-expand-features-${service.serviceId}`}
+                      >
+                        {expandedServices[service.serviceId] 
+                          ? 'Show less...' 
+                          : `+${service.features.length - 3} more...`
+                        }
+                      </button>
                     </li>
                   )}
                 </ul>
