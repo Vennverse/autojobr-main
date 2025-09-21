@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Star, Clock, Users, Shield, MessageCircle, ExternalLink, Target } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import SEOHead from '@/components/seo-head';
 
 interface ReferralService {
   serviceId: number;
@@ -181,8 +182,37 @@ const ReferralMarketplace: React.FC = () => {
     );
   }
 
+  // Structured data for referral marketplace
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Marketplace",
+    "name": "AutoJobR Referral Marketplace",
+    "description": "Connect with company employees for career advice, interview prep, and internal job referrals. Get referred by verified employees and land your dream job.",
+    "url": "https://autojobr.com/referral-marketplace",
+    "provider": {
+      "@type": "Organization",
+      "name": "AutoJobR",
+      "url": "https://autojobr.com"
+    },
+    "offers": {
+      "@type": "AggregateOffer",
+      "availability": "https://schema.org/InStock",
+      "priceCurrency": "USD",
+      "lowPrice": "50",
+      "highPrice": "500"
+    }
+  };
+
   return (
     <div className="container mx-auto p-6">
+      <SEOHead 
+        title="Employee Referral Marketplace - Get Referred by Company Insiders | AutoJobR"
+        description="🔥 Get internal job referrals from verified company employees! Connect with insiders at top companies, get career advice, interview prep, and land your dream job with 90% higher success rate."
+        keywords="employee referrals, job referrals, internal referrals, company insider referrals, get referred, job referral service, employee referral marketplace, career advice, interview preparation, job placement"
+        canonicalUrl="https://autojobr.com/referral-marketplace"
+        structuredData={structuredData}
+        ogType="website"
+      />
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Referral Marketplace</h1>
         <p className="text-gray-600 mb-4">

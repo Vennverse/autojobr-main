@@ -13,6 +13,7 @@ import {
   Zap
 } from "lucide-react";
 import { useLocation } from "wouter";
+import SEOHead from "@/components/seo-head";
 
 export default function BidderLanding() {
   const [, setLocation] = useLocation();
@@ -70,8 +71,35 @@ export default function BidderLanding() {
     "Access to premium project tiers"
   ];
 
+  // Structured data for freelance marketplace
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Marketplace",
+    "name": "AutoJobR Freelance Marketplace",
+    "description": "Join the premier freelance marketplace for skilled professionals. Find high-paying projects, bid competitively, and grow your freelance business with secure payments.",
+    "url": "https://autojobr.com/bidder-landing",
+    "provider": {
+      "@type": "Organization",
+      "name": "AutoJobR",
+      "url": "https://autojobr.com"
+    },
+    "offers": {
+      "@type": "AggregateOffer",
+      "availability": "https://schema.org/InStock",
+      "priceCurrency": "USD"
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <SEOHead 
+        title="Freelance Marketplace - Find High-Paying Projects & Clients | AutoJobR"
+        description="🚀 Join 10,000+ freelancers earning on AutoJobR! Find premium projects, bid competitively, secure milestone payments. Web dev, design, marketing, consulting & more."
+        keywords="freelance marketplace, freelance jobs, freelance projects, hire freelancers, project bidding, freelance platform, remote work, freelance opportunities, project marketplace"
+        canonicalUrl="https://autojobr.com/bidder-landing"
+        structuredData={structuredData}
+        ogType="website"
+      />
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-16">

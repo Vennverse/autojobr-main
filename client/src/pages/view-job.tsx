@@ -380,7 +380,7 @@ export default function ViewJob() {
         title={jobTitle}
         description={jobDescription}
         canonicalUrl={canonicalUrl}
-        structuredData={jobStructuredData}
+        structuredData={jobStructuredData || undefined}
         ogType="article"
         keywords={`${job?.title || 'job'}, ${job?.companyName || 'company'}, ${job?.location || 'remote'}, job application, career opportunity, AutoJobR`}
       />
