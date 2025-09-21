@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Building, MapPin, DollarSign, Users, Clock, Briefcase, Mail, CheckCircle, X } from "lucide-react";
+import { ArrowLeft, Building, MapPin, DollarSign, Users, Clock, Briefcase, Mail, CheckCircle, X, Sparkles } from "lucide-react";
 import { useLocation } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -47,6 +47,7 @@ export default function PostJob() {
   });
 
   const [skillInput, setSkillInput] = useState("");
+  const [isImprovingJD, setIsImprovingJD] = useState(false);
 
   // Function to extract company name from email domain
   const getCompanyNameFromEmail = (email: string): string => {
@@ -170,6 +171,30 @@ export default function PostJob() {
     },
   });
 
+  const improveJDMutation = useMutation({
+    mutationFn: async (jobDescription: string) => {
+      return await apiRequest("/api/recruiter/improve-jd", "POST", { 
+        jobDescription,
+        jobTitle: formData.title,
+        companyName: formData.companyName
+      });
+    },
+    onSuccess: (data) => {
+      setFormData(prev => ({ ...prev, description: data.improvedDescription }));
+      toast({
+        title: "Job Description Improved",
+        description: "Your job description has been enhanced with AI suggestions.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Improvement Failed",
+        description: error.message || "Failed to improve job description. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleInputChange = (field: string, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -189,6 +214,21 @@ export default function PostJob() {
       ...prev,
       skills: prev.skills.filter(s => s !== skill)
     }));
+  };
+
+  const handleImproveJD = () => {
+    if (!formData.description.trim()) {
+      toast({
+        title: "No Job Description",
+        description: "Please enter a job description first to improve it.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsImprovingJD(true);
+    improveJDMutation.mutate(formData.description);
+    setIsImprovingJD(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -452,7 +492,20 @@ export default function PostJob() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="description">Job Description *</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="description">Job Description *</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleImproveJD}
+                        disabled={improveJDMutation.isPending || !formData.description.trim()}
+                        className="flex items-center gap-2"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        {improveJDMutation.isPending ? "Improving..." : "Improve JD"}
+                      </Button>
+                    </div>
                     <Textarea
                       id="description"
                       placeholder="Describe the role, responsibilities, and what makes this opportunity exciting..."
@@ -461,6 +514,11 @@ export default function PostJob() {
                       rows={6}
                       required
                     />
+                    {formData.description.trim() && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        💡 Click "Improve JD" to enhance your job description with AI suggestions
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">

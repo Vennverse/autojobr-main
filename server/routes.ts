@@ -3303,6 +3303,38 @@ Additional Information:
     }
   });
 
+  // JD improvement endpoint for recruiters
+  app.post('/api/recruiter/improve-jd', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { jobDescription, jobTitle, companyName } = req.body;
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      }
+
+      if (!jobDescription || !jobDescription.trim()) {
+        return res.status(400).json({ message: "Job description is required" });
+      }
+
+      // Use Groq service to improve the job description with minimal tokens
+      const improvedDescription = await groqService.improveJobDescription(
+        jobDescription.trim(),
+        jobTitle || '',
+        companyName || ''
+      );
+
+      res.json({ 
+        improvedDescription,
+        message: "Job description improved successfully" 
+      });
+    } catch (error) {
+      console.error("Error improving job description:", error);
+      res.status(500).json({ message: "Failed to improve job description" });
+    }
+  });
+
   // Bulk actions endpoint for recruiters
   app.post('/api/recruiter/bulk-actions', isAuthenticated, async (req: any, res) => {
     try {

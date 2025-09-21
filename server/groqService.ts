@@ -406,6 +406,74 @@ ${userProfile?.fullName || 'Your Name'}`;
     }
   }
   
+  async improveJobDescription(
+    jobDescription: string,
+    jobTitle?: string,
+    companyName?: string
+  ): Promise<string> {
+    if (this.developmentMode) {
+      // Return improved version with basic enhancements in development mode
+      return `${jobDescription}
+
+Key Responsibilities:
+• Lead and execute core project initiatives
+• Collaborate with cross-functional teams
+• Drive results and deliver measurable outcomes
+
+Requirements:
+• Proven experience in relevant field
+• Strong communication and analytical skills
+• Ability to work in fast-paced environment
+
+What We Offer:
+• Competitive salary and benefits package
+• Professional development opportunities
+• Collaborative and inclusive work culture`;
+    }
+
+    // Ultra-concise prompt to minimize token usage
+    const prompt = `Improve this job description. Make it more engaging, structured, and professional. Keep the same length, just enhance clarity and appeal:
+
+${jobTitle ? `Job: ${jobTitle}` : ''}${companyName ? ` at ${companyName}` : ''}
+
+${jobDescription}
+
+Return only the improved job description, no explanations.`;
+
+    try {
+      const completion = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
+        return await client.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert HR professional. Improve job descriptions to be more engaging and professional. Return only the improved text, no additional commentary."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          model: "llama-3.1-8b-instant", // Use faster, cheaper model for simple text improvement
+          temperature: 0.2,
+          max_tokens: Math.min(jobDescription.length + 200, 800), // Limit tokens based on input length
+        });
+      });
+
+      const improvedDescription = completion.choices[0]?.message?.content?.trim();
+      if (!improvedDescription) {
+        throw new Error("No improved description generated");
+      }
+
+      return improvedDescription;
+    } catch (error) {
+      console.error("Job description improvement error:", error);
+      // Return original with minor formatting improvements as fallback
+      return jobDescription.split('\n\n').map(paragraph => 
+        paragraph.trim()
+      ).join('\n\n') + '\n\n• Competitive compensation package\n• Growth and development opportunities\n• Collaborative team environment';
+    }
+  }
+
   async generateContent(prompt: string, user?: any): Promise<string> {
     if (this.developmentMode) {
       return "AI analysis temporarily unavailable - please check back later.";
