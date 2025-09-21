@@ -298,7 +298,7 @@ export default function ViewJob() {
   // Fetch scraped jobs when needed
   const { data: scrapedJobs, isLoading: scrapedLoading } = useQuery({
     queryKey: ['/api/scraped-jobs?limit=2000'],
-    enabled: !!jobId && isScrapedJob,
+    enabled: Boolean(jobId && isScrapedJob),
     queryFn: async () => {
       const response = await fetch('/api/scraped-jobs?limit=2000', {
         credentials: 'include'
