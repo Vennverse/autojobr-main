@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,13 @@ import {
   Briefcase,
   UserCheck,
   Globe,
-  Rocket
+  Rocket,
+  Bot,
+  Lightbulb,
+  ChartBar,
+  DollarSign,
+  Mail,
+  Cpu
 } from "lucide-react";
 import logoImage from "@assets/generated_images/AutoJobr_professional_logo_17c702fa.png";
 import dashboardMockup from "@assets/generated_images/Recruitment_dashboard_mockup_2b680657.png";
@@ -36,6 +43,51 @@ const recruiterStats = [
   { label: "Quality Hires", value: "85%", icon: Award },
   { label: "Cost Reduction", value: "40%", icon: TrendingUp },
   { label: "Faster Hiring", value: "3x", icon: Zap }
+];
+
+const aiPoweredFeatures = [
+  {
+    icon: Brain,
+    title: "AI Candidate Scoring & Ranking",
+    description: "Advanced AI algorithms automatically score and rank candidates based on job requirements, skills match, and success predictors.",
+    benefits: ["95% accuracy in candidate ranking", "Reduce screening time by 80%", "Identify top 10% candidates instantly"],
+    premium: true
+  },
+  {
+    icon: Bot,
+    title: "Intelligent Job Description Optimization",
+    description: "AI analyzes and optimizes your job postings for maximum visibility, candidate attraction, and ATS compatibility.",
+    benefits: ["40% increase in applications", "Better keyword optimization", "Inclusive language suggestions"],
+    premium: true
+  },
+  {
+    icon: Lightbulb,
+    title: "AI Interview Question Generator",
+    description: "Generate personalized interview questions based on candidate profiles, job requirements, and behavioral indicators.",
+    benefits: ["Custom questions for each candidate", "Behavioral and technical focus", "Interview strategy recommendations"],
+    premium: true
+  },
+  {
+    icon: ChartBar,
+    title: "Predictive Hiring Analytics",
+    description: "AI-powered insights predict candidate success, identify hiring patterns, and recommend process improvements.",
+    benefits: ["Predict candidate fit probability", "Identify successful hiring patterns", "Reduce turnover by 30%"],
+    premium: true
+  },
+  {
+    icon: DollarSign,
+    title: "AI Salary Benchmarking",
+    description: "Real-time salary analysis and benchmarking powered by AI to help you make competitive offers.",
+    benefits: ["Market-accurate salary ranges", "Competitive analysis", "Offer optimization strategies"],
+    premium: true
+  },
+  {
+    icon: Mail,
+    title: "Smart Communication Templates",
+    description: "AI generates personalized outreach messages, rejection letters, and follow-up communications.",
+    benefits: ["50% higher response rates", "Personalized messaging", "Professional tone optimization"],
+    premium: true
+  }
 ];
 
 const recruiterFeatures = [
@@ -87,7 +139,7 @@ const successStories = [
       qualityHires: "40% increase",
       costSaving: "$150K annually"
     },
-    quote: "AutoJobr transformed our hiring process. We're now filling positions 3x faster with much higher quality candidates.",
+    quote: "AutoJobr's AI features transformed our hiring process. We're now filling positions 3x faster with much higher quality candidates.",
     name: "Sarah Johnson",
     role: "Head of Talent"
   },
@@ -100,7 +152,7 @@ const successStories = [
       qualityHires: "60% increase", 
       costSaving: "$500K annually"
     },
-    quote: "The AI matching is incredible. Our hiring managers are consistently impressed with candidate quality.",
+    quote: "The AI candidate scoring is incredible. Our hiring managers are consistently impressed with candidate quality.",
     name: "Michael Chen",
     role: "VP of Recruitment"
   },
@@ -113,7 +165,7 @@ const successStories = [
       qualityHires: "45% increase",
       costSaving: "$200K annually"
     },
-    quote: "We've eliminated most manual screening. The platform does the heavy lifting so we can focus on building relationships.",
+    quote: "AI-powered insights eliminated most manual screening. The platform does the heavy lifting so we can focus on building relationships.",
     name: "Emily Rodriguez",
     role: "Talent Acquisition Lead"
   }
@@ -142,10 +194,13 @@ const pricingPlans = [
     features: [
       "Unlimited job postings",
       "Advanced AI matching",
-      "Premium candidate targeting",
+      "AI candidate scoring & ranking",
+      "Job description optimization",
       "Custom assessments",
       "Video interviews",
       "Advanced analytics",
+      "AI interview questions",
+      "Salary benchmarking",
       "Priority support",
       "Team collaboration"
     ],
@@ -159,7 +214,9 @@ const pricingPlans = [
     description: "For large organizations",
     features: [
       "Everything in Professional",
-      "Custom integrations",
+      "AI-powered hiring predictions",
+      "Custom AI model training",
+      "Advanced integrations",
       "Dedicated account manager",
       "SLA guarantees",
       "Advanced security",
@@ -179,6 +236,24 @@ const competitorComparison = [
     autojobr: true, 
     competitor1: false, 
     competitor2: true 
+  },
+  { 
+    feature: "AI Candidate Scoring", 
+    autojobr: true, 
+    competitor1: false, 
+    competitor2: false 
+  },
+  { 
+    feature: "Job Description AI Optimization", 
+    autojobr: true, 
+    competitor1: false, 
+    competitor2: false 
+  },
+  { 
+    feature: "AI Interview Questions", 
+    autojobr: true, 
+    competitor1: false, 
+    competitor2: false 
   },
   { 
     feature: "Unlimited Job Postings", 
@@ -233,6 +308,9 @@ export default function RecruiterFeaturesPage() {
             </Link>
             
             <nav className="hidden md:flex space-x-8">
+              <a href="#ai-features" className="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors">
+                AI Features
+              </a>
               <a href="#features" className="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors">
                 Features
               </a>
@@ -269,8 +347,8 @@ export default function RecruiterFeaturesPage() {
           <div className="text-center">
             <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
               <Badge className="mb-6 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border-blue-200">
-                <Users className="w-3 h-3 mr-1" />
-                Trusted by 2,500+ Companies
+                <Cpu className="w-3 h-3 mr-1" />
+                AI-Powered Recruitment Platform
               </Badge>
               
               <h1 className="text-5xl md:text-7xl font-bold text-slate-900 dark:text-white mb-6 leading-tight">
@@ -281,7 +359,7 @@ export default function RecruiterFeaturesPage() {
               </h1>
               
               <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-8 max-w-4xl mx-auto leading-relaxed">
-                Transform your recruitment process with AI-powered candidate matching, automated screening, and advanced analytics. Reduce time-to-hire by 60% while improving hire quality.
+                Transform your recruitment process with AI-powered candidate scoring, automated screening, intelligent job optimization, and predictive hiring analytics. Reduce time-to-hire by 60% while improving hire quality.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
@@ -294,7 +372,7 @@ export default function RecruiterFeaturesPage() {
                 </Link>
                 <Button variant="outline" size="lg" className="border-2 border-slate-300 hover:border-slate-400 px-8 py-4 text-lg">
                   <Calendar className="w-5 h-5 mr-2" />
-                  Book a Demo
+                  Book AI Demo
                 </Button>
               </div>
               
@@ -305,7 +383,7 @@ export default function RecruiterFeaturesPage() {
                 </div>
                 <div className="flex items-center">
                   <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                  No setup fees
+                  AI-powered features
                 </div>
                 <div className="flex items-center">
                   <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
@@ -342,7 +420,58 @@ export default function RecruiterFeaturesPage() {
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* AI-Powered Features Section */}
+      <section id="ai-features" className="py-24 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700 border-purple-200">
+              <Brain className="w-3 h-3 mr-1" />
+              AI-Powered Recruitment
+            </Badge>
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
+              Advanced AI Features for Modern Recruiters
+            </h2>
+            <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
+              Leverage cutting-edge AI technology to revolutionize your hiring process and find the perfect candidates faster than ever.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {aiPoweredFeatures.map((feature, index) => {
+              const Icon = feature.icon;
+              return (
+                <Card key={index} className="group hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur relative overflow-hidden">
+                  {feature.premium && (
+                    <div className="absolute top-4 right-4">
+                      <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs">
+                        <Crown className="w-3 h-3 mr-1" />
+                        AI Premium
+                      </Badge>
+                    </div>
+                  )}
+                  <CardContent className="p-8">
+                    <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-600 rounded-lg mb-4 group-hover:scale-110 transition-transform duration-300">
+                      <Icon className="w-6 h-6 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">{feature.title}</h3>
+                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed mb-4">{feature.description}</p>
+                    <ul className="space-y-2">
+                      {feature.benefits.map((benefit, benefitIndex) => (
+                        <li key={benefitIndex} className="flex items-center text-sm text-slate-600 dark:text-slate-300">
+                          <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                          {benefit}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Core Features Section */}
       <section id="features" className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -387,10 +516,10 @@ export default function RecruiterFeaturesPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                See the Platform in Action
+                See AI in Action
               </h2>
               <p className="text-xl text-slate-300 mb-8 leading-relaxed">
-                Our intuitive dashboard gives you complete visibility into your hiring pipeline, candidate quality, and team performance. Make data-driven decisions that accelerate your hiring success.
+                Our AI-powered dashboard gives you complete visibility into candidate quality, automated scoring, and predictive insights. Make data-driven hiring decisions that accelerate your recruitment success.
               </p>
               
               <div className="space-y-4 mb-8">
@@ -404,7 +533,13 @@ export default function RecruiterFeaturesPage() {
                   <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center mr-3">
                     <CheckCircle className="w-4 h-4 text-white" />
                   </div>
-                  <span>Real-time pipeline tracking and analytics</span>
+                  <span>Intelligent job description optimization</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center mr-3">
+                    <CheckCircle className="w-4 h-4 text-white" />
+                  </div>
+                  <span>Predictive hiring analytics and insights</span>
                 </div>
                 <div className="flex items-center">
                   <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center mr-3">
@@ -412,24 +547,18 @@ export default function RecruiterFeaturesPage() {
                   </div>
                   <span>Automated screening and assessment tools</span>
                 </div>
-                <div className="flex items-center">
-                  <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center mr-3">
-                    <CheckCircle className="w-4 h-4 text-white" />
-                  </div>
-                  <span>Integrated communication and scheduling</span>
-                </div>
               </div>
               
               <div className="flex space-x-4">
                 <Link href="/auth">
                   <Button size="lg" className="bg-white text-slate-900 hover:bg-slate-100">
-                    Try Free for 14 Days
+                    Try AI Features Free
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
                 </Link>
                 <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-slate-900">
                   <Calendar className="w-5 h-5 mr-2" />
-                  Book Demo
+                  Book AI Demo
                 </Button>
               </div>
             </div>
@@ -437,7 +566,7 @@ export default function RecruiterFeaturesPage() {
             <div className="relative">
               <img 
                 src={dashboardMockup} 
-                alt="AutoJobr Recruitment Dashboard" 
+                alt="AutoJobr AI-Powered Recruitment Dashboard" 
                 className="rounded-lg shadow-2xl w-full transform hover:scale-105 transition-transform duration-300"
               />
               <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full opacity-20 animate-pulse"></div>
@@ -452,10 +581,10 @@ export default function RecruiterFeaturesPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
-              Companies Love AutoJobr
+              Companies Love AutoJobr AI
             </h2>
             <p className="text-xl text-slate-600 dark:text-slate-300">
-              See how leading companies are transforming their hiring with our platform
+              See how leading companies are transforming their hiring with our AI-powered platform
             </p>
           </div>
           
@@ -509,7 +638,7 @@ export default function RecruiterFeaturesPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
-              Simple, Transparent Pricing
+              Simple, AI-Powered Pricing
             </h2>
             <p className="text-xl text-slate-600 dark:text-slate-300">
               Choose the plan that fits your hiring needs. Start with a free trial, upgrade when ready.
@@ -522,7 +651,8 @@ export default function RecruiterFeaturesPage() {
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                     <Badge className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-                      Most Popular
+                      <Brain className="w-3 h-3 mr-1" />
+                      AI-Powered
                     </Badge>
                   </div>
                 )}
@@ -541,7 +671,9 @@ export default function RecruiterFeaturesPage() {
                     {plan.features.map((feature, featureIndex) => (
                       <li key={featureIndex} className="flex items-center">
                         <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                        <span className="text-slate-600 dark:text-slate-300">{feature}</span>
+                        <span className={`text-slate-600 dark:text-slate-300 ${feature.includes('AI') ? 'font-semibold' : ''}`}>
+                          {feature}
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -566,7 +698,7 @@ export default function RecruiterFeaturesPage() {
           {/* Comparison Table */}
           <div className="bg-white dark:bg-slate-800 rounded-lg p-8 shadow-lg">
             <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 text-center">
-              How We Compare
+              How We Compare - AI Features Included
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -628,29 +760,29 @@ export default function RecruiterFeaturesPage() {
       <section className="py-24 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            Ready to Transform Your Hiring?
+            Ready to Transform Your Hiring with AI?
           </h2>
           <p className="text-xl text-blue-100 mb-8 leading-relaxed">
-            Join 2,500+ companies using AutoJobr to hire faster, smarter, and more effectively. 
+            Join 2,500+ companies using AutoJobr's AI-powered recruitment platform to hire faster, smarter, and more effectively. 
             Start your free trial today - no setup fees, no commitments.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
             <Link href="/auth">
               <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 shadow-xl px-8 py-4 text-lg">
-                <Rocket className="w-5 h-5 mr-2" />
-                Start Free 14-Day Trial
+                <Brain className="w-5 h-5 mr-2" />
+                Start AI-Powered Trial
               </Button>
             </Link>
             <Button variant="outline" size="lg" className="border-2 border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 text-lg">
               <Calendar className="w-5 h-5 mr-2" />
-              Schedule Demo
+              Schedule AI Demo
             </Button>
           </div>
           
           <div className="text-blue-100 text-sm">
             <CheckCircle className="w-4 h-4 inline mr-2" />
-            14-day free trial • No setup fees • Cancel anytime • Implementation support included
+            14-day free trial • Full AI features • No setup fees • Cancel anytime • Implementation support included
           </div>
         </div>
       </section>
@@ -669,19 +801,19 @@ export default function RecruiterFeaturesPage() {
               </p>
               <div className="flex space-x-4">
                 <Badge variant="outline" className="text-slate-400 border-slate-600">
-                  SOC 2 Compliant
+                  AI-Powered
                 </Badge>
                 <Badge variant="outline" className="text-slate-400 border-slate-600">
-                  GDPR Ready
+                  SOC 2 Compliant
                 </Badge>
               </div>
             </div>
             
             <div>
-              <h4 className="font-semibold mb-4">Platform</h4>
+              <h4 className="font-semibold mb-4">AI Platform</h4>
               <ul className="space-y-2 text-slate-400">
                 <li><Link href="/auth" className="hover:text-white transition-colors">Get Started</Link></li>
-                <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
+                <li><a href="#ai-features" className="hover:text-white transition-colors">AI Features</a></li>
                 <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">API</a></li>
               </ul>
