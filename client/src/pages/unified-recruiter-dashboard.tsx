@@ -139,7 +139,7 @@ export default function RecruiterDashboard() {
   });
 
   // Enhanced application data with caching
-  const { data: enhancedApplications = [], isLoading: applicationsLoading } = useQuery({
+  const { data: enhancedApplications = [], isLoading: enhancedApplicationsLoading } = useQuery({
     queryKey: ["/api/recruiter/enhanced-applications"],
     staleTime: 2 * 60 * 1000, // 2 minutes
     refetchOnWindowFocus: false,
