@@ -28,8 +28,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
-import { motion } from "framer-motion";
 import {
   Plus,
   Briefcase,
@@ -61,12 +59,6 @@ import {
   BarChart3,
   GitBranch,
   Activity,
-  ArrowUpRight,
-  ArrowDownRight,
-  Lightbulb,
-  Brain,
-  Send,
-  Loader2,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -128,35 +120,6 @@ export default function RecruiterDashboard() {
   // Fetch chat conversations
   const { data: conversations, isLoading: conversationsLoading, error: conversationsError } = useQuery<ConversationWithUnread[]>({
     queryKey: ["/api/chat/conversations"],
-  });
-
-  // Fetch analytics data with better error handling
-  const { data: analytics, isLoading: analyticsLoading, error: analyticsError } = useQuery({
-    queryKey: ["/api/recruiter/analytics"],
-    retry: 2,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false,
-  });
-
-  // Enhanced application data with caching
-  const { data: enhancedApplications = [], isLoading: enhancedApplicationsLoading } = useQuery({
-    queryKey: ["/api/recruiter/enhanced-applications"],
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchOnWindowFocus: false,
-  });
-
-  // Fetch pipeline analytics for better insights
-  const { data: pipelineAnalytics, isLoading: pipelineLoading } = useQuery({
-    queryKey: ["/api/recruiter/pipeline-analytics"],
-    staleTime: 3 * 60 * 1000, // 3 minutes
-    refetchOnWindowFocus: false,
-  });
-
-  // Get AI insights for advanced analytics
-  const { data: aiInsights, isLoading: aiInsightsLoading } = useQuery({
-    queryKey: ["/api/recruiter/ai-insights"],
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnWindowFocus: false,
   });
 
   // Safe array access with proper fallbacks
@@ -387,335 +350,108 @@ export default function RecruiterDashboard() {
           </CardContent>
         </Card>
 
-        {/* Enhanced Analytics Dashboard */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Recruitment Analytics Dashboard
+        {/* Enhanced Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
+                  <Briefcase className="w-6 h-6 text-white" />
                 </div>
-                <Badge variant="outline" className="text-xs">
-                  Real-time Data
-                </Badge>
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Track your hiring performance and optimize your recruitment process with AI-powered insights
-              </p>
-            </CardHeader>
-            <CardContent>
-              {analyticsLoading || pipelineLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {[...Array(8)].map((_, i) => (
-                    <Skeleton key={i} className="h-32" />
-                  ))}
-                </div>
-              ) : analytics ? (
-                <div className="space-y-8">
-                  {/* Enhanced Key Metrics Row */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all duration-300">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Applications</p>
-                          <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{analytics?.overview?.totalApplications || 0}</p>
-                          <div className="flex items-center gap-1 mt-1">
-                            {(analytics?.overview?.weeklyGrowth || 0) > 0 ? (
-                              <ArrowUpRight className="h-3 w-3 text-green-600" />
-                            ) : (
-                              <ArrowDownRight className="h-3 w-3 text-red-600" />
-                            )}
-                            <p className={`text-xs font-medium ${(analytics?.overview?.weeklyGrowth || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {Math.abs(analytics?.overview?.weeklyGrowth || 0)}% this week
-                            </p>
-                          </div>
-                        </div>
-                        <div className="p-3 bg-blue-100 dark:bg-blue-800 rounded-full">
-                          <Users className="h-6 w-6 text-blue-600 dark:text-blue-300" />
-                        </div>
-                      </div>
-                    </Card>
-
-                    <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800 hover:shadow-lg transition-all duration-300">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-green-700 dark:text-green-300">Active Jobs</p>
-                          <p className="text-2xl font-bold text-green-900 dark:text-green-100">{analytics?.overview?.totalJobs || 0}</p>
-                          <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                            {analytics?.overview?.totalViews || 0} total views
-                          </p>
-                        </div>
-                        <div className="p-3 bg-green-100 dark:bg-green-800 rounded-full">
-                          <Briefcase className="h-6 w-6 text-green-600 dark:text-green-300" />
-                        </div>
-                      </div>
-                    </Card>
-
-                    <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all duration-300">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-purple-700 dark:text-purple-300">Success Rate</p>
-                          <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{analytics?.overview?.successRate || 0}%</p>
-                          <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-                            Hire to application ratio
-                          </p>
-                        </div>
-                        <div className="p-3 bg-purple-100 dark:bg-purple-800 rounded-full">
-                          <TrendingUp className="h-6 w-6 text-purple-600 dark:text-purple-300" />
-                        </div>
-                      </div>
-                    </Card>
-
-                    <Card className="p-4 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border-amber-200 dark:border-amber-800 hover:shadow-lg transition-all duration-300">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Time to Hire</p>
-                          <p className="text-2xl font-bold text-amber-900 dark:text-amber-100">{analytics?.overview?.averageTimeToHire || 18} days</p>
-                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                            Average duration
-                          </p>
-                        </div>
-                        <div className="p-3 bg-amber-100 dark:bg-amber-800 rounded-full">
-                          <Clock className="h-6 w-6 text-amber-600 dark:text-amber-300" />
-                        </div>
-                      </div>
-                    </Card>
-                  </div>
-
-                  {/* Enhanced Application Pipeline & Performance */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <Card className="p-6 hover:shadow-lg transition-all duration-300">
-                      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <Target className="h-5 w-5 text-blue-600" />
-                        Application Pipeline
-                        <Badge variant="secondary" className="ml-auto text-xs">
-                          {Object.values(analytics?.applicationsByStatus || {}).reduce((sum: number, val: any) => sum + (val || 0), 0)} total
-                        </Badge>
-                      </h3>
-                      <div className="space-y-4">
-                        {Object.entries(analytics?.applicationsByStatus || {}).map(([status, count]) => {
-                          const statusConfig = {
-                            applied: { 
-                              bg: 'bg-blue-100 dark:bg-blue-900/30', 
-                              text: 'text-blue-800 dark:text-blue-200', 
-                              bar: 'bg-gradient-to-r from-blue-400 to-blue-600',
-                              icon: Send,
-                              label: 'Applied'
-                            },
-                            under_review: { 
-                              bg: 'bg-yellow-100 dark:bg-yellow-900/30', 
-                              text: 'text-yellow-800 dark:text-yellow-200', 
-                              bar: 'bg-gradient-to-r from-yellow-400 to-yellow-600',
-                              icon: Eye,
-                              label: 'Under Review'
-                            },
-                            interview: { 
-                              bg: 'bg-purple-100 dark:bg-purple-900/30', 
-                              text: 'text-purple-800 dark:text-purple-200', 
-                              bar: 'bg-gradient-to-r from-purple-400 to-purple-600',
-                              icon: Calendar,
-                              label: 'Interview'
-                            },
-                            hired: { 
-                              bg: 'bg-green-100 dark:bg-green-900/30', 
-                              text: 'text-green-800 dark:text-green-200', 
-                              bar: 'bg-gradient-to-r from-green-400 to-green-600',
-                              icon: CheckCircle,
-                              label: 'Hired'
-                            },
-                            rejected: { 
-                              bg: 'bg-red-100 dark:bg-red-900/30', 
-                              text: 'text-red-800 dark:text-red-200', 
-                              bar: 'bg-gradient-to-r from-red-400 to-red-600',
-                              icon: XCircle,
-                              label: 'Rejected'
-                            }
-                          };
-
-                          const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.applied;
-                          const total = Object.values(analytics?.applicationsByStatus || {}).reduce((sum: number, val: any) => sum + (val || 0), 0);
-                          const percentage = total > 0 ? Math.round((count as number / total) * 100) : 0;
-                          const IconComponent = config.icon;
-
-                          return (
-                            <div key={status} className="group hover:bg-gray-50 dark:hover:bg-gray-800/50 p-3 rounded-lg transition-all duration-200">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-3">
-                                  <div className={`p-2 rounded-full ${config.bg}`}>
-                                    <IconComponent className="h-4 w-4" />
-                                  </div>
-                                  <div className={`px-3 py-1 rounded-full ${config.bg} ${config.text} text-sm font-medium`}>
-                                    {config.label}
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <p className="font-bold text-lg">{count}</p>
-                                  <p className="text-xs text-gray-500">{percentage}%</p>
-                                </div>
-                              </div>
-                              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                <div 
-                                  className={`h-2 rounded-full ${config.bar} transition-all duration-500 group-hover:h-3`}
-                                  style={{ width: `${percentage}%` }}
-                                ></div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </Card>
-
-                    <Card className="p-6 hover:shadow-lg transition-all duration-300">
-                      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5 text-green-600" />
-                        Performance Insights
-                      </h3>
-                      <div className="space-y-4">
-                        <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Monthly Growth</p>
-                              <p className="text-2xl font-bold text-blue-600">{analytics?.overview?.monthlyGrowth || 0}%</p>
-                              <p className="text-xs text-blue-500 mt-1">Application volume increase</p>
-                            </div>
-                            <div className="p-3 bg-blue-100 dark:bg-blue-800 rounded-full">
-                              <ArrowUpRight className="h-6 w-6 text-blue-600" />
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">This Week Interviews</p>
-                              <p className="text-2xl font-bold text-purple-600">{analytics?.overview?.thisWeekInterviews || 0}</p>
-                              <p className="text-xs text-purple-500 mt-1">Scheduled & completed</p>
-                            </div>
-                            <div className="p-3 bg-purple-100 dark:bg-purple-800 rounded-full">
-                              <Calendar className="h-6 w-6 text-purple-600" />
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="p-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Recent Activity</p>
-                              <p className="text-2xl font-bold text-emerald-600">{analytics?.recentActivity?.last30Days || 0}</p>
-                              <p className="text-xs text-emerald-500 mt-1">Applications in 30 days</p>
-                            </div>
-                            <div className="p-3 bg-emerald-100 dark:bg-emerald-800 rounded-full">
-                              <Activity className="h-6 w-6 text-emerald-600" />
-                            </div>
-                          </div>
-                        </div>
-
-                        {pipelineAnalytics && (
-                          <div className="p-4 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Pipeline Health</p>
-                                <p className="text-2xl font-bold text-orange-600">{pipelineAnalytics?.inProgress || 0}</p>
-                                <p className="text-xs text-orange-500 mt-1">Active candidates</p>
-                              </div>
-                              <div className="p-3 bg-orange-100 dark:bg-orange-800 rounded-full">
-                                <Users className="h-6 w-6 text-orange-600" />
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </Card>
-                  </div>
-
-                  {/* AI Insights Section */}
-                  {!aiInsightsLoading && aiInsights && aiInsights.recommendations && aiInsights.recommendations.length > 0 && (
-                    <Card className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-indigo-200 dark:border-indigo-800">
-                      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <Zap className="h-5 w-5 text-indigo-600" />
-                        AI-Powered Insights
-                        <Badge className="ml-auto bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
-                          {aiInsights.recommendations.length} insights
-                        </Badge>
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {aiInsights.recommendations.map((insight: any, index: number) => (
-                          <div key={index} className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-indigo-200 dark:border-indigo-800 hover:shadow-md transition-all duration-200 group">
-                            <div className="flex items-start gap-3">
-                              <div className="p-2 bg-indigo-100 dark:bg-indigo-900 rounded-full group-hover:bg-indigo-200 dark:group-hover:bg-indigo-800 transition-colors">
-                                <Brain className="h-4 w-4 text-indigo-600" />
-                              </div>
-                              <div className="flex-1">
-                                <h4 className="font-medium text-sm mb-1 text-gray-900 dark:text-white">{insight.title}</h4>
-                                <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{insight.description}</p>
-                                {insight.impact && (
-                                  <Badge className="mt-2 text-xs" variant="secondary">
-                                    {insight.impact}
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </Card>
-                  )}
-
-                  {/* Quick Actions & Tips */}
-                  <Card className="p-6 bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20">
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <Lightbulb className="h-5 w-5 text-teal-600" />
-                      Optimization Tips
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      <div className="p-4 bg-white dark:bg-gray-800 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Target className="h-4 w-4 text-teal-600" />
-                          <span className="font-medium text-sm">Improve Response Rate</span>
-                        </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">Respond to applications within 24 hours to increase candidate engagement</p>
-                      </div>
-                      <div className="p-4 bg-white dark:bg-gray-800 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Clock className="h-4 w-4 text-blue-600" />
-                          <span className="font-medium text-sm">Reduce Time to Hire</span>
-                        </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">Streamline your interview process to close positions faster</p>
-                      </div>
-                      <div className="p-4 bg-white dark:bg-gray-800 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <TrendingUp className="h-4 w-4 text-purple-600" />
-                          <span className="font-medium text-sm">Boost Quality</span>
-                        </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">Use AI screening to identify top candidates more efficiently</p>
-                      </div>
+                <div>
+                  {jobsLoading ? (
+                    <div className="space-y-2">
+                      <div className="h-8 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
                     </div>
-                  </Card>
+                  ) : (
+                    <>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">{safeJobPostings.length}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Active Jobs</p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400">+{safeJobPostings.filter((j: JobPosting) => {
+                        if (!j.createdAt) return false;
+                        const createdAt = new Date(j.createdAt);
+                        const weekAgo = new Date();
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+                        return createdAt > weekAgo;
+                      }).length} this week</p>
+                    </>
+                  )}
                 </div>
-              ) : (
-                <div className="text-center py-12">
-                  <div className="bg-gray-100 dark:bg-gray-800 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <BarChart3 className="h-10 w-10 text-gray-400" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Analytics Data Yet</h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-6">Start posting jobs and receiving applications to see detailed analytics</p>
-                  <Button 
-                    onClick={() => window.location.href = '/recruiter/post-job'}
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Post Your First Job
-                  </Button>
-                </div>
-              )}
+              </div>
             </CardContent>
           </Card>
-        </motion.div>
+
+          <Card className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  {applicationsLoading ? (
+                    <div className="space-y-2">
+                      <div className="h-8 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-3 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">{safeApplications.length}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Applications</p>
+                      <p className="text-xs text-green-600 dark:text-green-400">
+                        {safeApplications.filter((a: JobPostingApplication) => a.status === 'pending' || a.status === 'applied').length} pending review
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                  <Video className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">0</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Interviews Assigned</p>
+                  <p className="text-xs text-purple-600 dark:text-purple-400">feature available</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
+                  <MessageSquare className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  {conversationsLoading ? (
+                    <div className="space-y-2">
+                      <div className="h-8 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">{safeConversations.length}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Active Chats</p>
+                      <p className="text-xs text-orange-600 dark:text-orange-400">
+                        {safeConversations.filter((c: ConversationWithUnread) => c.hasUnread).length} unread
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Quick Actions Panel */}
         <Card className="mb-8 bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-800">
@@ -735,7 +471,7 @@ export default function RecruiterDashboard() {
                   <span className="text-sm">Post New Job</span>
                 </div>
               </Button>
-
+              
               <Button
                 onClick={() => setLocation("/recruiter/interview-assignments")}
                 className="h-20 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
@@ -746,7 +482,7 @@ export default function RecruiterDashboard() {
                   <span className="text-sm">Assign Interviews</span>
                 </div>
               </Button>
-
+              
               <Button
                 onClick={() => setLocation("/recruiter/pipeline")}
                 className="h-20 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
@@ -757,7 +493,7 @@ export default function RecruiterDashboard() {
                   <span className="text-sm">Manage Pipeline</span>
                 </div>
               </Button>
-
+              
               <Button
                 onClick={() => setLocation("/premium-targeting")}
                 className="h-20 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white"
@@ -768,7 +504,7 @@ export default function RecruiterDashboard() {
                   <span className="text-sm">Premium Targeting</span>
                 </div>
               </Button>
-
+              
               <Button
                 onClick={() => {
                   if (typedUser?.companyName?.trim()) {
@@ -779,7 +515,7 @@ export default function RecruiterDashboard() {
                       .replace(/\s+/g, '-') // Replace spaces with hyphens
                       .replace(/-+/g, '-') // Replace multiple hyphens with single
                       .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
-
+                    
                     if (companySlug) {
                       window.open(`/career/${companySlug}`, '_blank', 'noopener,noreferrer');
                     } else {
@@ -921,7 +657,7 @@ export default function RecruiterDashboard() {
                   Full workflow
                 </Badge>
               </div>
-
+              
               <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-purple-200 dark:border-purple-800">
                 <div className="flex items-center gap-2 mb-2">
                   <BarChart3 className="w-4 h-4 text-purple-600" />
@@ -934,7 +670,7 @@ export default function RecruiterDashboard() {
                   Real-time data
                 </Badge>
               </div>
-
+              
               <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-green-200 dark:border-green-800">
                 <div className="flex items-center gap-2 mb-2">
                   <MessageSquare className="w-4 h-4 text-green-600" />
@@ -947,7 +683,7 @@ export default function RecruiterDashboard() {
                   Integrated chat
                 </Badge>
               </div>
-
+              
               <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-800">
                 <div className="flex items-center gap-2 mb-2">
                   <Building className="w-4 h-4 text-blue-600" />
@@ -971,7 +707,7 @@ export default function RecruiterDashboard() {
                           .replace(/\s+/g, '-')
                           .replace(/-+/g, '-')
                           .replace(/^-|-$/g, '');
-
+                        
                         if (companySlug) {
                           window.open(`/career/${companySlug}`, '_blank', 'noopener,noreferrer');
                         } else {
@@ -1007,7 +743,7 @@ export default function RecruiterDashboard() {
                           .replace(/\s+/g, '-')
                           .replace(/-+/g, '-')
                           .replace(/^-|-$/g, '');
-
+                        
                         if (companySlug) {
                           const careerUrl = `${window.location.origin}/career/${companySlug}`;
                           navigator.clipboard.writeText(careerUrl);
@@ -1025,7 +761,7 @@ export default function RecruiterDashboard() {
                       } else {
                         toast({
                           title: "Company Not Set",
-                          description: "Please set your company name in your profile to view the career page.",
+                          description: "Please set your company name in your profile.",
                           variant: "destructive"
                         });
                       }
@@ -1064,7 +800,7 @@ export default function RecruiterDashboard() {
                   <Activity className="w-8 h-8 text-blue-500" />
                 </div>
               </div>
-
+              
               <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div>
@@ -1078,7 +814,7 @@ export default function RecruiterDashboard() {
                   <CheckCircle className="w-8 h-8 text-green-500" />
                 </div>
               </div>
-
+              
               <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div>
@@ -1089,7 +825,7 @@ export default function RecruiterDashboard() {
                   <Video className="w-8 h-8 text-purple-500" />
                 </div>
               </div>
-
+              
               <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div>
@@ -1716,6 +1452,7 @@ export default function RecruiterDashboard() {
                                                     Preview
                                                   </Button>
                                                 </div>
+                                              </div>
                                               ))
                                             ) : (
                                               <div className="flex items-center justify-center p-8 border rounded-lg bg-gray-50">
@@ -2410,7 +2147,7 @@ export default function RecruiterDashboard() {
                     </div>
                   </CardContent>
                 </Card>
-
+                
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-2">
@@ -2422,7 +2159,7 @@ export default function RecruiterDashboard() {
                     </div>
                   </CardContent>
                 </Card>
-
+                
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-2">
@@ -2434,7 +2171,7 @@ export default function RecruiterDashboard() {
                     </div>
                   </CardContent>
                 </Card>
-
+                
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-2">
