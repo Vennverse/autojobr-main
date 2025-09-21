@@ -26,7 +26,7 @@ const broadcastToUser = (userId: string, message: any) => {
   }
 };
 import { db } from "./db";
-import { eq, desc, and, or, like, isNotNull, count, asc, isNull, sql } from "drizzle-orm";
+import { eq, desc, and, or, like, isNotNull, count, asc, isNull, sql, inArray } from "drizzle-orm";
 import * as schema from "@shared/schema";
 import { resumes, userResumes } from "@shared/schema";
 import { apiKeyRotationService } from "./apiKeyRotationService.js";
@@ -9032,46 +9032,739 @@ Host: https://autojobr.com`;
   // Import JobSpy service
   const { jobSpyService } = await import('./jobspyService.js');
 
-  // Get scraped jobs with filters
-  app.get('/api/scraped-jobs', async (req: any, res) => {
-    try {
-      const { 
-        category, 
-        location, 
-        workMode, 
-        experienceLevel, 
-        skills,
-        limit = 50,
-        offset = 0 
-      } = req.query;
-
-      let query = db.select().from(schema.scrapedJobs);
-      
-      // Apply filters
-      const conditions = [];
-      if (category) conditions.push(eq(schema.scrapedJobs.category, category));
-      if (location) conditions.push(like(schema.scrapedJobs.location, `%${location}%`));
-      if (workMode) conditions.push(eq(schema.scrapedJobs.workMode, workMode));
-      if (experienceLevel) conditions.push(eq(schema.scrapedJobs.experienceLevel, experienceLevel));
-      if (skills) {
-        const skillsArray = skills.split(',');
-        conditions.push(sql`${schema.scrapedJobs.skills} && ${skillsArray}`);
+  // Advanced Job Search Query Validation Schemas
+  const jobSearchQuerySchema = z.object({
+    // Text search
+    q: z.string().optional(),
+    
+    // Location filters
+    country: z.string().optional(),
+    city: z.string().optional(),
+    radius: z.string().optional().transform((val, ctx) => {
+      if (!val) return undefined;
+      const parsed = parseInt(val, 10);
+      if (isNaN(parsed) || parsed < 1 || parsed > 500) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Radius must be between 1 and 500 km",
+        });
+        return z.NEVER;
       }
+      return parsed;
+    }),
+    
+    // Job filters
+    category: z.string().optional(),
+    subcategory: z.string().optional(),
+    job_type: z.union([z.string(), z.array(z.string())]).optional().transform((val) => {
+      if (!val) return undefined;
+      return Array.isArray(val) ? val : [val];
+    }),
+    work_mode: z.union([z.string(), z.array(z.string())]).optional().transform((val) => {
+      if (!val) return undefined;
+      return Array.isArray(val) ? val : [val];
+    }),
+    experience_level: z.union([z.string(), z.array(z.string())]).optional().transform((val) => {
+      if (!val) return undefined;
+      return Array.isArray(val) ? val : [val];
+    }),
+    
+    // Salary filters
+    salary_min: z.string().optional().transform((val, ctx) => {
+      if (!val) return undefined;
+      const parsed = parseInt(val, 10);
+      if (isNaN(parsed) || parsed < 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Salary min must be a positive number",
+        });
+        return z.NEVER;
+      }
+      return parsed;
+    }),
+    salary_max: z.string().optional().transform((val, ctx) => {
+      if (!val) return undefined;
+      const parsed = parseInt(val, 10);
+      if (isNaN(parsed) || parsed < 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Salary max must be a positive number",
+        });
+        return z.NEVER;
+      }
+      return parsed;
+    }),
+    currency: z.string().optional(),
+    
+    // Company filter
+    company: z.string().optional(),
+    source_platform: z.string().optional(),
+    
+    // Date filter
+    date_posted: z.string().optional().transform((val, ctx) => {
+      if (!val) return undefined;
+      const parsed = parseInt(val, 10);
+      if (isNaN(parsed) || parsed < 1 || parsed > 365) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Date posted must be between 1 and 365 days",
+        });
+        return z.NEVER;
+      }
+      return parsed;
+    }),
+    
+    // Special filters
+    remote_only: z.string().optional().transform((val) => {
+      if (!val) return undefined;
+      return val === 'true' || val === '1';
+    }),
+    
+    // Sorting
+    sort: z.enum(['relevance', 'date', 'salary']).optional().default('date'),
+    
+    // Pagination
+    page: z.string().optional().default("1").transform((val, ctx) => {
+      const parsed = parseInt(val, 10);
+      if (isNaN(parsed) || parsed < 1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Page must be a positive integer",
+        });
+        return z.NEVER;
+      }
+      return parsed;
+    }),
+    size: z.string().optional().default("20").transform((val, ctx) => {
+      const parsed = parseInt(val, 10);
+      if (isNaN(parsed) || parsed < 1 || parsed > 100) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Size must be between 1 and 100",
+        });
+        return z.NEVER;
+      }
+      return parsed;
+    }),
+    
+    // Include facets in response
+    include_facets: z.string().optional().transform((val) => {
+      if (!val) return false;
+      return val === 'true' || val === '1';
+    }),
+  });
+
+  // Enhanced scraped jobs endpoint with advanced filtering
+  app.get('/api/scraped-jobs', async (req: any, res) => {
+    const startTime = Date.now();
+    
+    try {
+      // Validate query parameters
+      const validatedQuery = jobSearchQuerySchema.parse(req.query);
+      const {
+        q,
+        country,
+        city,
+        radius,
+        category,
+        subcategory,
+        job_type,
+        work_mode,
+        experience_level,
+        salary_min,
+        salary_max,
+        currency,
+        company,
+        source_platform,
+        date_posted,
+        remote_only,
+        sort,
+        page,
+        size,
+        include_facets
+      } = validatedQuery;
+
+      // Build base query
+      let query = db.select().from(schema.scrapedJobs);
+      let countQuery = db.select({ count: count() }).from(schema.scrapedJobs);
       
+      // Build where conditions
+      const conditions = [eq(schema.scrapedJobs.isActive, true)];
+
+      // Full-text search across title, description, company
+      if (q && q.trim()) {
+        const searchTerm = q.trim();
+        conditions.push(
+          sql`to_tsvector('simple', ${schema.scrapedJobs.title} || ' ' || coalesce(${schema.scrapedJobs.description}, '') || ' ' || ${schema.scrapedJobs.company}) @@ plainto_tsquery('simple', ${searchTerm})`
+        );
+      }
+
+      // Location filters
+      if (country) {
+        conditions.push(eq(schema.scrapedJobs.countryCode, country));
+      }
+      if (city) {
+        conditions.push(like(schema.scrapedJobs.city, `%${city}%`));
+      }
+      // Note: Radius search would require PostGIS for proper implementation
+      // For now, we'll just use city/country filters
+
+      // Job category filters
+      if (category) {
+        conditions.push(eq(schema.scrapedJobs.category, category));
+      }
+      if (subcategory) {
+        conditions.push(eq(schema.scrapedJobs.subcategory, subcategory));
+      }
+
+      // Array filters (support multiple values)
+      // Use inArray for proper PostgreSQL array handling
+      if (job_type && job_type.length > 0) {
+        // Use Drizzle's inArray method for proper array filtering
+        conditions.push(inArray(schema.scrapedJobs.jobType, job_type));
+      }
+      if (work_mode && work_mode.length > 0) {
+        if (remote_only) {
+          conditions.push(eq(schema.scrapedJobs.workMode, 'remote'));
+        } else {
+          // Use Drizzle's inArray method for proper array filtering
+          conditions.push(inArray(schema.scrapedJobs.workMode, work_mode));
+        }
+      } else if (remote_only) {
+        conditions.push(eq(schema.scrapedJobs.workMode, 'remote'));
+      }
+      if (experience_level && experience_level.length > 0) {
+        // Use Drizzle's inArray method for proper array filtering
+        conditions.push(inArray(schema.scrapedJobs.experienceLevel, experience_level));
+      }
+
+      // Salary filters
+      if (salary_min !== undefined) {
+        conditions.push(sql`${schema.scrapedJobs.salaryMin} >= ${salary_min}`);
+      }
+      if (salary_max !== undefined) {
+        conditions.push(sql`${schema.scrapedJobs.salaryMax} <= ${salary_max}`);
+      }
+      if (currency) {
+        conditions.push(eq(schema.scrapedJobs.currency, currency));
+      }
+
+      // Company filter
+      if (company) {
+        conditions.push(like(schema.scrapedJobs.company, `%${company}%`));
+      }
+
+      // Source platform filter
+      if (source_platform) {
+        conditions.push(eq(schema.scrapedJobs.sourcePlatform, source_platform));
+      }
+
+      // Date posted filter
+      if (date_posted) {
+        const daysAgo = new Date();
+        daysAgo.setDate(daysAgo.getDate() - date_posted);
+        conditions.push(sql`${schema.scrapedJobs.postedAt} >= ${daysAgo}`);
+      }
+
+      // Apply all conditions
       if (conditions.length > 0) {
         query = query.where(and(...conditions));
+        countQuery = countQuery.where(and(...conditions));
+      }
+
+      // Sorting
+      let orderBy;
+      switch (sort) {
+        case 'relevance':
+          if (q && q.trim()) {
+            // Use ts_rank for text search relevance
+            orderBy = sql`ts_rank(to_tsvector('simple', ${schema.scrapedJobs.title} || ' ' || coalesce(${schema.scrapedJobs.description}, '') || ' ' || ${schema.scrapedJobs.company}), plainto_tsquery('simple', ${q.trim()})) DESC`;
+          } else {
+            orderBy = desc(schema.scrapedJobs.createdAt);
+          }
+          break;
+        case 'salary':
+          orderBy = desc(schema.scrapedJobs.salaryMax);
+          break;
+        case 'date':
+        default:
+          orderBy = desc(schema.scrapedJobs.postedAt);
+          break;
+      }
+
+      // Get total count for pagination
+      const [totalResult] = await countQuery;
+      const total = totalResult.count;
+
+      // Apply pagination and execute main query
+      const offset = (page - 1) * size;
+      const jobs = await query
+        .orderBy(orderBy)
+        .limit(size)
+        .offset(offset);
+
+      // Calculate pagination metadata
+      const totalPages = Math.ceil(total / size);
+
+      // Build response
+      const response: any = {
+        jobs,
+        pagination: {
+          total,
+          page,
+          size,
+          totalPages,
+        },
+      };
+
+      // Include facets if requested
+      if (include_facets) {
+        // Get facets by running aggregate queries with current filters (excluding the facet being counted)
+        const baseFacetConditions = conditions.filter(condition => 
+          // Remove specific filter conditions when calculating facets for that field
+          !condition.toString().includes('countryCode') &&
+          !condition.toString().includes('city') &&
+          !condition.toString().includes('category') &&
+          !condition.toString().includes('jobType') &&
+          !condition.toString().includes('workMode') &&
+          !condition.toString().includes('experienceLevel') &&
+          !condition.toString().includes('company') &&
+          !condition.toString().includes('sourcePlatform')
+        );
+
+        const facetQuery = db.select().from(schema.scrapedJobs);
+        const facetBaseQuery = baseFacetConditions.length > 0 
+          ? facetQuery.where(and(...baseFacetConditions))
+          : facetQuery;
+
+        // Get country facets
+        const countries = await db
+          .select({
+            code: schema.scrapedJobs.countryCode,
+            count: count()
+          })
+          .from(schema.scrapedJobs)
+          .where(and(...baseFacetConditions))
+          .groupBy(schema.scrapedJobs.countryCode)
+          .having(isNotNull(schema.scrapedJobs.countryCode))
+          .orderBy(desc(count()));
+
+        // Get comprehensive facets in parallel for better performance
+        const [
+          categoriesFacet,
+          jobTypesFacet,
+          workModesFacet,
+          experienceLevelsFacet,
+          citiesFacet,
+          companiesFacet,
+          sourcesFacet
+        ] = await Promise.all([
+          // Categories
+          db.select({
+            name: schema.scrapedJobs.category,
+            count: count()
+          })
+          .from(schema.scrapedJobs)
+          .where(and(...baseFacetConditions))
+          .groupBy(schema.scrapedJobs.category)
+          .having(isNotNull(schema.scrapedJobs.category))
+          .orderBy(desc(count()))
+          .limit(20),
+
+          // Job Types
+          db.select({
+            type: schema.scrapedJobs.jobType,
+            count: count()
+          })
+          .from(schema.scrapedJobs)
+          .where(and(...baseFacetConditions))
+          .groupBy(schema.scrapedJobs.jobType)
+          .having(isNotNull(schema.scrapedJobs.jobType))
+          .orderBy(desc(count()))
+          .limit(10),
+
+          // Work Modes
+          db.select({
+            mode: schema.scrapedJobs.workMode,
+            count: count()
+          })
+          .from(schema.scrapedJobs)
+          .where(and(...baseFacetConditions))
+          .groupBy(schema.scrapedJobs.workMode)
+          .having(isNotNull(schema.scrapedJobs.workMode))
+          .orderBy(desc(count()))
+          .limit(10),
+
+          // Experience Levels
+          db.select({
+            level: schema.scrapedJobs.experienceLevel,
+            count: count()
+          })
+          .from(schema.scrapedJobs)
+          .where(and(...baseFacetConditions))
+          .groupBy(schema.scrapedJobs.experienceLevel)
+          .having(isNotNull(schema.scrapedJobs.experienceLevel))
+          .orderBy(desc(count()))
+          .limit(10),
+
+          // Cities
+          db.select({
+            name: schema.scrapedJobs.city,
+            count: count()
+          })
+          .from(schema.scrapedJobs)
+          .where(and(...baseFacetConditions))
+          .groupBy(schema.scrapedJobs.city)
+          .having(isNotNull(schema.scrapedJobs.city))
+          .orderBy(desc(count()))
+          .limit(20),
+
+          // Companies
+          db.select({
+            name: schema.scrapedJobs.company,
+            count: count()
+          })
+          .from(schema.scrapedJobs)
+          .where(and(...baseFacetConditions))
+          .groupBy(schema.scrapedJobs.company)
+          .having(isNotNull(schema.scrapedJobs.company))
+          .orderBy(desc(count()))
+          .limit(20),
+
+          // Source Platforms
+          db.select({
+            platform: schema.scrapedJobs.sourcePlatform,
+            count: count()
+          })
+          .from(schema.scrapedJobs)
+          .where(and(...baseFacetConditions))
+          .groupBy(schema.scrapedJobs.sourcePlatform)
+          .having(isNotNull(schema.scrapedJobs.sourcePlatform))
+          .orderBy(desc(count()))
+          .limit(10)
+        ]);
+
+        response.facets = {
+          countries: countries.slice(0, 20),
+          cities: citiesFacet,
+          categories: categoriesFacet,
+          job_types: jobTypesFacet,
+          work_modes: workModesFacet,
+          experience_levels: experienceLevelsFacet,
+          companies: companiesFacet,
+          sources: sourcesFacet
+        };
+      }
+
+      // Performance monitoring
+      const responseTime = Date.now() - startTime;
+      if (responseTime > 300) {
+        console.warn(`🐌 SLOW JOB SEARCH: ${responseTime}ms for query:`, validatedQuery);
+      }
+
+      res.json(response);
+    } catch (error) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ 
+          message: "Invalid query parameters", 
+          details: error.errors?.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ')
+        });
       }
       
-      const jobs = await query
-        .where(eq(schema.scrapedJobs.isActive, true))
-        .orderBy(desc(schema.scrapedJobs.createdAt))
-        .limit(parseInt(limit))
-        .offset(parseInt(offset));
+      // Enhanced error handling for array parameter issues
+      if (error.message?.includes('malformed array literal') || 
+          error.message?.includes('op ANY/ALL (array) requires array') ||
+          error.message?.includes('array value must start with')) {
+        console.error("🔥 ARRAY PARAMETER ERROR in job search:", {
+          error: error.message,
+          query: req.query,
+          stack: error.stack
+        });
+        return res.status(400).json({ 
+          error: "Invalid array parameters", 
+          message: "Array parameters (job_type, work_mode, experience_level) must be properly formatted",
+          details: error.message
+        });
+      }
+      
+      console.error("❌ Error in advanced job search:", {
+        error: error.message,
+        query: req.query,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+      
+      res.status(500).json({ 
+        error: "Failed to search jobs",
+        message: "Internal server error occurred while searching jobs"
+      });
+    }
+  });
 
-      res.json(jobs);
+  // Dedicated facets endpoint for job search
+  app.get('/api/scraped-jobs/facets', async (req: any, res) => {
+    const startTime = Date.now();
+    
+    try {
+      // Use the same validation schema but ignore pagination and facet inclusion
+      const validatedQuery = jobSearchQuerySchema.omit({ 
+        page: true, 
+        size: true, 
+        include_facets: true, 
+        sort: true 
+      }).parse(req.query);
+      
+      const {
+        q,
+        country,
+        city,
+        radius,
+        category,
+        subcategory,
+        job_type,
+        work_mode,
+        experience_level,
+        salary_min,
+        salary_max,
+        currency,
+        company,
+        source_platform,
+        date_posted,
+        remote_only
+      } = validatedQuery;
+
+      // Build base conditions for facet filtering
+      const baseConditions = [eq(schema.scrapedJobs.isActive, true)];
+
+      // Apply the same filters as the main search (this creates filtered facets)
+      if (q && q.trim()) {
+        const searchTerm = q.trim();
+        baseConditions.push(
+          sql`to_tsvector('simple', ${schema.scrapedJobs.title} || ' ' || coalesce(${schema.scrapedJobs.description}, '') || ' ' || ${schema.scrapedJobs.company}) @@ plainto_tsquery('simple', ${searchTerm})`
+        );
+      }
+
+      if (country) {
+        baseConditions.push(eq(schema.scrapedJobs.countryCode, country));
+      }
+      if (city) {
+        baseConditions.push(like(schema.scrapedJobs.city, `%${city}%`));
+      }
+      if (category) {
+        baseConditions.push(eq(schema.scrapedJobs.category, category));
+      }
+      if (subcategory) {
+        baseConditions.push(eq(schema.scrapedJobs.subcategory, subcategory));
+      }
+      if (job_type && job_type.length > 0) {
+        baseConditions.push(inArray(schema.scrapedJobs.jobType, job_type));
+      }
+      if (work_mode && work_mode.length > 0) {
+        if (remote_only) {
+          baseConditions.push(eq(schema.scrapedJobs.workMode, 'remote'));
+        } else {
+          baseConditions.push(inArray(schema.scrapedJobs.workMode, work_mode));
+        }
+      } else if (remote_only) {
+        baseConditions.push(eq(schema.scrapedJobs.workMode, 'remote'));
+      }
+      if (experience_level && experience_level.length > 0) {
+        baseConditions.push(inArray(schema.scrapedJobs.experienceLevel, experience_level));
+      }
+      if (salary_min !== undefined) {
+        baseConditions.push(sql`${schema.scrapedJobs.salaryMin} >= ${salary_min}`);
+      }
+      if (salary_max !== undefined) {
+        baseConditions.push(sql`${schema.scrapedJobs.salaryMax} <= ${salary_max}`);
+      }
+      if (currency) {
+        baseConditions.push(eq(schema.scrapedJobs.currency, currency));
+      }
+      if (company) {
+        baseConditions.push(like(schema.scrapedJobs.company, `%${company}%`));
+      }
+      if (source_platform) {
+        baseConditions.push(eq(schema.scrapedJobs.sourcePlatform, source_platform));
+      }
+      if (date_posted) {
+        const daysAgo = new Date();
+        daysAgo.setDate(daysAgo.getDate() - date_posted);
+        baseConditions.push(sql`${schema.scrapedJobs.postedAt} >= ${daysAgo}`);
+      }
+
+      // Run all facet queries in parallel for better performance
+      const [
+        countries,
+        cities,
+        categories,
+        subcategories,
+        jobTypes,
+        workModes,
+        experienceLevels,
+        companies,
+        sourcePlatforms,
+        currencies
+      ] = await Promise.all([
+        // Countries (exclude country filter for this facet)
+        db.select({
+          code: schema.scrapedJobs.countryCode,
+          count: count()
+        })
+        .from(schema.scrapedJobs)
+        .where(and(...baseConditions.filter(c => !c.toString().includes('countryCode'))))
+        .groupBy(schema.scrapedJobs.countryCode)
+        .having(isNotNull(schema.scrapedJobs.countryCode))
+        .orderBy(desc(count()))
+        .limit(50),
+
+        // Cities (exclude city filter for this facet)
+        db.select({
+          name: schema.scrapedJobs.city,
+          count: count()
+        })
+        .from(schema.scrapedJobs)
+        .where(and(...baseConditions.filter(c => !c.toString().includes('city'))))
+        .groupBy(schema.scrapedJobs.city)
+        .having(isNotNull(schema.scrapedJobs.city))
+        .orderBy(desc(count()))
+        .limit(50),
+
+        // Categories (exclude category filter for this facet)
+        db.select({
+          name: schema.scrapedJobs.category,
+          count: count()
+        })
+        .from(schema.scrapedJobs)
+        .where(and(...baseConditions.filter(c => !c.toString().includes('category') || c.toString().includes('subcategory'))))
+        .groupBy(schema.scrapedJobs.category)
+        .having(isNotNull(schema.scrapedJobs.category))
+        .orderBy(desc(count()))
+        .limit(30),
+
+        // Subcategories (exclude subcategory filter for this facet)
+        db.select({
+          name: schema.scrapedJobs.subcategory,
+          count: count()
+        })
+        .from(schema.scrapedJobs)
+        .where(and(...baseConditions.filter(c => !c.toString().includes('subcategory'))))
+        .groupBy(schema.scrapedJobs.subcategory)
+        .having(isNotNull(schema.scrapedJobs.subcategory))
+        .orderBy(desc(count()))
+        .limit(30),
+
+        // Job Types (exclude job_type filter for this facet)
+        db.select({
+          type: schema.scrapedJobs.jobType,
+          count: count()
+        })
+        .from(schema.scrapedJobs)
+        .where(and(...baseConditions.filter(c => !c.toString().includes('jobType'))))
+        .groupBy(schema.scrapedJobs.jobType)
+        .having(isNotNull(schema.scrapedJobs.jobType))
+        .orderBy(desc(count()))
+        .limit(20),
+
+        // Work Modes (exclude work_mode filter for this facet)
+        db.select({
+          mode: schema.scrapedJobs.workMode,
+          count: count()
+        })
+        .from(schema.scrapedJobs)
+        .where(and(...baseConditions.filter(c => !c.toString().includes('workMode'))))
+        .groupBy(schema.scrapedJobs.workMode)
+        .having(isNotNull(schema.scrapedJobs.workMode))
+        .orderBy(desc(count()))
+        .limit(10),
+
+        // Experience Levels (exclude experience_level filter for this facet)
+        db.select({
+          level: schema.scrapedJobs.experienceLevel,
+          count: count()
+        })
+        .from(schema.scrapedJobs)
+        .where(and(...baseConditions.filter(c => !c.toString().includes('experienceLevel'))))
+        .groupBy(schema.scrapedJobs.experienceLevel)
+        .having(isNotNull(schema.scrapedJobs.experienceLevel))
+        .orderBy(desc(count()))
+        .limit(10),
+
+        // Top Companies (exclude company filter for this facet)
+        db.select({
+          name: schema.scrapedJobs.company,
+          count: count()
+        })
+        .from(schema.scrapedJobs)
+        .where(and(...baseConditions.filter(c => !c.toString().includes('company'))))
+        .groupBy(schema.scrapedJobs.company)
+        .having(isNotNull(schema.scrapedJobs.company))
+        .orderBy(desc(count()))
+        .limit(50),
+
+        // Source Platforms (exclude source_platform filter for this facet)
+        db.select({
+          platform: schema.scrapedJobs.sourcePlatform,
+          count: count()
+        })
+        .from(schema.scrapedJobs)
+        .where(and(...baseConditions.filter(c => !c.toString().includes('sourcePlatform'))))
+        .groupBy(schema.scrapedJobs.sourcePlatform)
+        .having(isNotNull(schema.scrapedJobs.sourcePlatform))
+        .orderBy(desc(count()))
+        .limit(20),
+
+        // Currencies (exclude currency filter for this facet)
+        db.select({
+          currency: schema.scrapedJobs.currency,
+          count: count()
+        })
+        .from(schema.scrapedJobs)
+        .where(and(...baseConditions.filter(c => !c.toString().includes('currency'))))
+        .groupBy(schema.scrapedJobs.currency)
+        .having(isNotNull(schema.scrapedJobs.currency))
+        .orderBy(desc(count()))
+        .limit(20)
+      ]);
+
+      // Get total count for context
+      const [totalResult] = await db
+        .select({ count: count() })
+        .from(schema.scrapedJobs)
+        .where(and(...baseConditions));
+
+      const response = {
+        facets: {
+          countries,
+          cities,
+          categories,
+          subcategories,
+          job_types: jobTypes,
+          work_modes: workModes,
+          experience_levels: experienceLevels,
+          companies,
+          sources: sourcePlatforms,
+          currencies
+        },
+        total: totalResult.count,
+        appliedFilters: validatedQuery
+      };
+
+      // Performance monitoring
+      const responseTime = Date.now() - startTime;
+      if (responseTime > 300) {
+        console.warn(`🐌 SLOW FACETS REQUEST: ${responseTime}ms for query:`, validatedQuery);
+      }
+
+      res.json(response);
     } catch (error) {
-      console.error("Error fetching scraped jobs:", error);
-      res.status(500).json({ error: "Failed to fetch scraped jobs" });
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ 
+          message: "Invalid query parameters", 
+          details: error.errors?.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ')
+        });
+      }
+      
+      console.error("Error in facets request:", error);
+      res.status(500).json({ error: "Failed to get job facets" });
     }
   });
 

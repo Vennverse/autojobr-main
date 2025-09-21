@@ -52,41 +52,139 @@ interface JobSyncLogEntry {
 export class JobSpyService {
   private pythonPath: string;
   private scriptPath: string;
-  private readonly DEFAULT_SEARCH_TERMS = [
-    'software engineer',
-    'frontend developer', 
-    'backend developer',
-    'full stack developer',
-    'data scientist',
-    'devops engineer',
-    'product manager',
-    'ux designer',
-    'mobile developer',
-    'machine learning engineer',
-    'cloud engineer',
-    'python developer',
-    'javascript developer',
-    'react developer',
-    'node.js developer'
-  ];
+  private readonly DEFAULT_SEARCH_TERMS = {
+    // Technology roles
+    tech: [
+      'software engineer', 'frontend developer', 'backend developer', 'full stack developer',
+      'data scientist', 'devops engineer', 'mobile developer', 'machine learning engineer',
+      'cloud engineer', 'python developer', 'javascript developer', 'react developer',
+      'node.js developer', 'data engineer', 'ai engineer', 'ui/ux designer'
+    ],
+    // Sales roles
+    sales: [
+      'account manager', 'sales representative', 'business development manager', 'sales director',
+      'sales engineer', 'key account manager', 'inside sales', 'outside sales',
+      'sales coordinator', 'territory manager'
+    ],
+    // Marketing roles
+    marketing: [
+      'digital marketing manager', 'content marketing manager', 'social media manager',
+      'brand manager', 'marketing coordinator', 'seo specialist', 'ppc specialist',
+      'email marketing manager', 'growth marketing manager', 'marketing analyst'
+    ],
+    // Business roles
+    business: [
+      'business analyst', 'operations manager', 'project manager', 'consultant',
+      'strategy manager', 'business development', 'financial analyst',
+      'operations coordinator', 'process improvement manager', 'business intelligence analyst'
+    ],
+    // Operations roles
+    operations: [
+      'operations manager', 'supply chain manager', 'logistics coordinator', 'process manager',
+      'quality assurance manager', 'operations analyst', 'facility manager',
+      'vendor manager', 'operations coordinator'
+    ],
+    // Customer Success roles
+    customer_success: [
+      'customer success manager', 'account manager', 'customer support manager',
+      'client relations manager', 'customer experience manager', 'success coordinator'
+    ],
+    // Finance roles
+    finance: [
+      'financial analyst', 'accountant', 'finance manager', 'controller',
+      'treasury analyst', 'investment analyst', 'credit analyst', 'budget analyst',
+      'financial planning manager'
+    ],
+    // HR roles
+    hr: [
+      'hr manager', 'recruiter', 'hr business partner', 'talent acquisition specialist',
+      'hr coordinator', 'training manager', 'compensation analyst',
+      'employee relations manager', 'hr generalist'
+    ],
+    // Design roles
+    design: [
+      'graphic designer', 'creative director', 'brand designer', 'web designer',
+      'marketing designer', 'visual designer', 'design manager'
+    ],
+    // Product roles
+    product: [
+      'product manager', 'product owner', 'product analyst', 'product marketing manager',
+      'product designer', 'product coordinator'
+    ]
+  };
   
-  private readonly DEFAULT_LOCATIONS = [
-    'New York, NY',
-    'San Francisco, CA', 
-    'Los Angeles, CA',
-    'Austin, TX',
-    'Seattle, WA',
-    'Chicago, IL',
-    'Boston, MA',
-    'Remote',
-    'Mumbai, India',
-    'Bangalore, India',
-    'Delhi, India',
-    'Hyderabad, India',
-    'Pune, India'
-  ];
+  private readonly DEFAULT_LOCATIONS = {
+    // United States
+    US: [
+      'New York, NY', 'San Francisco, CA', 'Los Angeles, CA', 'Austin, TX',
+      'Seattle, WA', 'Chicago, IL', 'Boston, MA', 'Denver, CO', 'Atlanta, GA',
+      'Miami, FL', 'Phoenix, AZ', 'Philadelphia, PA', 'Dallas, TX', 'Houston, TX', 'Remote'
+    ],
+    // India
+    IN: [
+      'Mumbai, India', 'Bangalore, India', 'Delhi, India', 'Hyderabad, India',
+      'Chennai, India', 'Pune, India', 'Kolkata, India', 'Ahmedabad, India',
+      'Gurgaon, India', 'Noida, India', 'Jaipur, India', 'Kochi, India',
+      'Indore, India', 'Nagpur, India', 'Visakhapatnam, India'
+    ],
+    // United Kingdom
+    GB: [
+      'London, UK', 'Manchester, UK', 'Birmingham, UK', 'Leeds, UK',
+      'Glasgow, UK', 'Liverpool, UK', 'Bristol, UK', 'Edinburgh, UK',
+      'Sheffield, UK', 'Cardiff, UK'
+    ],
+    // Germany
+    DE: [
+      'Berlin, Germany', 'Munich, Germany', 'Hamburg, Germany', 'Cologne, Germany',
+      'Frankfurt, Germany', 'Stuttgart, Germany', 'Düsseldorf, Germany',
+      'Dortmund, Germany', 'Leipzig, Germany', 'Bremen, Germany'
+    ],
+    // Australia
+    AU: [
+      'Sydney, Australia', 'Melbourne, Australia', 'Brisbane, Australia',
+      'Perth, Australia', 'Adelaide, Australia', 'Canberra, Australia',
+      'Gold Coast, Australia', 'Newcastle, Australia', 'Wollongong, Australia',
+      'Geelong, Australia'
+    ],
+    // France
+    FR: [
+      'Paris, France', 'Lyon, France', 'Marseille, France', 'Toulouse, France',
+      'Nice, France', 'Nantes, France', 'Strasbourg, France', 'Montpellier, France',
+      'Bordeaux, France', 'Lille, France'
+    ],
+    // Spain
+    ES: [
+      'Madrid, Spain', 'Barcelona, Spain', 'Valencia, Spain', 'Seville, Spain',
+      'Bilbao, Spain', 'Málaga, Spain', 'Murcia, Spain', 'Las Palmas, Spain',
+      'Palma, Spain', 'Zaragoza, Spain'
+    ],
+    // UAE
+    AE: [
+      'Dubai, UAE', 'Abu Dhabi, UAE', 'Sharjah, UAE', 'Ajman, UAE',
+      'Ras Al Khaimah, UAE', 'Fujairah, UAE', 'Umm Al Quwain, UAE'
+    ]
+  };
   
-  private readonly DEFAULT_JOB_SITES = ['indeed', 'linkedin', 'zip_recruiter', 'glassdoor', 'naukri'];
+  private readonly DEFAULT_JOB_SITES = {
+    // Global job sites (work in most countries)
+    global: ['indeed', 'linkedin'],
+    // US-specific job sites
+    US: ['indeed', 'linkedin', 'zip_recruiter', 'glassdoor'],
+    // India-specific job sites
+    IN: ['indeed', 'linkedin', 'naukri'],
+    // UK-specific job sites
+    GB: ['indeed', 'linkedin'],
+    // Germany-specific job sites
+    DE: ['indeed', 'linkedin'],
+    // Australia-specific job sites
+    AU: ['indeed', 'linkedin'],
+    // France-specific job sites
+    FR: ['indeed', 'linkedin'],
+    // Spain-specific job sites
+    ES: ['indeed', 'linkedin'],
+    // UAE-specific job sites
+    AE: ['indeed', 'linkedin']
+  };
 
   constructor() {
     this.pythonPath = 'python3';
@@ -318,9 +416,9 @@ export class JobSpyService {
     try {
       // Use comprehensive configuration for daily scraping
       const config: JobSpyConfig = {
-        search_terms: this.DEFAULT_SEARCH_TERMS,
-        locations: this.DEFAULT_LOCATIONS,
-        job_sites: this.DEFAULT_JOB_SITES,
+        search_terms: this.getAllSearchTerms(),
+        locations: this.getAllLocations(),
+        job_sites: this.DEFAULT_JOB_SITES.global,
         results_wanted: 50, // Balanced number to avoid rate limits
         country: 'USA'
       };
@@ -437,55 +535,127 @@ export class JobSpyService {
   }
 
   /**
-   * Get available job sites supported by JobSpy
+   * Get all search terms flattened from all categories
    */
-  getAvailableJobSites(): string[] {
-    return this.DEFAULT_JOB_SITES;
+  private getAllSearchTerms(): string[] {
+    return Object.values(this.DEFAULT_SEARCH_TERMS).flat();
   }
 
   /**
-   * Get common search terms for different categories
+   * Get all locations flattened from all countries
    */
-  getSearchTermsByCategory(): Record<string, string[]> {
+  private getAllLocations(): string[] {
+    return Object.values(this.DEFAULT_LOCATIONS).flat();
+  }
+
+  /**
+   * Get search terms for a specific category
+   */
+  getSearchTermsByJobCategory(category: keyof typeof this.DEFAULT_SEARCH_TERMS): string[] {
+    return this.DEFAULT_SEARCH_TERMS[category] || [];
+  }
+
+  /**
+   * Get locations for a specific country
+   */
+  getLocationsByCountry(country: keyof typeof this.DEFAULT_LOCATIONS): string[] {
+    return this.DEFAULT_LOCATIONS[country] || [];
+  }
+
+  /**
+   * Get job sites for a specific country
+   */
+  getJobSitesByCountry(country: keyof typeof this.DEFAULT_JOB_SITES): string[] {
+    return this.DEFAULT_JOB_SITES[country] || this.DEFAULT_JOB_SITES.global;
+  }
+
+  /**
+   * Scrape jobs by category for specific country
+   */
+  async scrapeJobsByCategory(
+    category: keyof typeof this.DEFAULT_SEARCH_TERMS,
+    country: keyof typeof this.DEFAULT_LOCATIONS = 'US',
+    resultsWanted: number = 25
+  ): Promise<JobSpyResult> {
+    const config: JobSpyConfig = {
+      search_terms: this.getSearchTermsByJobCategory(category),
+      locations: this.getLocationsByCountry(country),
+      job_sites: this.getJobSitesByCountry(country),
+      results_wanted: resultsWanted,
+      country: country
+    };
+
+    return this.scrapeJobs(config);
+  }
+
+  /**
+   * Scrape jobs globally with intelligent rotation
+   */
+  async scrapeJobsGlobal(
+    categories: (keyof typeof this.DEFAULT_SEARCH_TERMS)[] = ['tech', 'sales', 'marketing'],
+    countries: (keyof typeof this.DEFAULT_LOCATIONS)[] = ['US', 'IN', 'GB'],
+    resultsPerCategory: number = 20
+  ): Promise<JobSpyResult[]> {
+    const results: JobSpyResult[] = [];
+    
+    // Rotate through countries and categories to distribute load
+    for (const country of countries) {
+      for (const category of categories) {
+        try {
+          console.log(`🌍 Scraping ${category} jobs in ${country}...`);
+          const result = await this.scrapeJobsByCategory(category, country, resultsPerCategory);
+          results.push(result);
+          
+          // Add delay between requests to be respectful to job sites
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        } catch (error) {
+          console.error(`❌ Failed to scrape ${category} jobs in ${country}:`, error);
+          // Continue with other combinations even if one fails
+        }
+      }
+    }
+    
+    return results;
+  }
+
+  /**
+   * Get available job sites supported by JobSpy
+   */
+  getAvailableJobSites(): string[] {
+    return this.DEFAULT_JOB_SITES.global;
+  }
+
+  /**
+   * Get all job categories with their search terms
+   */
+  getAllJobCategories(): Record<string, string[]> {
     return {
-      'Software Engineering': [
-        'software engineer',
-        'software developer',
-        'frontend developer',
-        'backend developer',
-        'full stack developer',
-        'web developer',
-        'mobile developer'
-      ],
-      'Data & AI': [
-        'data scientist',
-        'data engineer',
-        'data analyst',
-        'machine learning engineer',
-        'ai engineer',
-        'research scientist'
-      ],
-      'DevOps & Infrastructure': [
-        'devops engineer',
-        'site reliability engineer',
-        'platform engineer',
-        'cloud engineer',
-        'infrastructure engineer'
-      ],
-      'Product & Design': [
-        'product manager',
-        'ux designer',
-        'ui designer',
-        'product designer',
-        'design systems'
-      ],
-      'Marketing & Sales': [
-        'marketing manager',
-        'growth manager',
-        'content marketing',
-        'digital marketing',
-        'sales engineer'
-      ]
+      'Technology': this.DEFAULT_SEARCH_TERMS.tech,
+      'Sales': this.DEFAULT_SEARCH_TERMS.sales,
+      'Marketing': this.DEFAULT_SEARCH_TERMS.marketing,
+      'Business': this.DEFAULT_SEARCH_TERMS.business,
+      'Operations': this.DEFAULT_SEARCH_TERMS.operations,
+      'Customer Success': this.DEFAULT_SEARCH_TERMS.customer_success,
+      'Finance': this.DEFAULT_SEARCH_TERMS.finance,
+      'Human Resources': this.DEFAULT_SEARCH_TERMS.hr,
+      'Design': this.DEFAULT_SEARCH_TERMS.design,
+      'Product': this.DEFAULT_SEARCH_TERMS.product
+    };
+  }
+
+  /**
+   * Get all countries with their locations
+   */
+  getAllCountries(): Record<string, string[]> {
+    return {
+      'United States': this.DEFAULT_LOCATIONS.US,
+      'India': this.DEFAULT_LOCATIONS.IN,
+      'United Kingdom': this.DEFAULT_LOCATIONS.GB,
+      'Germany': this.DEFAULT_LOCATIONS.DE,
+      'Australia': this.DEFAULT_LOCATIONS.AU,
+      'France': this.DEFAULT_LOCATIONS.FR,
+      'Spain': this.DEFAULT_LOCATIONS.ES,
+      'UAE': this.DEFAULT_LOCATIONS.AE
     };
   }
 }

@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { useForm } from "react-hook-form";
 import { Navbar } from "@/components/navbar";
 import SEOHead from "@/components/seo-head";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,15 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Search, 
@@ -47,6 +57,8 @@ import {
   ArrowUp,
   ArrowDown,
   ChevronLeft,
+  ChevronDown,
+  ChevronUp,
   MessageCircle,
   Share2,
   ThumbsUp,
@@ -56,7 +68,17 @@ import {
   Chrome,
   Brain,
   Target,
-  X
+  X,
+  SlidersHorizontal,
+  RotateCcw,
+  Menu,
+  Globe,
+  Home,
+  Laptop,
+  Car,
+  GraduationCap,
+  Building,
+  Factory
 } from "lucide-react";
 
 // Utility functions for professional job formatting
@@ -93,21 +115,74 @@ const formatWorkMode = (workMode?: string) => {
 interface JobPosting {
   id: number;
   title: string;
-  companyName: string;
+  companyName?: string;
+  company?: string;
   location: string;
   description: string;
   minSalary?: number;
   maxSalary?: number;
+  salaryMin?: number;
+  salaryMax?: number;
   currency?: string;
-  createdAt: string;
+  createdAt?: string;
+  created_at?: string;
+  postedAt?: string;
+  posted_at?: string;
   jobType?: string;
+  job_type?: string;
   workMode?: string;
+  work_mode?: string;
   experienceLevel?: string;
+  experience_level?: string;
   requiredSkills?: string[];
   benefits?: string[];
-  isActive: boolean;
+  isActive?: boolean;
   recruiterName?: string;
   applicationsCount?: number;
+  category?: string;
+  subcategory?: string;
+  sourcePlatform?: string;
+  source_platform?: string;
+  sourceUrl?: string;
+  source_url?: string;
+  countryCode?: string;
+  country_code?: string;
+  city?: string;
+  applyType?: 'easy' | 'external';
+  priority?: number;
+  source?: string;
+}
+
+interface JobFacets {
+  countries: Array<{ code: string; count: number }>;
+  cities: Array<{ name: string; count: number }>;
+  categories: Array<{ name: string; count: number }>;
+  job_types: Array<{ type: string; count: number }>;
+  work_modes: Array<{ mode: string; count: number }>;
+  experience_levels: Array<{ level: string; count: number }>;
+  companies: Array<{ name: string; count: number }>;
+  sources: Array<{ platform: string; count: number }>;
+}
+
+interface FilterState {
+  q?: string;
+  country?: string;
+  city?: string;
+  category?: string;
+  subcategory?: string;
+  job_type?: string[];
+  work_mode?: string[];
+  experience_level?: string[];
+  salary_min?: number;
+  salary_max?: number;
+  currency?: string;
+  company?: string;
+  source_platform?: string;
+  date_posted?: number;
+  remote_only?: boolean;
+  sort?: string;
+  page?: number;
+  size?: number;
 }
 
 interface UserProfile {
@@ -125,102 +200,174 @@ export default function Jobs() {
   const [_, setLocation] = useLocation();
   const queryClient = useQueryClient();
   
-  // State management
-  const [searchQuery, setSearchQuery] = useState("");
-  const [savedJobs, setSavedJobs] = useState<Set<number>>(new Set());
-  const [selectedJob, setSelectedJob] = useState<any>(null);
+  // URL and state management
+  const [searchParams, setSearchParams] = useState<URLSearchParams>(() => {
+    if (typeof window !== 'undefined') {
+      return new URLSearchParams(window.location.search);
+    }
+    return new URLSearchParams();
+  });
+  
+  // Main filter state derived from URL
+  const filters = useMemo<FilterState>(() => ({
+    q: searchParams.get('q') || '',
+    country: searchParams.get('country') || undefined,
+    city: searchParams.get('city') || undefined,
+    category: searchParams.get('category') || undefined,
+    job_type: searchParams.get('job_type')?.split(',').filter(Boolean) || [],
+    work_mode: searchParams.get('work_mode')?.split(',').filter(Boolean) || [],
+    experience_level: searchParams.get('experience_level')?.split(',').filter(Boolean) || [],
+    salary_min: searchParams.get('salary_min') ? parseInt(searchParams.get('salary_min')!) : undefined,
+    salary_max: searchParams.get('salary_max') ? parseInt(searchParams.get('salary_max')!) : undefined,
+    currency: searchParams.get('currency') || 'USD',
+    company: searchParams.get('company') || undefined,
+    source_platform: searchParams.get('source_platform') || undefined,
+    date_posted: searchParams.get('date_posted') ? parseInt(searchParams.get('date_posted')!) : undefined,
+    remote_only: searchParams.get('remote_only') === 'true',
+    sort: searchParams.get('sort') || 'relevance',
+    page: parseInt(searchParams.get('page') || '1'),
+    size: parseInt(searchParams.get('size') || '25')
+  }), [searchParams]);
+  
+  // Debounced search query
+  const [searchInput, setSearchInput] = useState(filters.q || '');
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  
+  // UI state
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<JobPosting | null>(null);
   const [showPromoAlert, setShowPromoAlert] = useState(true);
   const [currentPromo, setCurrentPromo] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const jobsPerPage = 25; // Show more jobs per page
-  const [sortBy, setSortBy] = useState("relevance"); // relevance, date, salary, match
-  const [filterPreferences, setFilterPreferences] = useState({
-    location: "",
-    jobType: "",
-    workMode: "",
-    experienceLevel: "",
-    salaryRange: "",
-    company: "",
-    skills: [] as string[],
-    category: ""
-  });
+  const [savedJobs, setSavedJobs] = useState<Set<number>>(new Set());
 
-  // Fetch platform jobs (recruiter postings) - now public
-  const { data: platformJobs = [], isLoading: platformJobsLoading } = useQuery({
-    queryKey: ["/api/jobs/postings", searchQuery, filterPreferences],
+  // Update URL when filters change
+  const updateFilters = useCallback((newFilters: Partial<FilterState>) => {
+    const newParams = new URLSearchParams(searchParams);
+    
+    Object.entries(newFilters).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '' || 
+          (Array.isArray(value) && value.length === 0)) {
+        newParams.delete(key);
+      } else if (Array.isArray(value)) {
+        newParams.set(key, value.join(','));
+      } else {
+        newParams.set(key, String(value));
+      }
+    });
+    
+    // Reset page when filters change
+    if (Object.keys(newFilters).some(key => key !== 'page' && key !== 'size')) {
+      newParams.set('page', '1');
+    }
+    
+    setSearchParams(newParams);
+    window.history.pushState(null, '', `${window.location.pathname}?${newParams.toString()}`);
+  }, [searchParams]);
+  
+  // Debounced search update
+  const debouncedUpdateSearch = useCallback((query: string) => {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    
+    const timeout = setTimeout(() => {
+      updateFilters({ q: query });
+    }, 300);
+    
+    setSearchTimeout(timeout);
+  }, [updateFilters, searchTimeout]);
+  
+  // Handle search input changes
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchInput(value);
+    debouncedUpdateSearch(value);
+  }, [debouncedUpdateSearch]);
+  
+  // Build API query parameters
+  const buildApiParams = useCallback((filterState: FilterState): URLSearchParams => {
+    const params = new URLSearchParams();
+    
+    Object.entries(filterState).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        if (Array.isArray(value) && value.length > 0) {
+          value.forEach(v => params.append(key, v));
+        } else if (!Array.isArray(value)) {
+          params.set(key, String(value));
+        }
+      }
+    });
+    
+    // Always include facets
+    params.set('include_facets', 'true');
+    
+    return params;
+  }, []);
+  
+  // Fetch scraped jobs with advanced filtering
+  const { data: jobsResponse, isLoading: jobsLoading, error: jobsError } = useQuery({
+    queryKey: ['scraped-jobs', filters],
+    queryFn: async () => {
+      const apiParams = buildApiParams(filters);
+      const response = await fetch(`/api/scraped-jobs?${apiParams.toString()}`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch jobs: ${response.status}`);
+      }
+      
+      return response.json();
+    },
+    staleTime: 30000, // 30 seconds
+    gcTime: 300000, // 5 minutes
+  });
+  
+  // Extract data from response
+  const jobs: JobPosting[] = jobsResponse?.jobs || [];
+  const facets: JobFacets | undefined = jobsResponse?.facets;
+  const pagination = jobsResponse?.pagination || { total: 0, page: 1, size: 25, totalPages: 0 };
+  
+  // Fetch platform jobs separately (lower priority)
+  const { data: platformJobs = [] } = useQuery({
+    queryKey: ['platform-jobs', filters.q, filters.category],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (searchQuery) params.append('search', searchQuery);
-      Object.entries(filterPreferences).forEach(([key, value]) => {
-        if (value && typeof value === 'string' && value !== 'all') params.append(key, value);
-      });
+      if (filters.q) params.set('search', filters.q);
+      if (filters.category) params.set('category', filters.category);
       
-      const response = await fetch(`/api/jobs/postings?${params}`, {
+      const response = await fetch(`/api/jobs/postings?${params.toString()}`, {
         credentials: 'include'
       });
       
-      if (!response.ok) throw new Error('Failed to fetch jobs');
-      return response.json();
-    }
-    // Removed enabled: isAuthenticated - now loads for everyone
+      if (!response.ok) return [];
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 60000, // 1 minute
   });
 
-  // Fetch scraped jobs - now public
-  const { data: scrapedJobs = [], isLoading: scrapedJobsLoading } = useQuery({
-    queryKey: ["/api/scraped-jobs?limit=2000"],
-    queryFn: async () => {
-      const response = await fetch("/api/scraped-jobs?limit=2000", {
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Failed to fetch scraped jobs');
-      return response.json();
-    }
-    // Removed enabled: isAuthenticated - now loads for everyone
-  });
-
-  // Combine and prioritize platform jobs first, then scraped jobs
-  const allJobsUnsorted = [
-    ...platformJobs.map((job: any) => ({
+  // Combine scraped and platform jobs (scraped jobs are already filtered by API)
+  const allJobs = useMemo(() => {
+    const scrapedJobsWithMeta = jobs.map((job: any) => ({
+      ...job,
+      company: job.company || job.companyName,
+      companyName: job.company || job.companyName,
+      applyType: 'external' as const,
+      priority: 2,
+      source: 'scraped'
+    }));
+    
+    const platformJobsWithMeta = platformJobs.map((job: any) => ({
       ...job,
       company: job.companyName || job.company_name || job.company,
       companyName: job.companyName || job.company_name || job.company,
-      jobType: 'platform',
-      applyType: 'easy',
-      priority: 1 // Platform jobs get higher priority
-    })),
-    ...scrapedJobs.map((job: any) => ({
-      ...job,
-      company: job.company,
-      companyName: job.company,
-      jobType: job.jobType || job.job_type || 'full_time', // Use actual job type from scraped data
-      applyType: 'external',
-      priority: 2, // Scraped jobs get lower priority
-      source: 'scraped', // Add source identifier instead of overriding jobType
-      sourceUrl: job.sourceUrl || job.source_url // Use API field first, then database field as fallback
-    }))
-  ].filter((job: any) => {
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return job.title?.toLowerCase().includes(query) || 
-             job.company?.toLowerCase().includes(query) ||
-             job.location?.toLowerCase().includes(query);
-    }
-    return true;
-  }).filter((job: any) => {
-    // Apply filters
-    if (filterPreferences.category && filterPreferences.category !== 'all') {
-      return job.category === filterPreferences.category;
-    }
-    if (filterPreferences.workMode && filterPreferences.workMode !== 'all') {
-      return job.workMode === filterPreferences.workMode || job.work_mode === filterPreferences.workMode;
-    }
-    if (filterPreferences.experienceLevel && filterPreferences.experienceLevel !== 'all') {
-      return job.experienceLevel === filterPreferences.experienceLevel || job.experience_level === filterPreferences.experienceLevel;
-    }
-    return true;
-  });
+      applyType: 'easy' as const,
+      priority: 1,
+      source: 'platform'
+    }));
+    
+    return [...platformJobsWithMeta, ...scrapedJobsWithMeta];
+  }, [jobs, platformJobs]);
 
-  // Get user profile for compatibility scoring (only if authenticated) - must be before calculateCompatibility
+  // Get user profile for compatibility scoring
   const { data: userProfile } = useQuery<UserProfile>({
     queryKey: ["/api/profile"],
     enabled: isAuthenticated
@@ -279,56 +426,59 @@ export default function Jobs() {
     return Math.min(100, Math.max(45, score));
   };
 
-  // Sort jobs based on selected criteria
-  const allJobs = [...allJobsUnsorted].sort((a, b) => {
-    // First, always prioritize platform jobs over scraped jobs
-    if (a.priority !== b.priority) {
-      return a.priority - b.priority;
+  const isLoading = jobsLoading;
+  
+  // Clear all filters
+  const clearAllFilters = useCallback(() => {
+    setSearchInput('');
+    const params = new URLSearchParams();
+    params.set('page', '1');
+    params.set('size', '25');
+    setSearchParams(params);
+    window.history.pushState(null, '', `${window.location.pathname}?${params.toString()}`);
+  }, []);
+  
+  // Get active filter count
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filters.q) count++;
+    if (filters.country) count++;
+    if (filters.city) count++;
+    if (filters.category) count++;
+    if (filters.job_type?.length) count++;
+    if (filters.work_mode?.length) count++;
+    if (filters.experience_level?.length) count++;
+    if (filters.salary_min || filters.salary_max) count++;
+    if (filters.company) count++;
+    if (filters.source_platform) count++;
+    if (filters.date_posted) count++;
+    if (filters.remote_only) count++;
+    return count;
+  }, [filters]);
+  
+  // Remove specific filter
+  const removeFilter = useCallback((key: keyof FilterState, value?: string) => {
+    const newFilters: Partial<FilterState> = {};
+    
+    if (key === 'job_type' && value) {
+      newFilters[key] = filters[key]?.filter(v => v !== value) || [];
+    } else if (key === 'work_mode' && value) {
+      newFilters[key] = filters[key]?.filter(v => v !== value) || [];
+    } else if (key === 'experience_level' && value) {
+      newFilters[key] = filters[key]?.filter(v => v !== value) || [];
+    } else {
+      newFilters[key] = undefined;
     }
-
-    // For non-authenticated users, just sort by date
-    if (!isAuthenticated) {
-      const dateA = new Date(a.createdAt || a.created_at || 0).getTime();
-      const dateB = new Date(b.createdAt || b.created_at || 0).getTime();
-      return dateB - dateA; // Newer first
-    }
-
-    // Then apply secondary sorting for authenticated users
-    switch (sortBy) {
-      case "match":
-        const matchA = calculateCompatibility(a);
-        const matchB = calculateCompatibility(b);
-        return matchB - matchA; // Higher match first
-      
-      case "date":
-        const dateA = new Date(a.createdAt || a.created_at || 0).getTime();
-        const dateB = new Date(b.createdAt || b.created_at || 0).getTime();
-        return dateB - dateA; // Newer first
-        
-      case "salary":
-        const salaryA = a.maxSalary || a.minSalary || 0;
-        const salaryB = b.maxSalary || b.minSalary || 0;
-        return salaryB - salaryA; // Higher salary first
-        
-      default: // relevance
-        const relevanceA = calculateCompatibility(a);
-        const relevanceB = calculateCompatibility(b);
-        return relevanceB - relevanceA; // Higher relevance first
-    }
-  });
-
-  const jobsLoading = platformJobsLoading || scrapedJobsLoading;
-
-  // User profile query already defined above
-
-
-
+    
+    updateFilters(newFilters);
+  }, [filters, updateFilters]);
+  
   // Check applied jobs
   const { data: applications = [] } = useQuery({
     queryKey: ["/api/applications"],
     enabled: isAuthenticated
   });
-
+  
   // Save job mutation
   const saveJobMutation = useMutation({
     mutationFn: async (jobId: number) => {
@@ -344,8 +494,8 @@ export default function Jobs() {
       toast({ title: "Job Saved", description: "Job added to your saved list!" });
     }
   });
-
-  // Apply to job mutation (for platform jobs only)
+  
+  // Apply to job mutation
   const applyMutation = useMutation({
     mutationFn: async (jobId: number) => {
       const response = await fetch(`/api/jobs/postings/${jobId}/apply`, {
@@ -377,26 +527,17 @@ export default function Jobs() {
       });
     }
   });
-
+  
   // Helper functions
   const appliedJobIds = Array.isArray(applications) ? applications.map((app: any) => app.jobPostingId) : [];
   
-  const handleApply = (job: any) => {
+  const handleApply = (job: JobPosting) => {
     if (!isAuthenticated) {
-      // Redirect to auth page instead of showing error
       setLocation('/auth');
       return;
     }
 
-    console.log('Apply clicked for job:', {
-      id: job.id,
-      jobType: job.jobType,
-      applyType: job.applyType,
-      sourceUrl: job.sourceUrl,
-      source_url: job.source_url
-    });
-
-    // Handle external scraped jobs - check both sourceUrl and source_url fields
+    // Handle external scraped jobs
     if (job.source === 'scraped' || job.applyType === 'external') {
       const externalUrl = job.sourceUrl || job.source_url;
       if (externalUrl) {
@@ -417,88 +558,442 @@ export default function Jobs() {
     }
 
     // Handle platform jobs
-    if (job.applyType === 'easy' && !job.source) {
-      applyMutation.mutate(job.id);
-      return;
-    }
-
-    // Fallback for platform jobs without explicit type
     applyMutation.mutate(job.id);
   };
 
   const handleSaveJob = (jobId: number) => {
     if (!isAuthenticated) {
-      // Redirect to auth page instead of showing error
       setLocation('/auth');
       return;
     }
     saveJobMutation.mutate(jobId);
   };
-
-  const handleJobClick = (job: any) => {
-    console.log('Job clicked:', job?.id, job?.title);
-    if (job && job.id) {
-      setSelectedJob(job);
-    } else {
-      console.error('Invalid job clicked:', job);
+  
+  // Currency options
+  const currencyOptions = [
+    { value: 'USD', label: 'USD ($)', symbol: '$' },
+    { value: 'EUR', label: 'EUR (€)', symbol: '€' },
+    { value: 'GBP', label: 'GBP (£)', symbol: '£' },
+    { value: 'INR', label: 'INR (₹)', symbol: '₹' },
+    { value: 'AUD', label: 'AUD (A$)', symbol: 'A$' },
+    { value: 'AED', label: 'AED (د.إ)', symbol: 'د.إ' }
+  ];
+  
+  const getCurrentCurrencySymbol = () => {
+    return currencyOptions.find(c => c.value === filters.currency)?.symbol || '$';
+  };
+  
+  // Advanced Filter Panel Component
+  const AdvancedFilterPanel = () => {
+    return (
+      <div className="space-y-6">
+        {/* Location Filters */}
+        <div className="space-y-3">
+          <h3 className="font-semibold text-sm flex items-center">
+            <MapPin className="w-4 h-4 mr-2" />
+            Location
+          </h3>
+          <div className="space-y-2">
+            <Select value={filters.country || ''} onValueChange={(value) => updateFilters({ country: value || undefined })}>
+              <SelectTrigger data-testid="filter-country">
+                <SelectValue placeholder="Select Country" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Countries</SelectItem>
+                {facets?.countries?.map((country) => (
+                  <SelectItem key={country.code} value={country.code}>
+                    {country.code} ({country.count})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <Input
+              placeholder="City name"
+              value={filters.city || ''}
+              onChange={(e) => updateFilters({ city: e.target.value || undefined })}
+              data-testid="filter-city"
+            />
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="remote-only"
+                checked={filters.remote_only || false}
+                onCheckedChange={(checked) => updateFilters({ remote_only: checked as boolean })}
+                data-testid="filter-remote-only"
+              />
+              <Label htmlFor="remote-only" className="text-sm">Remote Only</Label>
+            </div>
+          </div>
+        </div>
+        
+        {/* Category Filters */}
+        <div className="space-y-3">
+          <h3 className="font-semibold text-sm flex items-center">
+            <Layers className="w-4 h-4 mr-2" />
+            Category
+          </h3>
+          <Select value={filters.category || ''} onValueChange={(value) => updateFilters({ category: value || undefined })}>
+            <SelectTrigger data-testid="filter-category">
+              <SelectValue placeholder="Select Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Categories</SelectItem>
+              {facets?.categories?.map((category) => (
+                <SelectItem key={category.name} value={category.name}>
+                  {category.name} ({category.count})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        {/* Job Type Filters */}
+        <div className="space-y-3">
+          <h3 className="font-semibold text-sm flex items-center">
+            <Briefcase className="w-4 h-4 mr-2" />
+            Job Type
+          </h3>
+          <div className="space-y-2">
+            {[
+              { value: 'full_time', label: 'Full-time', icon: Building },
+              { value: 'part_time', label: 'Part-time', icon: Clock },
+              { value: 'contract', label: 'Contract', icon: FileText },
+              { value: 'internship', label: 'Internship', icon: GraduationCap },
+              { value: 'temporary', label: 'Temporary', icon: Calendar }
+            ].map((type) => {
+              const Icon = type.icon;
+              const count = facets?.job_types?.find(jt => jt.type === type.value)?.count || 0;
+              return (
+                <div key={type.value} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`job-type-${type.value}`}
+                    checked={filters.job_type?.includes(type.value) || false}
+                    onCheckedChange={(checked) => {
+                      const current = filters.job_type || [];
+                      const updated = checked 
+                        ? [...current, type.value]
+                        : current.filter(t => t !== type.value);
+                      updateFilters({ job_type: updated });
+                    }}
+                    data-testid={`filter-job-type-${type.value}`}
+                  />
+                  <Label htmlFor={`job-type-${type.value}`} className="text-sm flex items-center cursor-pointer">
+                    <Icon className="w-3 h-3 mr-1" />
+                    {type.label} {count > 0 && `(${count})`}
+                  </Label>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        
+        {/* Work Mode Filters */}
+        <div className="space-y-3">
+          <h3 className="font-semibold text-sm flex items-center">
+            <Laptop className="w-4 h-4 mr-2" />
+            Work Mode
+          </h3>
+          <div className="space-y-2">
+            {[
+              { value: 'remote', label: 'Remote', icon: Globe },
+              { value: 'hybrid', label: 'Hybrid', icon: Home },
+              { value: 'onsite', label: 'On-site', icon: Building }
+            ].map((mode) => {
+              const Icon = mode.icon;
+              const count = facets?.work_modes?.find(wm => wm.mode === mode.value)?.count || 0;
+              return (
+                <div key={mode.value} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`work-mode-${mode.value}`}
+                    checked={filters.work_mode?.includes(mode.value) || false}
+                    onCheckedChange={(checked) => {
+                      const current = filters.work_mode || [];
+                      const updated = checked 
+                        ? [...current, mode.value]
+                        : current.filter(m => m !== mode.value);
+                      updateFilters({ work_mode: updated });
+                    }}
+                    data-testid={`filter-work-mode-${mode.value}`}
+                  />
+                  <Label htmlFor={`work-mode-${mode.value}`} className="text-sm flex items-center cursor-pointer">
+                    <Icon className="w-3 h-3 mr-1" />
+                    {mode.label} {count > 0 && `(${count})`}
+                  </Label>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        
+        {/* Experience Level Filters */}
+        <div className="space-y-3">
+          <h3 className="font-semibold text-sm flex items-center">
+            <Award className="w-4 h-4 mr-2" />
+            Experience Level
+          </h3>
+          <div className="space-y-2">
+            {[
+              { value: 'entry', label: 'Entry-level', icon: Star },
+              { value: 'mid', label: 'Mid-level', icon: TrendingUp },
+              { value: 'senior', label: 'Senior', icon: Award },
+              { value: 'executive', label: 'Executive', icon: Target }
+            ].map((level) => {
+              const Icon = level.icon;
+              const count = facets?.experience_levels?.find(el => el.level === level.value)?.count || 0;
+              return (
+                <div key={level.value} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`experience-${level.value}`}
+                    checked={filters.experience_level?.includes(level.value) || false}
+                    onCheckedChange={(checked) => {
+                      const current = filters.experience_level || [];
+                      const updated = checked 
+                        ? [...current, level.value]
+                        : current.filter(l => l !== level.value);
+                      updateFilters({ experience_level: updated });
+                    }}
+                    data-testid={`filter-experience-${level.value}`}
+                  />
+                  <Label htmlFor={`experience-${level.value}`} className="text-sm flex items-center cursor-pointer">
+                    <Icon className="w-3 h-3 mr-1" />
+                    {level.label} {count > 0 && `(${count})`}
+                  </Label>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        
+        {/* Salary Range */}
+        <div className="space-y-3">
+          <h3 className="font-semibold text-sm flex items-center">
+            <DollarSign className="w-4 h-4 mr-2" />
+            Salary Range
+          </h3>
+          <div className="space-y-3">
+            <Select value={filters.currency || 'USD'} onValueChange={(value) => updateFilters({ currency: value })}>
+              <SelectTrigger data-testid="filter-currency">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {currencyOptions.map((currency) => (
+                  <SelectItem key={currency.value} value={currency.value}>
+                    {currency.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Input
+                  type="number"
+                  placeholder="Min salary"
+                  value={filters.salary_min || ''}
+                  onChange={(e) => updateFilters({ salary_min: e.target.value ? parseInt(e.target.value) : undefined })}
+                  className="flex-1"
+                  data-testid="filter-salary-min"
+                />
+                <Input
+                  type="number"
+                  placeholder="Max salary"
+                  value={filters.salary_max || ''}
+                  onChange={(e) => updateFilters({ salary_max: e.target.value ? parseInt(e.target.value) : undefined })}
+                  className="flex-1"
+                  data-testid="filter-salary-max"
+                />
+              </div>
+              {(filters.salary_min || filters.salary_max) && (
+                <div className="text-xs text-muted-foreground">
+                  {getCurrentCurrencySymbol()}{filters.salary_min?.toLocaleString() || '0'} - {getCurrentCurrencySymbol()}{filters.salary_max?.toLocaleString() || '∞'}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {/* Date Posted */}
+        <div className="space-y-3">
+          <h3 className="font-semibold text-sm flex items-center">
+            <Calendar className="w-4 h-4 mr-2" />
+            Date Posted
+          </h3>
+          <RadioGroup
+            value={filters.date_posted?.toString() || ''}
+            onValueChange={(value) => updateFilters({ date_posted: value ? parseInt(value) : undefined })}
+            data-testid="filter-date-posted"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="" id="date-any" />
+              <Label htmlFor="date-any">Any time</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="1" id="date-1" />
+              <Label htmlFor="date-1">Last 24 hours</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="7" id="date-7" />
+              <Label htmlFor="date-7">Last 7 days</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="14" id="date-14" />
+              <Label htmlFor="date-14">Last 14 days</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="30" id="date-30" />
+              <Label htmlFor="date-30">Last 30 days</Label>
+            </div>
+          </RadioGroup>
+        </div>
+        
+        {/* Company Filter */}
+        <div className="space-y-3">
+          <h3 className="font-semibold text-sm flex items-center">
+            <Building2 className="w-4 h-4 mr-2" />
+            Company
+          </h3>
+          <Input
+            placeholder="Company name"
+            value={filters.company || ''}
+            onChange={(e) => updateFilters({ company: e.target.value || undefined })}
+            data-testid="filter-company"
+          />
+        </div>
+        
+        {/* Source Platform */}
+        <div className="space-y-3">
+          <h3 className="font-semibold text-sm flex items-center">
+            <Globe className="w-4 h-4 mr-2" />
+            Source Platform
+          </h3>
+          <Select value={filters.source_platform || ''} onValueChange={(value) => updateFilters({ source_platform: value || undefined })}>
+            <SelectTrigger data-testid="filter-source-platform">
+              <SelectValue placeholder="All Sources" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Sources</SelectItem>
+              {facets?.sources?.map((source) => (
+                <SelectItem key={source.platform} value={source.platform}>
+                  {source.platform} ({source.count})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    );
+  };
+  
+  // Active Filter Tags Component
+  const FilterTags = () => {
+    const tags = [];
+    
+    if (filters.q) {
+      tags.push({ key: 'q', label: `"${filters.q}"`, value: filters.q });
     }
+    if (filters.country) {
+      tags.push({ key: 'country', label: `Country: ${filters.country}`, value: filters.country });
+    }
+    if (filters.city) {
+      tags.push({ key: 'city', label: `City: ${filters.city}`, value: filters.city });
+    }
+    if (filters.category) {
+      tags.push({ key: 'category', label: `Category: ${filters.category}`, value: filters.category });
+    }
+    if (filters.company) {
+      tags.push({ key: 'company', label: `Company: ${filters.company}`, value: filters.company });
+    }
+    if (filters.source_platform) {
+      tags.push({ key: 'source_platform', label: `Source: ${filters.source_platform}`, value: filters.source_platform });
+    }
+    if (filters.remote_only) {
+      tags.push({ key: 'remote_only', label: 'Remote Only', value: 'true' });
+    }
+    if (filters.salary_min || filters.salary_max) {
+      const min = filters.salary_min ? `${getCurrentCurrencySymbol()}${filters.salary_min.toLocaleString()}` : '0';
+      const max = filters.salary_max ? `${getCurrentCurrencySymbol()}${filters.salary_max.toLocaleString()}` : '∞';
+      tags.push({ key: 'salary', label: `Salary: ${min} - ${max}`, value: 'salary' });
+    }
+    if (filters.date_posted) {
+      const dateMap: { [key: number]: string } = {
+        1: 'Last 24 hours',
+        7: 'Last 7 days', 
+        14: 'Last 14 days',
+        30: 'Last 30 days'
+      };
+      tags.push({ key: 'date_posted', label: dateMap[filters.date_posted] || `Last ${filters.date_posted} days`, value: filters.date_posted.toString() });
+    }
+    
+    // Add multi-select tags
+    filters.job_type?.forEach(type => {
+      const label = type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+      tags.push({ key: 'job_type', label: `Type: ${label}`, value: type, isMulti: true });
+    });
+    filters.work_mode?.forEach(mode => {
+      const label = mode.charAt(0).toUpperCase() + mode.slice(1);
+      tags.push({ key: 'work_mode', label: `Mode: ${label}`, value: mode, isMulti: true });
+    });
+    filters.experience_level?.forEach(level => {
+      const label = level.replace(/\b\w/g, l => l.toUpperCase());
+      tags.push({ key: 'experience_level', label: `Level: ${label}`, value: level, isMulti: true });
+    });
+    
+    if (tags.length === 0) return null;
+    
+    return (
+      <div className="flex flex-wrap gap-2 mb-4">
+        {tags.map((tag, index) => (
+          <Badge key={`${tag.key}-${tag.value}-${index}`} variant="secondary" className="flex items-center gap-1">
+            <span>{tag.label}</span>
+            <button
+              onClick={() => {
+                if (tag.isMulti) {
+                  removeFilter(tag.key as keyof FilterState, tag.value);
+                } else if (tag.key === 'salary') {
+                  updateFilters({ salary_min: undefined, salary_max: undefined });
+                } else {
+                  removeFilter(tag.key as keyof FilterState);
+                }
+              }}
+              className="ml-1 hover:text-destructive"
+              data-testid={`remove-filter-${tag.key}-${tag.value}`}
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </Badge>
+        ))}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={clearAllFilters}
+          className="text-muted-foreground hover:text-foreground"
+          data-testid="clear-all-filters"
+        >
+          <RotateCcw className="w-3 h-3 mr-1" />
+          Clear All
+        </Button>
+      </div>
+    );
   };
 
-  // Filter jobs (allJobs is already sorted above)
-  const filteredJobs = allJobs.filter((job: any) => {
-    if (!searchQuery?.trim()) return true;
-    const searchLower = searchQuery.toLowerCase().trim();
-    return (
-      job.title?.toLowerCase().includes(searchLower) ||
-      job.companyName?.toLowerCase().includes(searchLower) ||
-      job.description?.toLowerCase().includes(searchLower) ||
-      job.location?.toLowerCase().includes(searchLower) ||
-      (job.requiredSkills && job.requiredSkills.some((skill: string) => 
-        skill?.toLowerCase().includes(searchLower)
-      ))
-    );
-  });
-
-  // Use filteredJobs directly as allJobs is already sorted
-  const sortedJobs = filteredJobs;
-
-  // SEO and Structured Data (after data is loaded)
-  const totalJobsCount = (Array.isArray(platformJobs) ? platformJobs.length : 0) + (Array.isArray(scrapedJobs) ? scrapedJobs.length : 0);
+  // Job cards are already filtered by the API
+  // SEO and Structured Data
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "JobBoard",
     "name": "AutoJobR Jobs",
-    "description": "Find your dream job with AI-powered matching. Browse 1000+ jobs from top companies worldwide.",
+    "description": "Find your dream job with AI-powered matching. Browse thousands of jobs from top companies worldwide.",
     "url": "https://autojobr.com/jobs",
     "potentialAction": {
       "@type": "SearchAction",
       "target": {
         "@type": "EntryPoint",
-        "urlTemplate": "https://autojobr.com/jobs?search={search_term_string}"
+        "urlTemplate": "https://autojobr.com/jobs?q={search_term_string}"
       },
       "query-input": "required name=search_term_string"
     },
-    "numberOfJobs": totalJobsCount,
-    "jobPosting": allJobs.slice(0, 10).map((job: any) => ({
-      "@type": "JobPosting",
-      "title": job.title,
-      "description": job.description,
-      "hiringOrganization": {
-        "@type": "Organization",
-        "name": job.company
-      },
-      "jobLocation": {
-        "@type": "Place",
-        "address": job.location
-      },
-      "employmentType": (() => {
-        const type = formatJobType(job.jobType).toLowerCase().replace('-', '_');
-        const validTypes = { 'full_time': 'FULL_TIME', 'part_time': 'PART_TIME', 'contract_based': 'CONTRACTOR', 'freelance': 'CONTRACTOR', 'temporary': 'TEMPORARY', 'internship': 'INTERN' };
-        return validTypes[type as keyof typeof validTypes] || 'FULL_TIME';
-      })(),
-      "workHours": job.workMode === 'remote' ? "REMOTE" : "FULL_TIME",
-      "datePosted": job.createdAt || job.created_at
-    }))
+    "numberOfJobs": pagination?.total || 0
   };
 
   // Promotional content rotation
@@ -534,35 +1029,58 @@ export default function Jobs() {
     return () => clearInterval(interval);
   }, []);
 
-  // Pagination - safely handle empty arrays
-  const totalJobs = Array.isArray(sortedJobs) ? sortedJobs.length : 0;
-  const totalPages = Math.ceil(totalJobs / jobsPerPage);
-  const startIndex = (currentPage - 1) * jobsPerPage;
-  const paginatedJobs = Array.isArray(sortedJobs) ? sortedJobs.slice(startIndex, startIndex + jobsPerPage) : [];
-
-  // Reset to first page when search changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, filterPreferences]);
-
   // Set first job as selected by default
   useEffect(() => {
-    if (Array.isArray(paginatedJobs) && paginatedJobs.length > 0 && !selectedJob) {
-      console.log('Setting default selected job:', paginatedJobs[0]?.id, paginatedJobs[0]?.title);
-      setSelectedJob(paginatedJobs[0]);
+    if (jobs.length > 0 && !selectedJob) {
+      setSelectedJob(jobs[0]);
     }
-  }, [paginatedJobs, selectedJob]);
+  }, [jobs, selectedJob]);
 
-
-  // Show loading while data is being fetched
-  if (jobsLoading) {
+  // Show loading skeleton while data is being fetched
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
         <Navbar />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading jobs...</p>
+        <div className="flex-1">
+          <div className="container mx-auto px-4 py-6">
+            <div className="flex gap-6">
+              {/* Filter Panel Skeleton */}
+              <div className="w-80 space-y-4">
+                <Skeleton className="h-8 w-24" />
+                <div className="space-y-3">
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className="space-y-2">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-10 w-full" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Main Content Skeleton */}
+              <div className="flex-1 space-y-4">
+                <div className="flex justify-between items-center">
+                  <Skeleton className="h-10 w-96" />
+                  <Skeleton className="h-10 w-32" />
+                </div>
+                <div className="space-y-4">
+                  {[...Array(6)].map((_, i) => (
+                    <Card key={i}>
+                      <CardHeader>
+                        <div className="flex justify-between">
+                          <div className="space-y-2">
+                            <Skeleton className="h-6 w-64" />
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-4 w-48" />
+                          </div>
+                          <Skeleton className="h-20 w-20 rounded" />
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -572,8 +1090,8 @@ export default function Jobs() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <SEOHead
-        title={`${totalJobsCount}+ Jobs Available - Find Your Dream Career | AutoJobR`}
-        description={`Discover ${totalJobsCount}+ job opportunities from top companies worldwide. AI-powered job matching, one-click applications, and instant interview booking. Join 1M+ professionals finding jobs 10x faster.`}
+        title={`${pagination.total || 0}+ Jobs Available - Find Your Dream Career | AutoJobR`}
+        description={`Discover ${pagination.total || 0}+ job opportunities from top companies worldwide. AI-powered job matching, one-click applications, and instant interview booking. Join 1M+ professionals finding jobs 10x faster.`}
         keywords="jobs, careers, job search, employment, hiring, remote jobs, tech jobs, AI job matching, auto apply jobs, job automation, career opportunities"
         canonicalUrl="https://autojobr.com/jobs"
         structuredData={structuredData}
@@ -844,44 +1362,48 @@ export default function Jobs() {
             )}
             
             {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-6 pb-4">
+            {pagination.totalPages > 1 && (
+              <div className="flex items-center justify-center mt-6 pb-4">
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
+                    onClick={() => updateFilters({ page: Math.max(1, pagination.page - 1) })}
+                    disabled={pagination.page === 1}
+                    data-testid="prev-page"
                   >
                     <ChevronLeft className="w-4 h-4" />
                     Previous
                   </Button>
                   
                   <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      const page = i + 1;
+                    {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                      const page = Math.max(1, pagination.page - 2) + i;
+                      if (page > pagination.totalPages) return null;
                       return (
                         <Button
                           key={page}
-                          variant={currentPage === page ? "default" : "outline"}
+                          variant={pagination.page === page ? "default" : "outline"}
                           size="sm"
-                          onClick={() => setCurrentPage(page)}
+                          onClick={() => updateFilters({ page })}
                           className="w-8 h-8"
+                          data-testid={`page-${page}`}
                         >
                           {page}
                         </Button>
                       );
                     })}
-                    {totalPages > 5 && (
+                    {pagination.totalPages > 5 && pagination.page < pagination.totalPages - 2 && (
                       <>
                         <span className="px-2">...</span>
                         <Button
-                          variant={currentPage === totalPages ? "default" : "outline"}
+                          variant="outline"
                           size="sm"
-                          onClick={() => setCurrentPage(totalPages)}
+                          onClick={() => updateFilters({ page: pagination.totalPages })}
                           className="w-8 h-8"
+                          data-testid={`page-${pagination.totalPages}`}
                         >
-                          {totalPages}
+                          {pagination.totalPages}
                         </Button>
                       </>
                     )}
@@ -890,8 +1412,9 @@ export default function Jobs() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
+                    onClick={() => updateFilters({ page: Math.min(pagination.totalPages, pagination.page + 1) })}
+                    disabled={pagination.page >= pagination.totalPages}
+                    data-testid="next-page"
                   >
                     Next
                     <ChevronRight className="w-4 h-4" />
@@ -899,7 +1422,7 @@ export default function Jobs() {
                 </div>
                 
                 <p className="text-sm text-gray-500">
-                  Page {currentPage} of {totalPages}
+                  Page {pagination.page} of {pagination.totalPages}
                 </p>
               </div>
             )}
@@ -921,7 +1444,7 @@ export default function Jobs() {
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm sm:text-base text-gray-600 dark:text-gray-300 mb-3">
                           <div className="flex items-center gap-2">
                             <Building2 className="w-4 h-4 flex-shrink-0" />
-                            <span className="font-medium">{selectedJob.companyName}</span>
+                            <span className="font-medium">{selectedJob.company || selectedJob.companyName}</span>
                           </div>
                           {selectedJob.location && (
                             <div className="flex items-center gap-2">
@@ -933,14 +1456,9 @@ export default function Jobs() {
                         </div>
                       </div>
                       <Badge 
-                        className={`flex-shrink-0 text-xs sm:text-sm ${
-                          calculateCompatibility(selectedJob) >= 90 ? 'bg-green-100 text-green-800' :
-                          calculateCompatibility(selectedJob) >= 80 ? 'bg-blue-100 text-blue-800' :
-                          calculateCompatibility(selectedJob) >= 70 ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}
+                        className={`flex-shrink-0 text-xs sm:text-sm bg-blue-100 text-blue-800`}
                       >
-                        {calculateCompatibility(selectedJob)}% match
+                        New
                       </Badge>
                     </div>
                     
