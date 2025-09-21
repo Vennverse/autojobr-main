@@ -1732,6 +1732,7 @@ export default function RecruiterDashboard() {
                                         </CardContent>
                                       </Card>
                                     )}
+                                  </div>
 
                                     {/* Skills */}
                                     {applicantDetails.skills &&
