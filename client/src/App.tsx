@@ -178,6 +178,56 @@ function Router() {
       
       {/* Public job pages - accessible to everyone for discovery */}
       <Route path="/jobs" component={Jobs} />
+      
+      {/* Clean URL routes for job categories */}
+      <Route path="/jobs/technology" component={() => <Jobs category="technology" />} />
+      <Route path="/jobs/engineering" component={() => <Jobs category="engineering" />} />
+      <Route path="/jobs/marketing" component={() => <Jobs category="marketing" />} />
+      <Route path="/jobs/sales" component={() => <Jobs category="sales" />} />
+      <Route path="/jobs/design" component={() => <Jobs category="design" />} />
+      <Route path="/jobs/data-science" component={() => <Jobs category="data-science" />} />
+      <Route path="/jobs/product-management" component={() => <Jobs category="product-management" />} />
+      <Route path="/jobs/finance" component={() => <Jobs category="finance" />} />
+      <Route path="/jobs/operations" component={() => <Jobs category="operations" />} />
+      <Route path="/jobs/human-resources" component={() => <Jobs category="human-resources" />} />
+      <Route path="/jobs/customer-success" component={() => <Jobs category="customer-success" />} />
+      <Route path="/jobs/remote" component={() => <Jobs workMode="remote" />} />
+      
+      {/* Clean URL routes for job locations */}
+      <Route path="/jobs/san-francisco" component={() => <Jobs location="san-francisco" />} />
+      <Route path="/jobs/new-york" component={() => <Jobs location="new-york" />} />
+      <Route path="/jobs/austin" component={() => <Jobs location="austin" />} />
+      <Route path="/jobs/seattle" component={() => <Jobs location="seattle" />} />
+      <Route path="/jobs/los-angeles" component={() => <Jobs location="los-angeles" />} />
+      <Route path="/jobs/chicago" component={() => <Jobs location="chicago" />} />
+      <Route path="/jobs/atlanta" component={() => <Jobs location="atlanta" />} />
+      <Route path="/jobs/boston" component={() => <Jobs location="boston" />} />
+      <Route path="/jobs/denver" component={() => <Jobs location="denver" />} />
+      <Route path="/jobs/dallas" component={() => <Jobs location="dallas" />} />
+      
+      {/* International locations */}
+      <Route path="/jobs/london" component={() => <Jobs location="london" />} />
+      <Route path="/jobs/toronto" component={() => <Jobs location="toronto" />} />
+      <Route path="/jobs/sydney" component={() => <Jobs location="sydney" />} />
+      <Route path="/jobs/berlin" component={() => <Jobs location="berlin" />} />
+      <Route path="/jobs/amsterdam" component={() => <Jobs location="amsterdam" />} />
+      <Route path="/jobs/singapore" component={() => <Jobs location="singapore" />} />
+      <Route path="/jobs/mumbai" component={() => <Jobs location="mumbai" />} />
+      <Route path="/jobs/bangalore" component={() => <Jobs location="bangalore" />} />
+      <Route path="/jobs/dublin" component={() => <Jobs location="dublin" />} />
+      <Route path="/jobs/stockholm" component={() => <Jobs location="stockholm" />} />
+      
+      {/* Country-level routes */}
+      <Route path="/jobs/usa" component={() => <Jobs country="usa" />} />
+      <Route path="/jobs/canada" component={() => <Jobs country="canada" />} />
+      <Route path="/jobs/uk" component={() => <Jobs country="uk" />} />
+      <Route path="/jobs/germany" component={() => <Jobs country="germany" />} />
+      <Route path="/jobs/australia" component={() => <Jobs country="australia" />} />
+      <Route path="/jobs/india" component={() => <Jobs country="india" />} />
+      <Route path="/jobs/singapore-country" component={() => <Jobs country="singapore" />} />
+      <Route path="/jobs/netherlands" component={() => <Jobs country="netherlands" />} />
+      <Route path="/jobs/sweden" component={() => <Jobs country="sweden" />} />
+      
       <Route path="/jobs/:id" component={ViewJob} />
       
       {/* Company career pages - accessible to everyone */}

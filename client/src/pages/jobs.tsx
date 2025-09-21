@@ -194,7 +194,66 @@ interface UserProfile {
   professionalTitle?: string;
 }
 
-export default function Jobs() {
+// Category mapping for clean URLs
+const CATEGORY_MAPPINGS = {
+  'technology': ['software engineer', 'developer', 'programmer', 'tech', 'software', 'programming'],
+  'engineering': ['engineer', 'engineering', 'technical', 'systems', 'platform'],
+  'marketing': ['marketing', 'growth', 'social media', 'content', 'brand', 'seo', 'digital marketing'],
+  'sales': ['sales', 'business development', 'account', 'revenue', 'partnership'],
+  'design': ['designer', 'ui', 'ux', 'graphic', 'visual', 'creative', 'product design'],
+  'data-science': ['data scientist', 'data analyst', 'machine learning', 'ai', 'analytics', 'ml engineer'],
+  'product-management': ['product manager', 'product owner', 'product marketing', 'product strategy'],
+  'finance': ['finance', 'accounting', 'financial', 'treasury', 'investment', 'fintech'],
+  'operations': ['operations', 'ops', 'supply chain', 'logistics', 'process'],
+  'human-resources': ['hr', 'human resources', 'recruiting', 'talent', 'people'],
+  'customer-success': ['customer success', 'customer support', 'client', 'account management'],
+};
+
+// Location mapping for clean URLs
+const LOCATION_MAPPINGS = {
+  'san-francisco': ['san francisco', 'sf', 'bay area'],
+  'new-york': ['new york', 'nyc', 'manhattan'],
+  'austin': ['austin', 'atx'],
+  'seattle': ['seattle'],
+  'los-angeles': ['los angeles', 'la'],
+  'chicago': ['chicago'],
+  'atlanta': ['atlanta'],
+  'boston': ['boston'],
+  'denver': ['denver'],
+  'dallas': ['dallas'],
+  'london': ['london'],
+  'toronto': ['toronto'],
+  'sydney': ['sydney'],
+  'berlin': ['berlin'],
+  'amsterdam': ['amsterdam'],
+  'singapore': ['singapore'],
+  'mumbai': ['mumbai'],
+  'bangalore': ['bangalore'],
+  'dublin': ['dublin'],
+  'stockholm': ['stockholm'],
+};
+
+// Country mapping for clean URLs
+const COUNTRY_MAPPINGS = {
+  'usa': ['united states', 'us', 'usa'],
+  'canada': ['canada', 'ca'],
+  'uk': ['united kingdom', 'uk', 'gb'],
+  'germany': ['germany', 'de'],
+  'australia': ['australia', 'au'],
+  'india': ['india', 'in'],
+  'singapore': ['singapore', 'sg'],
+  'netherlands': ['netherlands', 'nl'],
+  'sweden': ['sweden', 'se'],
+};
+
+interface JobsProps {
+  category?: string;
+  location?: string;
+  country?: string;
+  workMode?: string;
+}
+
+export default function Jobs({ category, location, country, workMode }: JobsProps = {}) {
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
   const [_, setLocation] = useLocation();
@@ -208,14 +267,46 @@ export default function Jobs() {
     return new URLSearchParams();
   });
   
-  // Main filter state derived from URL
+  // Convert route-based parameters to filter format
+  const routeBasedFilters = useMemo(() => {
+    const filters: Partial<FilterState> = {};
+    
+    // Handle category routing
+    if (category && CATEGORY_MAPPINGS[category]) {
+      // Create a search query that matches jobs in this category
+      const categoryTerms = CATEGORY_MAPPINGS[category];
+      filters.q = categoryTerms.join(' OR ');
+    }
+    
+    // Handle location routing
+    if (location && LOCATION_MAPPINGS[location]) {
+      const locationTerms = LOCATION_MAPPINGS[location];
+      // Use the primary location term for filtering
+      filters.city = locationTerms[0];
+    }
+    
+    // Handle country routing
+    if (country && COUNTRY_MAPPINGS[country]) {
+      const countryTerms = COUNTRY_MAPPINGS[country];
+      filters.country = countryTerms[0];
+    }
+    
+    // Handle work mode routing
+    if (workMode) {
+      filters.work_mode = [workMode];
+    }
+    
+    return filters;
+  }, [category, location, country, workMode]);
+
+  // Main filter state derived from URL and route parameters
   const filters = useMemo<FilterState>(() => ({
-    q: searchParams.get('q') || '',
-    country: searchParams.get('country') || undefined,
-    city: searchParams.get('city') || undefined,
-    category: searchParams.get('category') || undefined,
+    q: routeBasedFilters.q || searchParams.get('q') || '',
+    country: routeBasedFilters.country || searchParams.get('country') || undefined,
+    city: routeBasedFilters.city || searchParams.get('city') || undefined,
+    category: routeBasedFilters.category || searchParams.get('category') || undefined,
     job_type: searchParams.get('job_type')?.split(',').filter(Boolean) || [],
-    work_mode: searchParams.get('work_mode')?.split(',').filter(Boolean) || [],
+    work_mode: routeBasedFilters.work_mode || searchParams.get('work_mode')?.split(',').filter(Boolean) || [],
     experience_level: searchParams.get('experience_level')?.split(',').filter(Boolean) || [],
     salary_min: searchParams.get('salary_min') ? parseInt(searchParams.get('salary_min')!) : undefined,
     salary_max: searchParams.get('salary_max') ? parseInt(searchParams.get('salary_max')!) : undefined,
@@ -227,7 +318,7 @@ export default function Jobs() {
     sort: searchParams.get('sort') || 'relevance',
     page: parseInt(searchParams.get('page') || '1'),
     size: parseInt(searchParams.get('size') || '25')
-  }), [searchParams]);
+  }), [searchParams, routeBasedFilters]);
   
   // Debounced search query
   const [searchInput, setSearchInput] = useState(filters.q || '');
@@ -1087,14 +1178,143 @@ export default function Jobs() {
     );
   }
 
+  // Generate dynamic SEO metadata for category/location pages
+  const seoMetadata = useMemo(() => {
+    const baseUrl = 'https://autojobr.com';
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/jobs';
+    
+    if (category) {
+      const categoryName = category.split('-').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join(' ');
+      
+      return {
+        title: `${pagination.total || 100}+ ${categoryName} Jobs - Apply Today | AutoJobR`,
+        description: `Find ${pagination.total || 100}+ ${categoryName.toLowerCase()} jobs from top companies. AI-powered matching, one-click applications, and instant interviews. Join 1M+ professionals landing ${categoryName.toLowerCase()} careers 10x faster.`,
+        keywords: `${categoryName.toLowerCase()} jobs, ${categoryName.toLowerCase()} careers, ${CATEGORY_MAPPINGS[category]?.join(', ')}, job search, employment, hiring`,
+        canonicalUrl: `${baseUrl}${currentPath}`,
+        breadcrumbs: [
+          { name: 'Home', url: baseUrl },
+          { name: 'Jobs', url: `${baseUrl}/jobs` },
+          { name: `${categoryName} Jobs`, url: `${baseUrl}${currentPath}` }
+        ]
+      };
+    }
+    
+    if (location) {
+      const locationName = location.split('-').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join(' ');
+      
+      return {
+        title: `${pagination.total || 50}+ Jobs in ${locationName} - Find Local Careers | AutoJobR`,
+        description: `Discover ${pagination.total || 50}+ job opportunities in ${locationName}. Local and remote positions from top employers. AI-powered job matching and one-click applications.`,
+        keywords: `jobs in ${locationName.toLowerCase()}, ${locationName.toLowerCase()} careers, ${locationName.toLowerCase()} employment, local jobs, remote jobs, job search`,
+        canonicalUrl: `${baseUrl}${currentPath}`,
+        breadcrumbs: [
+          { name: 'Home', url: baseUrl },
+          { name: 'Jobs', url: `${baseUrl}/jobs` },
+          { name: `${locationName} Jobs`, url: `${baseUrl}${currentPath}` }
+        ]
+      };
+    }
+    
+    if (country) {
+      const countryName = country === 'usa' ? 'United States' : 
+                         country === 'uk' ? 'United Kingdom' :
+                         country.charAt(0).toUpperCase() + country.slice(1);
+      
+      return {
+        title: `${pagination.total || 200}+ Jobs in ${countryName} - International Careers | AutoJobR`,
+        description: `Find ${pagination.total || 200}+ job opportunities in ${countryName}. International positions, visa sponsorship, and remote work options. Apply with AI-powered job matching.`,
+        keywords: `jobs in ${countryName.toLowerCase()}, ${countryName.toLowerCase()} careers, international jobs, visa sponsorship, remote work, job search`,
+        canonicalUrl: `${baseUrl}${currentPath}`,
+        breadcrumbs: [
+          { name: 'Home', url: baseUrl },
+          { name: 'Jobs', url: `${baseUrl}/jobs` },
+          { name: `${countryName} Jobs`, url: `${baseUrl}${currentPath}` }
+        ]
+      };
+    }
+    
+    if (workMode === 'remote') {
+      return {
+        title: `${pagination.total || 500}+ Remote Jobs - Work From Anywhere | AutoJobR`,
+        description: `Discover ${pagination.total || 500}+ remote job opportunities from top companies worldwide. Work from home, flexible schedules, and global career opportunities.`,
+        keywords: 'remote jobs, work from home, telecommute, flexible work, remote careers, online jobs, distributed teams',
+        canonicalUrl: `${baseUrl}${currentPath}`,
+        breadcrumbs: [
+          { name: 'Home', url: baseUrl },
+          { name: 'Jobs', url: `${baseUrl}/jobs` },
+          { name: 'Remote Jobs', url: `${baseUrl}${currentPath}` }
+        ]
+      };
+    }
+    
+    // Default jobs page metadata
+    return {
+      title: `${pagination.total || 1000}+ Jobs Available - Find Your Dream Career | AutoJobR`,
+      description: `Discover ${pagination.total || 1000}+ job opportunities from top companies worldwide. AI-powered job matching, one-click applications, and instant interview booking. Join 1M+ professionals finding jobs 10x faster.`,
+      keywords: 'jobs, careers, job search, employment, hiring, remote jobs, tech jobs, AI job matching, auto apply jobs, job automation, career opportunities',
+      canonicalUrl: `${baseUrl}/jobs`,
+      breadcrumbs: [
+        { name: 'Home', url: baseUrl },
+        { name: 'Jobs', url: `${baseUrl}/jobs` }
+      ]
+    };
+  }, [category, location, country, workMode, pagination.total]);
+
+  // Enhanced structured data with ItemList for job listings
+  const enhancedStructuredData = useMemo(() => {
+    const baseStructuredData = structuredData || {};
+    
+    // Add BreadcrumbList structured data
+    const breadcrumbList = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": seoMetadata.breadcrumbs.map((breadcrumb, index) => ({
+        "@type": "ListItem",
+        "position": index + 1,
+        "name": breadcrumb.name,
+        "item": breadcrumb.url
+      }))
+    };
+    
+    // Add ItemList structured data for job listings
+    const itemList = {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "numberOfItems": pagination.total || 0,
+      "itemListElement": (jobResults?.jobs || []).slice(0, 20).map((job, index) => ({
+        "@type": "JobPosting",
+        "position": index + 1,
+        "title": job.title,
+        "description": job.description?.substring(0, 200) + '...',
+        "hiringOrganization": {
+          "@type": "Organization",
+          "name": job.companyName || job.company || "AutoJobR"
+        },
+        "jobLocation": {
+          "@type": "Place",
+          "address": job.location
+        },
+        "url": `https://autojobr.com/jobs/${job.id}`,
+        "datePosted": job.createdAt || job.created_at || new Date().toISOString(),
+        "employmentType": job.jobType === 'full_time' ? 'FULL_TIME' : 'FULL_TIME'
+      }))
+    };
+    
+    return [baseStructuredData, breadcrumbList, itemList];
+  }, [structuredData, seoMetadata.breadcrumbs, jobResults?.jobs, pagination.total]);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <SEOHead
-        title={`${pagination.total || 0}+ Jobs Available - Find Your Dream Career | AutoJobR`}
-        description={`Discover ${pagination.total || 0}+ job opportunities from top companies worldwide. AI-powered job matching, one-click applications, and instant interview booking. Join 1M+ professionals finding jobs 10x faster.`}
-        keywords="jobs, careers, job search, employment, hiring, remote jobs, tech jobs, AI job matching, auto apply jobs, job automation, career opportunities"
-        canonicalUrl="https://autojobr.com/jobs"
-        structuredData={structuredData}
+        title={seoMetadata.title}
+        description={seoMetadata.description}
+        keywords={seoMetadata.keywords}
+        canonicalUrl={seoMetadata.canonicalUrl}
+        structuredData={enhancedStructuredData}
         ogType="website"
       />
       <Navbar />
