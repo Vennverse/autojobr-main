@@ -3966,7 +3966,7 @@ Additional Information:
       // Verify this recruiter can access this applicant's resume
       // Check if there's an application from this applicant to this recruiter's job
       const applications = await storage.getApplicationsForRecruiter(recruiterId);
-      const hasAccess = applications.some((app: any) => app.userId === applicantId);
+      const hasAccess = applications.some((app: any) => app.applicantId === applicantId);
       
       if (!hasAccess) {
         return res.status(403).json({ message: "You don't have permission to access this resume" });
