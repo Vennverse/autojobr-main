@@ -492,20 +492,7 @@ export default function PostJob() {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="description">Job Description *</Label>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleImproveJD}
-                        disabled={improveJDMutation.isPending || !formData.description.trim()}
-                        className="flex items-center gap-2"
-                      >
-                        <Sparkles className="w-4 h-4" />
-                        {improveJDMutation.isPending ? "Improving..." : "Improve JD"}
-                      </Button>
-                    </div>
+                    <Label htmlFor="description">Job Description *</Label>
                     <Textarea
                       id="description"
                       placeholder="Describe the role, responsibilities, and what makes this opportunity exciting..."
@@ -515,9 +502,22 @@ export default function PostJob() {
                       required
                     />
                     {formData.description.trim() && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        💡 Click "Improve JD" to enhance your job description with AI suggestions
-                      </p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          💡 Click "Improve JD" to enhance your job description with AI suggestions
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleImproveJD}
+                          disabled={improveJDMutation.isPending || !formData.description.trim()}
+                          className="flex items-center gap-2"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          {improveJDMutation.isPending ? "Improving..." : "Improve JD"}
+                        </Button>
+                      </div>
                     )}
                   </div>
 
