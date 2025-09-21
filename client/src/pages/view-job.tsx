@@ -8,6 +8,7 @@ import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import SEOHead from "@/components/seo-head";
 
 // Utility functions for professional job formatting
 const formatJobType = (jobType?: string) => {
@@ -38,6 +39,183 @@ const formatWorkMode = (workMode?: string) => {
   };
   
   return modeMap[workMode.toLowerCase()] || workMode;
+};
+
+// Schema.org employment type mapping
+const mapEmploymentType = (jobType?: string): string => {
+  if (!jobType) return 'FULL_TIME';
+  
+  const employmentTypeMap: { [key: string]: string } = {
+    'platform': 'FULL_TIME',
+    'scraped': 'FULL_TIME',
+    'full_time': 'FULL_TIME',
+    'part_time': 'PART_TIME',
+    'contract': 'CONTRACTOR',
+    'freelance': 'CONTRACTOR',
+    'temporary': 'TEMPORARY',
+    'internship': 'INTERN'
+  };
+  
+  return employmentTypeMap[jobType.toLowerCase()] || 'FULL_TIME';
+};
+
+// Parse location string into address components
+const parseLocation = (location?: string) => {
+  if (!location) return {
+    addressLocality: '',
+    addressRegion: '',
+    addressCountry: 'US'
+  };
+
+  // Common location patterns:
+  // "New York, NY, United States" -> city, region, country
+  // "London, United Kingdom" -> city, country  
+  // "San Francisco, CA" -> city, region
+  // "Remote" -> handle as remote
+  
+  if (location.toLowerCase().includes('remote')) {
+    return {
+      addressLocality: 'Remote',
+      addressRegion: '',
+      addressCountry: 'US'
+    };
+  }
+
+  const parts = location.split(',').map(part => part.trim());
+  
+  if (parts.length >= 3) {
+    // Format: City, State, Country
+    return {
+      addressLocality: parts[0],
+      addressRegion: parts[1],
+      addressCountry: getCountryCode(parts[2])
+    };
+  } else if (parts.length === 2) {
+    // Could be City, State or City, Country
+    const secondPart = parts[1].toLowerCase();
+    const usStates = ['al', 'ak', 'az', 'ar', 'ca', 'co', 'ct', 'de', 'fl', 'ga', 'hi', 'id', 'il', 'in', 'ia', 'ks', 'ky', 'la', 'me', 'md', 'ma', 'mi', 'mn', 'ms', 'mo', 'mt', 'ne', 'nv', 'nh', 'nj', 'nm', 'ny', 'nc', 'nd', 'oh', 'ok', 'or', 'pa', 'ri', 'sc', 'sd', 'tn', 'tx', 'ut', 'vt', 'va', 'wa', 'wv', 'wi', 'wy'];
+    
+    if (usStates.includes(secondPart) || parts[1].length === 2) {
+      // Likely US state
+      return {
+        addressLocality: parts[0],
+        addressRegion: parts[1],
+        addressCountry: 'US'
+      };
+    } else {
+      // Likely City, Country
+      return {
+        addressLocality: parts[0],
+        addressRegion: '',
+        addressCountry: getCountryCode(parts[1])
+      };
+    }
+  } else {
+    // Single part - assume it's a city
+    return {
+      addressLocality: parts[0],
+      addressRegion: '',
+      addressCountry: 'US'
+    };
+  }
+};
+
+// Convert country name to ISO country code
+const getCountryCode = (country: string): string => {
+  const countryMap: { [key: string]: string } = {
+    'united states': 'US',
+    'usa': 'US',
+    'us': 'US',
+    'united kingdom': 'GB',
+    'uk': 'GB',
+    'canada': 'CA',
+    'australia': 'AU',
+    'germany': 'DE',
+    'france': 'FR',
+    'india': 'IN',
+    'singapore': 'SG',
+    'netherlands': 'NL',
+    'ireland': 'IE',
+    'spain': 'ES',
+    'italy': 'IT',
+    'sweden': 'SE',
+    'norway': 'NO',
+    'denmark': 'DK',
+    'finland': 'FI',
+    'belgium': 'BE',
+    'switzerland': 'CH',
+    'austria': 'AT',
+    'poland': 'PL',
+    'czech republic': 'CZ',
+    'portugal': 'PT'
+  };
+  
+  return countryMap[country.toLowerCase()] || 'US';
+};
+
+// Calculate validThrough date (30 days from posted date)
+const calculateValidThrough = (createdAt?: string | Date): string => {
+  const postedDate = createdAt ? new Date(createdAt) : new Date();
+  const validThrough = new Date(postedDate.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days
+  return validThrough.toISOString();
+};
+
+// Generate JobPosting structured data
+const generateJobPostingStructuredData = (job: any, jobId: string) => {
+  if (!job) return null;
+
+  const address = parseLocation(job.location);
+  const employmentType = mapEmploymentType(job.jobType);
+  const validThrough = calculateValidThrough(job.createdAt);
+  const currentUrl = `${window.location.origin}/jobs/${jobId}`;
+
+  return {
+    "@context": "https://schema.org/",
+    "@type": "JobPosting",
+    "title": job.title,
+    "description": job.description || "Join our team in this exciting opportunity.",
+    "datePosted": job.createdAt ? new Date(job.createdAt).toISOString() : new Date().toISOString(),
+    "validThrough": validThrough,
+    "employmentType": employmentType,
+    "hiringOrganization": {
+      "@type": "Organization",
+      "name": job.companyName || "AutoJobr",
+      "logo": "https://autojobr.com/logo.png",
+      "sameAs": job.companyWebsite || "https://autojobr.com"
+    },
+    "jobLocation": {
+      "@type": "Place",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": address.addressLocality,
+        "addressRegion": address.addressRegion,
+        "addressCountry": address.addressCountry
+      }
+    },
+    "applicantLocationRequirements": {
+      "@type": "Country",
+      "name": address.addressCountry === 'US' ? 'United States' : address.addressCountry
+    },
+    "url": currentUrl,
+    ...(job.minSalary || job.maxSalary ? {
+      "baseSalary": {
+        "@type": "MonetaryAmount",
+        "currency": job.currency || "USD",
+        "value": {
+          "@type": "QuantitativeValue",
+          "minValue": job.minSalary,
+          "maxValue": job.maxSalary,
+          "unitText": "YEAR"
+        }
+      }
+    } : {}),
+    ...(job.requirements ? {
+      "qualifications": job.requirements
+    } : {}),
+    ...(job.responsibilities ? {
+      "responsibilities": job.responsibilities
+    } : {})
+  };
 };
 
 export default function ViewJob() {

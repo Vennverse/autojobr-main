@@ -12,6 +12,7 @@ import {
   date,
   numeric,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -562,20 +563,34 @@ export const scrapedJobs = pgTable("scraped_jobs", {
   description: text("description"),
   location: varchar("location"),
   workMode: varchar("work_mode"), // remote, hybrid, onsite
-  jobType: varchar("job_type"), // full-time, part-time, contract
-  experienceLevel: varchar("experience_level"),
+  jobType: varchar("job_type"), // full-time, part-time, contract, internship, temporary
+  experienceLevel: varchar("experience_level"), // entry-level, mid-level, senior, executive, internship
   salaryRange: varchar("salary_range"),
   skills: text("skills").array(),
   
+  // Location details for international support
+  countryCode: varchar("country_code"), // ISO country codes (IN, GB, DE, AU, FR, ES, AE, US)
+  region: varchar("region"), // State/province/region
+  city: varchar("city"), // City name
+  latitude: numeric("latitude"), // For location-based search
+  longitude: numeric("longitude"), // For location-based search
+  
+  // Salary details
+  salaryMin: integer("salary_min"), // Salary range in base currency units
+  salaryMax: integer("salary_max"), // Salary range in base currency units
+  currency: varchar("currency"), // USD, EUR, GBP, INR, AUD, etc.
+  salaryPeriod: varchar("salary_period"), // yearly, monthly, hourly, daily
+  
   // Source information
   sourceUrl: varchar("source_url").notNull(),
-  sourcePlatform: varchar("source_platform").notNull(), // linkedin, indeed, glassdoor, etc.
-  externalId: varchar("external_id"), // Original job ID from source
+  sourcePlatform: varchar("source_platform").notNull(), // indeed, linkedin, glassdoor, google_jobs, etc.
+  externalId: varchar("external_id"), // Platform-specific job ID for deduplication
+  language: varchar("language"), // Job posting language (en, es, fr, de, etc.)
   
   // Playlist categorization
-  category: varchar("category"), // tech, marketing, sales, design, etc.
-  subcategory: varchar("subcategory"), // frontend, backend, full-stack, etc.
-  tags: text("tags").array(), // startup, remote-first, benefits, etc.
+  category: varchar("category"), // technology, sales, marketing, business, finance, hr, operations, design, product, customer-success
+  subcategory: varchar("subcategory"), // More specific role categories
+  tags: text("tags").array(), // Searchable job tags array
   
   // Engagement metrics
   viewsCount: integer("views_count").default(0),
@@ -585,14 +600,27 @@ export const scrapedJobs = pgTable("scraped_jobs", {
   // Status and freshness
   isActive: boolean("is_active").default(true),
   lastScraped: timestamp("last_scraped").defaultNow(),
-  expiresAt: timestamp("expires_at"),
+  postedAt: timestamp("posted_at"), // When job was originally posted
+  expiresAt: timestamp("expires_at"), // Job expiration date
   
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
+  // Performance indexes
   index("scraped_jobs_category_idx").on(table.category),
+  index("scraped_jobs_category_subcategory_idx").on(table.category, table.subcategory),
   index("scraped_jobs_source_idx").on(table.sourcePlatform),
   index("scraped_jobs_location_idx").on(table.location),
+  index("scraped_jobs_country_city_idx").on(table.countryCode, table.city),
+  index("scraped_jobs_job_type_idx").on(table.jobType),
+  index("scraped_jobs_experience_level_idx").on(table.experienceLevel),
+  index("scraped_jobs_work_mode_idx").on(table.workMode),
+  index("scraped_jobs_posted_at_idx").on(table.postedAt),
+  // GIN indexes for advanced search
+  index("scraped_jobs_text_search_idx").using("gin", sql`to_tsvector('simple', ${table.title} || ' ' || coalesce(${table.description}, ''))`),
+  index("scraped_jobs_tags_idx").using("gin", table.tags),
+  // Unique constraint for deduplication
+  unique("scraped_jobs_source_external_unique").on(table.sourcePlatform, table.externalId),
 ]);
 
 // Job playlists (Spotify-like collections)
