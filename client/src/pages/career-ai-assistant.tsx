@@ -112,6 +112,7 @@ export default function CareerAIAssistant() {
   const [networkingOpportunities, setNetworkingOpportunities] = useState<any[]>([]);
   const [marketTiming, setMarketTiming] = useState<any[]>([]);
   const [isConnected, setIsConnected] = useState(true); // HTTP polling connection status
+  const [hasUserInput, setHasUserInput] = useState(false); // Track if user has made changes
   
   // Real-time progress tracking
   const [analysisProgress, setAnalysisProgress] = useState<{
@@ -366,9 +367,12 @@ export default function CareerAIAssistant() {
         
         if (data.hasAnalysis) {
           setSavedAnalysis(data);
-          setCareerGoal(data.careerGoal || "");
-          setLocation(data.location || "");
-          setTimeframe(data.timeframe || "");
+          // Only set form values from saved analysis if user hasn't made changes
+          if (!hasUserInput) {
+            setCareerGoal(data.careerGoal || "");
+            setLocation(data.location || "");
+            setTimeframe(data.timeframe || "");
+          }
           setCompletedTasks(data.completedTasks || []);
           setProgressUpdate(data.progressUpdate || "");
           
@@ -455,6 +459,15 @@ export default function CareerAIAssistant() {
           
           setProgressUpdate("");
           setIsGenerating(false);
+          
+          // Reset analysis progress to inactive
+          setAnalysisProgress({
+            isActive: false,
+            stage: 'completed',
+            progress: 100,
+            message: 'Analysis completed successfully',
+            currentStep: 'Ready'
+          });
           
           if (result.upgradeMessage) {
             toast({
@@ -696,7 +709,10 @@ export default function CareerAIAssistant() {
                   <Input
                     placeholder="e.g., Senior Data Scientist at Google"
                     value={careerGoal}
-                    onChange={(e) => setCareerGoal(e.target.value)}
+                    onChange={(e) => {
+                      setCareerGoal(e.target.value);
+                      setHasUserInput(true);
+                    }}
                     className="text-lg"
                   />
                 </div>
@@ -707,7 +723,10 @@ export default function CareerAIAssistant() {
                   <Input
                     placeholder="e.g., San Francisco, CA"
                     value={location}
-                    onChange={(e) => setLocation(e.target.value)}
+                    onChange={(e) => {
+                      setLocation(e.target.value);
+                      setHasUserInput(true);
+                    }}
                     className="text-lg"
                   />
                 </div>
