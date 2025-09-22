@@ -26,7 +26,7 @@ const JOB_COUNTRIES = [
   'singapore-country', 'netherlands', 'sweden'
 ];
 
-// Dynamic SEO sitemap generation
+// Dynamic SEO sitemap generation with enhanced structure
 router.get("/sitemap.xml", async (req, res) => {
   try {
     const baseUrl = process.env.NODE_ENV === 'production' 
@@ -45,7 +45,7 @@ router.get("/sitemap.xml", async (req, res) => {
       .from(jobPostings)
       .where(eq(jobPostings.isActive, true))
       .orderBy(desc(jobPostings.createdAt))
-      .limit(1000); // Limit to most recent 1000 jobs for sitemap
+      .limit(2000); // Increased limit for better coverage
 
     // Also get scraped jobs
     const scrapedJobsData = await db
@@ -55,23 +55,68 @@ router.get("/sitemap.xml", async (req, res) => {
       })
       .from(scrapedJobs)
       .orderBy(desc(scrapedJobs.createdAt))
-      .limit(500); // Limit for performance
+      .limit(1000); // Increased limit
 
     let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    <!-- Homepage -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" 
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+    
+    <!-- TIER 1: Core Landing Pages (Priority 1.0) -->
     <url>
         <loc>${baseUrl}/</loc>
         <lastmod>${today}</lastmod>
         <changefreq>daily</changefreq>
         <priority>1.0</priority>
+        <image:image>
+            <image:loc>${baseUrl}/og-image.png</image:loc>
+            <image:title>AutoJobR - AI Job Application Automation</image:title>
+        </image:image>
     </url>
     
-    <!-- Main Jobs Page -->
+    <!-- TIER 2: High-Value Service Pages (Priority 0.95) -->
+    <url>
+        <loc>${baseUrl}/free-job-application-automation</loc>
+        <lastmod>${today}</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.95</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/beat-ats-systems-free</loc>
+        <lastmod>${today}</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.95</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/auto-apply-1000-jobs-daily</loc>
+        <lastmod>${today}</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.95</priority>
+    </url>
+    
+    <!-- TIER 3: Primary Job Search Pages (Priority 0.9) -->
     <url>
         <loc>${baseUrl}/jobs</loc>
         <lastmod>${today}</lastmod>
         <changefreq>hourly</changefreq>
+        <priority>0.9</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/linkedin-auto-apply-bot</loc>
+        <lastmod>${today}</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.9</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/indeed-auto-apply-tool</loc>
+        <lastmod>${today}</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.9</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/chrome-extension</loc>
+        <lastmod>${today}</lastmod>
+        <changefreq>weekly</changefreq>
         <priority>0.9</priority>
     </url>`;
 
