@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
-import { useWebSocket } from "@/hooks/useWebSocket";
+// Removed useWebSocket import - using HTTP polling instead
 import { Navbar } from "@/components/navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -151,53 +151,69 @@ export default function CareerAIAssistant() {
     enabled: !!user,
   });
 
-  // WebSocket integration for real-time progress updates
-  const { isConnected } = useWebSocket({
-    url: 'ws://localhost:5000/ws',
-    userId: user?.id,
-    onMessage: (message) => {
-      if (message.type === 'career_analysis_progress') {
-        setAnalysisProgress({
-          isActive: true,
-          stage: message.stage,
-          progress: message.progress,
-          message: message.message,
-          currentStep: message.currentStep,
-          timeRemaining: message.timeRemaining
-        });
-      } else if (message.type === 'career_analysis_complete') {
-        // Analysis completed successfully
-        const result = message.data;
-        setInsights(result.insights || []);
-        setSkillGaps(result.skillGaps || []);
-        setCareerPath(result.careerPath || null);
-        setNetworkingOpportunities(result.networkingOpportunities || []);
-        setMarketTiming(result.marketTiming || []);
-        setAiTier(result.aiTier || 'basic');
-        setUpgradeMessage(result.upgradeMessage || "");
-        setDaysLeft(result.daysLeft || 0);
-        
-        // Clear progress and loading state
-        setAnalysisProgress(prev => ({ ...prev, isActive: false }));
-        setIsGenerating(false);
-        
-        toast({
-          title: "Analysis Complete!",
-          description: "Your personalized career insights are ready.",
-        });
-      } else if (message.type === 'career_analysis_error') {
-        // Analysis failed
-        setAnalysisProgress(prev => ({ ...prev, isActive: false }));
-        setIsGenerating(false);
-        
-        toast({
-          title: "Analysis Failed",
-          description: message.error || "Failed to generate career analysis",
-          variant: "destructive",
-        });
+  // Simple HTTP-based progress tracking (no websockets needed)
+  const [analysisJobId, setAnalysisJobId] = useState<string | null>(null);
+
+  // Poll for analysis progress when analysis is running
+  useEffect(() => {
+    if (!analysisJobId || !isGenerating) return;
+
+    const pollProgress = async () => {
+      try {
+        const response = await fetch(`/api/career-ai/progress/${analysisJobId}`);
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.status === 'completed') {
+            // Analysis completed successfully
+            setInsights(data.result.insights || []);
+            setSkillGaps(data.result.skillGaps || []);
+            setCareerPath(data.result.careerPath || null);
+            setNetworkingOpportunities(data.result.networkingOpportunities || []);
+            setMarketTiming(data.result.marketTiming || []);
+            setAiTier(data.result.aiTier || 'basic');
+            setUpgradeMessage(data.result.upgradeMessage || "");
+            setDaysLeft(data.result.daysLeft || 0);
+            
+            setAnalysisProgress(prev => ({ ...prev, isActive: false }));
+            setIsGenerating(false);
+            setAnalysisJobId(null);
+            
+            toast({
+              title: "Analysis Complete!",
+              description: "Your personalized career insights are ready.",
+            });
+          } else if (data.status === 'failed') {
+            setAnalysisProgress(prev => ({ ...prev, isActive: false }));
+            setIsGenerating(false);
+            setAnalysisJobId(null);
+            
+            toast({
+              title: "Analysis Failed",
+              description: data.error || "Failed to generate career analysis",
+              variant: "destructive",
+            });
+          } else if (data.status === 'running') {
+            // Update progress
+            setAnalysisProgress({
+              isActive: true,
+              stage: data.stage || '',
+              progress: data.progress || 0,
+              message: data.message || 'Analyzing...',
+              currentStep: data.currentStep,
+              timeRemaining: data.timeRemaining
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to poll analysis progress:', error);
       }
-    }
-  });
+    };
+
+    // Poll every 2 seconds
+    const interval = setInterval(pollProgress, 2000);
+    return () => clearInterval(interval);
+  }, [analysisJobId, isGenerating]);
 
   // Load saved analysis on component mount
   useEffect(() => {
@@ -283,32 +299,43 @@ export default function CareerAIAssistant() {
       if (response.ok) {
         const result = await response.json();
         
-        // Set AI tier information
-        setAiTier(result.aiTier || 'basic');
-        setUpgradeMessage(result.upgradeMessage || "");
-        setDaysLeft(result.daysLeft || 0);
-        
-        setInsights(result.insights);
-        setSkillGaps(result.skillGaps);
-        setCareerPath(result.careerPath);
-        setNetworkingOpportunities(result.networkingOpportunities || []);
-        setMarketTiming(result.marketTiming || []);
-        
-        // Clear progress update after successful analysis
-        setProgressUpdate("");
-        
-        // Show upgrade message if trial expired
-        if (result.upgradeMessage) {
-          toast({
-            title: "Premium AI Model Trial Ended",
-            description: result.upgradeMessage,
-            variant: "destructive",
+        if (result.jobId) {
+          // Analysis started successfully - begin polling for progress
+          setAnalysisJobId(result.jobId);
+          setAnalysisProgress({
+            isActive: true,
+            stage: 'initialized',
+            progress: 5,
+            message: 'Analysis job started successfully...',
+            currentStep: 'Initializing AI analysis'
           });
         } else {
-          toast({
-            title: "Analysis Complete",
-            description: "Your personalized career insights are ready",
-          });
+          // Immediate response (for basic tier or when analysis is very fast)
+          setAiTier(result.aiTier || 'basic');
+          setUpgradeMessage(result.upgradeMessage || "");
+          setDaysLeft(result.daysLeft || 0);
+          
+          setInsights(result.insights || []);
+          setSkillGaps(result.skillGaps || []);
+          setCareerPath(result.careerPath || null);
+          setNetworkingOpportunities(result.networkingOpportunities || []);
+          setMarketTiming(result.marketTiming || []);
+          
+          setProgressUpdate("");
+          setIsGenerating(false);
+          
+          if (result.upgradeMessage) {
+            toast({
+              title: "Premium AI Model Trial Ended",
+              description: result.upgradeMessage,
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Analysis Complete",
+              description: "Your personalized career insights are ready",
+            });
+          }
         }
       } else {
         const errorData = await response.json();
@@ -325,7 +352,10 @@ export default function CareerAIAssistant() {
         variant: "destructive",
       });
     } finally {
-      setIsGenerating(false);
+      // Only set isGenerating to false if we're not polling for progress
+      if (!analysisJobId) {
+        setIsGenerating(false);
+      }
     }
   };
 
