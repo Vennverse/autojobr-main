@@ -11213,11 +11213,30 @@ Host: https://autojobr.com`;
         return res.status(404).json({ message: "User not found" });
       }
 
+      // Import WebSocket service for real-time progress updates
+      const { simpleWebSocketService } = await import('./simpleWebSocketService.js');
+
+      // Send initial progress update
+      simpleWebSocketService.broadcastCareerAnalysisProgress(userId, {
+        stage: 'initialization',
+        progress: 5,
+        message: 'Starting career analysis...',
+        currentStep: 'Initializing analysis engine'
+      });
+
       const { careerGoal, timeframe, location, userProfile, userSkills, userApplications, jobAnalyses, completedTasks, progressUpdate } = req.body;
 
       if (!careerGoal) {
         return res.status(400).json({ message: "Career goal is required" });
       }
+
+      // Progress update: Data preparation
+      simpleWebSocketService.broadcastCareerAnalysisProgress(userId, {
+        stage: 'data_preparation',
+        progress: 15,
+        message: 'Preparing your career data for analysis...',
+        currentStep: 'Analyzing profile, skills, and application history'
+      });
 
       // Build comprehensive prompt for Groq AI
       const prompt = `
@@ -11301,7 +11320,25 @@ Host: https://autojobr.com`;
         Return ONLY the JSON object, no additional text.
       `;
 
+      // Progress update: AI analysis starting
+      simpleWebSocketService.broadcastCareerAnalysisProgress(userId, {
+        stage: 'ai_analysis',
+        progress: 25,
+        message: 'AI is analyzing your career path...',
+        currentStep: 'Processing career goals and market data',
+        timeRemaining: '2-3 minutes'
+      });
+
       const response = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
+        // Progress update: AI processing
+        simpleWebSocketService.broadcastCareerAnalysisProgress(userId, {
+          stage: 'ai_processing',
+          progress: 60,
+          message: 'Generating personalized career insights...',
+          currentStep: 'Creating skill gap analysis and career roadmap',
+          timeRemaining: '1-2 minutes'
+        });
+
         return await client.chat.completions.create({
           model: groqService.getModel ? groqService.getModel(user) : "llama-3.1-8b-instant",
           messages: [{ role: "user", content: prompt }],
@@ -11311,6 +11348,14 @@ Host: https://autojobr.com`;
       });
 
       const analysisText = response.choices[0].message.content;
+      
+      // Progress update: Data processing
+      simpleWebSocketService.broadcastCareerAnalysisProgress(userId, {
+        stage: 'data_processing',
+        progress: 85,
+        message: 'Processing analysis results...',
+        currentStep: 'Parsing insights and recommendations'
+      });
       
       // Clean the response by removing markdown code blocks if present
       let cleanedText = analysisText;
@@ -11327,11 +11372,21 @@ Host: https://autojobr.com`;
       } catch (parseError) {
         console.error("Failed to parse AI response:", analysisText);
         console.error("Cleaned text:", cleanedText);
+        // Send error via WebSocket
+        simpleWebSocketService.broadcastCareerAnalysisError(userId, "Failed to parse AI analysis results");
         throw new Error("Failed to parse AI analysis");
       }
 
       // Get AI access info for the user
       const aiAccessInfo = groqService.getAIAccessInfo(user);
+      
+      // Progress update: Database storage
+      simpleWebSocketService.broadcastCareerAnalysisProgress(userId, {
+        stage: 'saving',
+        progress: 95,
+        message: 'Saving analysis results...',
+        currentStep: 'Storing career insights and recommendations'
+      });
       
       // First, deactivate any existing active analysis for this user
       await db.update(schema.careerAiAnalyses)
@@ -11357,15 +11412,38 @@ Host: https://autojobr.com`;
         updatedAt: new Date()
       });
 
-      // Return analysis with AI tier information
-      res.json({
+      // Prepare final result
+      const finalResult = {
         ...analysisData,
         aiTier: aiAccessInfo.tier,
         upgradeMessage: aiAccessInfo.message,
         daysLeft: aiAccessInfo.daysLeft
+      };
+
+      // Progress update: Completion
+      simpleWebSocketService.broadcastCareerAnalysisProgress(userId, {
+        stage: 'completed',
+        progress: 100,
+        message: 'Career analysis complete!',
+        currentStep: 'Analysis ready for review'
       });
+
+      // Send completion notification via WebSocket
+      simpleWebSocketService.broadcastCareerAnalysisComplete(userId, finalResult);
+
+      // Return analysis with AI tier information
+      res.json(finalResult);
     } catch (error) {
       console.error("Career AI analysis error:", error);
+      
+      // Send error notification via WebSocket
+      try {
+        const { simpleWebSocketService } = await import('./simpleWebSocketService.js');
+        simpleWebSocketService.broadcastCareerAnalysisError(userId, "Failed to generate career analysis. Please try again.");
+      } catch (wsError) {
+        console.error("Failed to send WebSocket error notification:", wsError);
+      }
+      
       res.status(500).json({ message: "Failed to generate career analysis" });
     }
   });

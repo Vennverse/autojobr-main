@@ -132,6 +132,42 @@ export class SimpleWebSocketService {
   isUserOnline(userId: string): boolean {
     return this.connections.has(userId) && this.connections.get(userId)!.size > 0;
   }
+
+  /**
+   * Broadcast career analysis progress update to a specific user
+   */
+  broadcastCareerAnalysisProgress(userId: string, progressData: {
+    stage: string;
+    progress: number;
+    message: string;
+    timeRemaining?: string;
+    currentStep?: string;
+  }) {
+    this.broadcastToUser(userId, {
+      type: 'career_analysis_progress',
+      ...progressData
+    });
+  }
+
+  /**
+   * Broadcast career analysis completion to a specific user
+   */
+  broadcastCareerAnalysisComplete(userId: string, analysisData: any) {
+    this.broadcastToUser(userId, {
+      type: 'career_analysis_complete',
+      data: analysisData
+    });
+  }
+
+  /**
+   * Broadcast career analysis error to a specific user
+   */
+  broadcastCareerAnalysisError(userId: string, error: string) {
+    this.broadcastToUser(userId, {
+      type: 'career_analysis_error',
+      error
+    });
+  }
 }
 
 export const simpleWebSocketService = new SimpleWebSocketService();

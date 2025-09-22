@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import { Navbar } from "@/components/navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -110,6 +111,21 @@ export default function CareerAIAssistant() {
   const [daysLeft, setDaysLeft] = useState<number>(0);
   const [networkingOpportunities, setNetworkingOpportunities] = useState<any[]>([]);
   const [marketTiming, setMarketTiming] = useState<any[]>([]);
+  
+  // Real-time progress tracking
+  const [analysisProgress, setAnalysisProgress] = useState<{
+    isActive: boolean;
+    stage: string;
+    progress: number;
+    message: string;
+    currentStep?: string;
+    timeRemaining?: string;
+  }>({
+    isActive: false,
+    stage: '',
+    progress: 0,
+    message: ''
+  });
 
   // Fetch user profile for AI analysis
   const { data: userProfile } = useQuery({
@@ -133,6 +149,54 @@ export default function CareerAIAssistant() {
   const { data: jobAnalyses } = useQuery({
     queryKey: ['/api/jobs/analyses'],
     enabled: !!user,
+  });
+
+  // WebSocket integration for real-time progress updates
+  const { isConnected } = useWebSocket({
+    url: 'ws://localhost:5000/ws',
+    userId: user?.id,
+    onMessage: (message) => {
+      if (message.type === 'career_analysis_progress') {
+        setAnalysisProgress({
+          isActive: true,
+          stage: message.stage,
+          progress: message.progress,
+          message: message.message,
+          currentStep: message.currentStep,
+          timeRemaining: message.timeRemaining
+        });
+      } else if (message.type === 'career_analysis_complete') {
+        // Analysis completed successfully
+        const result = message.data;
+        setInsights(result.insights || []);
+        setSkillGaps(result.skillGaps || []);
+        setCareerPath(result.careerPath || null);
+        setNetworkingOpportunities(result.networkingOpportunities || []);
+        setMarketTiming(result.marketTiming || []);
+        setAiTier(result.aiTier || 'basic');
+        setUpgradeMessage(result.upgradeMessage || "");
+        setDaysLeft(result.daysLeft || 0);
+        
+        // Clear progress and loading state
+        setAnalysisProgress(prev => ({ ...prev, isActive: false }));
+        setIsGenerating(false);
+        
+        toast({
+          title: "Analysis Complete!",
+          description: "Your personalized career insights are ready.",
+        });
+      } else if (message.type === 'career_analysis_error') {
+        // Analysis failed
+        setAnalysisProgress(prev => ({ ...prev, isActive: false }));
+        setIsGenerating(false);
+        
+        toast({
+          title: "Analysis Failed",
+          description: message.error || "Failed to generate career analysis",
+          variant: "destructive",
+        });
+      }
+    }
   });
 
   // Load saved analysis on component mount
@@ -187,6 +251,15 @@ export default function CareerAIAssistant() {
     }
 
     setIsGenerating(true);
+    
+    // Initialize progress tracking
+    setAnalysisProgress({
+      isActive: true,
+      stage: 'starting',
+      progress: 0,
+      message: 'Preparing to analyze your career path...',
+      currentStep: 'Connecting to AI analysis engine'
+    });
     
     try {
       const response = await fetch('/api/career-ai/analyze', {
@@ -514,6 +587,65 @@ export default function CareerAIAssistant() {
               )}
             </CardContent>
           </Card>
+
+          {/* Real-time Analysis Progress */}
+          {analysisProgress.isActive && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mb-8"
+            >
+              <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800">
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                          <Brain className="h-4 w-4 text-blue-600 absolute inset-0 m-auto" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+                            {analysisProgress.message}
+                          </h3>
+                          {analysisProgress.currentStep && (
+                            <p className="text-sm text-blue-700 dark:text-blue-300">
+                              {analysisProgress.currentStep}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {analysisProgress.timeRemaining && (
+                        <div className="text-sm text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          {analysisProgress.timeRemaining}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-blue-700 dark:text-blue-300">Progress</span>
+                        <span className="text-blue-900 dark:text-blue-100 font-medium">
+                          {analysisProgress.progress}%
+                        </span>
+                      </div>
+                      <Progress 
+                        value={analysisProgress.progress} 
+                        className="h-3 bg-blue-100 dark:bg-blue-900/50"
+                        data-testid="progress-bar-analysis"
+                      />
+                    </div>
+                    
+                    <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
+                      <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      {isConnected ? 'Connected' : 'Connecting...'} to real-time updates
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
 
           {/* Analysis Results */}
           {insights.length > 0 && (
