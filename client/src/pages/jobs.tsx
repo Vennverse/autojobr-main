@@ -195,7 +195,7 @@ interface UserProfile {
 }
 
 // Category mapping for clean URLs
-const CATEGORY_MAPPINGS = {
+const CATEGORY_MAPPINGS: Record<string, string[]> = {
   'technology': ['software engineer', 'developer', 'programmer', 'tech', 'software', 'programming'],
   'engineering': ['engineer', 'engineering', 'technical', 'systems', 'platform'],
   'marketing': ['marketing', 'growth', 'social media', 'content', 'brand', 'seo', 'digital marketing'],
@@ -210,7 +210,7 @@ const CATEGORY_MAPPINGS = {
 };
 
 // Location mapping for clean URLs
-const LOCATION_MAPPINGS = {
+const LOCATION_MAPPINGS: Record<string, string[]> = {
   'san-francisco': ['san francisco', 'sf', 'bay area'],
   'new-york': ['new york', 'nyc', 'manhattan'],
   'austin': ['austin', 'atx'],
@@ -234,7 +234,7 @@ const LOCATION_MAPPINGS = {
 };
 
 // Country mapping for clean URLs
-const COUNTRY_MAPPINGS = {
+const COUNTRY_MAPPINGS: Record<string, string[]> = {
   'usa': ['united states', 'us', 'usa'],
   'canada': ['canada', 'ca'],
   'uk': ['united kingdom', 'uk', 'gb'],
@@ -621,6 +621,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
   
   // Helper functions
   const appliedJobIds = Array.isArray(applications) ? applications.map((app: any) => app.jobPostingId) : [];
+  
+  // Handle job click
+  const handleJobClick = (job: JobPosting) => {
+    setSelectedJob(job);
+  };
   
   const handleApply = (job: JobPosting) => {
     if (!isAuthenticated) {
@@ -1127,56 +1132,54 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     }
   }, [jobs, selectedJob]);
 
-  // Show loading skeleton while data is being fetched
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
-        <Navbar />
-        <div className="flex-1">
-          <div className="container mx-auto px-4 py-6">
-            <div className="flex gap-6">
-              {/* Filter Panel Skeleton */}
-              <div className="w-80 space-y-4">
-                <Skeleton className="h-8 w-24" />
-                <div className="space-y-3">
-                  {[...Array(8)].map((_, i) => (
-                    <div key={i} className="space-y-2">
-                      <Skeleton className="h-4 w-20" />
-                      <Skeleton className="h-10 w-full" />
-                    </div>
-                  ))}
-                </div>
+  // Loading skeleton UI component (moved to conditional JSX)
+  const LoadingSkeleton = () => (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+      <Navbar />
+      <div className="flex-1">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex gap-6">
+            {/* Filter Panel Skeleton */}
+            <div className="w-80 space-y-4">
+              <Skeleton className="h-8 w-24" />
+              <div className="space-y-3">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                ))}
               </div>
-              
-              {/* Main Content Skeleton */}
-              <div className="flex-1 space-y-4">
-                <div className="flex justify-between items-center">
-                  <Skeleton className="h-10 w-96" />
-                  <Skeleton className="h-10 w-32" />
-                </div>
-                <div className="space-y-4">
-                  {[...Array(6)].map((_, i) => (
-                    <Card key={i}>
-                      <CardHeader>
-                        <div className="flex justify-between">
-                          <div className="space-y-2">
-                            <Skeleton className="h-6 w-64" />
-                            <Skeleton className="h-4 w-32" />
-                            <Skeleton className="h-4 w-48" />
-                          </div>
-                          <Skeleton className="h-20 w-20 rounded" />
+            </div>
+            
+            {/* Main Content Skeleton */}
+            <div className="flex-1 space-y-4">
+              <div className="flex justify-between items-center">
+                <Skeleton className="h-10 w-96" />
+                <Skeleton className="h-10 w-32" />
+              </div>
+              <div className="space-y-4">
+                {[...Array(6)].map((_, i) => (
+                  <Card key={i}>
+                    <CardHeader>
+                      <div className="flex justify-between">
+                        <div className="space-y-2">
+                          <Skeleton className="h-6 w-64" />
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-4 w-48" />
                         </div>
-                      </CardHeader>
-                    </Card>
-                  ))}
-                </div>
+                        <Skeleton className="h-20 w-20 rounded" />
+                      </div>
+                    </CardHeader>
+                  </Card>
+                ))}
               </div>
             </div>
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 
   // Generate dynamic SEO metadata for category/location pages
   const seoMetadata = useMemo(() => {
@@ -1285,7 +1288,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       "@context": "https://schema.org",
       "@type": "ItemList",
       "numberOfItems": pagination.total || 0,
-      "itemListElement": (jobResults?.jobs || []).slice(0, 20).map((job, index) => ({
+      "itemListElement": allJobs.slice(0, 20).map((job, index) => ({
         "@type": "JobPosting",
         "position": index + 1,
         "title": job.title,
@@ -1305,9 +1308,9 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     };
     
     return [baseStructuredData, breadcrumbList, itemList];
-  }, [structuredData, seoMetadata.breadcrumbs, jobResults?.jobs, pagination.total]);
+  }, [structuredData, seoMetadata.breadcrumbs, allJobs, pagination.total]);
 
-  return (
+  return jobsLoading ? <LoadingSkeleton /> : (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <SEOHead
         title={seoMetadata.title}
@@ -1378,11 +1381,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
               <p className="text-sm sm:text-lg text-gray-600 dark:text-gray-300 mt-2">
                 {isAuthenticated 
                   ? `AI-curated opportunities based on your profile`
-                  : `${totalJobsCount}+ jobs from top companies worldwide • AI-powered matching`}
+                  : `${pagination.total}+ jobs from top companies worldwide • AI-powered matching`}
               </p>
               <div className="flex items-center gap-4 mt-3">
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                  {totalJobs} results
+                  {allJobs.length} results
                 </p>
                 {!isAuthenticated && (
                   <div className="flex items-center gap-2 text-xs sm:text-sm">
@@ -1402,8 +1405,8 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                   <Input
                     placeholder="Search jobs..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    value={searchInput}
+                    onChange={(e) => handleSearchChange(e.target.value)}
                     className="pl-9 sm:pl-10 h-10 sm:h-12 text-sm sm:text-base border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 touch-manipulation"
                   />
                 </div>
@@ -1411,7 +1414,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                 {/* Sort Options */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sort by:</span>
-                  <Select value={sortBy} onValueChange={setSortBy}>
+                  <Select value={filters.sort} onValueChange={(v) => updateFilters({ sort: v })}>
                     <SelectTrigger className="w-32">
                       <SelectValue />
                     </SelectTrigger>
@@ -1446,7 +1449,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                   </CardContent>
                 </Card>
               ))
-            ) : paginatedJobs.length === 0 ? (
+            ) : allJobs.length === 0 ? (
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-8 text-center">
                   <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -1459,7 +1462,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                 </CardContent>
               </Card>
             ) : (
-              paginatedJobs.map((job: any) => {
+              allJobs.map((job: any) => {
                 const compatibility = calculateCompatibility(job);
                 const isSelected = selectedJob?.id === job?.id;
                 const isApplied = Array.isArray(appliedJobIds) && appliedJobIds.includes(job.id);
