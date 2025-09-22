@@ -3077,3 +3077,485 @@ export const insertProjectMilestoneSchema = createInsertSchema(projectMilestones
 });
 export type InsertProjectMilestone = z.infer<typeof insertProjectMilestoneSchema>;
 export type SelectProjectMilestone = typeof projectMilestones.$inferSelect;
+
+// CAREER AI ASSISTANT ENHANCEMENT SYSTEM
+
+// Skill Progress Logs - tracks skill development over time
+export const skillProgressLogs = pgTable("skill_progress_logs", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  skill: varchar("skill").notNull(),
+  level: integer("level").notNull(), // 1-10 scale
+  source: varchar("source").notNull(), // manual, course_completion, assessment, ai_analysis
+  recordedAt: timestamp("recorded_at").defaultNow(),
+}, (table) => [
+  index("skill_progress_logs_user_idx").on(table.userId),
+  index("skill_progress_logs_skill_idx").on(table.skill),
+  index("skill_progress_logs_recorded_idx").on(table.recordedAt),
+]);
+
+// Achievements Catalog - predefined achievements
+export const achievementsCatalog = pgTable("achievements_catalog", {
+  id: serial("id").primaryKey(),
+  key: varchar("key").unique().notNull(), // unique identifier like "first_analysis"
+  name: varchar("name").notNull(),
+  description: text("description").notNull(),
+  icon: varchar("icon").notNull(), // lucide icon name
+  points: integer("points").default(0),
+  category: varchar("category").notNull(), // career_progress, learning, networking, achievement
+  isActive: boolean("is_active").default(true),
+}, (table) => [
+  index("achievements_catalog_category_idx").on(table.category),
+]);
+
+// User Achievements - tracks user's earned achievements
+export const userAchievements = pgTable("user_achievements", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  achievementId: integer("achievement_id").references(() => achievementsCatalog.id).notNull(),
+  earnedAt: timestamp("earned_at").defaultNow(),
+}, (table) => [
+  unique("user_achievements_unique").on(table.userId, table.achievementId),
+  index("user_achievements_user_idx").on(table.userId),
+  index("user_achievements_earned_idx").on(table.earnedAt),
+]);
+
+// Learning Resources - curated learning materials
+export const learningResources = pgTable("learning_resources", {
+  id: serial("id").primaryKey(),
+  skill: varchar("skill").notNull(),
+  title: varchar("title").notNull(),
+  url: varchar("url").notNull(),
+  source: varchar("source").notNull(), // coursera, udemy, youtube, article, documentation
+  cost: varchar("cost").default("free"), // free, paid, subscription
+  difficulty: varchar("difficulty").notNull(), // beginner, intermediate, advanced
+  estimatedHours: integer("estimated_hours"),
+  rating: integer("rating"), // 1-5 stars
+  tags: text("tags").array(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("learning_resources_skill_idx").on(table.skill),
+  index("learning_resources_difficulty_idx").on(table.difficulty),
+  index("learning_resources_cost_idx").on(table.cost),
+]);
+
+// User Learning Plan - tracks user's learning journey
+export const userLearningPlan = pgTable("user_learning_plan", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  resourceId: integer("resource_id").references(() => learningResources.id).notNull(),
+  status: varchar("status").default("planned"), // planned, in_progress, completed, skipped
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  progress: integer("progress").default(0), // 0-100 percentage
+  notes: text("notes"),
+  addedAt: timestamp("added_at").defaultNow(),
+}, (table) => [
+  unique("user_learning_plan_unique").on(table.userId, table.resourceId),
+  index("user_learning_plan_user_idx").on(table.userId),
+  index("user_learning_plan_status_idx").on(table.status),
+]);
+
+// Interview Preparations - AI-generated interview questions and practice
+export const interviewPreps = pgTable("interview_preps", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  targetRole: varchar("target_role").notNull(),
+  company: varchar("company"), // optional company-specific prep
+  difficulty: varchar("difficulty").default("medium"), // easy, medium, hard
+  
+  // Generated content
+  questions: jsonb("questions").notNull(), // Array of question objects with answers and tips
+  practiceAreas: text("practice_areas").array(),
+  
+  // Usage tracking
+  timesUsed: integer("times_used").default(0),
+  lastUsed: timestamp("last_used"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("interview_preps_user_idx").on(table.userId),
+  index("interview_preps_role_idx").on(table.targetRole),
+]);
+
+// Notifications - smart notification system
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  type: varchar("type").notNull(), // career_milestone, skill_reminder, job_opportunity, community_update
+  title: varchar("title").notNull(),
+  message: text("message").notNull(),
+  payload: jsonb("payload"), // additional data for the notification
+  
+  // Status
+  isRead: boolean("is_read").default(false),
+  priority: varchar("priority").default("medium"), // low, medium, high, urgent
+  
+  // Timing
+  scheduledFor: timestamp("scheduled_for"), // for scheduled notifications
+  expiresAt: timestamp("expires_at"), // when notification becomes irrelevant
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("notifications_user_idx").on(table.userId),
+  index("notifications_type_idx").on(table.type),
+  index("notifications_read_idx").on(table.isRead),
+  index("notifications_scheduled_idx").on(table.scheduledFor),
+]);
+
+// COMMUNITY FEATURES
+
+// Mentor Profiles - mentors offering guidance
+export const mentorProfiles = pgTable("mentor_profiles", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Professional details
+  currentRole: varchar("current_role").notNull(),
+  company: varchar("company").notNull(),
+  yearsExperience: integer("years_experience").notNull(),
+  expertiseSkills: text("expertise_skills").array().notNull(),
+  
+  // Mentoring preferences
+  availability: varchar("availability").notNull(), // weekdays, weekends, flexible, limited
+  sessionType: varchar("session_type").default("both"), // video, chat, both
+  maxMentees: integer("max_mentees").default(5),
+  
+  // Profile
+  bio: text("bio").notNull(),
+  linkedinUrl: varchar("linkedin_url"),
+  hourlyRate: integer("hourly_rate"), // optional paid mentoring
+  
+  // Status
+  isActive: boolean("is_active").default(true),
+  isVerified: boolean("is_verified").default(false),
+  rating: numeric("rating", { precision: 3, scale: 2 }), // average rating
+  totalSessions: integer("total_sessions").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  unique("mentor_profiles_user_unique").on(table.userId),
+  index("mentor_profiles_skills_idx").on(table.expertiseSkills),
+  index("mentor_profiles_active_idx").on(table.isActive),
+  index("mentor_profiles_rating_idx").on(table.rating),
+]);
+
+// Mentorship Requests - connection between mentors and mentees
+export const mentorshipRequests = pgTable("mentorship_requests", {
+  id: serial("id").primaryKey(),
+  menteeId: varchar("mentee_id").references(() => users.id).notNull(),
+  mentorId: varchar("mentor_id").references(() => users.id).notNull(),
+  
+  // Request details
+  message: text("message").notNull(),
+  areasOfFocus: text("areas_of_focus").array().notNull(),
+  preferredSchedule: varchar("preferred_schedule"),
+  
+  // Status
+  status: varchar("status").default("pending"), // pending, accepted, declined, completed
+  
+  // Session details (if accepted)
+  sessionScheduled: timestamp("session_scheduled"),
+  sessionCompleted: timestamp("session_completed"),
+  menteeRating: integer("mentee_rating"), // 1-5 rating by mentee
+  mentorRating: integer("mentor_rating"), // 1-5 rating by mentor
+  sessionNotes: text("session_notes"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("mentorship_requests_mentee_idx").on(table.menteeId),
+  index("mentorship_requests_mentor_idx").on(table.mentorId),
+  index("mentorship_requests_status_idx").on(table.status),
+]);
+
+// Shared Career Journeys - users can share their career progression stories
+export const sharedJourneys = pgTable("shared_journeys", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Journey details
+  title: varchar("title").notNull(),
+  content: jsonb("content").notNull(), // Rich content including timeline, milestones, lessons
+  careerPath: varchar("career_path").notNull(), // e.g., "Junior Dev to Senior Engineer"
+  yearsSpan: integer("years_span").notNull(),
+  
+  // Metadata
+  tags: text("tags").array(),
+  visibility: varchar("visibility").default("public"), // public, community, private
+  likes: integer("likes").default(0),
+  views: integer("views").default(0),
+  
+  // Moderation
+  isApproved: boolean("is_approved").default(false),
+  isFeatured: boolean("is_featured").default(false),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("shared_journeys_user_idx").on(table.userId),
+  index("shared_journeys_visibility_idx").on(table.visibility),
+  index("shared_journeys_approved_idx").on(table.isApproved),
+  index("shared_journeys_featured_idx").on(table.isFeatured),
+]);
+
+// Challenges - group challenges for career development
+export const challenges = pgTable("challenges", {
+  id: serial("id").primaryKey(),
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  category: varchar("category").notNull(), // skill_building, networking, job_search, interview_prep
+  
+  // Challenge configuration
+  targetCount: integer("target_count"), // e.g., "Apply to 10 jobs", "Learn 3 new skills"
+  targetUnit: varchar("target_unit"), // jobs, skills, connections, interviews
+  
+  // Timing
+  startAt: timestamp("start_at").notNull(),
+  endAt: timestamp("end_at").notNull(),
+  
+  // Rewards
+  badge: varchar("badge"), // badge awarded to participants
+  points: integer("points").default(0),
+  
+  // Status
+  isActive: boolean("is_active").default(true),
+  maxParticipants: integer("max_participants"),
+  currentParticipants: integer("current_participants").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("challenges_category_idx").on(table.category),
+  index("challenges_active_idx").on(table.isActive),
+  index("challenges_dates_idx").on(table.startAt, table.endAt),
+]);
+
+// Challenge Participants - tracks user participation in challenges
+export const challengeParticipants = pgTable("challenge_participants", {
+  id: serial("id").primaryKey(),
+  challengeId: integer("challenge_id").references(() => challenges.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Progress tracking
+  progress: jsonb("progress").default("{}"), // flexible progress data
+  currentCount: integer("current_count").default(0),
+  isCompleted: boolean("is_completed").default(false),
+  completedAt: timestamp("completed_at"),
+  
+  // Ranking
+  rank: integer("rank"),
+  points: integer("points").default(0),
+  
+  joinedAt: timestamp("joined_at").defaultNow(),
+}, (table) => [
+  unique("challenge_participants_unique").on(table.challengeId, table.userId),
+  index("challenge_participants_challenge_idx").on(table.challengeId),
+  index("challenge_participants_user_idx").on(table.userId),
+  index("challenge_participants_completed_idx").on(table.isCompleted),
+  index("challenge_participants_rank_idx").on(table.rank),
+]);
+
+// RELATIONS FOR CAREER AI ENHANCEMENT SYSTEM
+
+export const skillProgressLogsRelations = relations(skillProgressLogs, ({ one }) => ({
+  user: one(users, {
+    fields: [skillProgressLogs.userId],
+    references: [users.id],
+  }),
+}));
+
+export const userAchievementsRelations = relations(userAchievements, ({ one }) => ({
+  user: one(users, {
+    fields: [userAchievements.userId],
+    references: [users.id],
+  }),
+  achievement: one(achievementsCatalog, {
+    fields: [userAchievements.achievementId],
+    references: [achievementsCatalog.id],
+  }),
+}));
+
+export const achievementsCatalogRelations = relations(achievementsCatalog, ({ many }) => ({
+  userAchievements: many(userAchievements),
+}));
+
+export const userLearningPlanRelations = relations(userLearningPlan, ({ one }) => ({
+  user: one(users, {
+    fields: [userLearningPlan.userId],
+    references: [users.id],
+  }),
+  resource: one(learningResources, {
+    fields: [userLearningPlan.resourceId],
+    references: [learningResources.id],
+  }),
+}));
+
+export const learningResourcesRelations = relations(learningResources, ({ many }) => ({
+  userPlans: many(userLearningPlan),
+}));
+
+export const interviewPrepsRelations = relations(interviewPreps, ({ one }) => ({
+  user: one(users, {
+    fields: [interviewPreps.userId],
+    references: [users.id],
+  }),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+}));
+
+export const mentorProfilesRelations = relations(mentorProfiles, ({ one, many }) => ({
+  user: one(users, {
+    fields: [mentorProfiles.userId],
+    references: [users.id],
+  }),
+  mentorshipRequests: many(mentorshipRequests, { relationName: "mentorRequests" }),
+}));
+
+export const mentorshipRequestsRelations = relations(mentorshipRequests, ({ one }) => ({
+  mentee: one(users, {
+    fields: [mentorshipRequests.menteeId],
+    references: [users.id],
+    relationName: "menteeRequests",
+  }),
+  mentor: one(users, {
+    fields: [mentorshipRequests.mentorId],
+    references: [users.id],
+    relationName: "mentorRequests",
+  }),
+}));
+
+export const sharedJourneysRelations = relations(sharedJourneys, ({ one }) => ({
+  user: one(users, {
+    fields: [sharedJourneys.userId],
+    references: [users.id],
+  }),
+}));
+
+export const challengeParticipantsRelations = relations(challengeParticipants, ({ one }) => ({
+  challenge: one(challenges, {
+    fields: [challengeParticipants.challengeId],
+    references: [challenges.id],
+  }),
+  user: one(users, {
+    fields: [challengeParticipants.userId],
+    references: [users.id],
+  }),
+}));
+
+export const challengesRelations = relations(challenges, ({ many }) => ({
+  participants: many(challengeParticipants),
+}));
+
+// INSERT SCHEMAS FOR CAREER AI ENHANCEMENT SYSTEM
+
+export const insertSkillProgressLogSchema = createInsertSchema(skillProgressLogs).omit({
+  id: true,
+  recordedAt: true,
+});
+
+export const insertAchievementsCatalogSchema = createInsertSchema(achievementsCatalog).omit({
+  id: true,
+});
+
+export const insertUserAchievementSchema = createInsertSchema(userAchievements).omit({
+  id: true,
+  earnedAt: true,
+});
+
+export const insertLearningResourceSchema = createInsertSchema(learningResources).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserLearningPlanSchema = createInsertSchema(userLearningPlan).omit({
+  id: true,
+  addedAt: true,
+});
+
+export const insertInterviewPrepSchema = createInsertSchema(interviewPreps).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMentorProfileSchema = createInsertSchema(mentorProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMentorshipRequestSchema = createInsertSchema(mentorshipRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSharedJourneySchema = createInsertSchema(sharedJourneys).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertChallengeSchema = createInsertSchema(challenges).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertChallengeParticipantSchema = createInsertSchema(challengeParticipants).omit({
+  id: true,
+  joinedAt: true,
+});
+
+// TYPES FOR CAREER AI ENHANCEMENT SYSTEM
+
+export type SkillProgressLog = typeof skillProgressLogs.$inferSelect;
+export type InsertSkillProgressLog = z.infer<typeof insertSkillProgressLogSchema>;
+
+export type AchievementsCatalog = typeof achievementsCatalog.$inferSelect;
+export type InsertAchievementsCatalog = z.infer<typeof insertAchievementsCatalogSchema>;
+
+export type UserAchievement = typeof userAchievements.$inferSelect;
+export type InsertUserAchievement = z.infer<typeof insertUserAchievementSchema>;
+
+export type LearningResource = typeof learningResources.$inferSelect;
+export type InsertLearningResource = z.infer<typeof insertLearningResourceSchema>;
+
+export type UserLearningPlan = typeof userLearningPlan.$inferSelect;
+export type InsertUserLearningPlan = z.infer<typeof insertUserLearningPlanSchema>;
+
+export type InterviewPrep = typeof interviewPreps.$inferSelect;
+export type InsertInterviewPrep = z.infer<typeof insertInterviewPrepSchema>;
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
+export type MentorProfile = typeof mentorProfiles.$inferSelect;
+export type InsertMentorProfile = z.infer<typeof insertMentorProfileSchema>;
+
+export type MentorshipRequest = typeof mentorshipRequests.$inferSelect;
+export type InsertMentorshipRequest = z.infer<typeof insertMentorshipRequestSchema>;
+
+export type SharedJourney = typeof sharedJourneys.$inferSelect;
+export type InsertSharedJourney = z.infer<typeof insertSharedJourneySchema>;
+
+export type Challenge = typeof challenges.$inferSelect;
+export type InsertChallenge = z.infer<typeof insertChallengeSchema>;
+
+export type ChallengeParticipant = typeof challengeParticipants.$inferSelect;
+export type InsertChallengeParticipant = z.infer<typeof insertChallengeParticipantSchema>;
+
