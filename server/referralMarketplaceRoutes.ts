@@ -251,36 +251,62 @@ router.post("/payment/create-order", async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'Booking ID and amount required' });
     }
 
-    // Create PayPal order with correct format and return URL structure
+    // Validate booking ID is a positive integer
+    const bookingIdNum = parseInt(bookingId);
+    if (isNaN(bookingIdNum) || bookingIdNum <= 0) {
+      return res.status(400).json({ success: false, error: 'Invalid booking ID' });
+    }
+
+    // Create PayPal order directly without recursive response override
     const mockReq = {
       body: {
-        amount: amount.toString(),
+        amount: parseFloat(amount).toFixed(2),
         currency: 'USD',
         intent: 'CAPTURE'
       }
     } as Request;
 
-    // Temporarily store the booking ID for later capture
-    const originalSend = res.json;
-    res.json = function(data: any) {
-      if (data.id) {
-        // Add approval URL to response
-        data.links = data.links || [];
-        data.links.push({
-          href: `https://www.paypal.com/checkoutnow?token=${data.id}`,
-          rel: 'approve',
-          method: 'REDIRECT'
-        });
-        data.approvalUrl = `https://www.paypal.com/checkoutnow?token=${data.id}`;
-        return res.status(200).json({ success: true, ...data });
-      }
-      return originalSend.call(this, data);
-    };
+    // Create a mock response to capture PayPal response
+    let paypalResponse: any = null;
+    const mockRes = {
+      json: (data: any) => {
+        paypalResponse = data;
+      },
+      status: () => mockRes
+    } as any;
 
-    await createPaypalOrder(mockReq, res);
+    try {
+      await createPaypalOrder(mockReq, mockRes);
+      
+      if (paypalResponse && paypalResponse.id) {
+        // Add approval URL to response
+        const approvalUrl = `https://www.paypal.com/checkoutnow?token=${paypalResponse.id}`;
+        
+        return res.json({
+          success: true,
+          id: paypalResponse.id,
+          approvalUrl,
+          links: [
+            {
+              href: approvalUrl,
+              rel: 'approve',
+              method: 'REDIRECT'
+            }
+          ]
+        });
+      } else {
+        throw new Error('PayPal order creation failed');
+      }
+    } catch (paypalError) {
+      console.error('PayPal order creation error:', paypalError);
+      throw new Error('PayPal service unavailable');
+    }
   } catch (error) {
     console.error('Error creating PayPal order:', error);
-    res.status(500).json({ success: false, error: 'Failed to create payment order' });
+    res.status(500).json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to create payment order' 
+    });
   }
 });
 
@@ -292,16 +318,46 @@ router.post("/payment/capture/:orderId", async (req: Request, res: Response) => 
   try {
     const { orderId } = req.params;
 
-    // Capture PayPal order - fix the parameter structure
-    const mockReq = {
-      ...req,
-      params: { orderID: orderId }
-    } as unknown as Request;
+    if (!orderId) {
+      return res.status(400).json({ success: false, error: 'Order ID is required' });
+    }
 
-    await capturePaypalOrder(mockReq, res);
+    // Create mock request with correct parameter structure
+    const mockReq = {
+      params: { orderID: orderId },
+      body: req.body
+    } as Request;
+
+    // Create mock response to capture PayPal response
+    let captureResponse: any = null;
+    const mockRes = {
+      json: (data: any) => {
+        captureResponse = data;
+      },
+      status: () => mockRes
+    } as any;
+
+    try {
+      await capturePaypalOrder(mockReq, mockRes);
+      
+      if (captureResponse && captureResponse.status === 'COMPLETED') {
+        return res.json({
+          success: true,
+          captureData: captureResponse
+        });
+      } else {
+        throw new Error('Payment capture failed');
+      }
+    } catch (paypalError) {
+      console.error('PayPal capture error:', paypalError);
+      throw new Error('PayPal capture service unavailable');
+    }
   } catch (error) {
     console.error('Error capturing PayPal payment:', error);
-    res.status(500).json({ success: false, error: 'Failed to capture payment' });
+    res.status(500).json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to capture payment' 
+    });
   }
 });
 

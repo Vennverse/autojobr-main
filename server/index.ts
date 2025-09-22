@@ -48,11 +48,27 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
-// Performance monitoring middleware
+// Request validation and performance monitoring middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
+
+  // Validate ID parameters to prevent the "ID must be a positive integer" error
+  if (req.params) {
+    for (const [key, value] of Object.entries(req.params)) {
+      if (key.toLowerCase().includes('id') && value) {
+        const numValue = parseInt(value as string);
+        if (isNaN(numValue) || numValue <= 0) {
+          return res.status(400).json({
+            success: false,
+            error: `Invalid ${key}: must be a positive integer`,
+            code: 'INVALID_ID_PARAMETER'
+          });
+        }
+      }
+    }
+  }
 
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {

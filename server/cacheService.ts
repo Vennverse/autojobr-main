@@ -287,11 +287,25 @@ class EnhancedCacheService {
   }
 
   // Helper to generate a cache key with user scoping
-  private generateKey(prefix: string, identifier: string, userId?: string): string {
+  generateKey(prefix: string, identifier: string, userId?: string): string {
     if (userId) {
-      return `${prefix}_${userId}_${identifier}`;
+      return `${prefix}_user-${userId}_${identifier}`;
     }
+    // Log warning for potential security issue
+    console.warn(`[CACHE_SECURITY] Cache key "${prefix}_${identifier}" used without user ID scoping`);
     return `${prefix}_${identifier}`;
+  }
+
+  // Safe cache set with automatic user scoping
+  setUserScoped(key: string, data: any, userId: string, config: CacheConfig = {}, dependsOn: string[] = []): void {
+    const scopedKey = this.generateKey(key, '', userId);
+    this.set(scopedKey, data, config, dependsOn);
+  }
+
+  // Safe cache get with automatic user scoping
+  getUserScoped(key: string, userId: string): CacheEntry | null {
+    const scopedKey = this.generateKey(key, '', userId);
+    return this.get(scopedKey);
   }
 }
 
