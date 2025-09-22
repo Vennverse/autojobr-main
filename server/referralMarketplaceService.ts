@@ -208,7 +208,7 @@ export class ReferralMarketplaceService {
         availableSlots: referralServices.availableSlots,
         bookedSlots: referralServices.bookedSlots,
         createdAt: referralServices.createdAt,
-        
+
         // Referrer info (anonymous-safe)
         referrerId: referrers.id,
         companyName: referrers.companyName,
@@ -267,7 +267,7 @@ export class ReferralMarketplaceService {
         availableSlots: service.availableSlots,
         bookedSlots: service.bookedSlots,
         createdAt: service.createdAt,
-        
+
         // Referrer info (anonymous-protected)
         referrer: {
           id: service.referrerId,
@@ -561,7 +561,7 @@ export class ReferralMarketplaceService {
   private async sendVerificationEmail(companyEmail: string, token: string, companyName: string) {
     try {
       const verificationUrl = `${process.env.FRONTEND_URL || 'https://autojobr.com'}/verify-referrer?token=${token}`;
-      
+
       const emailContent = {
         to: companyEmail,
         subject: 'Verify Your AutoJobr Referrer Account',
@@ -667,7 +667,7 @@ export class ReferralMarketplaceService {
               .from(users)
               .where(eq(users.id, booking.jobSeekerId))
               .limit(1);
-            
+
             if (jobSeekerResult.length > 0) {
               jobSeeker = {
                 id: jobSeekerResult[0].id,
@@ -686,7 +686,7 @@ export class ReferralMarketplaceService {
               .from(referralServices)
               .where(eq(referralServices.id, booking.serviceId))
               .limit(1);
-            
+
             if (serviceResult.length > 0) {
               service = {
                 id: serviceResult[0].id,
@@ -771,17 +771,17 @@ export class ReferralMarketplaceService {
         jobSeekerId: referralBookings.jobSeekerId,
         status: referralBookings.status,
         paymentStatus: referralBookings.paymentStatus,
-        
+
         // Job seeker info
         jobSeekerEmail: users.email,
         jobSeekerFirstName: users.firstName,
         jobSeekerLastName: users.lastName,
-        
+
         // Service info
         serviceTitle: referralServices.title,
         serviceType: referralServices.serviceType,
         sessionDuration: referralServices.sessionDuration,
-        
+
         // Referrer info
         referrerDisplayName: referrers.displayName,
         referrerJobTitle: referrers.jobTitle,
@@ -864,12 +864,12 @@ Best regards,
               <h1 style="color: white; margin: 0; font-size: 24px;">Meeting Invitation</h1>
               <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">Your scheduled session is ready!</p>
             </div>
-            
+
             <div style="background: white; padding: 30px; border: 1px solid #e1e5e9; border-top: none; border-radius: 0 0 10px 10px;">
               <div style="white-space: pre-line; line-height: 1.6; color: #333;">
                 ${emailContent}
               </div>
-              
+
               <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
                 <h3 style="color: #333; margin-top: 0; font-size: 16px;">📅 Session Details:</h3>
                 <ul style="color: #666; line-height: 1.6; margin: 0; padding-left: 20px;">
@@ -879,7 +879,7 @@ Best regards,
                   <li><strong>Booking ID:</strong> #${bookingData.id}</li>
                 </ul>
               </div>
-              
+
               <div style="text-align: center; margin: 30px 0;">
                 <a href="${meetingLink}" 
                    style="background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); 
@@ -892,9 +892,9 @@ Best regards,
                   Schedule Your Meeting
                 </a>
               </div>
-              
+
               <hr style="border: none; border-top: 1px solid #e1e5e9; margin: 30px 0;">
-              
+
               <p style="color: #999; font-size: 12px; text-align: center;">
                 This meeting invitation was sent through the AutoJobr platform.
                 <br>If you have any issues, please contact support.
@@ -931,7 +931,7 @@ Best regards,
   async getUserBookings(userId: string, role: 'job_seeker' | 'referrer') {
     try {
       let query;
-      
+
       if (role === 'job_seeker') {
         query = db.select({
           id: referralBookings.id,

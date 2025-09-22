@@ -21,14 +21,14 @@ class OptimizedLRUCache<K, V> {
   private maxSize: number;
   private hitCount = 0;
   private missCount = 0;
-  
+
   constructor(maxSize: number = 2000) {
     this.maxSize = maxSize;
   }
-  
+
   set(key: K, value: V): void {
     const now = Date.now();
-    
+
     if (this.cache.has(key)) {
       // Update existing entry
       this.cache.set(key, value);
@@ -42,11 +42,11 @@ class OptimizedLRUCache<K, V> {
       this.usage.set(key, { lastAccess: now, frequency: 1 });
     }
   }
-  
+
   get(key: K): V | undefined {
     const value = this.cache.get(key);
     const now = Date.now();
-    
+
     if (value !== undefined) {
       this.hitCount++;
       this.updateUsage(key, now);
@@ -56,40 +56,40 @@ class OptimizedLRUCache<K, V> {
       return undefined;
     }
   }
-  
+
   has(key: K): boolean {
     return this.cache.has(key);
   }
-  
+
   delete(key: K): boolean {
     this.usage.delete(key);
     return this.cache.delete(key);
   }
-  
+
   clear(): void {
     this.cache.clear();
     this.usage.clear();
     this.hitCount = 0;
     this.missCount = 0;
   }
-  
+
   get size(): number {
     return this.cache.size;
   }
-  
+
   get max(): number {
     return this.maxSize;
   }
-  
+
   keys(): IterableIterator<K> {
     return this.cache.keys();
   }
-  
+
   getHitRate(): number {
     const total = this.hitCount + this.missCount;
     return total > 0 ? this.hitCount / total : 0;
   }
-  
+
   private updateUsage(key: K, now: number): void {
     const current = this.usage.get(key);
     if (current) {
@@ -99,41 +99,41 @@ class OptimizedLRUCache<K, V> {
       });
     }
   }
-  
+
   private evictLeastUsed(): void {
     let leastUsedKey: K | undefined;
     let lowestScore = Infinity;
     const now = Date.now();
-    
+
     // Use combined score: frequency and recency
     for (const [key, usage] of Array.from(this.usage.entries())) {
       const ageWeight = Math.max(1, (now - usage.lastAccess) / 60000); // Age in minutes
       const score = usage.frequency / ageWeight;
-      
+
       if (score < lowestScore) {
         lowestScore = score;
         leastUsedKey = key;
       }
     }
-    
+
     if (leastUsedKey !== undefined) {
       this.delete(leastUsedKey);
     }
   }
-  
+
   // Memory cleanup for expired entries
   cleanup(): number {
     const now = Date.now();
     const maxAge = 30 * 60 * 1000; // 30 minutes
     let cleaned = 0;
-    
+
     for (const [key, usage] of Array.from(this.usage.entries())) {
       if (now - usage.lastAccess > maxAge) {
         this.delete(key);
         cleaned++;
       }
     }
-    
+
     return cleaned;
   }
 }
@@ -143,10 +143,10 @@ class EnhancedCacheService {
   private dependencyMap: Map<string, Set<string>> = new Map(); // dependency -> cache keys
   private lastUpdated: Map<string, Date> = new Map(); // resource -> last update time
   private cleanupInterval: NodeJS.Timeout;
-  
+
   constructor() {
     this.cache = new OptimizedLRUCache<string, CacheEntry>(2000);
-    
+
     // OPTIMIZATION: Reduce cleanup frequency and make it more efficient
     this.cleanupInterval = setInterval(() => {
       const cleaned = this.cache.cleanup();
@@ -182,7 +182,7 @@ class EnhancedCacheService {
   get(key: string): CacheEntry | null {
     const entry = this.cache.get(key);
     if (!entry) return null;
-    
+
     // Check if entry has expired
     if (Date.now() > entry.expiresAt) {
       this.cache.delete(key);
@@ -208,7 +208,7 @@ class EnhancedCacheService {
   hasChanged(key: string, newData: any): boolean {
     const entry = this.cache.get(key);
     if (!entry) return true;
-    
+
     const newEtag = this.generateEtag(newData);
     return entry.etag !== newEtag;
   }
@@ -216,7 +216,7 @@ class EnhancedCacheService {
   // Invalidate cache when a resource is updated
   invalidateByDependency(dependency: string): void {
     this.lastUpdated.set(dependency, new Date());
-    
+
     const dependentKeys = this.dependencyMap.get(dependency);
     if (dependentKeys) {
       dependentKeys.forEach(key => {
@@ -230,7 +230,7 @@ class EnhancedCacheService {
   invalidateUser(userId: string): void {
     this.invalidateByDependency(`user:${userId}`);
     this.invalidateByDependency(`profile:${userId}`);
-    
+
     // Also clear any keys containing the user ID
     const keys = Array.from(this.cache.keys());
     keys.forEach(key => {
@@ -251,7 +251,7 @@ class EnhancedCacheService {
       memoryUsage: process.memoryUsage().heapUsed / 1024 / 1024, // MB
     };
   }
-  
+
   // Destroy cache service and cleanup intervals
   destroy(): void {
     clearInterval(this.cleanupInterval);
@@ -285,6 +285,14 @@ class EnhancedCacheService {
 
     return true;
   }
+
+  // Helper to generate a cache key with user scoping
+  private generateKey(prefix: string, identifier: string, userId?: string): string {
+    if (userId) {
+      return `${prefix}_${userId}_${identifier}`;
+    }
+    return `${prefix}_${identifier}`;
+  }
 }
 
 export const cacheService = new EnhancedCacheService();
@@ -293,7 +301,7 @@ export const cacheService = new EnhancedCacheService();
 export const cacheMiddleware = (ttl: number = 5 * 60 * 1000, dependsOn: string[] = []) => {
   return (req: any, res: any, next: any) => {
     const key = `${req.method}:${req.originalUrl}:${req.user?.id || 'anon'}`;
-    
+
     // Check cache
     const cached = cacheService.get(key);
     if (cached && !cacheService.hasChanged(key, cached.data)) {
@@ -301,12 +309,12 @@ export const cacheMiddleware = (ttl: number = 5 * 60 * 1000, dependsOn: string[]
       res.set('ETag', cached.etag);
       res.set('Last-Modified', cached.lastModified.toUTCString());
       res.set('Cache-Control', `max-age=${Math.floor(ttl / 1000)}, must-revalidate`);
-      
+
       // Check client cache
       if (!cacheService.checkIfModified(key, req.get('If-None-Match'), req.get('If-Modified-Since'))) {
         return res.status(304).send();
       }
-      
+
       return res.json(cached.data);
     }
 
@@ -315,14 +323,14 @@ export const cacheMiddleware = (ttl: number = 5 * 60 * 1000, dependsOn: string[]
     res.json = (data: any) => {
       // Cache the response
       cacheService.set(key, data, { ttl }, dependsOn);
-      
+
       const entry = cacheService.get(key);
       if (entry) {
         res.set('ETag', entry.etag);
         res.set('Last-Modified', entry.lastModified.toUTCString());
         res.set('Cache-Control', `max-age=${Math.floor(ttl / 1000)}, must-revalidate`);
       }
-      
+
       return originalJson(data);
     };
 

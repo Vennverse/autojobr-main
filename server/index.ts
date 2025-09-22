@@ -56,8 +56,10 @@ app.use((req, res, next) => {
 
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
+    if (!capturedJsonResponse) {
+      capturedJsonResponse = bodyJson;
+    }
+    return originalResJson.call(this, bodyJson, ...args);
   };
 
   res.on("finish", () => {

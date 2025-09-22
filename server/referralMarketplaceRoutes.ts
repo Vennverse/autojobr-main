@@ -82,7 +82,7 @@ router.get("/services", async (req: Request, res: Response) => {
       minPrice: req.query.minPrice ? Number(req.query.minPrice) : undefined,
       maxPrice: req.query.maxPrice ? Number(req.query.maxPrice) : undefined,
       companyName: req.query.companyName as string,
-      includesReferral: req.query.includesReferral === 'true' ? true : 
+      includesReferral: req.query.includesReferral === 'true' ? true :
                        req.query.includesReferral === 'false' ? false : undefined,
     };
 
@@ -90,9 +90,9 @@ router.get("/services", async (req: Request, res: Response) => {
     res.json({ success: true, services });
   } catch (error) {
     console.error('Error getting services:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to get services' 
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get services'
     });
   }
 });
@@ -109,23 +109,23 @@ router.post("/referrer", async (req: Request, res: Response) => {
 
     const validatedData = createReferrerSchema.parse(req.body);
     const result = await referralMarketplaceService.createReferrerProfile(
-      req.user.id, 
+      req.user.id,
       validatedData
     );
-    
+
     res.json(result);
   } catch (error) {
     console.error('Error creating referrer profile:', error);
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid data', 
-        details: error.errors 
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid data',
+        details: error.errors
       });
     }
-    res.status(500).json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to create referrer profile' 
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create referrer profile'
     });
   }
 });
@@ -137,7 +137,7 @@ router.post("/referrer", async (req: Request, res: Response) => {
 router.get("/verify-email", async (req: Request, res: Response) => {
   try {
     const { token } = req.query;
-    
+
     if (!token || typeof token !== 'string') {
       return res.status(400).json({ success: false, error: 'Invalid verification token' });
     }
@@ -146,9 +146,9 @@ router.get("/verify-email", async (req: Request, res: Response) => {
     res.json(result);
   } catch (error) {
     console.error('Error verifying email:', error);
-    res.status(400).json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Email verification failed' 
+    res.status(400).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Email verification failed'
     });
   }
 });
@@ -166,31 +166,31 @@ router.post("/service", async (req: Request, res: Response) => {
     // Get user's referrer profile
     const referrerProfile = await referralMarketplaceService.getReferrerProfile(req.user.id);
     if (!referrerProfile || !referrerProfile.isEmailVerified) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'You must be a verified referrer to create services' 
+      return res.status(400).json({
+        success: false,
+        error: 'You must be a verified referrer to create services'
       });
     }
 
     const validatedData = createServiceSchema.parse(req.body);
     const result = await referralMarketplaceService.createServiceListing(
-      referrerProfile.id, 
+      referrerProfile.id,
       validatedData
     );
-    
+
     res.json(result);
   } catch (error) {
     console.error('Error creating service:', error);
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid data', 
-        details: error.errors 
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid data',
+        details: error.errors
       });
     }
-    res.status(500).json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to create service' 
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create service'
     });
   }
 });
@@ -217,24 +217,24 @@ router.post("/book/:serviceId", async (req: Request, res: Response) => {
     };
 
     const result = await referralMarketplaceService.bookService(
-      serviceId, 
-      req.user.id, 
+      serviceId,
+      req.user.id,
       bookingData
     );
-    
+
     res.json(result);
   } catch (error) {
     console.error('Error booking service:', error);
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid data', 
-        details: error.errors 
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid data',
+        details: error.errors
       });
     }
-    res.status(500).json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to book service' 
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to book service'
     });
   }
 });
@@ -246,7 +246,7 @@ router.post("/book/:serviceId", async (req: Request, res: Response) => {
 router.post("/payment/create-order", async (req: Request, res: Response) => {
   try {
     const { bookingId, amount } = req.body;
-    
+
     if (!bookingId || !amount) {
       return res.status(400).json({ success: false, error: 'Booking ID and amount required' });
     }
@@ -291,7 +291,7 @@ router.post("/payment/create-order", async (req: Request, res: Response) => {
 router.post("/payment/capture/:orderId", async (req: Request, res: Response) => {
   try {
     const { orderId } = req.params;
-    
+
     // Capture PayPal order - fix the parameter structure
     const mockReq = {
       ...req,
@@ -320,17 +320,17 @@ router.get("/referrer/:referrerId/feedback", async (req: Request, res: Response)
     const offset = parseInt(req.query.offset as string) || 0;
 
     const feedback = await referralMarketplaceService.getReferrerFeedback(
-      referrerId, 
-      limit, 
+      referrerId,
+      limit,
       offset
     );
-    
+
     res.json({ success: true, feedback });
   } catch (error) {
     console.error('Error getting referrer feedback:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to get feedback' 
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get feedback'
     });
   }
 });
@@ -352,24 +352,24 @@ router.post("/feedback/:bookingId", async (req: Request, res: Response) => {
 
     const validatedData = submitFeedbackSchema.parse(req.body);
     const result = await referralMarketplaceService.submitFeedback(
-      bookingId, 
-      req.user.id, 
+      bookingId,
+      req.user.id,
       validatedData
     );
-    
+
     res.json(result);
   } catch (error) {
     console.error('Error submitting feedback:', error);
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid data', 
-        details: error.errors 
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid data',
+        details: error.errors
       });
     }
-    res.status(500).json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to submit feedback' 
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to submit feedback'
     });
   }
 });
@@ -388,9 +388,9 @@ router.get("/my-profile", async (req: Request, res: Response) => {
     res.json({ success: true, profile });
   } catch (error) {
     console.error('Error getting referrer profile:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to get profile' 
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get profile'
     });
   }
 });
@@ -409,9 +409,9 @@ router.get("/my-services", async (req: Request, res: Response) => {
     res.json({ success: true, services });
   } catch (error) {
     console.error('Error getting user services:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to get services' 
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get services'
     });
   }
 });
@@ -431,9 +431,9 @@ router.get("/my-bookings", async (req: Request, res: Response) => {
     res.json({ success: true, bookings });
   } catch (error) {
     console.error('Error getting user bookings:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to get bookings' 
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get bookings'
     });
   }
 });
@@ -452,9 +452,9 @@ router.get("/bookings/referrer", async (req: Request, res: Response) => {
     res.json({ success: true, bookings });
   } catch (error) {
     console.error('Error getting referrer bookings:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to get bookings' 
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get bookings'
     });
   }
 });
@@ -473,9 +473,9 @@ router.get("/profile", async (req: Request, res: Response) => {
     res.json({ success: true, profile });
   } catch (error) {
     console.error('Error getting referrer profile:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to get profile' 
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get profile'
     });
   }
 });
@@ -492,16 +492,16 @@ router.put("/profile/settings", async (req: Request, res: Response) => {
 
     const { meetingScheduleLink, emailTemplate } = req.body;
     const result = await referralMarketplaceService.updateReferrerSettings(
-      req.user.id, 
+      req.user.id,
       { meetingScheduleLink, emailTemplate }
     );
-    
+
     res.json(result);
   } catch (error) {
     console.error('Error updating referrer settings:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to update settings' 
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update settings'
     });
   }
 });
@@ -517,11 +517,11 @@ router.post("/send-schedule-email", async (req: Request, res: Response) => {
     }
 
     const { bookingId, meetingLink, customMessage } = req.body;
-    
+
     if (!bookingId || !meetingLink) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Booking ID and meeting link are required' 
+      return res.status(400).json({
+        success: false,
+        error: 'Booking ID and meeting link are required'
       });
     }
 
@@ -531,13 +531,13 @@ router.post("/send-schedule-email", async (req: Request, res: Response) => {
       meetingLink,
       customMessage
     );
-    
+
     res.json(result);
   } catch (error) {
     console.error('Error sending schedule email:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to send schedule email' 
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send schedule email'
     });
   }
 });
