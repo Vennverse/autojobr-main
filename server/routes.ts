@@ -11450,6 +11450,653 @@ Host: https://autojobr.com`;
   });
 
   // =====================================
+  // CAREER AI ENHANCEMENT ROUTES
+  // =====================================
+
+  // Skill Progress Logs
+  app.get("/api/career-ai/skill-progress/:userId", isAuthenticated, async (req, res) => {
+    try {
+      const requestingUserId = req.user?.id || req.session?.user?.id;
+      const targetUserId = req.params.userId;
+      
+      // Users can only access their own skill progress
+      if (requestingUserId !== targetUserId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const skillLogs = await storage.getUserSkillProgressLogs(targetUserId);
+      res.json(skillLogs);
+    } catch (error) {
+      handleError(res, error, "Failed to fetch skill progress logs");
+    }
+  });
+
+  app.post("/api/career-ai/skill-progress", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id || req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { skill, level, source } = req.body;
+      if (!skill || level == null || !source) {
+        return res.status(400).json({ message: "Skill, level, and source are required" });
+      }
+
+      const skillLog = await storage.addSkillProgressLog({
+        userId,
+        skill,
+        level: parseInt(level),
+        source
+      });
+
+      res.status(201).json(skillLog);
+    } catch (error) {
+      handleError(res, error, "Failed to add skill progress log");
+    }
+  });
+
+  app.get("/api/career-ai/skill-progress/:userId/:skill", isAuthenticated, async (req, res) => {
+    try {
+      const requestingUserId = req.user?.id || req.session?.user?.id;
+      const { userId, skill } = req.params;
+      
+      if (requestingUserId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const skillProgress = await storage.getSkillProgressBySkill(userId, skill);
+      res.json(skillProgress);
+    } catch (error) {
+      handleError(res, error, "Failed to fetch skill progress for specific skill");
+    }
+  });
+
+  // Achievements System
+  app.get("/api/career-ai/achievements/catalog", async (req, res) => {
+    try {
+      const { category } = req.query;
+      const achievements = await storage.getAchievementsCatalog(category as string);
+      res.json(achievements);
+    } catch (error) {
+      handleError(res, error, "Failed to fetch achievements catalog");
+    }
+  });
+
+  app.get("/api/career-ai/achievements/:userId", isAuthenticated, async (req, res) => {
+    try {
+      const requestingUserId = req.user?.id || req.session?.user?.id;
+      const targetUserId = req.params.userId;
+      
+      if (requestingUserId !== targetUserId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const [userAchievements, totalPoints] = await Promise.all([
+        storage.getUserAchievements(targetUserId),
+        storage.getUserAchievementPoints(targetUserId)
+      ]);
+
+      res.json({ achievements: userAchievements, totalPoints });
+    } catch (error) {
+      handleError(res, error, "Failed to fetch user achievements");
+    }
+  });
+
+  app.post("/api/career-ai/achievements", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id || req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { achievementId } = req.body;
+      if (!achievementId) {
+        return res.status(400).json({ message: "Achievement ID is required" });
+      }
+
+      const achievement = await storage.addUserAchievement({
+        userId,
+        achievementId: parseInt(achievementId)
+      });
+
+      res.status(201).json(achievement);
+    } catch (error) {
+      handleError(res, error, "Failed to award achievement");
+    }
+  });
+
+  // Learning Resources & Plans
+  app.get("/api/career-ai/learning-resources", async (req, res) => {
+    try {
+      const { skill, difficulty } = req.query;
+      const resources = await storage.getLearningResources(skill as string, difficulty as string);
+      res.json(resources);
+    } catch (error) {
+      handleError(res, error, "Failed to fetch learning resources");
+    }
+  });
+
+  app.get("/api/career-ai/learning-plan/:userId", isAuthenticated, async (req, res) => {
+    try {
+      const requestingUserId = req.user?.id || req.session?.user?.id;
+      const targetUserId = req.params.userId;
+      
+      if (requestingUserId !== targetUserId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const learningPlan = await storage.getUserLearningPlan(targetUserId);
+      res.json(learningPlan);
+    } catch (error) {
+      handleError(res, error, "Failed to fetch learning plan");
+    }
+  });
+
+  app.post("/api/career-ai/learning-plan", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id || req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { resourceId, notes } = req.body;
+      if (!resourceId) {
+        return res.status(400).json({ message: "Resource ID is required" });
+      }
+
+      const planItem = await storage.addToLearningPlan({
+        userId,
+        resourceId: parseInt(resourceId),
+        notes: notes || null
+      });
+
+      res.status(201).json(planItem);
+    } catch (error) {
+      handleError(res, error, "Failed to add resource to learning plan");
+    }
+  });
+
+  app.put("/api/career-ai/learning-plan/:id/progress", isAuthenticated, async (req, res) => {
+    try {
+      const planId = parseInt(req.params.id);
+      const { progress, status } = req.body;
+      
+      if (progress == null) {
+        return res.status(400).json({ message: "Progress is required" });
+      }
+
+      const updatedPlan = await storage.updateLearningPlanProgress(planId, parseInt(progress), status);
+      res.json(updatedPlan);
+    } catch (error) {
+      handleError(res, error, "Failed to update learning plan progress");
+    }
+  });
+
+  // Interview Preparation
+  app.get("/api/career-ai/interview-prep/:userId", isAuthenticated, async (req, res) => {
+    try {
+      const requestingUserId = req.user?.id || req.session?.user?.id;
+      const targetUserId = req.params.userId;
+      
+      if (requestingUserId !== targetUserId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const interviewPreps = await storage.getUserInterviewPreps(targetUserId);
+      res.json(interviewPreps);
+    } catch (error) {
+      handleError(res, error, "Failed to fetch interview preparations");
+    }
+  });
+
+  app.post("/api/career-ai/interview-prep", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id || req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { targetRole, company, difficulty, questions, practiceAreas } = req.body;
+      if (!targetRole || !questions) {
+        return res.status(400).json({ message: "Target role and questions are required" });
+      }
+
+      const interviewPrep = await storage.createInterviewPrep({
+        userId,
+        targetRole,
+        company: company || null,
+        difficulty: difficulty || 'medium',
+        questions,
+        practiceAreas: practiceAreas || []
+      });
+
+      res.status(201).json(interviewPrep);
+    } catch (error) {
+      handleError(res, error, "Failed to create interview preparation");
+    }
+  });
+
+  app.put("/api/career-ai/interview-prep/:id/usage", isAuthenticated, async (req, res) => {
+    try {
+      const prepId = parseInt(req.params.id);
+      const updatedPrep = await storage.updateInterviewPrepUsage(prepId);
+      res.json(updatedPrep);
+    } catch (error) {
+      handleError(res, error, "Failed to update interview prep usage");
+    }
+  });
+
+  // Smart Notifications
+  app.get("/api/career-ai/notifications/:userId", isAuthenticated, async (req, res) => {
+    try {
+      const requestingUserId = req.user?.id || req.session?.user?.id;
+      const targetUserId = req.params.userId;
+      
+      if (requestingUserId !== targetUserId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { unreadOnly } = req.query;
+      const notifications = await storage.getUserNotifications(targetUserId, unreadOnly === 'true');
+      res.json(notifications);
+    } catch (error) {
+      handleError(res, error, "Failed to fetch notifications");
+    }
+  });
+
+  app.get("/api/career-ai/notifications/:userId/unread-count", isAuthenticated, async (req, res) => {
+    try {
+      const requestingUserId = req.user?.id || req.session?.user?.id;
+      const targetUserId = req.params.userId;
+      
+      if (requestingUserId !== targetUserId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const count = await storage.getUnreadNotificationCount(targetUserId);
+      res.json({ count });
+    } catch (error) {
+      handleError(res, error, "Failed to fetch unread notification count");
+    }
+  });
+
+  app.post("/api/career-ai/notifications", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id || req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { type, title, message, payload, priority, scheduledFor, expiresAt } = req.body;
+      if (!type || !title || !message) {
+        return res.status(400).json({ message: "Type, title, and message are required" });
+      }
+
+      const notification = await storage.createNotification({
+        userId,
+        type,
+        title,
+        message,
+        payload: payload || null,
+        priority: priority || 'medium',
+        scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
+        expiresAt: expiresAt ? new Date(expiresAt) : null
+      });
+
+      res.status(201).json(notification);
+    } catch (error) {
+      handleError(res, error, "Failed to create notification");
+    }
+  });
+
+  app.put("/api/career-ai/notifications/:id/read", isAuthenticated, async (req, res) => {
+    try {
+      const notificationId = parseInt(req.params.id);
+      const updatedNotification = await storage.markNotificationAsRead(notificationId);
+      res.json(updatedNotification);
+    } catch (error) {
+      handleError(res, error, "Failed to mark notification as read");
+    }
+  });
+
+  // Mentorship System
+  app.get("/api/career-ai/mentors", async (req, res) => {
+    try {
+      const { skills, verified } = req.query;
+      const skillsArray = skills ? (skills as string).split(',') : undefined;
+      const isVerified = verified ? verified === 'true' : undefined;
+      
+      const mentors = await storage.getMentorProfiles(skillsArray, isVerified);
+      res.json(mentors);
+    } catch (error) {
+      handleError(res, error, "Failed to fetch mentor profiles");
+    }
+  });
+
+  app.get("/api/career-ai/mentor-profile/:userId", isAuthenticated, async (req, res) => {
+    try {
+      const targetUserId = req.params.userId;
+      const mentorProfile = await storage.getUserMentorProfile(targetUserId);
+      
+      if (!mentorProfile) {
+        return res.status(404).json({ message: "Mentor profile not found" });
+      }
+      
+      res.json(mentorProfile);
+    } catch (error) {
+      handleError(res, error, "Failed to fetch mentor profile");
+    }
+  });
+
+  app.post("/api/career-ai/mentor-profile", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id || req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { currentRole, company, yearsExperience, expertiseSkills, availability, sessionType, maxMentees, bio, linkedinUrl, hourlyRate } = req.body;
+      
+      if (!currentRole || !company || !yearsExperience || !expertiseSkills || !availability || !bio) {
+        return res.status(400).json({ message: "Current role, company, years experience, expertise skills, availability, and bio are required" });
+      }
+
+      const mentorProfile = await storage.createMentorProfile({
+        userId,
+        currentRole,
+        company,
+        yearsExperience: parseInt(yearsExperience),
+        expertiseSkills,
+        availability,
+        sessionType: sessionType || 'both',
+        maxMentees: maxMentees ? parseInt(maxMentees) : 5,
+        bio,
+        linkedinUrl: linkedinUrl || null,
+        hourlyRate: hourlyRate ? parseInt(hourlyRate) : null
+      });
+
+      res.status(201).json(mentorProfile);
+    } catch (error) {
+      handleError(res, error, "Failed to create mentor profile");
+    }
+  });
+
+  app.put("/api/career-ai/mentor-profile/:userId", isAuthenticated, async (req, res) => {
+    try {
+      const requestingUserId = req.user?.id || req.session?.user?.id;
+      const targetUserId = req.params.userId;
+      
+      if (requestingUserId !== targetUserId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const updates = req.body;
+      const updatedProfile = await storage.updateMentorProfile(targetUserId, updates);
+      res.json(updatedProfile);
+    } catch (error) {
+      handleError(res, error, "Failed to update mentor profile");
+    }
+  });
+
+  app.get("/api/career-ai/mentorship-requests", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id || req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { as } = req.query; // 'mentor' or 'mentee'
+      let requests;
+      
+      if (as === 'mentor') {
+        requests = await storage.getMentorshipRequests(userId);
+      } else if (as === 'mentee') {
+        requests = await storage.getMentorshipRequests(undefined, userId);
+      } else {
+        requests = await storage.getMentorshipRequests(userId, userId);
+      }
+
+      res.json(requests);
+    } catch (error) {
+      handleError(res, error, "Failed to fetch mentorship requests");
+    }
+  });
+
+  app.post("/api/career-ai/mentorship-requests", isAuthenticated, async (req, res) => {
+    try {
+      const menteeId = req.user?.id || req.session?.user?.id;
+      if (!menteeId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { mentorId, message, areasOfFocus, preferredSchedule } = req.body;
+      
+      if (!mentorId || !message || !areasOfFocus) {
+        return res.status(400).json({ message: "Mentor ID, message, and areas of focus are required" });
+      }
+
+      const mentorshipRequest = await storage.createMentorshipRequest({
+        menteeId,
+        mentorId,
+        message,
+        areasOfFocus,
+        preferredSchedule: preferredSchedule || null
+      });
+
+      res.status(201).json(mentorshipRequest);
+    } catch (error) {
+      handleError(res, error, "Failed to create mentorship request");
+    }
+  });
+
+  app.put("/api/career-ai/mentorship-requests/:id", isAuthenticated, async (req, res) => {
+    try {
+      const requestId = parseInt(req.params.id);
+      const updates = req.body;
+      
+      const updatedRequest = await storage.updateMentorshipRequest(requestId, updates);
+      res.json(updatedRequest);
+    } catch (error) {
+      handleError(res, error, "Failed to update mentorship request");
+    }
+  });
+
+  // Career Journey Sharing
+  app.get("/api/career-ai/shared-journeys", async (req, res) => {
+    try {
+      const { visibility, careerPath, featured } = req.query;
+      const filters: any = {};
+      
+      if (visibility) filters.visibility = visibility as string;
+      if (careerPath) filters.careerPath = careerPath as string;
+      if (featured !== undefined) filters.featured = featured === 'true';
+      
+      const journeys = await storage.getSharedJourneys(Object.keys(filters).length > 0 ? filters : undefined);
+      res.json(journeys);
+    } catch (error) {
+      handleError(res, error, "Failed to fetch shared journeys");
+    }
+  });
+
+  app.get("/api/career-ai/shared-journeys/:userId", isAuthenticated, async (req, res) => {
+    try {
+      const requestingUserId = req.user?.id || req.session?.user?.id;
+      const targetUserId = req.params.userId;
+      
+      // Users can only access their own journeys unless it's public
+      if (requestingUserId !== targetUserId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const journeys = await storage.getUserSharedJourneys(targetUserId);
+      res.json(journeys);
+    } catch (error) {
+      handleError(res, error, "Failed to fetch user shared journeys");
+    }
+  });
+
+  app.post("/api/career-ai/shared-journeys", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id || req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { title, content, careerPath, yearsSpan, tags, visibility } = req.body;
+      
+      if (!title || !content || !careerPath || !yearsSpan) {
+        return res.status(400).json({ message: "Title, content, career path, and years span are required" });
+      }
+
+      const sharedJourney = await storage.createSharedJourney({
+        userId,
+        title,
+        content,
+        careerPath,
+        yearsSpan: parseInt(yearsSpan),
+        tags: tags || [],
+        visibility: visibility || 'public'
+      });
+
+      res.status(201).json(sharedJourney);
+    } catch (error) {
+      handleError(res, error, "Failed to create shared journey");
+    }
+  });
+
+  app.put("/api/career-ai/shared-journeys/:id", isAuthenticated, async (req, res) => {
+    try {
+      const journeyId = parseInt(req.params.id);
+      const updates = req.body;
+      
+      const updatedJourney = await storage.updateSharedJourney(journeyId, updates);
+      res.json(updatedJourney);
+    } catch (error) {
+      handleError(res, error, "Failed to update shared journey");
+    }
+  });
+
+  app.post("/api/career-ai/shared-journeys/:id/view", async (req, res) => {
+    try {
+      const journeyId = parseInt(req.params.id);
+      await storage.incrementJourneyViews(journeyId);
+      res.json({ message: "View count incremented" });
+    } catch (error) {
+      handleError(res, error, "Failed to increment journey views");
+    }
+  });
+
+  app.post("/api/career-ai/shared-journeys/:id/like", isAuthenticated, async (req, res) => {
+    try {
+      const journeyId = parseInt(req.params.id);
+      const updatedJourney = await storage.toggleJourneyLike(journeyId);
+      res.json(updatedJourney);
+    } catch (error) {
+      handleError(res, error, "Failed to toggle journey like");
+    }
+  });
+
+  // Community Challenges
+  app.get("/api/career-ai/challenges", async (req, res) => {
+    try {
+      const challenges = await storage.getActiveChallenges();
+      res.json(challenges);
+    } catch (error) {
+      handleError(res, error, "Failed to fetch active challenges");
+    }
+  });
+
+  app.get("/api/career-ai/challenges/:userId/participation", isAuthenticated, async (req, res) => {
+    try {
+      const requestingUserId = req.user?.id || req.session?.user?.id;
+      const targetUserId = req.params.userId;
+      
+      if (requestingUserId !== targetUserId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const userChallenges = await storage.getUserChallenges(targetUserId);
+      res.json(userChallenges);
+    } catch (error) {
+      handleError(res, error, "Failed to fetch user challenges");
+    }
+  });
+
+  app.post("/api/career-ai/challenges", isAuthenticated, async (req, res) => {
+    try {
+      const { title, description, category, targetCount, targetUnit, startAt, endAt, badge, points, maxParticipants } = req.body;
+      
+      if (!title || !description || !category || !startAt || !endAt) {
+        return res.status(400).json({ message: "Title, description, category, start date, and end date are required" });
+      }
+
+      const challenge = await storage.createChallenge({
+        title,
+        description,
+        category,
+        targetCount: targetCount || null,
+        targetUnit: targetUnit || null,
+        startAt: new Date(startAt),
+        endAt: new Date(endAt),
+        badge: badge || null,
+        points: points || 0,
+        maxParticipants: maxParticipants || null
+      });
+
+      res.status(201).json(challenge);
+    } catch (error) {
+      handleError(res, error, "Failed to create challenge");
+    }
+  });
+
+  app.post("/api/career-ai/challenges/:id/join", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id || req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const challengeId = parseInt(req.params.id);
+      
+      const participation = await storage.joinChallenge({
+        challengeId,
+        userId
+      });
+
+      res.status(201).json(participation);
+    } catch (error) {
+      handleError(res, error, "Failed to join challenge");
+    }
+  });
+
+  app.put("/api/career-ai/challenges/:id/progress", isAuthenticated, async (req, res) => {
+    try {
+      const participationId = parseInt(req.params.id);
+      const { progress, currentCount } = req.body;
+      
+      if (progress == null || currentCount == null) {
+        return res.status(400).json({ message: "Progress and current count are required" });
+      }
+
+      const updatedParticipation = await storage.updateChallengeProgress(participationId, progress, parseInt(currentCount));
+      res.json(updatedParticipation);
+    } catch (error) {
+      handleError(res, error, "Failed to update challenge progress");
+    }
+  });
+
+  app.get("/api/career-ai/challenges/:id/leaderboard", async (req, res) => {
+    try {
+      const challengeId = parseInt(req.params.id);
+      const leaderboard = await storage.getChallengeLeaderboard(challengeId);
+      res.json(leaderboard);
+    } catch (error) {
+      handleError(res, error, "Failed to fetch challenge leaderboard");
+    }
+  });
+
+  // =====================================
   // INTERVIEW ASSIGNMENT ROUTES
   // =====================================
 
