@@ -1007,6 +1007,207 @@ export default function EnhancedDashboard() {
               </motion.div>
             )}
 
+          {/* Career Analytics Preview */}
+          {careerAiData?.hasAnalysis ? (
+            <motion.div variants={itemVariants}>
+              <Card className="border shadow-sm bg-white">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-xl bg-blue-50">
+                        <Brain className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl font-bold text-black">
+                          🎯 Career Analytics
+                        </CardTitle>
+                        <p className="text-gray-600 text-sm">
+                          AI-powered insights from your latest analysis
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="border-blue-200 text-blue-600 hover:bg-blue-50"
+                      onClick={() => setLocation("/career-ai-assistant")}
+                      data-testid="button-view-full-analysis"
+                    >
+                      View Full Analysis
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="pb-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Skills Radar Chart */}
+                    {careerAiData?.analysis?.skillGaps && careerAiData.analysis.skillGaps.length > 0 && (
+                      <div className="bg-gray-50 rounded-lg p-4 border">
+                        <h4 className="font-semibold text-black mb-3 flex items-center gap-2">
+                          <Target className="w-4 h-4 text-blue-600" />
+                          Skills Gap Analysis
+                        </h4>
+                        <div className="h-48">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <RadarChart data={careerAiData.analysis.skillGaps.slice(0, 5).map(gap => ({
+                              skill: gap.skill.length > 12 ? gap.skill.substring(0, 12) + '...' : gap.skill,
+                              current: gap.currentLevel || 0,
+                              target: gap.targetLevel || 0,
+                            }))}>
+                              <PolarGrid stroke="#e5e7eb" />
+                              <PolarAngleAxis 
+                                dataKey="skill" 
+                                tick={{ fontSize: 10, fill: '#374151' }}
+                              />
+                              <PolarRadiusAxis 
+                                angle={90} 
+                                domain={[0, 10]} 
+                                tick={{ fontSize: 8, fill: '#6b7280' }}
+                              />
+                              <Radar 
+                                name="Current" 
+                                dataKey="current" 
+                                stroke="#3b82f6" 
+                                fill="#3b82f6" 
+                                fillOpacity={0.2}
+                                strokeWidth={2}
+                              />
+                              <Radar 
+                                name="Target" 
+                                dataKey="target" 
+                                stroke="#10b981" 
+                                fill="#10b981" 
+                                fillOpacity={0.1}
+                                strokeWidth={2}
+                                strokeDasharray="5 5"
+                              />
+                              <Legend wrapperStyle={{ fontSize: '12px', color: '#374151' }} />
+                            </RadarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Career Path Chart */}
+                    {careerAiData?.analysis?.careerPath && (
+                      <div className="bg-gray-50 rounded-lg p-4 border">
+                        <h4 className="font-semibold text-black mb-3 flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4 text-green-600" />
+                          Career Progression Path
+                        </h4>
+                        <div className="h-48">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={careerAiData.analysis.careerPath.steps?.slice(0, 4).map((step, index) => {
+                              // Simple salary parsing
+                              const salaryMatch = step.averageSalary.match(/\d+/g);
+                              const salary = salaryMatch ? parseInt(salaryMatch[0]) : 50 + (index * 20);
+                              
+                              return {
+                                step: step.position.length > 15 ? step.position.substring(0, 15) + '...' : step.position,
+                                salary: salary,
+                                timeline: step.timeline,
+                                demand: step.marketDemand === 'High' ? 90 : step.marketDemand === 'Medium' ? 70 : 50,
+                              }
+                            }) || []}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                              <XAxis 
+                                dataKey="step" 
+                                tick={{ fontSize: 10, fill: '#374151' }}
+                                angle={-45}
+                                textAnchor="end"
+                                height={60}
+                              />
+                              <YAxis tick={{ fontSize: 10, fill: '#374151' }} />
+                              <Tooltip 
+                                contentStyle={{ 
+                                  backgroundColor: '#ffffff', 
+                                  border: '1px solid #e5e7eb',
+                                  borderRadius: '6px',
+                                  color: '#374151'
+                                }}
+                              />
+                              <Line 
+                                type="monotone" 
+                                dataKey="salary" 
+                                stroke="#10b981" 
+                                strokeWidth={3}
+                                dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                                name="Salary (K)"
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Quick insights preview */}
+                  {careerAiData?.analysis?.insights && careerAiData.analysis.insights.length > 0 && (
+                    <div className="mt-4 bg-blue-50 rounded-lg p-4 border">
+                      <h4 className="font-semibold text-black mb-2 flex items-center gap-2">
+                        <Lightbulb className="w-4 h-4 text-orange-500" />
+                        Latest Insights
+                      </h4>
+                      <div className="space-y-2">
+                        {careerAiData.analysis.insights.slice(0, 2).map((insight, index) => (
+                          <div key={index} className="flex items-start gap-2 text-sm">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                            <p className="text-gray-700 line-clamp-2">
+                              <span className="font-medium text-black">{insight.title}:</span> {insight.content.substring(0, 100)}...
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          ) : (
+            // First-time user prompt
+            <motion.div variants={itemVariants}>
+              <Card className="border-2 border-dashed border-blue-200 bg-blue-50">
+                <CardContent className="p-6 text-center">
+                  <div className="mx-auto w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mb-4">
+                    <Brain className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2 text-black">Unlock Your Career Analytics</h3>
+                  <p className="text-gray-600 mb-4">
+                    Get personalized career insights, skill gap analysis, and career path recommendations powered by AI.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 text-sm">
+                    <div className="flex items-center gap-2 text-left">
+                      <Target className="w-4 h-4 text-blue-600" />
+                      <span className="text-black">Skills Gap Analysis</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-left">
+                      <TrendingUp className="w-4 h-4 text-blue-600" />
+                      <span className="text-black">Career Path Planning</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-left">
+                      <BarChart3 className="w-4 h-4 text-blue-600" />
+                      <span className="text-black">Market Insights</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-left">
+                      <Lightbulb className="w-4 h-4 text-blue-600" />
+                      <span className="text-black">AI Recommendations</span>
+                    </div>
+                  </div>
+                  <Button 
+                    size="lg"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => setLocation("/career-ai-assistant")}
+                    data-testid="button-get-career-analysis"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Get Your Career Analysis
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
           {/* Smart Recommendations */}
           {smartRecommendations.length > 0 && (
             <motion.div variants={itemVariants}>
@@ -1878,232 +2079,30 @@ export default function EnhancedDashboard() {
             </Card>
           </motion.div>
 
-          {/* Career Analytics Preview */}
-          {careerAiData?.hasAnalysis ? (
-            <motion.div variants={itemVariants}>
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-600 text-white overflow-hidden relative">
-                <div className="absolute inset-0 bg-white/5 pattern-dots pattern-blue-300 pattern-bg-transparent pattern-size-4 pattern-opacity-20"></div>
-                
-                <CardHeader className="relative z-10">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm">
-                        <Brain className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl font-bold text-white">
-                          🎯 Career Analytics
-                        </CardTitle>
-                        <p className="text-blue-100 text-sm">
-                          AI-powered insights from your latest analysis
-                        </p>
-                      </div>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="bg-white/20 border-white/30 text-white hover:bg-white/30 backdrop-blur-sm"
-                      onClick={() => setLocation("/career-ai-assistant")}
-                      data-testid="button-view-full-analysis"
-                    >
-                      View Full Analysis
-                      <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="relative z-10 pb-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Skills Radar Chart */}
-                    {careerAiData?.analysis?.skillGaps && careerAiData.analysis.skillGaps.length > 0 && (
-                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                        <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
-                          <Target className="w-4 h-4" />
-                          Skills Gap Analysis
-                        </h4>
-                        <div className="h-48">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <RadarChart data={careerAiData.analysis.skillGaps.slice(0, 5).map(gap => ({
-                              skill: gap.skill.length > 12 ? gap.skill.substring(0, 12) + '...' : gap.skill,
-                              current: gap.currentLevel || 0,
-                              target: gap.targetLevel || 0,
-                            }))}>
-                              <PolarGrid stroke="rgba(255,255,255,0.3)" />
-                              <PolarAngleAxis 
-                                dataKey="skill" 
-                                tick={{ fontSize: 10, fill: 'white' }}
-                              />
-                              <PolarRadiusAxis 
-                                angle={90} 
-                                domain={[0, 10]} 
-                                tick={{ fontSize: 8, fill: 'rgba(255,255,255,0.7)' }}
-                              />
-                              <Radar 
-                                name="Current" 
-                                dataKey="current" 
-                                stroke="#60a5fa" 
-                                fill="#60a5fa" 
-                                fillOpacity={0.3}
-                                strokeWidth={2}
-                              />
-                              <Radar 
-                                name="Target" 
-                                dataKey="target" 
-                                stroke="#34d399" 
-                                fill="#34d399" 
-                                fillOpacity={0.1}
-                                strokeWidth={2}
-                                strokeDasharray="5 5"
-                              />
-                              <Legend wrapperStyle={{ fontSize: '12px', color: 'white' }} />
-                            </RadarChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Career Path Chart */}
-                    {careerAiData?.analysis?.careerPath && (
-                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                        <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
-                          <TrendingUp className="w-4 h-4" />
-                          Career Progression Path
-                        </h4>
-                        <div className="h-48">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={careerAiData.analysis.careerPath.steps?.slice(0, 4).map((step, index) => {
-                              // Simple salary parsing
-                              const salaryMatch = step.averageSalary.match(/\d+/g);
-                              const salary = salaryMatch ? parseInt(salaryMatch[0]) : 50 + (index * 20);
-                              
-                              return {
-                                step: step.position.length > 15 ? step.position.substring(0, 15) + '...' : step.position,
-                                salary: salary,
-                                timeline: step.timeline,
-                                demand: step.marketDemand === 'High' ? 90 : step.marketDemand === 'Medium' ? 70 : 50,
-                              }
-                            }) || []}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.2)" />
-                              <XAxis 
-                                dataKey="step" 
-                                tick={{ fontSize: 10, fill: 'white' }}
-                                angle={-45}
-                                textAnchor="end"
-                                height={60}
-                              />
-                              <YAxis tick={{ fontSize: 10, fill: 'white' }} />
-                              <Tooltip 
-                                contentStyle={{ 
-                                  backgroundColor: 'rgba(0,0,0,0.8)', 
-                                  border: '1px solid rgba(255,255,255,0.2)',
-                                  borderRadius: '6px',
-                                  color: 'white'
-                                }}
-                              />
-                              <Line 
-                                type="monotone" 
-                                dataKey="salary" 
-                                stroke="#34d399" 
-                                strokeWidth={3}
-                                dot={{ fill: '#34d399', strokeWidth: 2, r: 4 }}
-                                name="Salary (K)"
-                              />
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Quick insights preview */}
-                  {careerAiData?.analysis?.insights && careerAiData.analysis.insights.length > 0 && (
-                    <div className="mt-4 bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                      <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
-                        <Lightbulb className="w-4 h-4" />
-                        Latest Insights
-                      </h4>
-                      <div className="space-y-2">
-                        {careerAiData.analysis.insights.slice(0, 2).map((insight, index) => (
-                          <div key={index} className="flex items-start gap-2 text-sm">
-                            <div className="w-2 h-2 bg-blue-300 rounded-full mt-2 flex-shrink-0"></div>
-                            <p className="text-blue-100 line-clamp-2">
-                              <span className="font-medium text-white">{insight.title}:</span> {insight.content.substring(0, 100)}...
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-          ) : (
-            // First-time user prompt
-            <motion.div variants={itemVariants}>
-              <Card className="border-2 border-dashed border-purple-300 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950 dark:to-blue-950">
-                <CardContent className="p-6 text-center">
-                  <div className="mx-auto w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center mb-4">
-                    <Brain className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">Unlock Your Career Analytics</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Get personalized career insights, skill gap analysis, and career path recommendations powered by AI.
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 text-sm">
-                    <div className="flex items-center gap-2 text-left">
-                      <Target className="w-4 h-4 text-purple-500" />
-                      <span>Skills Gap Analysis</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-left">
-                      <TrendingUp className="w-4 h-4 text-blue-500" />
-                      <span>Career Path Planning</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-left">
-                      <BarChart3 className="w-4 h-4 text-green-500" />
-                      <span>Market Insights</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-left">
-                      <Lightbulb className="w-4 h-4 text-orange-500" />
-                      <span>AI Recommendations</span>
-                    </div>
-                  </div>
-                  <Button 
-                    size="lg"
-                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
-                    onClick={() => setLocation("/career-ai-assistant")}
-                    data-testid="button-get-career-analysis"
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Get Your Career Analysis
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
 
           {/* AI-Powered Tools Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Resume Analysis Card */}
             <motion.div variants={itemVariants}>
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-700 text-white overflow-hidden relative">
-                <div className="absolute inset-0 bg-white/5 pattern-dots pattern-emerald-300 pattern-bg-transparent pattern-size-4 pattern-opacity-20"></div>
+              <Card className="border shadow-sm bg-white overflow-hidden relative">
+                <div className="absolute inset-0 bg-green-50 pattern-dots pattern-green-200 pattern-bg-transparent pattern-size-4 pattern-opacity-30"></div>
                 
                 <CardHeader className="relative z-10 pb-3">
-                  <CardTitle className="flex items-center gap-2 text-lg font-bold">
-                    <Upload className="h-5 w-5" />
+                  <CardTitle className="flex items-center gap-2 text-lg font-bold text-black">
+                    <Upload className="h-5 w-5 text-green-600" />
                     Resume Analysis
                   </CardTitle>
-                  <p className="text-emerald-100 text-xs">
+                  <p className="text-gray-600 text-xs">
                     Upload and optimize your resumes with AI-powered ATS scoring
                   </p>
                 </CardHeader>
                 
                 <CardContent className="relative z-10 pb-4 space-y-3">
                   {/* Compact Status */}
-                  <div className="flex items-center justify-between text-xs bg-white/10 rounded p-2">
-                    <span>Uploaded: {resumes?.length || 0}/{user?.planType === "premium" ? "∞" : "2"}</span>
+                  <div className="flex items-center justify-between text-xs bg-gray-50 rounded p-2 border">
+                    <span className="text-black">Uploaded: {resumes?.length || 0}/{user?.planType === "premium" ? "∞" : "2"}</span>
                     {Array.isArray(resumes) && resumes.length > 0 && (
-                      <Badge className="bg-white/20 text-white text-xs px-2 py-0">
+                      <Badge className="bg-green-100 text-green-800 text-xs px-2 py-0">
                         ATS: {resumes[0]?.atsScore || "N/A"}%
                       </Badge>
                     )}
@@ -2119,26 +2118,26 @@ export default function EnhancedDashboard() {
                           const file = e.target.files?.[0];
                           if (file) handleResumeUpload(file);
                         }}
-                        className="w-full p-2 text-xs rounded bg-white/15 border border-white/30 text-white file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-white/20 file:text-white file:text-xs"
+                        className="w-full p-2 text-xs rounded bg-gray-50 border border-gray-200 text-black file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-gray-100 file:text-black file:text-xs"
                         disabled={isUploadingResume}
                       />
                       {isUploadingResume && (
                         <div className="text-center py-2">
                           <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white mx-auto"></div>
-                          <p className="text-xs mt-1 text-emerald-100">Analyzing...</p>
+                          <p className="text-xs mt-1 text-gray-600">Analyzing...</p>
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div className="text-center py-3 bg-white/10 rounded">
-                      <Crown className="h-5 w-5 text-yellow-300 mx-auto mb-1" />
-                      <p className="text-xs text-emerald-100 mb-2">
+                    <div className="text-center py-3 bg-blue-50 rounded border">
+                      <Crown className="h-5 w-5 text-blue-600 mx-auto mb-1" />
+                      <p className="text-xs text-gray-700 mb-2">
                         {user?.planType === "premium" ? "Unlimited uploads" : "Upload limit reached"}
                       </p>
                       {user?.planType !== "premium" && (
                         <Button
                           size="sm"
-                          className="bg-yellow-500 hover:bg-yellow-600 text-black text-xs px-3 py-1 h-7"
+                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 h-7"
                           onClick={() => setLocation("/job-seeker-premium")}
                         >
                           <Crown className="h-3 w-3 mr-1" />
@@ -2151,30 +2150,30 @@ export default function EnhancedDashboard() {
                   {/* Latest Analysis Summary */}
                   {Array.isArray(resumes) && resumes.length > 0 && (
                     <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div className="text-center p-2 bg-white/10 rounded">
-                        <div className="font-bold text-emerald-200">
+                      <div className="text-center p-2 bg-green-50 rounded border">
+                        <div className="font-bold text-green-700">
                           {Array.isArray(resumes[0]?.analysis?.content?.strengthsFound) ? resumes[0].analysis.content.strengthsFound.length : 3}
                         </div>
-                        <div className="text-emerald-100 text-xs">Strengths</div>
+                        <div className="text-green-600 text-xs">Strengths</div>
                       </div>
-                      <div className="text-center p-2 bg-white/10 rounded">
-                        <div className="font-bold text-orange-200">
+                      <div className="text-center p-2 bg-orange-50 rounded border">
+                        <div className="font-bold text-orange-700">
                           {Array.isArray(resumes[0]?.analysis?.recommendations) ? resumes[0].analysis.recommendations.length : 4}
                         </div>
-                        <div className="text-orange-100 text-xs">Tips</div>
+                        <div className="text-orange-600 text-xs">Tips</div>
                       </div>
-                      <div className="text-center p-2 bg-white/10 rounded">
-                        <div className="font-bold text-red-200">
+                      <div className="text-center p-2 bg-red-50 rounded border">
+                        <div className="font-bold text-red-700">
                           {Array.isArray(resumes[0]?.analysis?.keywordOptimization?.missingKeywords) ? resumes[0].analysis.keywordOptimization.missingKeywords.length : 4}
                         </div>
-                        <div className="text-red-100 text-xs">Missing</div>
+                        <div className="text-red-600 text-xs">Missing</div>
                       </div>
                     </div>
                   )}
 
                   {/* Action Button */}
                   <Button
-                    className="w-full bg-white hover:bg-gray-100 text-emerald-700 border-0 font-medium h-9 text-sm shadow-lg"
+                    className="w-full bg-green-600 hover:bg-green-700 text-white border-0 font-medium h-9 text-sm shadow-lg"
                     onClick={() => setLocation("/resumes")}
                   >
                     <Eye className="h-4 w-4 mr-2" />
@@ -2186,15 +2185,15 @@ export default function EnhancedDashboard() {
 
             {/* Cover Letter Generator Card */}
             <motion.div variants={itemVariants}>
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-indigo-600 via-purple-600 to-purple-700 text-white overflow-hidden relative">
-                <div className="absolute inset-0 bg-white/5 pattern-dots pattern-indigo-300 pattern-bg-transparent pattern-size-4 pattern-opacity-20"></div>
+              <Card className="border shadow-sm bg-white overflow-hidden relative">
+                <div className="absolute inset-0 bg-blue-50 pattern-dots pattern-blue-200 pattern-bg-transparent pattern-size-4 pattern-opacity-30"></div>
                 
                 <CardHeader className="relative z-10 pb-3">
-                  <CardTitle className="flex items-center gap-2 text-lg font-bold">
-                    <PenTool className="h-5 w-5" />
+                  <CardTitle className="flex items-center gap-2 text-lg font-bold text-black">
+                    <PenTool className="h-5 w-5 text-blue-600" />
                     Cover Letter Generator
                   </CardTitle>
-                  <p className="text-indigo-100 text-xs">
+                  <p className="text-gray-600 text-xs">
                     Generate personalized cover letters with AI
                   </p>
                 </CardHeader>
@@ -2204,13 +2203,13 @@ export default function EnhancedDashboard() {
                   <div className="grid grid-cols-2 gap-2">
                     <Input
                       placeholder="Company name..."
-                      className="bg-white/15 border-white/30 text-white placeholder:text-white/70 h-8 text-sm"
+                      className="bg-gray-50 border-gray-200 text-black placeholder:text-gray-500 h-8 text-sm"
                       id="company-name-input"
                       data-testid="input-company-name"
                     />
                     <Input
                       placeholder="Job title..."
-                      className="bg-white/15 border-white/30 text-white placeholder:text-white/70 h-8 text-sm"
+                      className="bg-gray-50 border-gray-200 text-black placeholder:text-gray-500 h-8 text-sm"
                       id="job-title-input"
                       data-testid="input-job-title"
                     />
@@ -2218,20 +2217,20 @@ export default function EnhancedDashboard() {
                   
                   <textarea
                     placeholder="Paste the job description here..."
-                    className="w-full p-2 rounded bg-white/15 border border-white/30 text-white placeholder:text-white/70 h-20 resize-none text-sm"
+                    className="w-full p-2 rounded bg-gray-50 border border-gray-200 text-black placeholder:text-gray-500 h-20 resize-none text-sm"
                     id="job-description-input"
                     data-testid="textarea-job-description"
                   />
 
                   {/* Generated Cover Letter Display */}
                   {coverLetterResult && (
-                    <div className="bg-white/10 rounded p-3 space-y-2">
-                      <div className="flex items-center gap-2 text-xs font-medium">
-                        <CheckCircle className="h-3 w-3 text-green-300" />
+                    <div className="bg-green-50 rounded p-3 space-y-2 border">
+                      <div className="flex items-center gap-2 text-xs font-medium text-black">
+                        <CheckCircle className="h-3 w-3 text-green-600" />
                         Generated Cover Letter:
                       </div>
-                      <div className="bg-white/10 rounded p-2 max-h-20 overflow-y-auto">
-                        <pre className="text-xs text-white/90 whitespace-pre-wrap font-sans leading-tight">
+                      <div className="bg-white rounded p-2 max-h-20 overflow-y-auto border">
+                        <pre className="text-xs text-gray-700 whitespace-pre-wrap font-sans leading-tight">
                           {coverLetterResult.substring(0, 200)}...
                         </pre>
                       </div>
@@ -2255,7 +2254,7 @@ export default function EnhancedDashboard() {
 
                   {/* Generate Button */}
                   <Button
-                    className="w-full bg-white hover:bg-gray-100 text-purple-700 border-0 font-medium h-9 text-sm shadow-lg"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white border-0 font-medium h-9 text-sm shadow-lg"
                     onClick={() => {
                       const jobDesc = (document.getElementById("job-description-input") as HTMLTextAreaElement)?.value;
                       const companyName = (document.getElementById("company-name-input") as HTMLInputElement)?.value || "The Company";
