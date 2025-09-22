@@ -18,6 +18,21 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { motion, AnimatePresence } from "framer-motion";
+import { 
+  ResponsiveContainer, 
+  RadarChart, 
+  PolarGrid, 
+  PolarAngleAxis, 
+  PolarRadiusAxis, 
+  Radar, 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend
+} from 'recharts';
 import {
   FileText,
   Upload,
@@ -213,6 +228,12 @@ export default function EnhancedDashboard() {
 
   const { data: recentJobs } = useQuery({
     queryKey: ["/api/jobs/postings"],
+    retry: false,
+  });
+
+  // Career AI analysis data
+  const { data: careerAiData } = useQuery({
+    queryKey: ["/api/career-ai/saved"],
     retry: false,
   });
 
@@ -1856,6 +1877,209 @@ export default function EnhancedDashboard() {
               </CardContent>
             </Card>
           </motion.div>
+
+          {/* Career Analytics Preview */}
+          {careerAiData?.hasAnalysis ? (
+            <motion.div variants={itemVariants}>
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-600 text-white overflow-hidden relative">
+                <div className="absolute inset-0 bg-white/5 pattern-dots pattern-blue-300 pattern-bg-transparent pattern-size-4 pattern-opacity-20"></div>
+                
+                <CardHeader className="relative z-10">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm">
+                        <Brain className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl font-bold text-white">
+                          🎯 Career Analytics
+                        </CardTitle>
+                        <p className="text-blue-100 text-sm">
+                          AI-powered insights from your latest analysis
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="bg-white/20 border-white/30 text-white hover:bg-white/30 backdrop-blur-sm"
+                      onClick={() => setLocation("/career-ai-assistant")}
+                      data-testid="button-view-full-analysis"
+                    >
+                      View Full Analysis
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="relative z-10 pb-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Skills Radar Chart */}
+                    {careerAiData?.analysis?.skillGaps && careerAiData.analysis.skillGaps.length > 0 && (
+                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                        <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
+                          <Target className="w-4 h-4" />
+                          Skills Gap Analysis
+                        </h4>
+                        <div className="h-48">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <RadarChart data={careerAiData.analysis.skillGaps.slice(0, 5).map(gap => ({
+                              skill: gap.skill.length > 12 ? gap.skill.substring(0, 12) + '...' : gap.skill,
+                              current: gap.currentLevel || 0,
+                              target: gap.targetLevel || 0,
+                            }))}>
+                              <PolarGrid stroke="rgba(255,255,255,0.3)" />
+                              <PolarAngleAxis 
+                                dataKey="skill" 
+                                tick={{ fontSize: 10, fill: 'white' }}
+                              />
+                              <PolarRadiusAxis 
+                                angle={90} 
+                                domain={[0, 10]} 
+                                tick={{ fontSize: 8, fill: 'rgba(255,255,255,0.7)' }}
+                              />
+                              <Radar 
+                                name="Current" 
+                                dataKey="current" 
+                                stroke="#60a5fa" 
+                                fill="#60a5fa" 
+                                fillOpacity={0.3}
+                                strokeWidth={2}
+                              />
+                              <Radar 
+                                name="Target" 
+                                dataKey="target" 
+                                stroke="#34d399" 
+                                fill="#34d399" 
+                                fillOpacity={0.1}
+                                strokeWidth={2}
+                                strokeDasharray="5 5"
+                              />
+                              <Legend wrapperStyle={{ fontSize: '12px', color: 'white' }} />
+                            </RadarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Career Path Chart */}
+                    {careerAiData?.analysis?.careerPath && (
+                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                        <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4" />
+                          Career Progression Path
+                        </h4>
+                        <div className="h-48">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={careerAiData.analysis.careerPath.steps?.slice(0, 4).map((step, index) => {
+                              // Simple salary parsing
+                              const salaryMatch = step.averageSalary.match(/\d+/g);
+                              const salary = salaryMatch ? parseInt(salaryMatch[0]) : 50 + (index * 20);
+                              
+                              return {
+                                step: step.position.length > 15 ? step.position.substring(0, 15) + '...' : step.position,
+                                salary: salary,
+                                timeline: step.timeline,
+                                demand: step.marketDemand === 'High' ? 90 : step.marketDemand === 'Medium' ? 70 : 50,
+                              }
+                            }) || []}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.2)" />
+                              <XAxis 
+                                dataKey="step" 
+                                tick={{ fontSize: 10, fill: 'white' }}
+                                angle={-45}
+                                textAnchor="end"
+                                height={60}
+                              />
+                              <YAxis tick={{ fontSize: 10, fill: 'white' }} />
+                              <Tooltip 
+                                contentStyle={{ 
+                                  backgroundColor: 'rgba(0,0,0,0.8)', 
+                                  border: '1px solid rgba(255,255,255,0.2)',
+                                  borderRadius: '6px',
+                                  color: 'white'
+                                }}
+                              />
+                              <Line 
+                                type="monotone" 
+                                dataKey="salary" 
+                                stroke="#34d399" 
+                                strokeWidth={3}
+                                dot={{ fill: '#34d399', strokeWidth: 2, r: 4 }}
+                                name="Salary (K)"
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Quick insights preview */}
+                  {careerAiData?.analysis?.insights && careerAiData.analysis.insights.length > 0 && (
+                    <div className="mt-4 bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                      <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
+                        <Lightbulb className="w-4 h-4" />
+                        Latest Insights
+                      </h4>
+                      <div className="space-y-2">
+                        {careerAiData.analysis.insights.slice(0, 2).map((insight, index) => (
+                          <div key={index} className="flex items-start gap-2 text-sm">
+                            <div className="w-2 h-2 bg-blue-300 rounded-full mt-2 flex-shrink-0"></div>
+                            <p className="text-blue-100 line-clamp-2">
+                              <span className="font-medium text-white">{insight.title}:</span> {insight.content.substring(0, 100)}...
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          ) : (
+            // First-time user prompt
+            <motion.div variants={itemVariants}>
+              <Card className="border-2 border-dashed border-purple-300 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950 dark:to-blue-950">
+                <CardContent className="p-6 text-center">
+                  <div className="mx-auto w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center mb-4">
+                    <Brain className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Unlock Your Career Analytics</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Get personalized career insights, skill gap analysis, and career path recommendations powered by AI.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 text-sm">
+                    <div className="flex items-center gap-2 text-left">
+                      <Target className="w-4 h-4 text-purple-500" />
+                      <span>Skills Gap Analysis</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-left">
+                      <TrendingUp className="w-4 h-4 text-blue-500" />
+                      <span>Career Path Planning</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-left">
+                      <BarChart3 className="w-4 h-4 text-green-500" />
+                      <span>Market Insights</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-left">
+                      <Lightbulb className="w-4 h-4 text-orange-500" />
+                      <span>AI Recommendations</span>
+                    </div>
+                  </div>
+                  <Button 
+                    size="lg"
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                    onClick={() => setLocation("/career-ai-assistant")}
+                    data-testid="button-get-career-analysis"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Get Your Career Analysis
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
 
           {/* AI-Powered Tools Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
