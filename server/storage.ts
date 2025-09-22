@@ -27,6 +27,19 @@ import {
   bids,
   projectPayments,
   projectMilestones,
+  // Career AI Enhancement Tables
+  skillProgressLogs,
+  achievementsCatalog,
+  userAchievements,
+  learningResources,
+  userLearningPlan,
+  interviewPreps,
+  notifications,
+  mentorProfiles,
+  mentorshipRequests,
+  sharedJourneys,
+  challenges,
+  challengeParticipants,
   type User,
   type UpsertUser,
   type UserProfile,
@@ -81,6 +94,31 @@ import {
   type InsertProjectPayment,
   type SelectProjectMilestone,
   type InsertProjectMilestone,
+  // Career AI Enhancement Types
+  type SkillProgressLog,
+  type InsertSkillProgressLog,
+  type AchievementsCatalog,
+  type InsertAchievementsCatalog,
+  type UserAchievement,
+  type InsertUserAchievement,
+  type LearningResource,
+  type InsertLearningResource,
+  type UserLearningPlan,
+  type InsertUserLearningPlan,
+  type InterviewPrep,
+  type InsertInterviewPrep,
+  type Notification,
+  type InsertNotification,
+  type MentorProfile,
+  type InsertMentorProfile,
+  type MentorshipRequest,
+  type InsertMentorshipRequest,
+  type SharedJourney,
+  type InsertSharedJourney,
+  type Challenge,
+  type InsertChallenge,
+  type ChallengeParticipant,
+  type InsertChallengeParticipant,
   questionBank,
 } from "@shared/schema";
 import { db } from "./db";
@@ -250,6 +288,63 @@ export interface IStorage {
   // User interview stats
   getUserInterviewStats(userId: string): Promise<UserInterviewStats | undefined>;
   upsertUserInterviewStats(stats: InsertUserInterviewStats): Promise<UserInterviewStats>;
+
+  // ===== CAREER AI ENHANCEMENT OPERATIONS =====
+  
+  // Skill Progress Logs
+  getUserSkillProgressLogs(userId: string): Promise<SkillProgressLog[]>;
+  addSkillProgressLog(log: InsertSkillProgressLog): Promise<SkillProgressLog>;
+  getSkillProgressBySkill(userId: string, skill: string): Promise<SkillProgressLog[]>;
+  
+  // Achievements System
+  getAchievementsCatalog(category?: string): Promise<AchievementsCatalog[]>;
+  getUserAchievements(userId: string): Promise<UserAchievement[]>;
+  addUserAchievement(achievement: InsertUserAchievement): Promise<UserAchievement>;
+  getUserAchievementPoints(userId: string): Promise<number>;
+  
+  // Learning Resources & Plan
+  getLearningResources(skill?: string, difficulty?: string): Promise<LearningResource[]>;
+  addLearningResource(resource: InsertLearningResource): Promise<LearningResource>;
+  getUserLearningPlan(userId: string): Promise<UserLearningPlan[]>;
+  addToLearningPlan(plan: InsertUserLearningPlan): Promise<UserLearningPlan>;
+  updateLearningPlanProgress(id: number, progress: number, status?: string): Promise<UserLearningPlan>;
+  
+  // Interview Preparation
+  getUserInterviewPreps(userId: string): Promise<InterviewPrep[]>;
+  createInterviewPrep(prep: InsertInterviewPrep): Promise<InterviewPrep>;
+  updateInterviewPrepUsage(id: number): Promise<InterviewPrep>;
+  
+  // Smart Notifications
+  getUserNotifications(userId: string, unreadOnly?: boolean): Promise<Notification[]>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(id: number): Promise<Notification>;
+  getUnreadNotificationCount(userId: string): Promise<number>;
+  
+  // Mentorship System
+  getMentorProfiles(skills?: string[], verified?: boolean): Promise<MentorProfile[]>;
+  getUserMentorProfile(userId: string): Promise<MentorProfile | undefined>;
+  createMentorProfile(profile: InsertMentorProfile): Promise<MentorProfile>;
+  updateMentorProfile(userId: string, updates: Partial<InsertMentorProfile>): Promise<MentorProfile>;
+  
+  getMentorshipRequests(mentorId?: string, menteeId?: string): Promise<MentorshipRequest[]>;
+  createMentorshipRequest(request: InsertMentorshipRequest): Promise<MentorshipRequest>;
+  updateMentorshipRequest(id: number, updates: Partial<InsertMentorshipRequest>): Promise<MentorshipRequest>;
+  
+  // Career Journey Sharing
+  getSharedJourneys(filters?: { visibility?: string; careerPath?: string; featured?: boolean }): Promise<SharedJourney[]>;
+  getUserSharedJourneys(userId: string): Promise<SharedJourney[]>;
+  createSharedJourney(journey: InsertSharedJourney): Promise<SharedJourney>;
+  updateSharedJourney(id: number, updates: Partial<InsertSharedJourney>): Promise<SharedJourney>;
+  incrementJourneyViews(id: number): Promise<void>;
+  toggleJourneyLike(id: number): Promise<SharedJourney>;
+  
+  // Community Challenges
+  getActiveChallenges(): Promise<Challenge[]>;
+  getUserChallenges(userId: string): Promise<ChallengeParticipant[]>;
+  createChallenge(challenge: InsertChallenge): Promise<Challenge>;
+  joinChallenge(participation: InsertChallengeParticipant): Promise<ChallengeParticipant>;
+  updateChallengeProgress(id: number, progress: object, currentCount: number): Promise<ChallengeParticipant>;
+  getChallengeLeaderboard(challengeId: number): Promise<ChallengeParticipant[]>;
 
   // ===== BIDDER SYSTEM OPERATIONS =====
   
@@ -1571,6 +1666,494 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return upsertedStats;
     });
+  }
+
+  // ===== CAREER AI ENHANCEMENT IMPLEMENTATIONS =====
+  
+  // Skill Progress Logs
+  async getUserSkillProgressLogs(userId: string): Promise<SkillProgressLog[]> {
+    return await handleDbOperation(async () => {
+      return await db
+        .select()
+        .from(skillProgressLogs)
+        .where(eq(skillProgressLogs.userId, userId))
+        .orderBy(desc(skillProgressLogs.recordedAt));
+    }, []);
+  }
+
+  async addSkillProgressLog(log: InsertSkillProgressLog): Promise<SkillProgressLog> {
+    return await handleDbOperation(async () => {
+      const [newLog] = await db
+        .insert(skillProgressLogs)
+        .values(log)
+        .returning();
+      return newLog;
+    });
+  }
+
+  async getSkillProgressBySkill(userId: string, skill: string): Promise<SkillProgressLog[]> {
+    return await handleDbOperation(async () => {
+      return await db
+        .select()
+        .from(skillProgressLogs)
+        .where(and(eq(skillProgressLogs.userId, userId), eq(skillProgressLogs.skill, skill)))
+        .orderBy(desc(skillProgressLogs.recordedAt));
+    }, []);
+  }
+
+  // Achievements System
+  async getAchievementsCatalog(category?: string): Promise<AchievementsCatalog[]> {
+    return await handleDbOperation(async () => {
+      const conditions = [eq(achievementsCatalog.isActive, true)];
+      if (category) {
+        conditions.push(eq(achievementsCatalog.category, category));
+      }
+      return await db
+        .select()
+        .from(achievementsCatalog)
+        .where(and(...conditions))
+        .orderBy(achievementsCatalog.category, achievementsCatalog.points);
+    }, []);
+  }
+
+  async getUserAchievements(userId: string): Promise<UserAchievement[]> {
+    return await handleDbOperation(async () => {
+      return await db
+        .select()
+        .from(userAchievements)
+        .where(eq(userAchievements.userId, userId))
+        .orderBy(desc(userAchievements.earnedAt));
+    }, []);
+  }
+
+  async addUserAchievement(achievement: InsertUserAchievement): Promise<UserAchievement> {
+    return await handleDbOperation(async () => {
+      const [newAchievement] = await db
+        .insert(userAchievements)
+        .values(achievement)
+        .returning();
+      return newAchievement;
+    });
+  }
+
+  async getUserAchievementPoints(userId: string): Promise<number> {
+    return await handleDbOperation(async () => {
+      const result = await db
+        .select({ totalPoints: sql<number>`SUM(${achievementsCatalog.points})` })
+        .from(userAchievements)
+        .innerJoin(achievementsCatalog, eq(userAchievements.achievementId, achievementsCatalog.id))
+        .where(eq(userAchievements.userId, userId));
+      
+      return result[0]?.totalPoints || 0;
+    }, 0);
+  }
+
+  // Learning Resources & Plan
+  async getLearningResources(skill?: string, difficulty?: string): Promise<LearningResource[]> {
+    return await handleDbOperation(async () => {
+      const conditions = [eq(learningResources.isActive, true)];
+      if (skill) {
+        conditions.push(eq(learningResources.skill, skill));
+      }
+      if (difficulty) {
+        conditions.push(eq(learningResources.difficulty, difficulty));
+      }
+      return await db
+        .select()
+        .from(learningResources)
+        .where(and(...conditions))
+        .orderBy(desc(learningResources.rating), learningResources.skill);
+    }, []);
+  }
+
+  async addLearningResource(resource: InsertLearningResource): Promise<LearningResource> {
+    return await handleDbOperation(async () => {
+      const [newResource] = await db
+        .insert(learningResources)
+        .values(resource)
+        .returning();
+      return newResource;
+    });
+  }
+
+  async getUserLearningPlan(userId: string): Promise<UserLearningPlan[]> {
+    return await handleDbOperation(async () => {
+      return await db
+        .select()
+        .from(userLearningPlan)
+        .where(eq(userLearningPlan.userId, userId))
+        .orderBy(desc(userLearningPlan.addedAt));
+    }, []);
+  }
+
+  async addToLearningPlan(plan: InsertUserLearningPlan): Promise<UserLearningPlan> {
+    return await handleDbOperation(async () => {
+      const [newPlan] = await db
+        .insert(userLearningPlan)
+        .values(plan)
+        .returning();
+      return newPlan;
+    });
+  }
+
+  async updateLearningPlanProgress(id: number, progress: number, status?: string): Promise<UserLearningPlan> {
+    return await handleDbOperation(async () => {
+      const updateData: any = { progress };
+      if (status) {
+        updateData.status = status;
+        if (status === 'in_progress' && !updateData.startedAt) {
+          updateData.startedAt = new Date();
+        }
+        if (status === 'completed') {
+          updateData.completedAt = new Date();
+        }
+      }
+      
+      const [updatedPlan] = await db
+        .update(userLearningPlan)
+        .set(updateData)
+        .where(eq(userLearningPlan.id, id))
+        .returning();
+      return updatedPlan;
+    });
+  }
+
+  // Interview Preparation
+  async getUserInterviewPreps(userId: string): Promise<InterviewPrep[]> {
+    return await handleDbOperation(async () => {
+      return await db
+        .select()
+        .from(interviewPreps)
+        .where(eq(interviewPreps.userId, userId))
+        .orderBy(desc(interviewPreps.lastUsed), desc(interviewPreps.createdAt));
+    }, []);
+  }
+
+  async createInterviewPrep(prep: InsertInterviewPrep): Promise<InterviewPrep> {
+    return await handleDbOperation(async () => {
+      const [newPrep] = await db
+        .insert(interviewPreps)
+        .values(prep)
+        .returning();
+      return newPrep;
+    });
+  }
+
+  async updateInterviewPrepUsage(id: number): Promise<InterviewPrep> {
+    return await handleDbOperation(async () => {
+      const [updatedPrep] = await db
+        .update(interviewPreps)
+        .set({ 
+          timesUsed: sql`${interviewPreps.timesUsed} + 1`,
+          lastUsed: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(interviewPreps.id, id))
+        .returning();
+      return updatedPrep;
+    });
+  }
+
+  // Smart Notifications
+  async getUserNotifications(userId: string, unreadOnly?: boolean): Promise<Notification[]> {
+    return await handleDbOperation(async () => {
+      const conditions = [eq(notifications.userId, userId)];
+      if (unreadOnly) {
+        conditions.push(eq(notifications.isRead, false));
+      }
+      
+      return await db
+        .select()
+        .from(notifications)
+        .where(and(...conditions))
+        .orderBy(desc(notifications.createdAt));
+    }, []);
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    return await handleDbOperation(async () => {
+      const [newNotification] = await db
+        .insert(notifications)
+        .values(notification)
+        .returning();
+      return newNotification;
+    });
+  }
+
+  async markNotificationAsRead(id: number): Promise<Notification> {
+    return await handleDbOperation(async () => {
+      const [updatedNotification] = await db
+        .update(notifications)
+        .set({ isRead: true })
+        .where(eq(notifications.id, id))
+        .returning();
+      return updatedNotification;
+    });
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    return await handleDbOperation(async () => {
+      const result = await db
+        .select({ count: count() })
+        .from(notifications)
+        .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+      
+      return result[0]?.count || 0;
+    }, 0);
+  }
+
+  // Mentorship System
+  async getMentorProfiles(skills?: string[], verified?: boolean): Promise<MentorProfile[]> {
+    return await handleDbOperation(async () => {
+      const conditions = [eq(mentorProfiles.isActive, true)];
+      if (verified !== undefined) {
+        conditions.push(eq(mentorProfiles.isVerified, verified));
+      }
+      
+      let query = db
+        .select()
+        .from(mentorProfiles)
+        .where(and(...conditions))
+        .orderBy(desc(mentorProfiles.rating), desc(mentorProfiles.totalSessions));
+      
+      return await query;
+    }, []);
+  }
+
+  async getUserMentorProfile(userId: string): Promise<MentorProfile | undefined> {
+    return await handleDbOperation(async () => {
+      const [profile] = await db
+        .select()
+        .from(mentorProfiles)
+        .where(eq(mentorProfiles.userId, userId));
+      return profile;
+    }, undefined);
+  }
+
+  async createMentorProfile(profile: InsertMentorProfile): Promise<MentorProfile> {
+    return await handleDbOperation(async () => {
+      const [newProfile] = await db
+        .insert(mentorProfiles)
+        .values(profile)
+        .returning();
+      return newProfile;
+    });
+  }
+
+  async updateMentorProfile(userId: string, updates: Partial<InsertMentorProfile>): Promise<MentorProfile> {
+    return await handleDbOperation(async () => {
+      const [updatedProfile] = await db
+        .update(mentorProfiles)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(mentorProfiles.userId, userId))
+        .returning();
+      return updatedProfile;
+    });
+  }
+
+  async getMentorshipRequests(mentorId?: string, menteeId?: string): Promise<MentorshipRequest[]> {
+    return await handleDbOperation(async () => {
+      const conditions = [];
+      if (mentorId) {
+        conditions.push(eq(mentorshipRequests.mentorId, mentorId));
+      }
+      if (menteeId) {
+        conditions.push(eq(mentorshipRequests.menteeId, menteeId));
+      }
+      
+      if (conditions.length === 0) {
+        return await db
+          .select()
+          .from(mentorshipRequests)
+          .orderBy(desc(mentorshipRequests.createdAt));
+      }
+      
+      return await db
+        .select()
+        .from(mentorshipRequests)
+        .where(and(...conditions))
+        .orderBy(desc(mentorshipRequests.createdAt));
+    }, []);
+  }
+
+  async createMentorshipRequest(request: InsertMentorshipRequest): Promise<MentorshipRequest> {
+    return await handleDbOperation(async () => {
+      const [newRequest] = await db
+        .insert(mentorshipRequests)
+        .values(request)
+        .returning();
+      return newRequest;
+    });
+  }
+
+  async updateMentorshipRequest(id: number, updates: Partial<InsertMentorshipRequest>): Promise<MentorshipRequest> {
+    return await handleDbOperation(async () => {
+      const [updatedRequest] = await db
+        .update(mentorshipRequests)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(mentorshipRequests.id, id))
+        .returning();
+      return updatedRequest;
+    });
+  }
+
+  // Career Journey Sharing
+  async getSharedJourneys(filters?: { visibility?: string; careerPath?: string; featured?: boolean }): Promise<SharedJourney[]> {
+    return await handleDbOperation(async () => {
+      const conditions = [eq(sharedJourneys.isApproved, true)];
+      
+      if (filters?.visibility) {
+        conditions.push(eq(sharedJourneys.visibility, filters.visibility));
+      }
+      if (filters?.careerPath) {
+        conditions.push(eq(sharedJourneys.careerPath, filters.careerPath));
+      }
+      if (filters?.featured !== undefined) {
+        conditions.push(eq(sharedJourneys.isFeatured, filters.featured));
+      }
+      
+      return await db
+        .select()
+        .from(sharedJourneys)
+        .where(and(...conditions))
+        .orderBy(desc(sharedJourneys.isFeatured), desc(sharedJourneys.likes), desc(sharedJourneys.createdAt));
+    }, []);
+  }
+
+  async getUserSharedJourneys(userId: string): Promise<SharedJourney[]> {
+    return await handleDbOperation(async () => {
+      return await db
+        .select()
+        .from(sharedJourneys)
+        .where(eq(sharedJourneys.userId, userId))
+        .orderBy(desc(sharedJourneys.createdAt));
+    }, []);
+  }
+
+  async createSharedJourney(journey: InsertSharedJourney): Promise<SharedJourney> {
+    return await handleDbOperation(async () => {
+      const [newJourney] = await db
+        .insert(sharedJourneys)
+        .values(journey)
+        .returning();
+      return newJourney;
+    });
+  }
+
+  async updateSharedJourney(id: number, updates: Partial<InsertSharedJourney>): Promise<SharedJourney> {
+    return await handleDbOperation(async () => {
+      const [updatedJourney] = await db
+        .update(sharedJourneys)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(sharedJourneys.id, id))
+        .returning();
+      return updatedJourney;
+    });
+  }
+
+  async incrementJourneyViews(id: number): Promise<void> {
+    await handleDbOperation(async () => {
+      await db
+        .update(sharedJourneys)
+        .set({ views: sql`${sharedJourneys.views} + 1` })
+        .where(eq(sharedJourneys.id, id));
+    });
+  }
+
+  async toggleJourneyLike(id: number): Promise<SharedJourney> {
+    return await handleDbOperation(async () => {
+      const [journey] = await db
+        .select()
+        .from(sharedJourneys)
+        .where(eq(sharedJourneys.id, id));
+      
+      const [updated] = await db
+        .update(sharedJourneys)
+        .set({ likes: (journey?.likes || 0) + 1 })
+        .where(eq(sharedJourneys.id, id))
+        .returning();
+      
+      return updated;
+    });
+  }
+
+  // Community Challenges
+  async getActiveChallenges(): Promise<Challenge[]> {
+    return await handleDbOperation(async () => {
+      const now = new Date();
+      return await db
+        .select()
+        .from(challenges)
+        .where(and(
+          eq(challenges.isActive, true),
+          lt(challenges.startAt, now),
+          sql`${challenges.endAt} > ${now}`
+        ))
+        .orderBy(challenges.endAt);
+    }, []);
+  }
+
+  async getUserChallenges(userId: string): Promise<ChallengeParticipant[]> {
+    return await handleDbOperation(async () => {
+      return await db
+        .select()
+        .from(challengeParticipants)
+        .where(eq(challengeParticipants.userId, userId))
+        .orderBy(desc(challengeParticipants.joinedAt));
+    }, []);
+  }
+
+  async createChallenge(challenge: InsertChallenge): Promise<Challenge> {
+    return await handleDbOperation(async () => {
+      const [newChallenge] = await db
+        .insert(challenges)
+        .values(challenge)
+        .returning();
+      return newChallenge;
+    });
+  }
+
+  async joinChallenge(participation: InsertChallengeParticipant): Promise<ChallengeParticipant> {
+    return await handleDbOperation(async () => {
+      const [newParticipation] = await db
+        .insert(challengeParticipants)
+        .values(participation)
+        .returning();
+      
+      // Increment participant count
+      await db
+        .update(challenges)
+        .set({ currentParticipants: sql`${challenges.currentParticipants} + 1` })
+        .where(eq(challenges.id, participation.challengeId));
+      
+      return newParticipation;
+    });
+  }
+
+  async updateChallengeProgress(id: number, progress: object, currentCount: number): Promise<ChallengeParticipant> {
+    return await handleDbOperation(async () => {
+      const [updatedParticipation] = await db
+        .update(challengeParticipants)
+        .set({ 
+          progress,
+          currentCount,
+          isCompleted: currentCount >= (progress.targetCount || 0),
+          completedAt: currentCount >= (progress.targetCount || 0) ? new Date() : null
+        })
+        .where(eq(challengeParticipants.id, id))
+        .returning();
+      return updatedParticipation;
+    });
+  }
+
+  async getChallengeLeaderboard(challengeId: number): Promise<ChallengeParticipant[]> {
+    return await handleDbOperation(async () => {
+      return await db
+        .select()
+        .from(challengeParticipants)
+        .where(eq(challengeParticipants.challengeId, challengeId))
+        .orderBy(desc(challengeParticipants.currentCount), challengeParticipants.joinedAt);
+    }, []);
   }
 
   // ===== BIDDER SYSTEM IMPLEMENTATIONS =====
