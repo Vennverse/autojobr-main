@@ -111,6 +111,7 @@ export default function CareerAIAssistant() {
   const [daysLeft, setDaysLeft] = useState<number>(0);
   const [networkingOpportunities, setNetworkingOpportunities] = useState<any[]>([]);
   const [marketTiming, setMarketTiming] = useState<any[]>([]);
+  const [isConnected, setIsConnected] = useState(true); // HTTP polling connection status
   
   // Real-time progress tracking
   const [analysisProgress, setAnalysisProgress] = useState<{
