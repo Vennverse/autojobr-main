@@ -359,6 +359,37 @@ export default function CareerAIAssistant() {
     }
   };
 
+  // Save progress (separate from full analysis)
+  const saveProgressOnly = async () => {
+    try {
+      const response = await fetch('/api/career-ai/save-progress', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          progressUpdate: progressUpdate
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Progress Saved",
+          description: "Your accomplishments have been saved successfully",
+        });
+      } else {
+        throw new Error("Failed to save progress");
+      }
+    } catch (error: any) {
+      console.error("Error saving progress:", error);
+      toast({
+        title: "Save Failed", 
+        description: "Your progress couldn't be saved. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Update progress when tasks are completed
   const updateProgress = async (newCompletedTasks: string[], newProgressUpdate: string = "") => {
     try {
@@ -582,22 +613,92 @@ export default function CareerAIAssistant() {
                 </div>
               )}
               
-              {/* Progress Update Section */}
+              {/* Enhanced Progress Update Section */}
               {insights.length > 0 && (
-                <div className="space-y-3">
-                  <div className="border-t pt-4">
-                    <h4 className="font-medium text-gray-900 dark:text-white mb-3">Update Your Progress</h4>
-                    <div className="space-y-3">
-                      <Textarea
-                        placeholder="What have you accomplished since your last analysis? (e.g., 'Completed Python course', 'Applied to 5 senior roles', 'Attended networking event')"
-                        value={progressUpdate}
-                        onChange={(e) => setProgressUpdate(e.target.value)}
-                        className="min-h-[80px]"
-                      />
+                <div className="space-y-4">
+                  <div className="border-t pt-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-gradient-to-br from-green-500 to-blue-500 rounded-lg">
+                          <TrendingUp className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-white">Update Your Progress</h4>
+                          <p className="text-sm text-muted-foreground">Track your accomplishments to get better recommendations</p>
+                        </div>
+                      </div>
+
+                      {/* Quick Progress Categories */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setProgressUpdate(prev => prev + (prev ? '\n' : '') + '• Completed a new skills course or certification')}
+                          className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-950/20"
+                        >
+                          <BookOpen className="h-4 w-4 text-blue-600" />
+                          <span className="text-xs text-center">New Skills</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setProgressUpdate(prev => prev + (prev ? '\n' : '') + '• Applied to new job positions')}
+                          className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-green-50 dark:hover:bg-green-950/20"
+                        >
+                          <Target className="h-4 w-4 text-green-600" />
+                          <span className="text-xs text-center">Job Apps</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setProgressUpdate(prev => prev + (prev ? '\n' : '') + '• Attended networking events or made new connections')}
+                          className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-purple-50 dark:hover:bg-purple-950/20"
+                        >
+                          <Users className="h-4 w-4 text-purple-600" />
+                          <span className="text-xs text-center">Networking</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setProgressUpdate(prev => prev + (prev ? '\n' : '') + '• Worked on personal or professional projects')}
+                          className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-orange-50 dark:hover:bg-orange-950/20"
+                        >
+                          <Zap className="h-4 w-4 text-orange-600" />
+                          <span className="text-xs text-center">Projects</span>
+                        </Button>
+                      </div>
+
+                      {/* Progress Input */}
+                      <div className="space-y-3">
+                        <Textarea
+                          placeholder="✨ Share your recent accomplishments! Use the quick categories above or describe what you've achieved:
+
+Examples:
+• Completed Python Data Science course on Coursera
+• Applied to 8 senior developer positions at tech companies  
+• Attended local React meetup and connected with 5 developers
+• Built a full-stack web application with authentication
+• Got promoted to senior role with 15% salary increase"
+                          value={progressUpdate}
+                          onChange={(e) => setProgressUpdate(e.target.value)}
+                          className="min-h-[120px] resize-none"
+                          data-testid="input-progress-update"
+                        />
+                        
+                        {progressUpdate && (
+                          <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                            <span>Progress tracked! This will improve your next analysis.</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Update Analysis Button */}
                       <Button
                         onClick={generateCareerAnalysis}
                         disabled={isGenerating || !careerGoal}
-                        className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                        className="w-full h-12 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-medium"
+                        data-testid="button-update-analysis"
                       >
                         {isGenerating ? (
                           <>
@@ -606,11 +707,17 @@ export default function CareerAIAssistant() {
                           </>
                         ) : (
                           <>
-                            <TrendingUp className="h-5 w-5 mr-2" />
+                            <Sparkles className="h-5 w-5 mr-2" />
                             Get Updated Career Analysis
                           </>
                         )}
                       </Button>
+
+                      {progressUpdate && (
+                        <p className="text-xs text-muted-foreground text-center">
+                          💡 Your progress will be saved and used to provide more personalized recommendations
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
