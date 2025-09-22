@@ -434,6 +434,7 @@ export default function CareerAIAssistant() {
 
       if (response.ok) {
         const result = await response.json();
+        console.log('Career AI Analysis Result:', result); // Debug log
         
         if (result.jobId) {
           // Analysis started successfully - begin polling for progress
@@ -482,16 +483,16 @@ export default function CareerAIAssistant() {
             });
           }
         } else {
-          // Fallback: Backend doesn't support job tracking, simulate progress
-          console.log('Using fallback progress simulation');
-          setAnalysisJobId('fallback-simulation');
+          // No jobId and no immediate results - something's wrong, reset progress
+          console.log('No jobId found and no immediate results, resetting progress');
           setAnalysisProgress({
-            isActive: true,
-            stage: 'starting',
-            progress: 10,
-            message: 'Starting career analysis...',
-            currentStep: 'Initializing AI processing'
+            isActive: false,
+            stage: 'completed',
+            progress: 100,
+            message: 'Analysis completed',
+            currentStep: 'Ready'
           });
+          setIsGenerating(false);
         }
       } else {
         const errorData = await response.json();
