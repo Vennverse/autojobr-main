@@ -372,7 +372,7 @@ export class PersonalityAssessmentService {
 
       case 'comprehensive':
         // Mix of Big Five and work-related questions
-        const allCategories = [...new Set(this.questionBank.map(q => q.category))];
+        const allCategories = Array.from(new Set(this.questionBank.map(q => q.category)));
         const questionsPerCat = Math.floor(config.questionCount / allCategories.length);
         
         allCategories.forEach(category => {
@@ -723,7 +723,7 @@ export class PersonalityAssessmentService {
     return {
       consistencyScore,
       responseTime: Math.round(avgResponseTime / 1000), // Convert to seconds
-      flaggedResponses: [...new Set(flaggedResponses)] // Remove duplicates
+      flaggedResponses: Array.from(new Set(flaggedResponses)) // Remove duplicates
     };
   }
 

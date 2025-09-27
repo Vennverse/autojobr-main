@@ -444,12 +444,10 @@ export class SkillsVerificationService {
     await proctorService.initializeSession(sessionId, verification.candidateId, {
       sessionType: 'skills_verification',
       securityLevel: 'medium', // Less intrusive for project work
-      enableActivityTracking: true,
-      enablePeriodicCheckins: true
+      enableActivityTracking: true
     });
 
     await storage.updateSkillsVerification(verificationId, {
-      sessionId,
       status: 'in_progress',
       startedAt: new Date()
     });
@@ -517,15 +515,16 @@ export class SkillsVerificationService {
     };
 
     await storage.createDeliverableSubmission({
-      verificationId,
+      skillsVerificationId: verificationId,
       deliverableId,
       filePath,
       fileName,
       fileType: fileExtension,
-      fileSize: file.length,
-      checksum: submission.metadata.checksum,
-      codeAnalysis: codeAnalysis ? JSON.stringify(codeAnalysis) : null,
-      uploadedAt: new Date()
+      metadata: {
+        fileSize: file.length,
+        checksum: submission.metadata.checksum,
+        codeAnalysis: codeAnalysis ? JSON.stringify(codeAnalysis) : null
+      }
     });
   }
 

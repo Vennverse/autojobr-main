@@ -58,18 +58,12 @@ import {
   type InsertAiJobAnalysis,
   type Resume,
   type InsertResume,
-  type JobPosting,
-  type InsertJobPosting,
-  type JobPostingApplication,
-  type InsertJobPostingApplication,
-  type Conversation,
-  type InsertConversation,
-  type Message,
-  type InsertMessage,
-  type EmailVerificationToken,
-  type InsertEmailVerificationToken,
-  type PasswordResetToken,
-  type InsertPasswordResetToken,
+  insertJobPostingSchema,
+  insertJobPostingApplicationSchema,
+  insertConversationSchema,
+  insertMessageSchema,
+  insertEmailVerificationTokenSchema,
+  insertPasswordResetTokenSchema,
   type TestTemplate,
   type InsertTestTemplate,
   type TestAssignment,
@@ -141,7 +135,22 @@ import {
   type SkillsVerification,
   type InsertSkillsVerification,
 } from "@shared/schema";
+import { z } from "zod";
 import { db } from "./db";
+
+// Type definitions for missing exports
+type JobPosting = typeof jobPostings.$inferSelect;
+type InsertJobPosting = z.infer<typeof insertJobPostingSchema>;
+type JobPostingApplication = typeof jobPostingApplications.$inferSelect;
+type InsertJobPostingApplication = z.infer<typeof insertJobPostingApplicationSchema>;
+type Conversation = typeof conversations.$inferSelect;
+type InsertConversation = z.infer<typeof insertConversationSchema>;
+type Message = typeof messages.$inferSelect;
+type InsertMessage = z.infer<typeof insertMessageSchema>;
+type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
+type InsertEmailVerificationToken = z.infer<typeof insertEmailVerificationTokenSchema>;
+type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
 
 // Helper function to handle database errors gracefully
 async function handleDbOperation<T>(operation: () => Promise<T>, fallback?: T): Promise<T> {
@@ -2252,13 +2261,14 @@ export class DatabaseStorage implements IStorage {
 
   async updateChallengeProgress(id: number, progress: object, currentCount: number): Promise<ChallengeParticipant> {
     return await handleDbOperation(async () => {
+      const progressData = progress as any;
       const [updatedParticipation] = await this.db
         .update(challengeParticipants)
         .set({
           progress,
           currentCount,
-          isCompleted: currentCount >= (progress.targetCount || 0),
-          completedAt: currentCount >= (progress.targetCount || 0) ? new Date() : null
+          isCompleted: currentCount >= (progressData.targetCount || 0),
+          completedAt: currentCount >= (progressData.targetCount || 0) ? new Date() : null
         })
         .where(eq(challengeParticipants.id, id))
         .returning();
@@ -2559,8 +2569,7 @@ export class DatabaseStorage implements IStorage {
         videoPath: data.videoPath,
         duration: data.duration,
         attempts: data.attempts,
-        deviceInfo: data.deviceInfo,
-        uploadedAt: data.uploadedAt
+        deviceInfo: data.deviceInfo
       }).returning();
       return response;
     });
@@ -2748,7 +2757,7 @@ export class DatabaseStorage implements IStorage {
       const submissionData = {
         id: Date.now(), // Simple ID generation for now
         ...submission,
-        uploadedAt: new Date(),
+        createdAt: new Date(),
       };
 
       const existing = this.deliverableSubmissions.get(submission.skillsVerificationId) || [];

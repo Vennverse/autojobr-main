@@ -118,7 +118,11 @@ export class SimulationAssessmentService {
   }
 
   private async initializeVirtualEnvironment(scenario: SimulationScenario): Promise<any> {
-    const environment = {
+    const environment: {
+      tools: { [key: string]: any };
+      data: { [key: string]: any };
+      state: string;
+    } = {
       tools: {},
       data: {},
       state: 'active'

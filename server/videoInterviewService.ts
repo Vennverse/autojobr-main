@@ -117,8 +117,7 @@ export class VideoInterviewService {
         videoPath: filePath,
         duration: metadata.duration,
         attempts: metadata.attempts,
-        deviceInfo: JSON.stringify(metadata.deviceInfo),
-        uploadedAt: new Date()
+        deviceInfo: JSON.stringify(metadata.deviceInfo)
       });
 
       return fileName;
@@ -400,6 +399,10 @@ Evaluate and return JSON:
   async generateInterviewReport(interviewId: number): Promise<any> {
     const interview = await storage.getVideoInterview(interviewId);
     const responses = await storage.getVideoResponses(interviewId);
+    
+    if (!interview) {
+      throw new Error('Interview not found');
+    }
     
     const analyses = responses.map(r => JSON.parse(r.analysis || '{}'));
     const averageScore = analyses.reduce((sum, a) => sum + a.overallScore, 0) / analyses.length;
