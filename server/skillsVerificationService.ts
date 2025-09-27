@@ -471,9 +471,19 @@ export class SkillsVerificationService {
     const deliverable = template.deliverables.find(d => d.id === deliverableId);
     if (!deliverable) throw new Error('Deliverable not found');
 
-    // Validate file
-    const fileExtension = path.extname(fileName).substring(1).toLowerCase();
-    if (!deliverable.acceptedFormats.includes(fileExtension)) {
+    // Sanitize filename to prevent path traversal
+    const sanitizedFileName = path.basename(fileName).replace(/[^a-zA-Z0-9._-]/g, '_');
+    if (!sanitizedFileName || sanitizedFileName === '.' || sanitizedFileName === '..') {
+      throw new Error('Invalid filename');
+    }
+
+    // Validate file extension
+    const fileExtension = path.extname(sanitizedFileName).substring(1).toLowerCase();
+    
+    // Normalize accepted formats (remove dots and handle compound extensions)
+    const normalizedFormats = deliverable.acceptedFormats.map(format => format.replace('.', ''));
+    
+    if (!normalizedFormats.includes(fileExtension)) {
       throw new Error(`File format not accepted. Allowed: ${deliverable.acceptedFormats.join(', ')}`);
     }
 
@@ -481,9 +491,9 @@ export class SkillsVerificationService {
       throw new Error(`File too large. Maximum size: ${deliverable.maxFileSize}MB`);
     }
 
-    // Save file
+    // Save file with sanitized name
     const workspacePath = path.join(this.projectsPath, `project_${verificationId}`);
-    const filePath = path.join(workspacePath, `${deliverableId}_${fileName}`);
+    const filePath = path.join(workspacePath, `${deliverableId}_${sanitizedFileName}`);
     await fs.writeFile(filePath, file);
 
     // Analyze code if it's a code deliverable
@@ -554,7 +564,7 @@ export class SkillsVerificationService {
             maintainabilityIndex,
             commentRatio: commentLines.length / Math.max(codeLines.length, 1),
             securityIssues: securityIssues.length,
-            bestPractices: bestPractices.passed
+            bestPracticesData: bestPractices // Pass the full object
           })
         }
       };
@@ -565,12 +575,13 @@ export class SkillsVerificationService {
   }
 
   private calculateCyclomaticComplexity(code: string, language: string): number {
-    // Simple cyclomatic complexity calculation
+    // Fixed cyclomatic complexity calculation - removed 'else' patterns as they don't add complexity
     const complexityPatterns: { [key: string]: RegExp[] } = {
-      javascript: [/\bif\b/g, /\belse\b/g, /\bwhile\b/g, /\bfor\b/g, /\bcatch\b/g, /\bcase\b/g],
-      typescript: [/\bif\b/g, /\belse\b/g, /\bwhile\b/g, /\bfor\b/g, /\bcatch\b/g, /\bcase\b/g],
-      python: [/\bif\b/g, /\belif\b/g, /\belse\b/g, /\bwhile\b/g, /\bfor\b/g, /\bexcept\b/g],
-      java: [/\bif\b/g, /\belse\b/g, /\bwhile\b/g, /\bfor\b/g, /\bcatch\b/g, /\bcase\b/g]
+      javascript: [/\bif\b/g, /\bwhile\b/g, /\bfor\b/g, /\bcatch\b/g, /\bcase\b/g, /\?\s*[^:]*:/g], // Added ternary
+      typescript: [/\bif\b/g, /\bwhile\b/g, /\bfor\b/g, /\bcatch\b/g, /\bcase\b/g, /\?\s*[^:]*:/g],
+      python: [/\bif\b/g, /\belif\b/g, /\bwhile\b/g, /\bfor\b/g, /\bexcept\b/g], // elif adds complexity, else doesn't
+      java: [/\bif\b/g, /\bwhile\b/g, /\bfor\b/g, /\bcatch\b/g, /\bcase\b/g],
+      cpp: [/\bif\b/g, /\bwhile\b/g, /\bfor\b/g, /\bcatch\b/g, /\bcase\b/g, /\?\s*[^:]*:/g]
     };
 
     const patterns = complexityPatterns[language] || complexityPatterns.javascript;
@@ -602,19 +613,33 @@ export class SkillsVerificationService {
   private detectSecurityIssues(code: string, language: string): string[] {
     const issues: string[] = [];
 
-    // Common security patterns to detect
+    // Enhanced security patterns with proper regex
     const securityPatterns: { [key: string]: { pattern: RegExp; issue: string }[] } = {
       javascript: [
-        { pattern: /eval\(/g, issue: 'Use of eval() function (code injection risk)' },
+        { pattern: /eval\s*\(/g, issue: 'Use of eval() function (code injection risk)' },
         { pattern: /innerHTML\s*=/g, issue: 'Direct innerHTML assignment (XSS risk)' },
-        { pattern: /document\.write/g, issue: 'Use of document.write (XSS risk)' },
-        { pattern: /password.*=.*['"][^'"]*['"]/g, issue: 'Hardcoded password detected' }
+        { pattern: /document\.write\s*\(/g, issue: 'Use of document.write (XSS risk)' },
+        { pattern: /password.*?=.*?['"][^'"]*['"]/gi, issue: 'Hardcoded password detected' }, // Fixed regex
+        { pattern: /console\.log.*?password/gi, issue: 'Password logged to console' },
+        { pattern: /localStorage\.setItem.*?password/gi, issue: 'Password stored in localStorage' }
       ],
       python: [
-        { pattern: /exec\(/g, issue: 'Use of exec() function (code injection risk)' },
-        { pattern: /eval\(/g, issue: 'Use of eval() function (code injection risk)' },
-        { pattern: /pickle\.loads/g, issue: 'Use of pickle.loads (deserialization risk)' },
-        { pattern: /password.*=.*['"][^'"]*['"]/g, issue: 'Hardcoded password detected' }
+        { pattern: /exec\s*\(/g, issue: 'Use of exec() function (code injection risk)' },
+        { pattern: /eval\s*\(/g, issue: 'Use of eval() function (code injection risk)' },
+        { pattern: /pickle\.loads\s*\(/g, issue: 'Use of pickle.loads (deserialization risk)' },
+        { pattern: /password.*?=.*?['"][^'"]*['"]/gi, issue: 'Hardcoded password detected' },
+        { pattern: /os\.system\s*\(/g, issue: 'Use of os.system (command injection risk)' },
+        { pattern: /subprocess\.call.*?shell\s*=\s*True/g, issue: 'Shell injection risk in subprocess' }
+      ],
+      java: [
+        { pattern: /Runtime\.getRuntime\(\)\.exec/g, issue: 'Runtime.exec() usage (command injection risk)' },
+        { pattern: /password.*?=.*?"[^"]*"/gi, issue: 'Hardcoded password detected' },
+        { pattern: /PreparedStatement.*?\+/g, issue: 'Potential SQL injection in PreparedStatement' }
+      ],
+      cpp: [
+        { pattern: /system\s*\(/g, issue: 'Use of system() function (command injection risk)' },
+        { pattern: /strcpy\s*\(/g, issue: 'Use of strcpy (buffer overflow risk)' },
+        { pattern: /gets\s*\(/g, issue: 'Use of gets() function (buffer overflow risk)' }
       ]
     };
 
@@ -641,10 +666,27 @@ export class SkillsVerificationService {
         { check: (code: string) => !code.includes('var '), description: 'Avoids var declarations' },
         { check: /function\s+\w+\s*\([^)]*\)\s*{/g, description: 'Uses proper function declarations' }
       ],
+      typescript: [
+        { check: /const\s+/g, description: 'Uses const for constants' },
+        { check: /let\s+/g, description: 'Uses let instead of var' },
+        { check: (code: string) => !code.includes('var '), description: 'Avoids var declarations' },
+        { check: /interface\s+\w+/g, description: 'Uses TypeScript interfaces' },
+        { check: /:\s*\w+/g, description: 'Uses type annotations' }
+      ],
       python: [
         { check: /def\s+\w+\s*\([^)]*\)\s*:/g, description: 'Uses proper function definitions' },
         { check: /class\s+\w+/g, description: 'Uses classes appropriately' },
         { check: (code: string) => code.includes('if __name__ == "__main__":'), description: 'Uses main guard' }
+      ],
+      java: [
+        { check: /public\s+class\s+\w+/g, description: 'Uses proper class declarations' },
+        { check: /private\s+\w+/g, description: 'Uses private fields' },
+        { check: /public\s+static\s+void\s+main/g, description: 'Has main method' }
+      ],
+      cpp: [
+        { check: /#include\s*<iostream>/g, description: 'Uses proper includes' },
+        { check: /class\s+\w+/g, description: 'Uses classes' },
+        { check: /namespace\s+std/g, description: 'Uses namespaces' }
       ]
     };
 
@@ -675,23 +717,36 @@ export class SkillsVerificationService {
     // Security issues penalty
     score -= metrics.securityIssues * 15;
 
-    // Best practices penalty
-    const practiceScore = (metrics.bestPractices / 4) * 20; // Assuming 4 practices checked
+    // Best practices penalty - use actual total from the check
+    const bestPracticesData = metrics.bestPracticesData || { passed: 0, total: 1 };
+    const practiceScore = (bestPracticesData.passed / bestPracticesData.total) * 20;
     score -= (20 - practiceScore);
 
     return Math.max(0, Math.min(100, Math.round(score)));
   }
 
   private calculateChecksum(buffer: Buffer): string {
-    const crypto = require('crypto');
-    return crypto.createHash('sha256').update(buffer).digest('hex');
+    try {
+      const crypto = require('crypto');
+      return crypto.createHash('sha256').update(buffer).digest('hex');
+    } catch (error) {
+      console.error('Error calculating checksum:', error);
+      // Fallback to simple hash if crypto is not available
+      return buffer.toString('base64').slice(0, 32);
+    }
   }
 
   async submitProject(verificationId: number): Promise<SkillsVerificationResult> {
     const verification = await storage.getSkillsVerification(verificationId);
     if (!verification) throw new Error('Verification not found');
 
-    const template: ProjectTemplate = JSON.parse(verification.projectTemplate);
+    let template: ProjectTemplate;
+    try {
+      template = JSON.parse(verification.projectTemplate);
+    } catch (error) {
+      throw new Error('Invalid project template data');
+    }
+
     const submissions = await storage.getDeliverableSubmissions(verificationId);
 
     // Check if all required deliverables are submitted
@@ -881,14 +936,28 @@ export class SkillsVerificationService {
   }
 
   private calculateProjectManagement(submissions: any[], verification: any): any {
-    const timeSpent = verification.completedAt && verification.startedAt ?
-      (new Date(verification.completedAt).getTime() - new Date(verification.startedAt).getTime()) / (1000 * 60 * 60) : 0;
+    let timeSpent = 0;
+    
+    if (verification.completedAt && verification.startedAt) {
+      try {
+        const completedTime = new Date(verification.completedAt).getTime();
+        const startTime = new Date(verification.startedAt).getTime();
+        timeSpent = Math.max(0, (completedTime - startTime) / (1000 * 60 * 60)); // Ensure non-negative
+      } catch (error) {
+        console.warn('Error calculating time spent:', error);
+        timeSpent = 0;
+      }
+    }
 
     const estimatedTime = verification.timeLimit || 8;
-    const timeEfficiency = timeSpent <= estimatedTime ? 100 : Math.max(0, 100 - ((timeSpent - estimatedTime) / estimatedTime) * 50);
+    let timeEfficiency = 100;
+    
+    if (timeSpent > 0 && timeSpent > estimatedTime) {
+      timeEfficiency = Math.max(20, 100 - ((timeSpent - estimatedTime) / estimatedTime) * 50); // Cap minimum at 20%
+    }
 
     const documentationSubmissions = submissions.filter(s =>
-      s.fileName.toLowerCase().includes('readme') ||
+      s.fileName?.toLowerCase().includes('readme') ||
       s.fileType === 'md' ||
       s.fileType === 'pdf'
     );
