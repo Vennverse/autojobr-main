@@ -1,5 +1,4 @@
-import Groq from 'groq-sdk';
-import { behavioralAnalyzer } from './behavioralAnalyzer';
+import { groqService } from './groqService';
 
 interface AIDetectionResult {
   isAIGenerated: boolean;
@@ -35,15 +34,8 @@ interface ResponseAnalysis {
 }
 
 export class AIDetectionService {
-  private groq: Groq;
-
   constructor() {
-    if (!process.env.GROQ_API_KEY) {
-      console.warn("GROQ_API_KEY not found - AI detection will use fallback mode");
-      this.groq = null as any; // Will use fallback detection
-    } else {
-      this.groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-    }
+    // Uses existing groqService for consistency
   }
 
   async detectAIUsage(userResponse: string, questionContext?: string, behavioralData?: any): Promise<AIDetectionResult> {
@@ -73,8 +65,8 @@ export class AIDetectionService {
       behavioralScore = behavioralProfile.overallAuthenticity;
     }
 
-    // Use Groq for detailed analysis with minimal tokens (if available)
-    if (!this.groq) {
+    // Use existing groqService for AI analysis
+    if (!groqService.client) {
       // Enhanced fallback analysis combining multiple signals
       const combinedScore = this.calculateCombinedScore(quickIndicators, linguisticAnalysis, behavioralScore);
       
@@ -103,7 +95,7 @@ Check for:
 
 Return JSON: {"aiGenerated": boolean, "confidence": 0-100, "humanScore": 0-100, "indicators": ["reason1", "reason2"], "reasoning": "brief explanation"}`;
 
-      const response = await this.groq.chat.completions.create({
+      const response = await groqService.client.chat.completions.create({
         messages: [{ role: 'user', content: prompt }],
         model: 'llama-3.1-8b-instant', // Faster, cheaper model
         temperature: 0.1,

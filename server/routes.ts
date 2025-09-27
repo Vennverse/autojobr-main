@@ -248,6 +248,20 @@ const processResumeUpload = async (file: any, userId: string, resumeText: string
   // TODO: Implement storeResume method in storage
   throw new Error('Resume storage not implemented yet');
 };
+// Advanced Assessment Services
+import { VideoInterviewService } from "./videoInterviewService";
+import { SimulationAssessmentService } from "./simulationAssessmentService";
+import { PersonalityAssessmentService } from "./personalityAssessmentService";
+import { SkillsVerificationService } from "./skillsVerificationService";
+import { AIDetectionService } from "./aiDetectionService";
+
+// Initialize advanced assessment services
+const videoInterviewService = new VideoInterviewService();
+const simulationAssessmentService = new SimulationAssessmentService();
+const personalityAssessmentService = new PersonalityAssessmentService();
+const skillsVerificationService = new SkillsVerificationService();
+const aiDetectionService = new AIDetectionService();
+
 // Dynamic import for pdf-parse to avoid startup issues
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAuthenticatedExtension } from "./auth";
@@ -1983,6 +1997,208 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Update user object for response
           user.userType = 'recruiter';
           user.companyName = `${companyName} Company`;
+
+
+  // Advanced Assessment Routes
+  
+  // Video Interview Routes
+  app.post('/api/video-interviews/create', isAuthenticated, async (req, res) => {
+    try {
+      const { candidateId, jobId, questions, totalTimeLimit, expiryDate } = req.body;
+      const recruiterId = req.user.id;
+      
+      const interview = await videoInterviewService.createVideoInterview(
+        candidateId,
+        recruiterId,
+        jobId,
+        { questions, totalTimeLimit, expiryDate }
+      );
+      
+      res.json(interview);
+    } catch (error) {
+      handleError(res, error, "Failed to create video interview");
+    }
+  });
+  
+  app.post('/api/video-interviews/:id/upload-response', isAuthenticated, async (req, res) => {
+    try {
+      const interviewId = parseInt(req.params.id);
+      const { questionId, videoFile, metadata } = req.body;
+      
+      const fileName = await videoInterviewService.uploadVideoResponse(
+        interviewId,
+        questionId,
+        Buffer.from(videoFile, 'base64'),
+        metadata
+      );
+      
+      res.json({ fileName, success: true });
+    } catch (error) {
+      handleError(res, error, "Failed to upload video response");
+    }
+  });
+  
+  app.post('/api/video-interviews/responses/:id/analyze', isAuthenticated, async (req, res) => {
+    try {
+      const responseId = parseInt(req.params.id);
+      const { question } = req.body;
+      
+      const analysis = await videoInterviewService.analyzeVideoResponse(responseId, question);
+      
+      res.json(analysis);
+    } catch (error) {
+      handleError(res, error, "Failed to analyze video response");
+    }
+  });
+  
+  app.get('/api/video-interviews/:id/report', isAuthenticated, async (req, res) => {
+    try {
+      const interviewId = parseInt(req.params.id);
+      
+      const report = await videoInterviewService.generateInterviewReport(interviewId);
+      
+      res.json(report);
+    } catch (error) {
+      handleError(res, error, "Failed to generate interview report");
+    }
+  });
+
+  // Simulation Assessment Routes
+  app.post('/api/simulation-assessments/create', isAuthenticated, async (req, res) => {
+    try {
+      const { candidateId, jobId, scenarioType, difficulty } = req.body;
+      const recruiterId = req.user.id;
+      
+      const assessment = await simulationAssessmentService.createSimulationAssessment(
+        candidateId,
+        recruiterId,
+        jobId,
+        scenarioType,
+        difficulty
+      );
+      
+      res.json(assessment);
+    } catch (error) {
+      handleError(res, error, "Failed to create simulation assessment");
+    }
+  });
+  
+  app.post('/api/simulation-assessments/:id/start', isAuthenticated, async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      
+      const sessionId = await simulationAssessmentService.startSimulation(assessmentId);
+      
+      res.json({ sessionId });
+    } catch (error) {
+      handleError(res, error, "Failed to start simulation");
+    }
+  });
+  
+  app.post('/api/simulation-assessments/:sessionId/action', isAuthenticated, async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const action = req.body;
+      
+      await simulationAssessmentService.recordAction(sessionId, action);
+      
+      res.json({ success: true });
+    } catch (error) {
+      handleError(res, error, "Failed to record action");
+    }
+  });
+  
+  app.post('/api/simulation-assessments/:sessionId/complete', isAuthenticated, async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      
+      const result = await simulationAssessmentService.completeSimulation(sessionId);
+      
+      res.json(result);
+    } catch (error) {
+      handleError(res, error, "Failed to complete simulation");
+    }
+  });
+
+  // Personality Assessment Routes
+  app.post('/api/personality-assessments/create', isAuthenticated, async (req, res) => {
+    try {
+      const { candidateId, jobId, config } = req.body;
+      const recruiterId = req.user.id;
+      
+      const assessment = await personalityAssessmentService.createPersonalityAssessment(
+        candidateId,
+        recruiterId,
+        jobId,
+        config
+      );
+      
+      res.json(assessment);
+    } catch (error) {
+      handleError(res, error, "Failed to create personality assessment");
+    }
+  });
+  
+  app.post('/api/personality-assessments/:id/submit', isAuthenticated, async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      const { responses } = req.body;
+      
+      const profile = await personalityAssessmentService.submitResponses(assessmentId, responses);
+      
+      res.json(profile);
+    } catch (error) {
+      handleError(res, error, "Failed to submit personality assessment");
+    }
+  });
+
+  // Skills Verification Routes
+  app.post('/api/skills-verifications/create', isAuthenticated, async (req, res) => {
+    try {
+      const { candidateId, jobId, projectTemplateId, customizations } = req.body;
+      const recruiterId = req.user.id;
+      
+      const verification = await skillsVerificationService.createSkillsVerification(
+        candidateId,
+        recruiterId,
+        jobId,
+        projectTemplateId,
+        customizations
+      );
+      
+      res.json(verification);
+    } catch (error) {
+      handleError(res, error, "Failed to create skills verification");
+    }
+  });
+  
+  app.post('/api/skills-verifications/:id/submit', isAuthenticated, async (req, res) => {
+    try {
+      const verificationId = parseInt(req.params.id);
+      const { submissions } = req.body;
+      
+      const result = await skillsVerificationService.submitProject(verificationId, submissions);
+      
+      res.json(result);
+    } catch (error) {
+      handleError(res, error, "Failed to submit skills verification");
+    }
+  });
+
+  // AI Detection Routes
+  app.post('/api/ai-detection/analyze', isAuthenticated, async (req, res) => {
+    try {
+      const { userResponse, questionContext, behavioralData } = req.body;
+      
+      const detection = await aiDetectionService.detectAIUsage(userResponse, questionContext, behavioralData);
+      
+      res.json(detection);
+    } catch (error) {
+      handleError(res, error, "Failed to analyze AI usage");
+    }
+  });
+
+
         }
       }
       
