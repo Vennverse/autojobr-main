@@ -120,6 +120,10 @@ import {
   type ChallengeParticipant,
   type InsertChallengeParticipant,
   questionBank,
+  userResumes,
+  type UserResume,
+  type InsertUserResume,
+  subscriptions,
 } from "@shared/schema";
 import { db } from "./db";
 
@@ -209,6 +213,11 @@ export interface IStorage {
     subscriptionEndDate?: Date;
   }): Promise<User>;
   getUserByPaypalSubscription(paypalSubscriptionId: string): Promise<User | undefined>;
+  
+  // Subscription tiers and features
+  getSubscriptionTiers(): Promise<any[]>;
+  canUseFeature(userId: string, feature: string): Promise<boolean>;
+  incrementUsage(userId: string, feature: string): Promise<void>;
 
   // Recruiter operations
   // Job postings
@@ -225,6 +234,7 @@ export interface IStorage {
   getJobPostingApplication(id: number): Promise<JobPostingApplication | undefined>;
   getApplicationsForRecruiter(recruiterId: string): Promise<JobPostingApplication[]>;
   getApplicationsForJobSeeker(jobSeekerId: string): Promise<JobPostingApplication[]>;
+  getApplicationsForJob(jobId: number): Promise<JobPostingApplication[]>;
   createJobPostingApplication(application: InsertJobPostingApplication): Promise<JobPostingApplication>;
   updateJobPostingApplication(id: number, application: Partial<InsertJobPostingApplication>): Promise<JobPostingApplication>;
   deleteJobPostingApplication(id: number): Promise<void>;
@@ -729,6 +739,40 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  // Subscription tiers and features
+  async getSubscriptionTiers(): Promise<any[]> {
+    return await handleDbOperation(async () => {
+      // Return hardcoded subscription tiers for now
+      return [
+        { id: 'free', name: 'Free', price: 0, features: ['basic_features'] },
+        { id: 'premium', name: 'Premium', price: 29, features: ['premium_features', 'advanced_analytics'] },
+        { id: 'enterprise', name: 'Enterprise', price: 99, features: ['all_features', 'priority_support'] }
+      ];
+    }, []);
+  }
+
+  async canUseFeature(userId: string, feature: string): Promise<boolean> {
+    return await handleDbOperation(async () => {
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user) return false;
+      
+      // For now, allow premium users to use most features
+      if (user.planType === 'premium' || user.planType === 'enterprise') {
+        return true;
+      }
+      
+      // Allow free users to use basic features
+      return feature === 'basic_features';
+    }, false);
+  }
+
+  async incrementUsage(userId: string, feature: string): Promise<void> {
+    await handleDbOperation(async () => {
+      // For now, this is a no-op. In the future, we could track feature usage
+      console.log(`User ${userId} used feature: ${feature}`);
+    });
+  }
+
   // Resume operations for demo user
   async getUserResumes(userId: string): Promise<any[]> {
     // For demo user, manage state in memory
@@ -979,6 +1023,12 @@ export class DatabaseStorage implements IStorage {
   async getApplicationsForJobSeeker(jobSeekerId: string): Promise<JobPostingApplication[]> {
     return await handleDbOperation(async () => {
       return await db.select().from(jobPostingApplications).where(eq(jobPostingApplications.applicantId, jobSeekerId)).orderBy(desc(jobPostingApplications.appliedAt));
+    }, []);
+  }
+
+  async getApplicationsForJob(jobId: number): Promise<JobPostingApplication[]> {
+    return await handleDbOperation(async () => {
+      return await db.select().from(jobPostingApplications).where(eq(jobPostingApplications.jobPostingId, jobId)).orderBy(desc(jobPostingApplications.appliedAt));
     }, []);
   }
 
