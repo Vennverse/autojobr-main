@@ -1,4 +1,3 @@
-
 import { storage } from "./storage";
 import { groqService } from "./groqService";
 import { codeExecutionService } from "./codeExecutionService";
@@ -440,7 +439,7 @@ export class SkillsVerificationService {
     if (!verification) throw new Error('Verification not found');
 
     const sessionId = `skills_${verificationId}_${Date.now()}`;
-    
+
     // Initialize monitoring
     await proctorService.initializeSession(sessionId, verification.candidateId, {
       sessionType: 'skills_verification',
@@ -523,19 +522,19 @@ export class SkillsVerificationService {
   private async analyzeCode(filePath: string, language: string): Promise<any> {
     try {
       const code = await fs.readFile(filePath, 'utf-8');
-      
+
       // Basic code metrics
       const lines = code.split('\n');
       const codeLines = lines.filter(line => line.trim() && !line.trim().startsWith('//') && !line.trim().startsWith('#'));
       const commentLines = lines.filter(line => line.trim().startsWith('//') || line.trim().startsWith('#'));
-      
+
       // Complexity analysis
       const cyclomaticComplexity = this.calculateCyclomaticComplexity(code, language);
       const maintainabilityIndex = this.calculateMaintainabilityIndex(code, language);
-      
+
       // Security analysis
       const securityIssues = this.detectSecurityIssues(code, language);
-      
+
       // Best practices check
       const bestPractices = this.checkBestPractices(code, language);
 
@@ -590,37 +589,37 @@ export class SkillsVerificationService {
     const lines = code.split('\n').filter(line => line.trim());
     const avgLineLength = lines.reduce((sum, line) => sum + line.length, 0) / lines.length;
     const complexity = this.calculateCyclomaticComplexity(code, language);
-    
+
     // Simple formula based on various factors
     let index = 100;
     index -= Math.min(30, complexity * 2); // Complexity penalty
     index -= Math.min(20, Math.max(0, avgLineLength - 80) / 5); // Long line penalty
     index += Math.min(10, (code.match(/\/\/|#/g) || []).length / lines.length * 50); // Comment bonus
-    
+
     return Math.max(0, Math.min(100, Math.round(index)));
   }
 
   private detectSecurityIssues(code: string, language: string): string[] {
     const issues: string[] = [];
-    
+
     // Common security patterns to detect
     const securityPatterns: { [key: string]: { pattern: RegExp; issue: string }[] } = {
       javascript: [
         { pattern: /eval\(/g, issue: 'Use of eval() function (code injection risk)' },
         { pattern: /innerHTML\s*=/g, issue: 'Direct innerHTML assignment (XSS risk)' },
         { pattern: /document\.write/g, issue: 'Use of document.write (XSS risk)' },
-        { pattern: /password.*=.*['"][^'"]*['"/g, issue: 'Hardcoded password detected' }
+        { pattern: /password.*=.*['"][^'"]*['"]/g, issue: 'Hardcoded password detected' }
       ],
       python: [
         { pattern: /exec\(/g, issue: 'Use of exec() function (code injection risk)' },
         { pattern: /eval\(/g, issue: 'Use of eval() function (code injection risk)' },
         { pattern: /pickle\.loads/g, issue: 'Use of pickle.loads (deserialization risk)' },
-        { pattern: /password.*=.*['"][^'"]*['"/g, issue: 'Hardcoded password detected' }
+        { pattern: /password.*=.*['"][^'"]*['"]/g, issue: 'Hardcoded password detected' }
       ]
     };
 
     const patterns = securityPatterns[language] || securityPatterns.javascript;
-    
+
     patterns.forEach(({ pattern, issue }) => {
       if (pattern.test(code)) {
         issues.push(issue);
@@ -665,21 +664,21 @@ export class SkillsVerificationService {
 
   private calculateCodeQualityScore(metrics: any): number {
     let score = 100;
-    
+
     // Maintainability penalty
     score -= Math.max(0, 100 - metrics.maintainabilityIndex) * 0.3;
-    
+
     // Comment ratio bonus/penalty
     if (metrics.commentRatio < 0.1) score -= 10; // Too few comments
     else if (metrics.commentRatio > 0.1 && metrics.commentRatio < 0.3) score += 5; // Good ratio
-    
+
     // Security issues penalty
     score -= metrics.securityIssues * 15;
-    
+
     // Best practices penalty
     const practiceScore = (metrics.bestPractices / 4) * 20; // Assuming 4 practices checked
     score -= (20 - practiceScore);
-    
+
     return Math.max(0, Math.min(100, Math.round(score)));
   }
 
@@ -806,21 +805,23 @@ export class SkillsVerificationService {
   private evaluateFunctionality(submissions: any[], template: ProjectTemplate): number {
     // Check if demo/presentation exists and evaluate based on deliverables completeness
     const requiredDeliverables = template.deliverables.filter(d => d.required);
-    const submittedCount = submissions.length;
-    const completionRate = (submittedCount / requiredDeliverables.length) * 100;
-    
+    const submittedDeliverables = submissions.map(s => s.deliverableId);
+    const missingDeliverables = requiredDeliverables.filter(d => !submittedDeliverables.includes(d.id));
+
+    const completionRate = ((requiredDeliverables.length - missingDeliverables.length) / requiredDeliverables.length) * 100;
+
     // Base score on completion rate with some randomness for demo
     return Math.min(100, Math.round(completionRate + (Math.random() * 20 - 10)));
   }
 
   private evaluateDocumentation(submissions: any[]): number {
     const docSubmissions = submissions.filter(s => s.fileName.includes('README') || s.fileType === 'md' || s.fileType === 'pdf');
-    
+
     if (docSubmissions.length === 0) return 30;
-    
+
     // Simple evaluation based on file size (proxy for comprehensiveness)
     const avgSize = docSubmissions.reduce((sum, doc) => sum + doc.fileSize, 0) / docSubmissions.length;
-    
+
     if (avgSize > 5000) return 85; // Good documentation
     if (avgSize > 2000) return 70; // Adequate documentation
     if (avgSize > 500) return 55; // Minimal documentation
@@ -846,7 +847,7 @@ export class SkillsVerificationService {
 
   private calculateTechnicalCompetency(submissions: any[]): any {
     const codeSubmissions = submissions.filter(s => s.codeAnalysis);
-    
+
     if (codeSubmissions.length === 0) {
       return {
         codeQuality: 50,
@@ -880,15 +881,15 @@ export class SkillsVerificationService {
   }
 
   private calculateProjectManagement(submissions: any[], verification: any): any {
-    const timeSpent = verification.completedAt ? 
+    const timeSpent = verification.completedAt && verification.startedAt ?
       (new Date(verification.completedAt).getTime() - new Date(verification.startedAt).getTime()) / (1000 * 60 * 60) : 0;
-    
+
     const estimatedTime = verification.timeLimit || 8;
     const timeEfficiency = timeSpent <= estimatedTime ? 100 : Math.max(0, 100 - ((timeSpent - estimatedTime) / estimatedTime) * 50);
 
-    const documentationSubmissions = submissions.filter(s => 
-      s.fileName.toLowerCase().includes('readme') || 
-      s.fileType === 'md' || 
+    const documentationSubmissions = submissions.filter(s =>
+      s.fileName.toLowerCase().includes('readme') ||
+      s.fileType === 'md' ||
       s.fileType === 'pdf'
     );
 
@@ -903,7 +904,7 @@ export class SkillsVerificationService {
   private calculateInnovation(submissions: any[], template: ProjectTemplate): any {
     const requiredDeliverables = template.deliverables.filter(d => d.required).length;
     const extraDeliverables = Math.max(0, submissions.length - requiredDeliverables);
-    
+
     return {
       creativityScore: Math.min(100, 60 + extraDeliverables * 10),
       implementationNovelty: Math.floor(Math.random() * 30) + 60, // Mock for demo
@@ -913,44 +914,44 @@ export class SkillsVerificationService {
 
   private async generateProjectFeedback(template: ProjectTemplate, categoryScores: any, submissions: any[]): Promise<string> {
     let feedback = `Skills Verification Assessment - ${template.title}\n\n`;
-    
+
     feedback += `Project Overview:\n`;
     feedback += `• Type: ${template.type.replace('_', ' ').toUpperCase()}\n`;
     feedback += `• Difficulty: ${template.difficulty.toUpperCase()}\n`;
     feedback += `• Technologies: ${template.technologies.join(', ')}\n`;
     feedback += `• Deliverables Submitted: ${submissions.length}\n\n`;
-    
+
     feedback += `Category Performance:\n`;
     Object.entries(categoryScores).forEach(([category, score]) => {
       feedback += `• ${category}: ${score}/100\n`;
     });
-    
+
     feedback += `\nKey Observations:\n`;
-    
+
     // Technical feedback
     const codeSubmissions = submissions.filter(s => s.codeAnalysis);
     if (codeSubmissions.length > 0) {
       feedback += `• Code Quality: Demonstrates ${categoryScores['Technical Implementation'] >= 80 ? 'excellent' : categoryScores['Technical Implementation'] >= 60 ? 'good' : 'developing'} technical skills\n`;
     }
-    
+
     // Documentation feedback
-    const docSubmissions = submissions.filter(s => s.fileType === 'md' || s.fileType === 'pdf');
+    const docSubmissions = submissions.filter(s => s.fileName.includes('README') || s.fileType === 'md' || s.fileType === 'pdf');
     if (docSubmissions.length > 0) {
       feedback += `• Documentation: ${docSubmissions.length > 0 ? 'Comprehensive documentation provided' : 'Limited documentation'}\n`;
     }
-    
+
     // Innovation feedback
     const requiredCount = template.deliverables.filter(d => d.required).length;
     if (submissions.length > requiredCount) {
       feedback += `• Innovation: Went beyond requirements with additional deliverables\n`;
     }
-    
+
     return feedback;
   }
 
   private generateRecommendations(categoryScores: any, technicalCompetency: any): string[] {
     const recommendations: string[] = [];
-    
+
     // Technical recommendations
     if (technicalCompetency.codeQuality < 70) {
       recommendations.push('Focus on improving code quality and documentation');
@@ -961,7 +962,7 @@ export class SkillsVerificationService {
     if (technicalCompetency.bestPractices < 70) {
       recommendations.push('Practice industry coding standards and best practices');
     }
-    
+
     // Category-specific recommendations
     Object.entries(categoryScores).forEach(([category, score]: [string, any]) => {
       if (score < 70) {
@@ -978,13 +979,13 @@ export class SkillsVerificationService {
         }
       }
     });
-    
+
     // Positive recommendations
     if (recommendations.length === 0) {
       recommendations.push('Excellent work! Consider taking on more complex projects');
       recommendations.push('Explore leadership opportunities in technical projects');
     }
-    
+
     return recommendations.slice(0, 5); // Limit to 5 recommendations
   }
 
@@ -997,18 +998,18 @@ export class SkillsVerificationService {
 
   private identifySkillGaps(categoryScores: any, template: ProjectTemplate): string[] {
     const gaps: string[] = [];
-    
+
     Object.entries(categoryScores).forEach(([category, score]: [string, any]) => {
       if (score < 70) {
         gaps.push(category);
       }
     });
-    
+
     // Add technology-specific gaps based on project type
     if (categoryScores['Technical Implementation'] < 70) {
       gaps.push(...template.technologies.slice(0, 2)); // Add first 2 technologies as skill gaps
     }
-    
+
     return gaps;
   }
 
@@ -1019,9 +1020,9 @@ export class SkillsVerificationService {
       'senior': 1.2,
       'lead': 1.3
     };
-    
+
     const adjustedScore = overallScore * (difficultyMultiplier[difficulty as keyof typeof difficultyMultiplier] || 1.0);
-    
+
     if (adjustedScore >= 90) return 'expert';
     if (adjustedScore >= 80) return 'proficient';
     if (adjustedScore >= 70) return 'competent';
@@ -1045,7 +1046,7 @@ export class SkillsVerificationService {
       projectType: template.type,
       difficulty: template.difficulty,
       completionDate: verification.completedAt,
-      timeSpent: verification.completedAt && verification.startedAt ? 
+      timeSpent: verification.completedAt && verification.startedAt ?
         Math.round((new Date(verification.completedAt).getTime() - new Date(verification.startedAt).getTime()) / (1000 * 60 * 60)) : 0,
       result,
       submissions: submissions.length,
@@ -1058,9 +1059,9 @@ export class SkillsVerificationService {
 
   private generateExecutiveSummary(result: SkillsVerificationResult, template: ProjectTemplate): string {
     let summary = `Executive Summary - ${template.title}\n\n`;
-    
+
     summary += `Overall Assessment: ${result.overallScore}/100 - ${result.hiringRecommendation.replace('_', ' ').toUpperCase()}\n\n`;
-    
+
     summary += `Key Strengths:\n`;
     Object.entries(result.categoryScores)
       .sort(([,a], [,b]) => b - a)
@@ -1068,7 +1069,7 @@ export class SkillsVerificationService {
       .forEach(([category, score]) => {
         summary += `• ${category}: ${score}/100\n`;
       });
-    
+
     summary += `\nDevelopment Areas:\n`;
     if (result.skillGaps.length > 0) {
       result.skillGaps.slice(0, 3).forEach(gap => {
@@ -1077,12 +1078,12 @@ export class SkillsVerificationService {
     } else {
       summary += `• No significant skill gaps identified\n`;
     }
-    
+
     summary += `\nRecommendation: ${result.hiringRecommendation === 'strong_hire' ? 'Strongly recommend for hire' :
                                      result.hiringRecommendation === 'hire' ? 'Recommend for hire' :
                                      result.hiringRecommendation === 'conditional' ? 'Conditional hire with development plan' :
                                      'Not recommended for current role'}\n`;
-    
+
     return summary;
   }
 
@@ -1116,7 +1117,7 @@ export class SkillsVerificationService {
     const currentLevel = result.certificationLevel;
     const nextLevel = {
       'entry': 'competent',
-      'competent': 'proficient', 
+      'competent': 'proficient',
       'proficient': 'expert',
       'expert': 'expert'
     }[currentLevel];
