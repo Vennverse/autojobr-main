@@ -589,12 +589,51 @@ export class JobSpyService {
   }
 
   /**
+   * Optimized daily job scraping with focus on high-traffic locations and popular roles
+   */
+  async runOptimizedDailyJobScraping(): Promise<JobSpyResult> {
+    const optimizedConfig: JobSpyConfig = {
+      search_terms: [
+        // Most in-demand tech roles
+        'software engineer', 'frontend developer', 'backend developer', 'full stack developer',
+        'data scientist', 'devops engineer', 'mobile developer', 'python developer', 
+        'react developer', 'node.js developer', 'data engineer', 'machine learning engineer',
+        
+        // High-volume business roles  
+        'account manager', 'sales representative', 'business development manager',
+        'digital marketing manager', 'content marketing manager', 'product manager',
+        'business analyst', 'operations manager', 'project manager',
+        'customer success manager', 'hr manager', 'recruiter'
+      ],
+      locations: [
+        // Top US job markets
+        'New York, NY', 'San Francisco, CA', 'Los Angeles, CA', 'Austin, TX', 'Seattle, WA',
+        'Chicago, IL', 'Boston, MA', 'Denver, CO', 'Atlanta, GA', 'Remote',
+        
+        // Top India job markets  
+        'Mumbai, India', 'Bangalore, India', 'Delhi, India', 'Hyderabad, India', 'Chennai, India',
+        
+        // Top UK markets
+        'London, UK', 'Manchester, UK', 'Birmingham, UK',
+        
+        // Remote opportunities
+        'Anywhere'
+      ],
+      job_sites: ['indeed', 'linkedin'], // Most reliable and fastest
+      results_wanted: 50, // Increased for more jobs
+      country: 'USA' // Will be mapped properly in Python script
+    };
+
+    return this.scrapeJobs(optimizedConfig);
+  }
+
+  /**
    * Scrape jobs globally with intelligent rotation
    */
   async scrapeJobsGlobal(
     categories: (keyof typeof this.DEFAULT_SEARCH_TERMS)[] = ['tech', 'sales', 'marketing'],
     countries: (keyof typeof this.DEFAULT_LOCATIONS)[] = ['US', 'IN', 'GB'],
-    resultsPerCategory: number = 20
+    resultsPerCategory: number = 25 // Increased from 20
   ): Promise<JobSpyResult[]> {
     const results: JobSpyResult[] = [];
     

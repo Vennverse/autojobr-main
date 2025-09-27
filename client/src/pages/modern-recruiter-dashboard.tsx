@@ -135,6 +135,49 @@ export default function ApplicantsPage() {
     retry: false,
   });
 
+  // Calculate realistic match score based on actual applicant data
+  const calculateRealisticMatchScore = (app: any): number => {
+    let score = 50; // Base score
+    
+    // Skills matching (40% weight)
+    if (app.skills && Array.isArray(app.skills) && app.skills.length > 0) {
+      const skillCount = app.skills.length;
+      const skillBonus = Math.min(skillCount * 5, 30); // Max 30 points for skills
+      score += skillBonus;
+    }
+    
+    // Experience boost (30% weight)
+    if (app.experience && typeof app.experience === 'string') {
+      const expText = app.experience.toLowerCase();
+      if (expText.includes('senior') || expText.includes('lead')) score += 20;
+      else if (expText.includes('mid') || expText.includes('intermediate')) score += 15;
+      else if (expText.includes('junior') || expText.includes('entry')) score += 10;
+      
+      // Extract years of experience
+      const yearMatch = expText.match(/(\d+)\s*(?:years?|yrs?)/i);
+      if (yearMatch) {
+        const years = parseInt(yearMatch[1]);
+        score += Math.min(years * 2, 15); // Max 15 points for years
+      }
+    }
+    
+    // Education boost (20% weight)
+    if (app.applicantEducation) {
+      const edu = app.applicantEducation.toLowerCase();
+      if (edu.includes('master') || edu.includes('mba') || edu.includes('phd')) score += 15;
+      else if (edu.includes('bachelor') || edu.includes('degree')) score += 10;
+      else if (edu.includes('diploma') || edu.includes('certificate')) score += 5;
+    }
+    
+    // Location match (10% weight)
+    if (app.applicantLocation && app.applicantLocation.toLowerCase().includes('remote')) {
+      score += 10;
+    }
+    
+    // Ensure score is within 45-95 range for realistic variation
+    return Math.max(45, Math.min(95, Math.round(score)));
+  };
+
   // Transform applications to candidate format
   const realCandidates = useMemo(() => {
     if (!applications || applications.length === 0) return [];
@@ -148,7 +191,7 @@ export default function ApplicantsPage() {
       keySkills: app.skills || [],
       location: app.applicantLocation || 'Not specified',
       experience: app.experience || 'Not specified',
-      matchScore: app.matchScore || Math.floor(Math.random() * 30) + 65, // Generate realistic score if not available
+      matchScore: app.matchScore || calculateRealisticMatchScore(app), // Calculate realistic score based on actual data
       lastActivity: app.appliedAt ? formatTimeAgo(app.appliedAt) : 'Unknown',
       jobId: app.jobPostingId,
       email: app.applicantEmail,

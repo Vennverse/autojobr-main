@@ -335,21 +335,50 @@ class JobSpyIntegration:
                 try:
                     print(f"[JOBSPY] Scraping: '{search_term}' in '{location}'")
                     
-                    # Scrape jobs using JobSpy with improved parameters
+                    # Map country to valid JobSpy country codes
+                    country_mapping = {
+                        'USA': 'us',
+                        'US': 'us', 
+                        'UNITED STATES': 'us',
+                        'INDIA': 'india',
+                        'IN': 'india',
+                        'UK': 'uk',
+                        'UNITED KINGDOM': 'uk',
+                        'GB': 'uk',
+                        'GERMANY': 'germany',
+                        'DE': 'germany',
+                        'AUSTRALIA': 'australia', 
+                        'AU': 'australia',
+                        'CANADA': 'canada',
+                        'CA': 'canada',
+                        'FRANCE': 'france',
+                        'FR': 'france',
+                        'SPAIN': 'spain',
+                        'ES': 'spain'
+                    }
+                    
+                    valid_country = country_mapping.get(country.upper(), 'us')  # Default to US
+                    
+                    # Optimize job sites based on location
+                    optimized_sites = ['indeed', 'linkedin']  # Use fastest, most reliable sites
+                    if 'india' in location.lower() or valid_country == 'india':
+                        optimized_sites = ['indeed', 'linkedin', 'naukri']
+                    
+                    # Scrape jobs using JobSpy with optimized parameters
                     jobs_df = scrape_jobs(
-                        site_name=job_sites,
+                        site_name=optimized_sites,
                         search_term=search_term,
                         location=location,
-                        results_wanted=min(results_wanted, 20),  # Limit per search to avoid rate limits
-                        hours_old=72,  # Only get jobs posted in last 72 hours
-                        country_indeed=country.lower(),
+                        results_wanted=min(results_wanted, 25),  # Increased from 20 for more results
+                        hours_old=48,  # Reduced from 72 for faster scraping and fresher jobs
+                        country_indeed=valid_country,
                         hyperlinks=True,
-                        verbose=1,  # Show warnings and errors for better debugging
-                        description_format="markdown",  # Better formatted descriptions  
-                        linkedin_fetch_description=True,  # Get full LinkedIn descriptions
-                        enforce_annual_salary=True,  # Standardize salary format
-                        easy_apply=False,  # Don't filter for easy apply to get more results
-                        is_remote=(location.lower() == 'remote')  # Set remote flag for remote searches
+                        verbose=0,  # Reduced verbosity for faster execution
+                        description_format="html",  # Use html for better compatibility and speed
+                        linkedin_fetch_description=False,  # Disabled for speed - often causes delays
+                        enforce_annual_salary=False,  # Disabled for speed
+                        easy_apply=False,  # Keep disabled to get more results
+                        is_remote=(location.lower() in ['remote', 'anywhere'])
                     )
                     
                     if jobs_df is not None and not jobs_df.empty:
