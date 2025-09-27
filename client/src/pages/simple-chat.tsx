@@ -558,11 +558,6 @@ export default function SimpleChatPage() {
                             <p className="text-sm text-gray-500 truncate">
                               {conversation.lastMessagePreview || 'No messages yet'}
                             </p>
-                            {conversation.otherUserType && (
-                              <Badge variant="secondary" className="ml-2 text-xs">
-                                {conversation.otherUserType.replace('_', ' ')}
-                              </Badge>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -600,9 +595,6 @@ export default function SimpleChatPage() {
                             <p className="text-xs text-gray-400">{chatUser.companyName}</p>
                           )}
                         </div>
-                        <Badge variant="outline">
-                          {chatUser.userType.replace('_', ' ')}
-                        </Badge>
                       </div>
                     </div>
                   ))
