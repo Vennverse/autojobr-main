@@ -1,0 +1,42 @@
+0|autojobr | 2025-09-27T14:13:13: [DEBUG] Fetching resumes for user: user-1758665575590-xarmv7rlv
+0|autojobr | 2025-09-27T14:13:13: ✅ Connected to Replit PostgreSQL database
+0|autojobr | 2025-09-27T14:13:13: ✅ Connected to Replit PostgreSQL database
+0|autojobr | 2025-09-27T14:13:13: ✅ Connected to Replit PostgreSQL database
+0|autojobr | 2025-09-27T14:13:13: [DEBUG] Found 1 resumes for user user-1758665575590-xarmv7rlv
+0|autojobr | 2025-09-27T14:13:13: [DEBUG] Returning 1 formatted resumes for user user-1758665575590-xarmv7rlv
+0|autojobr | 2025-09-27T14:13:13: 2:13:13 PM [express] GET /api/recruiter/applicant/user-1758665575590-xarmv7rlv 200 in 42ms :: {"user…
+
+/var/www/autojobr-main/logs/err-1.log last 15 lines:
+1|autojobr |   detail: undefined,
+1|autojobr |   hint: undefined,
+1|autojobr |   position: '111',
+1|autojobr |   internalPosition: undefined,
+1|autojobr |   internalQuery: undefined,
+1|autojobr |   where: undefined,
+1|autojobr |   schema: undefined,
+1|autojobr |   table: undefined,
+1|autojobr |   column: undefined,
+1|autojobr |   dataType: undefined,
+1|autojobr |   constraint: undefined,
+1|autojobr |   file: 'parse_relation.c',
+1|autojobr |   line: '3722',
+1|autojobr |   routine: 'errorMissingColumn'
+1|autojobr | }
+
+/var/www/autojobr-main/logs/out-1.log last 15 lines:
+1|autojobr | 2025-09-27T14:12:35: Extension profile request received
+1|autojobr | 2025-09-27T14:12:35: Authenticated user found, fetching real profile data
+1|autojobr | 2025-09-27T14:12:35: ✅ Connected to Replit PostgreSQL database
+1|autojobr | 2025-09-27T14:12:35: ✅ Connected to Replit PostgreSQL database
+1|autojobr | 2025-09-27T14:12:35: ✅ Connected to Replit PostgreSQL database
+1|autojobr | 2025-09-27T14:12:35: Returning real profile data for authenticated user
+1|autojobr | 2025-09-27T14:12:35: 2:12:35 PM [express] GET /api/extension/profile 200 in 21ms :: {"authenticated":true,"firstName":"au…
+1|autojobr | 2025-09-27T14:13:16: [AUTH DEBUG] GET /api/resumes/8/download: {
+1|autojobr |   hasSession: true,
+1|autojobr |   sessionUser: true,
+1|autojobr |   passportUser: false,
+1|autojobr |   sessionId: 'DnJlOufoLuiWGk5-xTLX9DG-z6XvPW-N',
+1|autojobr |   cookies: 'present'
+1|autojobr | }
+1|autojobr | 2025-09-27T14:13:16: 2:13:16 PM [express] GET /api/resumes/8/download 500 in 20ms :: {"message":"Failed to download resum…
+
