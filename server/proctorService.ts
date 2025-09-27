@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
-import { users, testSubmissions, mockInterviews } from "@shared/schema";
+import { users, mockInterviews } from "@shared/schema";
 
 interface DeviceFingerprint {
   userAgent: string;
@@ -70,6 +70,8 @@ interface ProctoringSummary {
 }
 
 export class ProctorService {
+  private activeSessions: Map<string, any> = new Map();
+  
   private violationWeights = {
     tab_switch: 5,
     copy_attempt: 8,
@@ -283,6 +285,25 @@ export class ProctorService {
     };
   }
 
+  // Initialize a proctoring session
+  async initializeSession(sessionId: string, userId: string, options: {
+    sessionType: string;
+    securityLevel: string;
+    enableScreenRecording?: boolean;
+    enableActivityTracking?: boolean;
+  }): Promise<void> {
+    this.activeSessions.set(sessionId, {
+      sessionId,
+      userId,
+      startTime: Date.now(),
+      options,
+      violations: [],
+      deviceFingerprint: null,
+      riskScore: 0
+    });
+    console.log(`🛡️ Proctoring session initialized: ${sessionId} for user ${userId}`);
+  }
+
   // Helper methods for detection
   private detectVirtualMachine(data: any): boolean {
     const vmIndicators = [
@@ -299,28 +320,29 @@ export class ProctorService {
 
   private detectRemoteDesktop(data: any): boolean {
     const rdpIndicators = ['mstsc', 'remote desktop', 'teamviewer', 'anydesk', 'chrome remote desktop'];
-    const processes = (data.processes || []).map((p: string) => p.toLowerCase());
+    const processes = (data.processes || []).map((p: any) => String(p).toLowerCase());
     return rdpIndicators.some(indicator => 
-      processes.some(process => process.includes(indicator))
+      processes.some((process: string) => process.includes(indicator))
     );
   }
 
   private detectScreenSharing(data: any): boolean {
     const sharingIndicators = ['zoom', 'teams', 'skype', 'discord', 'obs', 'streamlabs'];
-    const processes = (data.processes || []).map((p: string) => p.toLowerCase());
+    const processes = (data.processes || []).map((p: any) => String(p).toLowerCase());
     return sharingIndicators.some(indicator => 
-      processes.some(process => process.includes(indicator))
+      processes.some((process: string) => process.includes(indicator))
     );
   }
 
-  private detectSuspiciousProcesses(processes: string[]): string[] {
+  private detectSuspiciousProcesses(processes: any[]): string[] {
     const suspicious = [
       'cheat engine', 'wireshark', 'fiddler', 'burp suite', 'postman',
       'auto clicker', 'macro recorder', 'selenium', 'puppeteer',
       'ide', 'visual studio', 'notepad++', 'sublime', 'atom'
     ];
     
-    return processes.filter(process => 
+    const processStrings = processes.map(p => String(p));
+    return processStrings.filter((process: string) => 
       suspicious.some(sus => process.toLowerCase().includes(sus))
     );
   }

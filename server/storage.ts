@@ -448,6 +448,17 @@ export interface IStorage {
   createSkillsVerification(data: InsertSkillsVerification): Promise<SkillsVerification>;
   getSkillsVerification(id: number): Promise<SkillsVerification | undefined>;
   updateSkillsVerification(id: number, data: Partial<InsertSkillsVerification>): Promise<SkillsVerification>;
+
+  // Skills verification deliverable submissions
+  createDeliverableSubmission(submission: {
+    skillsVerificationId: number;
+    deliverableId: string;
+    filePath: string;
+    fileName: string;
+    fileType: string;
+    metadata: any;
+  }): Promise<any>;
+  getDeliverableSubmissions(skillsVerificationId: number): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2720,6 +2731,38 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return verification;
     });
+  }
+
+  // Skills verification deliverable submissions - using in-memory storage for now
+  private deliverableSubmissions: Map<number, any[]> = new Map();
+
+  async createDeliverableSubmission(submission: {
+    skillsVerificationId: number;
+    deliverableId: string;
+    filePath: string;
+    fileName: string;
+    fileType: string;
+    metadata: any;
+  }): Promise<any> {
+    return await handleDbOperation(async () => {
+      const submissionData = {
+        id: Date.now(), // Simple ID generation for now
+        ...submission,
+        uploadedAt: new Date(),
+      };
+
+      const existing = this.deliverableSubmissions.get(submission.skillsVerificationId) || [];
+      existing.push(submissionData);
+      this.deliverableSubmissions.set(submission.skillsVerificationId, existing);
+
+      return submissionData;
+    });
+  }
+
+  async getDeliverableSubmissions(skillsVerificationId: number): Promise<any[]> {
+    return await handleDbOperation(async () => {
+      return this.deliverableSubmissions.get(skillsVerificationId) || [];
+    }, []);
   }
 }
 

@@ -3410,3 +3410,50 @@ export type InsertChallenge = z.infer<typeof insertChallengeSchema>;
 
 export type ChallengeParticipant = typeof challengeParticipants.$inferSelect;
 export type InsertChallengeParticipant = z.infer<typeof insertChallengeParticipantSchema>;
+
+// ADVANCED ASSESSMENT SYSTEM SCHEMAS AND TYPES
+
+// Video Interview insert schemas
+export const insertVideoInterviewSchema = createInsertSchema(videoInterviews).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertVideoResponseSchema = createInsertSchema(videoResponses).omit({
+  id: true,
+  uploadedAt: true,
+});
+
+// Simulation Assessment insert schema
+export const insertSimulationAssessmentSchema = createInsertSchema(simulationAssessments).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Personality Assessment insert schema
+export const insertPersonalityAssessmentSchema = createInsertSchema(personalityAssessments).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Skills Verification insert schema
+export const insertSkillsVerificationSchema = createInsertSchema(skillsVerifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Advanced Assessment Types
+export type VideoInterview = typeof videoInterviews.$inferSelect;
+export type InsertVideoInterview = z.infer<typeof insertVideoInterviewSchema>;
+
+export type VideoResponse = typeof videoResponses.$inferSelect;
+export type InsertVideoResponse = z.infer<typeof insertVideoResponseSchema>;
+
+export type SimulationAssessment = typeof simulationAssessments.$inferSelect;
+export type InsertSimulationAssessment = z.infer<typeof insertSimulationAssessmentSchema>;
+
+export type PersonalityAssessment = typeof personalityAssessments.$inferSelect;
+export type InsertPersonalityAssessment = z.infer<typeof insertPersonalityAssessmentSchema>;
+
+export type SkillsVerification = typeof skillsVerifications.$inferSelect;
+export type InsertSkillsVerification = z.infer<typeof insertSkillsVerificationSchema>;

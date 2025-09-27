@@ -1,12 +1,12 @@
-import Groq from 'groq-sdk';
+import { groqService } from './groqService';
+import { aiService } from './aiService';
 import { aiDetectionService } from './aiDetectionService';
 import { behavioralQuestionService, BehavioralQuestion } from './behavioralQuestions';
 import { proctorService } from './proctorService';
 import { behavioralAnalyzer } from './behavioralAnalyzer';
 import { cameraProctorService } from './cameraProctorService';
 
-// Using Groq AI for all virtual interview functionality - optimized for token usage
-const DEFAULT_MODEL_STR = "llama-3.1-8b-instant"; // Faster, cheaper model
+// Using centralized AI service for all virtual interview functionality
 
 interface InterviewerPersonality {
   greeting: string;
@@ -52,7 +52,6 @@ interface InterviewSession {
 }
 
 export class VirtualInterviewService {
-  private groq: Groq;
   
   private personalities: Record<string, InterviewerPersonality> = {
     friendly: {
@@ -100,16 +99,7 @@ export class VirtualInterviewService {
   };
 
   constructor() {
-    if (process.env.GROQ_API_KEY) {
-      this.groq = new Groq({
-        apiKey: process.env.GROQ_API_KEY,
-      });
-      console.log("Virtual Interview Groq client initialized successfully");
-    } else {
-      console.log("GROQ_API_KEY not provided - virtual interviews will use fallback mode");
-      // Initialize with null to avoid undefined errors
-      this.groq = null as any;
-    }
+    console.log("Virtual Interview Service initialized with centralized AI service");
   }
 
   async generateGreeting(
@@ -134,21 +124,16 @@ export class VirtualInterviewService {
     const prompt = this.buildQuestionPrompt(interviewType, difficulty, role, questionNumber, previousResponses, userContext);
     
     try {
-      const response = await this.groq.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert interviewer. Generate a single, specific interview question with metadata. Respond with valid JSON only."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        model: DEFAULT_MODEL_STR,
-        temperature: 0.7,
-        max_tokens: 500,
-      });
+      const response = await groqService.chat([
+        {
+          role: "system",
+          content: "You are an expert interviewer. Generate a single, specific interview question with metadata. Respond with valid JSON only."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ]);
 
       const content = response.choices[0]?.message?.content;
       if (!content) throw new Error('No response from AI');
@@ -193,32 +178,7 @@ export class VirtualInterviewService {
       reasoning: 'AI detection skipped for performance'
     };
     
-    // If GROQ is not available, return fallback analysis
-    if (!this.groq) {
-      const baseAnalysis = {
-        responseQuality: Math.min(10, Math.max(1, Math.floor(userResponse.length / 20) + 3)),
-        technicalAccuracy: 60,
-        clarityScore: 65,
-        depthScore: 55,
-        keywordsMatched: expectedKeywords.filter(keyword => 
-          userResponse.toLowerCase().includes(keyword.toLowerCase())
-        ),
-        sentiment: 'neutral' as const,
-        confidence: 60
-      };
-
-      const responseAnalysis = aiDetectionService.analyzeResponseWithAI(
-        { overallScore: baseAnalysis.responseQuality * 10 }, 
-        aiDetection
-      );
-
-      return {
-        ...baseAnalysis,
-        aiDetection: responseAnalysis.aiDetection,
-        finalScore: responseAnalysis.finalScore,
-        partialResultsOnly: responseAnalysis.partialResultsOnly
-      };
-    }
+    // Use centralized AI service for analysis
     
     const prompt = `
 Analyze this interview response. Be concise.
@@ -230,21 +190,16 @@ Response: "${userResponse}"
 Return JSON only: {"responseQuality": 1-10, "technicalAccuracy": 0-100, "clarityScore": 0-100, "depthScore": 0-100, "keywordsMatched": ["matched", "keywords"], "sentiment": "positive/neutral/negative", "confidence": 1-100}`;
 
     try {
-      const response = await this.groq.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert interview evaluator. Analyze responses thoroughly and fairly."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        model: DEFAULT_MODEL_STR,
-        temperature: 0.3,
-        max_tokens: 300, // Reduced tokens
-      });
+      const response = await groqService.chat([
+        {
+          role: "system",
+          content: "You are an expert interview evaluator. Analyze responses thoroughly and fairly."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ]);
 
       const content = response.choices[0]?.message?.content;
       if (!content) throw new Error('No response from AI');
