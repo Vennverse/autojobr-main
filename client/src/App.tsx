@@ -73,6 +73,9 @@ import BackgroundCheckIntegration from "@/pages/background-check-integration";
 import SSOConfiguration from "@/pages/sso-configuration";
 import SubscriptionSuccess from "@/pages/subscription/Success";
 import SubscriptionCancel from "@/pages/subscription/Cancel";
+import RecruiterSettings from "@/pages/recruiter/settings";
+import RecruiterBilling from "@/pages/recruiter/billing";
+import RecruiterProfile from "@/pages/recruiter/profile";
 import BidderDashboard from "@/pages/bidder-dashboard";
 import BidderLanding from "@/pages/bidder-landing";
 import BidderProfile from "@/pages/bidder-profile";
@@ -269,6 +272,9 @@ function Router() {
               <Route path="/recruiter/enhanced-pipeline" component={EnhancedPipelineManagement} />
               <Route path="/recruiter/tasks" component={TaskManagement} />
               <Route path="/recruiter/background-checks" component={BackgroundCheckIntegration} />
+              <Route path="/recruiter/settings" component={RecruiterSettings} />
+              <Route path="/recruiter/billing" component={RecruiterBilling} />
+              <Route path="/recruiter/profile" component={RecruiterProfile} />
               <Route path="/admin/sso-configuration" component={SSOConfiguration} />
               {/* Admin user management temporarily disabled */}
               <Route path="/jobs/:id" component={ViewJob} />
