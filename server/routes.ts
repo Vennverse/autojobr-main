@@ -2521,15 +2521,15 @@ Additional Information:
     }
   });
 
-  // Download resume file - FIXED: Using userResumes table with proper security
+  // Download resume file - FIXED: Using resumes table with proper security
   app.get('/api/resumes/:id/download', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const resumeId = parseInt(req.params.id);
       
-      // Get resume record from userResumes table with ownership verification
-      const [resume] = await db.select().from(userResumes).where(
-        and(eq(userResumes.id, resumeId), eq(userResumes.userId, userId))
+      // Get resume record from resumes table with ownership verification
+      const [resume] = await db.select().from(resumes).where(
+        and(eq(resumes.id, resumeId), eq(resumes.userId, userId))
       );
       
       if (!resume) {
@@ -2549,7 +2549,7 @@ Additional Information:
           const path = await import('path');
           const zlib = await import('zlib');
           
-          // Use the exact filePath from the ownership-validated userResumes record
+          // Use the exact filePath from the ownership-validated resumes record
           const fullPath = path.resolve(resume.filePath);
           
           // Security check: ensure path is within expected uploads directory
@@ -4243,11 +4243,11 @@ Additional Information:
 
       // ENHANCED: Get applicant's resume text and extract additional profile data
       try {
-        // Get applicant's active or most recent resume from userResumes table
+        // Get applicant's active or most recent resume from resumes table
         const applicantResumes = await db.select()
-          .from(userResumes)
-          .where(eq(userResumes.userId, applicantId))
-          .orderBy(desc(userResumes.isActive), desc(userResumes.createdAt))
+          .from(resumes)
+          .where(eq(resumes.userId, applicantId))
+          .orderBy(desc(resumes.isActive), desc(resumes.createdAt))
           .limit(1);
 
         if (applicantResumes.length > 0 && applicantResumes[0].resumeText) {

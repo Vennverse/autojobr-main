@@ -773,22 +773,23 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  // Resume operations for demo user
+  // Resume operations - FIXED to use correct resumes table
   async getUserResumes(userId: string): Promise<any[]> {
-    // For demo user, manage state in memory
-    if (userId === 'demo-user-id') {
-      // Initialize with demo resume if no uploads exist
-      if (!(global as any).demoUserResumes) {
-        (global as any).demoUserResumes = [
-          {
-            id: 1,
-            name: "Demo Resume",
-            fileName: "demo_resume.pdf",
-            isActive: true,
-            atsScore: 85,
-            uploadedAt: new Date('2024-01-15'),
-            fileSize: 245000,
-            fileType: 'application/pdf',
+    return await handleDbOperation(async () => {
+      // For demo user, manage state in memory
+      if (userId === 'demo-user-id') {
+        // Initialize with demo resume if no uploads exist
+        if (!(global as any).demoUserResumes) {
+          (global as any).demoUserResumes = [
+            {
+              id: 1,
+              name: "Demo Resume",
+              fileName: "demo_resume.pdf",
+              isActive: true,
+              atsScore: 85,
+              uploadedAt: new Date('2024-01-15'),
+              fileSize: 245000,
+              fileType: 'application/pdf',
             analysis: {
               atsScore: 85,
               recommendations: ["Add more technical keywords", "Improve formatting"],
@@ -812,11 +813,10 @@ export class DatabaseStorage implements IStorage {
         ];
       }
       
-      return (global as any).demoUserResumes;
-    }
-    
-    // For real users, query the database
-    try {
+        return (global as any).demoUserResumes;
+      }
+      
+      // For real users, query the database
       console.log(`[DEBUG] Fetching resumes for user: ${userId}`);
       const userResumes = await db.select().from(resumes).where(eq(resumes.userId, userId));
       console.log(`[DEBUG] Found ${userResumes.length} resumes for user ${userId}`);
@@ -839,10 +839,7 @@ export class DatabaseStorage implements IStorage {
       }));
       console.log(`[DEBUG] Returning ${formattedResumes.length} formatted resumes for user ${userId}`);
       return formattedResumes;
-    } catch (error) {
-      console.error(`[ERROR] Failed to fetch resumes for user ${userId}:`, error);
-      return [];
-    }
+    }, []);
   }
 
   async storeResume(userId: string, resumeData: any): Promise<any> {
