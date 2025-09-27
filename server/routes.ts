@@ -639,16 +639,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const requirementConditions = requirementsArray.map(req => 
           sql`${schema.scrapedInternships.requirements} @> ARRAY[${req}]::text[]`
         );
-        conditions.push(or(...requirementConditions));
+        if (requirementConditions.length > 0) {
+          conditions.push(or(...requirementConditions));
+        }
       }
       if (search) {
-        conditions.push(
-          or(
-            like(schema.scrapedInternships.company, `%${search}%`),
-            like(schema.scrapedInternships.role, `%${search}%`),
-            like(schema.scrapedInternships.location, `%${search}%`)
-          )
-        );
+        const searchConditions = [
+          like(schema.scrapedInternships.company, `%${search}%`),
+          like(schema.scrapedInternships.role, `%${search}%`),
+          like(schema.scrapedInternships.location, `%${search}%`)
+        ];
+        conditions.push(or(...searchConditions));
       }
 
       // Get internships with pagination
@@ -657,7 +658,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(schema.scrapedInternships)
         .where(and(...conditions))
         .orderBy(desc(schema.scrapedInternships.datePosted))
-        .limit(parseInt(limit))
+        .limit(limit)
         .offset(offset);
 
       // Get total count for pagination
@@ -2017,7 +2018,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
         jobPostingId,
         projectTemplateId,
-        { timeLimit, dueDate, role, company, difficulty }
+        { timeLimit, additionalRequirements: role ? `Role: ${role}, Company: ${company}, Difficulty: ${difficulty}` : undefined }
       );
       
       res.json({ message: 'Skills verification assigned successfully', verification });
@@ -2042,7 +2043,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         candidateId,
         userId,
         jobPostingId,
-        { questionCount, dueDate, role, company }
+        { questionCount }
       );
       
       res.json({ message: 'Personality assessment assigned successfully', assessment });
@@ -2412,16 +2413,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Record company verification
-      await db.insert(companyEmailVerifications).values({
-        userId: userId,
-        email: currentUser.email,
-        companyName: companyName,
-        companyWebsite: companyWebsite,
-        verificationToken: `manual-verification-${Date.now()}`,
-        isVerified: true,
-        verifiedAt: new Date(),
-        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
-      });
+      if (currentUser.email) {
+        await db.insert(companyEmailVerifications).values({
+          email: currentUser.email,
+          companyName: companyName,
+          companyWebsite: companyWebsite || null,
+          verificationToken: `manual-verification-${Date.now()}`,
+          isVerified: true,
+          verifiedAt: new Date(),
+          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+        });
+      }
 
       // Update session to reflect new user type and role
       req.session.user = {
@@ -2507,7 +2509,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Use AI to calculate match score for this specific job
           const jobData = {
             title: job.title,
-            company: job.companyName || job.company, // Fix: use correct field name
+            company: job.companyName,
             description: job.description,
             requirements: job.requirements || '',
             qualifications: job.qualifications || '',
@@ -2520,7 +2522,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           recommendations.push({
             id: `job-${job.id}`, // Use actual job ID
             title: job.title,
-            company: job.companyName || job.company, // Fix: use correct field name
+            company: job.companyName,
             location: job.location || 'Remote',
             description: job.description.substring(0, 200) + '...',
             requirements: job.requirements ? job.requirements.split('\n').slice(0, 3) : [],
@@ -2538,7 +2540,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           recommendations.push({
             id: `job-${job.id}`,
             title: job.title,
-            company: job.companyName || job.company, // Fix: use correct field name
+            company: job.companyName,
             location: job.location || 'Remote',
             description: job.description.substring(0, 200) + '...',
             requirements: job.requirements ? job.requirements.split('\n').slice(0, 3) : [],
@@ -3424,7 +3426,7 @@ Additional Information:
 
       // Get tasks for this recruiter
       const tasks = await db.select().from(schema.tasks)
-        .where(eq(schema.tasks.ownerId, userId))
+        .where(eq(schema.tasks.userId, userId))
         .orderBy(desc(schema.tasks.createdAt));
 
       res.json(tasks);
