@@ -166,7 +166,7 @@ const setCache = (key: string, data: any, ttl?: number, userId?: string) => {
 // Helper function to invalidate user-specific cache
 const invalidateUserCache = (userId: string) => {
   const keysToDelete = [];
-  for (const key of cache.keys()) {
+  for (const key of Array.from(cache.keys())) {
     if (key.includes(userId)) {
       keysToDelete.push(key);
     }
@@ -2010,14 +2010,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied. Recruiter account required." });
       }
 
-      const { candidateId, jobPostingId, projectTemplateId, estimatedTime, dueDate, role, company, difficulty } = req.body;
+      const { candidateId, jobPostingId, projectTemplateId, timeLimit, dueDate, role, company, difficulty } = req.body;
       
       const verification = await skillsVerificationService.createSkillsVerification(
         candidateId,
         userId,
         jobPostingId,
         projectTemplateId,
-        { estimatedTime, dueDate, role, company, difficulty }
+        { timeLimit, dueDate, role, company, difficulty }
       );
       
       res.json({ message: 'Skills verification assigned successfully', verification });
@@ -2036,13 +2036,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied. Recruiter account required." });
       }
 
-      const { candidateId, jobPostingId, assessmentType, questionCount, dueDate, role, company } = req.body;
+      const { candidateId, jobPostingId, questionCount, dueDate, role, company } = req.body;
       
       const assessment = await personalityAssessmentService.createPersonalityAssessment(
         candidateId,
         userId,
         jobPostingId,
-        { assessmentType, questionCount, dueDate, role, company }
+        { questionCount, dueDate, role, company }
       );
       
       res.json({ message: 'Personality assessment assigned successfully', assessment });
@@ -2122,6 +2122,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/video-interviews/create', isAuthenticated, async (req, res) => {
     try {
       const { candidateId, jobId, questions, totalTimeLimit, expiryDate } = req.body;
+      if (!req.user) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
       const recruiterId = req.user.id;
       
       const interview = await videoInterviewService.createVideoInterview(
@@ -2184,6 +2187,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/simulation-assessments/create', isAuthenticated, async (req, res) => {
     try {
       const { candidateId, jobId, scenarioType, difficulty } = req.body;
+      if (!req.user) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
       const recruiterId = req.user.id;
       
       const assessment = await simulationAssessmentService.createSimulationAssessment(
@@ -2241,6 +2247,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/personality-assessments/create', isAuthenticated, async (req, res) => {
     try {
       const { candidateId, jobId, config } = req.body;
+      if (!req.user) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
       const recruiterId = req.user.id;
       
       const assessment = await personalityAssessmentService.createPersonalityAssessment(
@@ -2273,6 +2282,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/skills-verifications/create', isAuthenticated, async (req, res) => {
     try {
       const { candidateId, jobId, projectTemplateId, customizations } = req.body;
+      if (!req.user) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
       const recruiterId = req.user.id;
       
       const verification = await skillsVerificationService.createSkillsVerification(
@@ -6606,17 +6618,24 @@ Additional Information:
     }
   });
 
-  // Get recruiter's assigned interviews
+  // Get assigned interviews - works for both recruiters and job seekers
   app.get('/api/interviews/assigned', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
       
-      if (user?.userType !== 'recruiter') {
-        return res.status(403).json({ message: 'Access denied. Recruiter account required.' });
+      let interviews;
+      
+      if (user?.userType === 'recruiter') {
+        // Recruiters see interviews they assigned
+        interviews = await interviewAssignmentService.getRecruiterAssignedInterviews(userId);
+      } else if (user?.userType === 'jobSeeker') {
+        // Job seekers see interviews assigned to them
+        interviews = await interviewAssignmentService.getJobSeekerAssignedInterviews(userId);
+      } else {
+        return res.status(403).json({ message: 'Access denied. Only recruiters and job seekers can access this endpoint.' });
       }
 
-      const interviews = await interviewAssignmentService.getRecruiterAssignedInterviews(userId);
       res.json(interviews);
     } catch (error) {
       console.error('Error fetching assigned interviews:', error);
@@ -12679,23 +12698,6 @@ Host: https://autojobr.com`;
     }
   });
 
-  // Get assigned interviews for recruiter
-  app.get('/api/interviews/assigned', isAuthenticated, async (req: any, res) => {
-    try {
-      const recruiterId = req.user.id;
-      const user = await storage.getUser(recruiterId);
-      
-      if (user?.userType !== 'recruiter') {
-        return res.status(403).json({ message: 'Access denied. Recruiter account required.' });
-      }
-      
-      const assignments = await interviewAssignmentService.getAssignedInterviews(recruiterId);
-      res.json(assignments);
-    } catch (error) {
-      console.error('Error fetching assigned interviews:', error);
-      res.status(500).json({ message: 'Failed to fetch assigned interviews' });
-    }
-  });
 
   // Get partial results for virtual interview
   app.get('/api/interviews/virtual/:id/partial-results', isAuthenticated, async (req: any, res) => {
@@ -12803,17 +12805,24 @@ Host: https://autojobr.com`;
     }
   });
 
-  // Get interview assignment statistics
+  // Get interview assignment statistics - works for both recruiters and job seekers
   app.get('/api/interviews/stats', isAuthenticated, async (req: any, res) => {
     try {
-      const recruiterId = req.user.id;
-      const user = await storage.getUser(recruiterId);
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
       
-      if (user?.userType !== 'recruiter') {
-        return res.status(403).json({ message: 'Access denied. Recruiter account required.' });
+      let stats;
+      
+      if (user?.userType === 'recruiter') {
+        // Recruiters see stats for interviews they assigned
+        stats = await interviewAssignmentService.getAssignmentStats(userId);
+      } else if (user?.userType === 'jobSeeker') {
+        // Job seekers see stats for interviews assigned to them
+        stats = await interviewAssignmentService.getJobSeekerInterviewStats(userId);
+      } else {
+        return res.status(403).json({ message: 'Access denied. Only recruiters and job seekers can access this endpoint.' });
       }
       
-      const stats = await interviewAssignmentService.getAssignmentStats(recruiterId);
       res.json(stats);
     } catch (error) {
       console.error('Error fetching interview assignment stats:', error);

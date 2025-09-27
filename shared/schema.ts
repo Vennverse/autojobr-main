@@ -805,6 +805,7 @@ export const videoInterviews = pgTable("video_interviews", {
   completedAt: timestamp("completed_at"),
   expiryDate: timestamp("expiry_date").notNull(),
   score: integer("score"),
+  overallScore: integer("overall_score"),
   feedback: text("feedback"),
   createdAt: timestamp("created_at").defaultNow()
 });
@@ -836,6 +837,7 @@ export const simulationAssessments = pgTable("simulation_assessments", {
   completedAt: timestamp("completed_at"),
   result: text("result"), // JSON string
   score: integer("score"),
+  overallScore: integer("overall_score"),
   expiryDate: timestamp("expiry_date").notNull(),
   createdAt: timestamp("created_at").defaultNow()
 });
@@ -853,6 +855,7 @@ export const personalityAssessments = pgTable("personality_assessments", {
   timeLimit: integer("time_limit"), // minutes
   jobRole: text("job_role"),
   industry: text("industry"),
+  overallScore: integer("overall_score"),
   completedAt: timestamp("completed_at"),
   expiryDate: timestamp("expiry_date").notNull(),
   createdAt: timestamp("created_at").defaultNow()
@@ -872,6 +875,7 @@ export const skillsVerifications = pgTable("skills_verifications", {
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
   score: integer("score"),
+  overallScore: integer("overall_score"),
   expiryDate: timestamp("expiry_date").notNull(),
   customizations: text("customizations"), // JSON string
   createdAt: timestamp("created_at").defaultNow()

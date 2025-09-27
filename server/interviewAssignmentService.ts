@@ -551,41 +551,107 @@ export class InterviewAssignmentService {
     }
   }
 
-  // Get assignment statistics for recruiter
+  // Get assignment statistics for recruiter - now includes all 6 interview types
   async getAssignmentStats(recruiterId: string) {
     try {
+      // Import the new interview types from schema
+      const { videoInterviews, personalityAssessments, skillsVerifications, simulationAssessments } = await import('@shared/schema');
+
       // Get virtual interview stats
       const virtualStats = await db
         .select({
           count: count(),
           completed: count(sql`CASE WHEN ${virtualInterviews.status} = 'completed' THEN 1 END`),
-          pending: count(sql`CASE WHEN ${virtualInterviews.status} = 'pending' THEN 1 END`),
+          pending: count(sql`CASE WHEN ${virtualInterviews.status} IN ('assigned', 'pending') THEN 1 END`),
           avgScore: sql`AVG(${virtualInterviews.overallScore})`
         })
         .from(virtualInterviews)
-        .where(eq(virtualInterviews.assignedBy, recruiterId))
-        .groupBy(virtualInterviews.assignedBy);
+        .where(eq(virtualInterviews.assignedBy, recruiterId));
 
       // Get mock interview stats
       const mockStats = await db
         .select({
           count: count(),
           completed: count(sql`CASE WHEN ${mockInterviews.status} = 'completed' THEN 1 END`),
-          pending: count(sql`CASE WHEN ${mockInterviews.status} = 'pending' THEN 1 END`),
+          pending: count(sql`CASE WHEN ${mockInterviews.status} IN ('assigned', 'pending') THEN 1 END`),
           avgScore: sql`AVG(${mockInterviews.score})`
         })
         .from(mockInterviews)
-        .where(eq(mockInterviews.assignedBy, recruiterId))
-        .groupBy(mockInterviews.assignedBy);
+        .where(eq(mockInterviews.assignedBy, recruiterId));
+
+      // Get video interview stats
+      const videoStats = await db
+        .select({
+          count: count(),
+          completed: count(sql`CASE WHEN ${videoInterviews.status} = 'completed' THEN 1 END`),
+          pending: count(sql`CASE WHEN ${videoInterviews.status} IN ('assigned', 'pending') THEN 1 END`),
+          avgScore: sql`AVG(${videoInterviews.overallScore})`
+        })
+        .from(videoInterviews)
+        .where(eq(videoInterviews.recruiterId, recruiterId));
+
+      // Get personality assessment stats
+      const personalityStats = await db
+        .select({
+          count: count(),
+          completed: count(sql`CASE WHEN ${personalityAssessments.status} = 'completed' THEN 1 END`),
+          pending: count(sql`CASE WHEN ${personalityAssessments.status} IN ('assigned', 'pending') THEN 1 END`),
+          avgScore: sql`AVG(${personalityAssessments.overallScore})`
+        })
+        .from(personalityAssessments)
+        .where(eq(personalityAssessments.recruiterId, recruiterId));
+
+      // Get skills verification stats
+      const skillsStats = await db
+        .select({
+          count: count(),
+          completed: count(sql`CASE WHEN ${skillsVerifications.status} = 'completed' THEN 1 END`),
+          pending: count(sql`CASE WHEN ${skillsVerifications.status} IN ('assigned', 'pending') THEN 1 END`),
+          avgScore: sql`AVG(${skillsVerifications.overallScore})`
+        })
+        .from(skillsVerifications)
+        .where(eq(skillsVerifications.recruiterId, recruiterId));
+
+      // Get simulation assessment stats
+      const simulationStats = await db
+        .select({
+          count: count(),
+          completed: count(sql`CASE WHEN ${simulationAssessments.status} = 'completed' THEN 1 END`),
+          pending: count(sql`CASE WHEN ${simulationAssessments.status} IN ('assigned', 'pending') THEN 1 END`),
+          avgScore: sql`AVG(${simulationAssessments.overallScore})`
+        })
+        .from(simulationAssessments)
+        .where(eq(simulationAssessments.recruiterId, recruiterId));
 
       const virtualData = virtualStats[0] || { count: 0, completed: 0, pending: 0, avgScore: 0 };
       const mockData = mockStats[0] || { count: 0, completed: 0, pending: 0, avgScore: 0 };
+      const videoData = videoStats[0] || { count: 0, completed: 0, pending: 0, avgScore: 0 };
+      const personalityData = personalityStats[0] || { count: 0, completed: 0, pending: 0, avgScore: 0 };
+      const skillsData = skillsStats[0] || { count: 0, completed: 0, pending: 0, avgScore: 0 };
+      const simulationData = simulationStats[0] || { count: 0, completed: 0, pending: 0, avgScore: 0 };
+
+      const totalCount = Number(virtualData.count) + Number(mockData.count) + Number(videoData.count) + 
+                        Number(personalityData.count) + Number(skillsData.count) + Number(simulationData.count);
+      
+      const totalCompleted = Number(virtualData.completed) + Number(mockData.completed) + Number(videoData.completed) + 
+                            Number(personalityData.completed) + Number(skillsData.completed) + Number(simulationData.completed);
+      
+      const totalPending = Number(virtualData.pending) + Number(mockData.pending) + Number(videoData.pending) + 
+                          Number(personalityData.pending) + Number(skillsData.pending) + Number(simulationData.pending);
+
+      const validScores = [virtualData.avgScore, mockData.avgScore, videoData.avgScore, 
+                          personalityData.avgScore, skillsData.avgScore, simulationData.avgScore]
+                          .filter(score => score && Number(score) > 0)
+                          .map(score => Number(score));
+      
+      const avgScore = validScores.length > 0 ? 
+                      validScores.reduce((sum: number, score: number) => sum + score, 0) / validScores.length : 0;
 
       return {
-        total: Number(virtualData.count) + Number(mockData.count),
-        completed: Number(virtualData.completed) + Number(mockData.completed),
-        pending: Number(virtualData.pending) + Number(mockData.pending),
-        averageScore: (Number(virtualData.avgScore) + Number(mockData.avgScore)) / 2 || 0,
+        total: totalCount,
+        completed: totalCompleted,
+        pending: totalPending,
+        averageScore: Math.round(avgScore * 100) / 100,
         virtual: {
           count: Number(virtualData.count),
           completed: Number(virtualData.completed),
@@ -597,6 +663,30 @@ export class InterviewAssignmentService {
           completed: Number(mockData.completed),
           pending: Number(mockData.pending),
           avgScore: Number(mockData.avgScore) || 0
+        },
+        video: {
+          count: Number(videoData.count),
+          completed: Number(videoData.completed),
+          pending: Number(videoData.pending),
+          avgScore: Number(videoData.avgScore) || 0
+        },
+        personality: {
+          count: Number(personalityData.count),
+          completed: Number(personalityData.completed),
+          pending: Number(personalityData.pending),
+          avgScore: Number(personalityData.avgScore) || 0
+        },
+        skills: {
+          count: Number(skillsData.count),
+          completed: Number(skillsData.completed),
+          pending: Number(skillsData.pending),
+          avgScore: Number(skillsData.avgScore) || 0
+        },
+        simulation: {
+          count: Number(simulationData.count),
+          completed: Number(simulationData.completed),
+          pending: Number(simulationData.pending),
+          avgScore: Number(simulationData.avgScore) || 0
         }
       };
     } catch (error) {
@@ -607,7 +697,339 @@ export class InterviewAssignmentService {
         pending: 0,
         averageScore: 0,
         virtual: { count: 0, completed: 0, pending: 0, avgScore: 0 },
-        mock: { count: 0, completed: 0, pending: 0, avgScore: 0 }
+        mock: { count: 0, completed: 0, pending: 0, avgScore: 0 },
+        video: { count: 0, completed: 0, pending: 0, avgScore: 0 },
+        personality: { count: 0, completed: 0, pending: 0, avgScore: 0 },
+        skills: { count: 0, completed: 0, pending: 0, avgScore: 0 },
+        simulation: { count: 0, completed: 0, pending: 0, avgScore: 0 }
+      };
+    }
+  }
+
+  // Get interviews assigned to a job seeker
+  async getJobSeekerAssignedInterviews(userId: string) {
+    try {
+      console.log(`🔍 Fetching assigned interviews for job seeker: ${userId}`);
+      
+      // Import the new interview types from schema
+      const { videoInterviews, personalityAssessments, skillsVerifications, simulationAssessments } = await import('@shared/schema');
+
+      // Get virtual interviews assigned to this user
+      const virtualInterviewsQuery = await db.execute(sql`
+        SELECT 
+          vi.id,
+          vi.interview_type as "type",
+          vi.role,
+          vi.company,
+          vi.difficulty,
+          vi.status,
+          vi.assigned_at as "assignedAt",
+          vi.due_date as "dueDate",
+          vi.overall_score as "overallScore",
+          u.first_name as "assignedByName",
+          u.email as "assignedByEmail",
+          'virtual' as "interviewCategory",
+          0 as "retakeCount",
+          3 as "maxRetakes"
+        FROM virtual_interviews vi
+        LEFT JOIN users u ON vi.assigned_by = u.id
+        WHERE vi.user_id = ${userId} AND vi.assignment_type = 'recruiter_assigned'
+        ORDER BY vi.assigned_at DESC
+      `);
+
+      // Get mock interviews assigned to this user
+      const mockInterviewsQuery = await db.execute(sql`
+        SELECT 
+          mi.id,
+          mi.interview_type as "type",
+          mi.role,
+          mi.company,
+          mi.difficulty,
+          mi.status,
+          mi.assigned_at as "assignedAt",
+          mi.due_date as "dueDate",
+          mi.score as "overallScore",
+          u.first_name as "assignedByName",
+          u.email as "assignedByEmail",
+          'mock' as "interviewCategory",
+          0 as "retakeCount",
+          3 as "maxRetakes"
+        FROM mock_interviews mi
+        LEFT JOIN users u ON mi.assigned_by = u.id
+        WHERE mi.user_id = ${userId} AND mi.assigned_by IS NOT NULL
+        ORDER BY mi.assigned_at DESC
+      `);
+
+      // Get video interviews assigned to this user
+      const videoInterviewsQuery = await db.execute(sql`
+        SELECT 
+          vi.id,
+          'video' as "type",
+          vi.job_role as "role",
+          vi.company,
+          vi.difficulty_level as "difficulty",
+          vi.status,
+          vi.created_at as "assignedAt",
+          vi.expiry_date as "dueDate",
+          vi.overall_score as "overallScore",
+          u.first_name as "assignedByName",
+          u.email as "assignedByEmail",
+          'video' as "interviewCategory",
+          0 as "retakeCount",
+          1 as "maxRetakes"
+        FROM video_interviews vi
+        LEFT JOIN users u ON vi.recruiter_id = u.id
+        WHERE vi.candidate_id = ${userId}
+        ORDER BY vi.created_at DESC
+      `);
+
+      // Get personality assessments assigned to this user
+      const personalityQuery = await db.execute(sql`
+        SELECT 
+          pa.id,
+          'personality' as "type",
+          pa.job_role as "role",
+          pa.company,
+          pa.assessment_type as "difficulty",
+          pa.status,
+          pa.created_at as "assignedAt",
+          pa.expiry_date as "dueDate",
+          pa.overall_score as "overallScore",
+          u.first_name as "assignedByName",
+          u.email as "assignedByEmail",
+          'personality' as "interviewCategory",
+          0 as "retakeCount",
+          1 as "maxRetakes"
+        FROM personality_assessments pa
+        LEFT JOIN users u ON pa.recruiter_id = u.id
+        WHERE pa.candidate_id = ${userId}
+        ORDER BY pa.created_at DESC
+      `);
+
+      // Get skills verifications assigned to this user
+      const skillsQuery = await db.execute(sql`
+        SELECT 
+          sv.id,
+          'skills' as "type",
+          sv.job_role as "role",
+          sv.company,
+          sv.difficulty_level as "difficulty",
+          sv.status,
+          sv.created_at as "assignedAt",
+          sv.deadline as "dueDate",
+          sv.overall_score as "overallScore",
+          u.first_name as "assignedByName",
+          u.email as "assignedByEmail",
+          'skills' as "interviewCategory",
+          0 as "retakeCount",
+          1 as "maxRetakes"
+        FROM skills_verifications sv
+        LEFT JOIN users u ON sv.recruiter_id = u.id
+        WHERE sv.candidate_id = ${userId}
+        ORDER BY sv.created_at DESC
+      `);
+
+      // Get simulation assessments assigned to this user
+      const simulationQuery = await db.execute(sql`
+        SELECT 
+          sa.id,
+          'simulation' as "type",
+          sa.job_role as "role",
+          sa.company,
+          sa.difficulty_level as "difficulty",
+          sa.status,
+          sa.created_at as "assignedAt",
+          sa.deadline as "dueDate",
+          sa.overall_score as "overallScore",
+          u.first_name as "assignedByName",
+          u.email as "assignedByEmail",
+          'simulation' as "interviewCategory",
+          0 as "retakeCount",
+          1 as "maxRetakes"
+        FROM simulation_assessments sa
+        LEFT JOIN users u ON sa.recruiter_id = u.id
+        WHERE sa.candidate_id = ${userId}
+        ORDER BY sa.created_at DESC
+      `);
+
+      const virtualData = virtualInterviewsQuery.rows || [];
+      const mockData = mockInterviewsQuery.rows || [];
+      const videoData = videoInterviewsQuery.rows || [];
+      const personalityData = personalityQuery.rows || [];
+      const skillsData = skillsQuery.rows || [];
+      const simulationData = simulationQuery.rows || [];
+
+      const allInterviews = [...virtualData, ...mockData, ...videoData, ...personalityData, ...skillsData, ...simulationData]
+        .sort((a: any, b: any) => {
+          const dateA = a.assignedAt ? new Date(a.assignedAt).getTime() : 0;
+          const dateB = b.assignedAt ? new Date(b.assignedAt).getTime() : 0;
+          return dateB - dateA;
+        });
+
+      console.log(`✅ Found ${allInterviews.length} total assigned interviews for job seeker ${userId}`);
+      return allInterviews;
+    } catch (error) {
+      console.error('Error fetching job seeker assigned interviews:', error);
+      return [];
+    }
+  }
+
+  // Get interview statistics for a job seeker - includes all 6 interview types
+  async getJobSeekerInterviewStats(userId: string) {
+    try {
+      console.log(`🔍 Fetching interview stats for job seeker: ${userId}`);
+      
+      // Import the new interview types from schema
+      const { videoInterviews, personalityAssessments, skillsVerifications, simulationAssessments } = await import('@shared/schema');
+
+      // Get virtual interview stats for this job seeker
+      const virtualStats = await db
+        .select({
+          count: count(),
+          completed: count(sql`CASE WHEN ${virtualInterviews.status} = 'completed' THEN 1 END`),
+          pending: count(sql`CASE WHEN ${virtualInterviews.status} IN ('assigned', 'pending', 'active') THEN 1 END`),
+          avgScore: sql`AVG(${virtualInterviews.overallScore})`
+        })
+        .from(virtualInterviews)
+        .where(eq(virtualInterviews.userId, userId));
+
+      // Get mock interview stats for this job seeker
+      const mockStats = await db
+        .select({
+          count: count(),
+          completed: count(sql`CASE WHEN ${mockInterviews.status} = 'completed' THEN 1 END`),
+          pending: count(sql`CASE WHEN ${mockInterviews.status} IN ('assigned', 'pending', 'active') THEN 1 END`),
+          avgScore: sql`AVG(${mockInterviews.score})`
+        })
+        .from(mockInterviews)
+        .where(eq(mockInterviews.userId, userId));
+
+      // Get video interview stats for this job seeker
+      const videoStats = await db
+        .select({
+          count: count(),
+          completed: count(sql`CASE WHEN ${videoInterviews.status} = 'completed' THEN 1 END`),
+          pending: count(sql`CASE WHEN ${videoInterviews.status} IN ('assigned', 'pending', 'active') THEN 1 END`),
+          avgScore: sql`AVG(${videoInterviews.overallScore})`
+        })
+        .from(videoInterviews)
+        .where(eq(videoInterviews.candidateId, userId));
+
+      // Get personality assessment stats for this job seeker
+      const personalityStats = await db
+        .select({
+          count: count(),
+          completed: count(sql`CASE WHEN ${personalityAssessments.status} = 'completed' THEN 1 END`),
+          pending: count(sql`CASE WHEN ${personalityAssessments.status} IN ('assigned', 'pending', 'active') THEN 1 END`),
+          avgScore: sql`AVG(${personalityAssessments.overallScore})`
+        })
+        .from(personalityAssessments)
+        .where(eq(personalityAssessments.candidateId, userId));
+
+      // Get skills verification stats for this job seeker
+      const skillsStats = await db
+        .select({
+          count: count(),
+          completed: count(sql`CASE WHEN ${skillsVerifications.status} = 'completed' THEN 1 END`),
+          pending: count(sql`CASE WHEN ${skillsVerifications.status} IN ('assigned', 'pending', 'active') THEN 1 END`),
+          avgScore: sql`AVG(${skillsVerifications.overallScore})`
+        })
+        .from(skillsVerifications)
+        .where(eq(skillsVerifications.candidateId, userId));
+
+      // Get simulation assessment stats for this job seeker
+      const simulationStats = await db
+        .select({
+          count: count(),
+          completed: count(sql`CASE WHEN ${simulationAssessments.status} = 'completed' THEN 1 END`),
+          pending: count(sql`CASE WHEN ${simulationAssessments.status} IN ('assigned', 'pending', 'active') THEN 1 END`),
+          avgScore: sql`AVG(${simulationAssessments.overallScore})`
+        })
+        .from(simulationAssessments)
+        .where(eq(simulationAssessments.candidateId, userId));
+
+      const virtualData = virtualStats[0] || { count: 0, completed: 0, pending: 0, avgScore: 0 };
+      const mockData = mockStats[0] || { count: 0, completed: 0, pending: 0, avgScore: 0 };
+      const videoData = videoStats[0] || { count: 0, completed: 0, pending: 0, avgScore: 0 };
+      const personalityData = personalityStats[0] || { count: 0, completed: 0, pending: 0, avgScore: 0 };
+      const skillsData = skillsStats[0] || { count: 0, completed: 0, pending: 0, avgScore: 0 };
+      const simulationData = simulationStats[0] || { count: 0, completed: 0, pending: 0, avgScore: 0 };
+
+      const totalCount = Number(virtualData.count) + Number(mockData.count) + Number(videoData.count) + 
+                        Number(personalityData.count) + Number(skillsData.count) + Number(simulationData.count);
+      
+      const totalCompleted = Number(virtualData.completed) + Number(mockData.completed) + Number(videoData.completed) + 
+                            Number(personalityData.completed) + Number(skillsData.completed) + Number(simulationData.completed);
+      
+      const totalPending = Number(virtualData.pending) + Number(mockData.pending) + Number(videoData.pending) + 
+                          Number(personalityData.pending) + Number(skillsData.pending) + Number(simulationData.pending);
+
+      const validScores = [virtualData.avgScore, mockData.avgScore, videoData.avgScore, 
+                          personalityData.avgScore, skillsData.avgScore, simulationData.avgScore]
+                          .filter(score => score && Number(score) > 0)
+                          .map(score => Number(score));
+      
+      const avgScore = validScores.length > 0 ? 
+                      validScores.reduce((sum: number, score: number) => sum + score, 0) / validScores.length : 0;
+
+      const result = {
+        total: totalCount,
+        completed: totalCompleted,
+        pending: totalPending,
+        averageScore: Math.round(avgScore * 100) / 100,
+        virtual: {
+          count: Number(virtualData.count),
+          completed: Number(virtualData.completed),
+          pending: Number(virtualData.pending),
+          avgScore: Number(virtualData.avgScore) || 0
+        },
+        mock: {
+          count: Number(mockData.count),
+          completed: Number(mockData.completed),
+          pending: Number(mockData.pending),
+          avgScore: Number(mockData.avgScore) || 0
+        },
+        video: {
+          count: Number(videoData.count),
+          completed: Number(videoData.completed),
+          pending: Number(videoData.pending),
+          avgScore: Number(videoData.avgScore) || 0
+        },
+        personality: {
+          count: Number(personalityData.count),
+          completed: Number(personalityData.completed),
+          pending: Number(personalityData.pending),
+          avgScore: Number(personalityData.avgScore) || 0
+        },
+        skills: {
+          count: Number(skillsData.count),
+          completed: Number(skillsData.completed),
+          pending: Number(skillsData.pending),
+          avgScore: Number(skillsData.avgScore) || 0
+        },
+        simulation: {
+          count: Number(simulationData.count),
+          completed: Number(simulationData.completed),
+          pending: Number(simulationData.pending),
+          avgScore: Number(simulationData.avgScore) || 0
+        }
+      };
+
+      console.log(`✅ Job seeker stats:`, result);
+      return result;
+    } catch (error) {
+      console.error('Error fetching job seeker interview stats:', error);
+      return {
+        total: 0,
+        completed: 0,
+        pending: 0,
+        averageScore: 0,
+        virtual: { count: 0, completed: 0, pending: 0, avgScore: 0 },
+        mock: { count: 0, completed: 0, pending: 0, avgScore: 0 },
+        video: { count: 0, completed: 0, pending: 0, avgScore: 0 },
+        personality: { count: 0, completed: 0, pending: 0, avgScore: 0 },
+        skills: { count: 0, completed: 0, pending: 0, avgScore: 0 },
+        simulation: { count: 0, completed: 0, pending: 0, avgScore: 0 }
       };
     }
   }
