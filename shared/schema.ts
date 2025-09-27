@@ -1556,6 +1556,142 @@ export type InsertTestRetakePayment = z.infer<typeof insertTestRetakePaymentSche
 export type CareerAiAnalysis = typeof careerAiAnalyses.$inferSelect;
 export type InsertCareerAiAnalysis = z.infer<typeof insertCareerAiAnalysisSchema>;
 
+// Ranking Tests - Premium feature for users to compete in skill-based tests
+export const rankingTests = pgTable("ranking_tests", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  testTitle: varchar("test_title").notNull(),
+  category: varchar("category").notNull(), // technical, behavioral, general
+  domain: varchar("domain").notNull(), // general, technical, finance, marketing, etc.
+  difficultyLevel: varchar("difficulty_level").notNull(), // beginner, intermediate, advanced
+  totalQuestions: integer("total_questions").notNull(),
+  correctAnswers: integer("correct_answers").default(0),
+  totalScore: integer("total_score").default(0),
+  maxScore: integer("max_score").notNull(),
+  percentageScore: integer("percentage_score").default(0),
+  timeSpent: integer("time_spent").default(0), // in seconds
+  answers: jsonb("answers").default("[]"),
+  questions: jsonb("questions").notNull(),
+  status: varchar("status").default("in_progress"), // in_progress, completed, expired
+  
+  // Ranking data
+  rank: integer("rank"), // Global rank in category
+  weeklyRank: integer("weekly_rank"),
+  monthlyRank: integer("monthly_rank"),
+  categoryRank: integer("category_rank"),
+  
+  // Payment tracking
+  paymentStatus: varchar("payment_status").default("pending"), // pending, completed, failed
+  paymentId: varchar("payment_id"), // Payment transaction ID
+  
+  // Recruiter sharing
+  isSharedToRecruiters: boolean("is_shared_to_recruiters").default(false),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("ranking_tests_user_idx").on(table.userId),
+  index("ranking_tests_category_idx").on(table.category),
+  index("ranking_tests_domain_idx").on(table.domain),
+  index("ranking_tests_status_idx").on(table.status),
+  index("ranking_tests_rank_idx").on(table.rank),
+  index("ranking_tests_weekly_rank_idx").on(table.weeklyRank),
+  index("ranking_tests_monthly_rank_idx").on(table.monthlyRank),
+]);
+
+// Weekly Rankings - Top performers each week
+export const weeklyRankings = pgTable("weekly_rankings", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  testId: integer("test_id").references(() => rankingTests.id).notNull(),
+  weekStart: varchar("week_start").notNull(), // YYYY-MM-DD format
+  weekEnd: varchar("week_end").notNull(),
+  rank: integer("rank").notNull(),
+  category: varchar("category").notNull(),
+  domain: varchar("domain").notNull(),
+  totalScore: integer("total_score").notNull(),
+  percentageScore: integer("percentage_score").notNull(),
+  isTopPerformer: boolean("is_top_performer").default(false), // Top 10 weekly
+  resumeSharedToRecruiters: boolean("resume_shared_to_recruiters").default(false),
+  shareCount: integer("share_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("weekly_rankings_user_idx").on(table.userId),
+  index("weekly_rankings_week_idx").on(table.weekStart),
+  index("weekly_rankings_category_domain_idx").on(table.category, table.domain),
+  index("weekly_rankings_rank_idx").on(table.rank),
+  index("weekly_rankings_top_performer_idx").on(table.isTopPerformer),
+]);
+
+// Monthly Rankings - Aggregate monthly performance
+export const monthlyRankings = pgTable("monthly_rankings", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  month: integer("month").notNull(),
+  year: integer("year").notNull(),
+  rank: integer("rank").notNull(),
+  category: varchar("category").notNull(),
+  domain: varchar("domain").notNull(),
+  totalTests: integer("total_tests").default(1),
+  averageScore: integer("average_score").notNull(),
+  bestScore: integer("best_score").notNull(),
+  profileSharedCount: integer("profile_shared_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("monthly_rankings_user_idx").on(table.userId),
+  index("monthly_rankings_month_year_idx").on(table.month, table.year),
+  index("monthly_rankings_category_domain_idx").on(table.category, table.domain),
+  index("monthly_rankings_rank_idx").on(table.rank),
+]);
+
+// Recruiter Ranking Access - Recruiters get access to top performers
+export const recruiterRankingAccess = pgTable("recruiter_ranking_access", {
+  id: serial("id").primaryKey(),
+  recruiterId: varchar("recruiter_id").references(() => users.id).notNull(),
+  candidateId: varchar("candidate_id").references(() => users.id).notNull(),
+  accessType: varchar("access_type").notNull(), // weekly_top, monthly_share, premium_feature
+  rankingType: varchar("ranking_type").notNull(), // weekly, monthly
+  category: varchar("category").notNull(),
+  domain: varchar("domain").notNull(),
+  candidateRank: integer("candidate_rank").notNull(),
+  candidateScore: integer("candidate_score").notNull(),
+  testDetails: jsonb("test_details"), // Test performance details
+  viewed: boolean("viewed").default(false),
+  contacted: boolean("contacted").default(false),
+  sharedAt: timestamp("shared_at").defaultNow(),
+  viewedAt: timestamp("viewed_at"),
+  contactedAt: timestamp("contacted_at"),
+  notes: text("notes"),
+}, (table) => [
+  index("recruiter_ranking_access_recruiter_idx").on(table.recruiterId),
+  index("recruiter_ranking_access_candidate_idx").on(table.candidateId),
+  index("recruiter_ranking_access_type_idx").on(table.accessType),
+  index("recruiter_ranking_access_viewed_idx").on(table.viewed),
+  index("recruiter_ranking_access_shared_idx").on(table.sharedAt),
+]);
+
+// Insert schemas for ranking system
+export const insertRankingTestSchema = createInsertSchema(rankingTests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWeeklyRankingSchema = createInsertSchema(weeklyRankings).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMonthlyRankingSchema = createInsertSchema(monthlyRankings).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertRecruiterRankingAccessSchema = createInsertSchema(recruiterRankingAccess).omit({
+  id: true,
+  sharedAt: true,
+});
+
 // Ranking system types
 export type RankingTest = typeof rankingTests.$inferSelect;
 export type InsertRankingTest = z.infer<typeof insertRankingTestSchema>;
