@@ -1998,6 +1998,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
           user.companyName = `${companyName} Company`;
 
 
+  // Advanced Assessment Assignment Routes
+  
+  // Skills Verification Assignment
+  app.post('/api/skills-verifications/assign', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      }
+
+      const { candidateId, jobPostingId, projectTemplateId, estimatedTime, dueDate, role, company, difficulty } = req.body;
+      
+      const verification = await skillsVerificationService.createSkillsVerification(
+        candidateId,
+        userId,
+        jobPostingId,
+        projectTemplateId,
+        { estimatedTime, dueDate, role, company, difficulty }
+      );
+      
+      res.json({ message: 'Skills verification assigned successfully', verification });
+    } catch (error) {
+      handleError(res, error, "Failed to assign skills verification");
+    }
+  });
+
+  // Personality Assessment Assignment
+  app.post('/api/personality-assessments/assign', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      }
+
+      const { candidateId, jobPostingId, assessmentType, questionCount, dueDate, role, company } = req.body;
+      
+      const assessment = await personalityAssessmentService.createPersonalityAssessment(
+        candidateId,
+        userId,
+        jobPostingId,
+        { assessmentType, questionCount, dueDate, role, company }
+      );
+      
+      res.json({ message: 'Personality assessment assigned successfully', assessment });
+    } catch (error) {
+      handleError(res, error, "Failed to assign personality assessment");
+    }
+  });
+
+  // Simulation Assessment Assignment
+  app.post('/api/simulation-assessments/assign', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      }
+
+      const { candidateId, jobPostingId, scenarioType, simulationDifficulty, dueDate, role, company } = req.body;
+      
+      const assessment = await simulationAssessmentService.createSimulationAssessment(
+        candidateId,
+        userId,
+        jobPostingId,
+        scenarioType,
+        simulationDifficulty
+      );
+      
+      res.json({ message: 'Simulation assessment assigned successfully', assessment });
+    } catch (error) {
+      handleError(res, error, "Failed to assign simulation assessment");
+    }
+  });
+
+  // Video Interview Assignment
+  app.post('/api/video-interviews/assign', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      }
+
+      const { candidateId, jobPostingId, videoQuestions, preparationTime, dueDate, role, company } = req.body;
+      
+      const questions = Array.from({ length: videoQuestions }, (_, i) => ({
+        id: `q${i + 1}`,
+        question: `Please describe your experience with ${role} responsibilities.`,
+        type: 'behavioral' as const,
+        timeLimit: 180,
+        preparationTime: preparationTime,
+        retakesAllowed: 1,
+        difficulty: 'medium' as const
+      }));
+      
+      const interview = await videoInterviewService.createVideoInterview(
+        candidateId,
+        userId,
+        jobPostingId,
+        {
+          questions,
+          totalTimeLimit: videoQuestions * 180,
+          expiryDate: new Date(dueDate)
+        }
+      );
+      
+      res.json({ message: 'Video interview assigned successfully', interview });
+    } catch (error) {
+      handleError(res, error, "Failed to assign video interview");
+    }
+  });
+
   // Advanced Assessment Routes
   
   // Video Interview Routes

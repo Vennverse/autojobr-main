@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 interface InterviewAssignmentModalProps {
   open: boolean;
   onClose: () => void;
-  interviewType: 'virtual' | 'mock';
+  interviewType: 'virtual' | 'mock' | 'skills-verification' | 'personality' | 'simulation' | 'video-interview';
   candidates: { id: string; name: string; email: string; }[];
   jobPostings: { id: number; title: string; company: string; }[];
   onAssignmentSuccess: () => void;
@@ -55,7 +55,19 @@ export default function InterviewAssignmentModal({
     // Mock interview specific
     language: 'javascript',
     totalQuestions: 5,
-    interviewTypeSpecific: 'technical'
+    interviewTypeSpecific: 'technical',
+    // Skills verification specific
+    projectTemplateId: '',
+    estimatedTime: 120,
+    // Personality assessment specific
+    assessmentType: 'big5',
+    questionCount: 50,
+    // Simulation assessment specific
+    scenarioType: 'customer_service',
+    simulationDifficulty: 'medium',
+    // Video interview specific
+    videoQuestions: 3,
+    preparationTime: 30
   });
 
   // Fetch candidates when job posting is selected
@@ -127,13 +139,33 @@ export default function InterviewAssignmentModal({
         return;
       }
 
-      const endpoint = interviewType === 'virtual' 
-        ? '/api/chat-interview/assign'
-        : '/api/interviews/mock/assign';
+      let endpoint;
+      switch (interviewType) {
+        case 'virtual':
+          endpoint = '/api/chat-interview/assign';
+          break;
+        case 'mock':
+          endpoint = '/api/interviews/mock/assign';
+          break;
+        case 'skills-verification':
+          endpoint = '/api/skills-verifications/assign';
+          break;
+        case 'personality':
+          endpoint = '/api/personality-assessments/assign';
+          break;
+        case 'simulation':
+          endpoint = '/api/simulation-assessments/assign';
+          break;
+        case 'video-interview':
+          endpoint = '/api/video-interviews/assign';
+          break;
+        default:
+          endpoint = '/api/chat-interview/assign';
+      }
 
       // Assign interviews to all selected candidates
       const assignmentPromises = selectedCandidates.map(candidateId => {
-        const payload = {
+        let payload = {
           candidateId,
           jobPostingId: formData.jobPostingId ? Number(formData.jobPostingId) : null,
           interviewType: formData.interviewTypeSpecific,
@@ -142,14 +174,53 @@ export default function InterviewAssignmentModal({
           difficulty: formData.difficulty,
           dueDate: formData.dueDate,
           jobDescription: formData.jobDescription,
-          ...(interviewType === 'virtual' ? {
-            duration: formData.duration,
-            interviewerPersonality: formData.interviewerPersonality,
-          } : {
-            language: formData.language,
-            totalQuestions: formData.totalQuestions
-          })
         };
+
+        // Add type-specific fields
+        switch (interviewType) {
+          case 'virtual':
+            payload = {
+              ...payload,
+              duration: formData.duration,
+              interviewerPersonality: formData.interviewerPersonality,
+            };
+            break;
+          case 'mock':
+            payload = {
+              ...payload,
+              language: formData.language,
+              totalQuestions: formData.totalQuestions
+            };
+            break;
+          case 'skills-verification':
+            payload = {
+              ...payload,
+              projectTemplateId: formData.projectTemplateId,
+              estimatedTime: formData.estimatedTime,
+            };
+            break;
+          case 'personality':
+            payload = {
+              ...payload,
+              assessmentType: formData.assessmentType,
+              questionCount: formData.questionCount,
+            };
+            break;
+          case 'simulation':
+            payload = {
+              ...payload,
+              scenarioType: formData.scenarioType,
+              simulationDifficulty: formData.simulationDifficulty,
+            };
+            break;
+          case 'video-interview':
+            payload = {
+              ...payload,
+              videoQuestions: formData.videoQuestions,
+              preparationTime: formData.preparationTime,
+            };
+            break;
+        }
 
         return fetch(endpoint, {
           method: 'POST',

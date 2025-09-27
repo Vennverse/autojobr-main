@@ -29,7 +29,7 @@ interface StatsData {
 export default function InterviewAssignments() {
   const { toast } = useToast();
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
-  const [selectedInterviewType, setSelectedInterviewType] = useState<'virtual' | 'mock'>('virtual');
+  const [selectedInterviewType, setSelectedInterviewType] = useState<'virtual' | 'mock' | 'skills-verification' | 'personality' | 'simulation' | 'video-interview'>('virtual');
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Fetch candidates (job seekers)
@@ -62,7 +62,7 @@ export default function InterviewAssignments() {
     }
   });
 
-  const openAssignmentModal = (type: 'virtual' | 'mock') => {
+  const openAssignmentModal = (type: 'virtual' | 'mock' | 'skills-verification' | 'personality' | 'simulation' | 'video-interview') => {
     setSelectedInterviewType(type);
     setShowAssignmentModal(true);
   };
@@ -93,20 +93,48 @@ export default function InterviewAssignments() {
           <h1 className="text-3xl font-bold tracking-tight">Interview Assignments</h1>
           <p className="text-gray-600">Assign and manage virtual AI interviews and mock coding tests</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button 
             onClick={() => openAssignmentModal('virtual')}
             className="bg-blue-600 hover:bg-blue-700"
           >
             <Video className="h-4 w-4 mr-2" />
-            Assign Virtual Interview
+            Virtual Interview
           </Button>
           <Button 
             onClick={() => openAssignmentModal('mock')}
             className="bg-green-600 hover:bg-green-700"
           >
             <Code className="h-4 w-4 mr-2" />
-            Assign Mock Interview
+            Mock Interview
+          </Button>
+          <Button 
+            onClick={() => openAssignmentModal('skills-verification')}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
+            <Award className="h-4 w-4 mr-2" />
+            Skills Test
+          </Button>
+          <Button 
+            onClick={() => openAssignmentModal('personality')}
+            className="bg-orange-600 hover:bg-orange-700"
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Personality
+          </Button>
+          <Button 
+            onClick={() => openAssignmentModal('simulation')}
+            className="bg-indigo-600 hover:bg-indigo-700"
+          >
+            <TrendingUp className="h-4 w-4 mr-2" />
+            Simulation
+          </Button>
+          <Button 
+            onClick={() => openAssignmentModal('video-interview')}
+            className="bg-pink-600 hover:bg-pink-700"
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Video Interview
           </Button>
         </div>
       </div>
