@@ -6725,6 +6725,183 @@ Additional Information:
   });
 
   // ========================================
+  // Shareable Interview Link Routes
+  // ========================================
+
+  // Generate shareable interview link
+  app.post('/api/interviews/generate-link', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter') {
+        return res.status(403).json({ message: 'Access denied. Recruiter account required.' });
+      }
+
+      const {
+        jobPostingId,
+        interviewType,
+        interviewConfig,
+        expiryDays = 30
+      } = req.body;
+
+      if (!jobPostingId || !interviewType || !interviewConfig) {
+        return res.status(400).json({ message: 'Missing required fields' });
+      }
+
+      // Generate unique token
+      const token = crypto.randomBytes(32).toString('hex');
+      
+      // Calculate expiry date
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + expiryDays);
+
+      // Create interview invitation
+      const [invitation] = await db.insert(schema.interviewInvitations).values({
+        token,
+        recruiterId: userId,
+        jobPostingId,
+        interviewType,
+        interviewConfig: JSON.stringify(interviewConfig),
+        expiryDate,
+        isUsed: false
+      }).returning();
+
+      // Generate full URL
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://autojobr.com' 
+        : `http://localhost:5000`;
+      const shareableLink = `${baseUrl}/interview-invite/${token}`;
+
+      res.json({ 
+        success: true, 
+        invitation,
+        shareableLink
+      });
+    } catch (error) {
+      console.error('Error generating interview link:', error);
+      res.status(500).json({ message: 'Failed to generate interview link' });
+    }
+  });
+
+  // Get interview invitation by token (public route)
+  app.get('/api/interviews/invite/:token', async (req, res) => {
+    try {
+      const { token } = req.params;
+
+      const [invitation] = await db
+        .select()
+        .from(schema.interviewInvitations)
+        .where(eq(schema.interviewInvitations.token, token))
+        .limit(1);
+
+      if (!invitation) {
+        return res.status(404).json({ message: 'Invalid or expired invitation link' });
+      }
+
+      // Check if expired
+      if (new Date(invitation.expiryDate) < new Date()) {
+        return res.status(410).json({ message: 'This invitation link has expired' });
+      }
+
+      // Check if already used
+      if (invitation.isUsed) {
+        return res.status(410).json({ message: 'This invitation link has already been used' });
+      }
+
+      // Get job posting details
+      const [jobPosting] = await db
+        .select()
+        .from(schema.jobPostings)
+        .where(eq(schema.jobPostings.id, invitation.jobPostingId))
+        .limit(1);
+
+      res.json({
+        success: true,
+        invitation: {
+          ...invitation,
+          jobPosting,
+          interviewConfig: JSON.parse(invitation.interviewConfig)
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching interview invitation:', error);
+      res.status(500).json({ message: 'Failed to fetch interview invitation' });
+    }
+  });
+
+  // Mark invitation as used and create application
+  app.post('/api/interviews/invite/:token/use', isAuthenticated, async (req: any, res) => {
+    try {
+      const { token } = req.params;
+      const userId = req.user.id;
+
+      const [invitation] = await db
+        .select()
+        .from(schema.interviewInvitations)
+        .where(eq(schema.interviewInvitations.token, token))
+        .limit(1);
+
+      if (!invitation || new Date(invitation.expiryDate) < new Date() || invitation.isUsed) {
+        return res.status(400).json({ message: 'Invalid invitation' });
+      }
+
+      // Mark invitation as used
+      await db
+        .update(schema.interviewInvitations)
+        .set({ 
+          isUsed: true, 
+          candidateId: userId,
+          usedAt: new Date()
+        })
+        .where(eq(schema.interviewInvitations.token, token));
+
+      // Check if application already exists
+      const existingApplication = await db
+        .select()
+        .from(schema.jobPostingApplications)
+        .where(
+          and(
+            eq(schema.jobPostingApplications.jobPostingId, invitation.jobPostingId),
+            eq(schema.jobPostingApplications.candidateId, userId)
+          )
+        )
+        .limit(1);
+
+      let applicationId;
+
+      if (existingApplication.length === 0) {
+        // Create application for this job
+        const [newApplication] = await db
+          .insert(schema.jobPostingApplications)
+          .values({
+            jobPostingId: invitation.jobPostingId,
+            candidateId: userId,
+            recruiterId: invitation.recruiterId,
+            status: 'applied',
+            applicationSource: 'interview_invitation'
+          })
+          .returning();
+        
+        applicationId = newApplication.id;
+      } else {
+        applicationId = existingApplication[0].id;
+      }
+
+      res.json({
+        success: true,
+        applicationId,
+        interviewType: invitation.interviewType,
+        interviewConfig: JSON.parse(invitation.interviewConfig),
+        jobPostingId: invitation.jobPostingId
+      });
+    } catch (error) {
+      console.error('Error using interview invitation:', error);
+      res.status(500).json({ message: 'Failed to process interview invitation' });
+    }
+  });
+
+  // ========================================
   // SIMPLE LINKEDIN-STYLE CHAT SYSTEM
   // ========================================
   
