@@ -12,6 +12,10 @@ import {
   TrendingUp,
   Calendar
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import InterviewAssignmentModal from "@/components/InterviewAssignmentModal";
@@ -31,6 +35,16 @@ export default function InterviewAssignments() {
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [selectedInterviewType, setSelectedInterviewType] = useState<'virtual' | 'mock' | 'skills-verification' | 'personality' | 'simulation' | 'video-interview'>('virtual');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [generatedLinks, setGeneratedLinks] = useState<any[]>([]);
+  const [linkGeneration, setLinkGeneration] = useState({
+    jobPostingId: '',
+    interviewType: 'virtual' as 'virtual' | 'mock' | 'skills-verification' | 'personality' | 'simulation' | 'video-interview',
+    role: '',
+    company: '',
+    difficulty: 'medium',
+    expiresInDays: 7
+  });
 
   // Fetch candidates (job seekers)
   const { data: candidates = [] } = useQuery({
@@ -72,6 +86,51 @@ export default function InterviewAssignments() {
     toast({
       title: "Success",
       description: "Interview assigned successfully and email sent to candidate",
+    });
+  };
+
+  const generateShareableLink = async () => {
+    try {
+      const response = await fetch('/api/interviews/generate-link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(linkGeneration)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setGeneratedLinks(prev => [data, ...prev]);
+        toast({
+          title: "Success",
+          description: "Shareable interview link generated successfully!",
+        });
+        setShowLinkModal(false);
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "Failed to generate link",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error generating link:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate shareable link",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const copyToClipboard = (link: string) => {
+    navigator.clipboard.writeText(link);
+    toast({
+      title: "Copied!",
+      description: "Link copied to clipboard",
     });
   };
 
@@ -135,6 +194,14 @@ export default function InterviewAssignments() {
           >
             <Calendar className="h-4 w-4 mr-2" />
             Video Interview
+          </Button>
+          <Button 
+            onClick={() => setShowLinkModal(true)}
+            variant="outline"
+            className="border-purple-200 text-purple-700 hover:bg-purple-50"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Generate Shareable Link
           </Button>
         </div>
       </div>
@@ -279,6 +346,39 @@ export default function InterviewAssignments() {
         </CardContent>
       </Card>
 
+      {/* Generated Shareable Links */}
+      {generatedLinks.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Generated Shareable Links</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {generatedLinks.map((link, index) => (
+                <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <div className="font-medium">{link.role || 'Interview'}</div>
+                    <div className="text-sm text-gray-500">
+                      Type: {link.interviewType} • Expires: {new Date(link.expiresAt).toLocaleDateString()}
+                    </div>
+                    <div className="text-xs text-gray-400 mt-1 font-mono">
+                      {link.shareableLink}
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => copyToClipboard(link.shareableLink)}
+                    variant="outline"
+                  >
+                    Copy Link
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Assigned Interviews Table */}
       <AssignedInterviewsTable key={refreshKey} />
 
@@ -291,6 +391,121 @@ export default function InterviewAssignments() {
         jobPostings={jobPostings}
         onAssignmentSuccess={handleAssignmentSuccess}
       />
+
+      {/* Shareable Link Generation Modal */}
+      <Dialog open={showLinkModal} onOpenChange={setShowLinkModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Generate Shareable Interview Link</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Job Posting (Optional)</Label>
+              <Select
+                value={linkGeneration.jobPostingId}
+                onValueChange={(value) => {
+                  const selectedJob = jobPostings.find(job => job.id === Number(value));
+                  setLinkGeneration(prev => ({
+                    ...prev,
+                    jobPostingId: value,
+                    role: selectedJob?.title || prev.role,
+                    company: selectedJob?.company || prev.company
+                  }));
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select job posting (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No specific job</SelectItem>
+                  {jobPostings.map(job => (
+                    <SelectItem key={job.id} value={job.id.toString()}>
+                      {job.title} - {job.company}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Interview Type</Label>
+              <Select
+                value={linkGeneration.interviewType}
+                onValueChange={(value: any) => setLinkGeneration(prev => ({ ...prev, interviewType: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="virtual">Virtual AI Interview</SelectItem>
+                  <SelectItem value="mock">Mock Coding Test</SelectItem>
+                  <SelectItem value="skills-verification">Skills Test</SelectItem>
+                  <SelectItem value="personality">Personality Assessment</SelectItem>
+                  <SelectItem value="simulation">Simulation Test</SelectItem>
+                  <SelectItem value="video-interview">Video Interview</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Role</Label>
+              <Input
+                value={linkGeneration.role}
+                onChange={(e) => setLinkGeneration(prev => ({ ...prev, role: e.target.value }))}
+                placeholder="e.g., Senior Software Engineer"
+              />
+            </div>
+
+            <div>
+              <Label>Company (Optional)</Label>
+              <Input
+                value={linkGeneration.company}
+                onChange={(e) => setLinkGeneration(prev => ({ ...prev, company: e.target.value }))}
+                placeholder="e.g., Tech Corp"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Difficulty</Label>
+                <Select
+                  value={linkGeneration.difficulty}
+                  onValueChange={(value) => setLinkGeneration(prev => ({ ...prev, difficulty: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="easy">Easy</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="hard">Hard</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Expires In (Days)</Label>
+                <Input
+                  type="number"
+                  value={linkGeneration.expiresInDays}
+                  onChange={(e) => setLinkGeneration(prev => ({ ...prev, expiresInDays: Number(e.target.value) }))}
+                  min="1"
+                  max="30"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="outline" onClick={() => setShowLinkModal(false)}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={generateShareableLink}>
+                Generate Link
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

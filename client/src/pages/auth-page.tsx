@@ -13,12 +13,12 @@ import { FcGoogle } from "react-icons/fc";
 export default function AuthPage() {
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Check for mode parameter (login or signup)
   const urlParams = new URLSearchParams(window.location.search);
   const initialMode = urlParams.get('mode') === 'login' ? 'login' : 'signup';
   const [activeTab, setActiveTab] = useState(initialMode);
-  
+
   // Get redirect URL from query params or current path
   // SECURITY: Only allow relative URLs to prevent open redirect attacks
   const getRedirectUrl = () => {
@@ -67,7 +67,7 @@ export default function AuthPage() {
         console.error('Failed to check provider availability:', error);
       }
     };
-    
+
     checkProviders();
   }, []);
 
@@ -79,9 +79,9 @@ export default function AuthPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider }),
       });
-      
+
       const data = await response.json();
-      
+
       if (data.redirectUrl) {
         window.location.href = data.redirectUrl;
       } else {
@@ -217,6 +217,39 @@ export default function AuthPage() {
     }));
   };
 
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const verified = urlParams.get('verified');
+    const type = urlParams.get('type');
+    const upgraded = urlParams.get('upgraded');
+    const message = urlParams.get('message');
+    const mode = urlParams.get('mode');
+    const returnUrl = urlParams.get('returnUrl');
+
+    if (verified === 'true') {
+      if (type === 'company' && upgraded === 'recruiter') {
+        setActiveTab('login');
+        toast({
+          title: "🎉 Company Email Verified!",
+          description: message || "You are now a verified recruiter. Please sign in to access your recruiter dashboard.",
+        });
+      } else {
+        setActiveTab('login');
+        toast({
+          title: "✅ Email Verified",
+          description: message || "Your email has been verified successfully. You can now sign in.",
+        });
+      }
+    }
+
+    // Set tab based on mode or returnUrl context
+    if (mode === 'signup' || (returnUrl && returnUrl.includes('interview-invite'))) {
+      setActiveTab('signup');
+    } else if (mode === 'login') {
+      setActiveTab('login');
+    }
+  }, [location.search, toast]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
       <div className="grid grid-cols-1 lg:grid-cols-2 max-w-6xl w-full gap-8">
@@ -236,7 +269,7 @@ export default function AuthPage() {
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="login" className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="login-email">Email</Label>
@@ -283,7 +316,7 @@ export default function AuthPage() {
                   <Mail className="w-4 h-4 mr-2" />
                   Sign in with Email
                 </Button>
-                
+
                 <div className="text-center">
                   <Button 
                     variant="link"
@@ -294,7 +327,7 @@ export default function AuthPage() {
                   </Button>
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="signup" className="space-y-4">
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-2">

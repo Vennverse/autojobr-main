@@ -252,3 +252,338 @@ export default function InterviewInvite() {
     </div>
   );
 }
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Video, 
+  Code, 
+  Clock, 
+  Building, 
+  User, 
+  CheckCircle,
+  AlertCircle,
+  LogIn
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+
+interface InvitationData {
+  valid: boolean;
+  interviewType: string;
+  role: string;
+  company: string;
+  difficulty: string;
+  isUsed: boolean;
+  jobPostingId?: number;
+}
+
+export default function InterviewInvite() {
+  const { token } = useParams<{ token: string }>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
+  
+  const [invitation, setInvitation] = useState<InvitationData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (token) {
+      validateInvitation();
+    }
+  }, [token]);
+
+  const validateInvitation = async () => {
+    try {
+      const response = await fetch(`/api/interviews/invite/${token}`);
+      const data = await response.json();
+      
+      if (response.ok && data.valid) {
+        setInvitation(data);
+      } else {
+        setError(data.message || 'Invalid invitation');
+      }
+    } catch (error) {
+      console.error('Error validating invitation:', error);
+      setError('Failed to validate invitation');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStartInterview = async () => {
+    if (!user) {
+      // Redirect to auth page with return URL
+      const returnUrl = encodeURIComponent(window.location.pathname);
+      navigate(`/auth?returnUrl=${returnUrl}&mode=signup`);
+      return;
+    }
+
+    if (!invitation) return;
+
+    setProcessing(true);
+    try {
+      const response = await fetch(`/api/interviews/invite/${token}/use`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Interview assigned successfully! Redirecting...",
+        });
+        
+        // Redirect to the interview
+        setTimeout(() => {
+          navigate(data.interviewUrl);
+        }, 1500);
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "Failed to start interview",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error starting interview:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start interview",
+        variant: "destructive"
+      });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const getInterviewIcon = (type: string) => {
+    switch (type) {
+      case 'virtual':
+        return <Video className="h-8 w-8 text-blue-600" />;
+      case 'mock':
+        return <Code className="h-8 w-8 text-green-600" />;
+      default:
+        return <Video className="h-8 w-8 text-blue-600" />;
+    }
+  };
+
+  const getInterviewTypeText = (type: string) => {
+    switch (type) {
+      case 'virtual':
+        return 'Virtual AI Interview';
+      case 'mock':
+        return 'Mock Coding Interview';
+      default:
+        return 'Interview';
+    }
+  };
+
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'easy':
+        return 'bg-green-100 text-green-800';
+      case 'medium':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'hard':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  if (loading || authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Validating invitation...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6 text-center">
+            <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Invalid Invitation</h2>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={() => navigate('/')} variant="outline">
+              Go to Homepage
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!invitation) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6 text-center">
+            <AlertCircle className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Invitation Not Found</h2>
+            <p className="text-gray-600 mb-4">The interview invitation could not be found.</p>
+            <Button onClick={() => navigate('/')} variant="outline">
+              Go to Homepage
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (invitation.isUsed) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6 text-center">
+            <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Already Completed</h2>
+            <p className="text-gray-600 mb-4">This interview invitation has already been used.</p>
+            <Button onClick={() => navigate('/dashboard')} variant="outline">
+              Go to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-2xl">
+        <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            {getInterviewIcon(invitation.interviewType)}
+          </div>
+          <CardTitle className="text-2xl font-bold text-gray-900">
+            You're Invited to an Interview
+          </CardTitle>
+          <p className="text-gray-600">
+            Complete the interview process to apply for this position
+          </p>
+        </CardHeader>
+        
+        <CardContent className="space-y-6">
+          {/* Interview Details */}
+          <div className="bg-blue-50 rounded-lg p-6">
+            <h3 className="font-semibold text-gray-900 mb-4">Interview Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-3">
+                <Video className="h-5 w-5 text-blue-600" />
+                <div>
+                  <p className="text-sm text-gray-600">Type</p>
+                  <p className="font-medium">{getInterviewTypeText(invitation.interviewType)}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <User className="h-5 w-5 text-blue-600" />
+                <div>
+                  <p className="text-sm text-gray-600">Role</p>
+                  <p className="font-medium">{invitation.role}</p>
+                </div>
+              </div>
+              
+              {invitation.company && (
+                <div className="flex items-center gap-3">
+                  <Building className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Company</p>
+                    <p className="font-medium">{invitation.company}</p>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex items-center gap-3">
+                <Clock className="h-5 w-5 text-blue-600" />
+                <div>
+                  <p className="text-sm text-gray-600">Difficulty</p>
+                  <Badge className={getDifficultyColor(invitation.difficulty)}>
+                    {invitation.difficulty.charAt(0).toUpperCase() + invitation.difficulty.slice(1)}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* What to Expect */}
+          <div className="bg-gray-50 rounded-lg p-6">
+            <h3 className="font-semibold text-gray-900 mb-4">What to Expect</h3>
+            <ul className="space-y-2 text-sm text-gray-600">
+              {invitation.interviewType === 'virtual' ? (
+                <>
+                  <li>• AI-powered conversational interview</li>
+                  <li>• Questions tailored to the {invitation.role} role</li>
+                  <li>• Real-time feedback and scoring</li>
+                  <li>• Estimated duration: 30-45 minutes</li>
+                </>
+              ) : (
+                <>
+                  <li>• Live coding challenges</li>
+                  <li>• Technical questions for {invitation.role}</li>
+                  <li>• Code execution and testing</li>
+                  <li>• Estimated duration: 45-60 minutes</li>
+                </>
+              )}
+            </ul>
+          </div>
+
+          {/* Action Button */}
+          <div className="text-center">
+            {!user ? (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  You need to create an account or sign in to start the interview
+                </p>
+                <Button 
+                  onClick={handleStartInterview}
+                  size="lg"
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                >
+                  <LogIn className="h-5 w-5 mr-2" />
+                  Sign In / Create Account
+                </Button>
+              </div>
+            ) : (
+              <Button 
+                onClick={handleStartInterview}
+                disabled={processing}
+                size="lg"
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                {processing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Starting Interview...
+                  </>
+                ) : (
+                  <>
+                    {getInterviewIcon(invitation.interviewType)}
+                    <span className="ml-2">Start Interview</span>
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+
+          {/* Legal Notice */}
+          <div className="text-xs text-gray-500 text-center">
+            By proceeding, you agree to AutoJobr's Terms of Service and Privacy Policy
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

@@ -125,11 +125,11 @@ function Router() {
       <Route path="/verify-email" component={VerifyEmail} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password" component={ResetPasswordPage} />
-      
+
       {/* Subscription success/cancel routes */}
       <Route path="/subscription/success" component={SubscriptionSuccess} />
       <Route path="/subscription/cancel" component={SubscriptionCancel} />
-      
+
       {/* Public Pages - Available to Everyone */}
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
@@ -142,7 +142,7 @@ function Router() {
       <Route path="/blog/remote-job-search-2025" component={RemoteJobSearch2025} />
       <Route path="/chrome-extension" component={ChromeExtension} />
       <Route path="/ats-optimizer" component={ATSOptimizer} />
-      
+
       {/* SEO-optimized referral landing page */}
       <Route path="/employee-referral-services" component={EmployeeReferralServices} />
       <Route path="/job-referrals" component={EmployeeReferralServices} />
@@ -152,14 +152,14 @@ function Router() {
       <Route path="/microsoft-referral" component={EmployeeReferralServices} />
       <Route path="/amazon-referral" component={EmployeeReferralServices} />
       <Route path="/apple-referral" component={EmployeeReferralServices} />
-      
+
       {/* High-Value SEO Landing Pages to Beat Competition */}
       <Route path="/free-job-application-automation" component={FreeJobApplicationAutomation} />
       <Route path="/beat-ats-systems-free" component={ATSOptimizer} />
       <Route path="/auto-apply-1000-jobs-daily" component={FreeJobApplicationAutomation} />
       <Route path="/linkedin-auto-apply-bot" component={ChromeExtension} />
       <Route path="/indeed-auto-apply-tool" component={ChromeExtension} />
-      
+
       {/* Strategic Long-Tail SEO Pages */}
       <Route path="/best-job-application-tools-2025" component={BestJobApplicationTools} />
       <Route path="/remote-jobs-students-2025" component={RemoteJobsStudents} />
@@ -169,7 +169,7 @@ function Router() {
       <Route path="/ai-job-application-tracker-free" component={BestJobApplicationTools} />
       <Route path="/how-to-apply-jobs-faster-online" component={OneClickApplyJobs} />
       <Route path="/job-application-autofill-extension" component={JobApplicationAutofillExtension} />
-      
+
       {/* Additional High-Traffic Keyword Routes */}
       <Route path="/entry-level-jobs-no-experience" component={RemoteJobsStudents} />
       <Route path="/college-student-jobs-remote" component={RemoteJobsStudents} />
@@ -177,13 +177,13 @@ function Router() {
       <Route path="/automated-job-search-tool" component={BestJobApplicationTools} />
       <Route path="/job-search-automation-software" component={BestJobApplicationTools} />
       <Route path="/resume-optimizer-ats-free" component={ATSOptimizer} />
-      
+
       {/* Post Job route - accessible to everyone, handles verification internally */}
       <Route path="/post-job" component={PostJob} />
-      
+
       {/* Public job pages - accessible to everyone for discovery */}
       <Route path="/jobs" component={Jobs} />
-      
+
       {/* Clean URL routes for job categories */}
       <Route path="/jobs/technology" component={() => <Jobs category="technology" />} />
       <Route path="/jobs/engineering" component={() => <Jobs category="engineering" />} />
@@ -197,7 +197,7 @@ function Router() {
       <Route path="/jobs/human-resources" component={() => <Jobs category="human-resources" />} />
       <Route path="/jobs/customer-success" component={() => <Jobs category="customer-success" />} />
       <Route path="/jobs/remote" component={() => <Jobs workMode="remote" />} />
-      
+
       {/* Clean URL routes for job locations */}
       <Route path="/jobs/san-francisco" component={() => <Jobs location="san-francisco" />} />
       <Route path="/jobs/new-york" component={() => <Jobs location="new-york" />} />
@@ -209,7 +209,7 @@ function Router() {
       <Route path="/jobs/boston" component={() => <Jobs location="boston" />} />
       <Route path="/jobs/denver" component={() => <Jobs location="denver" />} />
       <Route path="/jobs/dallas" component={() => <Jobs location="dallas" />} />
-      
+
       {/* International locations */}
       <Route path="/jobs/london" component={() => <Jobs location="london" />} />
       <Route path="/jobs/toronto" component={() => <Jobs location="toronto" />} />
@@ -221,7 +221,7 @@ function Router() {
       <Route path="/jobs/bangalore" component={() => <Jobs location="bangalore" />} />
       <Route path="/jobs/dublin" component={() => <Jobs location="dublin" />} />
       <Route path="/jobs/stockholm" component={() => <Jobs location="stockholm" />} />
-      
+
       {/* Country-level routes */}
       <Route path="/jobs/usa" component={() => <Jobs country="usa" />} />
       <Route path="/jobs/canada" component={() => <Jobs country="canada" />} />
@@ -232,16 +232,16 @@ function Router() {
       <Route path="/jobs/singapore-country" component={() => <Jobs country="singapore" />} />
       <Route path="/jobs/netherlands" component={() => <Jobs country="netherlands" />} />
       <Route path="/jobs/sweden" component={() => <Jobs country="sweden" />} />
-      
+
       <Route path="/jobs/:id" component={ViewJob} />
-      
+
       {/* Company career pages - accessible to everyone */}
       <Route path="/career/:companyName" component={CompanyCareerPage} />
       <Route path="/careers/:companyName" component={CompanyCareerPage} />
-      
+
       {/* Public internship pages - accessible to everyone for discovery */}
       <Route path="/internships" component={Internships} />
-      
+
       {isAuthenticated ? (
         <>
           {/* Handle different user types */}

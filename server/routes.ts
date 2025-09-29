@@ -1999,6 +1999,251 @@ export async function registerRoutes(app: Express): Promise<Server> {
           user.companyName = `${companyName} Company`;
 
 
+  // Interview Assignment API Routes
+  app.get('/api/interviews/assigned', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      }
+
+      const interviews = await interviewAssignmentService.getRecruiterAssignedInterviews(userId);
+      res.json(interviews);
+    } catch (error) {
+      handleError(res, error, "Failed to fetch assigned interviews");
+    }
+  });
+
+  app.get('/api/interviews/stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      }
+
+      const stats = await interviewAssignmentService.getAssignmentStats(userId);
+      res.json({
+        totalAssigned: stats.total,
+        completed: stats.completed,
+        pending: stats.pending,
+        averageScore: stats.averageScore,
+        virtualInterviews: stats.virtual.count,
+        mockInterviews: stats.mock.count
+      });
+    } catch (error) {
+      handleError(res, error, "Failed to fetch interview stats");
+    }
+  });
+
+  app.get('/api/interviews/:interviewType/:id/partial-results', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { interviewType, id } = req.params;
+      
+      const results = await interviewAssignmentService.getPartialResultsForRecruiter(
+        parseInt(id), 
+        interviewType as 'virtual' | 'mock', 
+        userId
+      );
+      
+      res.json(results);
+    } catch (error) {
+      handleError(res, error, "Failed to fetch interview results");
+    }
+  });
+
+  app.get('/api/users/candidates', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      }
+
+      const candidates = await interviewAssignmentService.getCandidates();
+      res.json(candidates);
+    } catch (error) {
+      handleError(res, error, "Failed to fetch candidates");
+    }
+  });
+
+  app.get('/api/candidates/for-job/:jobId', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      }
+
+      const jobId = parseInt(req.params.jobId);
+      const candidates = await interviewAssignmentService.getCandidatesForJobPosting(jobId);
+      res.json(candidates);
+    } catch (error) {
+      handleError(res, error, "Failed to fetch job candidates");
+    }
+  });
+
+  // Shareable Interview Link System
+  app.post('/api/interviews/generate-link', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      }
+
+      const { jobPostingId, interviewType, expiresInDays = 7, role, company, difficulty } = req.body;
+      
+      // Generate unique token
+      const token = crypto.randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+      
+      // Create interview invitation
+      await db.insert(schema.interviewInvitations).values({
+        token,
+        recruiterId: userId,
+        jobPostingId: jobPostingId || null,
+        interviewType,
+        role,
+        company,
+        difficulty,
+        expiresAt,
+        isUsed: false
+      });
+      
+      const shareableLink = `${process.env.FRONTEND_URL || 'https://autojobr.com'}/interview-invite/${token}`;
+      
+      res.json({
+        success: true,
+        token,
+        shareableLink,
+        expiresAt
+      });
+    } catch (error) {
+      handleError(res, error, "Failed to generate shareable interview link");
+    }
+  });
+
+  app.get('/api/interviews/invite/:token', async (req: any, res) => {
+    try {
+      const { token } = req.params;
+      
+      const invitation = await db.select()
+        .from(schema.interviewInvitations)
+        .where(eq(schema.interviewInvitations.token, token))
+        .limit(1);
+      
+      if (!invitation.length || invitation[0].expiresAt < new Date()) {
+        return res.status(404).json({ message: 'Invalid or expired invitation' });
+      }
+      
+      const invitationData = invitation[0];
+      
+      res.json({
+        valid: true,
+        interviewType: invitationData.interviewType,
+        role: invitationData.role,
+        company: invitationData.company,
+        difficulty: invitationData.difficulty,
+        isUsed: invitationData.isUsed,
+        jobPostingId: invitationData.jobPostingId
+      });
+    } catch (error) {
+      handleError(res, error, "Failed to validate interview invitation");
+    }
+  });
+
+  app.post('/api/interviews/invite/:token/use', isAuthenticated, async (req: any, res) => {
+    try {
+      const { token } = req.params;
+      const userId = req.user.id;
+      
+      const invitation = await db.select()
+        .from(schema.interviewInvitations)
+        .where(eq(schema.interviewInvitations.token, token))
+        .limit(1);
+      
+      if (!invitation.length || invitation[0].expiresAt < new Date()) {
+        return res.status(404).json({ message: 'Invalid or expired invitation' });
+      }
+      
+      if (invitation[0].isUsed) {
+        return res.status(400).json({ message: 'Invitation already used' });
+      }
+      
+      const invitationData = invitation[0];
+      
+      // Mark invitation as used
+      await db.update(schema.interviewInvitations)
+        .set({ isUsed: true, usedAt: new Date(), candidateId: userId })
+        .where(eq(schema.interviewInvitations.token, token));
+      
+      // Create job application if jobPostingId exists
+      if (invitationData.jobPostingId) {
+        try {
+          await db.insert(schema.jobPostingApplications).values({
+            jobPostingId: invitationData.jobPostingId,
+            applicantId: userId,
+            status: 'applied',
+            appliedAt: new Date()
+          });
+        } catch (error) {
+          // Application might already exist, that's okay
+          console.log('Job application already exists or failed to create:', error);
+        }
+      }
+      
+      // Create interview assignment
+      let interviewUrl = '';
+      
+      if (invitationData.interviewType === 'virtual') {
+        const interview = await interviewAssignmentService.assignVirtualInterview({
+          recruiterId: invitationData.recruiterId,
+          candidateId: userId,
+          jobPostingId: invitationData.jobPostingId,
+          interviewType: 'technical',
+          role: invitationData.role,
+          company: invitationData.company,
+          difficulty: invitationData.difficulty,
+          duration: 30,
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          interviewerPersonality: 'professional'
+        });
+        interviewUrl = `/virtual-interview/${interview.sessionId}`;
+      } else if (invitationData.interviewType === 'mock') {
+        const interview = await interviewAssignmentService.assignMockInterview({
+          recruiterId: invitationData.recruiterId,
+          candidateId: userId,
+          jobPostingId: invitationData.jobPostingId,
+          interviewType: 'technical',
+          role: invitationData.role,
+          company: invitationData.company,
+          difficulty: invitationData.difficulty,
+          language: 'javascript',
+          totalQuestions: 5,
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        });
+        interviewUrl = `/mock-interview/${interview.sessionId}`;
+      }
+      
+      res.json({
+        success: true,
+        interviewUrl,
+        message: 'Interview assigned successfully'
+      });
+    } catch (error) {
+      handleError(res, error, "Failed to use interview invitation");
+    }
+  });
+
   // Advanced Assessment Assignment Routes
   
   // Skills Verification Assignment
