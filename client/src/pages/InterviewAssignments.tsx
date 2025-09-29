@@ -243,14 +243,6 @@ export default function InterviewAssignments() {
             <Calendar className="h-4 w-4 mr-2" />
             Video Interview
           </Button>
-          <Button 
-            onClick={() => setShowLinkModal(true)}
-            variant="outline"
-            className="border-purple-200 text-purple-700 hover:bg-purple-50"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Generate Shareable Link
-          </Button>
         </div>
       </div>
 
@@ -468,7 +460,7 @@ export default function InterviewAssignments() {
                   <SelectValue placeholder="Select job posting (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No specific job</SelectItem>
+                  <SelectItem value="none">No specific job</SelectItem>
                   {jobPostings.map(job => (
                     <SelectItem key={job.id} value={job.id.toString()}>
                       {job.title} - {job.company}
