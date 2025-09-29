@@ -16,10 +16,6 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 34997
-externalPort = 8081
-
-[[ports]]
 localPort = 37755
 externalPort = 3000
 
@@ -60,6 +56,10 @@ localPort = 45457
 externalPort = 3001
 
 [[ports]]
+localPort = 46259
+externalPort = 6800
+
+[[ports]]
 localPort = 46447
 externalPort = 8000
 
@@ -79,13 +79,13 @@ args = "Start application"
 name = "Start application"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [agent]
 integrations = ["javascript_paypal:1.0.0"]

@@ -62,12 +62,32 @@ Preferred communication style: Simple, everyday language.
 - **Environment Management**: Comprehensive environment variable configuration for different deployment scenarios
 - **Monitoring**: Application health checks and performance monitoring
 
+## Replit Environment Setup
+
+This project is configured to run in the Replit environment with the following setup:
+
+### Development Server
+- **Port**: 5000 (frontend and backend on same port)
+- **Host**: 0.0.0.0 (allows Replit proxy access)
+- **Workflow**: `npm run dev` starts both Express backend and Vite frontend
+- **Database**: Replit PostgreSQL database (automatically configured via DATABASE_URL)
+
+### Vite Configuration
+- **Allowed Hosts**: Configured to accept all hosts (required for Replit's proxy/iframe setup)
+- **HMR**: WebSocket hot module replacement configured for port 5000
+- **Build Output**: `dist/public` directory for production builds
+
+### Deployment
+- **Build Command**: `npm run build` (compiles both frontend and backend)
+- **Start Command**: `npm run start` (runs production server from dist/)
+- **Deployment Target**: Autoscale (stateless web application)
+
 ## External Dependencies
 
 ### Core Infrastructure
-- **Database**: PostgreSQL (via Neon, Supabase, or PlanetScale)
+- **Database**: PostgreSQL (Replit PostgreSQL in development, supports Neon/Supabase/PlanetScale)
 - **File Storage**: Local filesystem with plans for cloud storage integration
-- **Process Management**: PM2 for production deployment and clustering
+- **Process Management**: PM2 for production deployment and clustering (not needed in Replit)
 
 ### AI and Machine Learning
 - **Groq API**: Primary AI provider for resume analysis, job matching, and content generation using llama-3.3-70b-versatile model
