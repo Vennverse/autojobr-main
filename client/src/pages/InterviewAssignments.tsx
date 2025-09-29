@@ -397,6 +397,9 @@ export default function InterviewAssignments() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Generate Shareable Interview Link</DialogTitle>
+            <DialogDescription>
+              Create a shareable link that candidates can use to take interviews without being assigned directly
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
