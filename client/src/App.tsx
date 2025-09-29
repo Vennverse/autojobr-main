@@ -59,6 +59,7 @@ import ChatInterview from "@/pages/ChatInterview";
 import VirtualInterviewComplete from "@/pages/VirtualInterviewComplete";
 import VirtualInterviewFeedback from "@/pages/VirtualInterviewFeedback";
 import InterviewAssignments from "@/pages/InterviewAssignments";
+import InterviewInvite from "@/pages/interview-invite";
 import PipelineManagement from "@/pages/PipelineManagement";
 import ApplicantsPage from "@/pages/modern-recruiter-dashboard";
 import EnhancedPipelineManagement from "@/pages/enhanced-pipeline-management";
@@ -120,6 +121,7 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       <Route path="/quick-login" component={QuickLogin} />
       <Route path="/recruiter-login" component={RecruiterAutoLogin} />
+      <Route path="/interview-invite/:token" component={InterviewInvite} />
       <Route path="/verify-email" component={VerifyEmail} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password" component={ResetPasswordPage} />

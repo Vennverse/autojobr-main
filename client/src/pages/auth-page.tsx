@@ -14,12 +14,25 @@ export default function AuthPage() {
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   
+  // Check for mode parameter (login or signup)
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialMode = urlParams.get('mode') === 'login' ? 'login' : 'signup';
+  const [activeTab, setActiveTab] = useState(initialMode);
+  
   // Get redirect URL from query params or current path
+  // SECURITY: Only allow relative URLs to prevent open redirect attacks
   const getRedirectUrl = () => {
     const urlParams = new URLSearchParams(window.location.search);
-    const redirect = urlParams.get('redirect');
+    const redirect = urlParams.get('redirect') || urlParams.get('returnUrl');
     if (redirect) {
-      return decodeURIComponent(redirect);
+      const decodedUrl = decodeURIComponent(redirect);
+      // Only allow relative URLs starting with '/' and reject absolute URLs
+      if (decodedUrl.startsWith('/') && !decodedUrl.startsWith('//')) {
+        return decodedUrl;
+      }
+      // If not a valid relative URL, ignore it and return home
+      console.warn('Invalid redirect URL detected and ignored:', decodedUrl);
+      return '/';
     }
     // If no redirect param, check if we came from an interview URL
     const currentPath = window.location.pathname;
@@ -218,7 +231,7 @@ export default function AuthPage() {
           <CardContent className="space-y-4">
 
             {/* Email Login/Signup Tabs */}
-            <Tabs defaultValue="login" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
