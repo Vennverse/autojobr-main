@@ -12,7 +12,7 @@ import {
   TrendingUp,
   Calendar
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -50,30 +50,78 @@ export default function InterviewAssignments() {
   const { data: candidates = [] } = useQuery({
     queryKey: ['/api/users/candidates'],
     queryFn: async () => {
-      const response = await fetch('/api/users/candidates');
-      if (!response.ok) throw new Error('Failed to fetch candidates');
-      return response.json();
-    }
+      try {
+        const response = await fetch('/api/users/candidates', {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Candidates fetch error:', errorText);
+          throw new Error('Failed to fetch candidates');
+        }
+        
+        const data = await response.json();
+        console.log('Candidates fetched:', data);
+        return data;
+      } catch (error) {
+        console.error('Candidates query error:', error);
+        throw error;
+      }
+    },
+    retry: 1
   });
 
   // Fetch job postings
   const { data: jobPostings = [] } = useQuery({
     queryKey: ['/api/jobs/postings'],
     queryFn: async () => {
-      const response = await fetch('/api/jobs/postings');
-      if (!response.ok) throw new Error('Failed to fetch job postings');
-      return response.json();
-    }
+      try {
+        const response = await fetch('/api/jobs/postings', {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Job postings fetch error:', errorText);
+          throw new Error('Failed to fetch job postings');
+        }
+        
+        const data = await response.json();
+        console.log('Job postings fetched:', data);
+        return data;
+      } catch (error) {
+        console.error('Job postings query error:', error);
+        throw error;
+      }
+    },
+    retry: 1
   });
 
   // Fetch interview assignment stats
   const { data: stats } = useQuery({
     queryKey: ['/api/interviews/stats', refreshKey],
     queryFn: async () => {
-      const response = await fetch('/api/interviews/stats');
-      if (!response.ok) throw new Error('Failed to fetch stats');
-      return response.json();
-    }
+      try {
+        const response = await fetch('/api/interviews/stats', {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Stats fetch error:', errorText);
+          throw new Error('Failed to fetch stats');
+        }
+        
+        const data = await response.json();
+        console.log('Stats fetched:', data);
+        return data;
+      } catch (error) {
+        console.error('Stats query error:', error);
+        throw error;
+      }
+    },
+    retry: 1
   });
 
   const openAssignmentModal = (type: 'virtual' | 'mock' | 'skills-verification' | 'personality' | 'simulation' | 'video-interview') => {

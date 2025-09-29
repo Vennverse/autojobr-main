@@ -247,7 +247,21 @@ export interface IStorage {
 
   // Recruiter operations
   // Job postings
-  getJobPostings(recruiterId?: string): Promise<JobPosting[]>;
+  getRecruiterJobPostings(recruiterId: string): Promise<JobPosting[]>;
+  getJobPostings(
+    page: number,
+    limit: number,
+    filters: {
+      search?: string;
+      location?: string;
+      workMode?: string;
+      category?: string;
+      salaryRange?: string;
+      companySize?: string;
+      experienceLevel?: string;
+      country?: string;
+    }
+  ): Promise<JobPosting[]>;
   getAllJobs(): Promise<JobPosting[]>;
   getAllJobPostings(): Promise<JobPosting[]>;
   getJobPosting(id: number): Promise<JobPosting | undefined>;
@@ -988,12 +1002,80 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Recruiter operations - Job postings
-  async getJobPostings(recruiterId?: string): Promise<JobPosting[]> {
+  async getRecruiterJobPostings(recruiterId: string): Promise<JobPosting[]> {
+    try {
+      const jobPostings = await db
+        .select()
+        .from(jobPostings)
+        .where(eq(jobPostings.recruiterId, recruiterId))
+        .orderBy(desc(jobPostings.createdAt));
+
+      return jobPostings;
+    } catch (error) {
+      console.error('Error fetching recruiter job postings:', error);
+      return [];
+    }
+  }
+
+  // Get job postings with pagination
+  async getJobPostings(
+    page: number = 1,
+    limit: number = 10,
+    filters: {
+      search?: string;
+      location?: string;
+      workMode?: string;
+      category?: string;
+      salaryRange?: string;
+      companySize?: string;
+      experienceLevel?: string;
+      country?: string;
+    } = {}
+  ): Promise<JobPosting[]> {
     return await handleDbOperation(async () => {
-      if (recruiterId) {
-        return await this.db.select().from(jobPostings).where(eq(jobPostings.recruiterId, recruiterId)).orderBy(desc(jobPostings.createdAt));
+      let query = this.db.select().from(jobPostings).where(eq(jobPostings.isActive, true));
+      const conditions: any[] = [eq(jobPostings.isActive, true)];
+
+      // Apply filters
+      if (filters.search) {
+        conditions.push(or(
+          like(jobPostings.title, `%${filters.search}%`),
+          like(jobPostings.companyName, `%${filters.search}%`),
+          like(jobPostings.description, `%${filters.search}%`)
+        ));
       }
-      return await this.db.select().from(jobPostings).where(eq(jobPostings.isActive, true)).orderBy(desc(jobPostings.createdAt));
+      if (filters.location) {
+        conditions.push(eq(jobPostings.location, filters.location));
+      }
+      if (filters.workMode) {
+        conditions.push(eq(jobPostings.workMode, filters.workMode));
+      }
+      if (filters.category) {
+        conditions.push(eq(jobPostings.category, filters.category));
+      }
+      if (filters.salaryRange) {
+        // Assuming salaryRange is like "50000-70000"
+        const [minSalary, maxSalary] = filters.salaryRange.split('-').map(Number);
+        if (!isNaN(minSalary)) conditions.push(gte(jobPostings.salaryFrom, minSalary));
+        if (!isNaN(maxSalary)) conditions.push(lte(jobPostings.salaryTo, maxSalary));
+      }
+      if (filters.companySize) {
+        conditions.push(eq(jobPostings.companySize, filters.companySize));
+      }
+      if (filters.experienceLevel) {
+        conditions.push(eq(jobPostings.experienceLevel, filters.experienceLevel));
+      }
+      if (filters.country) {
+        conditions.push(eq(jobPostings.country, filters.country));
+      }
+
+      if (conditions.length > 1) {
+        query = query.where(and(...conditions));
+      }
+
+      const offset = (page - 1) * limit;
+
+      return await query.orderBy(desc(jobPostings.createdAt)).limit(limit).offset(offset);
     }, []);
   }
 

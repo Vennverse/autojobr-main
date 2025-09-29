@@ -2012,6 +2012,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const interviews = await interviewAssignmentService.getRecruiterAssignedInterviews(userId);
       res.json(interviews);
     } catch (error) {
+      console.error('Error in /api/interviews/assigned:', error);
       handleError(res, error, "Failed to fetch assigned interviews");
     }
   });
@@ -2035,6 +2036,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mockInterviews: stats.mock.count
       });
     } catch (error) {
+      console.error('Error in /api/interviews/stats:', error);
       handleError(res, error, "Failed to fetch interview stats");
     }
   });
@@ -2068,7 +2070,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const candidates = await interviewAssignmentService.getCandidates();
       res.json(candidates);
     } catch (error) {
+      console.error('Error in /api/users/candidates:', error);
       handleError(res, error, "Failed to fetch candidates");
+    }
+  });
+
+  // Add missing job postings endpoint for interview assignments
+  app.get('/api/jobs/postings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      }
+
+      // Get recruiter's job postings
+      const jobPostings = await storage.getRecruiterJobPostings(userId);
+      res.json(jobPostings);
+    } catch (error) {
+      console.error('Error in /api/jobs/postings:', error);
+      handleError(res, error, "Failed to fetch job postings");
     }
   });
 
