@@ -27,7 +27,7 @@ import {
   AlertCircle,
   Timer
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -651,9 +651,9 @@ export default function InterviewAssignments() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Generate Shareable Interview Link</DialogTitle>
-            <p className="text-sm text-muted-foreground mt-2">
+            <DialogDescription className="text-sm text-muted-foreground mt-2">
               Create a shareable link that candidates can use to take interviews without being assigned directly
-            </p>
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -661,23 +661,32 @@ export default function InterviewAssignments() {
               <Select
                 value={linkGeneration.jobPostingId}
                 onValueChange={(value) => {
-                  const selectedJob = jobPostings.find(job => job.id === Number(value));
-                  setLinkGeneration(prev => ({
-                    ...prev,
-                    jobPostingId: value,
-                    role: selectedJob?.title || prev.role,
-                    company: selectedJob?.company || prev.company
-                  }));
+                  if (value === "no-job") {
+                    setLinkGeneration(prev => ({
+                      ...prev,
+                      jobPostingId: "",
+                      role: "",
+                      company: ""
+                    }));
+                  } else {
+                    const selectedJob = jobPostings.find(job => job.id === Number(value));
+                    setLinkGeneration(prev => ({
+                      ...prev,
+                      jobPostingId: value,
+                      role: selectedJob?.title || "",
+                      company: selectedJob?.companyName || selectedJob?.company || ""
+                    }));
+                  }
                 }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select job posting (optional)" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-60 overflow-y-auto">
                   <SelectItem value="no-job">No specific job</SelectItem>
                   {jobPostings.map(job => (
                     <SelectItem key={job.id} value={job.id.toString()}>
-                      {job.title} - {job.company}
+                      {job.title} - {job.companyName || job.company}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -705,21 +714,34 @@ export default function InterviewAssignments() {
             </div>
 
             <div>
-              <Label>Role</Label>
+              <Label>Role {linkGeneration.interviewType === 'virtual' ? '*' : ''}</Label>
               <Input
                 value={linkGeneration.role}
                 onChange={(e) => setLinkGeneration(prev => ({ ...prev, role: e.target.value }))}
                 placeholder="e.g., Senior Software Engineer"
+                required={linkGeneration.interviewType === 'virtual'}
+                disabled={!!linkGeneration.jobPostingId && linkGeneration.jobPostingId !== "no-job"}
               />
+              {linkGeneration.interviewType === 'virtual' && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Role is required for virtual interviews to provide context to the AI interviewer
+                </p>
+              )}
             </div>
 
             <div>
-              <Label>Company (Optional)</Label>
+              <Label>Company</Label>
               <Input
                 value={linkGeneration.company}
                 onChange={(e) => setLinkGeneration(prev => ({ ...prev, company: e.target.value }))}
-                placeholder="e.g., Tech Corp"
+                placeholder="Your company name"
+                disabled={!!linkGeneration.jobPostingId && linkGeneration.jobPostingId !== "no-job"}
               />
+              {!!linkGeneration.jobPostingId && linkGeneration.jobPostingId !== "no-job" && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Auto-filled from selected job posting
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

@@ -15,7 +15,7 @@ interface InterviewAssignmentModalProps {
   onClose: () => void;
   interviewType: 'virtual' | 'mock' | 'skills-verification' | 'personality' | 'simulation' | 'video-interview';
   candidates: { id: string; name: string; email: string; }[];
-  jobPostings: { id: number; title: string; company: string; }[];
+  jobPostings: { id: number; title: string; company: string; companyName?: string }[];
   onAssignmentSuccess: () => void;
 }
 
@@ -404,9 +404,9 @@ export default function InterviewAssignmentModal({
     setFormData(prev => ({
       ...prev,
       jobPostingId: jobId,
-      company: selectedJob?.company || '',
+      company: selectedJob?.companyName || selectedJob?.company || '',
       role: selectedJob?.title || '',
-      jobDescription: selectedJob ? `Role: ${selectedJob.title} at ${selectedJob.company}` : ''
+      jobDescription: selectedJob ? `Role: ${selectedJob.title} at ${selectedJob.companyName || selectedJob.company}` : ''
     }));
 
     // Fetch candidates who applied to this job
@@ -475,10 +475,10 @@ export default function InterviewAssignmentModal({
                   <SelectTrigger>
                     <SelectValue placeholder="Select job posting first" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-60 overflow-y-auto">
                     {jobPostings.map(job => (
                       <SelectItem key={job.id} value={job.id.toString()}>
-                        {job.title} - {job.company}
+                        {job.title} - {job.companyName || job.company}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -554,14 +554,20 @@ export default function InterviewAssignmentModal({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="role">Role *</Label>
+                  <Label htmlFor="role">Role {interviewType === 'virtual' ? '*' : ''}</Label>
                   <Input
                     id="role"
                     value={formData.role}
                     onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
                     placeholder="e.g., Senior Software Engineer"
-                    required
+                    required={interviewType === 'virtual'}
+                    disabled={!!formData.jobPostingId}
                   />
+                  {interviewType === 'virtual' && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Role is required for virtual interviews to provide context to the AI interviewer
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -570,8 +576,14 @@ export default function InterviewAssignmentModal({
                     id="company"
                     value={formData.company}
                     onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
-                    placeholder="e.g., Tech Corp"
+                    placeholder="Your company name"
+                    disabled={!!formData.jobPostingId}
                   />
+                  {!!formData.jobPostingId && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Auto-filled from selected job posting
+                    </p>
+                  )}
                 </div>
               </div>
 
