@@ -881,6 +881,24 @@ export const skillsVerifications = pgTable("skills_verifications", {
   createdAt: timestamp("created_at").defaultNow()
 });
 
+// Interview invitation links for external candidates
+export const interviewInvitations = pgTable("interview_invitations", {
+  id: serial("id").primaryKey(),
+  token: varchar("token").notNull().unique(),
+  recruiterId: text("recruiter_id").notNull(),
+  jobPostingId: integer("job_posting_id").notNull(),
+  interviewType: text("interview_type").notNull(), // virtual, mock, skills-verification, personality, simulation, video-interview
+  interviewConfig: text("interview_config").notNull(), // JSON string with interview-specific settings
+  expiryDate: timestamp("expiry_date").notNull(),
+  isUsed: boolean("is_used").default(false),
+  candidateId: text("candidate_id"), // Set after candidate signs up
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").defaultNow()
+}, (table) => [
+  index("interview_invitations_token_idx").on(table.token),
+  index("interview_invitations_recruiter_idx").on(table.recruiterId),
+  index("interview_invitations_job_idx").on(table.jobPostingId),
+]);
 
 // Advanced recruiter features - Job templates for faster posting
 export const jobTemplates = pgTable("job_templates", {
@@ -3461,3 +3479,15 @@ export type InsertPersonalityAssessment = z.infer<typeof insertPersonalityAssess
 
 export type SkillsVerification = typeof skillsVerifications.$inferSelect;
 export type InsertSkillsVerification = z.infer<typeof insertSkillsVerificationSchema>;
+
+// Interview Invitations insert schema
+export const insertInterviewInvitationSchema = createInsertSchema(interviewInvitations).omit({
+  id: true,
+  createdAt: true,
+  isUsed: true,
+  candidateId: true,
+  usedAt: true,
+});
+
+export type InterviewInvitation = typeof interviewInvitations.$inferSelect;
+export type InsertInterviewInvitation = z.infer<typeof insertInterviewInvitationSchema>;
