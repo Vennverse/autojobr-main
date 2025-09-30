@@ -6938,14 +6938,28 @@ Additional Information:
         jobPostingId,
         interviewType,
         interviewTypeSpecific,
+        role,
+        company,
+        difficulty,
         expiryDays = 30,
         ...interviewConfig
       } = req.body;
+
+      console.log('[GENERATE LINK DEBUG] Request body:', JSON.stringify(req.body, null, 2));
+      console.log('[GENERATE LINK DEBUG] Extracted values:', { jobPostingId, interviewType, interviewTypeSpecific, role, company, difficulty });
 
       const finalInterviewType = interviewTypeSpecific || interviewType;
 
       if (!finalInterviewType) {
         return res.status(400).json({ message: 'Missing required field: interviewType is required' });
+      }
+
+      if (!role) {
+        return res.status(400).json({ message: 'Missing required field: role is required' });
+      }
+
+      if (!difficulty) {
+        return res.status(400).json({ message: 'Missing required field: difficulty is required' });
       }
 
       // Generate unique token
@@ -6962,6 +6976,9 @@ Additional Information:
         jobPostingId: jobPostingId ? Number(jobPostingId) : null,
         interviewType: finalInterviewType,
         interviewConfig: JSON.stringify(interviewConfig),
+        role: role,
+        company: company || null,
+        difficulty: difficulty,
         expiryDate,
         isUsed: false
       }).returning();

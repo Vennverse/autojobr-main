@@ -137,8 +137,8 @@ export default function InterviewAssignmentModal({
       const payload = {
         jobPostingId: formData.jobPostingId ? Number(formData.jobPostingId) : null,
         interviewType: formData.interviewTypeSpecific,
-        role: formData.role,
-        company: selectedJob?.company || formData.company,
+        role: selectedJob?.title || formData.role,
+        company: selectedJob?.companyName || selectedJob?.company || formData.company,
         difficulty: formData.difficulty,
         dueDate: formData.dueDate,
         jobDescription: formData.jobDescription,
@@ -540,7 +540,8 @@ export default function InterviewAssignmentModal({
                     onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
                     placeholder="e.g., Senior Software Engineer"
                     required={interviewType === 'virtual'}
-                    disabled={!!formData.jobPostingId}
+                    readOnly={!!formData.jobPostingId}
+                    className={formData.jobPostingId ? "bg-muted" : ""}
                   />
                   {interviewType === 'virtual' && (
                     <p className="text-xs text-gray-500 mt-1">
@@ -556,7 +557,8 @@ export default function InterviewAssignmentModal({
                     value={formData.company}
                     onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
                     placeholder="Your company name"
-                    disabled={!!formData.jobPostingId}
+                    readOnly={!!formData.jobPostingId}
+                    className={formData.jobPostingId ? "bg-muted" : ""}
                   />
                   {!!formData.jobPostingId && (
                     <p className="text-xs text-gray-500 mt-1">

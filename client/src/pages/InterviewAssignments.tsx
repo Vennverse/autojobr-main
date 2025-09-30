@@ -198,10 +198,10 @@ export default function InterviewAssignments() {
 
   // Fetch job postings
   const { data: jobPostings = [] } = useQuery({
-    queryKey: ['/api/jobs/postings'],
+    queryKey: ['/api/recruiter/jobs'],
     queryFn: async () => {
       try {
-        const response = await fetch('/api/jobs/postings', {
+        const response = await fetch('/api/recruiter/jobs', {
           credentials: 'include'
         });
         
