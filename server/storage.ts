@@ -1008,9 +1008,12 @@ export class DatabaseStorage implements IStorage {
       const results = await db
         .select()
         .from(jobPostings)
-        .where(eq(jobPostings.recruiterId, recruiterId))
+        .where(and(
+          eq(jobPostings.recruiterId, recruiterId),
+          eq(jobPostings.isActive, true)
+        ))
         .orderBy(desc(jobPostings.createdAt));
-      console.log(`[STORAGE] Found ${results.length} job postings for recruiter ${recruiterId}`);
+      console.log(`[STORAGE] Found ${results.length} active job postings for recruiter ${recruiterId}`);
       return results;
     } catch (error) {
       console.error('Error fetching recruiter job postings:', error);
