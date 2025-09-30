@@ -1004,13 +1004,13 @@ export class DatabaseStorage implements IStorage {
   // Recruiter operations - Job postings
   async getRecruiterJobPostings(recruiterId: string): Promise<JobPosting[]> {
     try {
-      const jobPostings = await db
+      const results = await db
         .select()
         .from(jobPostings)
         .where(eq(jobPostings.recruiterId, recruiterId))
         .orderBy(desc(jobPostings.createdAt));
 
-      return jobPostings;
+      return results;
     } catch (error) {
       console.error('Error fetching recruiter job postings:', error);
       return [];
