@@ -1185,15 +1185,17 @@ export class DatabaseStorage implements IStorage {
     }, []);
   }
 
-  async getApplicationsForJobSeeker(jobSeekerId: string): Promise<JobPostingApplication[]> {
+  async getApplicationsForJobSeeker(jobSeekerId: string): Promise<JobApplication[]> {
     return await handleDbOperation(async () => {
-      return await this.db.select().from(jobPostingApplications).where(eq(jobPostingApplications.applicantId, jobSeekerId)).orderBy(desc(jobPostingApplications.appliedAt));
+      return await this.db.select().from(jobApplications).where(eq(jobApplications.userId, jobSeekerId));
     }, []);
   }
 
   async getApplicationsForJob(jobId: number): Promise<JobPostingApplication[]> {
     return await handleDbOperation(async () => {
-      return await this.db.select().from(jobPostingApplications).where(eq(jobPostingApplications.jobPostingId, jobId)).orderBy(desc(jobPostingApplications.appliedAt));
+      const results = await this.db.select().from(jobPostingApplications).where(eq(jobPostingApplications.jobPostingId, jobId));
+      console.log(`[STORAGE] Found ${results.length} applications for job ${jobId}`);
+      return results;
     }, []);
   }
 
