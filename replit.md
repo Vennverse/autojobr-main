@@ -1,123 +1,119 @@
-# AutoJobr - AI-Powered Job Application Platform
+# AutoJobr - Job Application Automation Platform
 
 ## Overview
+AutoJobr is a full-stack web application that automates job applications, helping users apply to thousands of jobs efficiently. The platform includes ATS (Applicant Tracking System) resume optimization, AI-powered cover letter generation, interview preparation, and a Chrome extension for one-click job applications.
 
-AutoJobr is a comprehensive job application automation platform that combines AI-powered resume analysis, intelligent form filling, and professional networking features. The platform serves both job seekers and recruiters, offering tools for job matching, application tracking, interview preparation, and talent acquisition. Built as a full-stack application with a Chrome extension for automated job applications, AutoJobr streamlines the entire job search and hiring process.
+## Tech Stack
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui components, Wouter (routing)
+- **Backend**: Express.js, Node.js
+- **Database**: PostgreSQL (Neon/Replit Database)
+- **ORM**: Drizzle ORM
+- **Authentication**: Passport.js (Google OAuth, Local)
+- **AI Integration**: Groq, OpenRouter, OpenAI, Anthropic
+- **Payments**: Stripe, PayPal, Razorpay
+- **Email**: Resend, SendGrid, Nodemailer
+- **Real-time**: WebSocket (ws)
 
-## User Preferences
+## Project Structure
+```
+├── client/                # Frontend React application
+│   ├── src/
+│   │   ├── pages/        # Page components
+│   │   ├── components/   # Reusable UI components
+│   │   └── lib/          # Client utilities
+│   └── index.html
+├── server/               # Backend Express server
+│   ├── index.ts         # Main server entry point
+│   ├── routes.ts        # API route handlers
+│   ├── storage.ts       # Database interface
+│   ├── vite.ts          # Vite dev server setup
+│   └── [services]/      # Business logic services
+├── shared/              # Shared code between frontend/backend
+│   └── schema.ts        # Database schema (Drizzle)
+├── migrations/          # Database migration files
+└── attached_assets/     # Static assets
 
-Preferred communication style: Simple, everyday language.
+```
 
-## System Architecture
+## Environment Setup
 
-### Frontend Architecture
-- **Framework**: React 18 with TypeScript for type safety and modern development
-- **Build System**: Vite for fast development and optimized production builds
-- **UI Library**: Radix UI components with Tailwind CSS for professional styling
-- **State Management**: React Query (TanStack Query) for server state management and caching
-- **Real-time Communication**: WebSocket integration with custom hooks for chat and notifications
-- **Routing**: React Router for single-page application navigation
-- **Form Handling**: React Hook Form with Zod validation for robust form management
+### Required Environment Variables
+- `DATABASE_URL`: PostgreSQL connection string (auto-provided by Replit)
+- `NODE_ENV`: Set to "development" for dev mode, "production" for prod
+- `PORT`: Server port (always 5000 in Replit)
+- `SESSION_SECRET`: Random secret for session encryption
 
-### Backend Architecture
-- **Runtime**: Node.js with Express.js framework using ES modules
-- **Language**: TypeScript for type safety across the entire stack
-- **Database ORM**: Drizzle ORM with PostgreSQL for type-safe database operations
-- **Authentication**: Custom session-based authentication with multiple OAuth providers (Google, GitHub, LinkedIn)
-- **Real-time Features**: WebSocket server for live chat, notifications, and collaborative features
-- **File Handling**: Custom file storage service with compression for resume and document management
-- **Process Management**: PM2 for production deployment with clustering and automatic restarts
+### Optional API Keys
+- `GROQ_API_KEY`: For AI-powered features
+- `STRIPE_SECRET_KEY`: For payment processing
+- `PAYPAL_CLIENT_ID` & `PAYPAL_CLIENT_SECRET`: PayPal integration
+- `RESEND_API_KEY`: For email notifications
+- `GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`: Google OAuth
 
-### Data Storage Solutions
-- **Primary Database**: PostgreSQL with Drizzle ORM for structured data
-- **Schema Design**: Comprehensive schema supporting users, jobs, applications, resumes, skills, work experience, education, and subscription management
-- **File Storage**: Local file system with gzip compression for resume and document storage
-- **Session Storage**: In-memory sessions with Redis-compatible structure
-- **Caching**: LRU cache implementation for frequently accessed data and API responses
+## Development
 
-### Authentication and Authorization
-- **Multi-Provider Auth**: Support for email/password, Google OAuth, GitHub OAuth, and LinkedIn OAuth
-- **Session Management**: Express sessions with secure HTTP-only cookies
-- **Role-Based Access**: Separate user types (job_seeker, recruiter) with role-specific features
-- **Security**: CORS configuration, security headers, and input validation
-- **Demo Mode**: Instant demo access for testing and onboarding
+### Running Locally
+```bash
+npm run dev
+```
+This starts:
+- Express server on port 5000
+- Vite dev server with HMR
+- Frontend served at http://localhost:5000
 
-### AI and External Integrations
-- **AI Models**: Groq AI integration using llama-3.3-70b-versatile for resume analysis, job matching, and cover letter generation
-- **Email Services**: Dual email provider support (Resend API and Nodemailer with SMTP)
-- **Payment Processing**: PayPal SDK integration for subscription management
-- **Resume Parsing**: Custom NLP-based resume parsing with AI fallback for structured data extraction
+### Database Operations
+```bash
+# Push schema changes to database
+npm run db:push
 
-### Chrome Extension Architecture
-- **Manifest V3**: Modern Chrome extension using service workers
-- **Content Scripts**: Universal content script for form detection and auto-filling across job sites
-- **Background Service**: API communication and data synchronization with backend
-- **Popup Interface**: React-based popup for job analysis, application tracking, and quick actions
-- **Form Compatibility**: Multi-platform support for Workday, LinkedIn, Greenhouse, Lever, and other ATS systems
+# Force push (if warnings appear)
+npm run db:push -- --force
+```
 
-### Deployment and Infrastructure
-- **Production Deployment**: Docker containerization with PM2 process management
-- **Reverse Proxy**: Nginx configuration for SSL termination and static asset serving
-- **Database**: External PostgreSQL providers (Neon, Supabase, PlanetScale) support
-- **Environment Management**: Comprehensive environment variable configuration for different deployment scenarios
-- **Monitoring**: Application health checks and performance monitoring
+### Building for Production
+```bash
+npm run build  # Builds both frontend and backend
+npm run start  # Runs production server
+```
 
-## Replit Environment Setup
+## Key Features
+1. **Job Search & Auto-Apply**: Automated job application submission
+2. **ATS Resume Optimization**: AI-powered resume analysis and optimization
+3. **Cover Letter Generation**: Personalized cover letters using AI
+4. **Interview Preparation**: Mock interviews with AI feedback
+5. **Chrome Extension**: One-click job applications
+6. **Job Tracking**: Dashboard to manage applications
+7. **Subscription Management**: Stripe/PayPal integration
+8. **Real-time Chat**: WebSocket-based communication
 
-This project is configured to run in the Replit environment with the following setup:
+## Database Schema
+The application uses a comprehensive PostgreSQL schema with tables for:
+- Users & authentication
+- Job postings & applications
+- Resumes & cover letters
+- Interview data & feedback
+- Subscription & payment info
+- Test assignments & rankings
 
-### Development Server
-- **Port**: 5000 (frontend and backend on same port)
-- **Host**: 0.0.0.0 (allows Replit proxy access)
-- **Workflow**: `npm run dev` starts both Express backend and Vite frontend
-- **Database**: Replit PostgreSQL database (automatically configured via DATABASE_URL)
+See `shared/schema.ts` for the complete schema definition.
 
-### Vite Configuration
-- **Allowed Hosts**: Configured to accept all hosts (required for Replit's proxy/iframe setup)
-- **HMR**: WebSocket hot module replacement configured for port 5000
-- **Build Output**: `dist/public` directory for production builds
+## Replit Configuration
+- **Workflow**: "Start application" runs `npm run dev` on port 5000
+- **Database**: Uses Replit PostgreSQL (Neon-backed)
+- **Deployment**: Configured for Replit Autoscale deployment
+- **Host**: Frontend binds to 0.0.0.0:5000 for proper proxy handling
 
-### Deployment
-- **Build Command**: `npm run build` (compiles both frontend and backend)
-- **Start Command**: `npm run start` (runs production server from dist/)
-- **Deployment Target**: Autoscale (stateless web application)
+## Recent Changes (Sept 30, 2025)
+- Initial Replit environment setup
+- Created .env file with DATABASE_URL and SESSION_SECRET
+- Fixed Vite server configuration for Replit proxy compatibility
+- Configured workflow for port 5000 with webview output
+- Verified PostgreSQL database connection
+- All services initialized successfully
 
-## External Dependencies
-
-### Core Infrastructure
-- **Database**: PostgreSQL (Replit PostgreSQL in development, supports Neon/Supabase/PlanetScale)
-- **File Storage**: Local filesystem with plans for cloud storage integration
-- **Process Management**: PM2 for production deployment and clustering (not needed in Replit)
-
-### AI and Machine Learning
-- **Groq API**: Primary AI provider for resume analysis, job matching, and content generation using llama-3.3-70b-versatile model
-- **Fallback AI**: Support for multiple AI providers with automatic failover
-
-### Authentication Providers
-- **Google OAuth**: Google Identity Platform for social login
-- **GitHub OAuth**: GitHub Apps for developer-focused authentication
-- **LinkedIn OAuth**: LinkedIn API for professional network integration
-
-### Communication Services
-- **Resend API**: Modern transactional email service for notifications and marketing
-- **Nodemailer**: SMTP email sending with custom SMTP server support
-- **WebSocket**: Real-time communication for chat and live updates
-
-### Payment and Subscription
-- **PayPal SDK**: Payment processing and subscription management
-- **Stripe Integration**: Alternative payment processor (configured but not primary)
-
-### Development and Monitoring
-- **TypeScript**: Type safety across frontend and backend
-- **ESLint/Prettier**: Code quality and formatting
-- **Vite**: Build system and development server
-- **Docker**: Containerization for consistent deployments
-
-### Browser Extension APIs
-- **Chrome Extension APIs**: Storage, tabs, notifications, and content script APIs
-- **WebRTC**: Potential future integration for video interviews
-
-### Third-Party Libraries
-- **Frontend**: React Query, Framer Motion, React Hook Form, Zod validation
-- **Backend**: Express.js, Drizzle ORM, Winston logging, Passport.js
-- **Utilities**: Date-fns, Lodash, UUID generation, PDF parsing libraries
+## Architecture Notes
+- The app uses a monolithic architecture with frontend and backend in one repo
+- Vite dev server runs in middleware mode during development
+- Production build outputs to `dist/` directory
+- Session storage uses PostgreSQL for multi-instance support
+- WebSocket server runs on same port as HTTP server
