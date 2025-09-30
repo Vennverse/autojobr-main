@@ -167,7 +167,7 @@ async function handleDbOperation<T>(operation: () => Promise<T>, fallback?: T): 
     throw error;
   }
 }
-import { eq, desc, and, or, ne, sql, lt, isNotNull, count, isNull, asc, like } from "drizzle-orm";
+import { eq, desc, and, or, ne, sql, lt, isNotNull, count, isNull, asc, like, gte, lte } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -1004,12 +1004,13 @@ export class DatabaseStorage implements IStorage {
   // Recruiter operations - Job postings
   async getRecruiterJobPostings(recruiterId: string): Promise<JobPosting[]> {
     try {
+      console.log(`[STORAGE] Fetching job postings for recruiter: ${recruiterId}`);
       const results = await db
         .select()
         .from(jobPostings)
         .where(eq(jobPostings.recruiterId, recruiterId))
         .orderBy(desc(jobPostings.createdAt));
-
+      console.log(`[STORAGE] Found ${results.length} job postings for recruiter ${recruiterId}`);
       return results;
     } catch (error) {
       console.error('Error fetching recruiter job postings:', error);
