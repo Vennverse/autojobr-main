@@ -7,7 +7,7 @@ import {
   jobPostings,
   jobPostingApplications
 } from "@shared/schema";
-import { eq, and, desc, count, sql } from "drizzle-orm";
+import { eq, and, desc, count, sql, or } from "drizzle-orm";
 import { sendEmail } from "./emailService";
 import { paymentService } from "./paymentService";
 import type { 
@@ -1048,7 +1048,10 @@ export class InterviewAssignmentService {
           // isActive: users.isActive // Field doesn't exist in schema
         })
         .from(users)
-        .where(eq(users.userType, 'jobSeeker'))
+        .where(or(
+          eq(users.userType, 'jobSeeker'),
+          eq(users.userType, 'job_seeker')
+        ))
         .orderBy(desc(users.createdAt));
 
       // Format candidates with names
