@@ -21,14 +21,15 @@ export default function UserTypeSelection() {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
 
-  // Validate corporate email (no Gmail, Yahoo, etc.)
+  // Validate corporate email (no Gmail, Yahoo, .edu, etc.)
   const isValidCorporateEmail = (emailAddress: string) => {
     const publicDomains = [
       'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'live.com',
       'aol.com', 'protonmail.com', 'icloud.com', 'mail.com', 'zoho.com'
     ];
     const domain = emailAddress.split('@')[1]?.toLowerCase();
-    return domain && !publicDomains.includes(domain);
+    const isEducationalEmail = domain?.endsWith('.edu');
+    return domain && !publicDomains.includes(domain) && !isEducationalEmail;
   };
 
   const sendVerificationMutation = useMutation({
@@ -68,7 +69,7 @@ export default function UserTypeSelection() {
     if (!isValidCorporateEmail(email)) {
       toast({
         title: "Invalid Email",
-        description: "Please use your company email address. Personal email domains are not allowed for recruiters.",
+        description: "Please use your company email address. Personal and educational (.edu) email domains are not allowed for recruiters.",
         variant: "destructive",
       });
       return;

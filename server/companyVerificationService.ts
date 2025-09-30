@@ -113,7 +113,8 @@ export class CompanyVerificationService {
       'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 
       'icloud.com', 'aol.com', 'protonmail.com', 'mail.com'
     ];
-    return domain && !personalDomains.includes(domain);
+    const isEducationalEmail = domain?.endsWith('.edu');
+    return domain && !personalDomains.includes(domain) && !isEducationalEmail;
   }
 
   // Auto-detect if user should be a recruiter based on email domain

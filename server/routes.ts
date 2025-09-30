@@ -1796,13 +1796,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email and company name are required" });
       }
 
-      // Validate company email (no Gmail, Yahoo, etc.)
+      // Validate company email (no Gmail, Yahoo, .edu, etc.)
       const emailDomain = email.split('@')[1].toLowerCase();
       const blockedDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com'];
+      const isEducationalEmail = emailDomain.endsWith('.edu');
       
-      if (blockedDomains.includes(emailDomain)) {
+      if (blockedDomains.includes(emailDomain) || isEducationalEmail) {
         return res.status(400).json({ 
-          message: 'Please use a company email address. Personal email addresses are not allowed for recruiter accounts.' 
+          message: 'Please use a company email address. Personal and educational (.edu) email addresses are not allowed for recruiter accounts.' 
         });
       }
 
