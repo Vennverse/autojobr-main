@@ -269,13 +269,25 @@ export default function InterviewAssignments() {
 
   const generateShareableLink = async () => {
     try {
+      // Transform the data to match backend expectations
+      const payload = {
+        jobPostingId: linkGeneration.jobPostingId ? Number(linkGeneration.jobPostingId) : null,
+        interviewType: linkGeneration.interviewType,
+        interviewConfig: JSON.stringify({
+          role: linkGeneration.role,
+          company: linkGeneration.company,
+          difficulty: linkGeneration.difficulty
+        }),
+        expiryDays: linkGeneration.expiresInDays || 7
+      };
+
       const response = await fetch('/api/interviews/generate-link', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(linkGeneration)
+        body: JSON.stringify(payload)
       });
 
       const data = await response.json();

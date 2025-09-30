@@ -886,7 +886,7 @@ export const interviewInvitations = pgTable("interview_invitations", {
   id: serial("id").primaryKey(),
   token: varchar("token").notNull().unique(),
   recruiterId: text("recruiter_id").notNull(),
-  jobPostingId: integer("job_posting_id").notNull(),
+  jobPostingId: integer("job_posting_id"), // Optional - can be null for generic interview links
   interviewType: text("interview_type").notNull(), // virtual, mock, skills-verification, personality, simulation, video-interview
   interviewConfig: text("interview_config").notNull(), // JSON string with interview-specific settings
   expiryDate: timestamp("expiry_date").notNull(),

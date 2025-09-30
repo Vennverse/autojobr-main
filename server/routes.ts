@@ -2111,77 +2111,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Shareable Interview Link System
-  app.post('/api/interviews/generate-link', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
-        return res.status(403).json({ message: "Access denied. Recruiter account required." });
-      }
-
-      const { jobPostingId, interviewType, expiresInDays = 7, role, company, difficulty } = req.body;
-      
-      // Generate unique token
-      const token = crypto.randomUUID();
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + expiresInDays);
-      
-      // Create interview invitation
-      await db.insert(schema.interviewInvitations).values({
-        token,
-        recruiterId: userId,
-        jobPostingId: jobPostingId || null,
-        interviewType,
-        role,
-        company,
-        difficulty,
-        expiresAt,
-        isUsed: false
-      });
-      
-      const shareableLink = `${process.env.FRONTEND_URL || 'https://autojobr.com'}/interview-invite/${token}`;
-      
-      res.json({
-        success: true,
-        token,
-        shareableLink,
-        expiresAt
-      });
-    } catch (error) {
-      handleError(res, error, "Failed to generate shareable interview link");
-    }
-  });
-
-  app.get('/api/interviews/invite/:token', async (req: any, res) => {
-    try {
-      const { token } = req.params;
-      
-      const invitation = await db.select()
-        .from(schema.interviewInvitations)
-        .where(eq(schema.interviewInvitations.token, token))
-        .limit(1);
-      
-      if (!invitation.length || invitation[0].expiresAt < new Date()) {
-        return res.status(404).json({ message: 'Invalid or expired invitation' });
-      }
-      
-      const invitationData = invitation[0];
-      
-      res.json({
-        valid: true,
-        interviewType: invitationData.interviewType,
-        role: invitationData.role,
-        company: invitationData.company,
-        difficulty: invitationData.difficulty,
-        isUsed: invitationData.isUsed,
-        jobPostingId: invitationData.jobPostingId
-      });
-    } catch (error) {
-      handleError(res, error, "Failed to validate interview invitation");
-    }
-  });
 
   app.post('/api/interviews/invite/:token/use', isAuthenticated, async (req: any, res) => {
     try {
@@ -7012,8 +6941,8 @@ Additional Information:
         expiryDays = 30
       } = req.body;
 
-      if (!jobPostingId || !interviewType || !interviewConfig) {
-        return res.status(400).json({ message: 'Missing required fields' });
+      if (!interviewType || !interviewConfig) {
+        return res.status(400).json({ message: 'Missing required fields: interviewType and interviewConfig are required' });
       }
 
       // Generate unique token
