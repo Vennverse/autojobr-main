@@ -348,7 +348,7 @@ export default function LandingPage() {
             </nav>
             
             <div className="flex items-center space-x-4">
-              <Link href="/auth">
+              <Link href="/auth?mode=login">
                 <Button variant="ghost" size="sm" className="hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-300 hover:scale-105">
                   Sign In
                 </Button>

@@ -272,7 +272,7 @@ export function Navbar() {
               {/* Login button for non-authenticated users */}
               {!user && (
                 <Button 
-                  onClick={() => window.location.href = "/auth"} 
+                  onClick={() => window.location.href = "/auth?mode=login"} 
                   className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-sm"
                 >
                   Sign In
@@ -499,7 +499,7 @@ export function Navbar() {
               {!user && (
                 <div className="px-3 py-4 border-t border-gray-200 dark:border-gray-700">
                   <Button 
-                    onClick={() => window.location.href = "/auth"} 
+                    onClick={() => window.location.href = "/auth?mode=login"} 
                     className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
                   >
                     Sign In
