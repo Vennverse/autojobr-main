@@ -6937,20 +6937,31 @@ Additional Information:
       const {
         jobPostingId,
         interviewType,
-        interviewTypeSpecific,
-        role,
-        company,
-        difficulty,
-        expiryDays = 30,
-        ...interviewConfig
+        interviewConfig,
+        expiryDays = 30
       } = req.body;
 
       console.log('[GENERATE LINK DEBUG] Request body:', JSON.stringify(req.body, null, 2));
-      console.log('[GENERATE LINK DEBUG] Extracted values:', { jobPostingId, interviewType, interviewTypeSpecific, role, company, difficulty });
 
-      const finalInterviewType = interviewTypeSpecific || interviewType;
+      let parsedConfig = {};
+      try {
+        if (typeof interviewConfig === 'string') {
+          parsedConfig = JSON.parse(interviewConfig);
+        } else {
+          parsedConfig = interviewConfig || {};
+        }
+      } catch (error) {
+        console.error('Error parsing interviewConfig:', error);
+        return res.status(400).json({ message: 'Invalid interviewConfig format' });
+      }
 
-      if (!finalInterviewType) {
+      const role = parsedConfig.role;
+      const company = parsedConfig.company;
+      const difficulty = parsedConfig.difficulty;
+
+      console.log('[GENERATE LINK DEBUG] Extracted values:', { jobPostingId, interviewType, role, company, difficulty });
+
+      if (!interviewType) {
         return res.status(400).json({ message: 'Missing required field: interviewType is required' });
       }
 
@@ -6974,8 +6985,8 @@ Additional Information:
         token,
         recruiterId: userId,
         jobPostingId: jobPostingId ? Number(jobPostingId) : null,
-        interviewType: finalInterviewType,
-        interviewConfig: JSON.stringify(interviewConfig),
+        interviewType: interviewType,
+        interviewConfig: JSON.stringify(parsedConfig),
         role: role,
         company: company || null,
         difficulty: difficulty,
