@@ -109,12 +109,31 @@ export class CompanyVerificationService {
   // Check if company domain suggests it's a business email
   isBusinessEmail(email: string): boolean {
     const domain = email.split('@')[1]?.toLowerCase();
+    const localPart = email.split('@')[0]?.toLowerCase();
     const personalDomains = [
       'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 
       'icloud.com', 'aol.com', 'protonmail.com', 'mail.com'
     ];
-    const isEducationalEmail = domain?.endsWith('.edu');
-    return domain && !personalDomains.includes(domain) && !isEducationalEmail;
+    
+    if (personalDomains.includes(domain)) {
+      return false;
+    }
+    
+    // Handle .edu domains - allow recruiting emails, block student emails
+    if (domain?.endsWith('.edu')) {
+      const allowedUniPrefixes = [
+        'hr', 'careers', 'recruiting', 'recruitment', 'talent', 'jobs',
+        'employment', 'hiring', 'admin', 'staff', 'faculty', 'career',
+        'careerservices', 'placement', 'alumni', 'workforce'
+      ];
+      
+      return allowedUniPrefixes.some(prefix => 
+        localPart.startsWith(prefix) || 
+        localPart.includes(prefix)
+      );
+    }
+    
+    return domain && domain.length > 0;
   }
 
   // Auto-detect if user should be a recruiter based on email domain

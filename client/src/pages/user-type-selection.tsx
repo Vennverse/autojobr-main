@@ -21,15 +21,39 @@ export default function UserTypeSelection() {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
 
-  // Validate corporate email (no Gmail, Yahoo, .edu, etc.)
+  // Validate corporate email (no Gmail, Yahoo, student .edu, etc.)
   const isValidCorporateEmail = (emailAddress: string) => {
     const publicDomains = [
       'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'live.com',
       'aol.com', 'protonmail.com', 'icloud.com', 'mail.com', 'zoho.com'
     ];
     const domain = emailAddress.split('@')[1]?.toLowerCase();
-    const isEducationalEmail = domain?.endsWith('.edu');
-    return domain && !publicDomains.includes(domain) && !isEducationalEmail;
+    const localPart = emailAddress.split('@')[0]?.toLowerCase();
+    
+    // Check if it's a blocked public domain
+    if (publicDomains.includes(domain)) {
+      return false;
+    }
+    
+    // Allow university recruiting emails but block student emails
+    if (domain?.endsWith('.edu')) {
+      // Allow university recruiting/administrative emails
+      const allowedUniPrefixes = [
+        'hr', 'careers', 'recruiting', 'recruitment', 'talent', 'jobs',
+        'employment', 'hiring', 'admin', 'staff', 'faculty', 'career',
+        'careerservices', 'placement', 'alumni', 'workforce'
+      ];
+      
+      // Check if local part starts with allowed recruiting prefixes
+      const isRecruitingEmail = allowedUniPrefixes.some(prefix => 
+        localPart.startsWith(prefix) || 
+        localPart.includes(prefix)
+      );
+      
+      return isRecruitingEmail;
+    }
+    
+    return domain && domain.length > 0;
   };
 
   const sendVerificationMutation = useMutation({
@@ -69,7 +93,7 @@ export default function UserTypeSelection() {
     if (!isValidCorporateEmail(email)) {
       toast({
         title: "Invalid Email",
-        description: "Please use your company email address. Personal and educational (.edu) email domains are not allowed for recruiters.",
+        description: "Please use your company email address. Personal email domains and student .edu emails are not allowed. University recruiters should use emails like hr@university.edu or careers@university.edu.",
         variant: "destructive",
       });
       return;

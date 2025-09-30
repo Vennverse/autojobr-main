@@ -1796,15 +1796,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email and company name are required" });
       }
 
-      // Validate company email (no Gmail, Yahoo, .edu, etc.)
+      // Validate company email (no Gmail, Yahoo, student .edu, etc.)
       const emailDomain = email.split('@')[1].toLowerCase();
+      const localPart = email.split('@')[0].toLowerCase();
       const blockedDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com'];
-      const isEducationalEmail = emailDomain.endsWith('.edu');
       
-      if (blockedDomains.includes(emailDomain) || isEducationalEmail) {
+      if (blockedDomains.includes(emailDomain)) {
         return res.status(400).json({ 
-          message: 'Please use a company email address. Personal and educational (.edu) email addresses are not allowed for recruiter accounts.' 
+          message: 'Please use a company email address. Personal email addresses are not allowed for recruiter accounts.' 
         });
+      }
+      
+      // Handle .edu domains - allow recruiting emails, block student emails
+      if (emailDomain.endsWith('.edu')) {
+        const allowedUniPrefixes = [
+          'hr', 'careers', 'recruiting', 'recruitment', 'talent', 'jobs',
+          'employment', 'hiring', 'admin', 'staff', 'faculty', 'career',
+          'careerservices', 'placement', 'alumni', 'workforce'
+        ];
+        
+        const isRecruitingEmail = allowedUniPrefixes.some(prefix => 
+          localPart.startsWith(prefix) || 
+          localPart.includes(prefix)
+        );
+        
+        if (!isRecruitingEmail) {
+          return res.status(400).json({ 
+            message: 'Student .edu emails are not allowed for recruiter accounts. University recruiters should use emails like hr@university.edu or careers@university.edu.' 
+          });
+        }
       }
 
       // Generate verification token
