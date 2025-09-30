@@ -6994,10 +6994,8 @@ Additional Information:
         isUsed: false
       }).returning();
 
-      // Generate full URL
-      const baseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://autojobr.com' 
-        : `http://localhost:5000`;
+      // Generate full URL - always use autojobr.com for shareable links
+      const baseUrl = 'https://autojobr.com';
       const shareableLink = `${baseUrl}/interview-invite/${token}`;
 
       res.json({ 
