@@ -12,7 +12,7 @@ CREATE TABLE interview_invitations (
   role TEXT NOT NULL,
   company TEXT,
   difficulty TEXT NOT NULL,
-  expires_at TIMESTAMP NOT NULL,
+  expiry_date TIMESTAMP NOT NULL,
   is_used BOOLEAN DEFAULT FALSE,
   used_at TIMESTAMP,
   candidate_id TEXT,
