@@ -131,29 +131,8 @@ export default function InterviewAssignmentModal({
         return;
       }
 
-      let endpoint;
-      switch (interviewType) {
-        case 'virtual':
-          endpoint = '/api/chat-interview/generate-link';
-          break;
-        case 'mock':
-          endpoint = '/api/interviews/mock/generate-link';
-          break;
-        case 'skills-verification':
-          endpoint = '/api/skills-verifications/generate-link';
-          break;
-        case 'personality':
-          endpoint = '/api/personality-assessments/generate-link';
-          break;
-        case 'simulation':
-          endpoint = '/api/simulation-assessments/generate-link';
-          break;
-        case 'video-interview':
-          endpoint = '/api/video-interviews/generate-link';
-          break;
-        default:
-          endpoint = '/api/chat-interview/generate-link';
-      }
+      // Use unified endpoint for all interview types
+      const endpoint = '/api/interviews/generate-link';
 
       const payload = {
         jobPostingId: formData.jobPostingId ? Number(formData.jobPostingId) : null,

@@ -6937,12 +6937,15 @@ Additional Information:
       const {
         jobPostingId,
         interviewType,
-        interviewConfig,
-        expiryDays = 30
+        interviewTypeSpecific,
+        expiryDays = 30,
+        ...interviewConfig
       } = req.body;
 
-      if (!interviewType || !interviewConfig) {
-        return res.status(400).json({ message: 'Missing required fields: interviewType and interviewConfig are required' });
+      const finalInterviewType = interviewTypeSpecific || interviewType;
+
+      if (!finalInterviewType) {
+        return res.status(400).json({ message: 'Missing required field: interviewType is required' });
       }
 
       // Generate unique token
@@ -6956,8 +6959,8 @@ Additional Information:
       const [invitation] = await db.insert(schema.interviewInvitations).values({
         token,
         recruiterId: userId,
-        jobPostingId,
-        interviewType,
+        jobPostingId: jobPostingId ? Number(jobPostingId) : null,
+        interviewType: finalInterviewType,
         interviewConfig: JSON.stringify(interviewConfig),
         expiryDate,
         isUsed: false
@@ -6971,6 +6974,7 @@ Additional Information:
 
       res.json({ 
         success: true, 
+        link: shareableLink,
         invitation,
         shareableLink
       });
@@ -7508,7 +7512,7 @@ Additional Information:
         return res.status(403).json({ message: "Access denied. Recruiter account required." });
       }
 
-      const jobPostings = await storage.getJobPostings(userId);
+      const jobPostings = await storage.getRecruiterJobPostings(userId);
       res.json(jobPostings);
     } catch (error) {
       console.error("Error fetching job postings:", error);
