@@ -7674,46 +7674,7 @@ Additional Information:
   });
 
   // Job Seeker API Routes for Job Postings
-  
-  // Get all active job postings for job seekers with filtering (PUBLIC - no auth required)
-  app.get('/api/jobs/postings', async (req: any, res) => {
-    try {
-      const { search, location, jobType, workMode } = req.query;
-      
-      let jobPostings = await storage.getJobPostings(); // No recruiterId = get all active
-      
-      // Apply filters
-      if (search) {
-        const searchLower = (search as string).toLowerCase();
-        jobPostings = jobPostings.filter(job => 
-          job.title.toLowerCase().includes(searchLower) ||
-          job.companyName.toLowerCase().includes(searchLower) ||
-          job.description.toLowerCase().includes(searchLower) ||
-          (job.skills && job.skills.some(skill => skill.toLowerCase().includes(searchLower)))
-        );
-      }
-      
-      if (location) {
-        const locationLower = (location as string).toLowerCase();
-        jobPostings = jobPostings.filter(job => 
-          job.location && job.location.toLowerCase().includes(locationLower)
-        );
-      }
-      
-      if (jobType && jobType !== 'all') {
-        jobPostings = jobPostings.filter(job => job.jobType === jobType);
-      }
-      
-      if (workMode && workMode !== 'all') {
-        jobPostings = jobPostings.filter(job => job.workMode === workMode);
-      }
-      
-      res.json(jobPostings);
-    } catch (error) {
-      console.error("Error fetching job postings:", error);
-      res.status(500).json({ message: "Failed to fetch job postings" });
-    }
-  });
+  // Note: /api/jobs/postings is handled above for both recruiters and job seekers with proper authentication
 
   // Personalized job recommendations endpoint (excludes applied jobs)
   app.get('/api/jobs/recommendations', isAuthenticated, async (req: any, res) => {
