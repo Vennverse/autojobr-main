@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -25,9 +24,12 @@ import {
   BarChart3,
   CheckCircle,
   AlertCircle,
-  Timer
+  Timer,
+  Link2,
+  Copy,
+  ExternalLink
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -178,13 +180,13 @@ export default function InterviewAssignments() {
         const response = await fetch('/api/users/candidates', {
           credentials: 'include'
         });
-        
+
         if (!response.ok) {
           const errorText = await response.text();
           console.error('Candidates fetch error:', errorText);
           throw new Error('Failed to fetch candidates');
         }
-        
+
         const data = await response.json();
         console.log('Candidates fetched:', data);
         return data;
@@ -204,13 +206,13 @@ export default function InterviewAssignments() {
         const response = await fetch('/api/recruiter/jobs', {
           credentials: 'include'
         });
-        
+
         if (!response.ok) {
           const errorText = await response.text();
           console.error('Job postings fetch error:', errorText);
           throw new Error('Failed to fetch job postings');
         }
-        
+
         const data = await response.json();
         console.log('Job postings fetched:', data);
         return data;
@@ -230,13 +232,13 @@ export default function InterviewAssignments() {
         const response = await fetch('/api/interviews/stats', {
           credentials: 'include'
         });
-        
+
         if (!response.ok) {
           const errorText = await response.text();
           console.error('Stats fetch error:', errorText);
           throw new Error('Failed to fetch stats');
         }
-        
+
         const data = await response.json();
         console.log('Stats fetched:', data);
         return data;
@@ -293,6 +295,7 @@ export default function InterviewAssignments() {
       const data = await response.json();
 
       if (response.ok) {
+        // Add the new link to the beginning of the generatedLinks array
         setGeneratedLinks(prev => [data, ...prev]);
         toast({
           title: "Success",
@@ -442,7 +445,7 @@ export default function InterviewAssignments() {
             {interviewTypes.map((type) => {
               const typeStats = getStatsForType(type.id);
               const Icon = type.icon;
-              
+
               return (
                 <Card key={type.id} className="hover:shadow-lg transition-all duration-200 group">
                   <CardHeader className="pb-4">
@@ -457,7 +460,7 @@ export default function InterviewAssignments() {
                     <CardTitle className="text-xl">{type.name}</CardTitle>
                     <p className="text-sm text-gray-600">{type.description}</p>
                   </CardHeader>
-                  
+
                   <CardContent className="space-y-4">
                     {/* Features */}
                     <div className="space-y-2">
@@ -785,18 +788,83 @@ export default function InterviewAssignments() {
                 />
               </div>
             </div>
-
-            <div className="flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => setShowLinkModal(false)}>
-                Cancel
-              </Button>
-              <Button type="button" onClick={generateShareableLink}>
-                Generate Link
-              </Button>
-            </div>
           </div>
+          <DialogFooter>
+            <Button
+              onClick={generateShareableLink}
+              disabled={!linkGeneration.role || !linkGeneration.interviewType}
+              className="w-full"
+            >
+              Generate Link
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Generated Links Table */}
+      {generatedLinks.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5" />
+              Generated Shareable Links
+            </CardTitle>
+            <CardDescription>
+              Recently generated interview links for sharing with candidates
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {generatedLinks.map((link, index) => (
+                <div key={index} className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-900">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <p className="font-medium">{link.role} - {link.company}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {link.interviewType} • {link.difficulty} difficulty
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Expires: {new Date(link.expiresAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          navigator.clipboard.writeText(link.link);
+                          toast({
+                            title: "Link Copied!",
+                            description: "Interview link copied to clipboard",
+                          });
+                        }}
+                      >
+                        <Copy className="h-4 w-4 mr-1" />
+                        Copy
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => window.open(link.link, '_blank')}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        Open
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <Input 
+                      value={link.link} 
+                      readOnly 
+                      className="text-xs bg-white dark:bg-gray-800"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

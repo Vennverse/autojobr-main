@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar, Clock, User, Briefcase, Mail, AlertCircle, Users } from "lucide-react";
+import { AlertCircle, Share2, Copy, Link2, Loader2, Users, User, Briefcase } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface InterviewAssignmentModalProps {
@@ -15,7 +15,7 @@ interface InterviewAssignmentModalProps {
   onClose: () => void;
   interviewType: 'virtual' | 'mock' | 'skills-verification' | 'personality' | 'simulation' | 'video-interview';
   candidates: { id: string; name: string; email: string; }[];
-  jobPostings: { id: number; title: string; company: string; companyName?: string }[];
+  jobPostings: { id: number; title: string; company: string; companyName?: string; description?: string }[];
   onAssignmentSuccess: () => void;
 }
 
@@ -42,6 +42,7 @@ export default function InterviewAssignmentModal({
   const [loadingCandidates, setLoadingCandidates] = useState(false);
   const [shareableLink, setShareableLink] = useState<string | null>(null);
   const [generatingLink, setGeneratingLink] = useState(false);
+  const [existingLinks, setExistingLinks] = useState<Record<number, string>>({});
 
   const [formData, setFormData] = useState({
     candidateId: '',
@@ -107,51 +108,43 @@ export default function InterviewAssignmentModal({
 
   const generateShareableLink = async () => {
     setGeneratingLink(true);
-    setShareableLink(null);
+
     try {
       const selectedJob = jobPostings.find(job => job.id === Number(formData.jobPostingId));
 
-      if (!formData.jobPostingId) {
+      // Check if link already exists for this job posting
+      if (selectedJob && existingLinks[selectedJob.id]) {
+        setShareableLink(existingLinks[selectedJob.id]);
         toast({
-          title: "Error",
-          description: "Please select a job posting to generate a shareable link",
-          variant: "destructive"
+          title: "Existing Link Found",
+          description: "Using previously generated link for this job posting.",
         });
         setGeneratingLink(false);
         return;
       }
 
-      if (!formData.jobDescription.trim()) {
+      if (!formData.jobDescription.trim() && !selectedJob) {
         toast({
           title: "Error",
-          description: "Job description is required for generating a shareable link",
+          description: "Either select a job posting or provide a job description",
           variant: "destructive"
         });
         setGeneratingLink(false);
         return;
       }
-
-      // Use unified endpoint for all interview types
-      const endpoint = '/api/interviews/generate-link';
 
       const payload = {
         jobPostingId: formData.jobPostingId ? Number(formData.jobPostingId) : null,
         interviewType: formData.interviewTypeSpecific,
-        role: selectedJob?.title || formData.role,
-        company: selectedJob?.companyName || selectedJob?.company || formData.company,
-        difficulty: formData.difficulty,
-        dueDate: formData.dueDate,
-        jobDescription: formData.jobDescription,
-        // Add type-specific fields for link generation if needed by backend
-        ...(interviewType === 'virtual' && { duration: formData.duration, interviewerPersonality: formData.interviewerPersonality }),
-        ...(interviewType === 'mock' && { language: formData.language, totalQuestions: formData.totalQuestions }),
-        ...(interviewType === 'skills-verification' && { projectTemplateId: formData.projectTemplateId, estimatedTime: formData.estimatedTime }),
-        ...(interviewType === 'personality' && { assessmentType: formData.assessmentType, questionCount: formData.questionCount }),
-        ...(interviewType === 'simulation' && { scenarioType: formData.scenarioType, simulationDifficulty: formData.simulationDifficulty }),
-        ...(interviewType === 'video-interview' && { videoQuestions: formData.videoQuestions, preparationTime: formData.preparationTime }),
+        interviewConfig: JSON.stringify({
+          role: selectedJob?.title || formData.role,
+          company: selectedJob?.companyName || selectedJob?.company || formData.company,
+          difficulty: formData.difficulty
+        }),
+        expiryDays: 7
       };
 
-      const response = await fetch(endpoint, {
+      const response = await fetch('/api/interviews/generate-link', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -163,9 +156,18 @@ export default function InterviewAssignmentModal({
       if (response.ok) {
         const data = await response.json();
         setShareableLink(data.link);
+
+        // Store link for this job posting to avoid regenerating
+        if (selectedJob) {
+          setExistingLinks(prev => ({
+            ...prev,
+            [selectedJob.id]: data.link
+          }));
+        }
+
         toast({
-          title: "Shareable Link Generated",
-          description: "A link has been created for this interview.",
+          title: "Shareable Link Generated Successfully!",
+          description: "Copy the link and share it with candidates.",
         });
       } else {
         const errorData = await response.json();
@@ -376,6 +378,7 @@ export default function InterviewAssignmentModal({
     setSelectedCandidates([]);
     setJobCandidates([]);
     setShareableLink(null);
+    setExistingLinks({});
   };
 
   const handleJobPostingChange = (jobId: string) => {
@@ -385,7 +388,7 @@ export default function InterviewAssignmentModal({
       jobPostingId: jobId,
       company: selectedJob?.companyName || selectedJob?.company || '',
       role: selectedJob?.title || '',
-      jobDescription: selectedJob ? `Role: ${selectedJob.title} at ${selectedJob.companyName || selectedJob.company}` : ''
+      jobDescription: selectedJob?.description || ''
     }));
 
     // Fetch candidates who applied to this job
@@ -450,7 +453,35 @@ export default function InterviewAssignmentModal({
               {/* Job Posting Selection */}
               <div>
                 <Label htmlFor="jobPostingId">Job Posting *</Label>
-                <Select value={formData.jobPostingId} onValueChange={handleJobPostingChange} required>
+                <Select
+                  value={formData.jobPostingId}
+                  onValueChange={(value) => {
+                    const selectedJob = jobPostings.find(job => job.id === Number(value));
+                    setFormData(prev => ({
+                      ...prev,
+                      jobPostingId: value,
+                      role: selectedJob?.title || '',
+                      company: selectedJob?.companyName || selectedJob?.company || '',
+                      jobDescription: selectedJob?.description || ''
+                    }));
+
+                    // Check if link already exists for this job
+                    if (selectedJob && existingLinks[selectedJob.id]) {
+                      setShareableLink(existingLinks[selectedJob.id]);
+                    } else {
+                      setShareableLink(null);
+                    }
+
+                    // Fetch candidates who applied to this job
+                    if (selectedJob) {
+                      fetchCandidatesForJob(selectedJob.id);
+                    } else {
+                      setJobCandidates([]); // Clear candidates if no job is selected
+                      setSelectedCandidates([]);
+                    }
+                  }}
+                  required
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select job posting first" />
                   </SelectTrigger>
@@ -694,43 +725,83 @@ export default function InterviewAssignmentModal({
             </CardContent>
           </Card>
 
-          {/* Shareable Link Section (Conditional) */}
-          {interviewType === 'virtual' || interviewType === 'mock' || interviewType === 'skills-verification' || interviewType === 'personality' || interviewType === 'simulation' || interviewType === 'video-interview' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Shareable Link</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Button
-                  type="button"
-                  onClick={generateShareableLink}
-                  disabled={loading || generatingLink || !formData.jobPostingId || !formData.jobDescription.trim()}
-                  variant="secondary"
-                  className="w-full"
-                >
-                  {generatingLink ? 'Generating...' : 'Generate Shareable Link'}
-                </Button>
-                {shareableLink && (
-                  <div className="space-y-2">
-                    <Label htmlFor="shareableLink">Generated Link:</Label>
+          {/* Shareable Link Section */}
+          <Card className="border-2 border-dashed border-blue-200 bg-blue-50/50">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Share2 className="h-5 w-5 text-blue-600" />
+                Shareable Interview Link
+              </CardTitle>
+              <CardDescription>
+                Generate a link that candidates can use to take this interview without direct assignment
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {shareableLink ? (
+                <div className="space-y-3">
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-800 font-medium mb-2">✅ Link Generated Successfully!</p>
                     <div className="flex items-center gap-2">
-                      <Input id="shareableLink" value={shareableLink} readOnly className="flex-1" />
+                      <Input
+                        value={shareableLink}
+                        readOnly
+                        className="flex-1 bg-white border-green-300 text-sm"
+                      />
                       <Button
                         type="button"
                         size="sm"
                         onClick={() => {
                           navigator.clipboard.writeText(shareableLink);
-                          toast({ title: "Copied!", description: "Shareable link copied to clipboard." });
+                          toast({
+                            title: "Link Copied!",
+                            description: "Shareable link has been copied to clipboard",
+                          });
                         }}
+                        className="bg-green-600 hover:bg-green-700"
                       >
+                        <Copy className="h-4 w-4 mr-1" />
                         Copy
                       </Button>
                     </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                  <Button
+                    type="button"
+                    onClick={() => setShareableLink(null)}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Generate New Link
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={generateShareableLink}
+                  disabled={loading || generatingLink || (!formData.jobPostingId && !formData.jobDescription.trim())}
+                  variant="default"
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                >
+                  {generatingLink ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating Link...
+                    </>
+                  ) : (
+                    <>
+                      <Link2 className="h-4 w-4 mr-2" />
+                      Generate Shareable Link
+                    </>
+                  )}
+                </Button>
+              )}
+
+              {!formData.jobPostingId && !formData.jobDescription.trim() && (
+                <p className="text-sm text-orange-600 bg-orange-50 p-2 rounded border border-orange-200">
+                  ⚠️ Please select a job posting or provide a job description to generate a link
+                </p>
+              )}
+            </CardContent>
+          </Card>
 
 
           {/* Important Notice */}
