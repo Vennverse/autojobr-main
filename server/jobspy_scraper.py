@@ -1,7 +1,8 @@
+
 #!/usr/bin/env python3
 """
 JobSpy Integration Script for AutoJobr
-Scrapes jobs using JobSpy and saves them to PostgreSQL database
+Enhanced for international job scraping from India, USA, and Europe
 """
 
 import os
@@ -13,6 +14,8 @@ import numpy as np
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 import traceback
+import time
+import random
 
 # Import JobSpy
 try:
@@ -26,19 +29,92 @@ class JobSpyIntegration:
         self.db_url = os.environ.get('DATABASE_URL')
         if not self.db_url:
             raise ValueError("DATABASE_URL environment variable not set")
+        
+        # Enhanced search terms for better coverage
+        self.ENHANCED_SEARCH_TERMS = {
+            # Technology roles - most in-demand
+            'tech': [
+                'software engineer', 'software developer', 'full stack developer', 'frontend developer', 'backend developer',
+                'python developer', 'javascript developer', 'react developer', 'node.js developer', 'java developer',
+                'data scientist', 'data engineer', 'data analyst', 'machine learning engineer', 'ai engineer',
+                'devops engineer', 'cloud engineer', 'system administrator', 'network engineer',
+                'mobile developer', 'ios developer', 'android developer', 'react native developer',
+                'ui/ux designer', 'product designer', 'web designer', 'graphic designer',
+                'cybersecurity engineer', 'security analyst', 'penetration tester',
+                'database administrator', 'software architect', 'technical lead', 'engineering manager'
+            ],
+            # Business roles
+            'business': [
+                'product manager', 'project manager', 'business analyst', 'operations manager',
+                'account manager', 'sales representative', 'business development manager', 'sales director',
+                'marketing manager', 'digital marketing manager', 'content manager', 'social media manager',
+                'hr manager', 'recruiter', 'talent acquisition specialist', 'hr business partner',
+                'financial analyst', 'accountant', 'finance manager', 'investment analyst',
+                'consultant', 'strategy manager', 'operations analyst', 'process manager'
+            ],
+            # Entry level roles
+            'entry_level': [
+                'junior software engineer', 'entry level developer', 'graduate trainee', 'software intern',
+                'junior data scientist', 'associate consultant', 'trainee engineer', 'fresher developer',
+                'junior analyst', 'associate software engineer', 'graduate engineer', 'campus hire'
+            ]
+        }
+        
+        # Enhanced locations for India, USA, and Europe
+        self.ENHANCED_LOCATIONS = {
+            # India - Major tech hubs and cities
+            'india': [
+                'Mumbai, India', 'Bangalore, India', 'Delhi, India', 'Hyderabad, India', 'Chennai, India',
+                'Pune, India', 'Kolkata, India', 'Ahmedabad, India', 'Gurgaon, India', 'Noida, India',
+                'Jaipur, India', 'Kochi, India', 'Indore, India', 'Nagpur, India', 'Lucknow, India',
+                'Coimbatore, India', 'Vadodara, India', 'Chandigarh, India', 'Mysore, India', 'Thiruvananthapuram, India',
+                'India', 'Remote India', 'Work from Home India'
+            ],
+            # USA - Major job markets
+            'usa': [
+                'New York, NY', 'San Francisco, CA', 'Los Angeles, CA', 'Austin, TX', 'Seattle, WA',
+                'Chicago, IL', 'Boston, MA', 'Denver, CO', 'Atlanta, GA', 'Miami, FL',
+                'Phoenix, AZ', 'Philadelphia, PA', 'Dallas, TX', 'Houston, TX', 'San Jose, CA',
+                'Washington, DC', 'Portland, OR', 'Nashville, TN', 'Charlotte, NC', 'Minneapolis, MN',
+                'United States', 'Remote USA', 'Remote United States'
+            ],
+            # Europe - Major tech hubs
+            'europe': [
+                'London, UK', 'Manchester, UK', 'Birmingham, UK', 'Edinburgh, UK', 'Dublin, Ireland',
+                'Berlin, Germany', 'Munich, Germany', 'Hamburg, Germany', 'Frankfurt, Germany',
+                'Paris, France', 'Lyon, France', 'Nice, France', 'Amsterdam, Netherlands',
+                'Madrid, Spain', 'Barcelona, Spain', 'Milan, Italy', 'Rome, Italy',
+                'Stockholm, Sweden', 'Copenhagen, Denmark', 'Oslo, Norway', 'Helsinki, Finland',
+                'Zurich, Switzerland', 'Vienna, Austria', 'Brussels, Belgium', 'Prague, Czech Republic',
+                'Remote Europe', 'European Union'
+            ]
+        }
+        
+        # Country-specific job sites optimization
+        self.COUNTRY_JOB_SITES = {
+            'india': ['indeed', 'linkedin', 'naukri'],
+            'usa': ['indeed', 'linkedin', 'zip_recruiter'],
+            'europe': ['indeed', 'linkedin'],
+            'global': ['indeed', 'linkedin']
+        }
     
     def get_db_connection(self):
         """Get database connection"""
         return psycopg2.connect(self.db_url)
     
+    def smart_delay(self, min_delay=2, max_delay=5):
+        """Implement smart delay to avoid rate limiting"""
+        delay = random.uniform(min_delay, max_delay)
+        time.sleep(delay)
+    
     def categorize_job(self, title: str, skills: List[str], description: str = '') -> tuple:
-        """Categorize job based on title, skills, and description"""
+        """Enhanced job categorization"""
         title_lower = title.lower()
         description_lower = description.lower() if description else ''
         skills_str = ' '.join(skills).lower() if skills else ''
         text = f"{title_lower} {description_lower} {skills_str}"
         
-        # Categories and subcategories mapping - now uses combined text
+        # Technology roles
         if any(keyword in text for keyword in ['engineer', 'developer', 'programmer', 'software']):
             if 'frontend' in text or 'front-end' in text or any(skill in skills_str for skill in ['react', 'vue', 'angular']):
                 return 'tech', 'frontend'
@@ -89,26 +165,24 @@ class JobSpyIntegration:
         
         if any(keyword in text for keyword in ['senior', 'sr.', 'lead', 'principal', 'staff', 'architect']):
             return 'senior'
-        elif any(keyword in text for keyword in ['junior', 'jr.', 'entry', 'entry-level', 'graduate', 'intern']):
+        elif any(keyword in text for keyword in ['junior', 'jr.', 'entry', 'entry-level', 'graduate', 'intern', 'fresher', 'trainee']):
             return 'entry'
         elif any(keyword in text for keyword in ['mid', 'mid-level', 'intermediate']):
             return 'mid'
         else:
-            # Default to mid-level if not specified
             return 'mid'
     
     def clean_salary(self, salary_min: Optional[float], salary_max: Optional[float], country_code: str = 'US', salary_text: str = '') -> tuple[Optional[str], Optional[int], Optional[int], str]:
-        """Clean and format salary range with international currency support"""
+        """Enhanced salary cleaning with international currency support"""
         try:
-            # Determine currency based on country
             currency_map = {
                 'US': 'USD', 'IN': 'INR', 'GB': 'GBP', 'DE': 'EUR', 'FR': 'EUR', 
-                'ES': 'EUR', 'AU': 'AUD', 'AE': 'AED', 'CA': 'CAD'
+                'ES': 'EUR', 'IT': 'EUR', 'NL': 'EUR', 'AU': 'AUD', 'AE': 'AED', 
+                'CA': 'CAD', 'CH': 'CHF', 'SE': 'SEK', 'NO': 'NOK', 'DK': 'DKK'
             }
             currency = currency_map.get(country_code, 'USD')
             currency_symbol = '$' if currency == 'USD' else '₹' if currency == 'INR' else '£' if currency == 'GBP' else '€' if currency in ['EUR'] else '$'
             
-            # Clean salary values
             clean_min = None
             clean_max = None
             
@@ -118,7 +192,6 @@ class JobSpyIntegration:
             if salary_max is not None and not pd.isna(salary_max) and salary_max > 0:
                 clean_max = int(float(salary_max))
             
-            # Generate formatted salary range
             salary_range = None
             if clean_min and clean_max:
                 salary_range = f"{currency_symbol}{clean_min:,} - {currency_symbol}{clean_max:,}"
@@ -133,44 +206,38 @@ class JobSpyIntegration:
             return None, None, None, currency_map.get(country_code, 'USD')
     
     def extract_skills(self, title: str, description: str, category: str = '') -> List[str]:
-        """Extract skills from job title and description, with category-specific focus"""
-        # Base common skills
-        common_skills = [
+        """Enhanced skill extraction with international focus"""
+        tech_skills = [
             'Python', 'JavaScript', 'Java', 'C++', 'C#', 'Go', 'Rust', 'PHP', 'Ruby', 'Swift', 'Kotlin',
             'React', 'Vue', 'Angular', 'Node.js', 'Express', 'Django', 'Flask', 'Spring', 'Laravel',
             'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Jenkins', 'Git', 'Linux', 'SQL', 'NoSQL',
             'MongoDB', 'PostgreSQL', 'MySQL', 'Redis', 'Elasticsearch', 'Kafka', 'RabbitMQ',
             'TensorFlow', 'PyTorch', 'Scikit-learn', 'Pandas', 'NumPy', 'Machine Learning', 'AI',
-            'Figma', 'Sketch', 'Adobe XD', 'Photoshop', 'Illustrator', 'InVision', 'Framer',
-            'Agile', 'Scrum', 'Kanban', 'JIRA', 'Confluence', 'Slack', 'Notion'
+            'Figma', 'Sketch', 'Adobe XD', 'Photoshop', 'Illustrator',
+            'Agile', 'Scrum', 'Kanban', 'JIRA', 'Confluence'
         ]
         
-        # Category-specific skills
-        if category == 'sales':
-            common_skills.extend(['Salesforce', 'HubSpot', 'CRM', 'Lead Generation', 'Cold Calling', 'Pipeline Management'])
-        elif category == 'marketing':
-            common_skills.extend(['Google Analytics', 'SEO', 'SEM', 'Social Media', 'Content Marketing', 'Email Marketing', 'HubSpot', 'Mailchimp'])
-        elif category == 'design':
-            common_skills.extend(['UI/UX', 'Prototyping', 'Wireframing', 'User Research', 'Design Systems'])
-        elif category == 'finance':
-            common_skills.extend(['Excel', 'Financial Modeling', 'Budgeting', 'Forecasting', 'SAP', 'QuickBooks'])
+        business_skills = [
+            'Salesforce', 'HubSpot', 'CRM', 'Google Analytics', 'SEO', 'SEM', 'Excel',
+            'PowerBI', 'Tableau', 'SAP', 'QuickBooks', 'Financial Modeling'
+        ]
         
+        all_skills = tech_skills + business_skills
         text = f"{title} {description}".lower()
         found_skills = []
         
-        for skill in common_skills:
+        for skill in all_skills:
             if skill.lower() in text:
                 found_skills.append(skill)
         
-        return found_skills[:10]  # Limit to top 10 skills
+        return found_skills[:15]
     
     def parse_location(self, location_str: str, country_code: str = '') -> tuple[str, str, str, str]:
-        """Parse location string to extract country_code, region, city, and normalized location"""
+        """Enhanced location parsing for international locations"""
         try:
             location_str = location_str.strip()
             parts = [part.strip() for part in location_str.split(',')]
             
-            # Default values
             city = ''
             region = ''
             detected_country_code = country_code or 'US'
@@ -178,41 +245,34 @@ class JobSpyIntegration:
             if 'remote' in location_str.lower():
                 return detected_country_code, 'Remote', 'Remote', 'Remote'
             
-            # Country detection patterns
+            # Enhanced country detection
             country_patterns = {
-                'US': ['USA', 'United States', 'US', 'NY', 'CA', 'TX', 'FL', 'IL', 'WA', 'MA', 'AZ', 'GA', 'CO', 'NC', 'OH'],
-                'IN': ['India', 'IN', 'Mumbai', 'Bangalore', 'Delhi', 'Hyderabad', 'Chennai', 'Pune', 'Kolkata', 'Ahmedabad', 'Gurgaon', 'Noida'],
-                'GB': ['UK', 'United Kingdom', 'England', 'London', 'Manchester', 'Birmingham', 'Leeds', 'Glasgow', 'Liverpool', 'Bristol'],
-                'DE': ['Germany', 'DE', 'Berlin', 'Munich', 'Hamburg', 'Cologne', 'Frankfurt', 'Stuttgart'],
-                'AU': ['Australia', 'AU', 'Sydney', 'Melbourne', 'Brisbane', 'Perth', 'Adelaide', 'Canberra'],
-                'AE': ['UAE', 'United Arab Emirates', 'Dubai', 'Abu Dhabi', 'Sharjah'],
-                'CA': ['Canada', 'CA', 'Toronto', 'Vancouver', 'Montreal', 'Calgary', 'Ottawa'],
+                'US': ['USA', 'United States', 'US', 'NY', 'CA', 'TX', 'FL', 'IL', 'WA', 'MA'],
+                'IN': ['India', 'IN', 'Mumbai', 'Bangalore', 'Delhi', 'Hyderabad', 'Chennai', 'Pune'],
+                'GB': ['UK', 'United Kingdom', 'England', 'London', 'Manchester', 'Birmingham'],
+                'DE': ['Germany', 'DE', 'Berlin', 'Munich', 'Hamburg', 'Cologne', 'Frankfurt'],
                 'FR': ['France', 'FR', 'Paris', 'Lyon', 'Marseille', 'Toulouse', 'Nice'],
-                'ES': ['Spain', 'ES', 'Madrid', 'Barcelona', 'Valencia', 'Seville', 'Bilbao']
+                'ES': ['Spain', 'ES', 'Madrid', 'Barcelona', 'Valencia', 'Seville'],
+                'IT': ['Italy', 'IT', 'Milan', 'Rome', 'Naples', 'Turin'],
+                'NL': ['Netherlands', 'NL', 'Amsterdam', 'Rotterdam', 'The Hague'],
+                'AU': ['Australia', 'AU', 'Sydney', 'Melbourne', 'Brisbane', 'Perth'],
+                'CA': ['Canada', 'CA', 'Toronto', 'Vancouver', 'Montreal', 'Calgary']
             }
             
-            # Detect country
             for code, keywords in country_patterns.items():
                 if any(keyword in location_str for keyword in keywords):
                     detected_country_code = code
                     break
             
-            # Extract city and region based on parts
             if len(parts) == 1:
                 city = parts[0]
-            elif len(parts) == 2:
+            elif len(parts) >= 2:
                 city = parts[0]
-                region = parts[1]
-            elif len(parts) >= 3:
-                city = parts[0]
-                region = parts[1]
-                # Last part might be country
+                region = parts[1] if len(parts) > 1 else ''
                 
-            # Clean up city and region
             city = city.replace(' Area', '').replace(' Metropolitan', '').strip()
             region = region.replace(' Area', '').replace(' Metropolitan', '').strip()
             
-            # Generate normalized location
             if region and city != region:
                 normalized_location = f"{city}, {region}"
             else:
@@ -224,161 +284,85 @@ class JobSpyIntegration:
             print(f"[JOBSPY] Error parsing location '{location_str}': {str(e)}")
             return country_code or 'US', '', location_str, location_str
     
-    def detect_work_mode(self, title: str, description: str, location: str = '') -> str:
-        """Detect work mode (remote/hybrid/onsite) from job content"""
-        try:
-            text = f"{title} {description} {location}".lower()
-            
-            # Remote indicators
-            remote_keywords = [
-                'remote', 'work from home', 'wfh', 'distributed', 'virtual',
-                'anywhere', 'location independent', 'telecommute', 'home based'
-            ]
-            
-            # Hybrid indicators
-            hybrid_keywords = [
-                'hybrid', 'flexible', 'part remote', 'partially remote',
-                'mix of remote', 'some remote', 'flexible location'
-            ]
-            
-            # Onsite indicators
-            onsite_keywords = [
-                'on-site', 'onsite', 'office based', 'in office', 'relocate',
-                'commute', 'on premise', 'on premises', 'headquarters'
-            ]
-            
-            if any(keyword in text for keyword in remote_keywords):
-                return 'remote'
-            elif any(keyword in text for keyword in hybrid_keywords):
-                return 'hybrid'
-            elif any(keyword in text for keyword in onsite_keywords):
-                return 'onsite'
-            else:
-                # Default based on location
-                if 'remote' in location.lower():
-                    return 'remote'
-                else:
-                    return 'onsite'  # Default assumption
-                    
-        except Exception as e:
-            print(f"[JOBSPY] Error detecting work mode: {str(e)}")
-            return 'onsite'
-    
-    def detect_language(self, title: str, description: str, country_code: str = '') -> str:
-        """Detect job posting language based on content and country"""
-        try:
-            # Country-based language detection
-            country_languages = {
-                'US': 'en', 'GB': 'en', 'AU': 'en', 'CA': 'en', 'IN': 'en',
-                'DE': 'de', 'FR': 'fr', 'ES': 'es', 'IT': 'it', 'BR': 'pt',
-                'NL': 'nl', 'SE': 'sv', 'NO': 'no', 'DK': 'da', 'FI': 'fi'
-            }
-            
-            # Default to country-based language
-            default_lang = country_languages.get(country_code, 'en')
-            
-            # Simple keyword-based detection
-            text = f"{title} {description}".lower()
-            
-            # German indicators
-            german_words = ['und', 'der', 'die', 'das', 'mit', 'für', 'von', 'zu', 'im', 'am', 'arbeit', 'stelle']
-            if any(word in text for word in german_words) and len([word for word in german_words if word in text]) >= 2:
-                return 'de'
-            
-            # French indicators
-            french_words = ['et', 'le', 'la', 'les', 'de', 'du', 'des', 'pour', 'avec', 'dans', 'travail', 'emploi']
-            if any(word in text for word in french_words) and len([word for word in french_words if word in text]) >= 2:
-                return 'fr'
-            
-            # Spanish indicators
-            spanish_words = ['y', 'el', 'la', 'los', 'las', 'de', 'del', 'para', 'con', 'en', 'trabajo', 'empleo']
-            if any(word in text for word in spanish_words) and len([word for word in spanish_words if word in text]) >= 2:
-                return 'es'
-            
-            return default_lang
-            
-        except Exception as e:
-            print(f"[JOBSPY] Error detecting language: {str(e)}")
-            return 'en'
-    
-    def scrape_jobs_jobspy(
+    def scrape_jobs_enhanced(
         self, 
         search_terms: List[str] = None, 
         locations: List[str] = None,
         job_sites: List[str] = None,
-        results_wanted: int = 50,
+        results_wanted: int = 100,
         country: str = 'USA'
     ) -> List[Dict[str, Any]]:
-        """
-        Scrape jobs using JobSpy
+        """Enhanced job scraping with better international coverage"""
         
-        Args:
-            search_terms: List of job search terms (e.g., ['software engineer', 'python developer'])
-            locations: List of locations (e.g., ['New York, NY', 'San Francisco, CA', 'Remote'])
-            job_sites: List of job sites to scrape from (['indeed', 'linkedin', 'zip_recruiter', 'glassdoor'])
-            results_wanted: Number of results to fetch
-            country: Country to search in
-        """
+        # Use comprehensive search terms if none provided
         if search_terms is None:
-            search_terms = ['software engineer', 'data scientist', 'product manager', 'designer']
+            search_terms = (
+                self.ENHANCED_SEARCH_TERMS['tech'][:10] + 
+                self.ENHANCED_SEARCH_TERMS['business'][:5] + 
+                self.ENHANCED_SEARCH_TERMS['entry_level'][:5]
+            )
         
+        # Use comprehensive locations if none provided
         if locations is None:
-            locations = ['New York, NY', 'San Francisco, CA', 'Los Angeles, CA', 'Chicago, IL', 'Remote', 'Mumbai, India', 'Bangalore, India', 'Delhi, India']
+            locations = (
+                self.ENHANCED_LOCATIONS['india'][:8] + 
+                self.ENHANCED_LOCATIONS['usa'][:8] + 
+                self.ENHANCED_LOCATIONS['europe'][:8]
+            )
         
+        # Optimize job sites based on region
         if job_sites is None:
-            job_sites = ['indeed', 'linkedin', 'zip_recruiter', 'glassdoor', 'naukri']  # Added Naukri for India market coverage
+            if 'india' in country.lower():
+                job_sites = self.COUNTRY_JOB_SITES['india']
+            elif 'usa' in country.lower() or 'united states' in country.lower():
+                job_sites = self.COUNTRY_JOB_SITES['usa']
+            elif any(eu_country in country.lower() for eu_country in ['uk', 'germany', 'france', 'spain', 'italy', 'netherlands']):
+                job_sites = self.COUNTRY_JOB_SITES['europe']
+            else:
+                job_sites = self.COUNTRY_JOB_SITES['global']
         
         all_jobs = []
+        successful_searches = 0
+        failed_searches = 0
         
-        for search_term in search_terms:
-            for location in locations:
+        # Reduce results per search to avoid rate limiting
+        results_per_search = min(15, results_wanted // len(search_terms))
+        
+        print(f"[JOBSPY] Enhanced scraping: {len(search_terms)} terms, {len(locations)} locations, {results_per_search} results each")
+        
+        for i, search_term in enumerate(search_terms):
+            # Rotate through locations to distribute load
+            location_batch = locations[i % len(locations):i % len(locations) + 3]  # Use 3 locations per search term
+            
+            for location in location_batch:
                 try:
-                    print(f"[JOBSPY] Scraping: '{search_term}' in '{location}'")
+                    print(f"[JOBSPY] Scraping: '{search_term}' in '{location}' ({successful_searches + failed_searches + 1}/{len(search_terms) * 3})")
                     
-                    # Map country to valid JobSpy country codes
+                    # Smart delay to avoid rate limiting
+                    self.smart_delay(2, 4)
+                    
+                    # Map country for JobSpy
                     country_mapping = {
-                        'USA': 'us',
-                        'US': 'us', 
-                        'UNITED STATES': 'us',
-                        'INDIA': 'india',
-                        'IN': 'india',
-                        'UK': 'uk',
-                        'UNITED KINGDOM': 'uk',
-                        'GB': 'uk',
-                        'GERMANY': 'germany',
-                        'DE': 'germany',
-                        'AUSTRALIA': 'australia', 
-                        'AU': 'australia',
-                        'CANADA': 'canada',
-                        'CA': 'canada',
-                        'FRANCE': 'france',
-                        'FR': 'france',
-                        'SPAIN': 'spain',
-                        'ES': 'spain'
+                        'USA': 'us', 'INDIA': 'india', 'UK': 'uk', 'GERMANY': 'germany',
+                        'FRANCE': 'france', 'SPAIN': 'spain', 'ITALY': 'italy', 'NETHERLANDS': 'netherlands'
                     }
+                    valid_country = country_mapping.get(country.upper(), 'us')
                     
-                    valid_country = country_mapping.get(country.upper(), 'us')  # Default to US
-                    
-                    # Optimize job sites based on location
-                    optimized_sites = ['indeed', 'linkedin']  # Use fastest, most reliable sites
-                    if 'india' in location.lower() or valid_country == 'india':
-                        optimized_sites = ['indeed', 'linkedin', 'naukri']
-                    
-                    # Scrape jobs using JobSpy with optimized parameters
+                    # Enhanced scraping parameters
                     jobs_df = scrape_jobs(
-                        site_name=optimized_sites,
+                        site_name=job_sites,
                         search_term=search_term,
                         location=location,
-                        results_wanted=min(results_wanted, 25),  # Increased from 20 for more results
-                        hours_old=48,  # Reduced from 72 for faster scraping and fresher jobs
+                        results_wanted=results_per_search,
+                        hours_old=72,
                         country_indeed=valid_country,
                         hyperlinks=True,
-                        verbose=0,  # Reduced verbosity for faster execution
-                        description_format="html",  # Use html for better compatibility and speed
-                        linkedin_fetch_description=False,  # Disabled for speed - often causes delays
-                        enforce_annual_salary=False,  # Disabled for speed
-                        easy_apply=False,  # Keep disabled to get more results
-                        is_remote=(location.lower() in ['remote', 'anywhere'])
+                        verbose=0,
+                        description_format="html",
+                        linkedin_fetch_description=False,
+                        enforce_annual_salary=False,
+                        easy_apply=False,
+                        is_remote=('remote' in location.lower())
                     )
                     
                     if jobs_df is not None and not jobs_df.empty:
@@ -386,83 +370,73 @@ class JobSpyIntegration:
                         
                         for _, job in jobs_df.iterrows():
                             try:
-                                # Convert job data to our format - enhanced for global support
                                 title = str(job.get('title', ''))
                                 description = str(job.get('description', ''))
                                 job_location = str(job.get('location', location))
                                 
-                                # Parse location information
+                                # Enhanced data processing
                                 country_code, region, city, normalized_location = self.parse_location(job_location)
-                                
-                                # First extract basic skills for categorization
                                 basic_skills = self.extract_skills(title, description, '')
-                                
-                                # Enhanced categorization with description and basic skills
                                 category, subcategory = self.categorize_job(title, basic_skills, description)
-                                
-                                # Enhanced skill extraction based on determined category
                                 skills = self.extract_skills(title, description, category)
-                                # Determine experience level
                                 experience_level = self.determine_experience_level(title, description)
                                 
-                                # Enhanced salary processing with international currency support
-                                salary_text = f"{job.get('min_amount', '')} {job.get('max_amount', '')} {job.get('currency', '')}"
                                 salary_range, salary_min, salary_max, currency = self.clean_salary(
                                     job.get('min_amount'), 
                                     job.get('max_amount'),
-                                    country_code,
-                                    salary_text
+                                    country_code
                                 )
                                 
-                                # Detect work mode and language
-                                work_mode = self.detect_work_mode(title, description, job_location)
-                                language = self.detect_language(title, description, country_code)
+                                work_mode = 'remote' if 'remote' in job_location.lower() else 'onsite'
                                 
                                 job_data = {
-                                    # Basic job information
-                                    'title': title,
-                                    'company': str(job.get('company', 'Unknown Company')),
-                                    'description': description[:2000],  # Limit description length
-                                    'location': normalized_location,
+                                    'title': title[:255],
+                                    'company': str(job.get('company', 'Unknown Company'))[:255],
+                                    'description': description[:3000],
+                                    'location': normalized_location[:255],
                                     'work_mode': work_mode,
-                                    'job_type': 'full-time',  # Default, JobSpy doesn't always provide this
+                                    'job_type': 'full-time',
                                     'experience_level': experience_level,
                                     'salary_range': salary_range,
                                     'skills': skills,
-                                    # Location details for international support
                                     'country_code': country_code,
-                                    'region': region,
-                                    'city': city,
-                                    # Salary details with currency support
+                                    'region': region[:100],
+                                    'city': city[:100],
                                     'salary_min': salary_min,
                                     'salary_max': salary_max,
                                     'currency': currency,
-                                    'salary_period': 'yearly',  # Default assumption
-                                    # Source information
-                                    'source_url': str(job.get('job_url', '')),
-                                    'source_platform': str(job.get('site', 'unknown')),
+                                    'salary_period': 'yearly',
+                                    'source_url': str(job.get('job_url', ''))[:500],
+                                    'source_platform': str(job.get('site', 'unknown'))[:50],
                                     'external_id': f"{job.get('site', 'unknown')}_{hash(str(job.get('job_url', '')))}",
-                                    'language': language,
-                                    # Categorization for global job markets
+                                    'language': 'en',
                                     'category': category,
                                     'subcategory': subcategory,
-                                    'tags': skills[:5],  # Use first 5 skills as tags
+                                    'tags': skills[:5],
                                     'scraped_at': datetime.now()
                                 }
                                 all_jobs.append(job_data)
+                                
                             except Exception as job_error:
-                                print(f"[JOBSPY] Error processing individual job: {str(job_error)}")
+                                print(f"[JOBSPY] Error processing job: {str(job_error)}")
                                 continue
+                        
+                        successful_searches += 1
+                    else:
+                        print(f"[JOBSPY] No jobs found for '{search_term}' in '{location}'")
+                        failed_searches += 1
                     
                 except Exception as e:
                     print(f"[JOBSPY] Error scraping '{search_term}' in '{location}': {str(e)}")
+                    failed_searches += 1
                     continue
         
-        print(f"[JOBSPY] Total jobs scraped: {len(all_jobs)}")
+        print(f"[JOBSPY] Enhanced scraping completed: {len(all_jobs)} jobs found")
+        print(f"[JOBSPY] Success rate: {successful_searches}/{successful_searches + failed_searches} searches")
         return all_jobs
     
     def save_jobs_to_db(self, jobs: List[Dict[str, Any]]) -> int:
-        """Save scraped jobs to database"""
+        """Save scraped jobs to database with enhanced error handling"""
         if not jobs:
             return 0
         
@@ -474,17 +448,16 @@ class JobSpyIntegration:
             
             for job in jobs:
                 try:
-                    # Check if job already exists (based on external_id)
+                    # Check if job already exists
                     cursor.execute(
                         "SELECT id FROM scraped_jobs WHERE external_id = %s",
                         (job['external_id'],)
                     )
                     
                     if cursor.fetchone():
-                        print(f"[JOBSPY] Job already exists: {job['title']} at {job['company']}")
                         continue
                     
-                    # Insert new job with all international fields
+                    # Enhanced insertion with all fields
                     insert_query = """
                     INSERT INTO scraped_jobs (
                         title, company, description, location, work_mode, job_type,
@@ -493,57 +466,30 @@ class JobSpyIntegration:
                         salary_min, salary_max, currency, salary_period,
                         source_url, source_platform, external_id, language,
                         category, subcategory, tags, last_scraped, expires_at,
-                        created_at, updated_at
+                        created_at, updated_at, is_active
                     ) VALUES (
                         %s, %s, %s, %s, %s, %s, %s, %s, %s, 
                         %s, %s, %s, 
                         %s, %s, %s, %s,
                         %s, %s, %s, %s,
                         %s, %s, %s, %s, %s,
-                        %s, %s
+                        %s, %s, %s
                     )
                     """
                     
-                    # Set expiration date (30 days from now)
                     expires_at = datetime.now() + timedelta(days=30)
                     
                     cursor.execute(insert_query, (
-                        # Basic job information
-                        job['title'],
-                        job['company'],
-                        job['description'],
-                        job['location'],
-                        job['work_mode'],
-                        job['job_type'],
-                        job['experience_level'],
-                        job['salary_range'],
-                        job['skills'],
-                        # Location details for international support
-                        job['country_code'],
-                        job['region'],
-                        job['city'],
-                        # Salary details with currency support
-                        job['salary_min'],
-                        job['salary_max'],
-                        job['currency'],
-                        job['salary_period'],
-                        # Source information
-                        job['source_url'],
-                        job['source_platform'],
-                        job['external_id'],
-                        job['language'],
-                        # Categorization for global job markets
-                        job['category'],
-                        job['subcategory'],
-                        job['tags'],
-                        job['scraped_at'],
-                        expires_at,
-                        datetime.now(),
-                        datetime.now()
+                        job['title'], job['company'], job['description'], job['location'],
+                        job['work_mode'], job['job_type'], job['experience_level'], job['salary_range'],
+                        job['skills'], job['country_code'], job['region'], job['city'],
+                        job['salary_min'], job['salary_max'], job['currency'], job['salary_period'],
+                        job['source_url'], job['source_platform'], job['external_id'], job['language'],
+                        job['category'], job['subcategory'], job['tags'], job['scraped_at'],
+                        expires_at, datetime.now(), datetime.now(), True
                     ))
                     
                     saved_count += 1
-                    print(f"[JOBSPY] Saved: {job['title']} at {job['company']}")
                     
                 except psycopg2.Error as e:
                     print(f"[JOBSPY] Database error for {job['title']}: {str(e)}")
@@ -560,31 +506,32 @@ class JobSpyIntegration:
         return saved_count
     
     def run_scraping(self, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Run the complete scraping process"""
+        """Enhanced scraping process with international focus"""
         if config is None:
             config = {}
         
         try:
-            # Get configuration with defaults
-            search_terms = config.get('search_terms', [
-                'software engineer', 'frontend developer', 'backend developer', 
-                'full stack developer', 'data scientist', 'product manager', 
-                'ux designer', 'devops engineer'
-            ])
+            # Enhanced default configuration for international markets
+            search_terms = config.get('search_terms', 
+                self.ENHANCED_SEARCH_TERMS['tech'][:8] + 
+                self.ENHANCED_SEARCH_TERMS['business'][:4] + 
+                self.ENHANCED_SEARCH_TERMS['entry_level'][:3]
+            )
             
-            locations = config.get('locations', [
-                'New York, NY', 'San Francisco, CA', 'Los Angeles, CA', 
-                'Chicago, IL', 'Austin, TX', 'Seattle, WA', 'Remote'
-            ])
+            locations = config.get('locations',
+                self.ENHANCED_LOCATIONS['india'][:6] + 
+                self.ENHANCED_LOCATIONS['usa'][:6] + 
+                self.ENHANCED_LOCATIONS['europe'][:6]
+            )
             
             job_sites = config.get('job_sites', ['indeed', 'linkedin'])
-            results_wanted = config.get('results_wanted', 50)
+            results_wanted = config.get('results_wanted', 150)  # Increased for better coverage
             country = config.get('country', 'USA')
             
-            print(f"[JOBSPY] Starting scraping with {len(search_terms)} search terms and {len(locations)} locations")
+            print(f"[JOBSPY] Enhanced international scraping: {len(search_terms)} terms, {len(locations)} locations")
             
-            # Scrape jobs
-            scraped_jobs = self.scrape_jobs_jobspy(
+            # Enhanced scraping
+            scraped_jobs = self.scrape_jobs_enhanced(
                 search_terms=search_terms,
                 locations=locations,
                 job_sites=job_sites,
@@ -602,14 +549,20 @@ class JobSpyIntegration:
                 'search_terms': search_terms,
                 'locations': locations,
                 'job_sites': job_sites,
+                'coverage': {
+                    'india_jobs': len([j for j in scraped_jobs if j.get('country_code') == 'IN']),
+                    'usa_jobs': len([j for j in scraped_jobs if j.get('country_code') == 'US']),
+                    'europe_jobs': len([j for j in scraped_jobs if j.get('country_code') in ['GB', 'DE', 'FR', 'ES', 'IT', 'NL']])
+                },
                 'timestamp': datetime.now().isoformat()
             }
             
-            print(f"[JOBSPY] Scraping completed: {saved_count}/{len(scraped_jobs)} jobs saved")
+            print(f"[JOBSPY] Enhanced scraping completed: {saved_count}/{len(scraped_jobs)} jobs saved")
+            print(f"[JOBSPY] Geographic coverage: India: {result['coverage']['india_jobs']}, USA: {result['coverage']['usa_jobs']}, Europe: {result['coverage']['europe_jobs']}")
             return result
             
         except Exception as e:
-            error_msg = f"Error during scraping: {str(e)}\n{traceback.format_exc()}"
+            error_msg = f"Error during enhanced scraping: {str(e)}\n{traceback.format_exc()}"
             print(f"[JOBSPY] {error_msg}")
             return {
                 'success': False,
@@ -618,19 +571,17 @@ class JobSpyIntegration:
             }
 
 def main():
-    """CLI interface for JobSpy scraping"""
+    """Enhanced CLI interface for international JobSpy scraping"""
     try:
-        # Get configuration from command line arguments or use defaults
         config = {}
         
         if len(sys.argv) > 1:
-            # Try to parse JSON config from command line
             try:
                 config = json.loads(sys.argv[1])
             except json.JSONDecodeError:
-                print("Invalid JSON config provided, using defaults")
+                print("Invalid JSON config provided, using enhanced defaults")
         
-        # Run scraping
+        # Run enhanced scraping
         scraper = JobSpyIntegration()
         result = scraper.run_scraping(config)
         

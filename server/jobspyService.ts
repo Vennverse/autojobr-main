@@ -53,137 +53,218 @@ export class JobSpyService {
   private pythonPath: string;
   private scriptPath: string;
   private readonly DEFAULT_SEARCH_TERMS = {
-    // Technology roles
+    // Technology roles - expanded for international markets
     tech: [
-      'software engineer', 'frontend developer', 'backend developer', 'full stack developer',
-      'data scientist', 'devops engineer', 'mobile developer', 'machine learning engineer',
-      'cloud engineer', 'python developer', 'javascript developer', 'react developer',
-      'node.js developer', 'data engineer', 'ai engineer', 'ui/ux designer'
+      // Core software development
+      'software engineer', 'software developer', 'full stack developer', 'frontend developer', 'backend developer',
+      'python developer', 'javascript developer', 'java developer', 'react developer', 'node.js developer',
+      'angular developer', 'vue.js developer', 'php developer', 'ruby developer', 'golang developer',
+      
+      // Data and AI roles
+      'data scientist', 'data engineer', 'data analyst', 'machine learning engineer', 'ai engineer',
+      'deep learning engineer', 'nlp engineer', 'computer vision engineer', 'data architect',
+      
+      // Infrastructure and DevOps
+      'devops engineer', 'cloud engineer', 'aws engineer', 'azure engineer', 'gcp engineer',
+      'kubernetes engineer', 'docker engineer', 'site reliability engineer', 'platform engineer',
+      
+      // Mobile development
+      'mobile developer', 'ios developer', 'android developer', 'react native developer', 'flutter developer',
+      
+      // Other tech roles
+      'cybersecurity engineer', 'security analyst', 'database administrator', 'system administrator',
+      'technical lead', 'software architect', 'engineering manager', 'tech lead'
     ],
+    
+    // Entry level roles - important for India and fresh graduates
+    entry_level: [
+      'junior software engineer', 'entry level developer', 'graduate trainee engineer', 'software intern',
+      'trainee software developer', 'fresher developer', 'associate software engineer', 'campus hire',
+      'junior data scientist', 'junior frontend developer', 'junior backend developer', 'graduate engineer',
+      'trainee data analyst', 'associate developer', 'junior consultant', 'entry level analyst'
+    ],
+
     // Sales roles
     sales: [
-      'account manager', 'sales representative', 'business development manager', 'sales director',
-      'sales engineer', 'key account manager', 'inside sales', 'outside sales',
-      'sales coordinator', 'territory manager'
+      'sales representative', 'account manager', 'business development manager', 'sales director',
+      'sales engineer', 'key account manager', 'inside sales representative', 'outside sales representative',
+      'sales coordinator', 'territory manager', 'channel sales manager', 'enterprise sales',
+      'regional sales manager', 'sales executive', 'business development executive'
     ],
+    
     // Marketing roles
     marketing: [
-      'digital marketing manager', 'content marketing manager', 'social media manager',
-      'brand manager', 'marketing coordinator', 'seo specialist', 'ppc specialist',
-      'email marketing manager', 'growth marketing manager', 'marketing analyst'
+      'digital marketing manager', 'content marketing manager', 'social media manager', 'marketing manager',
+      'brand manager', 'marketing coordinator', 'seo specialist', 'ppc specialist', 'sem specialist',
+      'email marketing specialist', 'growth marketing manager', 'marketing analyst', 'performance marketing',
+      'affiliate marketing manager', 'influencer marketing manager', 'product marketing manager'
     ],
+    
     // Business roles
     business: [
-      'business analyst', 'operations manager', 'project manager', 'consultant',
-      'strategy manager', 'business development', 'financial analyst',
-      'operations coordinator', 'process improvement manager', 'business intelligence analyst'
+      'business analyst', 'operations manager', 'project manager', 'consultant', 'management consultant',
+      'strategy manager', 'business development', 'financial analyst', 'business intelligence analyst',
+      'operations coordinator', 'process improvement manager', 'program manager', 'delivery manager',
+      'client relationship manager', 'stakeholder manager', 'transformation manager'
     ],
-    // Operations roles
-    operations: [
-      'operations manager', 'supply chain manager', 'logistics coordinator', 'process manager',
-      'quality assurance manager', 'operations analyst', 'facility manager',
-      'vendor manager', 'operations coordinator'
-    ],
-    // Customer Success roles
-    customer_success: [
-      'customer success manager', 'account manager', 'customer support manager',
-      'client relations manager', 'customer experience manager', 'success coordinator'
-    ],
-    // Finance roles
+    
+    // Finance roles - important for major financial centers
     finance: [
-      'financial analyst', 'accountant', 'finance manager', 'controller',
-      'treasury analyst', 'investment analyst', 'credit analyst', 'budget analyst',
-      'financial planning manager'
+      'financial analyst', 'accountant', 'finance manager', 'controller', 'financial controller',
+      'treasury analyst', 'investment analyst', 'credit analyst', 'budget analyst', 'fp&a analyst',
+      'financial planning manager', 'risk analyst', 'compliance officer', 'audit manager',
+      'investment banking analyst', 'equity research analyst', 'financial advisor'
     ],
+    
     // HR roles
     hr: [
-      'hr manager', 'recruiter', 'hr business partner', 'talent acquisition specialist',
-      'hr coordinator', 'training manager', 'compensation analyst',
-      'employee relations manager', 'hr generalist'
+      'hr manager', 'recruiter', 'talent acquisition specialist', 'hr business partner', 'hr generalist',
+      'hr coordinator', 'training manager', 'l&d manager', 'compensation analyst', 'hr analyst',
+      'employee relations manager', 'talent management specialist', 'workforce planning manager',
+      'organizational development manager', 'hr operations manager'
     ],
+    
     // Design roles
     design: [
-      'graphic designer', 'creative director', 'brand designer', 'web designer',
-      'marketing designer', 'visual designer', 'design manager'
+      'ui/ux designer', 'product designer', 'graphic designer', 'web designer', 'visual designer',
+      'creative director', 'brand designer', 'interaction designer', 'user experience designer',
+      'user interface designer', 'design manager', 'art director', 'motion graphics designer',
+      'design lead', 'senior designer'
     ],
+    
     // Product roles
     product: [
-      'product manager', 'product owner', 'product analyst', 'product marketing manager',
-      'product designer', 'product coordinator'
+      'product manager', 'senior product manager', 'product owner', 'product analyst', 
+      'product marketing manager', 'associate product manager', 'product coordinator',
+      'technical product manager', 'digital product manager', 'product strategy manager',
+      'product operations manager', 'product growth manager'
     ]
   };
   
   private readonly DEFAULT_LOCATIONS = {
-    // United States
+    // United States - Major tech and business hubs
     US: [
       'New York, NY', 'San Francisco, CA', 'Los Angeles, CA', 'Austin, TX',
       'Seattle, WA', 'Chicago, IL', 'Boston, MA', 'Denver, CO', 'Atlanta, GA',
-      'Miami, FL', 'Phoenix, AZ', 'Philadelphia, PA', 'Dallas, TX', 'Houston, TX', 'Remote'
+      'Miami, FL', 'Phoenix, AZ', 'Philadelphia, PA', 'Dallas, TX', 'Houston, TX',
+      'San Jose, CA', 'Washington, DC', 'Portland, OR', 'Nashville, TN', 'Charlotte, NC',
+      'Minneapolis, MN', 'Pittsburgh, PA', 'Raleigh, NC', 'United States', 'Remote USA'
     ],
-    // India
+    
+    // India - Major IT hubs and emerging cities
     IN: [
       'Mumbai, India', 'Bangalore, India', 'Delhi, India', 'Hyderabad, India',
       'Chennai, India', 'Pune, India', 'Kolkata, India', 'Ahmedabad, India',
       'Gurgaon, India', 'Noida, India', 'Jaipur, India', 'Kochi, India',
-      'Indore, India', 'Nagpur, India', 'Visakhapatnam, India'
+      'Indore, India', 'Nagpur, India', 'Lucknow, India', 'Coimbatore, India',
+      'Vadodara, India', 'Chandigarh, India', 'Mysore, India', 'Thiruvananthapuram, India',
+      'Bhubaneswar, India', 'Vizag, India', 'India', 'Remote India', 'Work from Home India'
     ],
+    
     // United Kingdom
     GB: [
       'London, UK', 'Manchester, UK', 'Birmingham, UK', 'Leeds, UK',
       'Glasgow, UK', 'Liverpool, UK', 'Bristol, UK', 'Edinburgh, UK',
-      'Sheffield, UK', 'Cardiff, UK'
+      'Sheffield, UK', 'Cardiff, UK', 'Belfast, UK', 'Nottingham, UK',
+      'Newcastle, UK', 'Reading, UK', 'Cambridge, UK', 'United Kingdom', 'Remote UK'
     ],
-    // Germany
+    
+    // Germany - Major tech and financial centers
     DE: [
       'Berlin, Germany', 'Munich, Germany', 'Hamburg, Germany', 'Cologne, Germany',
       'Frankfurt, Germany', 'Stuttgart, Germany', 'Düsseldorf, Germany',
-      'Dortmund, Germany', 'Leipzig, Germany', 'Bremen, Germany'
+      'Dortmund, Germany', 'Leipzig, Germany', 'Bremen, Germany', 'Hannover, Germany',
+      'Nuremberg, Germany', 'Dresden, Germany', 'Germany', 'Remote Germany'
     ],
-    // Australia
-    AU: [
-      'Sydney, Australia', 'Melbourne, Australia', 'Brisbane, Australia',
-      'Perth, Australia', 'Adelaide, Australia', 'Canberra, Australia',
-      'Gold Coast, Australia', 'Newcastle, Australia', 'Wollongong, Australia',
-      'Geelong, Australia'
-    ],
+    
     // France
     FR: [
       'Paris, France', 'Lyon, France', 'Marseille, France', 'Toulouse, France',
       'Nice, France', 'Nantes, France', 'Strasbourg, France', 'Montpellier, France',
-      'Bordeaux, France', 'Lille, France'
+      'Bordeaux, France', 'Lille, France', 'Rennes, France', 'Reims, France',
+      'France', 'Remote France'
     ],
+    
     // Spain
     ES: [
       'Madrid, Spain', 'Barcelona, Spain', 'Valencia, Spain', 'Seville, Spain',
       'Bilbao, Spain', 'Málaga, Spain', 'Murcia, Spain', 'Las Palmas, Spain',
-      'Palma, Spain', 'Zaragoza, Spain'
+      'Palma, Spain', 'Zaragoza, Spain', 'Alicante, Spain', 'Spain', 'Remote Spain'
     ],
-    // UAE
+    
+    // Italy
+    IT: [
+      'Milan, Italy', 'Rome, Italy', 'Naples, Italy', 'Turin, Italy',
+      'Florence, Italy', 'Bologna, Italy', 'Bari, Italy', 'Catania, Italy',
+      'Venice, Italy', 'Verona, Italy', 'Italy', 'Remote Italy'
+    ],
+    
+    // Netherlands
+    NL: [
+      'Amsterdam, Netherlands', 'Rotterdam, Netherlands', 'The Hague, Netherlands',
+      'Utrecht, Netherlands', 'Eindhoven, Netherlands', 'Tilburg, Netherlands',
+      'Groningen, Netherlands', 'Netherlands', 'Remote Netherlands'
+    ],
+    
+    // Other European countries
+    EU_OTHER: [
+      'Dublin, Ireland', 'Stockholm, Sweden', 'Copenhagen, Denmark', 'Oslo, Norway',
+      'Helsinki, Finland', 'Zurich, Switzerland', 'Geneva, Switzerland', 'Vienna, Austria',
+      'Brussels, Belgium', 'Prague, Czech Republic', 'Warsaw, Poland', 'Lisbon, Portugal',
+      'Remote Europe', 'European Union'
+    ],
+    
+    // Canada
+    CA: [
+      'Toronto, Canada', 'Vancouver, Canada', 'Montreal, Canada', 'Calgary, Canada',
+      'Ottawa, Canada', 'Edmonton, Canada', 'Mississauga, Canada', 'Winnipeg, Canada',
+      'Quebec City, Canada', 'Hamilton, Canada', 'Canada', 'Remote Canada'
+    ],
+    
+    // Australia
+    AU: [
+      'Sydney, Australia', 'Melbourne, Australia', 'Brisbane, Australia',
+      'Perth, Australia', 'Adelaide, Australia', 'Canberra, Australia',
+      'Gold Coast, Australia', 'Newcastle, Australia', 'Australia', 'Remote Australia'
+    ],
+    
+    // UAE and Middle East
     AE: [
       'Dubai, UAE', 'Abu Dhabi, UAE', 'Sharjah, UAE', 'Ajman, UAE',
-      'Ras Al Khaimah, UAE', 'Fujairah, UAE', 'Umm Al Quwain, UAE'
+      'UAE', 'Remote UAE', 'Middle East'
+    ],
+    
+    // Singapore and Asia-Pacific
+    APAC: [
+      'Singapore', 'Hong Kong', 'Tokyo, Japan', 'Seoul, South Korea',
+      'Kuala Lumpur, Malaysia', 'Bangkok, Thailand', 'Manila, Philippines',
+      'Jakarta, Indonesia', 'Remote Asia Pacific'
     ]
   };
   
   private readonly DEFAULT_JOB_SITES = {
-    // Global job sites (work in most countries)
+    // Global job sites (work in most countries) - most reliable
     global: ['indeed', 'linkedin'],
-    // US-specific job sites
-    US: ['indeed', 'linkedin', 'zip_recruiter', 'glassdoor'],
-    // India-specific job sites
+    
+    // US-specific job sites - comprehensive coverage
+    US: ['indeed', 'linkedin', 'zip_recruiter'],
+    
+    // India-specific job sites - includes local platforms
     IN: ['indeed', 'linkedin', 'naukri'],
-    // UK-specific job sites
+    
+    // European countries - focus on indeed and linkedin for reliability
     GB: ['indeed', 'linkedin'],
-    // Germany-specific job sites
     DE: ['indeed', 'linkedin'],
-    // Australia-specific job sites
-    AU: ['indeed', 'linkedin'],
-    // France-specific job sites
     FR: ['indeed', 'linkedin'],
-    // Spain-specific job sites
     ES: ['indeed', 'linkedin'],
-    // UAE-specific job sites
-    AE: ['indeed', 'linkedin']
+    IT: ['indeed', 'linkedin'],
+    NL: ['indeed', 'linkedin'],
+    
+    // Other regions
+    CA: ['indeed', 'linkedin'],
+    AU: ['indeed', 'linkedin'],
+    AE: ['indeed', 'linkedin'],
+    APAC: ['indeed', 'linkedin']
   };
 
   constructor() {
@@ -591,39 +672,47 @@ export class JobSpyService {
   }
 
   /**
-   * Optimized daily job scraping with focus on high-traffic locations and popular roles
+   * Enhanced international daily job scraping with comprehensive coverage
    */
   async runOptimizedDailyJobScraping(): Promise<JobSpyResult> {
     const optimizedConfig: JobSpyConfig = {
       search_terms: [
-        // Most in-demand tech roles
-        'software engineer', 'frontend developer', 'backend developer', 'full stack developer',
-        'data scientist', 'devops engineer', 'mobile developer', 'python developer', 
-        'react developer', 'node.js developer', 'data engineer', 'machine learning engineer',
+        // Core tech roles - high demand globally
+        'software engineer', 'full stack developer', 'frontend developer', 'backend developer',
+        'python developer', 'javascript developer', 'java developer', 'react developer',
+        'data scientist', 'data engineer', 'data analyst', 'machine learning engineer',
+        'devops engineer', 'cloud engineer', 'mobile developer', 'ai engineer',
         
-        // High-volume business roles  
-        'account manager', 'sales representative', 'business development manager',
-        'digital marketing manager', 'content marketing manager', 'product manager',
-        'business analyst', 'operations manager', 'project manager',
-        'customer success manager', 'hr manager', 'recruiter'
+        // Entry level for India market
+        'junior software engineer', 'entry level developer', 'graduate trainee', 'fresher developer',
+        'trainee software developer', 'associate software engineer', 'campus hire',
+        
+        // Business roles - international demand  
+        'product manager', 'business analyst', 'project manager', 'account manager',
+        'sales representative', 'digital marketing manager', 'operations manager',
+        'financial analyst', 'consultant', 'hr manager', 'recruiter'
       ],
       locations: [
+        // Top Indian tech hubs - major focus
+        'Mumbai, India', 'Bangalore, India', 'Delhi, India', 'Hyderabad, India', 'Chennai, India',
+        'Pune, India', 'Gurgaon, India', 'Noida, India', 'Kolkata, India', 'Ahmedabad, India',
+        'India', 'Remote India',
+        
         // Top US job markets
         'New York, NY', 'San Francisco, CA', 'Los Angeles, CA', 'Austin, TX', 'Seattle, WA',
-        'Chicago, IL', 'Boston, MA', 'Denver, CO', 'Atlanta, GA', 'Remote',
+        'Chicago, IL', 'Boston, MA', 'Denver, CO', 'Atlanta, GA', 'United States', 'Remote USA',
         
-        // Top India job markets  
-        'Mumbai, India', 'Bangalore, India', 'Delhi, India', 'Hyderabad, India', 'Chennai, India',
+        // Major European tech hubs
+        'London, UK', 'Manchester, UK', 'Berlin, Germany', 'Munich, Germany', 'Paris, France',
+        'Amsterdam, Netherlands', 'Madrid, Spain', 'Barcelona, Spain', 'Milan, Italy', 'Dublin, Ireland',
+        'Stockholm, Sweden', 'Copenhagen, Denmark', 'Remote Europe',
         
-        // Top UK markets
-        'London, UK', 'Manchester, UK', 'Birmingham, UK',
-        
-        // Remote opportunities
-        'Anywhere'
+        // Global remote
+        'Remote', 'Anywhere', 'Work from Home'
       ],
-      job_sites: ['indeed', 'linkedin'], // Most reliable and fastest
-      results_wanted: 50, // Increased for more jobs
-      country: 'USA' // Will be mapped properly in Python script
+      job_sites: ['indeed', 'linkedin'], // Most reliable globally
+      results_wanted: 100, // Increased for better coverage
+      country: 'USA' // Will handle multiple countries in Python script
     };
 
     return this.scrapeJobs(optimizedConfig);

@@ -108,12 +108,27 @@ export class DailySyncService {
         syncResults.errors.push(errorMsg);
       }
 
-      // 2. Scrape jobs second
-      console.log('💼 Phase 2: Scraping jobs from major job sites...');
+      // 2. Scrape jobs second - Enhanced international scraping
+      console.log('💼 Phase 2: Scraping jobs from major international job sites...');
       try {
-        const jobResults = await jobSpyService.scrapeJobsDaily();
-        syncResults.jobs = jobResults;
-        console.log(`✅ Jobs: ${jobResults.newAdded} new from ${jobSpyService.getAvailableJobSites().join(', ')}`);
+        // Use the enhanced optimized scraping for better international coverage
+        const jobResults = await jobSpyService.runOptimizedDailyJobScraping();
+        
+        // Convert JobSpyResult to JobScrapingResults format
+        const formattedResults = {
+          totalFound: jobResults.scraped_count || 0,
+          newAdded: jobResults.saved_count || 0,
+          updated: 0,
+          deactivated: 0
+        };
+        
+        syncResults.jobs = formattedResults;
+        console.log(`✅ Jobs: ${formattedResults.newAdded} new from India, USA, and Europe via ${jobSpyService.getAvailableJobSites().join(', ')}`);
+        
+        // Log geographic coverage if available
+        if (jobResults.coverage) {
+          console.log(`📍 Geographic coverage - India: ${jobResults.coverage.india_jobs}, USA: ${jobResults.coverage.usa_jobs}, Europe: ${jobResults.coverage.europe_jobs}`);
+        }
       } catch (error) {
         const errorMsg = `Job scraping failed: ${error instanceof Error ? error.message : String(error)}`;
         console.error('❌', errorMsg);
