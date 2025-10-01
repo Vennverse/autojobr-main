@@ -47,6 +47,8 @@ import { customNLPService } from "./customNLP.js";
 import { UserRoleService } from "./userRoleService.js";
 import { PremiumFeaturesService } from "./premiumFeaturesService.js";
 import { SubscriptionService } from "./subscriptionService.js";
+import { predictiveSuccessService } from "./predictiveSuccessService.js";
+import { viralExtensionService } from "./viralExtensionService.js";
 import { rankingTestService } from "./rankingTestService.js";
 import { setupSimpleChatRoutes } from "./simpleChatRoutes.js";
 import { simpleWebSocketService } from "./simpleWebSocketService.js";
@@ -1528,6 +1530,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     res.json(userSubscription || null);
+  }));
+
+  // ACE FEATURE ROUTES - Predictive Success Intelligence
+  app.post('/api/ai/predict-success', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const { jobId, resumeContent } = req.body;
+      const userId = req.user.id;
+
+      if (!jobId || !resumeContent) {
+        return res.status(400).json({ message: 'Job ID and resume content required' });
+      }
+
+      const prediction = await predictiveSuccessService.predictApplicationSuccess(
+        userId, 
+        parseInt(jobId), 
+        resumeContent
+      );
+
+      res.json({
+        success: true,
+        prediction
+      });
+    } catch (error) {
+      console.error('Predictive success error:', error);
+      res.status(500).json({ message: 'Failed to generate prediction' });
+    }
+  }));
+
+  // ACE FEATURE ROUTES - Viral Extension Network Effects
+  app.post('/api/extension/track-application', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const { jobUrl, applicationData } = req.body;
+      const userId = req.user.id;
+
+      const result = await viralExtensionService.trackExtensionApplication(
+        userId,
+        jobUrl,
+        applicationData
+      );
+
+      res.json({
+        success: true,
+        ...result
+      });
+    } catch (error) {
+      console.error('Viral extension tracking error:', error);
+      res.status(500).json({ message: 'Failed to track application' });
+    }
+  }));
+
+  app.post('/api/extension/share-intel', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const { jobUrl, intelligence } = req.body;
+      const userId = req.user.id;
+
+      const rewards = await viralExtensionService.shareJobIntelligence(
+        userId,
+        jobUrl,
+        intelligence
+      );
+
+      res.json({
+        success: true,
+        rewards
+      });
+    } catch (error) {
+      console.error('Intel sharing error:', error);
+      res.status(500).json({ message: 'Failed to share intelligence' });
+    }
+  }));
+
+  app.post('/api/extension/create-referral', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const { jobUrl } = req.body;
+      const userId = req.user.id;
+
+      const referral = await viralExtensionService.createReferralNetwork(
+        userId,
+        jobUrl
+      );
+
+      res.json({
+        success: true,
+        ...referral
+      });
+    } catch (error) {
+      console.error('Referral creation error:', error);
+      res.status(500).json({ message: 'Failed to create referral' });
+    }
+  }));
+
+  app.get('/api/extension/viral-leaderboard', asyncHandler(async (req: any, res: any) => {
+    try {
+      const leaderboard = await viralExtensionService.getViralLeaderboard();
+
+      res.json({
+        success: true,
+        leaderboard
+      });
+    } catch (error) {
+      console.error('Leaderboard error:', error);
+      res.status(500).json({ message: 'Failed to get leaderboard' });
+    }
+  }));
+
+  app.post('/api/extension/application-boost', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const { jobUrl } = req.body;
+      const userId = req.user.id;
+
+      const boost = await viralExtensionService.generateApplicationBoost(
+        userId,
+        jobUrl
+      );
+
+      res.json({
+        success: true,
+        boost
+      });
+    } catch (error) {
+      console.error('Application boost error:', error);
+      res.status(500).json({ message: 'Failed to generate boost' });
+    }
   }));
 
   // Usage Monitoring Routes

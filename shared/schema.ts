@@ -11,9 +11,10 @@ import {
   boolean,
   date,
   numeric,
+  relations,
+  sql,
+  json,
 } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
-import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -136,7 +137,7 @@ export const userProfiles = pgTable("user_profiles", {
   willingToTravel: boolean("willing_to_travel").default(true),
   maxTravelPercentage: integer("max_travel_percentage").default(0), // 0-100%
 
-  // Education Summary (for quick form filling)  
+  // Education Summary (for quick form filling)
   highestDegree: varchar("highest_degree"),
   majorFieldOfStudy: varchar("major_field_of_study"),
   graduationYear: integer("graduation_year"),
@@ -371,7 +372,7 @@ export const tasks = pgTable("tasks", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// User resume storage with cloud sync capabilities  
+// User resume storage with cloud sync capabilities
 export const userResumes = pgTable("user_resumes", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
@@ -1191,7 +1192,7 @@ export const recruiterAnalytics = pgTable("recruiter_analytics", {
 
   // Performance metrics
   averageTimeToReview: integer("average_time_to_review"), // hours
-  averageTimeToInterview: integer("average_time_to_interview"), // hours  
+  averageTimeToInterview: integer("average_time_to_interview"), // hours
   averageTimeToHire: integer("average_time_to_hire"), // hours
   conversionRate: integer("conversion_rate"), // percentage
 
@@ -1598,20 +1599,20 @@ export const rankingTests = pgTable("ranking_tests", {
   answers: jsonb("answers").default("[]"),
   questions: jsonb("questions").notNull(),
   status: varchar("status").default("in_progress"), // in_progress, completed, expired
-  
+
   // Ranking data
   rank: integer("rank"), // Global rank in category
   weeklyRank: integer("weekly_rank"),
   monthlyRank: integer("monthly_rank"),
   categoryRank: integer("category_rank"),
-  
+
   // Payment tracking
   paymentStatus: varchar("payment_status").default("pending"), // pending, completed, failed
   paymentId: varchar("payment_id"), // Payment transaction ID
-  
+
   // Recruiter sharing
   isSharedToRecruiters: boolean("is_shared_to_recruiters").default(false),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -2203,7 +2204,7 @@ export const scrapedInternships = pgTable("scraped_internships", {
   sourcePlatform: varchar("source_platform").default("github_simplifyjobs"),
   sourceUrl: varchar("source_url").notNull(), // GitHub repo URL
   externalId: varchar("external_id"), // Platform-specific job ID
-  
+
   // Tracking and status
   datePosted: timestamp("date_posted"),
   lastUpdated: timestamp("last_updated").defaultNow(),
@@ -2236,17 +2237,21 @@ export const scrapedInternships = pgTable("scraped_internships", {
 // User saved/bookmarked internships
 export const userSavedInternships = pgTable("user_saved_internships", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").references(() => users.id).notNull(),
-  internshipId: integer("internship_id").references(() => scrapedInternships.id, { onDelete: "cascade" }).notNull(),
-  savedAt: timestamp("saved_at").defaultNow(),
-}, (table) => [
-  // Unique constraint to prevent duplicate saves
-  unique("user_saved_internships_unique").on(table.userId, table.internshipId),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  internshipId: integer("internship_id").notNull().references(() => scrapedInternships.id),
+  savedAt: timestamp("saved_at").defaultNow().notNull(),
+});
 
-  // Performance indexes
-  index("user_saved_internships_user_idx").on(table.userId),
-  index("user_saved_internships_internship_idx").on(table.internshipId),
-]);
+export const userSavedInternshipsRelations = relations(userSavedInternships, ({ one }) => ({
+  user: one(users, {
+    fields: [userSavedInternships.userId],
+    references: [users.id],
+  }),
+  internship: one(scrapedInternships, {
+    fields: [userSavedInternships.internshipId],
+    references: [scrapedInternships.id],
+  }),
+}));
 
 // Internship applications tracking
 export const internshipApplications = pgTable("internship_applications", {
@@ -3494,3 +3499,97 @@ export const insertInterviewInvitationSchema = createInsertSchema(interviewInvit
 
 export type InterviewInvitation = typeof interviewInvitations.$inferSelect;
 export type InsertInterviewInvitation = z.infer<typeof insertInterviewInvitationSchema>;
+
+// ACE FEATURES SCHEMAS
+
+// Job Intelligence - crowd-sourced job insights
+export const jobIntelligence = pgTable("job_intelligence", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  jobUrl: varchar("job_url").notNull(),
+  company: varchar("company").notNull(),
+  salaryInfo: text("salary_info"),
+  interviewExperience: text("interview_experience"),
+  companyTips: text("company_tips"),
+  applicationTips: text("application_tips"),
+  helpfulnessScore: integer("helpfulness_score").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Viral Referrals - referral tracking and rewards
+export const viralReferrals = pgTable("viral_referrals", {
+  id: serial("id").primaryKey(),
+  referrerId: varchar("referrer_id").notNull(),
+  jobUrl: varchar("job_url").notNull(),
+  referralCode: varchar("referral_code").notNull().unique(),
+  referralsCount: integer("referrals_count").default(0),
+  successfulReferrals: integer("successful_referrals").default(0),
+  pointsEarned: integer("points_earned").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+});
+
+// Success Predictions - AI prediction tracking
+export const successPredictions = pgTable("success_predictions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  jobId: integer("job_id"),
+  jobUrl: varchar("job_url"),
+  predictedProbability: integer("predicted_probability").notNull(),
+  confidenceLevel: varchar("confidence_level").notNull(),
+  factors: json("factors"),
+  actualOutcome: varchar("actual_outcome"),
+  predictionAccuracy: integer("prediction_accuracy"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  outcomeRecordedAt: timestamp("outcome_recorded_at"),
+});
+
+// Viral User Stats - user viral activity tracking
+export const viralUserStats = pgTable("viral_user_stats", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().unique(),
+  totalPoints: integer("total_points").default(0),
+  referralCount: integer("referral_count").default(0),
+  intelContributions: integer("intel_contributions").default(0),
+  helpfulnessScore: numeric("helpfulness_score", { precision: 3, scale: 2 }).default("0"),
+  viralRank: integer("viral_rank").default(0),
+  badgesEarned: varchar("badges_earned").array().default([]),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Extension Applications - tracking extension usage
+export const extensionApplications = pgTable("extension_applications", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  jobUrl: varchar("job_url").notNull(),
+  company: varchar("company"),
+  applicationMethod: varchar("application_method").default("auto_fill"),
+  timeToComplete: integer("time_to_complete"),
+  fieldsAutoFilled: integer("fields_auto_filled"),
+  successBoostType: varchar("success_boost_type"),
+  viralData: json("viral_data"),
+  appliedAt: timestamp("applied_at").defaultNow().notNull(),
+});
+
+// Job Application Stats - aggregated job statistics
+export const jobApplicationStats = pgTable("job_application_stats", {
+  id: serial("id").primaryKey(),
+  jobUrl: varchar("job_url").notNull().unique(),
+  company: varchar("company"),
+  totalApplicants: integer("total_applicants").default(0),
+  autojobrApplicants: integer("autojobr_applicants").default(0),
+  successRate: numeric("success_rate", { precision: 5, scale: 2 }).default("0"),
+  averageSalary: integer("average_salary"),
+  competitionLevel: varchar("competition_level").default("medium"),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+});
+
+// Insert schemas for ACE features
+export const insertJobIntelligenceSchema = createInsertSchema(jobIntelligence);
+export const insertViralReferralSchema = createInsertSchema(viralReferrals);
+export const insertSuccessPredictionSchema = createInsertSchema(successPredictions);
+export const insertViralUserStatsSchema = createInsertSchema(viralUserStats);
+export const insertExtensionApplicationSchema = createInsertSchema(extensionApplications);
+export const insertJobApplicationStatsSchema = createInsertSchema(jobApplicationStats);
