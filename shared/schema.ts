@@ -11,10 +11,9 @@ import {
   boolean,
   date,
   numeric,
-  sql,
   json,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
