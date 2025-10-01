@@ -1041,41 +1041,57 @@ class AutoJobrContentScript {
     const siteSelectors = {
       linkedin: {
         title: [
-          '.top-card-layout__title h1',
-          '.job-details-jobs-unified-top-card__job-title h1',
+          '.job-details-jobs-unified-top-card__job-title',
+          '.jobs-unified-top-card__job-title',
+          '.top-card-layout__title',
           'h1.t-24',
-          '.jobs-unified-top-card__job-title h1'
+          '.base-search-card__title',
+          'h1[class*="job-title"]',
+          'h1[class*="title"]'
         ],
         company: [
+          '.job-details-jobs-unified-top-card__company-name',
+          '.jobs-unified-top-card__company-name',
           '.topcard__org-name-link',
-          '.job-details-jobs-unified-top-card__company-name a',
-          '.topcard__flavor--black-link',
-          '.jobs-unified-top-card__company-name a'
+          '.base-search-card__subtitle',
+          'a[class*="company"]',
+          '[data-tracking-control-name*="company"]'
         ],
         location: [
-          '.topcard__flavor--bullet',
           '.job-details-jobs-unified-top-card__bullet',
-          '.topcard__flavor',
-          '.jobs-unified-top-card__bullet'
+          '.jobs-unified-top-card__bullet',
+          '.topcard__flavor--bullet',
+          '.job-search-card__location',
+          'span[class*="location"]',
+          '[data-tracking-control-name*="location"]'
         ],
         description: [
-          '.description__text',
+          '.jobs-description__content',
           '.jobs-description-content__text',
+          '.description__text',
           '.jobs-description .t-14',
-          '.jobs-box__html-content'
+          '.jobs-box__html-content',
+          '[class*="description"]',
+          '.show-more-less-html__markup'
         ],
         requirements: [
-          '.description__text',
-          '.jobs-description-content__text'
+          '.jobs-description__content',
+          '.jobs-description-content__text',
+          '.description__text'
         ],
         salary: [
+          '.job-details-jobs-unified-top-card__job-insight',
           '.salary',
           '.compensation',
-          '.pay-range'
+          '.pay-range',
+          '[class*="salary"]',
+          '[class*="compensation"]'
         ],
         type: [
+          '.job-details-jobs-unified-top-card__job-insight',
           '.job-criteria__text',
-          '.job-details-preferences-and-skills'
+          '.job-details-preferences-and-skills',
+          '[class*="job-type"]'
         ]
       },
       indeed: {
@@ -3242,12 +3258,12 @@ class AutoJobrContentScript {
       url: url
     };
 
-    // LinkedIn job extraction
+    // LinkedIn job extraction - Updated for 2025 DOM structure
     if (hostname.includes('linkedin.com')) {
-      jobData.title = document.querySelector('.job-details-jobs-unified-top-card__job-title, .job-title')?.textContent?.trim() || '';
-      jobData.company = document.querySelector('.job-details-jobs-unified-top-card__company-name, .company-name')?.textContent?.trim() || '';
-      jobData.location = document.querySelector('.job-details-jobs-unified-top-card__bullet, .job-location')?.textContent?.trim() || '';
-      jobData.description = document.querySelector('.job-details__description-text, .job-view-description')?.textContent?.trim() || '';
+      jobData.title = document.querySelector('.job-details-jobs-unified-top-card__job-title, .jobs-unified-top-card__job-title, .top-card-layout__title, h1.t-24, .base-search-card__title')?.textContent?.trim() || '';
+      jobData.company = document.querySelector('.job-details-jobs-unified-top-card__company-name, .jobs-unified-top-card__company-name, .topcard__org-name-link, .base-search-card__subtitle')?.textContent?.trim() || '';
+      jobData.location = document.querySelector('.job-details-jobs-unified-top-card__bullet, .jobs-unified-top-card__bullet, .topcard__flavor--bullet, .job-search-card__location')?.textContent?.trim() || '';
+      jobData.description = document.querySelector('.jobs-description__content, .jobs-description-content__text, .description__text, .show-more-less-html__markup')?.textContent?.trim() || '';
     }
     
     // Workday job extraction
