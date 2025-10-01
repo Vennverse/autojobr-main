@@ -267,6 +267,17 @@
       box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
     }
 
+    .action-btn.secondary {
+      background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+      color: #0c4a6e;
+      border-color: #bae6fd;
+    }
+
+    .action-btn.secondary:hover {
+      background: linear-gradient(135deg, #bae6fd, #93c5fc);
+      box-shadow: 0 8px 25px rgba(147, 197, 253, 0.15);
+    }
+
     .action-btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
@@ -958,22 +969,38 @@
             <div class="btn-icon">✎</div>
             Auto-fill
           </button>
-          
+
           <button class="action-btn" id="analyzeBtn">
             <div class="btn-icon">📊</div>
             Analyze Match
           </button>
-          
+
           <button class="action-btn" id="saveJobBtn">
             <div class="btn-icon">💾</div>
             Save Job
           </button>
-          
+
           <button class="action-btn" id="coverLetterBtn">
             <div class="btn-icon">📝</div>
             Cover Letter
           </button>
         </div>
+
+        <div class="action-row" style="margin-top: 12px;">
+          <button class="action-btn secondary" id="interviewPrepBtn">
+            <div class="btn-icon">🎯</div>
+            <span>Interview Prep</span>
+          </button>
+          <button class="action-btn secondary" id="salaryInsightsBtn">
+            <div class="btn-icon">💰</div>
+            <span>Salary Intel</span>
+          </button>
+          <button class="action-btn secondary" id="referralFinderBtn">
+            <div class="btn-icon">🤝</div>
+            <span>Find Referrals</span>
+          </button>
+        </div>
+      </div>
 
         <div class="quick-actions">
           <button class="quick-btn" id="resumeBtn">📄 Resume</button>
@@ -1046,7 +1073,7 @@
         <h3 class="modal-title">✨ Create New Task</h3>
         <button class="modal-close" id="closeTaskModal">×</button>
       </div>
-      
+
       <form id="taskForm">
         <div class="form-group">
           <label class="form-label">Quick Templates</label>

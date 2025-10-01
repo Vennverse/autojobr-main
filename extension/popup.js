@@ -48,6 +48,9 @@ class AutoJobrPopup {
     document.getElementById('analyzeBtn').addEventListener('click', () => this.handleAnalyze());
     document.getElementById('saveJobBtn').addEventListener('click', () => this.handleSaveJob());
     document.getElementById('coverLetterBtn').addEventListener('click', () => this.handleGenerateCoverLetter());
+    document.getElementById('interviewPrepBtn')?.addEventListener('click', () => this.handleInterviewPrep());
+    document.getElementById('salaryInsightsBtn')?.addEventListener('click', () => this.handleSalaryInsights());
+    document.getElementById('referralFinderBtn')?.addEventListener('click', () => this.handleReferralFinder());
     
     // Quick action buttons
     document.getElementById('resumeBtn').addEventListener('click', () => this.handleResumeAction());
@@ -984,6 +987,209 @@ class AutoJobrPopup {
     chrome.tabs.create({
       url: `${API_BASE_URL}/applications`
     });
+  }
+
+  async handleInterviewPrep() {
+    if (!this.isAuthenticated || !this.jobData) {
+      this.showError('Please ensure you\'re authenticated and on a job page');
+      return;
+    }
+
+    this.showLoading(true);
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: 'getInterviewPrep',
+        jobData: this.jobData
+      });
+
+      if (response && response.success) {
+        this.showInterviewPrepModal(response.prep);
+      } else {
+        throw new Error(response?.error || 'Failed to get interview prep');
+      }
+    } catch (error) {
+      console.error('Interview prep error:', error);
+      this.showError('Failed to generate interview prep. Please try again.');
+    } finally {
+      this.showLoading(false);
+    }
+  }
+
+  async handleSalaryInsights() {
+    if (!this.isAuthenticated || !this.jobData) {
+      this.showError('Please ensure you\'re authenticated and on a job page');
+      return;
+    }
+
+    this.showLoading(true);
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: 'getSalaryInsights',
+        jobData: this.jobData
+      });
+
+      if (response && response.success) {
+        this.showSalaryInsightsModal(response.insights);
+      } else {
+        throw new Error(response?.error || 'Failed to get salary insights');
+      }
+    } catch (error) {
+      console.error('Salary insights error:', error);
+      this.showError('Failed to get salary insights. Please try again.');
+    } finally {
+      this.showLoading(false);
+    }
+  }
+
+  async handleReferralFinder() {
+    if (!this.isAuthenticated || !this.jobData) {
+      this.showError('Please ensure you\'re authenticated and on a job page');
+      return;
+    }
+
+    this.showLoading(true);
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: 'findReferrals',
+        jobData: this.jobData,
+        userProfile: this.userProfile
+      });
+
+      if (response && response.success) {
+        this.showReferralFinderModal(response);
+      } else {
+        throw new Error(response?.error || 'Failed to find referrals');
+      }
+    } catch (error) {
+      console.error('Referral finder error:', error);
+      this.showError('Failed to find referrals. Please try again.');
+    } finally {
+      this.showLoading(false);
+    }
+  }
+
+  showInterviewPrepModal(prep) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay show';
+    modal.innerHTML = `
+      <div class="task-modal" style="max-width: 500px;">
+        <div class="modal-header">
+          <h3 class="modal-title">🎯 Interview Preparation</h3>
+          <button class="modal-close" id="closeInterviewModal">×</button>
+        </div>
+        <div style="max-height: 400px; overflow-y: auto; padding: 20px;">
+          <div style="margin-bottom: 20px;">
+            <h4 style="color: #3b82f6; margin-bottom: 10px;">Company Insights</h4>
+            <p style="color: #6b7280; font-size: 14px;">${prep.companyInsights || 'Research company culture and recent news'}</p>
+          </div>
+          <div style="margin-bottom: 20px;">
+            <h4 style="color: #3b82f6; margin-bottom: 10px;">Common Interview Questions</h4>
+            <ul style="list-style: none; padding: 0;">
+              ${(prep.questions || []).map(q => `
+                <li style="padding: 10px; background: #f8fafc; border-radius: 8px; margin-bottom: 8px; font-size: 14px;">
+                  ${q}
+                </li>
+              `).join('')}
+            </ul>
+          </div>
+          <div>
+            <h4 style="color: #3b82f6; margin-bottom: 10px;">Preparation Tips</h4>
+            <p style="color: #6b7280; font-size: 14px;">${prep.tips || 'Practice STAR method for behavioral questions'}</p>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    document.getElementById('closeInterviewModal').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => e.target === modal && modal.remove());
+  }
+
+  showSalaryInsightsModal(insights) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay show';
+    modal.innerHTML = `
+      <div class="task-modal" style="max-width: 450px;">
+        <div class="modal-header">
+          <h3 class="modal-title">💰 Salary Insights</h3>
+          <button class="modal-close" id="closeSalaryModal">×</button>
+        </div>
+        <div style="padding: 20px;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 36px; font-weight: bold; color: #22c55e;">
+              $${insights.estimatedSalary?.toLocaleString() || 'N/A'}
+            </div>
+            <div style="color: #6b7280; font-size: 14px;">Estimated Annual Salary</div>
+          </div>
+          <div style="background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+            <div style="font-weight: 600; margin-bottom: 8px;">Salary Range</div>
+            <div style="display: flex; justify-content: space-between; font-size: 14px;">
+              <span>Min: $${insights.salaryRange?.min?.toLocaleString() || 'N/A'}</span>
+              <span>Max: $${insights.salaryRange?.max?.toLocaleString() || 'N/A'}</span>
+            </div>
+          </div>
+          <div>
+            <h4 style="margin-bottom: 10px;">Negotiation Tips</h4>
+            <ul style="color: #6b7280; font-size: 14px; padding-left: 20px;">
+              ${(insights.negotiationTips || []).map(tip => `<li style="margin-bottom: 8px;">${tip}</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    document.getElementById('closeSalaryModal').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => e.target === modal && modal.remove());
+  }
+
+  showReferralFinderModal(data) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay show';
+    modal.innerHTML = `
+      <div class="task-modal" style="max-width: 550px;">
+        <div class="modal-header">
+          <h3 class="modal-title">🤝 Referral Opportunities</h3>
+          <button class="modal-close" id="closeReferralModal">×</button>
+        </div>
+        <div style="max-height: 450px; overflow-y: auto; padding: 20px;">
+          <div style="margin-bottom: 20px; text-align: center;">
+            <div style="font-size: 24px; font-weight: bold; color: #3b82f6;">
+              ${data.totalFound} Potential Referrers Found
+            </div>
+            <div style="color: #6b7280; font-size: 14px;">
+              ${data.highPriority?.length || 0} high-priority connections
+            </div>
+          </div>
+          ${(data.referrals || []).slice(0, 5).map(ref => `
+            <div style="padding: 16px; background: #f8fafc; border-radius: 8px; margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <div style="font-weight: 600;">${ref.name || 'Employee'}</div>
+                <div style="background: #22c55e; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">
+                  ${ref.score}% Match
+                </div>
+              </div>
+              <div style="color: #6b7280; font-size: 13px; margin-bottom: 4px;">${ref.title || 'Position'}</div>
+              <div style="color: #9ca3af; font-size: 12px;">${ref.connectionType || 'Connection'}</div>
+            </div>
+          `).join('')}
+          <div style="margin-top: 16px; padding: 16px; background: #eff6ff; border-radius: 8px;">
+            <div style="font-weight: 600; margin-bottom: 8px; color: #1d4ed8;">💡 Recommendation</div>
+            <p style="color: #6b7280; font-size: 13px; margin: 0;">
+              Start with high-priority connections (alumni, former colleagues). 
+              Personalize your message mentioning shared experiences.
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    document.getElementById('closeReferralModal').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => e.target === modal && modal.remove());
   }
 
   async trackApplication() {

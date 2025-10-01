@@ -473,12 +473,53 @@ class AutoJobrBackground {
           }
           break;
 
+        // Interview Preparation
+        case 'getInterviewPrep':
+          const prep = await this.getInterviewPrep(message.jobData);
+          sendResponse({ success: true, prep });
+          break;
+
+        // Salary Insights
+        case 'getSalaryInsights':
+          const insights = await this.getSalaryInsights(message.jobData);
+          sendResponse({ success: true, insights });
+          break;
+
         default:
           sendResponse({ success: false, error: 'Unknown action' });
       }
     } catch (error) {
       console.error('Background message handler error:', error);
       sendResponse({ success: false, error: error.message });
+    }
+  }
+
+  async getSalaryInsights(jobData) {
+    try {
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      const response = await fetch(`${this.apiUrl}/api/salary-insights`, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        mode: 'cors',
+        body: JSON.stringify({
+          jobTitle: jobData.title,
+          company: jobData.company,
+          location: jobData.location
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get salary insights');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Salary insights error:', error);
+      throw error;
     }
   }
 
@@ -861,6 +902,44 @@ class AutoJobrBackground {
 
     } catch (error) {
       console.error('Generate cover letter error:', error);
+      throw error;
+    }
+  }
+
+  async getInterviewPrep(jobData) {
+    try {
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      const response = await fetch(`${this.apiUrl}/api/interview-prep`, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        mode: 'cors',
+        body: JSON.stringify({
+          jobTitle: jobData.title,
+          company: jobData.company,
+          jobDescription: jobData.description,
+          requestedAt: new Date().toISOString()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get interview prep');
+      }
+
+      const prep = await response.json();
+      
+      await this.showAdvancedNotification(
+        'Interview Prep Ready! 🎯',
+        `Generated ${prep.questions?.length || 0} practice questions`,
+        'success'
+      );
+
+      return prep;
+    } catch (error) {
+      console.error('Interview prep error:', error);
       throw error;
     }
   }

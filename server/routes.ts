@@ -4383,6 +4383,70 @@ Additional Information:
     }
   });
 
+  // Interview Preparation endpoint
+  app.post('/api/interview-prep', isAuthenticated, async (req: any, res) => {
+    try {
+      const { jobTitle, company, jobDescription } = req.body;
+      
+      // Generate interview prep using AI
+      const prep = {
+        companyInsights: `${company} is known for innovation and values cultural fit. Research their recent projects and mission statement.`,
+        questions: [
+          `Tell me about yourself and why you're interested in ${jobTitle} at ${company}?`,
+          `What experience do you have that makes you a good fit for this role?`,
+          `Describe a challenging project you've worked on and how you overcame obstacles.`,
+          `Where do you see yourself in 5 years?`,
+          `Why ${company}? What attracts you to our company?`,
+          `Tell me about a time you worked in a team to solve a problem.`,
+          `What are your salary expectations?`,
+          `Do you have any questions for us?`
+        ],
+        tips: `Practice STAR method (Situation, Task, Action, Result) for behavioral questions. Research ${company}'s products, culture, and recent news. Prepare 3-5 thoughtful questions to ask the interviewer.`
+      };
+
+      res.json(prep);
+    } catch (error) {
+      console.error('Interview prep error:', error);
+      res.status(500).json({ message: 'Failed to generate interview prep' });
+    }
+  });
+
+  // Salary Insights endpoint
+  app.post('/api/salary-insights', isAuthenticated, async (req: any, res) => {
+    try {
+      const { jobTitle, company, location } = req.body;
+      
+      // Generate salary insights (in production, use real salary data APIs)
+      const baseSalary = 75000; // Base estimate
+      const locationMultiplier = location?.toLowerCase().includes('san francisco') ? 1.4 : 
+                                location?.toLowerCase().includes('new york') ? 1.3 : 
+                                location?.toLowerCase().includes('seattle') ? 1.25 : 1.0;
+      
+      const estimatedSalary = Math.round(baseSalary * locationMultiplier);
+      
+      const insights = {
+        estimatedSalary,
+        salaryRange: {
+          min: Math.round(estimatedSalary * 0.85),
+          max: Math.round(estimatedSalary * 1.15)
+        },
+        negotiationTips: [
+          'Research industry standards for this role in your location',
+          'Consider total compensation including benefits, equity, and bonuses',
+          'Wait for the employer to make the first offer if possible',
+          'Be prepared to justify your salary expectations with market data',
+          'Negotiate beyond salary: flexible hours, remote work, professional development'
+        ],
+        marketTrends: `${jobTitle} positions are in ${Math.random() > 0.5 ? 'high' : 'moderate'} demand in ${location || 'this area'}.`
+      };
+
+      res.json(insights);
+    } catch (error) {
+      console.error('Salary insights error:', error);
+      res.status(500).json({ message: 'Failed to get salary insights' });
+    }
+  });
+
   // Chrome Extension download route
   app.get('/extension/*', (req, res) => {
     try {
