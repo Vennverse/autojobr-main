@@ -188,12 +188,9 @@ export class JobSpyService {
 
   constructor() {
     this.pythonPath = 'python3';
-    // Handle both dev (server/) and production (dist/) paths
-    // In production, __dirname will be 'dist/' but the Python script is in 'server/'
-    const isProduction = __dirname.includes('dist');
-    this.scriptPath = isProduction 
-      ? path.join(__dirname, '..', 'server', 'jobspy_scraper.py')
-      : path.join(__dirname, 'jobspy_scraper.py');
+    // Always use the server directory path since Python files are not compiled
+    // This works for both development and production
+    this.scriptPath = path.join(process.cwd(), 'server', 'jobspy_scraper.py');
   }
 
   /**
