@@ -2242,17 +2242,6 @@ export const userSavedInternships = pgTable("user_saved_internships", {
   savedAt: timestamp("saved_at").defaultNow().notNull(),
 });
 
-export const userSavedInternshipsRelations = relations(userSavedInternships, ({ one }) => ({
-  user: one(users, {
-    fields: [userSavedInternships.userId],
-    references: [users.id],
-  }),
-  internship: one(scrapedInternships, {
-    fields: [userSavedInternships.internshipId],
-    references: [scrapedInternships.id],
-  }),
-}));
-
 // Internship applications tracking
 export const internshipApplications = pgTable("internship_applications", {
   id: serial("id").primaryKey(),
