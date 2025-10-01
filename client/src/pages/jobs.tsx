@@ -80,11 +80,15 @@ import {
   Building,
   Factory
 } from "lucide-react";
+import JobCard from "@/components/job-card";
+import PredictiveSuccessWidget from "@/components/PredictiveSuccessWidget";
+import ViralExtensionWidget from "@/components/ViralExtensionWidget";
+
 
 // Utility functions for professional job formatting
 const formatJobType = (jobType?: string) => {
   if (!jobType) return '';
-  
+
   const typeMap: { [key: string]: string } = {
     'platform': 'Full-time',
     'scraped': 'Full-time', 
@@ -95,20 +99,20 @@ const formatJobType = (jobType?: string) => {
     'temporary': 'Temporary',
     'internship': 'Internship'
   };
-  
+
   return typeMap[jobType.toLowerCase()] || 'Full-time';
 };
 
 const formatWorkMode = (workMode?: string) => {
   if (!workMode) return '';
-  
+
   const modeMap: { [key: string]: string } = {
     'onsite': 'On-site',
     'remote': 'Remote',
     'hybrid': 'Hybrid', 
     'field': 'Field-based'
   };
-  
+
   return modeMap[workMode.toLowerCase()] || workMode;
 };
 
@@ -151,6 +155,8 @@ interface JobPosting {
   applyType?: 'easy' | 'external';
   priority?: number;
   source?: string;
+  requirements?: string;
+  responsibilities?: string;
 }
 
 interface JobFacets {
@@ -258,7 +264,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
   const { user, isAuthenticated } = useAuth();
   const [_, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  
+
   // URL and state management
   const [searchParams, setSearchParams] = useState<URLSearchParams>(() => {
     if (typeof window !== 'undefined') {
@@ -266,36 +272,36 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     }
     return new URLSearchParams();
   });
-  
+
   // Convert route-based parameters to filter format
   const routeBasedFilters = useMemo(() => {
     const filters: Partial<FilterState> = {};
-    
+
     // Handle category routing
     if (category && CATEGORY_MAPPINGS[category]) {
       // Create a search query that matches jobs in this category
       const categoryTerms = CATEGORY_MAPPINGS[category];
       filters.q = categoryTerms.join(' OR ');
     }
-    
+
     // Handle location routing
     if (location && LOCATION_MAPPINGS[location]) {
       const locationTerms = LOCATION_MAPPINGS[location];
       // Use the primary location term for filtering
       filters.city = locationTerms[0];
     }
-    
+
     // Handle country routing
     if (country && COUNTRY_MAPPINGS[country]) {
       const countryTerms = COUNTRY_MAPPINGS[country];
       filters.country = countryTerms[0];
     }
-    
+
     // Handle work mode routing
     if (workMode) {
       filters.work_mode = [workMode];
     }
-    
+
     return filters;
   }, [category, location, country, workMode]);
 
@@ -319,11 +325,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     page: parseInt(searchParams.get('page') || '1'),
     size: parseInt(searchParams.get('size') || '25')
   }), [searchParams, routeBasedFilters]);
-  
+
   // Debounced search query
   const [searchInput, setSearchInput] = useState(filters.q || '');
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
-  
+
   // UI state
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobPosting | null>(null);
@@ -334,7 +340,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
   // Update URL when filters change
   const updateFilters = useCallback((newFilters: Partial<FilterState>) => {
     const newParams = new URLSearchParams(searchParams);
-    
+
     Object.entries(newFilters).forEach(([key, value]) => {
       if (value === undefined || value === null || value === '' || 
           (Array.isArray(value) && value.length === 0)) {
@@ -345,37 +351,37 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         newParams.set(key, String(value));
       }
     });
-    
+
     // Reset page when filters change
     if (Object.keys(newFilters).some(key => key !== 'page' && key !== 'size')) {
       newParams.set('page', '1');
     }
-    
+
     setSearchParams(newParams);
     window.history.pushState(null, '', `${window.location.pathname}?${newParams.toString()}`);
   }, [searchParams]);
-  
+
   // Debounced search update
   const debouncedUpdateSearch = useCallback((query: string) => {
     if (searchTimeout) clearTimeout(searchTimeout);
-    
+
     const timeout = setTimeout(() => {
       updateFilters({ q: query });
     }, 300);
-    
+
     setSearchTimeout(timeout);
   }, [updateFilters, searchTimeout]);
-  
+
   // Handle search input changes
   const handleSearchChange = useCallback((value: string) => {
     setSearchInput(value);
     debouncedUpdateSearch(value);
   }, [debouncedUpdateSearch]);
-  
+
   // Build API query parameters
   const buildApiParams = useCallback((filterState: FilterState): URLSearchParams => {
     const params = new URLSearchParams();
-    
+
     Object.entries(filterState).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
         if (Array.isArray(value) && value.length > 0) {
@@ -385,13 +391,13 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         }
       }
     });
-    
+
     // Always include facets
     params.set('include_facets', 'true');
-    
+
     return params;
   }, []);
-  
+
   // Fetch scraped jobs with advanced filtering
   const { data: jobsResponse, isLoading: jobsLoading, error: jobsError } = useQuery({
     queryKey: ['scraped-jobs', filters],
@@ -400,22 +406,22 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       const response = await fetch(`/api/scraped-jobs?${apiParams.toString()}`, {
         credentials: 'include'
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch jobs: ${response.status}`);
       }
-      
+
       return response.json();
     },
     staleTime: 30000, // 30 seconds
     gcTime: 300000, // 5 minutes
   });
-  
+
   // Extract data from response
   const jobs: JobPosting[] = jobsResponse?.jobs || [];
   const facets: JobFacets | undefined = jobsResponse?.facets;
   const pagination = jobsResponse?.pagination || { total: 0, page: 1, size: 25, totalPages: 0 };
-  
+
   // Fetch platform jobs separately (lower priority)
   const { data: platformJobs = [] } = useQuery({
     queryKey: ['platform-jobs', filters.q, filters.category],
@@ -423,11 +429,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       const params = new URLSearchParams();
       if (filters.q) params.set('search', filters.q);
       if (filters.category) params.set('category', filters.category);
-      
+
       const response = await fetch(`/api/jobs/postings?${params.toString()}`, {
         credentials: 'include'
       });
-      
+
       if (!response.ok) return [];
       const data = await response.json();
       return Array.isArray(data) ? data : [];
@@ -445,7 +451,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       priority: 2,
       source: 'scraped'
     }));
-    
+
     const platformJobsWithMeta = platformJobs.map((job: any) => ({
       ...job,
       company: job.companyName || job.company_name || job.company,
@@ -454,7 +460,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       priority: 1,
       source: 'platform'
     }));
-    
+
     return [...platformJobsWithMeta, ...scrapedJobsWithMeta];
   }, [jobs, platformJobs]);
 
@@ -467,13 +473,13 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
   // Improved compatibility calculation - must be defined before usage in sorting
   const calculateCompatibility = (job: any) => {
     if (!isAuthenticated || !userProfile) return 0; // No compatibility for non-authenticated users
-    
+
     let score = 50; // Base score
-    
+
     // Skills matching (30 points max)
     const userSkills = userProfile?.skills || [];
     const jobSkills = job.requiredSkills || [];
-    
+
     if (jobSkills.length > 0 && userSkills.length > 0) {
       const skillsMatch = jobSkills.filter((skill: string) => 
         userSkills.some((userSkill: string) => 
@@ -481,17 +487,17 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
           skill.toLowerCase().includes(userSkill.toLowerCase())
         )
       ).length;
-      
+
       const skillMatchPercentage = skillsMatch / jobSkills.length;
       score += Math.round(skillMatchPercentage * 30);
     }
-    
+
     // Experience level matching (15 points max)
     if (userProfile?.experienceLevel && job.experienceLevel) {
       const levels = ['entry', 'junior', 'mid', 'senior', 'lead', 'principal'];
       const userLevelIndex = levels.indexOf(userProfile.experienceLevel.toLowerCase());
       const jobLevelIndex = levels.indexOf(job.experienceLevel.toLowerCase());
-      
+
       if (userLevelIndex !== -1 && jobLevelIndex !== -1) {
         const levelDiff = Math.abs(userLevelIndex - jobLevelIndex);
         if (levelDiff === 0) score += 15; // Perfect match
@@ -499,26 +505,26 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         else if (levelDiff === 2) score += 5; // Reasonable match
       }
     }
-    
+
     // Location preference (5 points max)
     if (userProfile?.preferredLocation && job.location) {
       const userLocation = userProfile.preferredLocation.toLowerCase();
       const jobLocation = job.location.toLowerCase();
-      
+
       if (jobLocation.includes(userLocation) || userLocation.includes(jobLocation) || jobLocation.includes('remote')) {
         score += 5;
       }
     }
-    
+
     // Use job ID for consistent pseudo-randomization to avoid constant re-ordering
     const pseudoRandom = (job.id % 21) - 10;
     score += pseudoRandom;
-    
+
     return Math.min(100, Math.max(45, score));
   };
 
   const isLoading = jobsLoading;
-  
+
   // Clear all filters
   const clearAllFilters = useCallback(() => {
     setSearchInput('');
@@ -528,7 +534,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     setSearchParams(params);
     window.history.pushState(null, '', `${window.location.pathname}?${params.toString()}`);
   }, []);
-  
+
   // Get active filter count
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -546,11 +552,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     if (filters.remote_only) count++;
     return count;
   }, [filters]);
-  
+
   // Remove specific filter
   const removeFilter = useCallback((key: keyof FilterState, value?: string) => {
     const newFilters: Partial<FilterState> = {};
-    
+
     if (key === 'job_type' && value) {
       newFilters[key] = filters[key]?.filter(v => v !== value) || [];
     } else if (key === 'work_mode' && value) {
@@ -560,16 +566,16 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     } else {
       newFilters[key] = undefined;
     }
-    
+
     updateFilters(newFilters);
   }, [filters, updateFilters]);
-  
+
   // Check applied jobs
   const { data: applications = [] } = useQuery({
     queryKey: ["/api/applications"],
     enabled: isAuthenticated
   });
-  
+
   // Save job mutation
   const saveJobMutation = useMutation({
     mutationFn: async (jobId: number) => {
@@ -585,7 +591,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       toast({ title: "Job Saved", description: "Job added to your saved list!" });
     }
   });
-  
+
   // Apply to job mutation
   const applyMutation = useMutation({
     mutationFn: async (jobId: number) => {
@@ -595,12 +601,12 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         credentials: 'include',
         body: JSON.stringify({ resumeId: null, coverLetter: "" })
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to apply to job');
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
@@ -618,15 +624,15 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       });
     }
   });
-  
+
   // Helper functions
   const appliedJobIds = Array.isArray(applications) ? applications.map((app: any) => app.jobPostingId) : [];
-  
+
   // Handle job click
   const handleJobClick = (job: JobPosting) => {
     setSelectedJob(job);
   };
-  
+
   const handleApply = (job: JobPosting) => {
     if (!isAuthenticated) {
       setLocation('/auth');
@@ -664,7 +670,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     }
     saveJobMutation.mutate(jobId);
   };
-  
+
   // Currency options
   const currencyOptions = [
     { value: 'USD', label: 'USD ($)', symbol: '$' },
@@ -674,11 +680,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     { value: 'AUD', label: 'AUD (A$)', symbol: 'A$' },
     { value: 'AED', label: 'AED (د.إ)', symbol: 'د.إ' }
   ];
-  
+
   const getCurrentCurrencySymbol = () => {
     return currencyOptions.find(c => c.value === filters.currency)?.symbol || '$';
   };
-  
+
   // Advanced Filter Panel Component
   const AdvancedFilterPanel = () => {
     return (
@@ -703,14 +709,14 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                 ))}
               </SelectContent>
             </Select>
-            
+
             <Input
               placeholder="City name"
               value={filters.city || ''}
               onChange={(e) => updateFilters({ city: e.target.value || undefined })}
               data-testid="filter-city"
             />
-            
+
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="remote-only"
@@ -722,7 +728,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
             </div>
           </div>
         </div>
-        
+
         {/* Category Filters */}
         <div className="space-y-3">
           <h3 className="font-semibold text-sm flex items-center">
@@ -743,7 +749,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
             </SelectContent>
           </Select>
         </div>
-        
+
         {/* Job Type Filters */}
         <div className="space-y-3">
           <h3 className="font-semibold text-sm flex items-center">
@@ -783,7 +789,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
             })}
           </div>
         </div>
-        
+
         {/* Work Mode Filters */}
         <div className="space-y-3">
           <h3 className="font-semibold text-sm flex items-center">
@@ -821,7 +827,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
             })}
           </div>
         </div>
-        
+
         {/* Experience Level Filters */}
         <div className="space-y-3">
           <h3 className="font-semibold text-sm flex items-center">
@@ -860,7 +866,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
             })}
           </div>
         </div>
-        
+
         {/* Salary Range */}
         <div className="space-y-3">
           <h3 className="font-semibold text-sm flex items-center">
@@ -880,7 +886,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                 ))}
               </SelectContent>
             </Select>
-            
+
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <Input
@@ -908,7 +914,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
             </div>
           </div>
         </div>
-        
+
         {/* Date Posted */}
         <div className="space-y-3">
           <h3 className="font-semibold text-sm flex items-center">
@@ -942,7 +948,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
             </div>
           </RadioGroup>
         </div>
-        
+
         {/* Company Filter */}
         <div className="space-y-3">
           <h3 className="font-semibold text-sm flex items-center">
@@ -956,7 +962,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
             data-testid="filter-company"
           />
         </div>
-        
+
         {/* Source Platform */}
         <div className="space-y-3">
           <h3 className="font-semibold text-sm flex items-center">
@@ -980,11 +986,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       </div>
     );
   };
-  
+
   // Active Filter Tags Component
   const FilterTags = () => {
     const tags = [];
-    
+
     if (filters.q) {
       tags.push({ key: 'q', label: `"${filters.q}"`, value: filters.q });
     }
@@ -1020,7 +1026,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       };
       tags.push({ key: 'date_posted', label: dateMap[filters.date_posted] || `Last ${filters.date_posted} days`, value: filters.date_posted.toString() });
     }
-    
+
     // Add multi-select tags
     filters.job_type?.forEach(type => {
       const label = type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -1034,9 +1040,9 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       const label = level.replace(/\b\w/g, l => l.toUpperCase());
       tags.push({ key: 'experience_level', label: `Level: ${label}`, value: level, isMulti: true });
     });
-    
+
     if (tags.length === 0) return null;
-    
+
     return (
       <div className="flex flex-wrap gap-2 mb-4">
         {tags.map((tag, index) => (
@@ -1073,7 +1079,6 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     );
   };
 
-  // Job cards are already filtered by the API
   // SEO and Structured Data
   const structuredData = {
     "@context": "https://schema.org",
@@ -1151,7 +1156,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                 ))}
               </div>
             </div>
-            
+
             {/* Main Content Skeleton */}
             <div className="flex-1 space-y-4">
               <div className="flex justify-between items-center">
@@ -1185,12 +1190,12 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
   const seoMetadata = useMemo(() => {
     const baseUrl = 'https://autojobr.com';
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/jobs';
-    
+
     if (category) {
       const categoryName = category.split('-').map(word => 
         word.charAt(0).toUpperCase() + word.slice(1)
       ).join(' ');
-      
+
       return {
         title: `${pagination.total || 100}+ ${categoryName} Jobs - Apply Today | AutoJobR`,
         description: `Find ${pagination.total || 100}+ ${categoryName.toLowerCase()} jobs from top companies. AI-powered matching, one-click applications, and instant interviews. Join 1M+ professionals landing ${categoryName.toLowerCase()} careers 10x faster.`,
@@ -1203,12 +1208,12 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         ]
       };
     }
-    
+
     if (location) {
       const locationName = location.split('-').map(word => 
         word.charAt(0).toUpperCase() + word.slice(1)
       ).join(' ');
-      
+
       return {
         title: `${pagination.total || 50}+ Jobs in ${locationName} - Find Local Careers | AutoJobR`,
         description: `Discover ${pagination.total || 50}+ job opportunities in ${locationName}. Local and remote positions from top employers. AI-powered job matching and one-click applications.`,
@@ -1221,12 +1226,12 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         ]
       };
     }
-    
+
     if (country) {
       const countryName = country === 'usa' ? 'United States' : 
                          country === 'uk' ? 'United Kingdom' :
                          country.charAt(0).toUpperCase() + country.slice(1);
-      
+
       return {
         title: `${pagination.total || 200}+ Jobs in ${countryName} - International Careers | AutoJobR`,
         description: `Find ${pagination.total || 200}+ job opportunities in ${countryName}. International positions, visa sponsorship, and remote work options. Apply with AI-powered job matching.`,
@@ -1239,7 +1244,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         ]
       };
     }
-    
+
     if (workMode === 'remote') {
       return {
         title: `${pagination.total || 500}+ Remote Jobs - Work From Anywhere | AutoJobR`,
@@ -1253,7 +1258,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         ]
       };
     }
-    
+
     // Default jobs page metadata
     return {
       title: `${pagination.total || 1000}+ Jobs Available - Find Your Dream Career | AutoJobR`,
@@ -1270,7 +1275,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
   // Enhanced structured data with ItemList for job listings
   const enhancedStructuredData = useMemo(() => {
     const baseStructuredData = structuredData || {};
-    
+
     // Add BreadcrumbList structured data
     const breadcrumbList = {
       "@context": "https://schema.org",
@@ -1282,7 +1287,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         "item": breadcrumb.url
       }))
     };
-    
+
     // Add ItemList structured data for job listings
     const itemList = {
       "@context": "https://schema.org",
@@ -1306,7 +1311,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         "employmentType": job.jobType === 'full_time' ? 'FULL_TIME' : 'FULL_TIME'
       }))
     };
-    
+
     return [baseStructuredData, breadcrumbList, itemList];
   }, [structuredData, seoMetadata.breadcrumbs, allJobs, pagination.total]);
 
@@ -1321,7 +1326,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         ogType="website"
       />
       <Navbar />
-      
+
       {/* Promotional Alert Banner */}
       {showPromoAlert && (
         <motion.div
@@ -1369,7 +1374,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
           </div>
         </motion.div>
       )}
-      
+
       {/* Enhanced Header with Better Typography and Mobile Optimization */}
       <div className="bg-gradient-to-br from-white via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
@@ -1397,7 +1402,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                 )}
               </div>
             </div>
-          
+
             {/* Search and Sort Controls */}
             <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
               <CardContent className="p-3 sm:p-4 space-y-3">
@@ -1410,7 +1415,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                     className="pl-9 sm:pl-10 h-10 sm:h-12 text-sm sm:text-base border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 touch-manipulation"
                   />
                 </div>
-                
+
                 {/* Sort Options */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sort by:</span>
@@ -1466,12 +1471,12 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                 const compatibility = calculateCompatibility(job);
                 const isSelected = selectedJob?.id === job?.id;
                 const isApplied = Array.isArray(appliedJobIds) && appliedJobIds.includes(job.id);
-                
+
                 if (!job || !job.id) {
                   console.error('Invalid job in list:', job);
                   return null;
                 }
-                
+
                 return (
                   <Card 
                     key={job.id} 
@@ -1513,7 +1518,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                           )}
                         </div>
                       </div>
-                      
+
                       <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-3">
                         {job.workMode && (
                           <Badge variant="secondary" className="text-xs px-2 py-1">
@@ -1531,11 +1536,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                           </Badge>
                         )}
                       </div>
-                      
+
                       <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-2 mb-3">
                         {job.description}
                       </p>
-                      
+
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <span className="text-xs text-gray-500">
                           {new Date(job.createdAt).toLocaleDateString()}
@@ -1583,7 +1588,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                 );
               })
             )}
-            
+
             {/* Pagination */}
             {pagination.totalPages > 1 && (
               <div className="flex items-center justify-center mt-6 pb-4">
@@ -1598,7 +1603,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                     <ChevronLeft className="w-4 h-4" />
                     Previous
                   </Button>
-                  
+
                   <div className="flex items-center gap-1">
                     {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                       const page = Math.max(1, pagination.page - 2) + i;
@@ -1631,7 +1636,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                       </>
                     )}
                   </div>
-                  
+
                   <Button
                     variant="outline"
                     size="sm"
@@ -1643,7 +1648,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                     <ChevronRight className="w-4 h-4" />
                   </Button>
                 </div>
-                
+
                 <p className="text-sm text-gray-500">
                   Page {pagination.page} of {pagination.totalPages}
                 </p>
@@ -1684,7 +1689,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         New
                       </Badge>
                     </div>
-                    
+
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-6">
                       {appliedJobIds.includes(selectedJob.id) ? (
                         <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">
@@ -1721,7 +1726,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                       </Button>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-6">
                     {/* Job Details Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -1757,7 +1762,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         </div>
                       )}
                     </div>
-                    
+
                     {/* About the job */}
                     <div>
                       <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3">
@@ -1769,7 +1774,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         </p>
                       </div>
                     </div>
-                    
+
                     {/* Requirements */}
                     {selectedJob.requirements && (
                       <div>
@@ -1783,7 +1788,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         </div>
                       </div>
                     )}
-                    
+
                     {/* Responsibilities */}
                     {selectedJob.responsibilities && (
                       <div>
@@ -1797,7 +1802,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         </div>
                       </div>
                     )}
-                    
+
                     {/* Benefits */}
                     {selectedJob.benefits && (
                       <div>
@@ -1811,7 +1816,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         </div>
                       </div>
                     )}
-                    
+
                     {/* Required Skills */}
                     {selectedJob.requiredSkills && selectedJob.requiredSkills.length > 0 && (
                       <div>
@@ -1827,7 +1832,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         </div>
                       </div>
                     )}
-                    
+
                     {/* Job Statistics */}
                     <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                       <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3">
@@ -1843,7 +1848,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                             </p>
                           </div>
                         </div>
-                        
+
                         {selectedJob.applicationsCount !== undefined && (
                           <div className="flex items-center gap-3">
                             <Users className="w-5 h-5 text-gray-500" />
@@ -1855,7 +1860,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                             </div>
                           </div>
                         )}
-                        
+
                         {selectedJob.recruiterName && (
                           <div className="flex items-center gap-3">
                             <User className="w-5 h-5 text-gray-500" />
@@ -1867,7 +1872,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                             </div>
                           </div>
                         )}
-                        
+
                         <div className="flex items-center gap-3">
                           <Building2 className="w-5 h-5 text-gray-500" />
                           <div>
