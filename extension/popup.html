@@ -385,7 +385,7 @@
       margin-bottom: 20px;
     }
 
-    .quick-btn {
+    .quick-action-btn {
       flex: 1;
       padding: 12px 8px;
       border: 1px solid #e5e7eb;
@@ -397,9 +397,14 @@
       cursor: pointer;
       transition: all 0.2s;
       text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
     }
 
-    .quick-btn:hover {
+    .quick-action-btn:hover {
       background: #f9fafb;
       border-color: #d1d5db;
       color: #374151;
@@ -1003,11 +1008,38 @@
       </div>
 
         <div class="quick-actions">
-          <button class="quick-btn" id="resumeBtn">📄 Resume</button>
-          <button class="quick-btn" id="profileBtn">👤 Profile</button>
-          <button class="quick-btn" id="historyBtn">📈 History</button>
+          <button id="resumeBtn" class="quick-action-btn" title="Manage Resumes">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Resume
+          </button>
+          <button id="profileBtn" class="quick-action-btn" title="Edit Profile">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            Profile
+          </button>
+          <button id="historyBtn" class="quick-action-btn" title="View Applications">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            History
+          </button>
         </div>
+
+    <!-- Feature Status Indicator -->
+    <div id="featureStatus" style="display: none; margin-top: 12px; padding: 8px; background: rgba(34,197,94,0.1); border-radius: 8px; border-left: 3px solid #22c55e;">
+      <div style="font-size: 11px; color: #22c55e; font-weight: 600; margin-bottom: 4px;">✨ All Features Active</div>
+      <div style="font-size: 10px; color: #d1d5db; display: flex; flex-wrap: gap: 4px;">
+        <span id="autoFillStatus">✓ Auto-Fill</span>
+        <span id="analysisStatus">✓ Analysis</span>
+        <span id="resumeStatus">✓ Resume</span>
+        <span id="coverLetterStatus">✓ Cover Letter</span>
       </div>
+    </div>
 
       <!-- Tasks Section -->
       <div class="tasks-section" id="tasksSection">

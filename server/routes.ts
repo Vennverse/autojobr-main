@@ -1208,11 +1208,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Authenticated user found, fetching real profile data');
         
         // Get real user profile from database
-        const [profile, skills, workExperience, education] = await Promise.all([
+        const [profile, skills, workExperience, education, user] = await Promise.all([
           storage.getUserProfile(sessionUser.id),
           storage.getUserSkills(sessionUser.id),
           storage.getUserWorkExperience(sessionUser.id),
-          storage.getUserEducation(sessionUser.id)
+          storage.getUserEducation(sessionUser.id),
+          storage.getUser(sessionUser.id)
         ]);
         
         // Build profile response with real data
@@ -1229,7 +1230,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           phone: profile?.phone || '',
           linkedinUrl: profile?.linkedinUrl || '',
           githubUrl: profile?.githubUrl || '',
+          portfolioUrl: profile?.portfolioUrl || '',
           location: profile?.location || `${profile?.city || ''}, ${profile?.state || ''}`.trim() || profile?.city || '',
+          city: profile?.city || '',
+          state: profile?.state || '',
+          country: profile?.country || '',
+          zipCode: profile?.zipCode || '',
           professionalTitle: profile?.professionalTitle || '',
           yearsExperience: profile?.yearsExperience || 0,
           currentAddress: profile?.currentAddress || '',
@@ -1239,24 +1245,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
           desiredSalaryMax: profile?.desiredSalaryMax || 0,
           salaryCurrency: profile?.salaryCurrency || 'USD',
           skills: skills.map(s => s.skillName),
+          skillsCount: skills.length,
           education: education.map(e => ({
             degree: e.degree,
             fieldOfStudy: e.fieldOfStudy,
             institution: e.institution,
-            graduationYear: e.graduationYear || null
+            graduationYear: e.graduationYear || null,
+            startDate: e.startDate?.toISOString().split('T')[0] || null,
+            endDate: e.endDate?.toISOString().split('T')[0] || null
           })),
           workExperience: workExperience.map(w => ({
             company: w.company,
             position: w.position,
             startDate: w.startDate?.toISOString().split('T')[0],
             endDate: w.endDate?.toISOString().split('T')[0] || null,
-            description: w.description
+            description: w.description,
+            isCurrent: !w.endDate
           })),
           currentCompany: workExperience[0]?.company || '',
-          skillsList: skills.map(s => s.skillName).join(', ')
+          skillsList: skills.map(s => s.skillName).join(', '),
+          planType: user?.planType || 'free',
+          subscriptionStatus: user?.subscriptionStatus || 'free'
         };
         
-        console.log('Returning real profile data for authenticated user');
+        console.log('Returning real profile data for authenticated user:', {
+          email: extensionProfile.email,
+          skillsCount: extensionProfile.skillsCount,
+          educationCount: extensionProfile.education.length,
+          experienceCount: extensionProfile.workExperience.length
+        });
         return res.json(extensionProfile);
       }
       

@@ -28,12 +28,36 @@ class AutoJobrPopup {
       await this.analyzeCurrentPage();
       await this.loadTasks();
       
+      // Show feature status
+      this.updateFeatureStatus();
+      
       this.showLoading(false);
       
     } catch (error) {
       console.error('Popup initialization error:', error);
       this.showError('Failed to initialize extension');
       this.showLoading(false);
+    }
+  }
+
+  updateFeatureStatus() {
+    const statusDiv = document.getElementById('featureStatus');
+    if (!statusDiv) return;
+
+    if (this.isAuthenticated && this.userProfile) {
+      statusDiv.style.display = 'block';
+      
+      // Update individual feature status
+      const hasResume = this.userProfile.workExperience?.length > 0;
+      const hasSkills = this.userProfile.skills?.length > 0;
+      const hasEducation = this.userProfile.education?.length > 0;
+      
+      document.getElementById('autoFillStatus').textContent = hasSkills ? '✓ Auto-Fill' : '⚠ Auto-Fill (Limited)';
+      document.getElementById('analysisStatus').textContent = hasSkills ? '✓ Analysis' : '⚠ Analysis (Limited)';
+      document.getElementById('resumeStatus').textContent = hasResume ? '✓ Resume' : '⚠ Resume Upload';
+      document.getElementById('coverLetterStatus').textContent = hasSkills ? '✓ Cover Letter' : '⚠ Cover Letter';
+    } else {
+      statusDiv.style.display = 'none';
     }
   }
 
