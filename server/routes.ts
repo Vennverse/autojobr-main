@@ -509,6 +509,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // PLATFORM JOBS ENDPOINT - Public access for browsing, no auth required
+  // This MUST be defined early before any catch-all /api middleware
+  app.get('/api/jobs/postings', async (req: any, res) => {
+    console.log('[PLATFORM JOBS] Request received');
+    
+    try {
+      let jobPostings;
+      
+      // Check if user is authenticated
+      const isAuth = req.isAuthenticated && req.isAuthenticated();
+      const userId = isAuth ? req.user?.id : null;
+      const user = userId ? await storage.getUser(userId) : null;
+      
+      // Recruiters get their own job postings, everyone else gets all active platform jobs
+      if (user && (user.userType === 'recruiter' || user.currentRole === 'recruiter')) {
+        jobPostings = await storage.getRecruiterJobPostings(userId);
+        console.log(`[PLATFORM JOBS] Recruiter ${userId} has ${jobPostings.length} jobs`);
+      } else {
+        // Get all active job postings for everyone (logged in or not)
+        const search = req.query.search as string;
+        const category = req.query.category as string;
+        
+        console.log(`[PLATFORM JOBS] Fetching - search: "${search}", category: "${category}"`);
+        
+        if (search || category) {
+          jobPostings = await storage.getJobPostings(1, 100, {
+            search,
+            category
+          });
+        } else {
+          jobPostings = await storage.getAllJobPostings();
+        }
+        const userInfo = userId ? `authenticated ${userId}` : 'anonymous';
+        console.log(`[PLATFORM JOBS] ${userInfo} - Returning ${jobPostings.length} jobs`);
+      }
+      
+      console.log(`[PLATFORM JOBS] Sending ${jobPostings.length} jobs`);
+      res.setHeader('X-Job-Source', 'platform');
+      res.json(jobPostings);
+    } catch (error) {
+      console.error('[PLATFORM JOBS ERROR]:', error);
+      handleError(res, error, "Failed to fetch job postings");
+    }
+  });
+
   // Internship scraping endpoints
   app.post('/api/internships/scrape', isAuthenticated, async (req: any, res) => {
     try {
@@ -2221,40 +2266,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add missing job postings endpoint for interview assignments
-  app.get('/api/jobs/postings', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      let jobPostings;
-      
-      // Recruiters get their own job postings, job seekers get all active platform jobs
-      if (user?.userType === 'recruiter' || user?.currentRole === 'recruiter') {
-        // Get recruiter's job postings
-        jobPostings = await storage.getRecruiterJobPostings(userId);
-      } else {
-        // Get all active job postings for job seekers
-        const search = req.query.search as string;
-        const category = req.query.category as string;
-        
-        if (search || category) {
-          jobPostings = await storage.getJobPostings(1, 100, {
-            search,
-            category
-          });
-        } else {
-          jobPostings = await storage.getAllJobPostings();
-        }
-      }
-      
-      res.json(jobPostings);
-    } catch (error) {
-      console.error('Error in /api/jobs/postings:', error);
-      handleError(res, error, "Failed to fetch job postings");
-    }
-  });
-
   app.get('/api/candidates/for-job/:jobId', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -2830,97 +2841,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Real job recommendations from actual job postings
-  app.get('/api/jobs/recommendations', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const cacheKey = `recommendations_${userId}`;
-      
-      // Check cache first (user-scoped)
-      const cachedRecommendations = getCached(cacheKey, userId);
-      if (cachedRecommendations) {
-        // Serving cached recommendations
-        return res.json(cachedRecommendations);
-      }
-      
-      // Get user profile for matching
-      const profile = await storage.getUserProfile(userId);
-      if (!profile) {
-        return res.json([]);
-      }
-      
-      // Generating real job recommendations
-      
-      // Get all active job postings from your platform
-      const allJobPostings = await storage.getJobPostings(); // Use existing method
-      
-      if (!allJobPostings || allJobPostings.length === 0) {
-        return res.json([]);
-      }
-      
-      // Convert job postings to recommendation format with AI-powered matching scores
-      const recommendations = [];
-      
-      for (const job of allJobPostings.slice(0, 8)) { // Limit to 8 recommendations
-        try {
-          // Use AI to calculate match score for this specific job
-          const jobData = {
-            title: job.title,
-            company: job.companyName,
-            description: job.description,
-            requirements: job.requirements || '',
-            qualifications: job.qualifications || '',
-            benefits: job.benefits || ''
-          };
-          
-          // Use custom NLP service for better job matching
-          const customAnalysis = await customNLPService.analyzeJob(job.description, profile);
-          
-          recommendations.push({
-            id: `job-${job.id}`, // Use actual job ID
-            title: job.title,
-            company: job.companyName,
-            location: job.location || 'Remote',
-            description: job.description.substring(0, 200) + '...',
-            requirements: job.requirements ? job.requirements.split('\n').slice(0, 3) : [],
-            matchScore: customAnalysis.matchScore || 75,
-            salaryRange: job.salaryRange || 'Competitive',
-            workMode: job.workMode || 'Not specified',
-            postedDate: job.createdAt,
-            applicationUrl: `/jobs/${job.id}`, // Link to actual job page
-            benefits: job.benefits ? job.benefits.split('\n').slice(0, 3) : [],
-            isBookmarked: false
-          });
-        } catch (analysisError) {
-          console.log("Custom NLP analysis failed, using fallback:", analysisError);
-          // Fallback with basic scoring
-          recommendations.push({
-            id: `job-${job.id}`,
-            title: job.title,
-            company: job.companyName,
-            location: job.location || 'Remote',
-            description: job.description.substring(0, 200) + '...',
-            requirements: job.requirements ? job.requirements.split('\n').slice(0, 3) : [],
-            matchScore: 65, // More realistic default score
-            salaryRange: job.salaryRange || 'Competitive',
-            workMode: job.workMode || 'Not specified',
-            postedDate: job.createdAt,
-            applicationUrl: `/jobs/${job.id}`,
-            benefits: job.benefits ? job.benefits.split('\n').slice(0, 3) : [],
-            isBookmarked: false
-          });
-        }
-      }
-      
-      // Cache for 1 hour (user-scoped)
-      setCache(cacheKey, recommendations, 3600000, userId);
-      
-      res.json(recommendations);
-    } catch (error) {
-      console.error("Error fetching job recommendations:", error);
-      res.status(500).json({ message: "Failed to fetch job recommendations. Please try again later." });
-    }
-  });
 
   // Resume management routes - Working upload without PDF parsing
   app.post('/api/resumes/upload', isAuthenticated, upload.single('resume'), async (req: any, res) => {
@@ -15213,9 +15133,12 @@ Respond in JSON format with these keys: professionalSummary, improvedSkills, bul
   // Protected referral marketplace endpoints  
   app.use('/api/referral-marketplace', isAuthenticated, referralMarketplaceRoutes);
 
-  // Bidder system routes
+  // Bidder system routes (auth is handled per-route within bidderRoutes)
   const bidderRoutes = await import('./bidderRoutes.js');
-  app.use('/api', isAuthenticated, bidderRoutes.default);
+  app.use('/api', bidderRoutes.default);
+
+  console.log('🎉 [ROUTES] All routes registered successfully!');
+  console.log('🎉 [ROUTES] Total app._router.stack length:', app._router?.stack?.length || 'unknown');
 
   // Create HTTP server for WebSocket integration
   const httpServer = createServer(app);

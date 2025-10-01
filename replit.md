@@ -113,6 +113,10 @@ See `shared/schema.ts` for the complete schema definition.
 - ✅ Deployment configured for Replit Autoscale with build and start commands in .replit file
 - ✅ No LSP errors or TypeScript issues detected
 - ✅ Application fully functional and running on port 5000
+- ✅ **Platform Jobs Endpoint Fixed**: Moved `/api/jobs/postings` route to early registration (after health check) to prevent shadowing by catch-all middleware
+  - 122 platform jobs now accessible via API for both authenticated and unauthenticated users
+  - Vennverse job (ID 11) confirmed present with company name updated
+  - Frontend displaying 147 total jobs (122 platform + ~25 scraped externally)
 
 ## Architecture Notes
 - The app uses a monolithic architecture with frontend and backend in one repo
