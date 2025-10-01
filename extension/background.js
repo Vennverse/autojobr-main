@@ -29,52 +29,78 @@ class AutoJobrBackground {
   }
 
   async detectApiUrl() {
-    // Use only production URL
-    const url = 'https://autojobr.com';
+    // Try multiple URLs in order: development (localhost/Replit) first, then production
+    const urlsToTry = [
+      'http://localhost:5000',  // Local development
+      'https://autojobr.com'     // Production
+    ];
 
+    // Check if we're on a Replit domain and add it to the list
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch(`${url}/api/health`, { 
-        method: 'GET',
-        mode: 'cors',
-        credentials: 'include',
-        signal: controller.signal,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.status === 'ok' || data.message) {
-          this.apiUrl = url;
-          console.log('✅ Connected to AutoJobr server:', this.apiUrl);
-          
-          // Update stored API URL
-          await chrome.storage.sync.set({ apiUrl: this.apiUrl });
-          
-          // Notify content scripts of successful connection
-          chrome.tabs.query({}, (tabs) => {
-            tabs.forEach(tab => {
-              if (tab.id) {
-                chrome.tabs.sendMessage(tab.id, {
-                  action: 'apiConnected',
-                  apiUrl: this.apiUrl
-                }).catch(() => {}); // Ignore errors for tabs without content script
-              }
-            });
-          });
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tabs[0]?.url) {
+        const hostname = new URL(tabs[0].url).hostname;
+        if (hostname.includes('.replit.dev') || hostname.includes('.replit.app')) {
+          // Extract the Replit domain from current tab or construct from known patterns
+          const replitUrl = `https://${hostname}`;
+          urlsToTry.unshift(replitUrl);
         }
       }
-    } catch (error) {
-      console.log(`Failed to connect to ${url}:`, error.message);
-      console.log('Extension will work in offline mode');
+    } catch (e) {
+      console.log('Could not detect Replit URL from tabs');
     }
+
+    // Try each URL until one works
+    for (const url of urlsToTry) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
+        const response = await fetch(`${url}/api/health`, { 
+          method: 'GET',
+          mode: 'cors',
+          credentials: 'include',
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.status === 'ok' || data.message) {
+            this.apiUrl = url;
+            console.log('✅ Connected to AutoJobr server:', this.apiUrl);
+            
+            // Update stored API URL
+            await chrome.storage.sync.set({ apiUrl: this.apiUrl });
+            
+            // Notify content scripts of successful connection
+            chrome.tabs.query({}, (tabs) => {
+              tabs.forEach(tab => {
+                if (tab.id) {
+                  chrome.tabs.sendMessage(tab.id, {
+                    action: 'apiConnected',
+                    apiUrl: this.apiUrl
+                  }).catch(() => {}); // Ignore errors for tabs without content script
+                }
+              });
+            });
+            
+            return; // Successfully connected, exit
+          }
+        }
+      } catch (error) {
+        console.log(`Failed to connect to ${url}:`, error.message);
+      }
+    }
+    
+    // If no URLs worked, use production as default
+    this.apiUrl = 'https://autojobr.com';
+    console.log('⚠️ Could not connect to any server, using default:', this.apiUrl);
   }
 
   setupEventListeners() {

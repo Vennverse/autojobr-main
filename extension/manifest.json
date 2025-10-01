@@ -15,6 +15,10 @@
     "identity"
   ],
   "host_permissions": [
+    "http://localhost:5000/*",
+    "http://localhost/*",
+    "https://*.replit.dev/*",
+    "https://*.replit.app/*",
     "*://*.autojobr.com/*",
     "*://*.autojobr.com/jobs/*",
     "*://*.autojobr.com/job/*",
@@ -126,6 +130,10 @@
   "content_scripts": [
     {
       "matches": [
+        "http://localhost:5000/*",
+        "http://localhost/*",
+        "https://*.replit.dev/*",
+        "https://*.replit.app/*",
         "*://*.autojobr.com/*",
         "*://*.autojobr.com/jobs/*",
         "*://*.autojobr.com/job/*",
