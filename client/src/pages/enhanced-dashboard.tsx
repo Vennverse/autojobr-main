@@ -18,6 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { motion, AnimatePresence } from "framer-motion";
+import PredictiveSuccessWidget from "@/components/PredictiveSuccessWidget";
+import ViralExtensionWidget from "@/components/ViralExtensionWidget";
 import { 
   ResponsiveContainer, 
   RadarChart, 
@@ -1207,6 +1209,57 @@ export default function EnhancedDashboard() {
               </Card>
             </motion.div>
           )}
+
+          {/* ACE Features - Predictive Success Intelligence */}
+          <motion.div variants={itemVariants}>
+            <Card className="border-2 border-blue-300 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 shadow-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
+                  <Target className="h-6 w-6" />
+                  🎯 ACE Features - Industry First!
+                </CardTitle>
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  Revolutionary AI-powered features that give you unbeatable competitive advantages
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Sample Predictive Success Widget - you can make this dynamic with real job data */}
+                <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border">
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <Brain className="h-4 w-4 text-purple-600" />
+                    Predictive Application Success Intelligence
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                    AI predicts your interview likelihood BEFORE you apply - the first system of its kind in the industry!
+                  </p>
+                  <div className="flex items-center gap-2 text-xs">
+                    <Badge className="bg-green-100 text-green-800">✓ Active</Badge>
+                    <span className="text-gray-500">Click on any job to see predictions</span>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border">
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <Network className="h-4 w-4 text-blue-600" />
+                    Viral Extension Network Effects
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                    Browser-based application tool with viral growth mechanics - earn rewards by sharing job intelligence!
+                  </p>
+                  <div className="flex items-center gap-2 text-xs">
+                    <Badge className="bg-blue-100 text-blue-800">✓ Active</Badge>
+                    <span className="text-gray-500">Install Chrome extension to access</span>
+                  </div>
+                </div>
+
+                <div className="text-center p-3 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950 rounded-lg border border-yellow-200">
+                  <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                    🚀 <strong>AutoJobr ACE Technology</strong> - No competitor has these features!
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Smart Recommendations */}
           {smartRecommendations.length > 0 && (
