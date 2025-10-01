@@ -2227,12 +2227,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
       
-      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
-        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      let jobPostings;
+      
+      // Recruiters get their own job postings, job seekers get all active platform jobs
+      if (user?.userType === 'recruiter' || user?.currentRole === 'recruiter') {
+        // Get recruiter's job postings
+        jobPostings = await storage.getRecruiterJobPostings(userId);
+      } else {
+        // Get all active job postings for job seekers
+        const search = req.query.search as string;
+        const category = req.query.category as string;
+        
+        if (search || category) {
+          jobPostings = await storage.getJobPostings(1, 100, {
+            search,
+            category
+          });
+        } else {
+          jobPostings = await storage.getAllJobPostings();
+        }
       }
-
-      // Get recruiter's job postings
-      const jobPostings = await storage.getRecruiterJobPostings(userId);
+      
       res.json(jobPostings);
     } catch (error) {
       console.error('Error in /api/jobs/postings:', error);
