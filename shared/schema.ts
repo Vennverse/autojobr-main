@@ -292,7 +292,7 @@ export const jobApplications = pgTable("job_applications", {
   jobType: varchar("job_type"), // full-time, part-time, contract, internship
   workMode: varchar("work_mode"), // remote, hybrid, onsite
   salaryRange: varchar("salary_range"),
-  status: varchar("status").notNull().default("applied"), // applied, under_review, interview, offer, rejected
+  status: text("status").notNull().default("applied"), // applied, under_review, interview, offer, rejected
   appliedDate: timestamp("applied_date").defaultNow(),
   lastUpdated: timestamp("last_updated").defaultNow(),
   jobDescription: text("job_description"),
@@ -300,7 +300,16 @@ export const jobApplications = pgTable("job_applications", {
   matchScore: integer("match_score"), // 0-100
   analysisData: jsonb("analysis_data"), // AI analysis data
   notes: text("notes"),
-  source: varchar("source"), // linkedin, indeed, company_website, etc.
+  source: text("source"), // linkedin, indeed, referral, career_page, job_board
+  sourceDetails: text("source_details"), // Referrer name, campaign ID, etc.
+  utmSource: text("utm_source"),
+  utmMedium: text("utm_medium"),
+  utmCampaign: text("utm_campaign"),
+  tags: text("tags").array(),
+  rating: integer("rating"), // 1-5 star rating by recruiter
+  rejectionReason: text("rejection_reason"),
+  nextFollowUpDate: timestamp("next_follow_up_date"),
+  lastContactedAt: timestamp("last_contacted_at"),
   createdAt: timestamp("created_at").defaultNow(),
 },
 (table) => [

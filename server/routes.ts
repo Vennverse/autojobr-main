@@ -998,6 +998,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
         conditions.push(eq(schema.internshipApplications.status, status));
       }
 
+
+// Bulk Actions & Email Templates
+app.post("/api/recruiter/bulk-actions", requireAuth, async (req, res) => {
+  try {
+    const { action, applicationIds, emailTemplate, rejectionReason, notes } = req.body;
+    const userId = req.user?.id;
+
+    if (!userId || !applicationIds || !Array.isArray(applicationIds)) {
+      return res.status(400).json({ message: "Invalid request parameters" });
+    }
+
+    const results = [];
+
+    for (const appId of applicationIds) {
+      const application = await storage.getApplication(appId);
+      
+      if (!application || application.recruiterId !== userId) {
+        continue;
+      }
+
+      switch (action) {
+        case 'send_email':
+          // Send email using template
+          await emailNotificationService.sendTemplateEmail(
+            application.applicantEmail,
+            emailTemplate,
+            {
+              candidateName: application.applicantName,
+              jobTitle: application.jobPostingTitle,
+              companyName: req.user.companyName
+            }
+          );
+          break;
+
+        case 'reject':
+          await storage.updateApplication(appId, {
+            status: 'rejected',
+            rejectionReason,
+            recruiterNotes: notes,
+            reviewedAt: new Date()
+          });
+          
+          // Send rejection email
+          await emailNotificationService.sendRejectionEmail(
+            application.applicantEmail,
+            application.applicantName,
+            application.jobPostingTitle,
+            rejectionReason
+          );
+          break;
+
+        case 'move_stage':
+          await storage.updateApplication(appId, {
+            status: req.body.newStage,
+            recruiterNotes: notes,
+            reviewedAt: new Date()
+          });
+          break;
+
+        case 'add_tag':
+          const currentTags = application.tags || [];
+          await storage.updateApplication(appId, {
+            tags: [...new Set([...currentTags, ...req.body.tags])]
+          });
+          break;
+
+        case 'schedule_followup':
+          await storage.updateApplication(appId, {
+            nextFollowUpDate: req.body.followUpDate,
+            recruiterNotes: notes
+          });
+          break;
+      }
+
+      results.push({ applicationId: appId, success: true });
+    }
+
+    res.json({ 
+      message: "Bulk action completed", 
+      processed: results.length,
+      results 
+    });
+  } catch (error: any) {
+    console.error('Bulk action error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Email Templates Management
+app.get("/api/recruiter/email-templates", requireAuth, async (req, res) => {
+  try {
+    const templates = [
+      {
+        id: 'interview_invite',
+        name: 'Interview Invitation',
+        subject: 'Interview Invitation - {{jobTitle}}',
+        body: 'Dear {{candidateName}},\n\nWe are pleased to invite you for an interview for the {{jobTitle}} position at {{companyName}}...'
+      },
+      {
+        id: 'rejection_qualified',
+        name: 'Rejection - Qualified Pool',
+        subject: 'Application Update - {{jobTitle}}',
+        body: 'Dear {{candidateName}},\n\nThank you for your interest in the {{jobTitle}} position. While we were impressed with your qualifications...'
+      },
+      {
+        id: 'offer_letter',
+        name: 'Offer Letter',
+        subject: 'Job Offer - {{jobTitle}}',
+        body: 'Dear {{candidateName}},\n\nWe are delighted to extend an offer for the {{jobTitle}} position...'
+      },
+      {
+        id: 'follow_up',
+        name: 'Follow-up',
+        subject: 'Following up on your application',
+        body: 'Dear {{candidateName}},\n\nWe wanted to follow up on your application for {{jobTitle}}...'
+      }
+    ];
+
+    res.json(templates);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
       const applications = await db
         .select({
           id: schema.internshipApplications.id,

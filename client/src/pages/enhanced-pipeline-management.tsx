@@ -309,6 +309,21 @@ interface Application {
     notes?: string;
     actor: string;
   }>;
+  communications?: Array<{
+    id: number;
+    type: 'email' | 'phone' | 'sms' | 'note';
+    subject?: string;
+    message: string;
+    sentAt: string;
+    sentBy: string;
+    template?: string;
+  }>;
+  tags?: string[];
+  rating?: number;
+  source?: string;
+  referredBy?: string;
+  lastContactedAt?: string;
+  nextFollowUpDate?: string;
 }
 
 interface PipelineStage {
@@ -341,6 +356,17 @@ export default function EnhancedPipelineManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedJob, setSelectedJob] = useState<string>("all");
   const [selectedStage, setSelectedStage] = useState<string>("all");
+  const [advancedFilters, setAdvancedFilters] = useState({
+    skills: [] as string[],
+    experience: { min: 0, max: 50 },
+    education: [] as string[],
+    location: [] as string[],
+    scoreMin: 0,
+    source: [] as string[],
+    tags: [] as string[]
+  });
+  const [savedFilters, setSavedFilters] = useState<any[]>([]);
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [bulkSelection, setBulkSelection] = useState<Set<number>>(new Set());
   const [showBulkActions, setShowBulkActions] = useState(false);
