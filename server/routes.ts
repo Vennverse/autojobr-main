@@ -847,6 +847,213 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/internships/saved', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
+
+
+  // Import applicants from external sources (CSV, JSON, or ATS export)
+  app.post('/api/recruiter/import-applicants', isAuthenticated, upload.single('file'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      }
+
+      const file = req.file;
+      const jobPostingId = parseInt(req.body.jobPostingId);
+      const importSource = req.body.source || 'manual_upload'; // 'indeed', 'linkedin', 'csv', 'manual_upload'
+      
+      if (!file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // Verify job posting belongs to this recruiter
+      const jobPosting = await storage.getJobPosting(jobPostingId);
+      if (!jobPosting || jobPosting.recruiterId !== userId) {
+        return res.status(403).json({ message: "Invalid job posting" });
+      }
+
+      let applicants = [];
+      const fileContent = file.buffer.toString('utf-8');
+
+      // Parse CSV format (most common ATS export)
+      if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+        const lines = fileContent.split('\n');
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i].trim()) continue;
+          
+          const values = lines[i].split(',');
+          const applicant: any = {};
+          
+          headers.forEach((header, index) => {
+            const value = values[index]?.trim().replace(/^["']|["']$/g, '');
+            
+            // Map common ATS column names
+            if (header.includes('name') || header.includes('full name')) applicant.name = value;
+            if (header.includes('email')) applicant.email = value;
+            if (header.includes('phone')) applicant.phone = value;
+            if (header.includes('resume') || header.includes('cv')) applicant.resumeText = value;
+            if (header.includes('status')) applicant.status = value || 'applied';
+            if (header.includes('source')) applicant.source = value || importSource;
+            if (header.includes('applied') || header.includes('date')) applicant.appliedAt = value;
+            if (header.includes('linkedin')) applicant.linkedinUrl = value;
+            if (header.includes('location') || header.includes('city')) applicant.location = value;
+            if (header.includes('experience') || header.includes('years')) applicant.yearsExperience = parseInt(value) || 0;
+            if (header.includes('education')) applicant.education = value;
+            if (header.includes('skills')) applicant.skills = value.split(';').map((s: string) => s.trim());
+          });
+          
+          if (applicant.email) {
+            applicants.push(applicant);
+          }
+        }
+      }
+      
+      // Parse JSON format (for API exports)
+      else if (file.mimetype === 'application/json' || file.originalname.endsWith('.json')) {
+        const jsonData = JSON.parse(fileContent);
+        applicants = Array.isArray(jsonData) ? jsonData : [jsonData];
+      }
+      
+      else {
+        return res.status(400).json({ message: "Unsupported file format. Please upload CSV or JSON." });
+      }
+
+      // Import applicants into database
+      const imported = [];
+      const failed = [];
+      
+      for (const applicantData of applicants) {
+        try {
+          // Check if user exists, create if not
+          let applicantUser = await storage.getUserByEmail(applicantData.email);
+          
+          if (!applicantUser) {
+            // Create new user account for imported applicant
+            applicantUser = await storage.upsertUser({
+              id: `imported-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+              email: applicantData.email,
+              firstName: applicantData.name?.split(' ')[0] || 'Imported',
+              lastName: applicantData.name?.split(' ').slice(1).join(' ') || 'Candidate',
+              userType: 'job_seeker',
+              currentRole: 'job_seeker',
+              emailVerified: false,
+              createdAt: new Date()
+            });
+
+            // Create profile
+            await storage.upsertUserProfile({
+              userId: applicantUser.id,
+              fullName: applicantData.name,
+              phone: applicantData.phone,
+              location: applicantData.location,
+              linkedinUrl: applicantData.linkedinUrl,
+              yearsExperience: applicantData.yearsExperience,
+              summary: applicantData.resumeText?.substring(0, 500)
+            });
+
+            // Add skills if provided
+            if (applicantData.skills && Array.isArray(applicantData.skills)) {
+              for (const skill of applicantData.skills) {
+                await storage.addUserSkill({
+                  userId: applicantUser.id,
+                  skillName: skill,
+                  proficiencyLevel: 'intermediate'
+                });
+              }
+            }
+          }
+
+          // Create application
+          const application = await storage.createJobPostingApplication({
+            jobPostingId: jobPostingId,
+            applicantId: applicantUser.id,
+            status: applicantData.status || 'applied',
+            appliedAt: applicantData.appliedAt ? new Date(applicantData.appliedAt) : new Date(),
+            resumeData: {
+              name: applicantData.name,
+              email: applicantData.email,
+              phone: applicantData.phone,
+              resumeText: applicantData.resumeText,
+              source: importSource
+            }
+          });
+
+          imported.push({
+            email: applicantData.email,
+            name: applicantData.name,
+            applicationId: application.id
+          });
+
+        } catch (error) {
+          console.error(`Failed to import applicant ${applicantData.email}:`, error);
+          failed.push({
+            email: applicantData.email,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
+      }
+
+      res.json({
+        message: `Successfully imported ${imported.length} applicants`,
+        imported: imported,
+        failed: failed,
+        stats: {
+          total: applicants.length,
+          successful: imported.length,
+          failed: failed.length
+        }
+      });
+
+    } catch (error) {
+      console.error('Error importing applicants:', error);
+      handleError(res, error, "Failed to import applicants");
+    }
+  });
+
+  // Get import history for a recruiter
+  app.get('/api/recruiter/import-history', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Get all applications with source metadata
+      const applications = await storage.getApplicationsForRecruiter(userId);
+      
+      const importStats = applications.reduce((acc: any, app: any) => {
+        const source = app.resumeData?.source || 'platform';
+        acc[source] = (acc[source] || 0) + 1;
+        return acc;
+      }, {});
+
+      res.json({
+        totalImported: applications.length,
+        bySource: importStats,
+        recentImports: applications
+          .filter((app: any) => app.resumeData?.source && app.resumeData.source !== 'platform')
+          .slice(0, 20)
+          .map((app: any) => ({
+            id: app.id,
+            candidateName: app.resumeData?.name,
+            email: app.resumeData?.email,
+            source: app.resumeData?.source,
+            importedAt: app.appliedAt,
+            jobTitle: app.jobPostingTitle
+          }))
+      });
+
+    } catch (error) {
+      console.error('Error fetching import history:', error);
+      handleError(res, error, "Failed to fetch import history");
+    }
+  });
+
       // Validate query parameters
       const queryValidation = z.object({
         page: z.string().optional().default("1"),

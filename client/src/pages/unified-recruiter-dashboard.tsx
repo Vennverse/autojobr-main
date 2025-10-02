@@ -59,6 +59,7 @@ import {
   BarChart3,
   GitBranch,
   Activity,
+  Upload, // Import Upload icon
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -100,6 +101,7 @@ export default function RecruiterDashboard() {
   const [shareLink, setShareLink] = useState("");
   const [showPromoteDialog, setShowPromoteDialog] = useState(false);
   const [selectedJobForPromote, setSelectedJobForPromote] = useState<any>(null);
+  const [showImportDialog, setShowImportDialog] = useState(false); // State for import dialog
 
   // Fetch recruiter's job postings
   const { data: jobPostings, isLoading: jobsLoading, error: jobsError } = useQuery<JobPosting[]>({
@@ -471,7 +473,17 @@ export default function RecruiterDashboard() {
                   <span className="text-sm">Post New Job</span>
                 </div>
               </Button>
-              
+
+              {/* Import Applicants Button */}
+              <Button
+                variant="outline"
+                onClick={() => setShowImportDialog(true)}
+                className="h-20 flex items-center gap-2"
+              >
+                <Upload className="w-6 h-6" />
+                <span className="text-sm">Import Applicants</span>
+              </Button>
+
               <Button
                 onClick={() => setLocation("/recruiter/interview-assignments")}
                 className="h-20 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
@@ -482,7 +494,7 @@ export default function RecruiterDashboard() {
                   <span className="text-sm">Assign Interviews</span>
                 </div>
               </Button>
-              
+
               <Button
                 onClick={() => setLocation("/recruiter/pipeline")}
                 className="h-20 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
@@ -493,7 +505,7 @@ export default function RecruiterDashboard() {
                   <span className="text-sm">Manage Pipeline</span>
                 </div>
               </Button>
-              
+
               <Button
                 onClick={() => setLocation("/premium-targeting")}
                 className="h-20 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white"
@@ -504,7 +516,7 @@ export default function RecruiterDashboard() {
                   <span className="text-sm">Premium Targeting</span>
                 </div>
               </Button>
-              
+
               <Button
                 onClick={() => {
                   if (typedUser?.companyName?.trim()) {
@@ -515,7 +527,7 @@ export default function RecruiterDashboard() {
                       .replace(/\s+/g, '-') // Replace spaces with hyphens
                       .replace(/-+/g, '-') // Replace multiple hyphens with single
                       .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
-                    
+
                     if (companySlug) {
                       window.open(`/career/${companySlug}`, '_blank', 'noopener,noreferrer');
                     } else {
@@ -657,7 +669,7 @@ export default function RecruiterDashboard() {
                   Full workflow
                 </Badge>
               </div>
-              
+
               <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-purple-200 dark:border-purple-800">
                 <div className="flex items-center gap-2 mb-2">
                   <BarChart3 className="w-4 h-4 text-purple-600" />
@@ -670,7 +682,7 @@ export default function RecruiterDashboard() {
                   Real-time data
                 </Badge>
               </div>
-              
+
               <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-green-200 dark:border-green-800">
                 <div className="flex items-center gap-2 mb-2">
                   <MessageSquare className="w-4 h-4 text-green-600" />
@@ -683,7 +695,7 @@ export default function RecruiterDashboard() {
                   Integrated chat
                 </Badge>
               </div>
-              
+
               <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-800">
                 <div className="flex items-center gap-2 mb-2">
                   <Building className="w-4 h-4 text-blue-600" />
@@ -707,7 +719,7 @@ export default function RecruiterDashboard() {
                           .replace(/\s+/g, '-')
                           .replace(/-+/g, '-')
                           .replace(/^-|-$/g, '');
-                        
+
                         if (companySlug) {
                           window.open(`/career/${companySlug}`, '_blank', 'noopener,noreferrer');
                         } else {
@@ -743,7 +755,7 @@ export default function RecruiterDashboard() {
                           .replace(/\s+/g, '-')
                           .replace(/-+/g, '-')
                           .replace(/^-|-$/g, '');
-                        
+
                         if (companySlug) {
                           const careerUrl = `${window.location.origin}/career/${companySlug}`;
                           navigator.clipboard.writeText(careerUrl);
@@ -800,7 +812,7 @@ export default function RecruiterDashboard() {
                   <Activity className="w-8 h-8 text-blue-500" />
                 </div>
               </div>
-              
+
               <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div>
@@ -814,7 +826,7 @@ export default function RecruiterDashboard() {
                   <CheckCircle className="w-8 h-8 text-green-500" />
                 </div>
               </div>
-              
+
               <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div>
@@ -825,7 +837,7 @@ export default function RecruiterDashboard() {
                   <Video className="w-8 h-8 text-purple-500" />
                 </div>
               </div>
-              
+
               <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div>
@@ -910,10 +922,21 @@ export default function RecruiterDashboard() {
                       Manage and track your job listings
                     </CardDescription>
                   </div>
-                  <Button onClick={() => setLocation("/recruiter/post-job")}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Post Job
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button onClick={() => setLocation("/recruiter/post-job")}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Post Job
+                    </Button>
+                    {/* Import Applicants Button in Job Postings Tab */}
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowImportDialog(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Import Applicants
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -1836,19 +1859,7 @@ export default function RecruiterDashboard() {
                               }}
                             >
                               <DialogTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setSelectedApplication(application);
-                                    setApplicationStatus(
-                                      application.status || "pending",
-                                    );
-                                    setRecruiterNotes(
-                                      application.recruiterNotes || "",
-                                    );
-                                  }}
-                                >
+                                <Button variant="outline" size="sm">
                                   <CheckCircle className="w-4 h-4 mr-1" />
                                   Review
                                 </Button>
@@ -2147,7 +2158,7 @@ export default function RecruiterDashboard() {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-2">
@@ -2159,7 +2170,7 @@ export default function RecruiterDashboard() {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-2">
@@ -2171,7 +2182,7 @@ export default function RecruiterDashboard() {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-2">
@@ -2301,7 +2312,40 @@ export default function RecruiterDashboard() {
         </DialogContent>
       </Dialog>
 
-
+      {/* Import Applicants Modal */}
+      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Import Applicants from ATS</DialogTitle>
+            <DialogDescription>
+              Upload a CSV file to import applicants from your external ATS.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Label htmlFor="csvFile">Upload CSV File</Label>
+            <div className="flex items-center justify-center w-full">
+              <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <svg className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.567 5.567 0 0 0 14 6.529c-.192-1.745-1.504-3.108-3.288-3.108a5.517 5.517 0 0 0-6.846-3.545 5.517 5.517 0 0 0-5.874 4.551c-.715.075-1.395.344-1.964.773L1 13.004m13 3.004h3a3 3 0 0 0 0-6h-.025A5.567 5.567 0 0 0 14 6.529c-.192-1.745-1.504-3.108-3.288-3.108a5.517 5.517 0 0 0-6.846-3.545 5.517 5.517 0 0 0-5.874 4.551c-.715.075-1.395.344-1.964.773"/>
+                  </svg>
+                  <p className="mb-2 text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">CSV files only (e.g., applicants.csv)</p>
+                </div>
+                <input id="csvFile" type="file" className="hidden" accept=".csv" />
+              </label>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowImportDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => alert("Import functionality not yet implemented.")}>
+              Import
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Share Job Dialog */}
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
