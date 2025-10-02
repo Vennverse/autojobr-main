@@ -102,6 +102,9 @@ export default function RecruiterDashboard() {
   const [showPromoteDialog, setShowPromoteDialog] = useState(false);
   const [selectedJobForPromote, setSelectedJobForPromote] = useState<any>(null);
   const [showImportDialog, setShowImportDialog] = useState(false); // State for import dialog
+  const [selectedJobForImport, setSelectedJobForImport] = useState<number | null>(null);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importSource, setImportSource] = useState("manual_upload");
 
   // Fetch recruiter's job postings
   const { data: jobPostings, isLoading: jobsLoading, error: jobsError } = useQuery<JobPosting[]>({
@@ -216,6 +219,57 @@ export default function RecruiterDashboard() {
       });
     },
   });
+
+  // Import applicants mutation
+  const importApplicantsMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await fetch("/api/recruiter/import-applicants", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to import applicants");
+      }
+      return response.json();
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Import Complete",
+        description: `Successfully imported ${data.imported.length} applicants. ${data.failed.length} failed.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/recruiter/applications"] });
+      setShowImportDialog(false);
+      setImportFile(null);
+      setSelectedJobForImport(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Import Failed",
+        description: error.message || "Failed to import applicants",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleImportSubmit = () => {
+    if (!importFile || !selectedJobForImport) {
+      toast({
+        title: "Missing Information",
+        description: "Please select a job and upload a CSV file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", importFile);
+    formData.append("jobPostingId", selectedJobForImport.toString());
+    formData.append("source", importSource);
+
+    importApplicantsMutation.mutate(formData);
+  };
 
 
 
@@ -900,6 +954,136 @@ export default function RecruiterDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Import Applicants Dialog */}
+        <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Import Applicants from CSV</DialogTitle>
+              <DialogDescription>
+                Upload a CSV file to bulk import applicants for a specific job posting
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              {/* Job Selection */}
+              <div>
+                <Label>Select Job Posting *</Label>
+                <Select 
+                  value={selectedJobForImport?.toString() || ""} 
+                  onValueChange={(value) => setSelectedJobForImport(parseInt(value))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a job posting" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {safeJobPostings.map((job: any) => (
+                      <SelectItem key={job.id} value={job.id.toString()}>
+                        {job.title} - {job.companyName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Import Source */}
+              <div>
+                <Label>Import Source</Label>
+                <Select value={importSource} onValueChange={setImportSource}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual_upload">Manual Upload</SelectItem>
+                    <SelectItem value="indeed">Indeed Export</SelectItem>
+                    <SelectItem value="linkedin">LinkedIn Export</SelectItem>
+                    <SelectItem value="csv">CSV File</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* File Upload */}
+              <div>
+                <Label>Upload CSV File *</Label>
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                  className="mt-2 w-full"
+                />
+                {importFile && (
+                  <p className="text-sm text-green-600 mt-2">
+                    ✓ {importFile.name} selected
+                  </p>
+                )}
+              </div>
+
+              {/* CSV Format Instructions */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200">
+                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Required CSV Format
+                </h4>
+                <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
+                  Your CSV file must include these columns (first row as headers):
+                </p>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded font-mono text-xs">
+                  <div className="text-gray-700 dark:text-gray-300">
+                    name, email, phone, resume, status, source, applied, linkedin, location, experience, education, skills
+                  </div>
+                </div>
+                <div className="mt-3 space-y-1 text-xs text-blue-700 dark:text-blue-300">
+                  <p><strong>Required:</strong> name, email</p>
+                  <p><strong>Optional:</strong> All other fields</p>
+                  <p><strong>Skills format:</strong> Separate with semicolons (React;Node.js;Python)</p>
+                  <p><strong>Status:</strong> applied, in_review, rejected, accepted, withdrawn</p>
+                </div>
+              </div>
+
+              {/* Example CSV */}
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  Example CSV Content:
+                </h4>
+                <pre className="text-xs overflow-x-auto bg-white dark:bg-gray-900 p-2 rounded border">
+{`name,email,phone,resume,status,source,applied,linkedin,location,experience,education,skills
+John Doe,john@example.com,555-1234,Resume text here,applied,linkedin,2025-01-15,linkedin.com/in/johndoe,New York,5,Computer Science,React;Node.js;Python
+Jane Smith,jane@example.com,555-5678,Resume text,applied,indeed,2025-01-14,linkedin.com/in/janesmith,San Francisco,3,Software Engineering,JavaScript;TypeScript;AWS`}
+                </pre>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowImportDialog(false);
+                    setImportFile(null);
+                    setSelectedJobForImport(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleImportSubmit}
+                  disabled={!importFile || !selectedJobForImport || importApplicantsMutation.isPending}
+                >
+                  {importApplicantsMutation.isPending ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Import Applicants
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="jobs" className="space-y-6">
