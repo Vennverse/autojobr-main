@@ -1,14 +1,22 @@
 // Enhanced AutoJobr Popup with Advanced Features
-// Get API URL from storage or use default
-let API_BASE_URL = 'https://autojobr.com'; // Default production URL
+// API URL will be fetched from background script during init
+let API_BASE_URL = 'https://autojobr.com'; // Default fallback
 
-// Try to load dev URL if configured
-chrome.storage.local.get(['apiBaseUrl'], (result) => {
-  if (result.apiBaseUrl) {
-    API_BASE_URL = result.apiBaseUrl;
-    console.log('Using configured API URL:', API_BASE_URL);
-  }
-});
+// Helper function to get API URL from background script
+async function getApiUrl() {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ action: 'getApiUrl' }, (response) => {
+      if (response && response.apiUrl) {
+        API_BASE_URL = response.apiUrl;
+        console.log('Using API URL from background:', API_BASE_URL);
+        resolve(response.apiUrl);
+      } else {
+        console.log('Using fallback API URL:', API_BASE_URL);
+        resolve(API_BASE_URL);
+      }
+    });
+  });
+}
 
 class AutoJobrPopup {
   constructor() {
@@ -30,6 +38,9 @@ class AutoJobrPopup {
       // Initialize UI
       this.initializeEventListeners();
       this.showLoading(true);
+      
+      // Get API URL from background script BEFORE making any API calls
+      await getApiUrl();
       
       // Check connection and authentication
       await this.checkConnection();

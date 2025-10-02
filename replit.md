@@ -105,6 +105,22 @@ See `shared/schema.ts` for the complete schema definition.
 
 ## Recent Changes
 
+### Oct 02, 2025 - Chrome Extension CORS & Button Fixes
+- ✅ **Fixed CORS configuration** in `server/index.ts` to allow Chrome extension requests
+  - Extension can now make API calls from job sites (LinkedIn, Indeed, etc.)
+  - Added support for `chrome-extension://` and `moz-extension://` protocols
+  - Allows requests from 20+ job board domains where extension runs
+- ✅ **Updated extension API URL handling** in `extension/popup.js`
+  - Now uses `chrome.storage` for flexible API URL configuration
+  - Background script auto-detects correct API URL (localhost → Replit → Production)
+- ✅ **Verified all button handlers** are properly implemented:
+  - Interview Prep, Salary Intel, Find Referrals, Profile, Resume, History, Dashboard
+  - All features properly integrated with background script message handlers
+- ✅ **Created comprehensive setup guide** at `extension/DEVELOPMENT_SETUP.md`
+  - Installation instructions for developers
+  - Troubleshooting guide for common issues
+  - API endpoint documentation
+
 ### Oct 02, 2025 - GitHub Import Setup Complete
 - ✅ GitHub repository successfully imported and verified in Replit environment
 - ✅ All dependencies installed and working (nodejs-20 module)
