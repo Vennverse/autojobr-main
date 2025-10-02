@@ -55,7 +55,7 @@ class AutoJobrBackground {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000);
-        
+
         const response = await fetch(`${url}/api/health`, { 
           method: 'GET',
           mode: 'cors',
@@ -66,18 +66,18 @@ class AutoJobrBackground {
             'Content-Type': 'application/json'
           }
         });
-        
+
         clearTimeout(timeoutId);
-        
+
         if (response.ok) {
           const data = await response.json();
           if (data.status === 'ok' || data.message) {
             this.apiUrl = url;
             console.log('✅ Connected to AutoJobr server:', this.apiUrl);
-            
+
             // Update stored API URL
             await chrome.storage.sync.set({ apiUrl: this.apiUrl });
-            
+
             // Notify content scripts of successful connection
             chrome.tabs.query({}, (tabs) => {
               tabs.forEach(tab => {
@@ -89,7 +89,7 @@ class AutoJobrBackground {
                 }
               });
             });
-            
+
             return; // Successfully connected, exit
           }
         }
@@ -97,7 +97,7 @@ class AutoJobrBackground {
         console.log(`Failed to connect to ${url}:`, error.message);
       }
     }
-    
+
     // If no URLs worked, use production as default
     this.apiUrl = 'https://autojobr.com';
     console.log('⚠️ Could not connect to any server, using default:', this.apiUrl);
@@ -161,6 +161,13 @@ class AutoJobrBackground {
     setInterval(() => {
       this.syncUserData();
     }, 10 * 60 * 1000);
+
+    // Process application queue every minute
+    setInterval(() => {
+      if (this.applicationOrchestrator) {
+        this.applicationOrchestrator.processQueue();
+      }
+    }, 60000);
   }
 
   async handleInstall() {
@@ -205,7 +212,7 @@ class AutoJobrBackground {
 
   async handleUpdate(previousVersion) {
     console.log(`Updated from ${previousVersion} to ${chrome.runtime.getManifest().version}`);
-    
+
     // Migration logic for different versions
     if (previousVersion < '2.0.0') {
       await this.migrateToV2();
@@ -233,7 +240,7 @@ class AutoJobrBackground {
       autoSaveJobs: false,
       theme: 'light'
     };
-    
+
     await chrome.storage.sync.set(newSettings);
     console.log('✅ Migrated settings to v2.0');
   }
@@ -311,7 +318,7 @@ class AutoJobrBackground {
         sendResponse({ success: false, error: 'Detached context' });
         return;
       }
-      
+
       // Rate limiting
       if (!this.checkRateLimit(sender.tab?.id || 'unknown', message.action)) {
         sendResponse({ success: false, error: 'Rate limit exceeded' });
@@ -485,6 +492,14 @@ class AutoJobrBackground {
           sendResponse({ success: true, insights });
           break;
 
+        // Application Orchestrator
+        case 'scheduleApplication':
+          if (this.applicationOrchestrator) {
+            const result = await this.applicationOrchestrator.scheduleApplication(message.jobData, message.userProfile);
+            sendResponse({ success: true, ...result });
+          }
+          break;
+
         default:
           sendResponse({ success: false, error: 'Unknown action' });
       }
@@ -499,7 +514,7 @@ class AutoJobrBackground {
       const headers = {
         'Content-Type': 'application/json'
       };
-      
+
       const response = await fetch(`${this.apiUrl}/api/salary-insights`, {
         method: 'POST',
         headers,
@@ -584,7 +599,7 @@ class AutoJobrBackground {
 
   async handleNavigationCompleted(details) {
     const { tabId, url } = details;
-    
+
     // Delay to ensure page is fully loaded
     setTimeout(() => {
       this.handleTabUpdate(tabId, { url });
@@ -607,7 +622,7 @@ class AutoJobrBackground {
 
   async handleCommand(command) {
     const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    
+
     switch (command) {
       case 'autofill':
         await this.triggerAutofill(activeTab.id);
@@ -674,11 +689,11 @@ class AutoJobrBackground {
     // Throttle duplicate notifications for the same job
     const jobKey = `${jobData?.title}_${jobData?.company}`.replace(/\s/g, '');
     const now = Date.now();
-    
+
     // Initialize notifications tracker if it doesn't exist
     if (!this.lastDetectionNotifications) this.lastDetectionNotifications = {};
     const lastNotificationTime = this.lastDetectionNotifications[jobKey];
-    
+
     // Don't show notification if same job was detected in last 60 seconds
     if (!lastNotificationTime || (now - lastNotificationTime) > 60000) { // 60 seconds throttle
       this.lastDetectionNotifications[jobKey] = now;
@@ -701,11 +716,11 @@ class AutoJobrBackground {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
+
       const response = await fetch(`${this.apiUrl}/api/health`, {
         signal: controller.signal
       });
-      
+
       clearTimeout(timeoutId);
       return response.ok;
     } catch (error) {
@@ -721,7 +736,7 @@ class AutoJobrBackground {
       if (cached && Date.now() - cached.timestamp < 300000) { // 5 minute cache
         return cached.data;
       }
-      
+
       // Use session-based authentication (cookies) instead of Bearer tokens
       const response = await fetch(`${this.apiUrl}/api/extension/profile`, {
         headers: {
@@ -733,7 +748,7 @@ class AutoJobrBackground {
 
       if (response.ok) {
         const profile = await response.json();
-        
+
         // Only cache if user is authenticated
         if (profile.authenticated) {
           this.cache.set(cacheKey, {
@@ -741,14 +756,14 @@ class AutoJobrBackground {
             timestamp: Date.now()
           });
         }
-        
+
         return profile;
       } else if (response.status === 401) {
         // Expected when user is not logged in - don't treat as error
         console.log('User not authenticated - extension will work in limited mode');
         return null;
       }
-      
+
       console.warn('Profile fetch failed with status:', response.status);
       return null;
     } catch (error) {
@@ -763,7 +778,7 @@ class AutoJobrBackground {
       const headers = {
         'Content-Type': 'application/json'
       };
-      
+
       // Use the main applications endpoint that updates job_applications table
       const response = await fetch(`${this.apiUrl}/api/applications`, {
         method: 'POST',
@@ -810,15 +825,15 @@ class AutoJobrBackground {
     try {
       const result = await chrome.storage.local.get(['sessionToken']);
       const sessionToken = result.sessionToken;
-      
+
       const headers = {
         'Content-Type': 'application/json'
       };
-      
+
       if (sessionToken) {
         headers['Authorization'] = `Bearer ${sessionToken}`;
       }
-      
+
       const response = await fetch(`${this.apiUrl}/api/saved-jobs`, {
         method: 'POST',
         headers,
@@ -862,15 +877,15 @@ class AutoJobrBackground {
     try {
       const result = await chrome.storage.local.get(['sessionToken']);
       const sessionToken = result.sessionToken;
-      
+
       const headers = {
         'Content-Type': 'application/json'
       };
-      
+
       if (sessionToken) {
         headers['Authorization'] = `Bearer ${sessionToken}`;
       }
-      
+
       const response = await fetch(`${this.apiUrl}/api/generate-cover-letter`, {
         method: 'POST',
         headers,
@@ -911,7 +926,7 @@ class AutoJobrBackground {
       const headers = {
         'Content-Type': 'application/json'
       };
-      
+
       const response = await fetch(`${this.apiUrl}/api/interview-prep`, {
         method: 'POST',
         headers,
@@ -930,7 +945,7 @@ class AutoJobrBackground {
       }
 
       const prep = await response.json();
-      
+
       await this.showAdvancedNotification(
         'Interview Prep Ready! 🎯',
         `Generated ${prep.questions?.length || 0} practice questions`,
@@ -956,7 +971,7 @@ class AutoJobrBackground {
           throw new Error('Please log in to AutoJobr to analyze jobs');
         }
       }
-      
+
       console.log('Background script analyzing job with fresh API call:', {
         jobTitle: data.jobData?.title,
         company: data.jobData?.company,
@@ -965,11 +980,11 @@ class AutoJobrBackground {
         userYearsExperience: userProfile?.yearsExperience,
         userAuthenticated: userProfile?.authenticated
       });
-      
+
       const headers = {
         'Content-Type': 'application/json'
       };
-      
+
       // Always make fresh API call - don't use any cached data
       const response = await fetch(`${this.apiUrl}/api/analyze-job-match`, {
         method: 'POST',
@@ -993,7 +1008,7 @@ class AutoJobrBackground {
       }
 
       const analysis = await response.json();
-      
+
       console.log('Background script received fresh analysis:', {
         matchScore: analysis.matchScore,
         factors: analysis.factors?.length || 0
@@ -1007,11 +1022,11 @@ class AutoJobrBackground {
       if (data.source !== 'extension_automatic_popup') {
         const jobKey = `${data.jobData?.title}_${data.jobData?.company}`.replace(/\s/g, '');
         const now = Date.now();
-        
+
         // Don't show notification if same job was analyzed in last 30 seconds
         if (!this.lastNotifications) this.lastNotifications = {};
         const lastNotificationTime = this.lastNotifications[jobKey];
-        
+
         if (!lastNotificationTime || (now - lastNotificationTime) > 30000) { // 30 seconds throttle
           this.lastNotifications[jobKey] = now;
           await this.showAdvancedNotification(
@@ -1037,14 +1052,14 @@ class AutoJobrBackground {
     try {
       const result = await chrome.storage.local.get(['sessionToken']);
       const sessionToken = result.sessionToken;
-      
+
       if (!sessionToken) return [];
-      
+
       const headers = {
         'Authorization': `Bearer ${sessionToken}`,
         'Content-Type': 'application/json'
       };
-      
+
       const response = await fetch(`${this.apiUrl}/api/job-suggestions`, {
         method: 'POST',
         headers,
@@ -1056,7 +1071,7 @@ class AutoJobrBackground {
       if (response.ok) {
         return await response.json();
       }
-      
+
       return [];
     } catch (error) {
       console.error('Get job suggestions error:', error);
@@ -1068,14 +1083,14 @@ class AutoJobrBackground {
     try {
       const result = await chrome.storage.local.get(['sessionToken']);
       const sessionToken = result.sessionToken;
-      
+
       if (!sessionToken) return;
-      
+
       const headers = {
         'Authorization': `Bearer ${sessionToken}`,
         'Content-Type': 'application/json'
       };
-      
+
       await fetch(`${this.apiUrl}/api/user/preferences`, {
         method: 'PUT',
         headers,
@@ -1086,7 +1101,7 @@ class AutoJobrBackground {
 
       // Clear profile cache to force refresh
       this.cache.delete('user_profile');
-      
+
     } catch (error) {
       console.error('Update user preferences error:', error);
     }
@@ -1185,7 +1200,7 @@ class AutoJobrBackground {
     try {
       // Get current active tab
       const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      
+
       if (activeTab) {
         // Open extension popup programmatically
         chrome.action.openPopup();
@@ -1201,6 +1216,206 @@ class AutoJobrBackground {
     }
   }
 }
+
+// Advanced interview preparation with AI-powered insights
+const interviewPrepData = {
+  companyInsights: "Research the company's recent news, products, and culture. Check their LinkedIn, Glassdoor reviews, and recent press releases.",
+  questions: [
+    "Tell me about yourself and your experience",
+    "Why are you interested in this role?",
+    "What are your greatest strengths?",
+    "Describe a challenging project you worked on",
+    "Where do you see yourself in 5 years?"
+  ],
+  tips: "Practice the STAR method (Situation, Task, Action, Result) for behavioral questions. Prepare specific examples from your experience."
+};
+
+// Intelligent application orchestrator
+class ApplicationOrchestrator {
+  constructor() {
+    this.applicationQueue = [];
+    this.processingLock = false;
+    this.successPatterns = new Map();
+    this.failurePatterns = new Map();
+  }
+
+  async scheduleApplication(jobData, userProfile) {
+    const priority = await this.calculatePriority(jobData, userProfile);
+    const timing = await this.optimizeTiming(jobData);
+
+    this.applicationQueue.push({
+      job: jobData,
+      profile: userProfile,
+      priority,
+      scheduledFor: timing.optimalTime,
+      strategy: timing.strategy
+    });
+
+    this.applicationQueue.sort((a, b) => b.priority - a.priority);
+
+    return {
+      position: this.applicationQueue.findIndex(app => app.job.url === jobData.url) + 1,
+      totalQueued: this.applicationQueue.length,
+      estimatedTime: timing.optimalTime
+    };
+  }
+
+  async calculatePriority(jobData, userProfile) {
+    let priority = 50; // Base priority
+
+    // Recency boost (newer jobs get priority)
+    const daysOld = this.calculateDaysOld(jobData.datePosted);
+    if (daysOld < 2) priority += 20;
+    else if (daysOld < 7) priority += 10;
+
+    // Match score boost
+    const matchScore = await this.quickMatchScore(jobData, userProfile);
+    priority += matchScore * 0.3;
+
+    // Company size/prestige boost
+    if (this.isTopCompany(jobData.company)) priority += 15;
+
+    // Salary boost
+    if (jobData.salary && this.meetsExpectedSalary(jobData.salary, userProfile)) {
+      priority += 10;
+    }
+
+    return Math.min(priority, 100);
+  }
+
+  async optimizeTiming(jobData) {
+    const now = new Date();
+    const hourOfDay = now.getHours();
+    const dayOfWeek = now.getDay();
+
+    // Optimal application times based on data
+    const optimalHours = [9, 10, 11, 14, 15]; // 9-11 AM, 2-3 PM
+    const optimalDays = [1, 2, 3, 4]; // Monday-Thursday
+
+    let strategy = 'immediate';
+    let optimalTime = now;
+
+    // If it's not optimal time, schedule for next optimal slot
+    if (!optimalHours.includes(hourOfDay) || !optimalDays.includes(dayOfWeek)) {
+      strategy = 'scheduled';
+      optimalTime = this.getNextOptimalTime(now);
+    }
+
+    // Avoid weekend applications
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      strategy = 'scheduled';
+      optimalTime = this.getNextWeekday(now);
+      optimalTime.setHours(10, 0, 0, 0); // 10 AM on next weekday
+    }
+
+    return { strategy, optimalTime };
+  }
+
+  async quickMatchScore(jobData, userProfile) {
+    const userSkills = (userProfile.skills || []).map(s => s.toLowerCase());
+    const jobDescription = (jobData.description || '').toLowerCase();
+
+    let score = 0;
+    let matchedSkills = 0;
+
+    userSkills.forEach(skill => {
+      if (jobDescription.includes(skill)) {
+        matchedSkills++;
+      }
+    });
+
+    if (userSkills.length > 0) {
+      score = (matchedSkills / userSkills.length) * 100;
+    }
+
+    return score;
+  }
+
+  calculateDaysOld(datePosted) {
+    if (!datePosted) return 30; // Assume old if no date
+    const posted = new Date(datePosted);
+    const now = new Date();
+    return Math.floor((now - posted) / (1000 * 60 * 60 * 24));
+  }
+
+  isTopCompany(companyName) {
+    const topCompanies = ['google', 'amazon', 'microsoft', 'apple', 'meta', 'netflix', 'tesla', 'nvidia'];
+    return topCompanies.some(top => companyName?.toLowerCase().includes(top));
+  }
+
+  meetsExpectedSalary(jobSalary, userProfile) {
+    const minSalary = userProfile.desiredSalaryMin || 0;
+    const salaryMatch = jobSalary.match(/\$?([\d,]+)/);
+    if (salaryMatch) {
+      const salary = parseInt(salaryMatch[1].replace(/,/g, ''));
+      return salary >= minSalary;
+    }
+    return true; // If salary not parseable, assume it's okay
+  }
+
+  getNextOptimalTime(currentTime) {
+    const next = new Date(currentTime);
+    const hour = next.getHours();
+
+    // If before 9 AM, schedule for 10 AM today
+    if (hour < 9) {
+      next.setHours(10, 0, 0, 0);
+    } 
+    // If between 9-11 AM, schedule for 2 PM today
+    else if (hour >= 9 && hour < 11) {
+      next.setHours(14, 0, 0, 0);
+    }
+    // If after 3 PM, schedule for 10 AM next day
+    else {
+      next.setDate(next.getDate() + 1);
+      next.setHours(10, 0, 0, 0);
+    }
+
+    return next;
+  }
+
+  getNextWeekday(currentTime) {
+    const next = new Date(currentTime);
+    const day = next.getDay();
+
+    if (day === 0) next.setDate(next.getDate() + 1); // Sunday -> Monday
+    else if (day === 6) next.setDate(next.getDate() + 2); // Saturday -> Monday
+
+    return next;
+  }
+
+  async processQueue() {
+    if (this.processingLock || this.applicationQueue.length === 0) return;
+
+    this.processingLock = true;
+    const app = this.applicationQueue.shift();
+
+    try {
+      await this.executeApplication(app);
+    } catch (error) {
+      console.error('Application failed:', error);
+      this.failurePatterns.set(app.job.url, error.message);
+    } finally {
+      this.processingLock = false;
+    }
+  }
+
+  async executeApplication(app) {
+    // Send message to content script to execute application
+    const tabs = await chrome.tabs.query({ url: app.job.url });
+    if (tabs.length > 0) {
+      await chrome.tabs.sendMessage(tabs[0].id, {
+        action: 'executeScheduledApplication',
+        jobData: app.job,
+        userProfile: app.profile,
+        strategy: app.strategy
+      });
+    }
+  }
+}
+
+// Initialize orchestrator
+const applicationOrchestrator = new ApplicationOrchestrator();
 
 // Initialize background service
 new AutoJobrBackground();

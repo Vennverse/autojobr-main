@@ -21,7 +21,7 @@ class AutoJobrContentScript {
 
   init() {
     if (this.isInitialized) return;
-    
+
     try {
       this.injectEnhancedUI();
       this.setupMessageListener();
@@ -29,14 +29,14 @@ class AutoJobrContentScript {
       this.setupKeyboardShortcuts();
       this.initializeSmartSelectors();
       this.setupApplicationTracking(); // Setup tracking once during initialization
-      
+
       // Setup automatic job analysis with debouncing
       this.setupAutoAnalysis();
       this.isInitialized = true;
-      
+
       // Mark as loaded for background script
       window.autojobrContentScriptLoaded = true;
-      
+
       console.log('🚀 AutoJobr extension v2.0 initialized on:', this.currentSite);
     } catch (error) {
       console.error('AutoJobr initialization error:', error);
@@ -46,7 +46,7 @@ class AutoJobrContentScript {
   detectSite() {
     const hostname = window.location.hostname.toLowerCase();
     const pathname = window.location.pathname.toLowerCase();
-    
+
     const siteMap = {
       'linkedin.com': 'linkedin',
       'indeed.com': 'indeed',
@@ -84,7 +84,7 @@ class AutoJobrContentScript {
         return site;
       }
     }
-    
+
     return 'generic';
   }
 
@@ -116,7 +116,7 @@ class AutoJobrContentScript {
         types: ['tel', 'text'],
         priority: 9
       },
-      
+
       // Address
       address: {
         patterns: ['address', 'street', 'streetAddress', 'street_address', 'address1', 'addr1'],
@@ -143,7 +143,7 @@ class AutoJobrContentScript {
         types: ['text', 'select-one'],
         priority: 7
       },
-      
+
       // Professional
       currentTitle: {
         patterns: ['currentTitle', 'title', 'jobTitle', 'job_title', 'position', 'role', 'current-position', 'job-title'],
@@ -160,7 +160,7 @@ class AutoJobrContentScript {
         types: ['text', 'number', 'select-one'],
         priority: 7
       },
-      
+
       // Education
       university: {
         patterns: ['university', 'school', 'college', 'education', 'institution'],
@@ -177,7 +177,7 @@ class AutoJobrContentScript {
         types: ['text'],
         priority: 7
       },
-      
+
       // Links
       linkedin: {
         patterns: ['linkedin', 'linkedinUrl', 'linkedin_url', 'linkedin-url', 'li-url'],
@@ -194,7 +194,7 @@ class AutoJobrContentScript {
         types: ['url', 'text'],
         priority: 6
       },
-      
+
       // Work Screening Questions
       currentlyEmployed: {
         patterns: ['currentlyEmployed', 'currently_employed', 'employment_status', 'employed', 'currently-employed'],
@@ -211,7 +211,7 @@ class AutoJobrContentScript {
         types: ['select-one', 'radio', 'checkbox'],
         priority: 7
       },
-      
+
       // Work Authorization
       workAuth: {
         patterns: ['workAuthorization', 'work_authorization', 'eligible', 'authorized', 'legal', 'work_eligibility', 'employment_eligibility'],
@@ -223,28 +223,28 @@ class AutoJobrContentScript {
         types: ['select-one', 'radio', 'checkbox'],
         priority: 7
       },
-      
+
       // Skills and Technical
       skills: {
         patterns: ['skills', 'technical_skills', 'technologies', 'programming', 'tech_stack', 'competencies'],
         types: ['text', 'textarea'],
         priority: 7
       },
-      
+
       // Salary and Compensation
       salary: {
         patterns: ['salary', 'compensation', 'expected_salary', 'desired_salary', 'pay_rate', 'wage', 'salary_expectation'],
         types: ['text', 'number'],
         priority: 6
       },
-      
+
       // Additional fields
       description: {
         patterns: ['description', 'summary', 'about', 'bio', 'overview', 'profile_summary', 'personal_statement'],
         types: ['textarea', 'text'],
         priority: 6
       },
-      
+
       // Resume/Cover Letter
       resume: {
         patterns: ['resume', 'cv', 'resumeUpload', 'resume_upload', 'curriculum', 'attachment', 'document', 'file'],
@@ -257,7 +257,7 @@ class AutoJobrContentScript {
         types: ['textarea', 'text'],
         priority: 8
       },
-      
+
       // Personal Details
       gender: {
         patterns: ['gender', 'sex', 'gender_identity', 'genderIdentity', 'gender-identity'],
@@ -269,7 +269,7 @@ class AutoJobrContentScript {
           other: ['other', 'non-binary', 'nonbinary', 'prefer-not-to-say', 'decline']
         }
       },
-      
+
       veteranStatus: {
         patterns: ['veteran', 'veteran_status', 'veteranStatus', 'military', 'armed_forces', 'service_member'],
         types: ['radio', 'select-one'],
@@ -280,20 +280,20 @@ class AutoJobrContentScript {
           disabled_veteran: ['disabled-veteran', 'disabled_veteran', 'disabled']
         }
       },
-      
+
       // Additional Social Links
       twitter: {
         patterns: ['twitter', 'twitterUrl', 'twitter_url', 'twitter-url', 'twitter_handle'],
         types: ['url', 'text'],
         priority: 5
       },
-      
+
       personalWebsite: {
         patterns: ['personalWebsite', 'personal_website', 'website', 'homepage', 'blog', 'personal_site'],
         types: ['url', 'text'],
         priority: 5
       },
-      
+
       // Work Screening Questions (Boolean responses)
       currentlyEmployed: {
         patterns: ['currently_employed', 'currentlyEmployed', 'employed', 'current_job', 'working'],
@@ -304,7 +304,7 @@ class AutoJobrContentScript {
           no: ['no', 'false', 'unemployed', 'not-employed']
         }
       },
-      
+
       canContactEmployer: {
         patterns: ['contact_employer', 'contactEmployer', 'current_employer', 'employer_contact', 'reference_check'],
         types: ['radio', 'select-one', 'checkbox'],
@@ -314,7 +314,7 @@ class AutoJobrContentScript {
           no: ['no', 'false', 'not-authorized', 'do-not-contact']
         }
       },
-      
+
       willingToWorkOvertime: {
         patterns: ['overtime', 'work_overtime', 'extra_hours', 'extended_hours', 'flexible_hours'],
         types: ['radio', 'select-one', 'checkbox'],
@@ -324,7 +324,7 @@ class AutoJobrContentScript {
           no: ['no', 'false', 'not-willing', 'unavailable']
         }
       },
-      
+
       willingToTravel: {
         patterns: ['travel', 'willing_to_travel', 'business_travel', 'travel_required', 'relocation'],
         types: ['radio', 'select-one', 'checkbox'],
@@ -334,13 +334,13 @@ class AutoJobrContentScript {
           no: ['no', 'false', 'not-willing', 'unavailable']
         }
       },
-      
+
       travelPercentage: {
         patterns: ['travel_percentage', 'travel_percent', 'travel_amount', 'travel_frequency'],
         types: ['text', 'number', 'select-one'],
         priority: 5
       },
-      
+
       // Application-Specific Questions
       howDidYouHear: {
         patterns: ['hear_about', 'how_did_you_hear', 'referral_source', 'source', 'where_did_you_hear', 'how_heard_about_us'],
@@ -357,68 +357,68 @@ class AutoJobrContentScript {
           other: ['other']
         }
       },
-      
+
       whyInterestedRole: {
         patterns: ['why_interested', 'interest_reason', 'motivation', 'why_apply', 'reason_applying', 'position_interest'],
         types: ['textarea', 'text'],
         priority: 6
       },
-      
+
       whyInterestedCompany: {
         patterns: ['why_company', 'company_interest', 'company_motivation', 'why_work_here'],
         types: ['textarea', 'text'],
         priority: 6
       },
-      
+
       careerGoals: {
         patterns: ['career_goals', 'future_goals', 'aspirations', 'career_objectives', 'long_term_goals'],
         types: ['textarea', 'text'],
         priority: 5
       },
-      
+
       startDate: {
         patterns: ['start_date', 'startDate', 'available_date', 'availability', 'when_can_start'],
         types: ['date', 'text'],
         priority: 7
       },
-      
+
       gpa: {
         patterns: ['gpa', 'grade_point', 'academic_record', 'grades'],
         types: ['text', 'number'],
         priority: 5
       },
-      
+
       // Professional References
       referenceName: {
         patterns: ['reference_name', 'referenceName', 'ref_name', 'contact_name', 'reference_1_name'],
         types: ['text'],
         priority: 7
       },
-      
+
       referenceTitle: {
         patterns: ['reference_title', 'referenceTitle', 'ref_title', 'contact_title'],
         types: ['text'],
         priority: 6
       },
-      
+
       referenceCompany: {
         patterns: ['reference_company', 'referenceCompany', 'ref_company', 'contact_company'],
         types: ['text'],
         priority: 6
       },
-      
+
       referenceEmail: {
         patterns: ['reference_email', 'referenceEmail', 'ref_email', 'contact_email'],
         types: ['email', 'text'],
         priority: 7
       },
-      
+
       referencePhone: {
         patterns: ['reference_phone', 'referencePhone', 'ref_phone', 'contact_phone'],
         types: ['tel', 'text'],
         priority: 6
       },
-      
+
       referenceRelationship: {
         patterns: ['reference_relationship', 'relationship', 'how_do_you_know', 'connection', 'reference_1_relationship'],
         types: ['select-one', 'text'],
@@ -477,7 +477,7 @@ class AutoJobrContentScript {
             <button class="autojobr-close" title="Close">×</button>
           </div>
         </div>
-        
+
         <div class="autojobr-content">
           <div class="autojobr-status" id="autojobr-status">
             <div class="status-icon">🎯</div>
@@ -486,20 +486,20 @@ class AutoJobrContentScript {
               <div class="progress-bar"></div>
             </div>
           </div>
-          
+
           <div class="autojobr-job-info" id="autojobr-job-info" style="display: none;">
             <div class="job-title" id="autojobr-job-title"></div>
             <div class="job-company" id="autojobr-job-company"></div>
             <div class="job-match" id="autojobr-job-match"></div>
           </div>
-          
+
           <div class="autojobr-actions">
             <button class="autojobr-btn primary" id="autojobr-autofill">
               <span class="btn-icon">⚡</span>
               <span class="btn-text">Smart Auto-fill</span>
               <span class="btn-shortcut">Ctrl+A</span>
             </button>
-            
+
             <div class="action-row">
               <button class="autojobr-btn secondary" id="autojobr-analyze">
                 <span class="btn-icon">📊</span>
@@ -519,7 +519,7 @@ class AutoJobrContentScript {
               </button>
             </div>
           </div>
-          
+
           <div class="autojobr-features">
             <div class="feature-toggle">
               <input type="checkbox" id="smart-fill" checked>
@@ -534,7 +534,7 @@ class AutoJobrContentScript {
               <label for="auto-resume">Auto Resume Upload</label>
             </div>
           </div>
-          
+
           <div class="autojobr-tasks" id="autojobr-tasks" style="display: none;">
             <div class="tasks-header">
               <span class="tasks-title">📋 Pending Tasks</span>
@@ -542,7 +542,7 @@ class AutoJobrContentScript {
             </div>
             <div class="tasks-list" id="tasks-list"></div>
           </div>
-          
+
           <div class="autojobr-stats" id="autojobr-stats" style="display: none;">
             <div class="stat-item">
               <span class="stat-label">Fields Found:</span>
@@ -564,7 +564,7 @@ class AutoJobrContentScript {
     document.body.appendChild(overlay);
     this.attachEnhancedUIEventListeners();
     this.makeWidgetDraggable();
-    
+
     // Load user tasks when widget is displayed
     this.loadUserTasks();
   }
@@ -581,7 +581,7 @@ class AutoJobrContentScript {
     // Enhanced close button with better event handling
     const closeBtn = document.querySelector('.autojobr-close');
     const minimizeBtn = document.querySelector('.autojobr-minimize');
-    
+
     if (closeBtn) {
       closeBtn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -595,7 +595,7 @@ class AutoJobrContentScript {
         this.hideWidget();
       });
     }
-    
+
     if (minimizeBtn) {
       minimizeBtn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -617,7 +617,7 @@ class AutoJobrContentScript {
     document.getElementById('auto-submit')?.addEventListener('change', (e) => {
       chrome.storage.sync.set({ autoSubmitMode: e.target.checked });
     });
-    
+
     document.getElementById('auto-resume')?.addEventListener('change', (e) => {
       chrome.storage.sync.set({ autoResumeMode: e.target.checked });
     });
@@ -626,7 +626,7 @@ class AutoJobrContentScript {
   makeWidgetDraggable() {
     const widget = document.querySelector('.autojobr-widget');
     const header = document.querySelector('.autojobr-header');
-    
+
     if (!widget || !header) return;
 
     let isDragging = false;
@@ -705,19 +705,19 @@ class AutoJobrContentScript {
         case 'extractJobDetails':
           this.extractJobDetails().then(sendResponse);
           return true;
-          
+
         case 'detectJobPosting':
           this.detectJobPosting().then(sendResponse);
           return true;
-          
+
         case 'startAutofill':
           this.startSmartAutofill(message.userProfile).then(sendResponse);
           return true;
-          
+
         case 'fillCoverLetter':
           this.fillCoverLetter(message.coverLetter).then(sendResponse);
           return true;
-          
+
         case 'analyzeJob':
           this.analyzeCurrentJob().then(sendResponse);
           return true;
@@ -725,7 +725,7 @@ class AutoJobrContentScript {
         case 'saveCurrentJob':
           this.saveCurrentJob().then(sendResponse);
           return true;
-          
+
         default:
           sendResponse({ success: false, error: 'Unknown action' });
       }
@@ -735,7 +735,7 @@ class AutoJobrContentScript {
   observePageChanges() {
     // Enhanced mutation observer for SPA navigation
     let currentUrl = window.location.href;
-    
+
     const observer = new MutationObserver((mutations) => {
       // URL changes are now handled by setupAutoAnalysis debounced function
       // No need for additional URL change detection here
@@ -777,12 +777,12 @@ class AutoJobrContentScript {
       }
 
       const jobData = await this.extractJobDetails();
-      
+
       if (jobData.success && jobData.jobData.title) {
         this.currentJobData = jobData.jobData;
         // Widget should already be visible from setupAutoAnalysis
         this.updateJobInfo(jobData.jobData);
-        
+
         return { success: true, jobData: jobData.jobData };
       } else {
         // Don't hide widget if job extraction fails - keep it visible
@@ -799,7 +799,7 @@ class AutoJobrContentScript {
     const url = window.location.href.toLowerCase();
     const hostname = window.location.hostname.toLowerCase();
     const pathname = window.location.pathname.toLowerCase();
-    
+
     // Enhanced site-specific job page detection including Indian job sites
     const jobPagePatterns = {
       'linkedin.com': ['/jobs/', '/job/', '/jobs/view/', '/jobs/search/', 'jobs/collections/'],
@@ -848,12 +848,12 @@ class AutoJobrContentScript {
     // Enhanced fallback: check for generic job indicators in URL and DOM
     const genericJobIndicators = ['/job/', '/jobs/', '/career/', '/careers/', '/position/', '/apply/', '/posting/', '/job_', '/job-'];
     const hasJobPattern = genericJobIndicators.some(indicator => url.includes(indicator) || pathname.includes(indicator));
-    
+
     if (hasJobPattern) {
       console.log(`📍 Generic job page detected with pattern: ${pathname}`);
       return true;
     }
-    
+
     // DOM-based detection for dynamic job pages
     const jobIndicatorSelectors = [
       '[data-automation-id*="job"]',
@@ -866,16 +866,16 @@ class AutoJobrContentScript {
       '.apply-button',
       '.job-description'
     ];
-    
+
     const hasJobElements = jobIndicatorSelectors.some(selector => {
       return document.querySelector(selector) !== null;
     });
-    
+
     if (hasJobElements) {
       console.log(`📍 Job page detected via DOM elements`);
       return true;
     }
-    
+
     return false;
   }
 
@@ -883,16 +883,16 @@ class AutoJobrContentScript {
     const jobInfo = document.getElementById('autojobr-job-info');
     const jobTitle = document.getElementById('autojobr-job-title');
     const jobCompany = document.getElementById('autojobr-job-company');
-    
+
     if (jobInfo && jobTitle && jobCompany) {
       // Use extracted data with better fallbacks
       const title = jobData.title || jobData.role || jobData.position || 'Job detected';
       const company = jobData.company || jobData.companyName || jobData.employer || 'Company detected';
-      
+
       jobTitle.textContent = title;
       jobCompany.textContent = company;
       jobInfo.style.display = 'block';
-      
+
       // Store the enhanced data for cover letter generation
       this.currentJobData = {
         ...jobData,
@@ -900,21 +900,21 @@ class AutoJobrContentScript {
         company: company,
         extractedAt: new Date().toISOString()
       };
-      
+
       console.log('Updated job info with extracted data:', { title, company });
     }
   }
 
   showWidget() {
     let widget = document.querySelector('.autojobr-widget');
-    
+
     // If widget doesn't exist, create it
     if (!widget) {
       console.log('🔧 AutoJobr widget not found - creating fresh UI');
       this.injectEnhancedUI();
       widget = document.querySelector('.autojobr-widget');
     }
-    
+
     if (widget) {
       // Ensure widget is visible and properly positioned
       widget.style.display = 'block';
@@ -923,12 +923,12 @@ class AutoJobrContentScript {
       widget.style.right = '20px';
       widget.style.zIndex = '10000';
       widget.style.boxShadow = '0 10px 25px rgba(0,0,0,0.1)';
-      
+
       // Reset any previous transforms
       widget.style.opacity = '0';
       widget.style.transform = 'translateX(100%)';
       widget.style.transition = 'none';
-      
+
       // Trigger reflow and animate in
       widget.offsetHeight;
       setTimeout(() => {
@@ -936,9 +936,9 @@ class AutoJobrContentScript {
         widget.style.opacity = '1';
         widget.style.transform = 'translateX(0)';
       }, 100);
-      
+
       console.log('✅ AutoJobr popup widget displayed automatically');
-      
+
       // Force re-attach event listeners in case they were lost
       this.attachEnhancedUIEventListeners();
     } else {
@@ -952,7 +952,7 @@ class AutoJobrContentScript {
       widget.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
       widget.style.opacity = '0';
       widget.style.transform = 'translateX(100%)';
-      
+
       setTimeout(() => {
         widget.style.display = 'none'; // Hide instead of removing from DOM
       }, 300);
@@ -962,10 +962,10 @@ class AutoJobrContentScript {
   minimizeWidget() {
     const widget = document.querySelector('.autojobr-widget');
     const content = document.querySelector('.autojobr-content');
-    
+
     if (widget && content) {
       const isMinimized = content.style.display === 'none';
-      
+
       if (isMinimized) {
         content.style.display = 'block';
         widget.style.height = 'auto';
@@ -979,7 +979,7 @@ class AutoJobrContentScript {
   async extractJobDetails() {
     try {
       const selectors = this.getJobSelectors();
-      
+
       const jobData = {
         title: this.extractText(selectors.title),
         company: this.extractText(selectors.company),
@@ -1351,7 +1351,7 @@ class AutoJobrContentScript {
 
   extractText(selectors) {
     if (!selectors) return '';
-    
+
     for (const selector of selectors) {
       try {
         const element = document.querySelector(selector);
@@ -1365,7 +1365,7 @@ class AutoJobrContentScript {
         console.warn(`Selector error: ${selector}`, error);
       }
     }
-    
+
     return '';
   }
 
@@ -1419,10 +1419,10 @@ class AutoJobrContentScript {
         totalFieldsFound += result.fieldsFound;
         totalFieldsFilled += result.fieldsFilled;
         fillResults.push(result);
-        
+
         // Update progress
         this.updateProgress(totalFieldsFilled, totalFieldsFound);
-        
+
         // Delay between forms
         await this.delay(500);
       }
@@ -1445,12 +1445,12 @@ class AutoJobrContentScript {
 
       this.fillInProgress = false;
       this.showProgress(false);
-      
+
       // Reset attempts counter after successful completion
       setTimeout(() => {
         this.autoFillAttempts = 0;
       }, 5000);
-      
+
       return {
         success: true,
         fieldsFound: totalFieldsFound,
@@ -1474,7 +1474,7 @@ class AutoJobrContentScript {
 
   findAllForms() {
     const forms = [];
-    
+
     // Standard form detection
     document.querySelectorAll('form').forEach(form => {
       if (this.isRelevantForm(form)) {
@@ -1532,17 +1532,17 @@ class AutoJobrContentScript {
 
     for (const field of fields) {
       if (this.shouldSkipField(field)) continue;
-      
+
       fieldsFound++;
-      
+
       try {
         const filled = await this.fillFieldSmart(field, userProfile, smartMode);
         if (filled) {
           fieldsFilled++;
-          
+
           // Add visual feedback
           this.addFieldFeedback(field, true);
-          
+
           // Human-like delay
           await this.delay(150 + Math.random() * 200);
         }
@@ -1585,7 +1585,7 @@ class AutoJobrContentScript {
     try {
       // Generate unique field identifier to prevent loops
       const fieldId = this.getFieldIdentifier(field);
-      
+
       // Skip if already filled to prevent infinite loops
       if (this.filledFields.has(fieldId)) {
         return false;
@@ -1662,19 +1662,20 @@ class AutoJobrContentScript {
       title: field.title?.toLowerCase() || '',
       required: field.required || false,
       maxLength: field.maxLength || null,
-      pattern: field.pattern || null
+      pattern: field.pattern || null,
+      element: field // Store the element itself for context
     };
 
     // Find associated label with multiple strategies
     let label = field.closest('label') || 
                 document.querySelector(`label[for="${field.id}"]`);
-    
+
     if (!label) {
       // Look for nearby text
       const parent = field.parentElement;
       const siblings = parent ? Array.from(parent.children) : [];
       const fieldIndex = siblings.indexOf(field);
-      
+
       // Check previous siblings
       for (let i = fieldIndex - 1; i >= 0; i--) {
         const sibling = siblings[i];
@@ -1684,7 +1685,7 @@ class AutoJobrContentScript {
         }
       }
     }
-    
+
     if (label) {
       info.label = (label.innerText || label.textContent || '').toLowerCase();
     }
@@ -1700,7 +1701,7 @@ class AutoJobrContentScript {
 
   calculateFieldConfidence(fieldInfo) {
     let confidence = 0;
-    
+
     // Higher confidence for specific identifiers
     if (fieldInfo.name) confidence += 30;
     if (fieldInfo.id) confidence += 25;
@@ -1722,17 +1723,17 @@ class AutoJobrContentScript {
       for (const pattern of mapping.patterns) {
         if (fieldInfo.combined.includes(pattern)) {
           let score = mapping.priority || 1;
-          
+
           // Boost score for exact matches
           if (fieldInfo.name === pattern || fieldInfo.id === pattern) {
             score += 20;
           }
-          
+
           // Boost score for type compatibility
           if (mapping.types.includes(fieldInfo.type)) {
             score += 10;
           }
-          
+
           // Debug: Log field matching for name fields
           if (profileKey === 'firstName' || profileKey === 'lastName' || profileKey === 'fullName') {
             console.log(`AutoJobr Extension - Name field match:`, {
@@ -1743,7 +1744,7 @@ class AutoJobrContentScript {
               userProfileValue: this.getProfileValueSmart(profileKey, userProfile, fieldInfo)
             });
           }
-          
+
           // Boost score for required fields
           if (fieldInfo.required) {
             score += 5;
@@ -1792,20 +1793,20 @@ class AutoJobrContentScript {
       skills: Array.isArray(profile.skills) ? profile.skills.join(', ') : (profile.skills || ''),
       salary: profile.desiredSalaryMin ? `${profile.desiredSalaryMin}-${profile.desiredSalaryMax || profile.desiredSalaryMin}` : '',
       description: profile.summary || '',
-      
+
       // New Personal Details Fields
       gender: this.mapValueWithOptions('gender', profile.gender, fieldInfo),
       veteranStatus: this.mapValueWithOptions('veteranStatus', profile.veteranStatus, fieldInfo),
       twitter: profile.twitterUrl || '',
       personalWebsite: profile.personalWebsiteUrl || '',
-      
+
       // Work Screening Questions (Boolean responses)
       currentlyEmployed: this.mapBooleanValue(profile.currentlyEmployed, fieldInfo),
       canContactEmployer: this.mapBooleanValue(profile.canContactCurrentEmployer, fieldInfo), 
       willingToWorkOvertime: this.mapBooleanValue(profile.willingToWorkOvertime, fieldInfo),
       willingToTravel: this.mapBooleanValue(profile.willingToTravel, fieldInfo),
       travelPercentage: profile.maxTravelPercentage ? `${profile.maxTravelPercentage}%` : '',
-      
+
       // Application-Specific Questions
       howDidYouHear: this.mapValueWithOptions('howDidYouHear', profile.howDidYouHearAboutUs, fieldInfo),
       whyInterestedRole: profile.whyInterestedInRole || '',
@@ -1813,7 +1814,7 @@ class AutoJobrContentScript {
       careerGoals: profile.careerGoals || '',
       startDate: profile.preferredStartDate || profile.earliestStartDate || 'Flexible',
       gpa: profile.gpa || '',
-      
+
       // Professional References (use first reference if available)
       referenceName: profile.references?.[0]?.fullName || '',
       referenceTitle: profile.references?.[0]?.jobTitle || '',
@@ -1829,10 +1830,10 @@ class AutoJobrContentScript {
   // Enhanced value mapping for fields with predefined options
   mapValueWithOptions(fieldType, userValue, fieldInfo) {
     if (!userValue) return null;
-    
+
     const mapping = this.fieldMappings[fieldType];
     if (!mapping || !mapping.values) return userValue;
-    
+
     // Find matching value from our predefined options
     for (const [ourValue, possibleMatches] of Object.entries(mapping.values)) {
       if (ourValue === userValue || possibleMatches.includes(userValue.toLowerCase())) {
@@ -1843,14 +1844,14 @@ class AutoJobrContentScript {
         return ourValue;
       }
     }
-    
+
     return userValue;
   }
 
   // Map boolean values to appropriate yes/no responses based on field context
   mapBooleanValue(boolValue, fieldInfo) {
     if (boolValue === null || boolValue === undefined) return null;
-    
+
     if (fieldInfo.type === 'radio' || fieldInfo.type === 'select-one') {
       // Try to find actual option values in the form
       const form = fieldInfo.element?.closest('form');
@@ -1867,7 +1868,7 @@ class AutoJobrContentScript {
         }
       }
     }
-    
+
     return boolValue ? 'yes' : 'no';
   }
 
@@ -1875,7 +1876,7 @@ class AutoJobrContentScript {
   findBestOptionMatch(possibleMatches, fieldInfo) {
     const form = fieldInfo.element?.closest('form');
     if (!form) return possibleMatches[0]; // Return first match if no form context
-    
+
     const options = form.querySelectorAll(`input[name="${fieldInfo.name}"], option`);
     for (const option of options) {
       const optionText = (option.value || option.textContent || '').toLowerCase();
@@ -1885,16 +1886,16 @@ class AutoJobrContentScript {
         }
       }
     }
-    
+
     return possibleMatches[0]; // Fallback to first match
   }
 
   formatPhone(phone, fieldInfo) {
     if (!phone) return null;
-    
+
     // Remove all non-digits
     const digits = phone.replace(/\D/g, '');
-    
+
     // Format based on field pattern or maxLength
     if (fieldInfo.pattern?.includes('(') || fieldInfo.maxLength === 14) {
       return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6,10)}`;
@@ -1907,7 +1908,7 @@ class AutoJobrContentScript {
 
   formatExperience(years, fieldInfo) {
     if (!years) return null;
-    
+
     if (fieldInfo.type === 'select-one') {
       // Return appropriate range for select fields
       if (years < 1) return '0-1 years';
@@ -1916,13 +1917,13 @@ class AutoJobrContentScript {
       if (years < 10) return '5-10 years';
       return '10+ years';
     }
-    
+
     return years.toString();
   }
 
   formatWorkAuth(workAuth, fieldInfo) {
     if (!workAuth) return 'Yes'; // Default assumption for US-based applications
-    
+
     if (fieldInfo.type === 'select-one') {
       // Handle various work authorization values from database
       if (workAuth === 'authorized' || workAuth === 'citizen' || workAuth === 'permanent_resident') {
@@ -1932,13 +1933,13 @@ class AutoJobrContentScript {
       }
       return workAuth === 'authorized' ? 'Yes' : 'No';
     }
-    
+
     return workAuth;
   }
 
   formatVisa(visaStatus, fieldInfo) {
     if (!visaStatus) return 'No'; // Default assumption
-    
+
     if (fieldInfo.type === 'select-one') {
       // Handle various visa status values from database
       if (visaStatus === 'visa_required' || visaStatus === 'required') {
@@ -1948,7 +1949,7 @@ class AutoJobrContentScript {
       }
       return visaStatus === 'required' ? 'Yes' : 'No';
     }
-    
+
     return visaStatus;
   }
 
@@ -1966,7 +1967,7 @@ class AutoJobrContentScript {
   getFallbackValue(fieldInfo, userProfile) {
     // Smart fallback based on common patterns
     const combined = fieldInfo.combined;
-    
+
     if (combined.includes('name') && !combined.includes('company')) {
       if (combined.includes('first') || combined.includes('given')) {
         return userProfile.firstName || userProfile.user?.firstName || (userProfile.fullName || '').split(' ')[0] || '';
@@ -1976,7 +1977,7 @@ class AutoJobrContentScript {
         return userProfile.fullName || `${userProfile.firstName || userProfile.user?.firstName || ''} ${userProfile.lastName || userProfile.user?.lastName || ''}`.trim();
       }
     }
-    
+
     return null;
   }
 
@@ -1994,16 +1995,16 @@ class AutoJobrContentScript {
       // Clear field more efficiently
       field.value = '';
       field.dispatchEvent(new Event('input', { bubbles: true }));
-      
+
       // Use faster typing for better performance
       const chunkSize = Math.max(1, Math.floor(value.length / 10));
       for (let i = 0; i < value.length; i += chunkSize) {
         const chunk = value.substring(i, i + chunkSize);
         field.value = value.substring(0, i + chunk.length);
-        
+
         // Dispatch events for framework compatibility
         field.dispatchEvent(new Event('input', { bubbles: true }));
-        
+
         // Shorter delay for better UX
         await this.delay(50);
       }
@@ -2011,7 +2012,7 @@ class AutoJobrContentScript {
       // Final events
       field.dispatchEvent(new Event('change', { bubbles: true }));
       field.dispatchEvent(new Event('blur', { bubbles: true }));
-      
+
       return true;
     } catch (error) {
       console.error('Text field fill error:', error);
@@ -2022,7 +2023,7 @@ class AutoJobrContentScript {
   async fillSelectFieldSmart(field, value) {
     try {
       const options = Array.from(field.options);
-      
+
       // Try exact match first
       let option = options.find(opt => 
         opt.text.toLowerCase() === value.toLowerCase() ||
@@ -2058,16 +2059,16 @@ class AutoJobrContentScript {
 
   findFuzzyMatch(options, value) {
     const normalizedValue = value.toLowerCase().replace(/[^a-z0-9]/g, '');
-    
+
     for (const option of options) {
       const normalizedOption = option.text.toLowerCase().replace(/[^a-z0-9]/g, '');
-      
+
       // Check for common abbreviations and variations
       if (this.isFuzzyMatch(normalizedValue, normalizedOption)) {
         return option;
       }
     }
-    
+
     return null;
   }
 
@@ -2075,14 +2076,14 @@ class AutoJobrContentScript {
     // Simple fuzzy matching logic
     const minLength = Math.min(value1.length, value2.length);
     const maxLength = Math.max(value1.length, value2.length);
-    
+
     if (minLength < 3) return false;
-    
+
     // Check if one contains the other
     if (value1.includes(value2) || value2.includes(value1)) {
       return true;
     }
-    
+
     // Check similarity ratio
     let matches = 0;
     for (let i = 0; i < minLength; i++) {
@@ -2090,7 +2091,7 @@ class AutoJobrContentScript {
         matches++;
       }
     }
-    
+
     return (matches / maxLength) > 0.7;
   }
 
@@ -2099,11 +2100,11 @@ class AutoJobrContentScript {
       // For cover letters and long text, use a different approach
       field.focus();
       await this.delay(100);
-      
+
       // Clear existing content
       field.value = '';
       field.dispatchEvent(new Event('input', { bubbles: true }));
-      
+
       // Insert text in chunks for better performance
       const chunkSize = 50;
       for (let i = 0; i < value.length; i += chunkSize) {
@@ -2112,10 +2113,10 @@ class AutoJobrContentScript {
         field.dispatchEvent(new Event('input', { bubbles: true }));
         await this.delay(100);
       }
-      
+
       field.dispatchEvent(new Event('change', { bubbles: true }));
       field.dispatchEvent(new Event('blur', { bubbles: true }));
-      
+
       return true;
     } catch (error) {
       console.error('Textarea fill error:', error);
@@ -2126,7 +2127,7 @@ class AutoJobrContentScript {
   async fillChoiceFieldSmart(field, value) {
     try {
       const shouldCheck = this.interpretBooleanValue(value);
-      
+
       if (field.type === 'radio') {
         // For radio buttons, find the appropriate option
         const radioGroup = document.querySelectorAll(`input[name="${field.name}"]`);
@@ -2166,7 +2167,7 @@ class AutoJobrContentScript {
   shouldSelectRadio(radioInfo, value) {
     const combined = radioInfo.combined;
     const valueLower = value.toLowerCase();
-    
+
     // Match based on value content
     if (valueLower === 'yes' && (combined.includes('yes') || combined.includes('authorized'))) {
       return true;
@@ -2174,7 +2175,7 @@ class AutoJobrContentScript {
     if (valueLower === 'no' && (combined.includes('no') || combined.includes('not authorized'))) {
       return true;
     }
-    
+
     return combined.includes(valueLower);
   }
 
@@ -2182,7 +2183,7 @@ class AutoJobrContentScript {
     try {
       // Attempt to inject resume from server
       console.log('File field detected, attempting resume upload:', field);
-      
+
       // Get user's active resume from server
       const apiUrl = await this.getApiUrl();
       const response = await fetch(`${apiUrl}/api/resumes/active`, {
@@ -2193,20 +2194,20 @@ class AutoJobrContentScript {
       if (response.ok) {
         const resumeBlob = await response.blob();
         const fileName = response.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || 'resume.pdf';
-        
+
         // Create a File object from the blob
         const resumeFile = new File([resumeBlob], fileName, { type: resumeBlob.type });
-        
+
         // Create a new DataTransfer to simulate file selection
         const dataTransfer = new DataTransfer();
         dataTransfer.items.add(resumeFile);
-        
+
         // Set the files property
         field.files = dataTransfer.files;
-        
+
         // Trigger change event
         field.dispatchEvent(new Event('change', { bubbles: true }));
-        
+
         console.log('✅ Resume uploaded successfully:', fileName);
         return true;
       } else {
@@ -2343,13 +2344,13 @@ class AutoJobrContentScript {
     // Detect next page and submit buttons
     const nextButtons = this.findNextPageButtons();
     const submitButtons = this.findSubmitButtons();
-    
+
     this.formState.hasNextPage = nextButtons.length > 0;
     this.formState.hasSubmit = submitButtons.length > 0;
-    
+
     // Update widget UI to show navigation buttons
     this.updateNavigationUI(nextButtons, submitButtons);
-    
+
     console.log('Form navigation detected:', {
       nextButtons: nextButtons.length,
       submitButtons: submitButtons.length,
@@ -2366,24 +2367,24 @@ class AutoJobrContentScript {
       'input[type="button"][value*="Continue"]',
       'input[type="submit"][value*="Next"]',
       'input[type="submit"][value*="Continue"]',
-      
+
       // Site-specific selectors
       ...this.smartSelectors.nextButtons || [],
-      
+
       // Common classes and IDs
       '.next-button', '.continue-button', '.btn-next', '.btn-continue',
       '#next-button', '#continue-button', '#btn-next', '#btn-continue',
-      
+
       // Data attributes
       '[data-automation-id*="next"]', '[data-automation-id*="continue"]',
       '[data-test*="next"]', '[data-test*="continue"]',
-      
+
       // Text-based detection
       'button:not([type="submit"])', 'input[type="button"]'
     ];
 
     const buttons = [];
-    
+
     nextButtonSelectors.forEach(selector => {
       try {
         document.querySelectorAll(selector).forEach(button => {
@@ -2404,23 +2405,23 @@ class AutoJobrContentScript {
       // Standard submit buttons
       'button[type="submit"]',
       'input[type="submit"]',
-      
+
       // Site-specific selectors
       ...this.smartSelectors.submitButtons || [],
-      
+
       // Common submit button patterns
       'button:contains("Submit")', 'button:contains("Apply")',
       'button:contains("Send Application")', 'button:contains("Complete Application")',
       '.submit-button', '.apply-button', '.btn-submit', '.btn-apply',
       '#submit-button', '#apply-button', '#btn-submit', '#btn-apply',
-      
+
       // Data attributes
       '[data-automation-id*="submit"]', '[data-automation-id*="apply"]',
       '[data-test*="submit"]', '[data-test*="apply"]'
     ];
 
     const buttons = [];
-    
+
     submitButtonSelectors.forEach(selector => {
       try {
         document.querySelectorAll(selector).forEach(button => {
@@ -2440,7 +2441,7 @@ class AutoJobrContentScript {
     const text = (button.textContent || button.value || '').toLowerCase();
     const nextKeywords = ['next', 'continue', 'proceed', 'forward', 'step', '→', '»'];
     const submitKeywords = ['submit', 'apply', 'send', 'complete', 'finish'];
-    
+
     // Must contain next keywords but not submit keywords
     return nextKeywords.some(keyword => text.includes(keyword)) && 
            !submitKeywords.some(keyword => text.includes(keyword)) &&
@@ -2450,7 +2451,7 @@ class AutoJobrContentScript {
   isSubmitButton(button) {
     const text = (button.textContent || button.value || '').toLowerCase();
     const submitKeywords = ['submit', 'apply', 'send application', 'complete application', 'finish application', 'send my application'];
-    
+
     return submitKeywords.some(keyword => text.includes(keyword)) && !button.disabled;
   }
 
@@ -2511,12 +2512,12 @@ class AutoJobrContentScript {
       if (bestButton) {
         bestButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
         await this.delay(500);
-        
+
         bestButton.click();
         this.formState.currentPage++;
-        
+
         this.updateStatus('✅ Moved to next page', 'success');
-        
+
         // Wait for page to load then re-detect navigation
         setTimeout(() => {
           this.detectFormNavigation();
@@ -2544,11 +2545,11 @@ class AutoJobrContentScript {
       if (bestButton) {
         bestButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
         await this.delay(500);
-        
+
         bestButton.click();
-        
+
         this.updateStatus('✅ Application submitted!', 'success');
-        
+
         // Track application submission
         this.trackApplicationSubmission();
       }
@@ -2684,7 +2685,7 @@ class AutoJobrContentScript {
       if (result.success) {
         await navigator.clipboard.writeText(result.coverLetter);
         this.showNotification('✅ Cover letter generated and copied!', 'success');
-        
+
         // Try to fill cover letter field
         await this.fillCoverLetter(result.coverLetter);
       } else {
@@ -2699,15 +2700,15 @@ class AutoJobrContentScript {
   async fillCoverLetter(coverLetter) {
     try {
       const textAreas = document.querySelectorAll('textarea');
-      
+
       for (const textarea of textAreas) {
         const fieldInfo = this.analyzeFieldAdvanced(textarea);
-        
+
         if (fieldInfo.combined.includes('cover') || 
             fieldInfo.combined.includes('letter') || 
             fieldInfo.combined.includes('motivation') ||
             fieldInfo.combined.includes('message')) {
-          
+
           await this.fillTextAreaSmart(textarea, coverLetter);
           return { success: true };
         }
@@ -2721,11 +2722,11 @@ class AutoJobrContentScript {
 
   async analyzeCurrentJob() {
     const jobData = await this.extractJobDetails();
-    
+
     if (jobData.success) {
       // Update UI with job info
       this.updateJobInfo(jobData.jobData);
-      
+
       // Send to background for analysis - background script handles authentication
       try {
         const result = await chrome.runtime.sendMessage({
@@ -2747,7 +2748,7 @@ class AutoJobrContentScript {
         return { success: false, error: error.message };
       }
     }
-    
+
     return jobData;
   }
 
@@ -2757,17 +2758,17 @@ class AutoJobrContentScript {
       // Use the exact same score from server response without any local modifications
       const score = analysis.matchScore || 0;
       console.log('Content script updating job match with server score:', score);
-      
+
       const level = score >= 80 ? 'Excellent' : 
                    score >= 60 ? 'Good' : 
                    score >= 40 ? 'Fair' : 'Poor';
-      
+
       matchEl.innerHTML = `
         <div class="match-score ${level.toLowerCase()}">
           ${score}% Match (${level})
         </div>
       `;
-      
+
       console.log('Updated automatic popup with match score:', score, level);
     }
   }
@@ -2782,7 +2783,7 @@ class AutoJobrContentScript {
       if (this.cachedProfile && Date.now() - this.cachedProfile.timestamp < 300000) { // 5 minutes
         return this.cachedProfile.data;
       }
-      
+
       const result = await chrome.runtime.sendMessage({
         action: 'getUserProfile'
       });
@@ -2794,7 +2795,7 @@ class AutoJobrContentScript {
           fullName: result.profile.fullName,
           skillsCount: result.profile.skills?.length || 0
         });
-        
+
         // Cache successful profile
         this.cachedProfile = { data: result.profile, timestamp: Date.now() };
         return result.profile;
@@ -2835,14 +2836,14 @@ class AutoJobrContentScript {
       max-width: 300px;
       word-wrap: break-word;
     `;
-    
+
     document.body.appendChild(notification);
-    
+
     // Animate in
     setTimeout(() => {
       notification.style.transform = 'translateX(0)';
     }, 100);
-    
+
     // Remove after 4 seconds
     setTimeout(() => {
       notification.style.transform = 'translateX(100%)';
@@ -2857,7 +2858,7 @@ class AutoJobrContentScript {
   // Application tracking system - Only tracks actual form submissions
   async setupApplicationTracking() {
     console.log('Setting up application tracking for form submissions only...');
-    
+
     // Only track actual form submissions - not page visits
     document.addEventListener('submit', async (e) => {
       if (this.isJobApplicationForm(e.target)) {
@@ -2870,7 +2871,7 @@ class AutoJobrContentScript {
     // Track confirmation pages only when navigating FROM a form submission
     let lastFormSubmissionTime = 0;
     let currentUrl = window.location.href;
-    
+
     // Enhanced form submission tracking
     document.addEventListener('submit', (e) => {
       if (this.isJobApplicationForm(e.target)) {
@@ -2883,7 +2884,7 @@ class AutoJobrContentScript {
     setInterval(() => {
       if (window.location.href !== currentUrl) {
         currentUrl = window.location.href;
-        
+
         // Only check for confirmation within 30 seconds of form submission
         if (Date.now() - lastFormSubmissionTime < 30000 && lastFormSubmissionTime > 0) {
           this.checkForSubmissionConfirmation();
@@ -2894,10 +2895,10 @@ class AutoJobrContentScript {
 
   isJobApplicationForm(form) {
     if (!form || form.tagName !== 'FORM') return false;
-    
+
     const formText = form.textContent.toLowerCase();
     const actionUrl = form.action?.toLowerCase() || '';
-    
+
     return formText.includes('apply') || 
            formText.includes('application') || 
            formText.includes('submit') ||
@@ -2907,17 +2908,17 @@ class AutoJobrContentScript {
 
   isSubmissionButton(button) {
     if (!button) return false;
-    
+
     const buttonText = button.textContent?.toLowerCase() || '';
     const buttonValue = button.value?.toLowerCase() || '';
     const buttonClass = button.className?.toLowerCase() || '';
     const buttonId = button.id?.toLowerCase() || '';
-    
+
     const submitKeywords = [
       'submit application', 'apply now', 'submit', 'apply', 'send application',
       'continue to apply', 'review and submit', 'complete application'
     ];
-    
+
     return submitKeywords.some(keyword => 
       buttonText.includes(keyword) || 
       buttonValue.includes(keyword) ||
@@ -2935,10 +2936,10 @@ class AutoJobrContentScript {
       }
 
       const jobData = await this.extractJobDetails();
-      
+
       if (jobData.success && jobData.jobData && jobData.jobData.title) {
         console.log('Tracking confirmed application submission:', jobData.jobData);
-        
+
         const response = await chrome.runtime.sendMessage({
           action: 'trackApplication',
           data: {
@@ -2977,13 +2978,13 @@ class AutoJobrContentScript {
 
     const pageText = document.body.textContent.toLowerCase();
     const currentUrl = window.location.href.toLowerCase();
-    
+
     // More strict confirmation detection - must have strong confirmation text
     const hasStrongConfirmation = confirmationPatterns.some(pattern => pattern.test(pageText));
     const hasConfirmationUrl = currentUrl.includes('confirmation') || 
                                currentUrl.includes('thank-you') ||
                                currentUrl.includes('application-submitted');
-    
+
     // Only track if we have BOTH strong text confirmation AND confirmation URL
     if (hasStrongConfirmation && hasConfirmationUrl) {
       console.log('Strong confirmation detected - tracking application');
@@ -3087,61 +3088,61 @@ class AutoJobrContentScript {
   isJobApplicationPage() {
     const url = window.location.href.toLowerCase();
     const hostname = window.location.hostname.toLowerCase();
-    
+
     // LinkedIn specific detection - avoid feeds, home, search pages
     if (hostname.includes('linkedin.com')) {
       // Must be jobs page AND have easy apply or application form
       const isJobsPage = url.includes('/jobs/view/') || url.includes('/jobs/collections/');
       const hasEasyApply = document.querySelector('[data-test-modal="jobs-easy-apply-modal"], .jobs-easy-apply-content, .jobs-apply-button');
       const isFeedPage = url.includes('/feed/') || url.includes('/mynetwork/') || url === 'https://www.linkedin.com/';
-      
+
       return isJobsPage && hasEasyApply && !isFeedPage;
     }
-    
+
     // Workday specific detection
     if (hostname.includes('myworkdayjobs.com')) {
       return url.includes('/job/') && document.querySelector('form[data-automation-id="jobApplicationForm"], .css-1x9zq2f');
     }
-    
+
     // Indeed specific detection
     if (hostname.includes('indeed.com')) {
       return url.includes('/viewjob') && document.querySelector('.indeed-apply-button, .ia-IndeedApplyButton');
     }
-    
+
     // Generic detection for other sites
     const pageText = document.body.textContent.toLowerCase();
     const hasStrictJobForm = document.querySelectorAll('input[type="file"][accept*="pdf"], textarea[name*="cover"], input[name*="resume"]').length > 0;
     const hasApplyButton = document.querySelector('[class*="apply"], [id*="apply"], button[data-test*="apply"]');
-    
+
     return hasStrictJobForm && hasApplyButton;
   }
 
   // Setup automatic job analysis when new pages load - prevent duplicates
   setupAutoAnalysis() {
     console.log('🎯 Setting up automatic job analysis with debouncing');
-    
+
     // Debounced analysis function to prevent multiple calls
     this.debouncedAnalysis = this.debounce(() => {
       const currentUrl = window.location.href;
-      
+
       // Skip if already analyzing this URL
       if (this.analysisInProgress || this.lastAnalysisUrl === currentUrl) {
         console.log('🔄 Skipping duplicate analysis for:', currentUrl);
         return;
       }
-      
+
       this.lastAnalysisUrl = currentUrl;
       this.analysisInProgress = true;
-      
+
       // Clear any cached job data first
       this.currentJobData = null;
-      
+
       // Check if this is a job page
       if (this.isJobPage()) {
         console.log('📍 Job page detected - showing widget immediately:', currentUrl);
         // Show widget immediately on job pages
         this.showWidget();
-        
+
         // Then start job detection and analysis
         this.detectJobPosting().then((result) => {
           if (result && result.success) {
@@ -3167,12 +3168,12 @@ class AutoJobrContentScript {
         this.analysisInProgress = false;
       }
     }, 2000); // 2 second debounce
-    
+
     // Initial analysis
     setTimeout(() => {
       this.debouncedAnalysis();
     }, 1500);
-    
+
     // Watch for URL changes (SPA navigation)
     let currentUrl = window.location.href;
     const urlObserver = new MutationObserver(() => {
@@ -3182,7 +3183,7 @@ class AutoJobrContentScript {
         this.debouncedAnalysis();
       }
     });
-    
+
     urlObserver.observe(document.body, { childList: true, subtree: true });
     this.observers.push(urlObserver);
   }
@@ -3198,7 +3199,7 @@ class AutoJobrContentScript {
   async performAutoAnalysis() {
     try {
       console.log('🎯 Starting fresh automatic job analysis');
-      
+
       // Always extract fresh job data
       const jobData = this.extractJobData();
       if (!jobData || !jobData.title) {
@@ -3218,7 +3219,7 @@ class AutoJobrContentScript {
         console.log('User not authenticated - skipping auto analysis (cached)');
         return;
       }
-      
+
       const profile = await this.getUserProfile();
       if (!profile || !profile.authenticated) {
         console.log('User not authenticated - skipping auto analysis');
@@ -3235,7 +3236,7 @@ class AutoJobrContentScript {
       const analysis = await this.analyzeJobWithAPI(jobData, profile, true); // Pass true for automatic
       if (analysis) {
         console.log('✅ Fresh analysis completed - match score:', analysis.matchScore);
-        
+
         // Update floating button with fresh analysis results
         this.updateFloatingButtonWithAnalysis(analysis);
         console.log('Updated automatic popup with fresh analysis:', analysis.matchScore);
@@ -3248,7 +3249,7 @@ class AutoJobrContentScript {
   extractJobData() {
     const url = window.location.href;
     const hostname = window.location.hostname.toLowerCase();
-    
+
     let jobData = {
       title: '',
       company: '',
@@ -3265,7 +3266,7 @@ class AutoJobrContentScript {
       jobData.location = document.querySelector('.job-details-jobs-unified-top-card__bullet, .jobs-unified-top-card__bullet, .topcard__flavor--bullet, .job-search-card__location')?.textContent?.trim() || '';
       jobData.description = document.querySelector('.jobs-description__content, .jobs-description-content__text, .description__text, .show-more-less-html__markup')?.textContent?.trim() || '';
     }
-    
+
     // Workday job extraction
     else if (hostname.includes('myworkdayjobs.com')) {
       jobData.title = document.querySelector('[data-automation-id="jobPostingHeader"], .css-1id67r3')?.textContent?.trim() || '';
@@ -3273,7 +3274,7 @@ class AutoJobrContentScript {
       jobData.location = document.querySelector('[data-automation-id="jobPostingLocation"]')?.textContent?.trim() || '';
       jobData.description = document.querySelector('[data-automation-id="jobPostingDescription"]')?.textContent?.trim() || '';
     }
-    
+
     // Indeed job extraction
     else if (hostname.includes('indeed.com')) {
       jobData.title = document.querySelector('[data-jk] h1, .jobsearch-JobInfoHeader-title')?.textContent?.trim() || '';
@@ -3281,7 +3282,7 @@ class AutoJobrContentScript {
       jobData.location = document.querySelector('[data-testid="job-location"]')?.textContent?.trim() || '';
       jobData.description = document.querySelector('#jobDescriptionText, .jobsearch-jobDescriptionText')?.textContent?.trim() || '';
     }
-    
+
     // Generic extraction for other sites
     else {
       jobData.title = document.querySelector('h1, .job-title, [class*="title"]')?.textContent?.trim() || '';
@@ -3332,7 +3333,7 @@ class AutoJobrContentScript {
 
     const score = analysis.matchScore || analysis.analysis?.matchScore || 0;
     const scoreText = `${Math.round(score)}%`;
-    
+
     // Update button with score and click handler to open extension popup
     button.innerHTML = `
       <div style="
@@ -3390,7 +3391,7 @@ class AutoJobrContentScript {
           `;
           notification.textContent = 'Click the AutoJobr extension icon in your toolbar to view details';
           document.body.appendChild(notification);
-          
+
           // Remove notification after 3 seconds
           setTimeout(() => notification.remove(), 3000);
         }
@@ -3423,34 +3424,34 @@ class AutoJobrContentScript {
     try {
       const status = document.getElementById('autojobr-status');
       this.updateStatus('🔄 Fetching your resume...', 'loading');
-      
+
       // Get user's active resume from server
       const apiUrl = await this.getApiUrl();
       const response = await fetch(`${apiUrl}/api/resumes/active`, {
         method: 'GET',
         credentials: 'include'
       });
-      
+
       if (!response.ok) {
         this.updateStatus('❌ No resume found. Please upload one in your dashboard.', 'error');
         return;
       }
-      
+
       // Get the resume as blob
       const resumeBlob = await response.blob();
       const fileName = response.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || 'resume.pdf';
-      
+
       // Find file input fields on the page
       const fileInputs = this.findResumeFields();
-      
+
       if (fileInputs.length === 0) {
         this.updateStatus('❌ No file upload fields found on this page.', 'error');
         return;
       }
-      
+
       // Create File object from blob
       const resumeFile = new File([resumeBlob], fileName, { type: resumeBlob.type });
-      
+
       // Upload to all found file inputs
       let uploadCount = 0;
       for (const input of fileInputs) {
@@ -3458,7 +3459,7 @@ class AutoJobrContentScript {
           const dataTransfer = new DataTransfer();
           dataTransfer.items.add(resumeFile);
           input.files = dataTransfer.files;
-          
+
           // Trigger change event
           input.dispatchEvent(new Event('change', { bubbles: true }));
           uploadCount++;
@@ -3466,26 +3467,26 @@ class AutoJobrContentScript {
           console.error('Failed to upload to input:', error);
         }
       }
-      
+
       if (uploadCount > 0) {
         this.updateStatus(`✅ Resume uploaded to ${uploadCount} field(s)`, 'success');
       } else {
         this.updateStatus('❌ Failed to upload resume to any fields', 'error');
       }
-      
+
     } catch (error) {
       console.error('Resume upload error:', error);
       this.updateStatus('❌ Resume upload failed', 'error');
     }
   }
-  
+
   // Find resume/file upload fields
   findResumeFields() {
     const fileInputs = [];
-    
+
     // Look for file inputs with resume-related attributes
     const inputs = document.querySelectorAll('input[type="file"]');
-    
+
     inputs.forEach(input => {
       const inputText = (
         input.name + ' ' + 
@@ -3495,22 +3496,22 @@ class AutoJobrContentScript {
         (input.getAttribute('aria-label') || '') + ' ' +
         (input.getAttribute('data-automation-id') || '')
       ).toLowerCase();
-      
+
       const resumeKeywords = ['resume', 'cv', 'curriculum', 'document', 'file', 'attachment', 'upload'];
-      
+
       if (resumeKeywords.some(keyword => inputText.includes(keyword))) {
         fileInputs.push(input);
       }
     });
-    
+
     // If no specific resume fields found, return all file inputs
     if (fileInputs.length === 0) {
       return Array.from(inputs);
     }
-    
+
     return fileInputs;
   }
-  
+
   // Load and display user tasks
   async loadUserTasks() {
     try {
@@ -3523,7 +3524,7 @@ class AutoJobrContentScript {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!response.ok) {
         if (response.status === 401) {
           console.log('User not authenticated - skipping task load');
@@ -3532,13 +3533,13 @@ class AutoJobrContentScript {
         console.error('Task API error:', response.status, response.statusText);
         return;
       }
-      
+
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         console.error('Expected JSON response but got:', contentType);
         return;
       }
-      
+
       const data = await response.json();
       if (data.success && data.reminders && data.reminders.length > 0) {
         this.displayTasks(data.reminders);
@@ -3547,20 +3548,20 @@ class AutoJobrContentScript {
       console.error('Failed to load tasks:', error);
     }
   }
-  
+
   // Display tasks in the widget
   displayTasks(reminders) {
     const tasksSection = document.getElementById('autojobr-tasks');
     const tasksCount = document.getElementById('tasks-count');
     const tasksList = document.getElementById('tasks-list');
-    
+
     if (!tasksSection || !tasksCount || !tasksList) return;
-    
+
     tasksCount.textContent = reminders.length;
     tasksSection.style.display = 'block';
-    
+
     tasksList.innerHTML = '';
-    
+
     reminders.forEach(reminder => {
       const taskElement = document.createElement('div');
       taskElement.className = 'task-item';
@@ -3574,22 +3575,22 @@ class AutoJobrContentScript {
           <button class="task-snooze" data-reminder-id="${reminder.reminderId}" title="Snooze 15 min">💤</button>
         </div>
       `;
-      
+
       // Add event listeners
       taskElement.querySelector('.task-complete')?.addEventListener('click', (e) => {
         this.markTaskComplete(reminder.taskId);
         taskElement.remove();
       });
-      
+
       taskElement.querySelector('.task-snooze')?.addEventListener('click', (e) => {
         this.snoozeReminder(reminder.reminderId);
         taskElement.remove();
       });
-      
+
       tasksList.appendChild(taskElement);
     });
   }
-  
+
   // Mark task as complete
   async markTaskComplete(taskId) {
     try {
@@ -3603,7 +3604,7 @@ class AutoJobrContentScript {
         credentials: 'include',
         body: JSON.stringify({ status: 'completed' })
       });
-      
+
       if (response.ok) {
         this.updateTaskCount(-1);
       } else {
@@ -3613,7 +3614,7 @@ class AutoJobrContentScript {
       console.error('Failed to mark task complete:', error);
     }
   }
-  
+
   // Snooze reminder
   async snoozeReminder(reminderId) {
     try {
@@ -3627,7 +3628,7 @@ class AutoJobrContentScript {
         credentials: 'include',
         body: JSON.stringify({ snoozeMinutes: 15 })
       });
-      
+
       if (response.ok) {
         this.updateTaskCount(-1);
       } else {
@@ -3637,7 +3638,7 @@ class AutoJobrContentScript {
       console.error('Failed to snooze reminder:', error);
     }
   }
-  
+
   // Update task count
   updateTaskCount(delta) {
     const tasksCount = document.getElementById('tasks-count');
@@ -3645,20 +3646,20 @@ class AutoJobrContentScript {
       const current = parseInt(tasksCount.textContent) || 0;
       const newCount = Math.max(0, current + delta);
       tasksCount.textContent = newCount;
-      
+
       if (newCount === 0) {
         document.getElementById('autojobr-tasks').style.display = 'none';
       }
     }
   }
-  
+
   // Format relative time
   formatRelativeTime(dateTimeString) {
     const date = new Date(dateTimeString);
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
-    
+
     if (diffMins < 1) return 'now';
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
@@ -3669,7 +3670,7 @@ class AutoJobrContentScript {
   destroy() {
     this.observers.forEach(observer => observer.disconnect());
     this.observers = [];
-    
+
     const overlay = document.getElementById('autojobr-overlay');
     const button = document.getElementById('autojobr-floating-button');
     if (overlay) overlay.remove();

@@ -546,7 +546,7 @@ class AutoJobrPopup {
   }
 
   displayScoreExplanations(analysis) {
-    // Create or update score explanation section
+    // Create or update score explanation section with advanced insights
     let explanationSection = document.getElementById('scoreExplanation');
     if (!explanationSection) {
       explanationSection = document.createElement('div');
@@ -562,6 +562,12 @@ class AutoJobrPopup {
       `;
       document.getElementById('scoreSection').appendChild(explanationSection);
     }
+    
+    // Display advanced AI insights
+    const transferableSkills = analysis.transferableSkills || [];
+    const culturalFit = analysis.culturalFit || {};
+    const successProb = analysis.successProbability || {};
+    const insights = analysis.strategicInsights || [];
 
     const score = analysis.matchScore || analysis.analysis?.matchScore || 0;
     const matchingSkills = analysis.matchingSkills || analysis.analysis?.matchingSkills || [];
