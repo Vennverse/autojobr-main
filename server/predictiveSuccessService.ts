@@ -190,8 +190,8 @@ export class PredictiveSuccessService {
   }
 
   private generatePrediction(factors: ApplicationSuccessFactors, job: any): SuccessPrediction {
-    // Weighted algorithm for interview probability
-    const weights = {
+    // Advanced ML-inspired weighted algorithm with dynamic adjustment
+    let weights = {
       resumeScore: 0.25,
       jobMatchScore: 0.25,
       companyFitScore: 0.15,
@@ -200,11 +200,28 @@ export class PredictiveSuccessService {
       salaryFitScore: 0.05
     };
     
+    // Dynamic weight adjustment based on job characteristics
+    if (job.experienceLevel === 'senior' || job.experienceLevel === 'lead') {
+      weights.resumeScore = 0.30; // Resume matters more for senior roles
+      weights.companyFitScore = 0.20; // Culture fit is critical
+    } else if (job.experienceLevel === 'entry' || job.experienceLevel === 'junior') {
+      weights.jobMatchScore = 0.30; // Skills match matters more
+      weights.timingScore = 0.20; // Early application helps entry level
+    }
+    
+    // Industry-specific adjustments
+    if (job.description?.toLowerCase().includes('startup')) {
+      weights.companyFitScore = 0.25; // Startups care about culture fit
+      weights.competitionLevel = 0.10; // Less competition typically
+    }
+    
     const weightedScore = Object.entries(factors).reduce((total, [key, value]) => {
       return total + (value * weights[key as keyof typeof weights]);
     }, 0);
     
-    const interviewProbability = Math.min(weightedScore, 95); // Cap at 95%
+    // Apply sigmoid function for more realistic probability distribution
+    const sigmoidScore = 100 / (1 + Math.exp(-0.1 * (weightedScore - 50)));
+    const interviewProbability = Math.min(Math.max(sigmoidScore, 5), 95); // 5-95% range
     
     // Confidence level based on data quality
     let confidenceLevel: 'high' | 'medium' | 'low' = 'medium';

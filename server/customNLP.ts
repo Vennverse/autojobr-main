@@ -108,7 +108,7 @@ interface AnalysisMetadata {
 
 export class EnhancedNLPService {
   private readonly version = '3.0.0-global';
-  
+
   // Global configuration for different regions
   private readonly globalConfig = {
     languages: {
@@ -124,7 +124,7 @@ export class EnhancedNLPService {
       ja: /[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf]/g,
       ru: /[\u0400-\u04ff]/g
     },
-    
+
     // Regional salary ranges (in USD equivalent for comparison)
     salaryRanges: {
       'north america': { min: 30000, max: 300000, currency: 'USD' },
@@ -134,7 +134,7 @@ export class EnhancedNLPService {
       'middle east': { min: 20000, max: 150000, currency: 'USD' },
       'africa': { min: 8000, max: 60000, currency: 'USD' }
     },
-    
+
     // Education system mapping
     educationSystems: {
       'bachelor': ['bachelor', 'bachelors', 'ba', 'bs', 'bsc', 'beng', 'btech', 'licenciatura', 'licence', 'laurea'],
@@ -143,7 +143,7 @@ export class EnhancedNLPService {
       'diploma': ['diploma', 'certificate', 'cert', 'certification', 'titulo', 'diplome', 'diploma'],
       'associate': ['associate', 'aa', 'as', 'aas', 'tecnico', 'dut', 'bts']
     },
-    
+
     // Global timezone mapping for remote work
     timezones: {
       'americas': ['PST', 'MST', 'CST', 'EST', 'AST', 'BRT', 'ART'],
@@ -491,21 +491,21 @@ export class EnhancedNLPService {
     ['microservices', ['micro-services', 'service oriented architecture', 'soa']],
     ['test driven development', ['tdd', 'unit testing', 'integration testing']],
     ['agile', ['scrum', 'kanban', 'sprint planning']],
-    
+
     // Business Skills
     ['customer service', ['customer support', 'client service', 'customer care', 'help desk']],
     ['sales', ['business development', 'revenue generation', 'account management']],
     ['marketing', ['digital marketing', 'brand management', 'promotional activities']],
     ['project management', ['program management', 'project coordination', 'project planning']],
     ['business analysis', ['requirements analysis', 'process analysis', 'data analysis']],
-    
+
     // Professional Certifications & Standards
     ['pmp', ['project management professional', 'project management certification']],
     ['six sigma', ['lean six sigma', 'process improvement', 'quality management']],
     ['iso 9001', ['quality management system', 'iso certification']],
     ['osha', ['occupational safety', 'workplace safety', 'safety compliance']],
     ['gdpr', ['data protection', 'privacy compliance', 'data privacy']],
-    
+
     // Industry-Specific Terms
     ['healthcare', ['medical', 'clinical', 'patient care', 'health services']],
     ['finance', ['financial services', 'banking', 'accounting', 'fintech']],
@@ -513,7 +513,7 @@ export class EnhancedNLPService {
     ['legal', ['law', 'litigation', 'compliance', 'regulatory']],
     ['construction', ['building', 'engineering', 'architecture', 'infrastructure']],
     ['manufacturing', ['production', 'operations', 'industrial', 'factory']],
-    
+
     // Global/Regional Variations
     ['cv', ['resume', 'curriculum vitae']],
     ['uni', ['university', 'college', 'higher education']],
@@ -523,7 +523,7 @@ export class EnhancedNLPService {
     ['organisation', ['organization']],
     ['analyse', ['analyze']],
     ['realise', ['realize']],
-    
+
     // Language Skills
     ['english', ['esl', 'english as second language', 'english proficiency']],
     ['spanish', ['español', 'castellano']],
@@ -552,7 +552,7 @@ export class EnhancedNLPService {
     [/associate\s+|assoc\s+/i, 'Associate '],
     [/assistant\s+|asst\s+/i, 'Assistant '],
     [/intern|internship|trainee/i, 'Intern '],
-    
+
     // Technical Roles
     [/software\s+engineer|swe/i, 'Software Engineer'],
     [/full\s*stack|fullstack/i, 'Full Stack'],
@@ -570,7 +570,7 @@ export class EnhancedNLPService {
     [/cloud\s+engineer|cloud\s+architect/i, 'Cloud Engineer'],
     [/systems\s+administrator|sysadmin/i, 'Systems Administrator'],
     [/database\s+administrator|dba/i, 'Database Administrator'],
-    
+
     // Business Roles
     [/business\s+analyst|ba/i, 'Business Analyst'],
     [/business\s+development|bd\s+manager/i, 'Business Development'],
@@ -581,20 +581,20 @@ export class EnhancedNLPService {
     [/financial\s+analyst/i, 'Financial Analyst'],
     [/marketing\s+manager/i, 'Marketing Manager'],
     [/operations\s+manager/i, 'Operations Manager'],
-    
+
     // Healthcare Roles
     [/registered\s+nurse|rn/i, 'Registered Nurse'],
     [/physician\s+assistant|pa/i, 'Physician Assistant'],
     [/medical\s+assistant|ma/i, 'Medical Assistant'],
     [/physical\s+therapist|pt/i, 'Physical Therapist'],
     [/occupational\s+therapist|ot/i, 'Occupational Therapist'],
-    
+
     // Education Roles  
     [/elementary\s+teacher|primary\s+teacher/i, 'Elementary Teacher'],
     [/secondary\s+teacher|high\s+school\s+teacher/i, 'Secondary Teacher'],
     [/special\s+education\s+teacher/i, 'Special Education Teacher'],
     [/instructional\s+designer/i, 'Instructional Designer'],
-    
+
     // International Variations
     [/programme\s+manager/i, 'Program Manager'],
     [/colour\s+specialist/i, 'Color Specialist'],
@@ -629,7 +629,7 @@ export class EnhancedNLPService {
     [/healthtech|medical\s+technology|telemedicine|digital\s+health|health\s+tech/i, 'Health Technology'],
     [/proptech|real\s+estate\s+technology|property\s+technology/i, 'Property Technology'],
     [/agtech|agriculture\s+technology|farming\s+technology/i, 'Agriculture Technology'],
-    
+
     // Traditional Industries
     [/healthcare|medical|hospital|clinical|pharmaceutical|pharma|biotech|biotechnology/i, 'Healthcare & Life Sciences'],
     [/finance|banking|investment|wealth\s+management|asset\s+management|insurance/i, 'Financial Services'],
@@ -641,26 +641,26 @@ export class EnhancedNLPService {
     [/transportation|logistics|shipping|freight|supply\s+chain|delivery/i, 'Transportation & Logistics'],
     [/hospitality|hotel|restaurant|tourism|travel|leisure|entertainment/i, 'Hospitality & Tourism'],
     [/agriculture|farming|food\s+production|agribusiness/i, 'Agriculture & Food'],
-    
+
     // Professional Services
     [/consulting|professional\s+services|advisory|management\s+consulting/i, 'Consulting & Professional Services'],
     [/legal|law\s+firm|litigation|corporate\s+law/i, 'Legal Services'],
     [/accounting|audit|tax|financial\s+advisory|cpa/i, 'Accounting & Finance'],
     [/marketing|advertising|public\s+relations|pr|digital\s+agency/i, 'Marketing & Advertising'],
     [/human\s+resources|hr\s+services|recruitment|staffing/i, 'Human Resources Services'],
-    
+
     // Media & Creative
     [/media|broadcasting|journalism|publishing|content\s+creation/i, 'Media & Publishing'],
     [/gaming|game\s+development|video\s+games|esports/i, 'Gaming & Entertainment'],
     [/design|creative\s+agency|graphic\s+design|web\s+design/i, 'Design & Creative Services'],
     [/film|television|tv|movie|production|streaming/i, 'Film & Television'],
-    
+
     // Public & Non-Profit
     [/government|public\s+sector|municipal|federal|state|local\s+government/i, 'Government & Public Sector'],
     [/non.?profit|ngo|charity|foundation|social\s+services/i, 'Non-Profit & Social Services'],
     [/education|school|university|college|academic|k-12/i, 'Education'],
     [/research|r&d|laboratory|scientific\s+research/i, 'Research & Development'],
-    
+
     // Company Size & Stage
     [/startup|early.stage|seed\s+stage|series\s+[a-c]|pre.ipo/i, 'Startup'],
     [/fortune\s+500|large\s+corporation|multinational|enterprise|big\s+tech/i, 'Large Enterprise'],
@@ -676,7 +676,7 @@ export class EnhancedNLPService {
       // Detect language and region for global processing
       const detectedLanguage = this.detectLanguage(jobDescription);
       const detectedRegion = this.detectRegion(jobDescription, userProfile);
-      
+
       console.log(`🌍 Global NLP Analysis - Language: ${detectedLanguage}, Region: ${detectedRegion}`);
 
       // Extract and parse job data with global context
@@ -701,6 +701,17 @@ export class EnhancedNLPService {
         detectedLanguage,
         detectedRegion
       );
+
+      // Perform advanced NLP analysis
+      const sentiment = this.performSentimentAnalysis(jobDescription);
+      const namedEntities = this.extractNamedEntities(jobDescription);
+      const skillsWithConfidence = this.extractSkillsWithConfidence(jobDescription);
+
+      // Integrate these advanced NLP results into the analysis (example - could be more sophisticated)
+      // For now, we'll just log them to show they are available.
+      console.log('Sentiment Analysis:', sentiment);
+      console.log('Named Entities:', namedEntities);
+      console.log('Skills with Confidence:', skillsWithConfidence);
 
       // Calculate analysis metadata with global stats
       const processingTime = performance.now() - startTime;
@@ -729,23 +740,23 @@ export class EnhancedNLPService {
   // Language detection using pattern matching
   private detectLanguage(text: string): string {
     const languageScores: Record<string, number> = {};
-    
+
     for (const [lang, pattern] of Object.entries(this.globalConfig.languages)) {
       const matches = text.match(pattern);
       languageScores[lang] = matches ? matches.length : 0;
     }
-    
+
     // Return language with highest score, default to English
     const detectedLang = Object.entries(languageScores)
       .sort(([, a], [, b]) => b - a)[0]?.[0] || 'en';
-    
+
     return detectedLang;
   }
-  
+
   // Region detection based on various indicators
   private detectRegion(jobDescription: string, userProfile?: any): string {
     const text = jobDescription.toLowerCase();
-    
+
     // Check for explicit region mentions
     if (/\b(usa|united states|america|us|north america)\b/i.test(text)) return 'north america';
     if (/\b(europe|eu|european union|uk|germany|france|spain|italy)\b/i.test(text)) return 'europe';
@@ -753,7 +764,7 @@ export class EnhancedNLPService {
     if (/\b(latin america|south america|brazil|mexico|argentina)\b/i.test(text)) return 'latin america';
     if (/\b(middle east|uae|saudi|dubai|qatar)\b/i.test(text)) return 'middle east';
     if (/\b(africa|south africa|nigeria|kenya)\b/i.test(text)) return 'africa';
-    
+
     // Check user profile for region hints
     if (userProfile?.location) {
       const userLocation = userProfile.location.toLowerCase();
@@ -764,7 +775,7 @@ export class EnhancedNLPService {
       if (/\b(uae|saudi|qatar|kuwait)\b/i.test(userLocation)) return 'middle east';
       if (/\b(nigeria|south africa|kenya|egypt)\b/i.test(userLocation)) return 'africa';
     }
-    
+
     // Default to North America if no clear indicators
     return 'north america';
   }
@@ -1232,7 +1243,7 @@ export class EnhancedNLPService {
 
     if (jobSkills.length > 0 && userSkills.length > 0) {
       let skillMatches = 0;
-      
+
       for (const jobSkill of jobSkills) {
         const skillName = typeof jobSkill === 'string' ? jobSkill : jobSkill.name;
         const userMatch = userSkills.find((userSkill: string) => 
@@ -1262,15 +1273,17 @@ export class EnhancedNLPService {
     }
 
     // Calculate experience score
-    const jobExperience = extractedData.qualifications?.find(q => q.type === 'experience')?.value || 0;
+    const jobExperience = extractedData.qualifications?.find(q => q.type === 'experience')?.requirement || '';
+    const experienceMatch = jobExperience.match(/(\d+)\+?\s*years?/i);
+    const requiredYears = experienceMatch ? parseInt(experienceMatch[1]) : 0;
     const userExperience = userProfile.yearsExperience || 0;
 
-    if (jobExperience > 0) {
-      if (userExperience >= jobExperience) {
+    if (requiredYears > 0) {
+      if (userExperience >= requiredYears) {
         experienceScore = 20;
-      } else if (userExperience >= jobExperience * 0.7) {
+      } else if (userExperience >= requiredYears * 0.7) {
         experienceScore = 15;
-      } else if (userExperience >= jobExperience * 0.5) {
+      } else if (userExperience >= requiredYears * 0.5) {
         experienceScore = 10;
       } else {
         experienceScore = 5;
@@ -1296,7 +1309,7 @@ export class EnhancedNLPService {
 
   private generateRecommendations(matchAnalysis: any, extractedData: ExtractedJobData, userProfile: any, language: string = 'en', region: string = 'north america'): any {
     const { matchScore } = matchAnalysis;
-    
+
     let applicationRecommendation: ApplicationRecommendation;
     const tailoringAdvice: string[] = [];
     const interviewPrepTips: string[] = [];
@@ -1366,12 +1379,12 @@ export class EnhancedNLPService {
 
   private calculateExtractionConfidence(extractedData: ExtractedJobData): number {
     let confidence = 50;
-    
+
     if (extractedData.title && extractedData.title.length > 5) confidence += 15;
     if (extractedData.company && extractedData.company.length > 2) confidence += 10;
     if (extractedData.requiredSkills && extractedData.requiredSkills.length > 0) confidence += 15;
     if (extractedData.qualifications && extractedData.qualifications.length > 0) confidence += 10;
-    
+
     return Math.min(100, confidence);
   }
 
@@ -1434,7 +1447,7 @@ export class EnhancedNLPService {
   private getContextAroundSkill(text: string, skill: string): string {
     const skillIndex = text.toLowerCase().indexOf(skill.toLowerCase());
     if (skillIndex === -1) return '';
-    
+
     const start = Math.max(0, skillIndex - 100);
     const end = Math.min(text.length, skillIndex + skill.length + 100);
     return text.slice(start, end);
@@ -1443,12 +1456,12 @@ export class EnhancedNLPService {
   private extractWorkExperienceFromText(resumeText: string): any[] {
     const workExperience: any[] = [];
     const lines = resumeText.split('\n');
-    
+
     // Look for common work experience patterns
     const experienceSection = this.findSection(lines, ['experience', 'work', 'employment', 'career']);
     if (experienceSection.length > 0) {
       let currentJob: any = {};
-      
+
       for (const line of experienceSection) {
         // Look for job titles (often followed by @ or at)
         const jobTitleMatch = line.match(/^([^@\-\|]+?)(?:\s*[@\-\|]\s*(.+?))?(?:\s*\|\s*(.+?))?$/);
@@ -1467,21 +1480,21 @@ export class EnhancedNLPService {
           currentJob.description.push(line.trim());
         }
       }
-      
+
       if (currentJob.position) {
         workExperience.push(currentJob);
       }
     }
-    
+
     return workExperience.slice(0, 5); // Limit to 5 most recent jobs
   }
 
   private extractEducationFromText(resumeText: string): any[] {
     const education: any[] = [];
     const lines = resumeText.split('\n');
-    
+
     const educationSection = this.findSection(lines, ['education', 'academic', 'degree', 'university', 'college']);
-    
+
     for (const line of educationSection) {
       // Look for degree patterns
       const degreePattern = /(bachelor|master|phd|doctorate|associate|diploma|certificate|b\.?[a-z]\.?|m\.?[a-z]\.?|ph\.?d\.?)/i;
@@ -1494,7 +1507,7 @@ export class EnhancedNLPService {
         });
       }
     }
-    
+
     return education.slice(0, 3); // Limit to 3 education entries
   }
 
@@ -1504,7 +1517,7 @@ export class EnhancedNLPService {
     if (experienceMatch) {
       return parseInt(experienceMatch[1]);
     }
-    
+
     // Estimate from work experience dates
     const dateMatches = resumeText.match(/\b(19|20)\d{2}\b/g);
     if (dateMatches && dateMatches.length >= 2) {
@@ -1512,13 +1525,13 @@ export class EnhancedNLPService {
       const yearRange = years[0] - years[years.length - 1];
       return Math.min(yearRange, 30); // Cap at 30 years
     }
-    
+
     return 2; // Default estimate
   }
 
   private extractProfessionalTitleFromText(resumeText: string): string {
     const lines = resumeText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-    
+
     // Look for title in first few lines after name
     for (let i = 1; i < Math.min(5, lines.length); i++) {
       const line = lines[i];
@@ -1531,38 +1544,38 @@ export class EnhancedNLPService {
         }
       }
     }
-    
+
     return 'Professional';
   }
 
   private extractSummaryFromText(resumeText: string): string {
     const lines = resumeText.split('\n');
     const summarySection = this.findSection(lines, ['summary', 'objective', 'profile', 'about']);
-    
+
     if (summarySection.length > 0) {
       return summarySection.slice(0, 3).join(' ').substring(0, 300);
     }
-    
+
     // Fallback: use first paragraph that's not contact info
     for (const line of lines.slice(0, 10)) {
       if (line.length > 50 && !line.includes('@') && !line.includes('phone')) {
         return line.substring(0, 300);
       }
     }
-    
+
     return 'Professional with diverse experience';
   }
 
   private extractFieldOfStudy(educationLine: string): string {
     const fields = ['computer science', 'engineering', 'business', 'marketing', 'finance', 'psychology', 'biology', 'chemistry', 'physics', 'mathematics'];
     const line = educationLine.toLowerCase();
-    
+
     for (const field of fields) {
       if (line.includes(field)) {
         return field.charAt(0).toUpperCase() + field.slice(1);
       }
     }
-    
+
     return 'General Studies';
   }
 
@@ -1570,38 +1583,266 @@ export class EnhancedNLPService {
     const sectionLines: string[] = [];
     let inSection = false;
     let sectionStartIndex = -1;
-    
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].toLowerCase().trim();
-      
+
       // Check if this line is a section header
       const isHeader = keywords.some(keyword => {
         return line.includes(keyword) && line.length < 50;
       });
-      
+
       if (isHeader) {
         inSection = true;
         sectionStartIndex = i;
         continue;
       }
-      
+
       // Check if we've reached another section
       const isAnotherSection = inSection && (
         line.includes('education') || line.includes('experience') || 
         line.includes('skills') || line.includes('projects') ||
         line.includes('certifications')
       ) && line.length < 50 && i > sectionStartIndex + 2;
-      
+
       if (isAnotherSection) {
         break;
       }
-      
+
       if (inSection && line.length > 0) {
         sectionLines.push(lines[i].trim());
       }
     }
-    
+
     return sectionLines;
+  }
+
+  // Advanced sentiment analysis using lexicon-based approach
+  private performSentimentAnalysis(text: string): {
+    score: number;
+    magnitude: number;
+    sentiment: 'positive' | 'negative' | 'neutral';
+    emotionalTone: string[];
+  } {
+    const positiveWords = [
+      'excellent', 'great', 'amazing', 'wonderful', 'fantastic', 'outstanding',
+      'innovative', 'efficient', 'successful', 'passionate', 'dedicated', 'skilled',
+      'proficient', 'expert', 'accomplished', 'experienced', 'talented', 'motivated'
+    ];
+
+    const negativeWords = [
+      'difficult', 'challenging', 'problem', 'issue', 'struggle', 'fail',
+      'weak', 'poor', 'inadequate', 'limited', 'lack', 'insufficient'
+    ];
+
+    const emotionalIndicators = {
+      confidence: ['confident', 'certain', 'sure', 'definite', 'convinced'],
+      enthusiasm: ['excited', 'eager', 'passionate', 'motivated', 'driven'],
+      professionalism: ['professional', 'responsible', 'reliable', 'committed', 'dedicated'],
+      uncertainty: ['maybe', 'perhaps', 'possibly', 'might', 'could be', 'not sure']
+    };
+
+    const words = text.toLowerCase().split(/\s+/);
+    let positiveCount = 0;
+    let negativeCount = 0;
+    const emotionalTone: string[] = [];
+
+    words.forEach(word => {
+      if (positiveWords.some(pw => word.includes(pw))) positiveCount++;
+      if (negativeWords.some(nw => word.includes(nw))) negativeCount++;
+
+      Object.entries(emotionalIndicators).forEach(([emotion, indicators]) => {
+        if (indicators.some(ind => word.includes(ind)) && !emotionalTone.includes(emotion)) {
+          emotionalTone.push(emotion);
+        }
+      });
+    });
+
+    const totalSentimentWords = positiveCount + negativeCount;
+    const score = totalSentimentWords > 0 
+      ? (positiveCount - negativeCount) / totalSentimentWords 
+      : 0;
+
+    const magnitude = (positiveCount + negativeCount) / words.length;
+
+    let sentiment: 'positive' | 'negative' | 'neutral' = 'neutral';
+    if (score > 0.2) sentiment = 'positive';
+    else if (score < -0.2) sentiment = 'negative';
+
+    return { score, magnitude, sentiment, emotionalTone };
+  }
+
+  // Named Entity Recognition for job-relevant entities
+  private extractNamedEntities(text: string): {
+    companies: string[];
+    technologies: string[];
+    universities: string[];
+    certifications: string[];
+    locations: string[];
+  } {
+    const companies: string[] = [];
+    const technologies: string[] = [];
+    const universities: string[] = [];
+    const certifications: string[] = [];
+    const locations: string[] = [];
+
+    // Technology patterns
+    const techPatterns = [
+      /\b(JavaScript|TypeScript|Python|Java|C\+\+|React|Angular|Vue|Node\.js|AWS|Azure|GCP|Docker|Kubernetes)\b/gi,
+      /\b(MongoDB|PostgreSQL|MySQL|Redis|Elasticsearch|Kafka|RabbitMQ|GraphQL|REST|API)\b/gi,
+      /\b(TensorFlow|PyTorch|scikit-learn|Pandas|NumPy|Keras|OpenCV|NLTK|SpaCy)\b/gi
+    ];
+
+    techPatterns.forEach(pattern => {
+      const matches = text.match(pattern);
+      if (matches) {
+        technologies.push(...matches.map(m => m.trim()));
+      }
+    });
+
+    // Certification patterns
+    const certPatterns = /\b(AWS Certified|Google Certified|Microsoft Certified|PMP|CISSP|CPA|CFA|SHRM|PHR)\b/gi;
+    const certMatches = text.match(certPatterns);
+    if (certMatches) {
+      certifications.push(...certMatches.map(m => m.trim()));
+    }
+
+    // Location patterns (City, State/Country)
+    const locationPattern = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?),\s*([A-Z]{2}|[A-Z][a-z]+)\b/g;
+    const locationMatches = text.matchAll(locationPattern);
+    for (const match of locationMatches) {
+      locations.push(match[0]);
+    }
+
+    return {
+      companies: [...new Set(companies)],
+      technologies: [...new Set(technologies)],
+      universities: [...new Set(universities)],
+      certifications: [...new Set(certifications)],
+      locations: [...new Set(locations)]
+    };
+  }
+
+  // ML-inspired skill extraction with confidence scoring
+  private extractSkillsWithConfidence(text: string): Array<{
+    skill: string;
+    confidence: number;
+    category: string;
+    context: string;
+  }> {
+    const extractedSkills: Array<{
+      skill: string;
+      confidence: number;
+      category: string;
+      context: string;
+    }> = [];
+
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim());
+
+    Object.entries(this.skillTaxonomy).forEach(([category, data]) => {
+      const categorySkills = data.skills;
+      const categoryWeight = data.weight;
+
+      categorySkills.forEach(skill => {
+        sentences.forEach(sentence => {
+          const regex = new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+          const matches = sentence.match(regex);
+
+          if (matches) {
+            // Calculate confidence based on context
+            let confidence = 0.7; // Base confidence
+
+            // Boost if in "required" or "must have" context
+            if (/required|must have|essential/i.test(sentence)) confidence += 0.2;
+
+            // Boost if mentioned with years of experience
+            if (/\d+\+?\s*years?/i.test(sentence)) confidence += 0.1;
+
+            // Reduce if in "nice to have" context
+            if (/nice to have|preferred|bonus/i.test(sentence)) confidence -= 0.2;
+
+            confidence = Math.min(Math.max(confidence, 0.3), 1.0);
+
+            extractedSkills.push({
+              skill: matches[0],
+              confidence,
+              category,
+              context: sentence.trim().substring(0, 100)
+            });
+          }
+        });
+      });
+    });
+
+    // Remove duplicates, keeping highest confidence
+    const uniqueSkills = new Map<string, typeof extractedSkills[0]>();
+    extractedSkills.forEach(skill => {
+      const key = skill.skill.toLowerCase();
+      if (!uniqueSkills.has(key) || uniqueSkills.get(key)!.confidence < skill.confidence) {
+        uniqueSkills.set(key, skill);
+      }
+    });
+
+    return Array.from(uniqueSkills.values())
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, 30); // Top 30 skills
+  }
+
+  // Extract ATS keywords from job description - ALL PROFESSIONS
+  private extractJobKeywords(jobDescription: string): string {
+    const keywordPatterns = [
+      // Technical Skills
+      /\b(JavaScript|Python|Java|React|Node\.js|Angular|Vue|TypeScript|C\+\+|C#|PHP|Ruby|Go|Rust|Swift|Kotlin|HTML|CSS|SQL)\b/gi,
+      // Technical Tools & Platforms
+      /\b(AWS|Azure|GCP|Docker|Kubernetes|Jenkins|GitLab|Salesforce|HubSpot|Marketo|Adobe|Figma|Sketch|AutoCAD|SAP|Oracle)\b/gi,
+      // Data Science & ML
+      /\b(Machine Learning|Deep Learning|AI|Artificial Intelligence|Data Science|Data Analysis|Data Engineering|NLP|Natural Language Processing|Computer Vision|TensorFlow|PyTorch|Scikit-learn|Pandas|NumPy)\b/gi,
+      // Project Management & Methodologies
+      /\b(Agile|Scrum|Kanban|Project Management|Product Management|PMP|Agile Coach|Scrum Master)\b/gi,
+      // Business & Marketing
+      /\b(Sales|Marketing|SEO|SEM|PPC|Content Marketing|Social Media Marketing|Business Development|Account Management|CRM|Customer Service|Customer Support|UX|UI|UX Design|UI Design)\b/gi,
+      // Soft Skills
+      /\b(Leadership|Communication|Teamwork|Problem Solving|Critical Thinking|Creativity|Collaboration|Mentoring|Coaching|Adaptability)\b/gi,
+      // Industry Specific
+      /\b(Healthcare|Finance|Fintech|SaaS|E-commerce|EdTech|Biotech|Cybersecurity|Cloud Computing|DevOps)\b/gi
+    ];
+
+    let keywords = '';
+    for (const pattern of keywordPatterns) {
+      const matches = jobDescription.match(pattern);
+      if (matches) {
+        keywords += matches.join(' ') + ' ';
+      }
+    }
+
+    // Simple deduplication and cleanup
+    return Array.from(new Set(keywords.toLowerCase().split(/\s+/).filter(kw => kw.length > 2))).join(' ');
+  }
+
+  // Calculate combined score from multiple signals with advanced ML-like weighting
+  private calculateCombinedScore(quickIndicators: any, linguisticAnalysis: any, behavioralScore: number) {
+    let aiLikelihood = 0;
+
+    // Quick indicators weight (30%)
+    if (quickIndicators.isObvious) aiLikelihood += 30;
+
+    // Linguistic analysis weight (40%)
+    if (linguisticAnalysis.sentenceStructure === 'ai-like') aiLikelihood += 25;
+    if (linguisticAnalysis.indicators.length > 2) aiLikelihood += 15;
+
+    // Behavioral analysis weight (30%)
+    if (behavioralScore < 50) aiLikelihood += 30;
+    else if (behavioralScore < 70) aiLikelihood += 15;
+
+    const confidence = Math.min(aiLikelihood, 95);
+    const isAI = aiLikelihood > 50;
+    const humanScore = Math.max(0, 100 - aiLikelihood);
+
+    return {
+      isAI,
+      confidence,
+      humanScore
+    };
   }
 }
 

@@ -197,7 +197,18 @@ class AIService {
     }, options.user);
   }
 
-  async analyzeResume(resumeText: string, userProfile?: any, user?: any): Promise<ResumeAnalysis & { aiTier?: string, upgradeMessage?: string }> {
+  // Store analysis feedback for continuous improvement
+  private async storeFeedback(analysisId: string, feedback: {
+    wasAccurate: boolean;
+    userCorrections?: string[];
+    actualOutcome?: 'interview' | 'rejection' | 'offer';
+  }): Promise<void> {
+    // This would typically write to a feedback table for ML model retraining
+    console.log(`Feedback stored for analysis ${analysisId}:`, feedback);
+    // TODO: Implement feedback storage in database for model improvement
+  }
+  
+  async analyzeResume(resumeText: string, userProfile?: any, user?: any): Promise<ResumeAnalysis & { aiTier?: string, upgradeMessage?: string, analysisId?: string }> {
     const analysisId = Math.random().toString(36).substring(7);
     
     const prompt = `Analyze resume comprehensively for ATS optimization. Return detailed JSON:
@@ -314,26 +325,66 @@ ${resumeText}
     const baseScore = 55;
     let score = baseScore;
     
+    // Content length analysis
     const wordCount = resumeText.split(/\s+/).length;
     if (wordCount > 200) score += 10;
     if (wordCount > 400) score += 5;
+    if (wordCount < 100) score -= 10; // Penalize very short resumes
     
-    const hasNumbers = /\d/.test(resumeText);
-    if (hasNumbers) score += 8;
+    // Quantification analysis (metrics and numbers)
+    const numberMatches = resumeText.match(/\d+[%$kK]?/g);
+    const quantificationScore = numberMatches ? Math.min(numberMatches.length * 2, 15) : 0;
+    score += quantificationScore;
     
-    const technicalTerms = ['API', 'database', 'framework', 'programming', 'development', 'engineering'];
+    // Action verbs (strong resume indicators)
+    const actionVerbs = [
+      'achieved', 'developed', 'implemented', 'led', 'managed', 'created',
+      'designed', 'improved', 'increased', 'reduced', 'optimized', 'built'
+    ];
+    const verbCount = actionVerbs.filter(verb => 
+      new RegExp(`\\b${verb}`, 'i').test(resumeText)
+    ).length;
+    score += verbCount * 2;
+    
+    // Technical depth (industry-specific terms)
+    const technicalTerms = [
+      'API', 'database', 'framework', 'programming', 'development', 'engineering',
+      'architecture', 'scalable', 'performance', 'optimization', 'testing', 'deployment'
+    ];
     const foundTerms = technicalTerms.filter(term => 
       resumeText.toLowerCase().includes(term.toLowerCase())
     ).length;
-    score += foundTerms * 3;
+    score += foundTerms * 2;
     
+    // Education and certifications
     const hasEducation = /education|degree|university|college/i.test(resumeText);
     if (hasEducation) score += 5;
     
-    const randomVariance = Math.random() * 12 - 6;
+    const hasCertifications = /certified|certification|license/i.test(resumeText);
+    if (hasCertifications) score += 5;
+    
+    // Professional keywords
+    const professionalKeywords = [
+      'professional', 'experience', 'responsibility', 'achievement',
+      'project', 'team', 'collaboration', 'leadership'
+    ];
+    const profKeywordCount = professionalKeywords.filter(kw =>
+      resumeText.toLowerCase().includes(kw)
+    ).length;
+    score += profKeywordCount * 1.5;
+    
+    // Penalize generic fluff
+    const fluffWords = ['passionate', 'dedicated', 'hard-working', 'team player'];
+    const fluffCount = fluffWords.filter(fw =>
+      resumeText.toLowerCase().includes(fw)
+    ).length;
+    score -= fluffCount * 2;
+    
+    // Small controlled variance for natural distribution
+    const randomVariance = (Math.random() - 0.5) * 6;
     score += randomVariance;
     
-    return Math.max(25, Math.min(90, Math.round(score)));
+    return Math.max(25, Math.min(95, Math.round(score)));
   }
 
   private generateFallbackResumeAnalysis(accessInfo: { tier: 'premium' | 'basic', message?: string }): ResumeAnalysis & { aiTier?: string, upgradeMessage?: string } {
