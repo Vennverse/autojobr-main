@@ -1,5 +1,14 @@
 // Enhanced AutoJobr Popup with Advanced Features
-const API_BASE_URL = 'https://autojobr.com';
+// Get API URL from storage or use default
+let API_BASE_URL = 'https://autojobr.com'; // Default production URL
+
+// Try to load dev URL if configured
+chrome.storage.local.get(['apiBaseUrl'], (result) => {
+  if (result.apiBaseUrl) {
+    API_BASE_URL = result.apiBaseUrl;
+    console.log('Using configured API URL:', API_BASE_URL);
+  }
+});
 
 class AutoJobrPopup {
   constructor() {

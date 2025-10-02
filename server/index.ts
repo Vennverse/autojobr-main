@@ -33,14 +33,55 @@ app.use(compression({
   }
 }));
 
-// CORS configuration - FULLY SECURE for production
+// CORS configuration - Allow extension requests from job sites
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? 
-    ['https://autojobr.com'] : // Production: only allow trusted domain (extension uses API keys)
-    true, // Development: allow all origins
+  origin: (origin, callback) => {
+    // Always allow requests without origin (same-origin, Postman, etc.)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // In development, allow all origins
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    
+    // In production, allow:
+    // 1. Main domain for web app
+    // 2. Chrome extension (chrome-extension://)
+    // 3. All job sites where extension runs (for API requests)
+    const allowedOrigins = [
+      'https://autojobr.com',
+      'https://www.autojobr.com'
+    ];
+    
+    // Allow chrome extension protocol
+    if (origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://')) {
+      return callback(null, true);
+    }
+    
+    // Allow job sites where extension runs
+    const jobSiteDomains = [
+      'linkedin.com', 'indeed.com', 'glassdoor.com', 'ziprecruiter.com',
+      'monster.com', 'dice.com', 'greenhouse.io', 'lever.co', 'workday.com',
+      'myworkdayjobs.com', 'naukri.com', 'shine.com', 'timesjobs.com',
+      'stackoverflow.com', 'angel.co', 'wellfound.com', 'careerbuilder.com',
+      'simplyhired.com', 'flexjobs.com', 'remoteok.io', 'weworkremotely.com'
+    ];
+    
+    const originHostname = new URL(origin).hostname;
+    const isJobSite = jobSiteDomains.some(domain => originHostname.includes(domain));
+    
+    if (isJobSite || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, false);
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept', 'X-Requested-With', 'Origin'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept', 'X-Requested-With', 'Origin', 'X-Session-Token'],
+  exposedHeaders: ['X-Session-Token'],
   optionsSuccessStatus: 200,
   preflightContinue: false
 }));
