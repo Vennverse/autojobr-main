@@ -528,14 +528,15 @@ export default function RecruiterDashboard() {
                 </div>
               </Button>
 
-              {/* Import Applicants Button */}
               <Button
-                variant="outline"
                 onClick={() => setShowImportDialog(true)}
-                className="h-20 flex items-center gap-2"
+                className="h-20 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                size="lg"
               >
-                <Upload className="w-6 h-6" />
-                <span className="text-sm">Import Applicants</span>
+                <div className="flex flex-col items-center gap-2">
+                  <Upload className="w-6 h-6" />
+                  <span className="text-sm">Import Applicants</span>
+                </div>
               </Button>
 
               <Button
