@@ -5,16 +5,27 @@ let API_BASE_URL = 'https://autojobr.com'; // Default fallback
 // Helper function to get API URL from background script
 async function getApiUrl() {
   return new Promise((resolve) => {
-    chrome.runtime.sendMessage({ action: 'getApiUrl' }, (response) => {
-      if (response && response.apiUrl) {
-        API_BASE_URL = response.apiUrl;
-        console.log('Using API URL from background:', API_BASE_URL);
-        resolve(response.apiUrl);
-      } else {
-        console.log('Using fallback API URL:', API_BASE_URL);
-        resolve(API_BASE_URL);
-      }
-    });
+    try {
+      chrome.runtime.sendMessage({ action: 'getApiUrl' }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.log('Background script not available, using fallback API URL:', API_BASE_URL);
+          resolve(API_BASE_URL);
+          return;
+        }
+        
+        if (response && response.apiUrl) {
+          API_BASE_URL = response.apiUrl;
+          console.log('Using API URL from background:', API_BASE_URL);
+          resolve(response.apiUrl);
+        } else {
+          console.log('Using fallback API URL:', API_BASE_URL);
+          resolve(API_BASE_URL);
+        }
+      });
+    } catch (error) {
+      console.log('Error getting API URL, using fallback:', error.message);
+      resolve(API_BASE_URL);
+    }
   });
 }
 
@@ -465,8 +476,17 @@ class AutoJobrPopup {
 
   async detectJobDetails() {
     try {
-      const response = await chrome.tabs.sendMessage(this.currentTab.id, {
-        action: 'extractJobDetails'
+      const response = await new Promise((resolve, reject) => {
+        chrome.tabs.sendMessage(this.currentTab.id, {
+          action: 'extractJobDetails'
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            // Silently fail if content script not ready
+            resolve(null);
+          } else {
+            resolve(response);
+          }
+        });
       });
 
       if (response && response.success && response.jobData) {
@@ -1048,9 +1068,17 @@ class AutoJobrPopup {
     this.showLoading(true);
 
     try {
-      const response = await chrome.runtime.sendMessage({
-        action: 'getInterviewPrep',
-        jobData: this.jobData
+      const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+          action: 'getInterviewPrep',
+          jobData: this.jobData
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(response);
+          }
+        });
       });
 
       if (response && response.success) {
@@ -1075,9 +1103,17 @@ class AutoJobrPopup {
     this.showLoading(true);
 
     try {
-      const response = await chrome.runtime.sendMessage({
-        action: 'getSalaryInsights',
-        jobData: this.jobData
+      const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+          action: 'getSalaryInsights',
+          jobData: this.jobData
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(response);
+          }
+        });
       });
 
       if (response && response.success) {
@@ -1102,10 +1138,18 @@ class AutoJobrPopup {
     this.showLoading(true);
 
     try {
-      const response = await chrome.runtime.sendMessage({
-        action: 'findReferrals',
-        jobData: this.jobData,
-        userProfile: this.userProfile
+      const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+          action: 'findReferrals',
+          jobData: this.jobData,
+          userProfile: this.userProfile
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(response);
+          }
+        });
       });
 
       if (response && response.success) {
@@ -1314,10 +1358,9 @@ class AutoJobrPopup {
     if (!this.isAuthenticated) return;
     
     try {
-      const response = await this.makeApiRequest('/api/tasks?limit=5&status=pending');
-      const data = await response.json();
+      const data = await this.makeApiRequest('/api/tasks?limit=5&status=pending');
       
-      if (data.success) {
+      if (data && data.success) {
         this.displayTasks(data.tasks);
         this.updateTasksCount(data.tasks.length);
       }
