@@ -63,10 +63,10 @@ async function login() {
 }
 
 async function testInterviewPrep() {
-  console.log('\n🎯 Testing /api/interview-prep endpoint...\n');
+  console.log('\n🎯 Testing /api/ai/interview-prep endpoint...\n');
 
   try {
-    const response = await fetch(`${API_BASE}/api/interview-prep`, {
+    const response = await fetch(`${API_BASE}/api/ai/interview-prep`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -114,10 +114,10 @@ async function testInterviewPrep() {
 }
 
 async function testSalaryInsights() {
-  console.log('\n💰 Testing /api/salary-insights endpoint...\n');
+  console.log('\n💰 Testing /api/ai/salary-insights endpoint...\n');
 
   try {
-    const response = await fetch(`${API_BASE}/api/salary-insights`, {
+    const response = await fetch(`${API_BASE}/api/ai/salary-insights`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

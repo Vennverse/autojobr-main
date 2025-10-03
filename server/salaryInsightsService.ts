@@ -1,3 +1,4 @@
+
 import { z } from 'zod';
 
 // Validation schema
@@ -92,7 +93,6 @@ const LOCATION_MAPPINGS = [
   { region: 'us' as LocationKey, currency: 'USD' as CurrencyCode, keywords: ['us', 'usa', 'united states', 'san francisco', 'new york', 'seattle', 'austin'] }
 ];
 
-// Comprehensive role-based salary database (in USD) - truncated for brevity
 const SALARY_DATABASE: Record<string, RoleData> = {
   'software engineer': { base: 95000, locations: { us: 1.0, india: 0.25, europe: 0.85, uk: 0.90, canada: 0.85, singapore: 0.75, australia: 0.80, uae: 0.70 }, category: 'engineering' },
   'senior software engineer': { base: 135000, locations: { us: 1.0, india: 0.30, europe: 0.88, uk: 0.92, canada: 0.87, singapore: 0.78, australia: 0.83, uae: 0.73 }, category: 'engineering' },
