@@ -4732,10 +4732,41 @@ Additional Information:
     }
   });
 
-  // Interview Preparation endpoint - Enhanced with role-based intelligence
+  // AI Interview Preparation endpoint - Enhanced with role-based intelligence
+  app.post('/api/ai/interview-prep', isAuthenticated, async (req: any, res) => {
+    try {
+      const { jobTitle, company, companyType, experienceLevel, location, jobDescription, requirements, interviewRound } = req.body;
+      
+      if (!jobTitle) {
+        return res.status(400).json({ message: 'Job title is required' });
+      }
+
+      const user = await storage.getUser(req.user.id);
+      
+      // Use the new interview prep service
+      const { interviewPrepService } = await import('./interviewPrepService');
+      const preparation = interviewPrepService.generatePreparation({
+        jobTitle,
+        company,
+        companyType,
+        experienceLevel,
+        location,
+        jobDescription,
+        requirements,
+        interviewRound
+      });
+
+      res.json(preparation);
+    } catch (error) {
+      console.error('Interview prep error:', error);
+      res.status(500).json({ message: 'Failed to generate interview prep' });
+    }
+  });
+
+  // Legacy endpoint for backward compatibility
   app.post('/api/interview-prep', isAuthenticated, async (req: any, res) => {
     try {
-      const { jobTitle, company, jobDescription } = req.body;
+      const { jobTitle, company, jobDescription } = req.body;</old_str>
       
       // Role-based interview intelligence database
       const roleInterviewData: Record<string, any> = {
@@ -4858,10 +4889,38 @@ Additional Information:
     }
   });
 
-  // Salary Insights endpoint - Enhanced with comprehensive market intelligence
-  app.post('/api/salary-insights', isAuthenticated, async (req: any, res) => {
+  // AI Salary Insights endpoint - Enhanced with comprehensive market intelligence
+  app.post('/api/ai/salary-insights', isAuthenticated, async (req: any, res) => {
     try {
       const { jobTitle, company, location, experienceLevel, skills } = req.body;
+      
+      if (!jobTitle) {
+        return res.status(400).json({ message: 'Job title is required' });
+      }
+
+      const user = await storage.getUser(req.user.id);
+      
+      // Use the new salary insights service
+      const { salaryInsightsService } = await import('./salaryInsightsService');
+      const insights = salaryInsightsService.generateInsights({
+        jobTitle,
+        company,
+        location,
+        experienceLevel,
+        skills
+      });
+
+      res.json(insights);
+    } catch (error) {
+      console.error('Salary insights error:', error);
+      res.status(500).json({ message: 'Failed to generate salary insights' });
+    }
+  });
+
+  // Legacy endpoint for backward compatibility
+  app.post('/api/salary-insights', isAuthenticated, async (req: any, res) => {
+    try {
+      const { jobTitle, company, location, experienceLevel, skills } = req.body;</old_str>
       
       // Comprehensive salary database by role (in USD thousands)
       const salaryByRole: Record<string, {base: number, faang: number, startup: number}> = {
