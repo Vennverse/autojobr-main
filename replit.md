@@ -105,6 +105,26 @@ See `shared/schema.ts` for the complete schema definition.
 
 ## Recent Changes
 
+### Oct 03, 2025 - Chrome Extension Error Fixes ✅
+- ✅ **Fixed "Detached context" errors** in background.js
+  - Updated sender validation to allow popup messages (which don't have tabs)
+  - Only block invalid content script contexts, not popup messages
+  - Fixed rate limiting key to work with both popup and content script messages
+- ✅ **Fixed "response.json is not a function" error** in popup.js
+  - Removed redundant `.json()` call in loadTasks() - makeApiRequest already returns parsed JSON
+- ✅ **Fixed "Could not establish connection" errors**
+  - Added proper error handling to all chrome.runtime.sendMessage calls
+  - Wrapped messages in Promises with chrome.runtime.lastError checks
+  - Applied to: getApiUrl(), handleInterviewPrep(), handleSalaryInsights(), handleReferralFinder()
+- ✅ **Improved extension UI**
+  - Added CSS for action-row class to properly layout interview prep, salary insights, and referral buttons
+  - Created 3-column grid layout for advanced feature buttons
+  - Enhanced button styling with secondary gradient style
+- ✅ **Verified backend API endpoints**
+  - Confirmed /api/interview-prep endpoint exists and works
+  - Confirmed /api/salary-insights endpoint exists and works
+  - Both endpoints properly integrated with authentication middleware
+
 ### Oct 03, 2025 - GitHub Import to Replit Complete ✅
 - ✅ Successfully cloned GitHub repository to Replit environment
 - ✅ All npm dependencies installed (950 packages)

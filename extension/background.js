@@ -312,15 +312,17 @@ class AutoJobrBackground {
 
   async handleMessage(message, sender, sendResponse) {
     try {
-      // Check if sender has a valid tab (prevent errors on detached contexts)
-      if (!sender || !sender.tab) {
-        console.log('Message from detached context, ignoring');
+      // Allow messages from popup (no tab) and content scripts (has tab)
+      // Only block if it's from a content script with an invalid/detached tab
+      if (sender && sender.tab && !sender.tab.id) {
+        console.log('Message from detached content script context, ignoring');
         sendResponse({ success: false, error: 'Detached context' });
         return;
       }
 
-      // Rate limiting
-      if (!this.checkRateLimit(sender.tab?.id || 'unknown', message.action)) {
+      // Rate limiting (use tab ID if available, otherwise use 'popup' or 'unknown')
+      const rateLimitKey = sender.tab?.id || (sender.id ? 'popup' : 'unknown');
+      if (!this.checkRateLimit(rateLimitKey, message.action)) {
         sendResponse({ success: false, error: 'Rate limit exceeded' });
         return;
       }
