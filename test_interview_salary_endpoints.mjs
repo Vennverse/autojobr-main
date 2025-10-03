@@ -3,9 +3,9 @@ import fetch from 'node-fetch';
 
 const API_BASE = 'http://localhost:5000';
 
-// Test credentials
+// Test credentials with EXACT email
 const TEST_CREDENTIALS = {
-  email: 'shubhamdubexskd2001@gmail.com',
+  email: 'shubhamdubexskd2001@gmail.com', // Exact email as requested
   password: '12345678'
 };
 
@@ -183,7 +183,7 @@ async function runTests() {
   console.log('═'.repeat(60));
   console.log('🧪 Testing Interview Prep & Salary Insights APIs');
   console.log('   Company: Google | Position: AI Engineer');
-  console.log('   User: shubhamdubeyskd2001@gmail.com');
+  console.log('   User: shubhamdubexskd2001@gmail.com');
   console.log('═'.repeat(60));
 
   const loginSuccess = await login();
