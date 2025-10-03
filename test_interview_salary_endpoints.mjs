@@ -3,7 +3,13 @@ import fetch from 'node-fetch';
 
 const API_BASE = 'http://localhost:5000';
 
-// Test data
+// Test credentials
+const TEST_CREDENTIALS = {
+  email: 'shubhamdubeyskd2001@gmail.com',
+  password: '12345678'
+};
+
+// Test data for Google AI Engineer
 const testData = {
   jobPosting: {
     title: 'AI Engineer',
@@ -17,13 +23,44 @@ const testData = {
       'Experience with TensorFlow or PyTorch',
       'Knowledge of NLP and Computer Vision'
     ]
-  },
-  userProfile: {
-    skills: ['Python', 'Machine Learning', 'TensorFlow', 'Data Science'],
-    experience: 5,
-    location: 'San Francisco, CA'
   }
 };
+
+// Store session cookie
+let sessionCookie = '';
+
+async function login() {
+  console.log('\n🔐 Logging in...\n');
+  
+  try {
+    const response = await fetch(`${API_BASE}/api/auth/email/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(TEST_CREDENTIALS)
+    });
+
+    const setCookieHeader = response.headers.get('set-cookie');
+    if (setCookieHeader) {
+      sessionCookie = setCookieHeader.split(';')[0];
+      console.log('✅ Login successful! Session cookie obtained.\n');
+    }
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('❌ Login failed:', data.message);
+      return false;
+    }
+    
+    console.log('👤 Logged in as:', data.user?.email);
+    return true;
+  } catch (error) {
+    console.error('❌ Login error:', error.message);
+    return false;
+  }
+}
 
 async function testInterviewPrep() {
   console.log('\n🎯 Testing /api/interview-prep endpoint...\n');
@@ -33,6 +70,7 @@ async function testInterviewPrep() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Cookie': sessionCookie
       },
       body: JSON.stringify({
         jobTitle: testData.jobPosting.title,
@@ -49,19 +87,19 @@ async function testInterviewPrep() {
       console.log('📊 Response Data:');
       console.log('─'.repeat(60));
       console.log('\n🏢 Company Insights:');
-      console.log(data.companyInsights?.substring(0, 200) + '...');
+      console.log(data.companyInsights?.substring(0, 300) + '...');
       
       console.log('\n❓ Sample Interview Questions:');
-      data.questions?.slice(0, 3).forEach((q, i) => {
+      data.questions?.slice(0, 5).forEach((q, i) => {
         console.log(`${i + 1}. ${q}`);
       });
       
       console.log('\n💡 Preparation Tips:');
-      console.log(data.tips?.substring(0, 200) + '...');
+      console.log(data.tips?.substring(0, 300) + '...');
       
       if (data.technicalTopics) {
         console.log('\n🔧 Technical Topics to Study:');
-        data.technicalTopics.slice(0, 5).forEach((topic, i) => {
+        data.technicalTopics.slice(0, 7).forEach((topic, i) => {
           console.log(`${i + 1}. ${topic}`);
         });
       }
@@ -83,13 +121,14 @@ async function testSalaryInsights() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Cookie': sessionCookie
       },
       body: JSON.stringify({
         jobTitle: testData.jobPosting.title,
         company: testData.jobPosting.company,
         location: testData.jobPosting.location,
-        experienceLevel: testData.userProfile.experience,
-        skills: testData.userProfile.skills
+        experienceLevel: 5,
+        skills: ['Python', 'Machine Learning', 'TensorFlow', 'PyTorch', 'NLP', 'Computer Vision']
       })
     });
 
@@ -101,7 +140,7 @@ async function testSalaryInsights() {
       console.log('─'.repeat(60));
       
       if (data.salaryRange) {
-        console.log('\n💵 Salary Range:');
+        console.log('\n💵 Salary Range for AI Engineer at Google:');
         console.log(`   Min: $${data.salaryRange.min?.toLocaleString()}`);
         console.log(`   Median: $${data.salaryRange.median?.toLocaleString()}`);
         console.log(`   Max: $${data.salaryRange.max?.toLocaleString()}`);
@@ -109,12 +148,12 @@ async function testSalaryInsights() {
       
       if (data.marketInsights) {
         console.log('\n📈 Market Insights:');
-        console.log(data.marketInsights.substring(0, 200) + '...');
+        console.log(data.marketInsights.substring(0, 300) + '...');
       }
       
       if (data.negotiationTips) {
         console.log('\n🤝 Negotiation Tips:');
-        data.negotiationTips.slice(0, 3).forEach((tip, i) => {
+        data.negotiationTips.slice(0, 4).forEach((tip, i) => {
           console.log(`${i + 1}. ${tip}`);
         });
       }
@@ -128,7 +167,7 @@ async function testSalaryInsights() {
       
       if (data.locationAdjustment) {
         console.log('\n📍 Location Adjustment:');
-        console.log(data.locationAdjustment.substring(0, 150) + '...');
+        console.log(data.locationAdjustment.substring(0, 200) + '...');
       }
       
       console.log('\n' + '─'.repeat(60));
@@ -144,7 +183,14 @@ async function runTests() {
   console.log('═'.repeat(60));
   console.log('🧪 Testing Interview Prep & Salary Insights APIs');
   console.log('   Company: Google | Position: AI Engineer');
+  console.log('   User: shubhamdubeyskd2001@gmail.com');
   console.log('═'.repeat(60));
+  
+  const loginSuccess = await login();
+  if (!loginSuccess) {
+    console.log('\n❌ Tests aborted - login failed');
+    return;
+  }
   
   await testInterviewPrep();
   await testSalaryInsights();
