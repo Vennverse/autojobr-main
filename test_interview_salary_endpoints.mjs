@@ -5,7 +5,7 @@ const API_BASE = 'http://localhost:5000';
 
 // Test credentials
 const TEST_CREDENTIALS = {
-  email: 'shubhamdubeyskd2001@gmail.com',
+  email: 'shubhamdubexskd2001@gmail.com',
   password: '12345678'
 };
 
@@ -31,7 +31,7 @@ let sessionCookie = '';
 
 async function login() {
   console.log('\n🔐 Logging in...\n');
-  
+
   try {
     const response = await fetch(`${API_BASE}/api/auth/email/login`, {
       method: 'POST',
@@ -48,12 +48,12 @@ async function login() {
     }
 
     const data = await response.json();
-    
+
     if (!response.ok) {
       console.error('❌ Login failed:', data.message);
       return false;
     }
-    
+
     console.log('👤 Logged in as:', data.user?.email);
     return true;
   } catch (error) {
@@ -64,7 +64,7 @@ async function login() {
 
 async function testInterviewPrep() {
   console.log('\n🎯 Testing /api/interview-prep endpoint...\n');
-  
+
   try {
     const response = await fetch(`${API_BASE}/api/interview-prep`, {
       method: 'POST',
@@ -81,29 +81,29 @@ async function testInterviewPrep() {
     });
 
     const data = await response.json();
-    
+
     if (response.ok) {
       console.log('✅ Interview Prep Endpoint Success!\n');
       console.log('📊 Response Data:');
       console.log('─'.repeat(60));
       console.log('\n🏢 Company Insights:');
       console.log(data.companyInsights?.substring(0, 300) + '...');
-      
+
       console.log('\n❓ Sample Interview Questions:');
       data.questions?.slice(0, 5).forEach((q, i) => {
         console.log(`${i + 1}. ${q}`);
       });
-      
+
       console.log('\n💡 Preparation Tips:');
       console.log(data.tips?.substring(0, 300) + '...');
-      
+
       if (data.technicalTopics) {
         console.log('\n🔧 Technical Topics to Study:');
         data.technicalTopics.slice(0, 7).forEach((topic, i) => {
           console.log(`${i + 1}. ${topic}`);
         });
       }
-      
+
       console.log('\n' + '─'.repeat(60));
     } else {
       console.error('❌ Interview Prep Failed:', data);
@@ -115,7 +115,7 @@ async function testInterviewPrep() {
 
 async function testSalaryInsights() {
   console.log('\n💰 Testing /api/salary-insights endpoint...\n');
-  
+
   try {
     const response = await fetch(`${API_BASE}/api/salary-insights`, {
       method: 'POST',
@@ -133,43 +133,43 @@ async function testSalaryInsights() {
     });
 
     const data = await response.json();
-    
+
     if (response.ok) {
       console.log('✅ Salary Insights Endpoint Success!\n');
       console.log('📊 Response Data:');
       console.log('─'.repeat(60));
-      
+
       if (data.salaryRange) {
         console.log('\n💵 Salary Range for AI Engineer at Google:');
         console.log(`   Min: $${data.salaryRange.min?.toLocaleString()}`);
         console.log(`   Median: $${data.salaryRange.median?.toLocaleString()}`);
         console.log(`   Max: $${data.salaryRange.max?.toLocaleString()}`);
       }
-      
+
       if (data.marketInsights) {
         console.log('\n📈 Market Insights:');
         console.log(data.marketInsights.substring(0, 300) + '...');
       }
-      
+
       if (data.negotiationTips) {
         console.log('\n🤝 Negotiation Tips:');
         data.negotiationTips.slice(0, 4).forEach((tip, i) => {
           console.log(`${i + 1}. ${tip}`);
         });
       }
-      
+
       if (data.benefitsToConsider) {
         console.log('\n🎁 Benefits to Consider:');
         data.benefitsToConsider.slice(0, 5).forEach((benefit, i) => {
           console.log(`${i + 1}. ${benefit}`);
         });
       }
-      
+
       if (data.locationAdjustment) {
         console.log('\n📍 Location Adjustment:');
         console.log(data.locationAdjustment.substring(0, 200) + '...');
       }
-      
+
       console.log('\n' + '─'.repeat(60));
     } else {
       console.error('❌ Salary Insights Failed:', data);
@@ -185,16 +185,16 @@ async function runTests() {
   console.log('   Company: Google | Position: AI Engineer');
   console.log('   User: shubhamdubeyskd2001@gmail.com');
   console.log('═'.repeat(60));
-  
+
   const loginSuccess = await login();
   if (!loginSuccess) {
     console.log('\n❌ Tests aborted - login failed');
     return;
   }
-  
+
   await testInterviewPrep();
   await testSalaryInsights();
-  
+
   console.log('\n✅ All tests completed!');
   console.log('═'.repeat(60));
 }
