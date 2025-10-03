@@ -4920,7 +4920,28 @@ Additional Information:
   // Legacy endpoint for backward compatibility
   app.post('/api/salary-insights', isAuthenticated, async (req: any, res) => {
     try {
-      const { jobTitle, company, location, experienceLevel, skills } = req.body;</old_str>
+      const { jobTitle, company, location, experienceLevel, skills } = req.body;
+      
+      if (!jobTitle) {
+        return res.status(400).json({ message: 'Job title is required' });
+      }
+
+      // Use the new salary insights service for backward compatibility
+      const { salaryInsightsService } = await import('./salaryInsightsService');
+      const insights = salaryInsightsService.generateInsights({
+        jobTitle,
+        company,
+        location,
+        experienceLevel,
+        skills
+      });
+
+      res.json(insights);
+    } catch (error) {
+      console.error('Salary insights error:', error);
+      res.status(500).json({ message: 'Failed to generate salary insights' });
+    }
+  });</old_str>
       
       // Comprehensive salary database by role (in USD thousands)
       const salaryByRole: Record<string, {base: number, faang: number, startup: number}> = {
