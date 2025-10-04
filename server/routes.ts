@@ -7754,7 +7754,7 @@ Additional Information:
         .where(
           and(
             eq(schema.jobPostingApplications.jobPostingId, invitation.jobPostingId),
-            eq(schema.jobPostingApplications.candidateId, userId)
+            eq(schema.jobPostingApplications.applicantId, userId)
           )
         )
         .limit(1);
@@ -7767,10 +7767,8 @@ Additional Information:
           .insert(schema.jobPostingApplications)
           .values({
             jobPostingId: invitation.jobPostingId,
-            candidateId: userId,
-            recruiterId: invitation.recruiterId,
-            status: 'applied',
-            applicationSource: 'interview_invitation'
+            applicantId: userId,
+            status: 'applied'
           })
           .returning();
         
