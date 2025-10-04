@@ -1,0 +1,33 @@
+/var/www/autojobr-main/logs/err-0.log last 15 lines:
+0|autojobr |   column: undefined,
+0|autojobr |   dataType: undefined,
+0|autojobr |   constraint: undefined,
+0|autojobr |   file: 'parse_relation.c',
+0|autojobr |   line: '3722',
+0|autojobr |   routine: 'errorMissingColumn'
+0|autojobr | }
+0|autojobr | 2025-10-04T14:31:53: ⚠️ No skills found - adding demo skills for testing
+0|autojobr | 2025-10-04T14:32:26: ⚠️ No skills found - adding demo skills for testing
+0|autojobr | 2025-10-04T14:34:26: Google OAuth error: ReferenceError: UserRoleService is not defined
+0|autojobr |     at Strategy._verify (file:///var/www/autojobr-main/dist/index.js:20371:36)
+0|autojobr |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|autojobr | 2025-10-04T14:34:26: ReferenceError: UserRoleService is not defined
+0|autojobr |     at Strategy._verify (file:///var/www/autojobr-main/dist/index.js:20371:36)
+0|autojobr |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
+/var/www/autojobr-main/logs/err-1.log last 15 lines:
+1|autojobr |   constraint: undefined,
+1|autojobr |   file: 'parse_relation.c',
+1|autojobr |   line: '3722',
+1|autojobr |   routine: 'errorMissingColumn'
+1|autojobr | }
+1|autojobr | 2025-10-04T14:34:39: TokenError: Bad Request
+1|autojobr |     at OAuth2Strategy.parseErrorResponse (/var/www/autojobr-main/node_modules/passport-oauth2/lib/strategy.js:373:12)
+1|autojobr |     at OAuth2Strategy._createOAuthError (/var/www/autojobr-main/node_modules/passport-oauth2/lib/strategy.js:420:16)
+1|autojobr |     at /var/www/autojobr-main/node_modules/passport-oauth2/lib/strategy.js:177:45
+1|autojobr |     at /var/www/autojobr-main/node_modules/oauth/lib/oauth2.js:196:18
+1|autojobr |     at passBackControl (/var/www/autojobr-main/node_modules/oauth/lib/oauth2.js:132:9)
+1|autojobr |     at IncomingMessage.<anonymous> (/var/www/autojobr-main/node_modules/oauth/lib/oauth2.js:157:7)
+1|autojobr |     at IncomingMessage.emit (node:events:536:35)
+1|autojobr |     at endReadableNT (node:internal/streams/readable:1698:12)
+1|autojobr |     at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
