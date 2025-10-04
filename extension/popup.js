@@ -1060,70 +1060,73 @@ class AutoJobrPopup {
   }
 
   async handleInterviewPrep() {
-    if (!this.isAuthenticated || !this.jobData) {
-      this.showError('Please ensure you\'re authenticated and on a job page');
+    if (!this.isAuthenticated) {
+      this.showError('Please sign in to use interview preparation');
+      return;
+    }
+    
+    if (!this.jobData) {
+      this.showError('Please navigate to a job page to get interview preparation');
       return;
     }
 
     this.showLoading(true);
 
     try {
-      const response = await new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({
-          action: 'getInterviewPrep',
-          jobData: this.jobData
-        }, (response) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-          } else {
-            resolve(response);
-          }
-        });
+      const response = await this.makeApiRequest('/api/interview-prep', {
+        method: 'POST',
+        body: JSON.stringify({
+          jobTitle: this.jobData.title,
+          company: this.jobData.company,
+          jobDescription: this.jobData.description,
+          requestedAt: new Date().toISOString()
+        })
       });
 
-      if (response && response.success) {
-        this.showInterviewPrepModal(response.prep);
+      if (response && !response.error) {
+        this.showInterviewPrepModal(response);
       } else {
         throw new Error(response?.error || 'Failed to get interview prep');
       }
     } catch (error) {
       console.error('Interview prep error:', error);
-      this.showError('Failed to generate interview prep. Please try again.');
+      this.showError(error.message || 'Failed to generate interview prep. Please try again.');
     } finally {
       this.showLoading(false);
     }
   }
 
   async handleSalaryInsights() {
-    if (!this.isAuthenticated || !this.jobData) {
-      this.showError('Please ensure you\'re authenticated and on a job page');
+    if (!this.isAuthenticated) {
+      this.showError('Please sign in to get salary insights');
+      return;
+    }
+    
+    if (!this.jobData) {
+      this.showError('Please navigate to a job page to get salary insights');
       return;
     }
 
     this.showLoading(true);
 
     try {
-      const response = await new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({
-          action: 'getSalaryInsights',
-          jobData: this.jobData
-        }, (response) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-          } else {
-            resolve(response);
-          }
-        });
+      const response = await this.makeApiRequest('/api/salary-insights', {
+        method: 'POST',
+        body: JSON.stringify({
+          jobTitle: this.jobData.title,
+          company: this.jobData.company,
+          location: this.jobData.location
+        })
       });
 
-      if (response && response.success) {
-        this.showSalaryInsightsModal(response.insights);
+      if (response && !response.error) {
+        this.showSalaryInsightsModal(response);
       } else {
         throw new Error(response?.error || 'Failed to get salary insights');
       }
     } catch (error) {
       console.error('Salary insights error:', error);
-      this.showError('Failed to get salary insights. Please try again.');
+      this.showError(error.message || 'Failed to get salary insights. Please try again.');
     } finally {
       this.showLoading(false);
     }

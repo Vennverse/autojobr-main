@@ -30,6 +30,7 @@ export class UserRoleService {
   static detectUserRole(email) {
     const emailLower = email.toLowerCase();
     const emailDomain = emailLower.split('@')[1] || '';
+    const emailPrefix = emailLower.split('@')[0];
     
     // FIRST: Check if email is from a public email provider
     // ALL public email users are ALWAYS job seekers, regardless of username
@@ -46,7 +47,29 @@ export class UserRoleService {
       }
     }
     
-    // SECOND: For corporate/company emails, check for recruiter indicators
+    // SECOND: Check if email is from an educational institution
+    // Educational domains: .edu, .ac.in, .edu.*, .ac.*, etc.
+    const isEducationalDomain = 
+      emailDomain.endsWith('.edu') ||
+      emailDomain.endsWith('.ac.in') ||
+      emailDomain.includes('.edu.') ||
+      emailDomain.includes('.ac.');
+    
+    if (isEducationalDomain) {
+      // Check if it's university HR/hiring staff (they should be recruiters)
+      const recruiterKeywords = ['hr', 'talent', 'recruiting', 'careers', 'hiring', 'placement'];
+      
+      for (const keyword of recruiterKeywords) {
+        if (emailPrefix.includes(keyword)) {
+          return 'recruiter'; // University career services/HR staff
+        }
+      }
+      
+      // Regular students and faculty are job seekers
+      return 'job_seeker';
+    }
+    
+    // THIRD: For corporate/company emails, check for recruiter indicators
     const recruiterDomains = [
       'hr.', 'talent.', 'recruiting.', 'careers.',
       'vennverse.com', 'company.com'
@@ -62,7 +85,6 @@ export class UserRoleService {
     }
     
     // Check email prefix for recruiting keywords (only for corporate emails)
-    const emailPrefix = emailLower.split('@')[0];
     for (const keyword of recruiterKeywords) {
       if (emailPrefix.includes(keyword)) {
         return 'recruiter';
