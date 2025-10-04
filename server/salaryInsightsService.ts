@@ -110,11 +110,23 @@ export class SalaryInsightsService {
   generateInsights(data: z.infer<typeof salaryInsightsSchema>): SalaryInsights {
     const { jobTitle, company, location, experienceLevel = 0, skills = [] } = data;
 
-    const roleData = this.findRoleData(jobTitle);
+    let roleData = this.findRoleData(jobTitle);
+    
+    // If no role data found, use software engineer as fallback
     if (!roleData) {
-      // Return default values if role not found
-      const defaultSalary = 80000;
-      const salaryRange = this.calculateSalaryRange(defaultSalary);
+      console.log(`Role data not found for: ${jobTitle}, using fallback`);
+      roleData = SALARY_DATABASE['software engineer'];
+    }
+    
+    // Ensure we have valid role data
+    if (!roleData) {
+      // Ultimate fallback with explicit default values
+      const defaultSalary = 85000;
+      const salaryRange = {
+        min: Math.round(defaultSalary * 0.85),
+        median: defaultSalary,
+        max: Math.round(defaultSalary * 1.15)
+      };
       return {
         salaryRange,
         currency: 'USD',
@@ -123,11 +135,11 @@ export class SalaryInsightsService {
           baseSalary: defaultSalary,
           skillsBonus: 0,
           equityEstimate: 0,
-          bonusEstimate: Math.round(defaultSalary * 0.1)
+          bonusEstimate: Math.round(defaultSalary * 0.15)
         },
-        marketInsights: `Based on general market data for similar positions. Actual salary may vary based on company size, location, and specific requirements.`,
-        negotiationTips: this.generateNegotiationTips('us', experienceLevel, skills, 'general'),
-        locationAdjustment: 'US national average',
+        marketInsights: `Based on general market data for similar positions. The role "${jobTitle}" is not in our database, so we're providing estimated ranges based on comparable positions. Actual salary may vary significantly based on company size, location, industry, and specific requirements.`,
+        negotiationTips: this.generateNegotiationTips('us', experienceLevel, skills, 'engineering'),
+        locationAdjustment: 'US national average (estimated)',
         companyTier: company ? 'Standard' : 'Unknown',
         experienceImpact: `${experienceLevel} years experience considered`
       };
@@ -171,13 +183,23 @@ export class SalaryInsightsService {
     };
   }
 
-  private findRoleData(jobTitle: string): RoleData {
+  private findRoleData(jobTitle: string): RoleData | null {
     const normalizedTitle = jobTitle.toLowerCase().trim();
-    if (SALARY_DATABASE[normalizedTitle]) return SALARY_DATABASE[normalizedTitle];
-    for (const [role, data] of Object.entries(SALARY_DATABASE)) {
-      if (normalizedTitle.includes(role) || role.includes(normalizedTitle)) return data;
+    
+    // Direct match
+    if (SALARY_DATABASE[normalizedTitle]) {
+      return SALARY_DATABASE[normalizedTitle];
     }
-    return SALARY_DATABASE['software engineer'];
+    
+    // Partial match
+    for (const [role, data] of Object.entries(SALARY_DATABASE)) {
+      if (normalizedTitle.includes(role) || role.includes(normalizedTitle)) {
+        return data;
+      }
+    }
+    
+    // No match found - return null to trigger fallback
+    return null;
   }
 
   private calculateBaseSalary(roleData: RoleData, experienceLevel: number): number {
@@ -214,10 +236,12 @@ export class SalaryInsightsService {
   }
 
   private calculateSalaryRange(median: number): SalaryRange {
+    // Ensure median is a valid number
+    const validMedian = median && !isNaN(median) ? median : 80000;
     return {
-      min: Math.round(median * CONSTANTS.SALARY_RANGE_MIN),
-      median,
-      max: Math.round(median * CONSTANTS.SALARY_RANGE_MAX)
+      min: Math.round(validMedian * CONSTANTS.SALARY_RANGE_MIN),
+      median: validMedian,
+      max: Math.round(validMedian * CONSTANTS.SALARY_RANGE_MAX)
     };
   }
 
