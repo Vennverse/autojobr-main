@@ -1,7 +1,10 @@
 
 import fetch from 'node-fetch';
 
-const API_BASE = 'http://localhost:5000';
+// Use environment variable or default to Replit's public URL
+const API_BASE = process.env.REPL_SLUG 
+  ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+  : 'http://0.0.0.0:5000';
 
 // Performance tracking
 const performanceMetrics = {
