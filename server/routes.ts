@@ -7656,7 +7656,9 @@ Additional Information:
         company: company || null,
         difficulty: difficulty,
         expiryDate,
-        isUsed: false
+        isUsed: false,
+        maxUses: null, // null = unlimited uses for mass distribution
+        usageCount: 0
       }).returning();
 
       // Generate full URL - always use autojobr.com for shareable links
@@ -7695,9 +7697,9 @@ Additional Information:
         return res.status(410).json({ message: 'This invitation link has expired' });
       }
 
-      // Check if already used
-      if (invitation.isUsed) {
-        return res.status(410).json({ message: 'This invitation link has already been used' });
+      // Check if max uses reached (only if maxUses is set)
+      if (invitation.maxUses && invitation.usageCount >= invitation.maxUses) {
+        return res.status(410).json({ message: 'This invitation link has reached its maximum number of uses' });
       }
 
       // Get job posting details
@@ -7733,21 +7735,16 @@ Additional Information:
         .where(eq(schema.interviewInvitations.token, token))
         .limit(1);
 
-      if (!invitation || new Date(invitation.expiryDate) < new Date() || invitation.isUsed) {
-        return res.status(400).json({ message: 'Invalid invitation' });
+      if (!invitation || new Date(invitation.expiryDate) < new Date()) {
+        return res.status(400).json({ message: 'Invalid or expired invitation' });
       }
 
-      // Mark invitation as used
-      await db
-        .update(schema.interviewInvitations)
-        .set({ 
-          isUsed: true, 
-          candidateId: userId,
-          usedAt: new Date()
-        })
-        .where(eq(schema.interviewInvitations.token, token));
+      // Check if max uses reached (only if maxUses is set)
+      if (invitation.maxUses && invitation.usageCount >= invitation.maxUses) {
+        return res.status(400).json({ message: 'This invitation has reached its maximum number of uses' });
+      }
 
-      // Check if application already exists
+      // Check if this user has already used this invitation
       const existingApplication = await db
         .select()
         .from(schema.jobPostingApplications)
@@ -7773,7 +7770,16 @@ Additional Information:
           .returning();
         
         applicationId = newApplication.id;
+
+        // Increment usage count
+        await db
+          .update(schema.interviewInvitations)
+          .set({ 
+            usageCount: sql`${schema.interviewInvitations.usageCount} + 1`
+          })
+          .where(eq(schema.interviewInvitations.token, token));
       } else {
+        // User already has an application for this job
         applicationId = existingApplication[0].id;
       }
 

@@ -902,14 +902,30 @@ export const interviewInvitations = pgTable("interview_invitations", {
   company: text("company"), // Company name (optional)
   difficulty: text("difficulty").notNull(), // Interview difficulty level
   expiryDate: timestamp("expiry_date").notNull(),
-  isUsed: boolean("is_used").default(false),
-  candidateId: text("candidate_id"), // Set after candidate signs up
-  usedAt: timestamp("used_at"),
+  isUsed: boolean("is_used").default(false), // Deprecated - kept for backward compatibility
+  candidateId: text("candidate_id"), // Deprecated - kept for backward compatibility
+  usedAt: timestamp("used_at"), // Deprecated - kept for backward compatibility
+  maxUses: integer("max_uses"), // null = unlimited uses, number = max times this invitation can be used
+  usageCount: integer("usage_count").default(0), // How many times this invitation has been used
   createdAt: timestamp("created_at").defaultNow()
 }, (table) => [
   index("interview_invitations_token_idx").on(table.token),
   index("interview_invitations_recruiter_idx").on(table.recruiterId),
   index("interview_invitations_job_idx").on(table.jobPostingId),
+]);
+
+// Track individual invitation uses for bulk/reusable invitations
+export const invitationUses = pgTable("invitation_uses", {
+  id: serial("id").primaryKey(),
+  invitationId: integer("invitation_id").references(() => interviewInvitations.id).notNull(),
+  candidateId: text("candidate_id").notNull(),
+  usedAt: timestamp("used_at").defaultNow(),
+  candidateEmail: varchar("candidate_email"),
+  candidateName: varchar("candidate_name"),
+}, (table) => [
+  index("invitation_uses_invitation_idx").on(table.invitationId),
+  index("invitation_uses_candidate_idx").on(table.candidateId),
+  unique("invitation_candidate_unique").on(table.invitationId, table.candidateId), // Prevent same user from using same invitation twice
 ]);
 
 // Advanced recruiter features - Job templates for faster posting
