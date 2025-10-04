@@ -717,6 +717,54 @@ export async function setupAuth(app: Express) {
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
+      // Advanced role detection logic (same as Google OAuth)
+      const emailLower = email.toLowerCase();
+      const emailDomain = emailLower.split('@')[1] || '';
+      const emailPrefix = emailLower.split('@')[0];
+
+      let userType = 'job_seeker'; // Default
+
+      // FIRST: Public email providers - always job seekers
+      const publicProviders = [
+        'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 
+        'live.com', 'msn.com', 'icloud.com', 'me.com',
+        'aol.com', 'protonmail.com', 'mail.com', 'zoho.com'
+      ];
+
+      if (publicProviders.includes(emailDomain)) {
+        userType = 'job_seeker';
+      }
+      // SECOND: Educational institutions (.edu, .ac.in, .edu.*, .ac.*)
+      else if (
+        emailDomain.endsWith('.edu') ||
+        emailDomain.endsWith('.ac.in') ||
+        emailDomain.includes('.edu.') ||
+        emailDomain.includes('.ac.')
+      ) {
+        // Check if university HR/placement staff (they should be recruiters)
+        const recruiterKeywords = ['hr', 'talent', 'recruiting', 'careers', 'hiring', 'placement'];
+
+        if (recruiterKeywords.some(keyword => emailPrefix.includes(keyword))) {
+          userType = 'recruiter'; // University career services/HR staff
+        } else {
+          userType = 'job_seeker'; // Regular students and faculty
+        }
+      }
+      // THIRD: Corporate emails - check for recruiter indicators
+      else {
+        const recruiterDomains = ['hr.', 'talent.', 'recruiting.', 'careers.'];
+        const recruiterKeywords = ['hr', 'talent', 'recruiting', 'careers', 'hiring'];
+
+        // Check domain patterns
+        if (recruiterDomains.some(domain => emailLower.includes(domain))) {
+          userType = 'recruiter';
+        }
+        // Check email prefix for recruiting keywords (only for corporate emails)
+        else if (recruiterKeywords.some(keyword => emailPrefix.includes(keyword))) {
+          userType = 'recruiter';
+        }
+      }
+
       // Create new user (not verified yet)
       const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const newUser = await storage.upsertUser({
@@ -725,7 +773,8 @@ export async function setupAuth(app: Express) {
         firstName,
         lastName,
         password: hashedPassword,
-        userType: 'job_seeker',
+        userType: userType,
+        currentRole: userType,
         emailVerified: false, // User needs to verify email
         profileImageUrl: null,
         companyName: null,
