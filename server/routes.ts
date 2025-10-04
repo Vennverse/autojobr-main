@@ -4756,7 +4756,31 @@ Additional Information:
         interviewRound
       });
 
-      res.json(preparation);
+      // Flatten the response for backward compatibility with tests
+      const flattenedResponse = {
+        companyInsights: preparation.companyTypeInsights?.culture || preparation.roleInsights?.overview || '',
+        questions: [
+          ...(preparation.questions?.behavioral || []),
+          ...(preparation.questions?.technical || []),
+          ...(preparation.questions?.systemDesign || []),
+          ...(preparation.questions?.situational || []),
+          ...(preparation.questions?.leadership || [])
+        ].slice(0, 20), // Limit to 20 questions
+        technicalTopics: [
+          ...(preparation.technicalTopics?.mustKnow || []),
+          ...(preparation.technicalTopics?.shouldKnow || []),
+          ...(preparation.technicalTopics?.niceToHave || [])
+        ].slice(0, 15), // Limit to 15 topics
+        tips: [
+          ...(preparation.tips?.general || []),
+          ...(preparation.tips?.technical || []),
+          ...(preparation.tips?.behavioral || [])
+        ].join('\n\n'),
+        // Include full preparation data for clients that can use it
+        fullPreparation: preparation
+      };
+
+      res.json(flattenedResponse);
     } catch (error) {
       console.error('Interview prep error:', error);
       res.status(500).json({ message: 'Failed to generate interview prep' });
