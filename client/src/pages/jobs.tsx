@@ -671,6 +671,126 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     saveJobMutation.mutate(jobId);
   };
 
+  const handleInterviewPrep = async (job: JobPosting) => {
+    if (!isAuthenticated) {
+      setLocation('/auth');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/ai/interview-prep', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          jobTitle: job.title,
+          company: job.companyName || job.company,
+          jobDescription: job.description,
+          requirements: job.requirements
+        })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast({
+          title: "Interview Prep Ready!",
+          description: `Generated ${data.questions?.length || 0} practice questions and insights.`
+        });
+        // You can show this in a modal or navigate to a prep page
+        console.log('Interview Prep Data:', data);
+      } else {
+        throw new Error(data.message || 'Failed to generate interview prep');
+      }
+    } catch (error) {
+      toast({
+        title: "Failed to Generate Interview Prep",
+        description: error instanceof Error ? error.message : "Please try again later.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSalaryInsights = async (job: JobPosting) => {
+    if (!isAuthenticated) {
+      setLocation('/auth');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/ai/salary-insights', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          jobTitle: job.title,
+          company: job.companyName || job.company,
+          location: job.location,
+          experienceLevel: job.experienceLevel,
+          skills: job.requiredSkills || []
+        })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast({
+          title: "Salary Insights Ready!",
+          description: `Estimated: $${data.estimatedSalary?.toLocaleString() || 'N/A'}`
+        });
+        // You can show this in a modal or navigate to insights page
+        console.log('Salary Insights Data:', data);
+      } else {
+        throw new Error(data.message || 'Failed to get salary insights');
+      }
+    } catch (error) {
+      toast({
+        title: "Failed to Get Salary Insights",
+        description: error instanceof Error ? error.message : "Please try again later.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleFindReferrals = async (job: JobPosting) => {
+    if (!isAuthenticated) {
+      setLocation('/auth');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/referrals/find', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          jobTitle: job.title,
+          companyName: job.companyName || job.company,
+          location: job.location
+        })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast({
+          title: "Referrals Found!",
+          description: `Found ${data.referrals?.length || 0} potential referrals in your network.`
+        });
+        // You can show this in a modal or navigate to referrals page
+        console.log('Referrals Data:', data);
+      } else {
+        throw new Error(data.message || 'Failed to find referrals');
+      }
+    } catch (error) {
+      toast({
+        title: "Failed to Find Referrals",
+        description: error instanceof Error ? error.message : "Please try again later.",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Currency options
   const currencyOptions = [
     { value: 'USD', label: 'USD ($)', symbol: '$' },
@@ -1723,6 +1843,40 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         className="h-9 w-9 touch-manipulation"
                       >
                         <ExternalLink className="w-4 h-4" />
+                      </Button>
+                    </div>
+
+                    {/* Advanced AI Features */}
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleInterviewPrep(selectedJob)}
+                        className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-cyan-100 dark:hover:from-blue-900/30 dark:hover:to-cyan-900/30 text-blue-700 dark:text-blue-300"
+                        data-testid="button-interview-prep"
+                      >
+                        <Target className="w-4 h-4 mr-2" />
+                        Interview Prep
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSalaryInsights(selectedJob)}
+                        className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-700 hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-900/30 dark:hover:to-emerald-900/30 text-green-700 dark:text-green-300"
+                        data-testid="button-salary-insights"
+                      >
+                        <DollarSign className="w-4 h-4 mr-2" />
+                        Salary Intel
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleFindReferrals(selectedJob)}
+                        className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-700 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-900/30 dark:hover:to-pink-900/30 text-purple-700 dark:text-purple-300"
+                        data-testid="button-find-referrals"
+                      >
+                        <Users className="w-4 h-4 mr-2" />
+                        Find Referrals
                       </Button>
                     </div>
                   </div>
