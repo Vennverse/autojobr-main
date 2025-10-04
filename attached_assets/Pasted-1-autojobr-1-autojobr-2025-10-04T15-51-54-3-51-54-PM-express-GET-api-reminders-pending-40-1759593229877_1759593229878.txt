@@ -1,0 +1,67 @@
+1|autojobr | }
+1|autojobr | 2025-10-04T15:51:54: 3:51:54 PM [express] GET /api/reminders/pending 401 in 8ms :: {"message":"Not authenticated"}
+1|autojobr | 2025-10-04T15:51:59: 3:51:59 PM [express] POST /api/auth/signin 200 in 1ms :: {"redirectUrl":"/api/auth/google"}
+1|autojobr | 2025-10-04T15:52:03: 3:52:03 PM [express] GET /api/auth/google/callback 500 in 161ms :: {"message":"UserRoleService is no…
+
+/var/www/autojobr-main/logs/err-1.log last 15 lines:
+1|autojobr |   routine: 'errorMissingColumn'
+1|autojobr | }
+1|autojobr | 2025-10-04T15:48:43: [CACHE_SECURITY] Cache key "profile_user-1757962564698-pz56vtr0w" used without user ID scoping
+1|autojobr | 2025-10-04T15:49:11: Google OAuth error: ReferenceError: UserRoleService is not defined
+1|autojobr |     at Strategy._verify (file:///var/www/autojobr-main/dist/index.js:20371:36)
+1|autojobr |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+1|autojobr | 2025-10-04T15:49:11: ReferenceError: UserRoleService is not defined
+1|autojobr |     at Strategy._verify (file:///var/www/autojobr-main/dist/index.js:20371:36)
+1|autojobr |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+1|autojobr | 2025-10-04T15:52:03: Google OAuth error: ReferenceError: UserRoleService is not defined
+1|autojobr |     at Strategy._verify (file:///var/www/autojobr-main/dist/index.js:20371:36)
+1|autojobr |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+1|autojobr | 2025-10-04T15:52:03: ReferenceError: UserRoleService is not defined
+1|autojobr |     at Strategy._verify (file:///var/www/autojobr-main/dist/index.js:20371:36)
+1|autojobr |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
+/var/www/autojobr-main/logs/out-0.log last 15 lines:
+0|autojobr | 2025-10-04T15:51:46: ✅ Resumes directory exists: uploads/resumes
+0|autojobr | 2025-10-04T15:51:46: ✅ Connected to Replit PostgreSQL database
+0|autojobr | 2025-10-04T15:51:46: ✅ Recent sync found (16 hours ago) - skipping initial sync
+0|autojobr | 2025-10-04T15:51:54: 🔍 [AUTH DEBUG] GET /api/user: hasSession=true, sessionUser=false, passportUser=false
+0|autojobr | 2025-10-04T15:51:54: 🚫 [AUTH DEBUG] No session user found
+0|autojobr | 2025-10-04T15:51:54: 3:51:54 PM [express] GET /api/user 401 in 7ms :: {"message":"Not authenticated"}
+0|autojobr | 2025-10-04T15:51:59: 3:51:59 PM [express] GET /api/auth/google 302 in 2ms
+0|autojobr | 2025-10-04T15:52:03: [AUTH DEBUG] GET /api/reminders/pending: {
+0|autojobr |   hasSession: true,
+0|autojobr |   sessionUser: false,
+0|autojobr |   passportUser: false,
+0|autojobr |   sessionId: 'tUHRX-PHwztv-VAjo1Nk9yVL7VwiVSu4',
+0|autojobr |   cookies: 'present'
+0|autojobr | }
+0|autojobr | 2025-10-04T15:52:03: 3:52:03 PM [express] GET /api/reminders/pending 401 in 4ms :: {"message":"Not authenticated"}
+
+1|autojobr  | 2025-10-04T15:52:56: 🔍 [AUTH DEBUG] GET /api/user: hasSession=true, sessionUser=false, passportUser=false
+1|autojobr  | 2025-10-04T15:52:56: 🚫 [AUTH DEBUG] No session user found
+1|autojobr  | 2025-10-04T15:52:56: 3:52:56 PM [express] GET /api/user 401 in 2ms :: {"message":"Not authenticated"}
+0|autojobr  | 2025-10-04T15:52:56: [AUTH DEBUG] GET /api/reminders/pending: {
+0|autojobr  |   hasSession: true,
+0|autojobr  |   sessionUser: false,
+0|autojobr  |   passportUser: false,
+0|autojobr  |   sessionId: '_R9wNvemtTnnycx6BAzwzi-WpJq2lBfh',
+0|autojobr  |   cookies: 'present'
+0|autojobr  | }
+0|autojobr  | 2025-10-04T15:52:56: 3:52:56 PM [express] GET /api/reminders/pending 401 in 2ms :: {"message":"Not authenticated"}
+1|autojobr  | 2025-10-04T15:53:09: 3:53:09 PM [express] POST /api/auth/signin 200 in 1ms :: {"redirectUrl":"/api/auth/google"}
+0|autojobr  | 2025-10-04T15:53:09: 3:53:09 PM [express] GET /api/auth/google 302 in 1ms
+1|autojobr  | 2025-10-04T15:53:13: Google OAuth error: ReferenceError: UserRoleService is not defined
+1|autojobr  |     at Strategy._verify (file:///var/www/autojobr-main/dist/index.js:20371:36)
+1|autojobr  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+1|autojobr  | 2025-10-04T15:53:13: 3:53:13 PM [express] GET /api/auth/google/callback 500 in 140ms :: {"message":"UserRoleService is no…
+1|autojobr  | 2025-10-04T15:53:13: ReferenceError: UserRoleService is not defined
+1|autojobr  |     at Strategy._verify (file:///var/www/autojobr-main/dist/index.js:20371:36)
+1|autojobr  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|autojobr  | 2025-10-04T15:53:14: [AUTH DEBUG] GET /api/reminders/pending: {
+0|autojobr  |   hasSession: true,
+0|autojobr  |   sessionUser: false,
+0|autojobr  |   passportUser: false,
+0|autojobr  |   sessionId: 'QtFNvLVD_i-6IEODOpD6vrBlDH4Q63LE',
+0|autojobr  |   cookies: 'present'
+0|autojobr  | }
+0|autojobr  | 2025-10-04T15:53:14: 3:53:14 PM [express] GET /api/reminders/pending 401 in 2ms :: {"message":"Not authenticated"}
