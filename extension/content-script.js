@@ -518,6 +518,21 @@ class AutoJobrContentScript {
                 <span>Upload Resume</span>
               </button>
             </div>
+
+            <div class="action-row" style="margin-top: 8px;">
+              <button class="autojobr-btn secondary" id="autojobr-interview-prep">
+                <span class="btn-icon">🎯</span>
+                <span>Interview Prep</span>
+              </button>
+              <button class="autojobr-btn secondary" id="autojobr-salary-insights">
+                <span class="btn-icon">💰</span>
+                <span>Salary Intel</span>
+              </button>
+              <button class="autojobr-btn secondary" id="autojobr-referral-finder">
+                <span class="btn-icon">🤝</span>
+                <span>Find Referrals</span>
+              </button>
+            </div>
           </div>
 
           <div class="autojobr-features">
@@ -576,6 +591,9 @@ class AutoJobrContentScript {
     document.getElementById('autojobr-save-job')?.addEventListener('click', () => this.handleSaveJob());
     document.getElementById('autojobr-cover-letter')?.addEventListener('click', () => this.handleCoverLetter());
     document.getElementById('autojobr-upload-resume')?.addEventListener('click', () => this.handleResumeUpload());
+    document.getElementById('autojobr-interview-prep')?.addEventListener('click', () => this.handleInterviewPrep());
+    document.getElementById('autojobr-salary-insights')?.addEventListener('click', () => this.handleSalaryInsights());
+    document.getElementById('autojobr-referral-finder')?.addEventListener('click', () => this.handleReferralFinder());
 
     // Widget controls
     // Enhanced close button with better event handling
@@ -3417,6 +3435,218 @@ class AutoJobrContentScript {
         resolve(response?.apiUrl || 'https://autojobr.com');
       });
     });
+  }
+
+  // Handle Interview Prep
+  async handleInterviewPrep() {
+    if (!this.currentJobData) {
+      this.showNotification('No job data found on this page', 'error');
+      return;
+    }
+
+    try {
+      this.updateStatus('🔄 Generating interview prep...', 'loading');
+      
+      const userProfile = await this.getUserProfile();
+      const result = await chrome.runtime.sendMessage({
+        action: 'getInterviewPrep',
+        data: {
+          jobData: this.currentJobData,
+          userProfile: userProfile
+        }
+      });
+
+      if (result && result.success) {
+        this.showInterviewPrepModal(result.prep);
+        this.updateStatus('✅ Interview prep ready!', 'success');
+      } else {
+        throw new Error('Failed to generate interview prep');
+      }
+    } catch (error) {
+      console.error('Interview prep error:', error);
+      this.showNotification('❌ Failed to generate interview prep', 'error');
+      this.updateStatus('❌ Interview prep failed', 'error');
+    }
+  }
+
+  // Handle Salary Insights
+  async handleSalaryInsights() {
+    if (!this.currentJobData) {
+      this.showNotification('No job data found on this page', 'error');
+      return;
+    }
+
+    try {
+      this.updateStatus('🔄 Fetching salary insights...', 'loading');
+      
+      const userProfile = await this.getUserProfile();
+      const result = await chrome.runtime.sendMessage({
+        action: 'getSalaryInsights',
+        data: {
+          jobData: this.currentJobData,
+          userProfile: userProfile
+        }
+      });
+
+      if (result && result.success) {
+        this.showSalaryInsightsModal(result.insights);
+        this.updateStatus('✅ Salary insights ready!', 'success');
+      } else {
+        throw new Error('Failed to get salary insights');
+      }
+    } catch (error) {
+      console.error('Salary insights error:', error);
+      this.showNotification('❌ Failed to get salary insights', 'error');
+      this.updateStatus('❌ Salary insights failed', 'error');
+    }
+  }
+
+  // Handle Referral Finder
+  async handleReferralFinder() {
+    if (!this.currentJobData) {
+      this.showNotification('No job data found on this page', 'error');
+      return;
+    }
+
+    try {
+      this.updateStatus('🔄 Finding referrals...', 'loading');
+      
+      const userProfile = await this.getUserProfile();
+      const result = await chrome.runtime.sendMessage({
+        action: 'findReferrals',
+        data: {
+          jobData: this.currentJobData,
+          userProfile: userProfile
+        }
+      });
+
+      if (result && result.success) {
+        this.showReferralFinderModal(result);
+        this.updateStatus('✅ Referrals found!', 'success');
+      } else {
+        throw new Error('Failed to find referrals');
+      }
+    } catch (error) {
+      console.error('Referral finder error:', error);
+      this.showNotification('❌ Failed to find referrals', 'error');
+      this.updateStatus('❌ Referral search failed', 'error');
+    }
+  }
+
+  // Show Interview Prep Modal
+  showInterviewPrepModal(prep) {
+    const modal = document.createElement('div');
+    modal.className = 'autojobr-modal-overlay';
+    modal.innerHTML = `
+      <div class="autojobr-modal">
+        <div class="autojobr-modal-header">
+          <h3>🎯 Interview Preparation</h3>
+          <button class="autojobr-modal-close">×</button>
+        </div>
+        <div class="autojobr-modal-content">
+          <div class="prep-section">
+            <h4>Company Insights</h4>
+            <p>${prep.companyInsights || 'Research the company culture and recent news'}</p>
+          </div>
+          <div class="prep-section">
+            <h4>Common Interview Questions</h4>
+            <ul>
+              ${(prep.questions || []).map(q => `<li>${q}</li>`).join('')}
+            </ul>
+          </div>
+          <div class="prep-section">
+            <h4>Preparation Tips</h4>
+            <p>${prep.tips || 'Practice STAR method for behavioral questions'}</p>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    modal.querySelector('.autojobr-modal-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => e.target === modal && modal.remove());
+  }
+
+  // Show Salary Insights Modal
+  showSalaryInsightsModal(insights) {
+    const modal = document.createElement('div');
+    modal.className = 'autojobr-modal-overlay';
+    modal.innerHTML = `
+      <div class="autojobr-modal">
+        <div class="autojobr-modal-header">
+          <h3>💰 Salary Insights</h3>
+          <button class="autojobr-modal-close">×</button>
+        </div>
+        <div class="autojobr-modal-content">
+          <div class="salary-highlight">
+            <div class="salary-amount">$${insights.estimatedSalary?.toLocaleString() || 'N/A'}</div>
+            <div class="salary-label">Estimated Annual Salary</div>
+          </div>
+          <div class="prep-section">
+            <h4>Salary Range</h4>
+            <div class="salary-range">
+              <span>Min: $${insights.salaryRange?.min?.toLocaleString() || 'N/A'}</span>
+              <span>Max: $${insights.salaryRange?.max?.toLocaleString() || 'N/A'}</span>
+            </div>
+          </div>
+          <div class="prep-section">
+            <h4>Negotiation Tips</h4>
+            <ul>
+              ${(insights.negotiationTips || []).map(tip => `<li>${tip}</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    modal.querySelector('.autojobr-modal-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => e.target === modal && modal.remove());
+  }
+
+  // Show Referral Finder Modal
+  showReferralFinderModal(data) {
+    const modal = document.createElement('div');
+    modal.className = 'autojobr-modal-overlay';
+    modal.innerHTML = `
+      <div class="autojobr-modal">
+        <div class="autojobr-modal-header">
+          <h3>🤝 Referral Opportunities</h3>
+          <button class="autojobr-modal-close">×</button>
+        </div>
+        <div class="autojobr-modal-content">
+          <div class="referral-stats">
+            <div class="stat-highlight">${data.totalFound || 0}</div>
+            <div class="stat-label">Potential Referrers Found</div>
+          </div>
+          <div class="prep-section">
+            ${(data.referrals || []).slice(0, 5).map(ref => `
+              <div class="referral-card">
+                <div class="referral-name">${ref.name || 'Employee'}</div>
+                <div class="referral-title">${ref.title || 'Position'}</div>
+                <div class="referral-match">${ref.score || 0}% Match</div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="prep-section">
+            <h4>💡 Recommendation</h4>
+            <p>Start with high-priority connections (alumni, former colleagues). Personalize your message mentioning shared experiences.</p>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    modal.querySelector('.autojobr-modal-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => e.target === modal && modal.remove());
+  }
+
+  // Update status helper
+  updateStatus(message, type = 'info') {
+    const statusEl = document.querySelector('.status-text');
+    if (statusEl) {
+      statusEl.textContent = message;
+    }
   }
 
   // Handle resume upload functionality

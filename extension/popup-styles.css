@@ -508,15 +508,15 @@
     right: 10px;
     top: 10px;
   }
-  
+
   .autojobr-content {
     padding: 16px;
   }
-  
+
   .action-row {
     grid-template-columns: 1fr 1fr;
   }
-  
+
   .action-row .autojobr-btn:last-child {
     grid-column: 1 / -1;
   }
@@ -531,17 +531,17 @@
     --bg-secondary: #374151;
     --border-color: #4b5563;
   }
-  
+
   .autojobr-widget {
     background: var(--bg-primary);
     border-color: var(--border-color);
   }
-  
+
   .autojobr-btn.secondary {
     background: var(--bg-secondary);
     color: var(--text-primary);
   }
-  
+
   .autojobr-stats {
     background: var(--bg-secondary);
   }
@@ -552,11 +552,11 @@
   .autojobr-widget {
     border-width: 2px;
   }
-  
+
   .autojobr-btn {
     border-width: 2px;
   }
-  
+
   .autojobr-status,
   .autojobr-job-info {
     border-width: 2px;
@@ -571,15 +571,15 @@
   .autojobr-notification {
     animation: none;
   }
-  
+
   .status-icon {
     animation: none;
   }
-  
+
   .progress-bar::after {
     animation: none;
   }
-  
+
   .autojobr-btn::before {
     transition: none;
   }
@@ -785,4 +785,206 @@
 
 .nav-buttons .autojobr-btn.primary:hover {
   background: linear-gradient(135deg, var(--success-hover) 0%, var(--success-color) 100%);
+}
+
+/* Modal Styles */
+.autojobr-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10002;
+  backdrop-filter: blur(5px);
+  animation: fadeIn 0.3s ease;
+}
+
+.autojobr-modal {
+  background: white;
+  border-radius: 16px;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: fadeInScale 0.3s ease;
+}
+
+.autojobr-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.autojobr-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.autojobr-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.autojobr-modal-close:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.autojobr-modal-content {
+  padding: 20px;
+}
+
+.prep-section {
+  margin-bottom: 20px;
+}
+
+.prep-section h4 {
+  color: #3b82f6;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.prep-section p {
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.prep-section ul {
+  list-style: none;
+  padding: 0;
+}
+
+.prep-section li {
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.salary-highlight {
+  text-align: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.salary-amount {
+  font-size: 32px;
+  font-weight: bold;
+  color: white;
+}
+
+.salary-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.salary-range {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.salary-range span {
+  font-size: 13px;
+  color: #374151;
+  font-weight: 500;
+}
+
+.referral-stats {
+  text-align: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.stat-highlight {
+  font-size: 32px;
+  font-weight: bold;
+  color: white;
+}
+
+.stat-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.referral-card {
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.referral-name {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 14px;
+}
+
+.referral-title {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.referral-match {
+  background: #22c55e;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
