@@ -44,9 +44,9 @@ const authConfig = {
 export async function setupAuth(app: Express) {
   // Setup session middleware with PostgreSQL store for multi-instance support
   console.log('🔑 Setting up session middleware with PostgreSQL store...');
-  
+
   const PgStore = ConnectPgSimple(session);
-  
+
   // Create PostgreSQL connection pool for sessions
   const pgPool = new pg.Pool({
     connectionString: process.env.DATABASE_URL,
@@ -55,21 +55,21 @@ export async function setupAuth(app: Express) {
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
   });
-  
+
   // Create session store with PostgreSQL
   const sessionStore = new PgStore({
     pool: pgPool,
     tableName: 'session', // Use default table name
     createTableIfMissing: true, // Create table if it doesn't exist
   });
-  
+
   // Enhanced production configuration
   const isProduction = process.env.NODE_ENV === 'production';
   const baseUrl = process.env.BASE_URL || process.env.REPL_URL || 'http://localhost:5000';
   const isSecure = isProduction && (baseUrl.startsWith('https://') || process.env.HTTPS === 'true');
-  
+
   console.log(`🔒 Session config: production=${isProduction}, secure=${isSecure}, baseUrl=${baseUrl}`);
-  
+
   app.use(session({
     store: sessionStore,
     secret: authConfig.session.secret,
@@ -98,7 +98,7 @@ export async function setupAuth(app: Express) {
     const callbackURL = 'https://autojobr.com/api/auth/google/callback';
     console.log('🔑 Setting up Google OAuth strategy with callback URL:', callbackURL);
     console.log('🔑 Using Google Client ID:', authConfig.providers.google.clientId?.substring(0, 20) + '...');
-    
+
     passport.use(new GoogleStrategy({
       clientID: authConfig.providers.google.clientId!,
       clientSecret: authConfig.providers.google.clientSecret || 'temp-secret-placeholder',
@@ -113,33 +113,59 @@ export async function setupAuth(app: Express) {
 
         // Check if user exists
         let user = await storage.getUserByEmail(email);
-        
+
         if (!user) {
           // Create new user with intelligent role detection
           const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          
-          // Detect role based on email
-          const detectRole = (email: string) => {
-            const emailLower = email.toLowerCase();
-            const emailDomain = emailLower.split('@')[1] || '';
-            
-            // Public email providers are always job seekers
-            const publicProviders = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com'];
-            if (publicProviders.some(p => emailDomain === p)) {
-              return 'job_seeker';
+
+          // Advanced role detection logic
+          const emailLower = email.toLowerCase();
+          const emailDomain = emailLower.split('@')[1] || '';
+          const emailPrefix = emailLower.split('@')[0];
+
+          let userType = 'job_seeker'; // Default
+
+          // FIRST: Public email providers - always job seekers
+          const publicProviders = [
+            'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 
+            'live.com', 'msn.com', 'icloud.com', 'me.com',
+            'aol.com', 'protonmail.com', 'mail.com', 'zoho.com'
+          ];
+
+          if (publicProviders.includes(emailDomain)) {
+            userType = 'job_seeker';
+          }
+          // SECOND: Educational institutions (.edu, .ac.in, .edu.*, .ac.*)
+          else if (
+            emailDomain.endsWith('.edu') ||
+            emailDomain.endsWith('.ac.in') ||
+            emailDomain.includes('.edu.') ||
+            emailDomain.includes('.ac.')
+          ) {
+            // Check if university HR/placement staff (they should be recruiters)
+            const recruiterKeywords = ['hr', 'talent', 'recruiting', 'careers', 'hiring', 'placement'];
+
+            if (recruiterKeywords.some(keyword => emailPrefix.includes(keyword))) {
+              userType = 'recruiter'; // University career services/HR staff
+            } else {
+              userType = 'job_seeker'; // Regular students and faculty
             }
-            
-            // Check for recruiter indicators
-            if (emailLower.includes('hr') || emailLower.includes('talent') || 
-                emailLower.includes('recruiting') || emailLower.includes('careers')) {
-              return 'recruiter';
+          }
+          // THIRD: Corporate emails - check for recruiter indicators
+          else {
+            const recruiterDomains = ['hr.', 'talent.', 'recruiting.', 'careers.'];
+            const recruiterKeywords = ['hr', 'talent', 'recruiting', 'careers', 'hiring'];
+
+            // Check domain patterns
+            if (recruiterDomains.some(domain => emailLower.includes(domain))) {
+              userType = 'recruiter';
             }
-            
-            return 'job_seeker';
-          };
-          
-          const userType = detectRole(email);
-          
+            // Check email prefix for recruiting keywords (only for corporate emails)
+            else if (recruiterKeywords.some(keyword => emailPrefix.includes(keyword))) {
+              userType = 'recruiter';
+            }
+          }
+
           user = await storage.upsertUser({
             id: userId,
             email: email,
@@ -251,7 +277,7 @@ export async function setupAuth(app: Express) {
         }
 
         const [user] = await db.select().from(users).where(eq(users.email, email));
-        
+
         if (!user || !user.password) {
           return res.status(401).json({ message: "Invalid credentials" });
         }
@@ -278,9 +304,9 @@ export async function setupAuth(app: Express) {
             console.error('❌ Session save error during login:', err);
             return res.status(500).json({ message: 'Login failed - session error' });
           }
-          
+
           console.log(`✅ Session saved successfully for user: ${user.email} (${user.userType})`);
-          
+
           res.json({ 
             message: "Login successful", 
             user: {
@@ -319,14 +345,14 @@ export async function setupAuth(app: Express) {
     try {
       // Check both passport user and session user for compatibility
       const sessionUser = req.session?.user || req.user;
-      
+
       console.log(`🔍 [AUTH DEBUG] GET /api/user: hasSession=${!!req.session}, sessionUser=${!!sessionUser}, passportUser=${!!req.user}`);
-      
+
       if (!sessionUser) {
         console.log(`🚫 [AUTH DEBUG] No session user found`);
         return res.status(401).json({ message: "Not authenticated" });
       }
-      
+
       console.log(`✅ [AUTH DEBUG] Session user found: ${sessionUser.email} (${sessionUser.userType})`);
 
       // Force session regeneration and save for better persistence
@@ -359,24 +385,24 @@ export async function setupAuth(app: Express) {
       try {
         const { storage } = await import("./storage");
         let fullUser = await storage.getUser(sessionUser.id);
-        
+
         if (fullUser) {
           // Auto-grant monthly free test for premium users if needed
           if (fullUser.planType === 'premium' && 
               fullUser.subscriptionStatus === 'active' && 
               (fullUser.freeRankingTestsRemaining === null || fullUser.freeRankingTestsRemaining === 0)) {
-            
+
             console.log(`🎁 Auto-granting monthly free ranking test to premium user ${fullUser.id}`);
-            
+
             // Grant the monthly free test
             const updatedUser = await storage.upsertUser({
               ...fullUser,
               freeRankingTestsRemaining: 1
             });
-            
+
             fullUser = updatedUser;
           }
-          
+
           return res.json({
             id: fullUser.id,
             email: fullUser.email,
@@ -420,7 +446,7 @@ export async function setupAuth(app: Express) {
   app.post('/api/auth/refresh-session', async (req: any, res) => {
     try {
       const sessionUser = req.session?.user;
-      
+
       if (!sessionUser) {
         return res.status(401).json({ message: "Not authenticated" });
       }
@@ -428,7 +454,7 @@ export async function setupAuth(app: Express) {
       // Fetch fresh user data from database
       const { storage } = await import("./storage");
       const fullUser = await storage.getUser(sessionUser.id);
-      
+
       if (fullUser) {
         // Update session with fresh database data
         req.session.user = {
@@ -446,7 +472,7 @@ export async function setupAuth(app: Express) {
             console.error('Session refresh save error:', err);
             return res.status(500).json({ message: 'Session refresh failed' });
           }
-          
+
           res.json({ 
             message: 'Session refreshed successfully',
             user: {
@@ -491,7 +517,7 @@ export async function setupAuth(app: Express) {
     passport.authenticate('google', { failureRedirect: '/auth?error=oauth_failed' }),
     (req: any, res) => {
       console.log(`✅ Google OAuth successful for user: ${req.user?.email}`);
-      
+
       // CRITICAL FIX: Set session user BEFORE regeneration to prevent data loss
       const userData = {
         id: req.user.id,
@@ -502,17 +528,17 @@ export async function setupAuth(app: Express) {
         userType: req.user.userType,
         currentRole: req.user.currentRole || req.user.userType
       };
-      
+
       // Set session user data immediately
       req.session.user = userData;
-      
+
       // Save session FIRST, then redirect
       req.session.save((saveErr: any) => {
         if (saveErr) {
           console.error('❌ Session save error after Google OAuth:', saveErr);
           return res.redirect('/auth?error=session_save_failed');
         }
-        
+
         console.log(`✅ Google OAuth session saved successfully for user: ${req.user.email}`);
         console.log(`📝 Session data:`, {
           sessionId: req.sessionID,
@@ -520,7 +546,7 @@ export async function setupAuth(app: Express) {
           email: userData.email,
           userType: userData.userType
         });
-        
+
         // Redirect to home page after successful login
         res.redirect('/?auth=google_success');
       });
@@ -531,16 +557,16 @@ export async function setupAuth(app: Express) {
   app.get('/api/auth/callback/google-old', async (req, res) => {
     try {
       const { code, error } = req.query;
-      
+
       if (error) {
         console.error('Google OAuth error:', error);
         return res.redirect('/login?error=google_oauth_failed');
       }
-      
+
       if (!code) {
         return res.redirect('/login?error=missing_code');
       }
-      
+
       // Exchange code for tokens
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
@@ -564,9 +590,9 @@ export async function setupAuth(app: Express) {
           })(),
         }),
       });
-      
+
       const tokens = await tokenResponse.json();
-      
+
       if (!tokens.access_token) {
         console.error('Failed to get access token:', tokens);
         console.error('Request host:', req.get('host'));
@@ -582,23 +608,23 @@ export async function setupAuth(app: Express) {
         })());
         return res.redirect('/login?error=token_exchange_failed');
       }
-      
+
       // Get user profile from Google
       const profileResponse = await fetch(
         `https://www.googleapis.com/oauth2/v2/userinfo?access_token=${tokens.access_token}`
       );
       const profile = await profileResponse.json();
-      
+
       if (!profile.email) {
         return res.redirect('/login?error=no_email');
       }
-      
+
       // Create or find user
       let user;
       try {
         // Try to find existing user by email
         const [existingUser] = await db.select().from(users).where(eq(users.email, profile.email));
-        
+
         if (existingUser) {
           // Update existing user with Google data
           user = await storage.upsertUser({
@@ -619,7 +645,7 @@ export async function setupAuth(app: Express) {
             emailVerified: true,
             password: null, // OAuth users don't have passwords
           });
-          
+
           // Create user profile for new OAuth users
           try {
             await storage.upsertUserProfile({
@@ -641,7 +667,7 @@ export async function setupAuth(app: Express) {
         console.error('Database error during Google OAuth:', dbError);
         return res.redirect('/login?error=database_error');
       }
-      
+
       // Set session
       (req as any).session.user = {
         id: user.id,
@@ -651,18 +677,18 @@ export async function setupAuth(app: Express) {
         lastName: user.lastName,
         userType: user.userType
       };
-      
+
       // Save session and redirect
       (req as any).session.save((err: any) => {
         if (err) {
           console.error('Session save error during Google OAuth:', err);
           return res.redirect('/login?error=session_error');
         }
-        
+
         console.log('✅ Google OAuth login successful for:', user.email);
         res.redirect('/?auth=google_success');
       });
-      
+
     } catch (error) {
       console.error('Google OAuth callback error:', error);
       res.redirect('/login?error=oauth_callback_failed');
@@ -743,7 +769,7 @@ export async function setupAuth(app: Express) {
       try {
         const { sendEmail, generateVerificationEmail } = await import('./emailService');
         const emailHtml = generateVerificationEmail(verificationToken, `${firstName} ${lastName}`, 'job_seeker');
-        
+
         await sendEmail({
           to: email,
           subject: 'Verify your AutoJobr account',
@@ -815,7 +841,7 @@ export async function setupAuth(app: Express) {
           console.error('Session save error:', err);
           return res.status(500).json({ message: 'Login failed - session error' });
         }
-        
+
         console.log('Session saved successfully for user:', user.id);
         res.json({ 
           message: 'Login successful', 
@@ -837,7 +863,7 @@ export async function setupAuth(app: Express) {
   app.post('/api/auth/demo-login', async (req, res) => {
     try {
       console.log('🎭 [DEMO LOGIN] Starting demo login process...');
-      
+
       // Get the existing user
       const [user] = await db.select().from(users).where(eq(users.email, 'shubhamdubeyskd2001@gmail.com'));
       if (!user) {
@@ -863,7 +889,7 @@ export async function setupAuth(app: Express) {
           console.error('Session save error:', err);
           return res.status(500).json({ message: 'Login failed - session error' });
         }
-        
+
         console.log('Demo session saved successfully for user:', user.id);
         res.json({ 
           message: 'Demo login successful', 
@@ -892,14 +918,14 @@ export async function setupAuth(app: Express) {
 
       // Get token from database
       const tokenRecord = await storage.getEmailVerificationToken(token as string);
-      
+
       if (!tokenRecord || tokenRecord.expiresAt < new Date()) {
         return res.status(400).json({ message: 'Invalid or expired verification token' });
       }
 
       // Find user by email from the token record
       let [user] = await db.select().from(users).where(eq(users.email, tokenRecord.email));
-      
+
       if (!user && tokenRecord.userType === 'recruiter') {
         // For recruiters, create the user account during verification
         const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -946,9 +972,9 @@ export async function setupAuth(app: Express) {
             console.error('Session save error during verification:', err);
             return res.status(500).json({ message: 'Verification failed - session error' });
           }
-          
+
           console.log('Verification session saved successfully for user:', user.id);
-          
+
           // Redirect based on user type - always redirect to /auth after verification
           if (user.userType === 'recruiter') {
             res.redirect('/auth?verified=true&type=recruiter&message=Email verified successfully! Welcome to AutoJobr.');
@@ -969,7 +995,7 @@ export async function setupAuth(app: Express) {
   app.get('/api/auth/callback/google', async (req, res) => {
     try {
       const { code } = req.query;
-      
+
       if (!code) {
         return res.status(400).json({ message: 'Authorization code is required' });
       }
@@ -991,7 +1017,7 @@ export async function setupAuth(app: Express) {
       });
 
       const tokens = await tokenResponse.json();
-      
+
       if (!tokens.access_token) {
         return res.status(400).json({ message: 'Failed to get access token' });
       }
@@ -1007,7 +1033,7 @@ export async function setupAuth(app: Express) {
 
       // Check if user exists
       let [user] = await db.select().from(users).where(eq(users.email, googleUser.email));
-      
+
       if (!user) {
         // Create new user
         const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -1041,7 +1067,7 @@ export async function setupAuth(app: Express) {
           console.error('Session save error:', err);
           return res.status(500).json({ message: 'Login failed - session error' });
         }
-        
+
         res.redirect('/dashboard');
       });
     } catch (error) {
@@ -1053,7 +1079,7 @@ export async function setupAuth(app: Express) {
   app.get('/api/auth/callback/github', async (req, res) => {
     try {
       const { code } = req.query;
-      
+
       if (!code) {
         return res.status(400).json({ message: 'Authorization code is required' });
       }
@@ -1073,7 +1099,7 @@ export async function setupAuth(app: Express) {
       });
 
       const tokens = await tokenResponse.json();
-      
+
       if (!tokens.access_token) {
         return res.status(400).json({ message: 'Failed to get access token' });
       }
@@ -1105,13 +1131,13 @@ export async function setupAuth(app: Express) {
 
       // Check if user exists
       let [user] = await db.select().from(users).where(eq(users.email, primaryEmail));
-      
+
       if (!user) {
         // Create new user
         const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const name = githubUser.name || githubUser.login;
         const nameParts = name.split(' ');
-        
+
         user = await storage.upsertUser({
           id: userId,
           email: primaryEmail,
@@ -1142,7 +1168,7 @@ export async function setupAuth(app: Express) {
           console.error('Session save error:', err);
           return res.status(500).json({ message: 'Login failed - session error' });
         }
-        
+
         res.redirect('/dashboard');
       });
     } catch (error) {
@@ -1154,7 +1180,7 @@ export async function setupAuth(app: Express) {
   app.get('/api/auth/callback/linkedin', async (req, res) => {
     try {
       const { code } = req.query;
-      
+
       if (!code) {
         return res.status(400).json({ message: 'Authorization code is required' });
       }
@@ -1176,7 +1202,7 @@ export async function setupAuth(app: Express) {
       });
 
       const tokens = await tokenResponse.json();
-      
+
       if (!tokens.access_token) {
         return res.status(400).json({ message: 'Failed to get access token' });
       }
@@ -1206,13 +1232,13 @@ export async function setupAuth(app: Express) {
 
       // Check if user exists
       let [user] = await db.select().from(users).where(eq(users.email, email));
-      
+
       if (!user) {
         // Create new user
         const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const firstName = linkedinUser.firstName?.localized?.en_US || 'User';
         const lastName = linkedinUser.lastName?.localized?.en_US || '';
-        
+
         user = await storage.upsertUser({
           id: userId,
           email: email,
@@ -1243,7 +1269,7 @@ export async function setupAuth(app: Express) {
           console.error('Session save error:', err);
           return res.status(500).json({ message: 'Login failed - session error' });
         }
-        
+
         res.redirect('/dashboard');
       });
     } catch (error) {
@@ -1346,7 +1372,7 @@ export async function setupAuth(app: Express) {
       try {
         const { sendEmail, generateVerificationEmail } = await import('./emailService');
         const emailHtml = generateVerificationEmail(verificationToken, `${user.firstName} ${user.lastName}`, user.userType || 'job_seeker');
-        
+
         await sendEmail({
           to: email,
           subject: 'Verify your AutoJobr account',
@@ -1437,7 +1463,7 @@ export async function setupAuth(app: Express) {
 
       // Get token from database
       const tokenRecord = await storage.getPasswordResetToken(token);
-      
+
       if (!tokenRecord || tokenRecord.used || tokenRecord.expiresAt < new Date()) {
         return res.status(400).json({ message: 'Invalid or expired reset token' });
       }
@@ -1520,14 +1546,14 @@ export async function setupAuth(app: Express) {
           </form>
           <div id="error" class="error"></div>
         </div>
-        
+
         <script>
           document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('error');
-            
+
             try {
               const response = await fetch('/api/auth/signin', {
                 method: 'POST',
@@ -1535,9 +1561,9 @@ export async function setupAuth(app: Express) {
                 body: JSON.stringify({ provider: 'credentials', email, password }),
                 credentials: 'include'
               });
-              
+
               const data = await response.json();
-              
+
               if (response.ok) {
                 // Success - redirect to success page
                 window.location.href = '/auth/extension-success';
@@ -1559,7 +1585,7 @@ export async function setupAuth(app: Express) {
     if (!req.session?.user) {
       return res.redirect('/auth/extension-login');
     }
-    
+
     try {
       // Generate JWT token for extension
       const user = req.session.user;
@@ -1576,10 +1602,10 @@ export async function setupAuth(app: Express) {
           audience: 'extension'
         }
       );
-      
+
       // Redirect with token and user ID as URL parameters (as expected by extension)
       const redirectUrl = `/auth/extension-success?token=${encodeURIComponent(token)}&userId=${encodeURIComponent(user.id)}`;
-      
+
       // Check if we already have URL parameters (prevent infinite redirect)
       if (req.query.token && req.query.userId) {
         // Display success page with the token
@@ -1616,7 +1642,7 @@ export async function setupAuth(app: Express) {
               <p>Authentication successful! Your Chrome extension is now connected.</p>
               <p>You can close this tab and return to the extension.</p>
             </div>
-            
+
             <script>
               // Auto-close after 3 seconds
               setTimeout(() => {
@@ -1656,7 +1682,7 @@ export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
   try {
     // Check both passport user and session user for compatibility
     const sessionUser = req.session?.user || req.user;
-    
+
     if (!sessionUser) {
       return res.status(401).json({ message: "Not authenticated" });
     }
@@ -1664,7 +1690,7 @@ export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
     // OPTIMIZATION: Use cached user data to reduce database calls
     const cached = userSessionCache.get(sessionUser.id);
     const now = Date.now();
-    
+
     if (cached && (now - cached.lastCheck) < USER_CACHE_TTL) {
       // Use cached user data
       req.user = cached.user;
@@ -1674,7 +1700,7 @@ export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
     // Only check database if cache is stale or missing
     try {
       const currentUser = await storage.getUser(sessionUser.id);
-      
+
       // Build user object
       const userObj = {
         id: sessionUser.id,
@@ -1694,7 +1720,7 @@ export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
       // Optional role consistency check (only if mismatch detected)
       if (currentUser && currentUser.userType && currentUser.currentRole !== currentUser.userType) {
         console.log(`🔧 ROLE MISMATCH: User ${currentUser.id} - fixing in background`);
-        
+
         // Fix asynchronously to not block request
         setImmediate(async () => {
           try {
@@ -1734,7 +1760,7 @@ export const requireAuthForInterview: RequestHandler = async (req: any, res, nex
   console.log(`🎭 [INTERVIEW AUTH] ${req.method} ${req.originalUrl}: checking authentication`);
   try {
     const sessionUser = req.session?.user;
-    
+
     if (sessionUser) {
       try {
         // Try to get user from database
@@ -1746,7 +1772,7 @@ export const requireAuthForInterview: RequestHandler = async (req: any, res, nex
       } catch (dbError) {
         console.warn('DB lookup failed, falling back to session user:', dbError);
       }
-      
+
       // Fallback to session user if DB lookup fails (for resilience)
       req.user = {
         id: sessionUser.id,
@@ -1758,18 +1784,18 @@ export const requireAuthForInterview: RequestHandler = async (req: any, res, nex
       };
       return next();
     }
-    
+
     // If not authenticated, prepare redirect
     // Extract sessionId from URL to build proper page redirect
     const sessionIdMatch = req.originalUrl.match(/\/chat-interview\/([^/]+)/);
     const pageUrl = sessionIdMatch ? `/chat-interview/${sessionIdMatch[1]}` : req.originalUrl;
     const authUrl = `/auth-page?redirect=${encodeURIComponent(pageUrl)}`;
-    
+
     console.log(`🎭 [INTERVIEW AUTH] Redirecting unauthenticated user. Original: ${req.originalUrl}, Page: ${pageUrl}, Auth: ${authUrl}`);
-    
+
     // Check if this is an API request by looking at originalUrl or baseUrl
     const isApiRequest = req.originalUrl.startsWith('/api/') || (req.baseUrl && req.baseUrl.includes('/api'));
-    
+
     if (isApiRequest) {
       // For API requests, return JSON with redirect URL
       return res.status(401).json({ 
@@ -1783,14 +1809,14 @@ export const requireAuthForInterview: RequestHandler = async (req: any, res, nex
     }
   } catch (error) {
     console.error('Interview auth middleware error:', error);
-    
+
     // Extract sessionId from URL to build proper page redirect  
     const sessionIdMatch = req.originalUrl.match(/\/chat-interview\/([^/]+)/);
     const pageUrl = sessionIdMatch ? `/chat-interview/${sessionIdMatch[1]}` : req.originalUrl;
     const authUrl = `/auth-page?redirect=${encodeURIComponent(pageUrl)}`;
-    
+
     const isApiRequest = req.originalUrl.startsWith('/api/') || (req.baseUrl && req.baseUrl.includes('/api'));
-    
+
     if (isApiRequest) {
       return res.status(401).json({ 
         message: 'Authentication required', 
