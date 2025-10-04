@@ -1130,38 +1130,17 @@ class AutoJobrPopup {
   }
 
   async handleReferralFinder() {
-    if (!this.isAuthenticated || !this.jobData) {
-      this.showError('Please ensure you\'re authenticated and on a job page');
-      return;
-    }
-
-    this.showLoading(true);
-
     try {
-      const response = await new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({
-          action: 'findReferrals',
-          jobData: this.jobData,
-          userProfile: this.userProfile
-        }, (response) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-          } else {
-            resolve(response);
-          }
-        });
+      // Open referral marketplace in a new tab
+      chrome.tabs.create({
+        url: `${API_BASE_URL}/referral-marketplace`,
+        active: true
       });
-
-      if (response && response.success) {
-        this.showReferralFinderModal(response);
-      } else {
-        throw new Error(response?.error || 'Failed to find referrals');
-      }
+      
+      this.showNotification('Opening Referral Marketplace...', 'info');
     } catch (error) {
       console.error('Referral finder error:', error);
-      this.showError('Failed to find referrals. Please try again.');
-    } finally {
-      this.showLoading(false);
+      this.showError('Failed to open referral marketplace. Please try again.');
     }
   }
 

@@ -3446,7 +3446,7 @@ class AutoJobrContentScript {
 
     try {
       this.updateStatus('🔄 Generating interview prep...', 'loading');
-      
+
       const userProfile = await this.getUserProfile();
       const result = await chrome.runtime.sendMessage({
         action: 'getInterviewPrep',
@@ -3478,7 +3478,7 @@ class AutoJobrContentScript {
 
     try {
       this.updateStatus('🔄 Fetching salary insights...', 'loading');
-      
+
       const userProfile = await this.getUserProfile();
       const result = await chrome.runtime.sendMessage({
         action: 'getSalaryInsights',
@@ -3510,7 +3510,7 @@ class AutoJobrContentScript {
 
     try {
       this.updateStatus('🔄 Finding referrals...', 'loading');
-      
+
       const userProfile = await this.getUserProfile();
       const result = await chrome.runtime.sendMessage({
         action: 'findReferrals',
@@ -3562,7 +3562,7 @@ class AutoJobrContentScript {
       </div>
     `;
     document.body.appendChild(modal);
-    
+
     modal.querySelector('.autojobr-modal-close').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', (e) => e.target === modal && modal.remove());
   }
@@ -3599,7 +3599,7 @@ class AutoJobrContentScript {
       </div>
     `;
     document.body.appendChild(modal);
-    
+
     modal.querySelector('.autojobr-modal-close').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', (e) => e.target === modal && modal.remove());
   }
@@ -3636,7 +3636,7 @@ class AutoJobrContentScript {
       </div>
     `;
     document.body.appendChild(modal);
-    
+
     modal.querySelector('.autojobr-modal-close').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', (e) => e.target === modal && modal.remove());
   }
