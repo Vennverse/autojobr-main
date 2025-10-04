@@ -1,0 +1,120 @@
+/var/www/autojobr-main/logs/err-0.log last 15 lines:
+0|autojobr |   column: undefined,
+0|autojobr |   dataType: undefined,
+0|autojobr |   constraint: undefined,
+0|autojobr |   file: 'parse_relation.c',
+0|autojobr |   line: '3722',
+0|autojobr |   routine: 'errorMissingColumn'
+0|autojobr | }
+0|autojobr | 2025-10-04T14:31:53: ⚠️ No skills found - adding demo skills for testing
+0|autojobr | 2025-10-04T14:32:26: ⚠️ No skills found - adding demo skills for testing
+0|autojobr | 2025-10-04T14:34:26: Google OAuth error: ReferenceError: UserRoleService is not defined
+0|autojobr |     at Strategy._verify (file:///var/www/autojobr-main/dist/index.js:20371:36)
+0|autojobr |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|autojobr | 2025-10-04T14:34:26: ReferenceError: UserRoleService is not defined
+0|autojobr |     at Strategy._verify (file:///var/www/autojobr-main/dist/index.js:20371:36)
+0|autojobr |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
+/var/www/autojobr-main/logs/err-1.log last 15 lines:
+1|autojobr |   constraint: undefined,
+1|autojobr |   file: 'parse_relation.c',
+1|autojobr |   line: '3722',
+1|autojobr |   routine: 'errorMissingColumn'
+1|autojobr | }
+1|autojobr | 2025-10-04T14:34:39: TokenError: Bad Request
+1|autojobr |     at OAuth2Strategy.parseErrorResponse (/var/www/autojobr-main/node_modules/passport-oauth2/lib/strategy.js:373:12)
+1|autojobr |     at OAuth2Strategy._createOAuthError (/var/www/autojobr-main/node_modules/passport-oauth2/lib/strategy.js:420:16)
+1|autojobr |     at /var/www/autojobr-main/node_modules/passport-oauth2/lib/strategy.js:177:45
+1|autojobr |     at /var/www/autojobr-main/node_modules/oauth/lib/oauth2.js:196:18
+1|autojobr |     at passBackControl (/var/www/autojobr-main/node_modules/oauth/lib/oauth2.js:132:9)
+1|autojobr |     at IncomingMessage.<anonymous> (/var/www/autojobr-main/node_modules/oauth/lib/oauth2.js:157:7)
+1|autojobr |     at IncomingMessage.emit (node:events:536:35)
+1|autojobr |     at endReadableNT (node:internal/streams/readable:1698:12)
+1|autojobr |     at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+
+/var/www/autojobr-main/logs/out-1.log last 15 lines:
+1|autojobr |   sessionUser: false,
+1|autojobr |   passportUser: false,
+1|autojobr |   sessionId: '8SRtk1MQnuLxfNj7SvoPZaO68L8jUlCD',
+1|autojobr |   cookies: 'present'
+1|autojobr | }
+1|autojobr | 2025-10-04T14:34:26: 2:34:26 PM [express] GET /api/reminders/pending 401 in 2ms :: {"message":"Not authenticated"}
+1|autojobr | 2025-10-04T14:34:39: 2:34:39 PM [express] GET /api/auth/google/callback 500 in 79ms :: {"message":"Bad Request"}
+1|autojobr | 2025-10-04T14:34:39: [AUTH DEBUG] GET /api/reminders/pending: {
+1|autojobr |   hasSession: true,
+1|autojobr |   sessionUser: false,
+1|autojobr |   passportUser: false,
+1|autojobr |   sessionId: 'BbyK2IIRyY9D-gXaNqnIkhVd4b0GDs_e',
+1|autojobr |   cookies: 'present'
+1|autojobr | }
+1|autojobr | 2025-10-04T14:34:39: 2:34:39 PM [express] GET /api/reminders/pending 401 in 1ms :: {"message":"Not authenticated"}
+
+0|autojobr  | 2025-10-04T14:44:28: 2:44:28 PM [express] GET /api/health 200 in 19ms :: {"status":"ok","timestamp":"2025-10-04T14:44:28.…
+1|autojobr  | 2025-10-04T14:49:50: 2:49:50 PM [express] GET /api/health 200 in 20ms :: {"status":"ok","timestamp":"2025-10-04T14:49:50.…
+1|autojobr  | 2025-10-04T15:01:22: 3:01:22 PM [express] GET /api/health 200 in 19ms :: {"status":"ok","timestamp":"2025-10-04T15:01:22.…
+0|autojobr  | 2025-10-04T15:03:37: 3:03:37 PM [express] GET /api/health 200 in 1ms :: {"status":"ok","timestamp":"2025-10-04T15:03:37.6…
+1|autojobr  | 2025-10-04T15:04:25: 3:04:25 PM [express] GET /api/health 200 in 19ms :: {"status":"ok","timestamp":"2025-10-04T15:04:25.…
+1|autojobr  | 2025-10-04T15:08:39: 3:08:39 PM [express] GET /api/health 200 in 20ms :: {"status":"ok","timestamp":"2025-10-04T15:08:39.…
+0|autojobr  | 2025-10-04T15:10:08: 3:10:08 PM [express] GET /api/health 200 in 20ms :: {"status":"ok","timestamp":"2025-10-04T15:10:08.…
+1|autojobr  | 2025-10-04T15:11:25: 3:11:25 PM [express] GET /api/health 200 in 21ms :: {"status":"ok","timestamp":"2025-10-04T15:11:25.…
+0|autojobr  | 2025-10-04T15:16:19: 3:16:19 PM [express] GET /api/health 200 in 0ms :: {"status":"ok","timestamp":"2025-10-04T15:16:19.1…
+1|autojobr  | 2025-10-04T15:17:05: 3:17:05 PM [express] GET /api/health 200 in 18ms :: {"status":"ok","timestamp":"2025-10-04T15:17:05.…
+1|autojobr  | 2025-10-04T15:21:41: 3:21:41 PM [express] GET /api/health 200 in 18ms :: {"status":"ok","timestamp":"2025-10-04T15:21:41.…
+0|autojobr  | 2025-10-04T15:22:06: 🔍 [AUTH DEBUG] GET /api/user: hasSession=true, sessionUser=true, passportUser=false
+0|autojobr  | 2025-10-04T15:22:06: ✅ [AUTH DEBUG] Session user found: shubham.dubey@autojobr.com (recruiter)
+0|autojobr  | 2025-10-04T15:22:06: 💾 [AUTH DEBUG] Session saved successfully
+0|autojobr  | 2025-10-04T15:22:06: 3:22:06 PM [express] GET /api/user 200 in 25ms :: {"id":"user-1758023269899-edltdmjgu","email":"shub…
+1|autojobr  | 2025-10-04T15:22:06: [AUTH DEBUG] GET /api/simple-chat/conversations: {
+1|autojobr  |   hasSession: true,
+1|autojobr  |   sessionUser: true,
+1|autojobr  |   passportUser: false,
+1|autojobr  |   sessionId: 'cUPCViYTpjlesBOwKHTaB-mMiirjFCBZ',
+1|autojobr  |   cookies: 'present'
+1|autojobr  | }
+0|autojobr  | 2025-10-04T15:22:06: [AUTH DEBUG] GET /api/chat/conversations: {
+0|autojobr  |   hasSession: true,
+0|autojobr  |   sessionUser: true,
+0|autojobr  |   passportUser: false,
+0|autojobr  |   sessionId: 'cUPCViYTpjlesBOwKHTaB-mMiirjFCBZ',
+0|autojobr  |   cookies: 'present'
+0|autojobr  | }
+1|autojobr  | 2025-10-04T15:22:06: 3:22:06 PM [express] GET /api/simple-chat/conversations 304 in 13ms
+0|autojobr  | 2025-10-04T15:22:06: 3:22:06 PM [express] GET /api/chat/conversations 304 in 12ms
+1|autojobr  | 2025-10-04T15:22:06: [AUTH DEBUG] GET /api/recruiter/jobs: {
+1|autojobr  |   hasSession: true,
+1|autojobr  |   sessionUser: true,
+1|autojobr  |   passportUser: false,
+1|autojobr  |   sessionId: 'cUPCViYTpjlesBOwKHTaB-mMiirjFCBZ',
+1|autojobr  |   cookies: 'present'
+1|autojobr  | }
+1|autojobr  | 2025-10-04T15:22:06: [STORAGE] Fetching job postings for recruiter: user-1758023269899-edltdmjgu
+0|autojobr  | 2025-10-04T15:22:06: [AUTH DEBUG] GET /api/recruiter/applications: {
+0|autojobr  |   hasSession: true,
+0|autojobr  |   sessionUser: true,
+0|autojobr  |   passportUser: false,
+0|autojobr  |   sessionId: 'cUPCViYTpjlesBOwKHTaB-mMiirjFCBZ',
+0|autojobr  |   cookies: 'present'
+0|autojobr  | }
+0|autojobr  | 2025-10-04T15:22:06: 3:22:06 PM [express] GET /api/recruiter/applications 200 in 17ms :: [{"id":5,"jobPostingId":114,"app…
+1|autojobr  | 2025-10-04T15:22:06: [STORAGE] Found 122 active job postings for recruiter user-1758023269899-edltdmjgu
+1|autojobr  | 2025-10-04T15:22:06: Large response (122 items) without pagination on /api/recruiter/jobs
+1|autojobr  | 2025-10-04T15:22:06: 3:22:06 PM [express] GET /api/recruiter/jobs 200 in 40ms :: [{"id":113,"recruiterId":"user-175802326…
+0|autojobr  | 2025-10-04T15:22:11: 🔍 [AUTH DEBUG] GET /api/user: hasSession=true, sessionUser=true, passportUser=false
+0|autojobr  | 2025-10-04T15:22:11: ✅ [AUTH DEBUG] Session user found: shubham.dubey@autojobr.com (recruiter)
+0|autojobr  | 2025-10-04T15:22:11: 💾 [AUTH DEBUG] Session saved successfully
+0|autojobr  | 2025-10-04T15:22:11: 3:22:11 PM [express] GET /api/user 304 in 10ms :: {"id":"user-1758023269899-edltdmjgu","email":"shub…
+1|autojobr  | 2025-10-04T15:22:18: 🔍 [AUTH DEBUG] GET /api/user: hasSession=true, sessionUser=true, passportUser=false
+1|autojobr  | 2025-10-04T15:22:18: ✅ [AUTH DEBUG] Session user found: shubham.dubey@autojobr.com (recruiter)
+1|autojobr  | 2025-10-04T15:22:18: 💾 [AUTH DEBUG] Session saved successfully
+1|autojobr  | 2025-10-04T15:22:18: 3:22:18 PM [express] GET /api/user 304 in 22ms :: {"id":"user-1758023269899-edltdmjgu","email":"shub…
+1|autojobr  | 2025-10-04T15:22:23: 3:22:23 PM [express] POST /api/auth/logout 200 in 5ms :: {"message":"Logged out successfully"}
+0|autojobr  | 2025-10-04T15:22:24: 3:22:24 PM [express] GET /api/auth/providers 304 in 2ms :: {"providers":{"google":true,"github":fals…
+0|autojobr  | 2025-10-04T15:22:30: 3:22:30 PM [express] POST /api/auth/signin 200 in 2ms :: {"redirectUrl":"/api/auth/google"}
+1|autojobr  | 2025-10-04T15:22:30: 3:22:30 PM [express] GET /api/auth/google 302 in 2ms
+0|autojobr  | 2025-10-04T15:22:48: Google OAuth error: ReferenceError: UserRoleService is not defined
+0|autojobr  |     at Strategy._verify (file:///var/www/autojobr-main/dist/index.js:20371:36)
+0|autojobr  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|autojobr  | 2025-10-04T15:22:48: 3:22:48 PM [express] GET /api/auth/google/callback 500 in 297ms :: {"message":"UserRoleService is no…
+0|autojobr  | 2025-10-04T15:22:48: ReferenceError: UserRoleService is not defined
+0|autojobr  |     at Strategy._verify (file:///var/www/autojobr-main/dist/index.js:20371:36)
+0|autojobr  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
