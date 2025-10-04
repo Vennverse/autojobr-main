@@ -13,8 +13,6 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import pg from "pg";
 import jwt from "jsonwebtoken";
-import { UserRoleService } from "./userRoleService";
-
 // Simple auth configuration
 const authConfig = {
   session: {
