@@ -29,8 +29,18 @@ export default function InterviewInvite() {
 
   // Mutation to mark invitation as used
   const useInvitationMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest(`/api/interviews/invite/${token}/use`, 'POST', {});
+    mutationFn: async (token: string) => {
+      const response = await fetch(`/api/interviews/invite/${token}/use`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to use invitation');
+      }
+      return response.json();
     },
     onSuccess: (data) => {
       console.log('🎉 Invitation used successfully:', data);
@@ -71,9 +81,9 @@ export default function InterviewInvite() {
   useEffect(() => {
     if (user && invitationData && !isProcessing) {
       setIsProcessing(true);
-      useInvitationMutation.mutate();
+      useInvitationMutation.mutate(token!); // Pass the token to the mutation
     }
-  }, [user, invitationData, isProcessing]);
+  }, [user, invitationData, isProcessing, token]); // Added token to dependency array
 
   const handleSignUpToInterview = () => {
     // Redirect to auth page with return URL
