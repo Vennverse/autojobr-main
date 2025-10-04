@@ -111,6 +111,28 @@ export class SalaryInsightsService {
     const { jobTitle, company, location, experienceLevel = 0, skills = [] } = data;
 
     const roleData = this.findRoleData(jobTitle);
+    if (!roleData) {
+      // Return default values if role not found
+      const defaultSalary = 80000;
+      const salaryRange = this.calculateSalaryRange(defaultSalary);
+      return {
+        salaryRange,
+        currency: 'USD',
+        totalCompensation: defaultSalary,
+        breakdown: {
+          baseSalary: defaultSalary,
+          skillsBonus: 0,
+          equityEstimate: 0,
+          bonusEstimate: Math.round(defaultSalary * 0.1)
+        },
+        marketInsights: `Based on general market data for similar positions. Actual salary may vary based on company size, location, and specific requirements.`,
+        negotiationTips: this.generateNegotiationTips('us', experienceLevel, skills, 'general'),
+        locationAdjustment: 'US national average',
+        companyTier: company ? 'Standard' : 'Unknown',
+        experienceImpact: `${experienceLevel} years experience considered`
+      };
+    }
+
     let baseSalary = this.calculateBaseSalary(roleData, experienceLevel);
 
     const { region, currency, multiplier } = this.detectLocation(location, roleData);

@@ -1971,29 +1971,35 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                           </Button>
                         </div>
                         
-                        {salaryInsightsData.salaryRange && (
+                        {salaryInsightsData.salaryRange && salaryInsightsData.salaryRange.median ? (
                           <div className="mb-4">
                             <h5 className="font-medium text-sm text-green-800 dark:text-green-200 mb-2">Salary Range</h5>
                             <div className="grid grid-cols-3 gap-3">
                               <div className="text-center p-2 bg-white dark:bg-gray-800 rounded">
                                 <p className="text-xs text-gray-600 dark:text-gray-400">Min</p>
                                 <p className="text-lg font-bold text-green-700 dark:text-green-300">
-                                  ${salaryInsightsData.salaryRange.min?.toLocaleString()}
+                                  ${salaryInsightsData.salaryRange.min?.toLocaleString() || 'N/A'}
                                 </p>
                               </div>
                               <div className="text-center p-2 bg-white dark:bg-gray-800 rounded">
                                 <p className="text-xs text-gray-600 dark:text-gray-400">Median</p>
                                 <p className="text-lg font-bold text-green-700 dark:text-green-300">
-                                  ${salaryInsightsData.salaryRange.median?.toLocaleString()}
+                                  ${salaryInsightsData.salaryRange.median?.toLocaleString() || 'N/A'}
                                 </p>
                               </div>
                               <div className="text-center p-2 bg-white dark:bg-gray-800 rounded">
                                 <p className="text-xs text-gray-600 dark:text-gray-400">Max</p>
                                 <p className="text-lg font-bold text-green-700 dark:text-green-300">
-                                  ${salaryInsightsData.salaryRange.max?.toLocaleString()}
+                                  ${salaryInsightsData.salaryRange.max?.toLocaleString() || 'N/A'}
                                 </p>
                               </div>
                             </div>
+                          </div>
+                        ) : (
+                          <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded">
+                            <p className="text-sm text-yellow-800 dark:text-yellow-300">
+                              ⚠️ Salary data not available for this position. This may be due to limited market data or the job title not being recognized in our database.
+                            </p>
                           </div>
                         )}
                         
