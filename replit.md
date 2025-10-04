@@ -105,6 +105,22 @@ See `shared/schema.ts` for the complete schema definition.
 
 ## Recent Changes
 
+### Oct 04, 2025 - Chrome Extension Authentication & Role Detection Fixed ✅
+- ✅ **Fixed university email role detection** in `server/userRoleService.js`:
+  - All students/faculty with `.edu`, `.ac.in`, `.edu.*`, `.ac.*` emails → Job Seekers
+  - University HR/placement staff (emails containing "hr", "talent", "recruiting", "careers", "hiring", "placement") → Recruiters
+  - Public email providers (Gmail, Yahoo, Outlook, etc.) → Always Job Seekers
+- ✅ **Fixed extension popup buttons** (Interview Prep, Salary Insights, Find Referrals):
+  - Changed from background script messaging to direct authenticated API calls
+  - Uses `makeApiRequest()` method with session token from `chrome.storage.local`
+  - Proper error handling with user-friendly messages
+- ✅ **Fixed auto-popup widget buttons** in `extension/content-script.js`:
+  - Interview Prep button → Direct POST to `/api/interview-prep` with `credentials: 'include'`
+  - Salary Insights button → Direct POST to `/api/salary-insights` with `credentials: 'include'`
+  - Referral Finder button → Opens `/referral-marketplace` in new tab
+  - All endpoints protected with `isAuthenticated` middleware
+  - Session cookies automatically sent via `credentials: 'include'`
+
 ### Oct 04, 2025 - Replit Environment Setup Complete ✅
 - ✅ GitHub repository successfully imported to fresh Replit environment
 - ✅ All npm dependencies installed and verified (950 packages)
