@@ -2643,19 +2643,44 @@ app.get("/api/recruiter/email-templates", requireAuth, async (req, res) => {
         .where(eq(schema.interviewInvitations.token, token))
         .limit(1);
       
-      if (!invitation.length || invitation[0].expiresAt < new Date()) {
+      if (!invitation.length || invitation[0].expiryDate < new Date()) {
         return res.status(404).json({ message: 'Invalid or expired invitation' });
-      }
-      
-      if (invitation[0].isUsed) {
-        return res.status(400).json({ message: 'Invitation already used' });
       }
       
       const invitationData = invitation[0];
       
-      // Mark invitation as used
+      // Check if this specific user has already used this invitation
+      const existingUse = await db.select()
+        .from(schema.invitationUses)
+        .where(and(
+          eq(schema.invitationUses.invitationId, invitationData.id),
+          eq(schema.invitationUses.candidateId, userId)
+        ))
+        .limit(1);
+      
+      if (existingUse.length > 0) {
+        return res.status(400).json({ message: 'You have already used this invitation' });
+      }
+      
+      // Check if invitation has reached max uses
+      if (invitationData.maxUses !== null && invitationData.usageCount >= invitationData.maxUses) {
+        return res.status(400).json({ message: 'This invitation has reached its maximum number of uses' });
+      }
+      
+      // Get user info for tracking
+      const user = await storage.getUser(userId);
+      
+      // Record the use and increment usage count
+      await db.insert(schema.invitationUses).values({
+        invitationId: invitationData.id,
+        candidateId: userId,
+        candidateEmail: user?.email || null,
+        candidateName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : null,
+        usedAt: new Date()
+      });
+      
       await db.update(schema.interviewInvitations)
-        .set({ isUsed: true, usedAt: new Date(), candidateId: userId })
+        .set({ usageCount: sql`${schema.interviewInvitations.usageCount} + 1` })
         .where(eq(schema.interviewInvitations.token, token));
       
       // Create job application if jobPostingId exists
@@ -7723,78 +7748,8 @@ Additional Information:
     }
   });
 
-  // Mark invitation as used and create application
-  app.post('/api/interviews/invite/:token/use', isAuthenticated, async (req: any, res) => {
-    try {
-      const { token } = req.params;
-      const userId = req.user.id;
-
-      const [invitation] = await db
-        .select()
-        .from(schema.interviewInvitations)
-        .where(eq(schema.interviewInvitations.token, token))
-        .limit(1);
-
-      if (!invitation || new Date(invitation.expiryDate) < new Date()) {
-        return res.status(400).json({ message: 'Invalid or expired invitation' });
-      }
-
-      // Check if max uses reached (only if maxUses is set)
-      if (invitation.maxUses && invitation.usageCount >= invitation.maxUses) {
-        return res.status(400).json({ message: 'This invitation has reached its maximum number of uses' });
-      }
-
-      // Check if this user has already used this invitation
-      const existingApplication = await db
-        .select()
-        .from(schema.jobPostingApplications)
-        .where(
-          and(
-            eq(schema.jobPostingApplications.jobPostingId, invitation.jobPostingId),
-            eq(schema.jobPostingApplications.applicantId, userId)
-          )
-        )
-        .limit(1);
-
-      let applicationId;
-
-      if (existingApplication.length === 0) {
-        // Create application for this job
-        const [newApplication] = await db
-          .insert(schema.jobPostingApplications)
-          .values({
-            jobPostingId: invitation.jobPostingId,
-            applicantId: userId,
-            status: 'applied'
-          })
-          .returning();
-        
-        applicationId = newApplication.id;
-
-        // Increment usage count
-        await db
-          .update(schema.interviewInvitations)
-          .set({ 
-            usageCount: sql`${schema.interviewInvitations.usageCount} + 1`
-          })
-          .where(eq(schema.interviewInvitations.token, token));
-      } else {
-        // User already has an application for this job
-        applicationId = existingApplication[0].id;
-      }
-
-      res.json({
-        success: true,
-        applicationId,
-        interviewType: invitation.interviewType,
-        interviewConfig: JSON.parse(invitation.interviewConfig),
-        jobPostingId: invitation.jobPostingId
-      });
-    } catch (error) {
-      console.error('Error using interview invitation:', error);
-      res.status(500).json({ message: 'Failed to process interview invitation' });
-    }
-  });
+  // This route is now handled by the earlier '/api/interviews/invite/:token/use' route above
+  // Removed duplicate route to prevent conflicts
 
   // ========================================
   // SIMPLE LINKEDIN-STYLE CHAT SYSTEM
