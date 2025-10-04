@@ -13,6 +13,7 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import pg from "pg";
 import jwt from "jsonwebtoken";
+// UserRoleService removed - role detection is now inline
 // Simple auth configuration
 const authConfig = {
   session: {
