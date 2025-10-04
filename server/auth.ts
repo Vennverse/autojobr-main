@@ -13,7 +13,7 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import pg from "pg";
 import jwt from "jsonwebtoken";
-import { UserRoleService } from "./userRoleService.js";
+import { UserRoleService } from "./userRoleService";
 
 // Simple auth configuration
 const authConfig = {
@@ -119,8 +119,19 @@ export async function setupAuth(app: Express) {
         if (!user) {
           // Create new user with intelligent role detection
           const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          // Use UserRoleService for intelligent role assignment
-          const roleAssignment = await UserRoleService.assignUserRole(email);
+          
+          // Use intelligent role assignment with fallback
+          let roleAssignment;
+          try {
+            const { UserRoleService: RoleService } = await import('./userRoleService.js');
+            roleAssignment = await RoleService.assignUserRole(email);
+          } catch (roleError) {
+            console.log('UserRoleService fallback - assigning default role');
+            roleAssignment = {
+              userType: 'job_seeker',
+              currentRole: 'job_seeker'
+            };
+          }
           
           user = await storage.upsertUser({
             id: userId,
