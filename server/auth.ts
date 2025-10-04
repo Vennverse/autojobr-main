@@ -120,18 +120,27 @@ export async function setupAuth(app: Express) {
           // Create new user with intelligent role detection
           const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           
-          // Use intelligent role assignment with fallback
-          let roleAssignment;
-          try {
-            const { UserRoleService: RoleService } = await import('./userRoleService.js');
-            roleAssignment = await RoleService.assignUserRole(email);
-          } catch (roleError) {
-            console.log('UserRoleService fallback - assigning default role');
-            roleAssignment = {
-              userType: 'job_seeker',
-              currentRole: 'job_seeker'
-            };
-          }
+          // Detect role based on email
+          const detectRole = (email: string) => {
+            const emailLower = email.toLowerCase();
+            const emailDomain = emailLower.split('@')[1] || '';
+            
+            // Public email providers are always job seekers
+            const publicProviders = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com'];
+            if (publicProviders.some(p => emailDomain === p)) {
+              return 'job_seeker';
+            }
+            
+            // Check for recruiter indicators
+            if (emailLower.includes('hr') || emailLower.includes('talent') || 
+                emailLower.includes('recruiting') || emailLower.includes('careers')) {
+              return 'recruiter';
+            }
+            
+            return 'job_seeker';
+          };
+          
+          const userType = detectRole(email);
           
           user = await storage.upsertUser({
             id: userId,
@@ -139,8 +148,8 @@ export async function setupAuth(app: Express) {
             firstName: profile.name?.givenName || 'User',
             lastName: profile.name?.familyName || '',
             profileImageUrl: profile.photos?.[0]?.value || null,
-            userType: roleAssignment.userType,
-            currentRole: roleAssignment.currentRole,
+            userType: userType,
+            currentRole: userType,
             emailVerified: true,
             password: null,
           });
