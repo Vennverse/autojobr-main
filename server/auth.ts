@@ -202,6 +202,7 @@ export async function setupAuth(app: Express) {
 
   passport.deserializeUser(async (id: string, done) => {
     try {
+      console.log(`🔍 Deserializing user: ${id}`);
       const user = await storage.getUser(id);
       if (user) {
         const userData = {
@@ -210,13 +211,17 @@ export async function setupAuth(app: Express) {
           firstName: user.firstName || '',
           lastName: user.lastName || '',
           userType: user.userType || 'job_seeker',
+          currentRole: user.currentRole || user.userType || 'job_seeker',
           name: `${user.firstName || ''} ${user.lastName || ''}`.trim()
         };
+        console.log(`✅ User deserialized successfully: ${userData.email}`);
         done(null, userData);
       } else {
+        console.log(`❌ User not found for ID: ${id}`);
         done(null, false);
       }
     } catch (error) {
+      console.error(`❌ Error deserializing user ${id}:`, error);
       done(error, false);
     }
   });
@@ -489,32 +494,37 @@ export async function setupAuth(app: Express) {
     (req: any, res) => {
       console.log(`✅ Google OAuth successful for user: ${req.user?.email}`);
       
-      // Regenerate session ID for security after successful OAuth
-      req.session.regenerate((err: any) => {
-        if (err) {
-          console.error('Session regeneration failed after OAuth:', err);
-          return res.redirect('/auth?error=session_regeneration_failed');
+      // CRITICAL FIX: Set session user BEFORE regeneration to prevent data loss
+      const userData = {
+        id: req.user.id,
+        email: req.user.email,
+        name: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim(),
+        firstName: req.user.firstName,
+        lastName: req.user.lastName,
+        userType: req.user.userType,
+        currentRole: req.user.currentRole || req.user.userType
+      };
+      
+      // Set session user data immediately
+      req.session.user = userData;
+      
+      // Save session FIRST, then redirect
+      req.session.save((saveErr: any) => {
+        if (saveErr) {
+          console.error('❌ Session save error after Google OAuth:', saveErr);
+          return res.redirect('/auth?error=session_save_failed');
         }
         
-        // Set session to match existing session format
-        req.session.user = {
-          id: req.user.id,
-          email: req.user.email,
-          name: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim(),
-          firstName: req.user.firstName,
-          lastName: req.user.lastName,
-          userType: req.user.userType
-        };
-
-        // Save session before redirect
-        req.session.save((saveErr: any) => {
-          if (saveErr) {
-            console.error('Session save error after Google OAuth:', saveErr);
-            return res.redirect('/auth?error=session_save_failed');
-          }
-          console.log('✅ Google OAuth session saved for user:', req.user.email);
-          res.redirect('/');
+        console.log(`✅ Google OAuth session saved successfully for user: ${req.user.email}`);
+        console.log(`📝 Session data:`, {
+          sessionId: req.sessionID,
+          userId: userData.id,
+          email: userData.email,
+          userType: userData.userType
         });
+        
+        // Redirect to home page after successful login
+        res.redirect('/?auth=google_success');
       });
     }
   );
