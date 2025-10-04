@@ -276,10 +276,8 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
   // State for inline results display
   const [interviewPrepData, setInterviewPrepData] = useState<any>(null);
   const [salaryInsightsData, setSalaryInsightsData] = useState<any>(null);
-  const [referralsData, setReferralsData] = useState<any>(null);
   const [loadingInterviewPrep, setLoadingInterviewPrep] = useState(false);
   const [loadingSalary, setLoadingSalary] = useState(false);
-  const [loadingReferrals, setLoadingReferrals] = useState(false);
 
   // Convert route-based parameters to filter format
   const routeBasedFilters = useMemo(() => {
@@ -839,47 +837,21 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     }
   };
 
-  const handleFindReferrals = async (job: JobPosting) => {
+  const handleFindReferrals = (job: JobPosting) => {
     if (!isAuthenticated) {
       setLocation('/auth');
       return;
     }
 
-    setLoadingReferrals(true);
-    setReferralsData(null);
-
-    try {
-      const response = await fetch('/api/referrals/find', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          jobTitle: job.title,
-          companyName: job.companyName || job.company,
-          location: job.location
-        })
-      });
-
-      const data = await response.json();
-      
-      if (response.ok) {
-        setReferralsData(data);
-        toast({
-          title: "Referrals Found!",
-          description: `Found ${data.referrals?.length || 0} potential referrals in your network.`
-        });
-      } else {
-        throw new Error(data.message || 'Failed to find referrals');
-      }
-    } catch (error) {
-      toast({
-        title: "Failed to Find Referrals",
-        description: error instanceof Error ? error.message : "Please try again later.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoadingReferrals(false);
-    }
+    // Open referral marketplace in a new tab
+    const companyName = job.companyName || job.company || '';
+    const referralUrl = `/referral-marketplace?companyName=${encodeURIComponent(companyName)}`;
+    window.open(referralUrl, '_blank');
+    
+    toast({
+      title: "Opening Referral Marketplace",
+      description: `Browse referrals for ${companyName} in a new tab.`
+    });
   };
 
   // Currency options
@@ -1965,12 +1937,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         variant="outline"
                         size="sm"
                         onClick={() => handleFindReferrals(selectedJob)}
-                        disabled={loadingReferrals}
                         className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-700 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-900/30 dark:hover:to-pink-900/30 text-purple-700 dark:text-purple-300"
                         data-testid="button-find-referrals"
                       >
                         <Users className="w-4 h-4 mr-2" />
-                        {loadingReferrals ? 'Loading...' : 'Find Referrals'}
+                        Find Referrals
                       </Button>
                     </div>
 
@@ -2102,47 +2073,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                       </motion.div>
                     )}
 
-                    {/* Referrals Results - Inline Display */}
-                    {referralsData && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        className="mt-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-700"
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-semibold text-purple-900 dark:text-purple-100 flex items-center gap-2">
-                            <Users className="w-5 h-5" />
-                            Potential Referrals
-                          </h4>
-                          <Button variant="ghost" size="sm" onClick={() => setReferralsData(null)}>
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                        
-                        {referralsData.referrals && referralsData.referrals.length > 0 ? (
-                          <div className="space-y-3">
-                            {referralsData.referrals.slice(0, 5).map((referral: any, i: number) => (
-                              <div key={i} className="p-3 bg-white dark:bg-gray-800 rounded border border-purple-200 dark:border-purple-700">
-                                <div className="flex items-start justify-between">
-                                  <div>
-                                    <p className="font-medium text-gray-900 dark:text-white">{referral.name}</p>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">{referral.title}</p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{referral.company}</p>
-                                  </div>
-                                  <Badge variant="outline" className="text-xs">
-                                    {referral.connectionType || 'Network'}
-                                  </Badge>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            No referrals found in your network. Try connecting with employees at {selectedJob.companyName} on LinkedIn.
-                          </p>
-                        )}
-                      </motion.div>
-                    )}
+                    
                   </div>
 
                   <div className="space-y-6">
