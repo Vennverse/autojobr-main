@@ -484,13 +484,13 @@ class AutoJobrBackground {
 
         // Interview Preparation
         case 'getInterviewPrep':
-          const prep = await this.getInterviewPrep(message.jobData);
+          const prep = await this.getInterviewPrep(message.data?.jobData || message.jobData);
           sendResponse({ success: true, prep });
           break;
 
         // Salary Insights
         case 'getSalaryInsights':
-          const insights = await this.getSalaryInsights(message.jobData);
+          const insights = await this.getSalaryInsights(message.data?.jobData || message.jobData);
           sendResponse({ success: true, insights });
           break;
 

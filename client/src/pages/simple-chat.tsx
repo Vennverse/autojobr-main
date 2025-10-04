@@ -55,11 +55,9 @@ const useWebSocket = (user: { id: string } | null | undefined) => {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/ws`;
     
-    console.log('Connecting to WebSocket:', wsUrl);
     const ws = new globalThis.WebSocket(wsUrl);
 
     ws.onopen = () => {
-      console.log('WebSocket connected');
       setIsConnected(true);
       
       ws.send(JSON.stringify({
@@ -71,16 +69,9 @@ const useWebSocket = (user: { id: string } | null | undefined) => {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data as string);
-        console.log('WebSocket message received:', data);
         
         if (data.type === 'new_message') {
-          console.log('Processing new message for real-time update:', data);
-          
-          // Only refresh conversations list to update previews and timestamps
           queryClient.invalidateQueries({ queryKey: ['/api/simple-chat/conversations'] });
-          
-          // DON'T invalidate messages - this causes sent messages to disappear!
-          // The optimistic update and onSuccess handler will manage message display
         }
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);
@@ -88,12 +79,10 @@ const useWebSocket = (user: { id: string } | null | undefined) => {
     };
 
     ws.onclose = () => {
-      console.log('WebSocket disconnected');
       setIsConnected(false);
     };
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
+    ws.onerror = () => {
       setIsConnected(false);
     };
 
@@ -169,41 +158,22 @@ export default function SimpleChatPage() {
     refetchInterval: false, // Disabled - using WebSocket for real-time updates
     refetchOnWindowFocus: true,
     queryFn: async () => {
-      console.log(`Fetching messages for conversation ${selectedConversation}`);
       const response = await fetch(`/api/simple-chat/messages/${selectedConversation}`, {
         credentials: 'include',
       });
       
       if (!response.ok) {
-        console.error(`Failed to fetch messages: ${response.status} ${response.statusText}`);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const data = await response.json();
-      console.log(`Fetched ${data.length} messages for conversation ${selectedConversation}`);
-      return data;
+      return response.json();
     }
   });
 
-  // Debug logs - Remove after testing
-  useEffect(() => {
-    console.log('=== CHAT DEBUG INFO ===');
-    console.log('Current user:', user?.id);
-    console.log('Selected conversation:', selectedConversation);
-    console.log('Conversations count:', conversations.length);
-    console.log('Messages count:', messages.length);
-    console.log('View:', view);
-    console.log('Target user ID from URL:', targetUserId);
-    console.log('Messages loading:', messagesLoading);
-    console.log('Messages query enabled:', !!selectedConversation);
-    console.log('======================');
-  }, [user, selectedConversation, conversations, messages, view, targetUserId, messagesLoading]);
 
   // Send message mutation with robust optimistic updates
   const sendMessageMutation = useMutation({
     mutationFn: async (data: { conversationId?: number; otherUserId?: string; message: string; clientTempId?: number }) => {
-      console.log('Sending message:', data); // Debug log
-
       if (data.conversationId) {
         // Send message to existing conversation
         const response = await fetch(`/api/simple-chat/conversations/${data.conversationId}/messages`, {
@@ -279,8 +249,6 @@ export default function SimpleChatPage() {
       return { previousMessages, clientTempId, messageText: variables.message, conversationId: variables.conversationId };
     },
     onSuccess: (response: any, variables: { conversationId?: number; otherUserId?: string; message: string; clientTempId?: number }, context: { previousMessages?: Message[]; clientTempId?: number; messageText?: string; conversationId?: number } | undefined) => {
-      console.log('Message sent successfully:', response); // Debug log
-
       // Add the server message to ensure it persists
       if (selectedConversation && response?.message) {
         queryClient.setQueryData<Message[]>(
@@ -306,8 +274,6 @@ export default function SimpleChatPage() {
       }
     },
     onError: (error: unknown, variables: { conversationId?: number; otherUserId?: string; message: string; clientTempId?: number }, context: { previousMessages?: Message[]; clientTempId?: number } | undefined) => {
-      console.error('Failed to send message:', error); // Debug log
-
       // Rollback to the previous value
       if (context?.previousMessages && selectedConversation) {
         queryClient.setQueryData<Message[]>(
@@ -362,27 +328,20 @@ export default function SimpleChatPage() {
   // Handle URL parameters - initiate chat with specific user
   useEffect(() => {
     if (!user?.id || !targetUserId || !allUsers.length) return;
-
-    console.log('Processing URL target user:', targetUserId);
     
     // Find the target user
     const targetUser = allUsers.find(u => u.id === targetUserId);
     if (targetUser) {
-      console.log('Found target user:', targetUser);
       // Check if conversation already exists
       const existingConversation = conversations.find(conv => conv.otherUserId === targetUserId);
       if (existingConversation) {
-        console.log('Found existing conversation:', existingConversation);
         setSelectedConversation(existingConversation.id);
         setView('chat');
       } else {
-        console.log('No existing conversation, starting new one');
         // Start new conversation
         setSelectedUser(targetUser);
         setView('chat');
       }
-    } else {
-      console.log('Target user not found in allUsers');
     }
   }, [user?.id, targetUserId, allUsers, conversations]);
 
@@ -509,15 +468,6 @@ export default function SimpleChatPage() {
             </div>
           </div>
 
-          {/* Connection Status */}
-          <div className="px-4 py-2 bg-gray-50">
-            <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-gray-400'}`} />
-              <span className="text-sm text-gray-600">
-                {isConnected ? 'Connected' : 'Connecting...'}
-              </span>
-            </div>
-          </div>
 
           {/* List */}
           <ScrollArea className="flex-1">
@@ -626,9 +576,6 @@ export default function SimpleChatPage() {
                 <h2 className="font-semibold text-gray-900">
                   {selectedUser?.name || conversations.find(c => c.id === selectedConversation)?.otherUserName}
                 </h2>
-                <p className="text-sm text-gray-500">
-                  {isConnected ? 'Online' : 'Offline'}
-                </p>
               </div>
             </div>
           </div>
@@ -645,14 +592,6 @@ export default function SimpleChatPage() {
                   <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500">No messages yet</p>
                   <p className="text-sm text-gray-400 mt-1">Start the conversation!</p>
-                  {/* Debug info */}
-                  <div className="mt-4 text-xs text-gray-400">
-                    <p>Conversation ID: {selectedConversation}</p>
-                    <p>Messages array length: {messages.length}</p>
-                    <p>Messages loading: {messagesLoading ? 'Yes' : 'No'}</p>
-                    <p>Query enabled: {!!selectedConversation ? 'Yes' : 'No'}</p>
-                    {messagesError && <p className="text-red-500">Error: {String(messagesError)}</p>}
-                  </div>
                 </div>
               </div>
             ) : (
