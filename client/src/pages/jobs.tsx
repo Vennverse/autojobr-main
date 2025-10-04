@@ -273,6 +273,14 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     return new URLSearchParams();
   });
 
+  // State for inline results display
+  const [interviewPrepData, setInterviewPrepData] = useState<any>(null);
+  const [salaryInsightsData, setSalaryInsightsData] = useState<any>(null);
+  const [referralsData, setReferralsData] = useState<any>(null);
+  const [loadingInterviewPrep, setLoadingInterviewPrep] = useState(false);
+  const [loadingSalary, setLoadingSalary] = useState(false);
+  const [loadingReferrals, setLoadingReferrals] = useState(false);
+
   // Convert route-based parameters to filter format
   const routeBasedFilters = useMemo(() => {
     const filters: Partial<FilterState> = {};
@@ -677,6 +685,9 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       return;
     }
 
+    setLoadingInterviewPrep(true);
+    setInterviewPrepData(null);
+
     try {
       const response = await fetch('/api/ai/interview-prep', {
         method: 'POST',
@@ -693,12 +704,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       const data = await response.json();
       
       if (response.ok) {
+        setInterviewPrepData(data);
         toast({
           title: "Interview Prep Ready!",
           description: `Generated ${data.questions?.length || 0} practice questions and insights.`
         });
-        // You can show this in a modal or navigate to a prep page
-        console.log('Interview Prep Data:', data);
       } else {
         throw new Error(data.message || 'Failed to generate interview prep');
       }
@@ -708,6 +718,8 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         description: error instanceof Error ? error.message : "Please try again later.",
         variant: "destructive"
       });
+    } finally {
+      setLoadingInterviewPrep(false);
     }
   };
 
@@ -716,6 +728,9 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       setLocation('/auth');
       return;
     }
+
+    setLoadingSalary(true);
+    setSalaryInsightsData(null);
 
     try {
       const response = await fetch('/api/ai/salary-insights', {
@@ -734,12 +749,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       const data = await response.json();
       
       if (response.ok) {
+        setSalaryInsightsData(data);
         toast({
           title: "Salary Insights Ready!",
-          description: `Estimated: $${data.estimatedSalary?.toLocaleString() || 'N/A'}`
+          description: `Estimated: $${data.salaryRange?.median?.toLocaleString() || 'N/A'}`
         });
-        // You can show this in a modal or navigate to insights page
-        console.log('Salary Insights Data:', data);
       } else {
         throw new Error(data.message || 'Failed to get salary insights');
       }
@@ -749,6 +763,8 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         description: error instanceof Error ? error.message : "Please try again later.",
         variant: "destructive"
       });
+    } finally {
+      setLoadingSalary(false);
     }
   };
 
@@ -757,6 +773,9 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       setLocation('/auth');
       return;
     }
+
+    setLoadingReferrals(true);
+    setReferralsData(null);
 
     try {
       const response = await fetch('/api/referrals/find', {
@@ -773,12 +792,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       const data = await response.json();
       
       if (response.ok) {
+        setReferralsData(data);
         toast({
           title: "Referrals Found!",
           description: `Found ${data.referrals?.length || 0} potential referrals in your network.`
         });
-        // You can show this in a modal or navigate to referrals page
-        console.log('Referrals Data:', data);
       } else {
         throw new Error(data.message || 'Failed to find referrals');
       }
@@ -788,6 +806,8 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         description: error instanceof Error ? error.message : "Please try again later.",
         variant: "destructive"
       });
+    } finally {
+      setLoadingReferrals(false);
     }
   };
 
@@ -1852,33 +1872,197 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         variant="outline"
                         size="sm"
                         onClick={() => handleInterviewPrep(selectedJob)}
+                        disabled={loadingInterviewPrep}
                         className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-cyan-100 dark:hover:from-blue-900/30 dark:hover:to-cyan-900/30 text-blue-700 dark:text-blue-300"
                         data-testid="button-interview-prep"
                       >
                         <Target className="w-4 h-4 mr-2" />
-                        Interview Prep
+                        {loadingInterviewPrep ? 'Loading...' : 'Interview Prep'}
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleSalaryInsights(selectedJob)}
+                        disabled={loadingSalary}
                         className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-700 hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-900/30 dark:hover:to-emerald-900/30 text-green-700 dark:text-green-300"
                         data-testid="button-salary-insights"
                       >
                         <DollarSign className="w-4 h-4 mr-2" />
-                        Salary Intel
+                        {loadingSalary ? 'Loading...' : 'Salary Intel'}
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleFindReferrals(selectedJob)}
+                        disabled={loadingReferrals}
                         className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-700 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-900/30 dark:hover:to-pink-900/30 text-purple-700 dark:text-purple-300"
                         data-testid="button-find-referrals"
                       >
                         <Users className="w-4 h-4 mr-2" />
-                        Find Referrals
+                        {loadingReferrals ? 'Loading...' : 'Find Referrals'}
                       </Button>
                     </div>
+
+                    {/* Interview Prep Results - Inline Display */}
+                    {interviewPrepData && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700"
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                            <Target className="w-5 h-5" />
+                            Interview Preparation
+                          </h4>
+                          <Button variant="ghost" size="sm" onClick={() => setInterviewPrepData(null)}>
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        
+                        {interviewPrepData.companyInsights && (
+                          <div className="mb-4">
+                            <h5 className="font-medium text-sm text-blue-800 dark:text-blue-200 mb-2">Company Insights</h5>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                              {interviewPrepData.companyInsights}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {interviewPrepData.questions && interviewPrepData.questions.length > 0 && (
+                          <div className="mb-4">
+                            <h5 className="font-medium text-sm text-blue-800 dark:text-blue-200 mb-2">Practice Questions</h5>
+                            <ul className="space-y-2">
+                              {interviewPrepData.questions.slice(0, 5).map((q: string, i: number) => (
+                                <li key={i} className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                                  <span className="text-blue-600 dark:text-blue-400 font-medium">{i + 1}.</span>
+                                  <span>{q}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        
+                        {interviewPrepData.tips && (
+                          <div>
+                            <h5 className="font-medium text-sm text-blue-800 dark:text-blue-200 mb-2">Preparation Tips</h5>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                              {interviewPrepData.tips}
+                            </p>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+
+                    {/* Salary Insights Results - Inline Display */}
+                    {salaryInsightsData && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700"
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-green-900 dark:text-green-100 flex items-center gap-2">
+                            <DollarSign className="w-5 h-5" />
+                            Salary Insights
+                          </h4>
+                          <Button variant="ghost" size="sm" onClick={() => setSalaryInsightsData(null)}>
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        
+                        {salaryInsightsData.salaryRange && (
+                          <div className="mb-4">
+                            <h5 className="font-medium text-sm text-green-800 dark:text-green-200 mb-2">Salary Range</h5>
+                            <div className="grid grid-cols-3 gap-3">
+                              <div className="text-center p-2 bg-white dark:bg-gray-800 rounded">
+                                <p className="text-xs text-gray-600 dark:text-gray-400">Min</p>
+                                <p className="text-lg font-bold text-green-700 dark:text-green-300">
+                                  ${salaryInsightsData.salaryRange.min?.toLocaleString()}
+                                </p>
+                              </div>
+                              <div className="text-center p-2 bg-white dark:bg-gray-800 rounded">
+                                <p className="text-xs text-gray-600 dark:text-gray-400">Median</p>
+                                <p className="text-lg font-bold text-green-700 dark:text-green-300">
+                                  ${salaryInsightsData.salaryRange.median?.toLocaleString()}
+                                </p>
+                              </div>
+                              <div className="text-center p-2 bg-white dark:bg-gray-800 rounded">
+                                <p className="text-xs text-gray-600 dark:text-gray-400">Max</p>
+                                <p className="text-lg font-bold text-green-700 dark:text-green-300">
+                                  ${salaryInsightsData.salaryRange.max?.toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {salaryInsightsData.marketInsights && (
+                          <div className="mb-4">
+                            <h5 className="font-medium text-sm text-green-800 dark:text-green-200 mb-2">Market Insights</h5>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                              {salaryInsightsData.marketInsights}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {salaryInsightsData.negotiationTips && salaryInsightsData.negotiationTips.length > 0 && (
+                          <div>
+                            <h5 className="font-medium text-sm text-green-800 dark:text-green-200 mb-2">Negotiation Tips</h5>
+                            <ul className="space-y-1">
+                              {salaryInsightsData.negotiationTips.slice(0, 4).map((tip: string, i: number) => (
+                                <li key={i} className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                                  <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                                  <span>{tip}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+
+                    {/* Referrals Results - Inline Display */}
+                    {referralsData && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="mt-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-700"
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-purple-900 dark:text-purple-100 flex items-center gap-2">
+                            <Users className="w-5 h-5" />
+                            Potential Referrals
+                          </h4>
+                          <Button variant="ghost" size="sm" onClick={() => setReferralsData(null)}>
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        
+                        {referralsData.referrals && referralsData.referrals.length > 0 ? (
+                          <div className="space-y-3">
+                            {referralsData.referrals.slice(0, 5).map((referral: any, i: number) => (
+                              <div key={i} className="p-3 bg-white dark:bg-gray-800 rounded border border-purple-200 dark:border-purple-700">
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <p className="font-medium text-gray-900 dark:text-white">{referral.name}</p>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400">{referral.title}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{referral.company}</p>
+                                  </div>
+                                  <Badge variant="outline" className="text-xs">
+                                    {referral.connectionType || 'Network'}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            No referrals found in your network. Try connecting with employees at {selectedJob.companyName} on LinkedIn.
+                          </p>
+                        )}
+                      </motion.div>
+                    )}
                   </div>
 
                   <div className="space-y-6">
