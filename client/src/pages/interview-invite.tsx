@@ -30,7 +30,20 @@ export default function InterviewInvite() {
   // Mutation to mark invitation as used
   const useInvitationMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest(`/api/interviews/invite/${token}/use`, 'POST');
+      const response = await fetch(`/api/interviews/invite/${token}/use`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to process invitation');
+      }
+      
+      return response.json();
     },
     onSuccess: (data) => {
       // Redirect to appropriate interview based on type
