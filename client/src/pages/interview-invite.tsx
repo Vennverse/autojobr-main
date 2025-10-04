@@ -30,7 +30,7 @@ export default function InterviewInvite() {
   // Mutation to mark invitation as used
   const useInvitationMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest(`/api/interviews/invite/${token}/use`, 'POST', {});
+      return await apiRequest(`/api/interviews/invite/${token}/use`, 'POST');
     },
     onSuccess: (data) => {
       // Redirect to appropriate interview based on type
