@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 
 // Validation schema
@@ -111,13 +110,13 @@ export class SalaryInsightsService {
     const { jobTitle, company, location, experienceLevel = 0, skills = [] } = data;
 
     let roleData = this.findRoleData(jobTitle);
-    
+
     // If no role data found, use software engineer as fallback
     if (!roleData) {
       console.log(`Role data not found for: ${jobTitle}, using fallback`);
       roleData = SALARY_DATABASE['software engineer'];
     }
-    
+
     // Ensure we have valid role data
     if (!roleData) {
       // Ultimate fallback with explicit default values
@@ -185,19 +184,19 @@ export class SalaryInsightsService {
 
   private findRoleData(jobTitle: string): RoleData | null {
     const normalizedTitle = jobTitle.toLowerCase().trim();
-    
+
     // Direct match
     if (SALARY_DATABASE[normalizedTitle]) {
       return SALARY_DATABASE[normalizedTitle];
     }
-    
+
     // Partial match
     for (const [role, data] of Object.entries(SALARY_DATABASE)) {
       if (normalizedTitle.includes(role) || role.includes(normalizedTitle)) {
         return data;
       }
     }
-    
+
     // No match found - return null to trigger fallback
     return null;
   }
@@ -206,33 +205,84 @@ export class SalaryInsightsService {
     return roleData.base * (1 + experienceLevel * CONSTANTS.EXPERIENCE_MULTIPLIER);
   }
 
-  private detectLocation(location: string | undefined, roleData: RoleData) {
-    const locationLower = location?.toLowerCase().trim() || '';
-    for (const mapping of LOCATION_MAPPINGS) {
-      if (mapping.keywords.some(k => locationLower.includes(k))) {
-        return { region: mapping.region, currency: mapping.currency, multiplier: roleData.locations[mapping.region] };
+  private calculateSkillsBonus(skills: string[], locationMultiplier: number): number {
+    // Edge case: Invalid or empty skills array
+    if (!Array.isArray(skills) || skills.length === 0) {
+      return 0;
+    }
+
+    let bonus = 0;
+    const processedSkills = new Set<string>();
+
+    for (const skill of skills) {
+      // Edge case: Null, undefined, or non-string skill
+      if (!skill || typeof skill !== 'string') continue;
+
+      const skillLower = skill.toLowerCase().trim();
+
+      // Edge case: Empty string after trim
+      if (!skillLower) continue;
+
+      // Edge case: Skill name too long (potential spam/injection)
+      if (skillLower.length > 100) continue;
+
+      for (const [bonusSkill, bonusAmount] of Object.entries(SKILLS_BONUS)) {
+        if (skillLower.includes(bonusSkill) && !processedSkills.has(bonusSkill)) {
+          // Edge case: Invalid bonus amount
+          const validBonus = bonusAmount && !isNaN(bonusAmount) ? bonusAmount : 0;
+          bonus += validBonus * locationMultiplier;
+          processedSkills.add(bonusSkill);
+        }
       }
     }
+
+    // Edge case: Bonus calculation overflow or unrealistic value
+    return Math.min(bonus, 100000); // Cap skills bonus at $100k
+  }
+
+  private detectLocation(location: string | undefined, roleData: RoleData) {
+    // Edge case: No location provided
+    if (!location) {
+      return { region: 'us' as LocationKey, currency: 'USD' as CurrencyCode, multiplier: 1.0 };
+    }
+
+    // Edge case: Invalid location type
+    if (typeof location !== 'string') {
+      return { region: 'us' as LocationKey, currency: 'USD' as CurrencyCode, multiplier: 1.0 };
+    }
+
+    const locationLower = location.toLowerCase().trim();
+
+    // Edge case: Empty location after trim
+    if (!locationLower) {
+      return { region: 'us' as LocationKey, currency: 'USD' as CurrencyCode, multiplier: 1.0 };
+    }
+
+    // Edge case: Location string too long (potential injection)
+    if (locationLower.length > 200) {
+      return { region: 'us' as LocationKey, currency: 'USD' as CurrencyCode, multiplier: 1.0 };
+    }
+
+    for (const mapping of LOCATION_MAPPINGS) {
+      if (mapping.keywords.some(k => locationLower.includes(k))) {
+        const multiplier = roleData.locations[mapping.region];
+
+        // Edge case: Missing or invalid multiplier
+        const validMultiplier = multiplier && !isNaN(multiplier) && multiplier > 0 ? multiplier : 1.0;
+
+        return { 
+          region: mapping.region, 
+          currency: mapping.currency, 
+          multiplier: validMultiplier 
+        };
+      }
+    }
+
     return { region: 'us' as LocationKey, currency: 'USD' as CurrencyCode, multiplier: 1.0 };
   }
 
   private isTopTierCompany(company: string | undefined): boolean {
     return company ? TOP_COMPANIES.some(tc => company.toLowerCase().includes(tc)) : false;
-  }
-
-  private calculateSkillsBonus(skills: string[], locationMultiplier: number): number {
-    let bonus = 0;
-    const processedSkills = new Set<string>();
-    for (const skill of skills) {
-      const skillLower = skill.toLowerCase().trim();
-      for (const [bonusSkill, bonusAmount] of Object.entries(SKILLS_BONUS)) {
-        if (skillLower.includes(bonusSkill) && !processedSkills.has(bonusSkill)) {
-          bonus += bonusAmount * locationMultiplier;
-          processedSkills.add(bonusSkill);
-        }
-      }
-    }
-    return bonus;
   }
 
   private calculateSalaryRange(median: number): SalaryRange {
