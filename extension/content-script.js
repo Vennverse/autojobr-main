@@ -3447,17 +3447,30 @@ class AutoJobrContentScript {
     try {
       this.updateStatus('🔄 Generating interview prep...', 'loading');
 
-      const userProfile = await this.getUserProfile();
-      const result = await chrome.runtime.sendMessage({
-        action: 'getInterviewPrep',
-        data: {
-          jobData: this.currentJobData,
-          userProfile: userProfile
-        }
+      const apiUrl = await this.getApiUrl();
+      const response = await fetch(`${apiUrl}/api/interview-prep`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          jobTitle: this.currentJobData.title,
+          company: this.currentJobData.company,
+          jobDescription: this.currentJobData.description,
+          requestedAt: new Date().toISOString()
+        })
       });
 
-      if (result && result.success) {
-        this.showInterviewPrepModal(result.prep);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      if (result) {
+        this.showInterviewPrepModal(result);
         this.updateStatus('✅ Interview prep ready!', 'success');
       } else {
         throw new Error('Failed to generate interview prep');
@@ -3479,17 +3492,29 @@ class AutoJobrContentScript {
     try {
       this.updateStatus('🔄 Fetching salary insights...', 'loading');
 
-      const userProfile = await this.getUserProfile();
-      const result = await chrome.runtime.sendMessage({
-        action: 'getSalaryInsights',
-        data: {
-          jobData: this.currentJobData,
-          userProfile: userProfile
-        }
+      const apiUrl = await this.getApiUrl();
+      const response = await fetch(`${apiUrl}/api/salary-insights`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          jobTitle: this.currentJobData.title,
+          company: this.currentJobData.company,
+          location: this.currentJobData.location
+        })
       });
 
-      if (result && result.success) {
-        this.showSalaryInsightsModal(result.insights);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      if (result) {
+        this.showSalaryInsightsModal(result);
         this.updateStatus('✅ Salary insights ready!', 'success');
       } else {
         throw new Error('Failed to get salary insights');
@@ -3509,23 +3534,14 @@ class AutoJobrContentScript {
     }
 
     try {
-      this.updateStatus('🔄 Finding referrals...', 'loading');
+      this.updateStatus('🔄 Opening referral marketplace...', 'loading');
 
-      const userProfile = await this.getUserProfile();
-      const result = await chrome.runtime.sendMessage({
-        action: 'findReferrals',
-        data: {
-          jobData: this.currentJobData,
-          userProfile: userProfile
-        }
-      });
-
-      if (result && result.success) {
-        this.showReferralFinderModal(result);
-        this.updateStatus('✅ Referrals found!', 'success');
-      } else {
-        throw new Error('Failed to find referrals');
-      }
+      const apiUrl = await this.getApiUrl();
+      // Open referral marketplace in a new tab
+      window.open(`${apiUrl}/referral-marketplace`, '_blank');
+      
+      this.showNotification('✅ Referral marketplace opened!', 'success');
+      this.updateStatus('✅ Referral marketplace opened!', 'success');
     } catch (error) {
       console.error('Referral finder error:', error);
       this.showNotification('❌ Failed to find referrals', 'error');
