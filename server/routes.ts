@@ -7628,7 +7628,8 @@ Additional Information:
         jobPostingId,
         interviewType,
         interviewConfig,
-        expiryDays = 30
+        expiryDays = 30,
+        maxUses = null // null = unlimited uses, number = max times link can be used
       } = req.body;
 
       console.log('[GENERATE LINK DEBUG] Request body:', JSON.stringify(req.body, null, 2));
@@ -7682,7 +7683,7 @@ Additional Information:
         difficulty: difficulty,
         expiryDate,
         isUsed: false,
-        maxUses: null, // null = unlimited uses for mass distribution
+        maxUses: maxUses ? Number(maxUses) : null, // null = unlimited uses, number = max uses
         usageCount: 0
       }).returning();
 
