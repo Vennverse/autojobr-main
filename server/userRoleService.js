@@ -28,16 +28,31 @@ export class UserRoleService {
   }
 
   static detectUserRole(email) {
-    // Business/corporate email domains suggest recruiter role
+    const emailLower = email.toLowerCase();
+    const emailDomain = emailLower.split('@')[1] || '';
+    
+    // FIRST: Check if email is from a public email provider
+    // ALL public email users are ALWAYS job seekers, regardless of username
+    const publicEmailProviders = [
+      'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com',
+      'live.com', 'msn.com', 'icloud.com', 'me.com',
+      'aol.com', 'protonmail.com', 'mail.com', 'zoho.com',
+      'yandex.com', 'gmx.com', 'inbox.com', 'tutanota.com'
+    ];
+    
+    for (const provider of publicEmailProviders) {
+      if (emailDomain === provider) {
+        return 'job_seeker';
+      }
+    }
+    
+    // SECOND: For corporate/company emails, check for recruiter indicators
     const recruiterDomains = [
       'hr.', 'talent.', 'recruiting.', 'careers.',
       'vennverse.com', 'company.com'
     ];
     
-    // Check if email contains recruiting keywords
     const recruiterKeywords = ['hr', 'talent', 'recruiting', 'careers', 'hiring'];
-    
-    const emailLower = email.toLowerCase();
     
     // Check domain patterns
     for (const domain of recruiterDomains) {
@@ -46,7 +61,7 @@ export class UserRoleService {
       }
     }
     
-    // Check email prefix for recruiting keywords
+    // Check email prefix for recruiting keywords (only for corporate emails)
     const emailPrefix = emailLower.split('@')[0];
     for (const keyword of recruiterKeywords) {
       if (emailPrefix.includes(keyword)) {
@@ -54,6 +69,7 @@ export class UserRoleService {
       }
     }
     
+    // Default to job seeker
     return 'job_seeker';
   }
 
