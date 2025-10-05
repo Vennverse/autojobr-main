@@ -57,6 +57,7 @@ import chatInterviewRoutes from "./chatInterviewRoutes.js";
 import { ResumeService, resumeUploadMiddleware } from "./resumeService.js";
 import { TaskService } from "./taskService.js";
 import referralMarketplaceRoutes from "./referralMarketplaceRoutes.js";
+import bidderSystemRoutes from "./bidderRoutes.js";
 import { AIResumeGeneratorService } from "./aiResumeGeneratorService.js";
 import { mockInterviewRoutes } from "./mockInterviewRoutes";
 import { proctoring } from "./routes/proctoring";
@@ -833,6 +834,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
 
+
+  // ===== MOUNT REFERRAL MARKETPLACE ROUTES =====
+  app.use('/api/referral-marketplace', referralMarketplaceRoutes);
+  
+  // ===== MOUNT BIDDER SYSTEM ROUTES =====
+  const bidderRoutes = (await import('./bidderRoutes.js')).default;
+  app.use('/api', bidderRoutes);
 
   // Import applicants from external sources (CSV, JSON, or ATS export)
   app.post('/api/recruiter/import-applicants', isAuthenticated, upload.single('file'), async (req: any, res) => {
