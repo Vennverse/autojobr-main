@@ -4,9 +4,116 @@ import { virtualInterviews, virtualInterviewMessages } from '../shared/schema.js
 import { eq, and, desc } from 'drizzle-orm';
 import { chatInterviewService } from './chatInterviewService.js';
 import { isAuthenticated, requireAuthForInterview } from './auth.js';
+import { proctorService } from './proctorService.js';
+import { behavioralAnalyzer } from './behavioralAnalyzer.js';
 import crypto from 'crypto';
 
 const router = express.Router();
+
+// Device fingerprinting endpoint for chat interviews
+router.post('/:sessionId/device-fingerprint', requireAuthForInterview, async (req: any, res) => {
+  try {
+    const { sessionId } = req.params;
+    const deviceData = req.body;
+    
+    console.log('📱 Received device fingerprint for chat interview:', sessionId);
+    
+    // Generate comprehensive device fingerprint
+    const fingerprint = await proctorService.generateDeviceFingerprint(deviceData);
+    
+    // Validate environment
+    const environmentValidation = await proctorService.validateEnvironment(deviceData);
+    
+    // Analyze browser security
+    const browserSecurity = await proctorService.analyzeBrowserSecurity(deviceData);
+    
+    // Initialize proctoring session
+    await proctorService.initializeSession(sessionId, req.user.id, {
+      sessionType: 'chat_interview',
+      securityLevel: 'high',
+      enableScreenRecording: false,
+      enableActivityTracking: true
+    });
+    
+    console.log('🔍 Environment validation:', environmentValidation);
+    console.log('🛡️ Browser security:', browserSecurity);
+    
+    res.json({
+      success: true,
+      fingerprint,
+      environmentValidation,
+      browserSecurity,
+      riskLevel: environmentValidation.isVirtualMachine ? 'high' : 'low'
+    });
+  } catch (error) {
+    console.error('Error processing device fingerprint:', error);
+    res.status(500).json({ error: 'Failed to process device fingerprint' });
+  }
+});
+
+// Violation reporting endpoint for chat interviews
+router.post('/:sessionId/violation', requireAuthForInterview, async (req: any, res) => {
+  try {
+    const { sessionId } = req.params;
+    const violation = req.body;
+    const userId = req.user.id;
+    
+    console.log(`🚨 Violation reported in chat interview: ${violation.type} for session ${sessionId}`);
+    
+    // Record violation with enhanced data
+    await proctorService.recordViolation({
+      ...violation,
+      userId,
+      sessionId
+    });
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error recording violation:', error);
+    res.status(500).json({ error: 'Failed to record violation' });
+  }
+});
+
+// Proctoring summary endpoint for chat interviews
+router.post('/:sessionId/proctoring-summary', requireAuthForInterview, async (req: any, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { behavioralData, violations, deviceFingerprint, environmentData, riskScore } = req.body;
+    const userId = req.user.id;
+    
+    console.log('📊 Generating proctoring summary for chat interview:', sessionId);
+    
+    // Generate behavioral analysis
+    const behavioralProfile = behavioralAnalyzer.generateBehavioralProfile({
+      ...behavioralData,
+      userId,
+      sessionId
+    });
+    
+    // Generate comprehensive proctoring summary
+    const proctoringSummary = await proctorService.generateProctoringSummary(sessionId);
+    
+    const summary = {
+      sessionId,
+      userId,
+      timestamp: new Date().toISOString(),
+      behavioralProfile,
+      proctoringSummary,
+      deviceFingerprint,
+      environmentData,
+      overallRiskScore: riskScore,
+      recommendation: behavioralProfile.recommendation,
+      violations: violations?.length || 0
+    };
+    
+    console.log(`✅ Proctoring summary generated - Risk: ${behavioralProfile.riskAssessment}, Score: ${behavioralProfile.overallAuthenticity}%`);
+    
+    res.json(summary);
+  } catch (error) {
+    console.error('Error generating proctoring summary:', error);
+    res.status(500).json({ error: 'Failed to generate proctoring summary' });
+  }
+});
 
 // Start a new chat-based interview
 router.post('/start-chat', isAuthenticated, async (req: any, res) => {

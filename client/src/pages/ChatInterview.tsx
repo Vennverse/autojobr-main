@@ -46,7 +46,73 @@ function ChatInterview() {
       return;
     }
     loadMessages();
+    initializeProctoring();
   }, [sessionId]);
+
+  const initializeProctoring = async () => {
+    try {
+      // Collect device fingerprint data
+      const deviceData = {
+        userAgent: navigator.userAgent,
+        screen: {
+          width: window.screen.width,
+          height: window.screen.height
+        },
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        language: navigator.language,
+        colorDepth: window.screen.colorDepth,
+        hardwareConcurrency: navigator.hardwareConcurrency || 4,
+        maxTouchPoints: navigator.maxTouchPoints || 0,
+        cookieEnabled: navigator.cookieEnabled,
+        doNotTrack: navigator.doNotTrack || 'unspecified',
+        platform: navigator.platform
+      };
+
+      // Send device fingerprint
+      await apiRequest(`/api/chat-interview/${sessionId}/device-fingerprint`, 'POST', deviceData);
+
+      // Set up violation tracking
+      setupViolationTracking();
+    } catch (error) {
+      console.error('Error initializing proctoring:', error);
+    }
+  };
+
+  const setupViolationTracking = () => {
+    // Track tab switches
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        reportViolation('window_blur', 'medium', { timestamp: new Date().toISOString() });
+      }
+    });
+
+    // Track right-click attempts
+    document.addEventListener('contextmenu', (e) => {
+      reportViolation('right_click', 'low', { timestamp: new Date().toISOString() });
+    });
+
+    // Track copy attempts
+    document.addEventListener('copy', () => {
+      reportViolation('copy_attempt', 'medium', { timestamp: new Date().toISOString() });
+    });
+
+    // Track paste attempts
+    document.addEventListener('paste', () => {
+      reportViolation('paste_attempt', 'high', { timestamp: new Date().toISOString() });
+    });
+  };
+
+  const reportViolation = async (type: string, severity: string, details: any) => {
+    try {
+      await apiRequest(`/api/chat-interview/${sessionId}/violation`, 'POST', {
+        type,
+        severity,
+        details
+      });
+    } catch (error) {
+      console.error('Error reporting violation:', error);
+    }
+  };
 
   // Timer countdown effect
   useEffect(() => {
