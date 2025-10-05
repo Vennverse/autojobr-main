@@ -3045,7 +3045,7 @@ Requirements:
     }
   });
 
-  // Interview Assignment API Routes
+  // Interview Assignment API Routes - MUST be before catch-all routes
   app.get('/api/interviews/assigned', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -3073,13 +3073,21 @@ Requirements:
       }
 
       const stats = await interviewAssignmentService.getAssignmentStats(userId);
+      
+      // Return stats with all 6 interview types
       res.json({
         totalAssigned: stats.total,
         completed: stats.completed,
         pending: stats.pending,
         averageScore: stats.averageScore,
         virtualInterviews: stats.virtual.count,
-        mockInterviews: stats.mock.count
+        mockInterviews: stats.mock.count,
+        virtual: stats.virtual,
+        mock: stats.mock,
+        video: stats.video,
+        personality: stats.personality,
+        skills: stats.skills,
+        simulation: stats.simulation
       });
     } catch (error) {
       console.error('Error in /api/interviews/stats:', error);

@@ -345,13 +345,17 @@ export default function InterviewAssignments() {
   const currentStats = stats || defaultStats;
 
   const getStatsForType = (typeId: string) => {
+    if (!currentStats) {
+      return { count: 0, completed: 0, pending: 0, avgScore: 0 };
+    }
+    
     switch (typeId) {
-      case 'virtual': return currentStats.virtual;
-      case 'mock': return currentStats.mock;
-      case 'video-interview': return currentStats.video;
-      case 'personality': return currentStats.personality;
-      case 'skills-verification': return currentStats.skills;
-      case 'simulation': return currentStats.simulation;
+      case 'virtual': return currentStats.virtual || { count: 0, completed: 0, pending: 0, avgScore: 0 };
+      case 'mock': return currentStats.mock || { count: 0, completed: 0, pending: 0, avgScore: 0 };
+      case 'video-interview': return currentStats.video || { count: 0, completed: 0, pending: 0, avgScore: 0 };
+      case 'personality': return currentStats.personality || { count: 0, completed: 0, pending: 0, avgScore: 0 };
+      case 'skills-verification': return currentStats.skills || { count: 0, completed: 0, pending: 0, avgScore: 0 };
+      case 'simulation': return currentStats.simulation || { count: 0, completed: 0, pending: 0, avgScore: 0 };
       default: return { count: 0, completed: 0, pending: 0, avgScore: 0 };
     }
   };
