@@ -64,6 +64,12 @@ import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./payp
 import { subscriptionPaymentService } from "./subscriptionPaymentService";
 import { interviewAssignmentService } from "./interviewAssignmentService";
 import { mockInterviewService } from "./mockInterviewService";
+import { aiService } from './aiService';
+import { groqService } from './groqService';
+import { emailService } from './emailService';
+import { emailNotificationService } from './emailNotificationService';
+import { interviewPrepService, interviewPrepSchema } from './interviewPrepService';
+import { salaryInsightsService, salaryInsightsSchema } from './salaryInsightsService';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -120,10 +126,10 @@ function hasCommonKeywords(title1: string, title2: string): boolean {
 function calculateTitleSimilarity(userTitle: string, jobTitle: string): number {
   const userWords = userTitle.split(/\s+/).filter(w => w.length > 2);
   const jobWords = jobTitle.split(/\s+/).filter(w => w.length > 2);
-  
+
   const matches = userWords.filter(word => jobWords.some(jw => jw.includes(word) || word.includes(jw)));
   const similarity = matches.length / Math.max(userWords.length, jobWords.length);
-  
+
   return Math.round(similarity * 15); // Max 15 points for partial match
 }
 
@@ -138,7 +144,7 @@ function hasSkillVariations(skill: string, text: string): boolean {
     ['docker', ['container', 'kubernetes', 'k8s']],
     ['git', ['github', 'gitlab', 'version control']]
   ]);
-  
+
   const skillVariations = variations.get(skill) || [];
   return skillVariations.some(variation => text.includes(variation));
 }
@@ -149,12 +155,12 @@ const ensureUserScopedKey = (key: string, userId?: string): string => {
     console.warn(`[CACHE_SECURITY] Cache key "${key}" used without user ID scoping`);
     return key;
   }
-  
+
   // If key already contains user ID, return as is
   if (key.includes(`_${userId}_`) || key.startsWith(`${userId}_`) || key.endsWith(`_${userId}`)) {
     return key;
   }
-  
+
   // Add user ID scoping to prevent cross-user data leakage
   return `user_${userId}_${key}`;
 };
@@ -171,7 +177,7 @@ const getCached = (key: string, userId?: string) => {
 
 const setCache = (key: string, data: any, ttl?: number, userId?: string) => {
   const scopedKey = ensureUserScopedKey(key, userId);
-  
+
   // Prevent cache from growing too large
   if (cache.size >= MAX_CACHE_SIZE) {
     // Remove oldest entries (simple LRU)
@@ -205,7 +211,7 @@ const clearCache = (key: string) => {
 // Centralized error handler
 const handleError = (res: any, error: any, defaultMessage: string, statusCode: number = 500) => {
   console.error(`API Error: ${defaultMessage}`, error);
-  
+
   // Handle specific error types
   if (error.name === 'ZodError') {
     return res.status(400).json({ 
@@ -213,15 +219,15 @@ const handleError = (res: any, error: any, defaultMessage: string, statusCode: n
       details: error.errors?.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ')
     });
   }
-  
+
   if (error.message?.includes('duplicate key')) {
     return res.status(409).json({ message: "Resource already exists" });
   }
-  
+
   if (error.message?.includes('not found')) {
     return res.status(404).json({ message: "Resource not found" });
   }
-  
+
   res.status(statusCode).json({ 
     message: defaultMessage,
     details: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -240,7 +246,7 @@ const getUserWithCache = async (userId: string) => {
   const cacheKey = `user_${userId}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
-  
+
   const user = await storage.getUser(userId);
   if (user) setCache(cacheKey, user, 300000); // 5 min cache
   return user;
@@ -250,12 +256,12 @@ const getUserWithCache = async (userId: string) => {
 const processResumeUpload = async (file: any, userId: string, resumeText: string, analysis: any) => {
   const existingResumes = await storage.getUserResumes(userId);
   const user = await storage.getUser(userId);
-  
+
   // Check resume limits
   if (user?.planType !== 'premium' && existingResumes.length >= 2) {
     throw new Error('Free plan allows maximum 2 resumes. Upgrade to Premium for unlimited resumes.');
   }
-  
+
   const resumeData = {
     name: file.originalname.replace(/\.[^/.]+$/, "") || "New Resume",
     fileName: file.originalname,
@@ -267,7 +273,7 @@ const processResumeUpload = async (file: any, userId: string, resumeText: string
     mimeType: file.mimetype,
     fileData: file.buffer.toString('base64')
   };
-  
+
   // TODO: Implement storeResume method in storage
   throw new Error('Resume storage not implemented yet');
 };
@@ -378,23 +384,23 @@ const ensureRoleConsistency = async (req: any, res: any, next: any) => {
   try {
     if (req.session?.user?.id) {
       const user = await storage.getUser(req.session.user.id);
-      
+
       if (user && user.userType && user.currentRole !== user.userType) {
         console.log(`🔧 Auto-fixing role mismatch for user ${user.id}: currentRole(${user.currentRole}) -> userType(${user.userType})`);
-        
+
         // Fix the mismatch in database
         await storage.upsertUser({
           ...user,
           currentRole: user.userType // Force sync currentRole to match userType
         });
-        
+
         // Update session to reflect the fix
         req.session.user = {
           ...req.session.user,
           userType: user.userType,
           currentRole: user.userType
         };
-        
+
         console.log(`✅ Role consistency fixed for user ${user.id}`);
       }
     }
@@ -447,7 +453,7 @@ const upload = multer({
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ];
-    
+
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
@@ -459,14 +465,14 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication middleware FIRST - this includes session setup
   await setupAuth(app);
-  
+
   // OPTIMIZATION: Apply performance middleware after auth setup
   app.use(conditionalRequestMiddleware);
   app.use(deduplicationMiddleware);
-  
+
   // Serve static files from uploads directory
   app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-  
+
   // Ensure uploads directory exists
   const uploadsDir = path.join(__dirname, '../uploads');
   const profilesDir = path.join(uploadsDir, 'profiles');
@@ -490,15 +496,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // This MUST be defined early before any catch-all /api middleware
   app.get('/api/jobs/postings', async (req: any, res) => {
     console.log('[PLATFORM JOBS] Request received');
-    
+
     try {
       let jobPostings;
-      
+
       // Check if user is authenticated
       const isAuth = req.isAuthenticated && req.isAuthenticated();
       const userId = isAuth ? req.user?.id : null;
       const user = userId ? await storage.getUser(userId) : null;
-      
+
       // Recruiters get their own job postings, everyone else gets all active platform jobs
       if (user && (user.userType === 'recruiter' || user.currentRole === 'recruiter')) {
         jobPostings = await storage.getRecruiterJobPostings(userId);
@@ -507,9 +513,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get all active job postings for everyone (logged in or not)
         const search = req.query.search as string;
         const category = req.query.category as string;
-        
+
         console.log(`[PLATFORM JOBS] Fetching - search: "${search}", category: "${category}"`);
-        
+
         if (search || category) {
           jobPostings = await storage.getJobPostings(1, 100, {
             search,
@@ -521,7 +527,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const userInfo = userId ? `authenticated ${userId}` : 'anonymous';
         console.log(`[PLATFORM JOBS] ${userInfo} - Returning ${jobPostings.length} jobs`);
       }
-      
+
       console.log(`[PLATFORM JOBS] Sending ${jobPostings.length} jobs`);
       res.setHeader('X-Job-Source', 'platform');
       res.json(jobPostings);
@@ -541,7 +547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('🔄 Manual internship scraping triggered by admin');
       const results = await internshipScrapingService.scrapeInternships();
-      
+
       res.json({
         message: 'Internship scraping completed successfully',
         results
@@ -580,7 +586,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const status = dailySyncService.getStatus();
       const latestSync = await internshipScrapingService.getLatestSyncStats();
-      
+
       res.json({
         message: 'Daily sync service status',
         syncService: status,
@@ -604,7 +610,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('🔧 Manual daily sync triggered by admin');
       await dailySyncService.triggerManualSync();
-      
+
       res.json({
         message: 'Daily sync triggered successfully',
         status: dailySyncService.getStatus()
@@ -639,7 +645,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } = queryValidation.data;
 
       const offset = (page - 1) * limit;
-      
+
       // Build where conditions
       const conditions = [
         eq(schema.scrapedInternships.isActive, true)
@@ -718,7 +724,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { id } = paramValidation.data;
-      
+
       const internship = await db
         .select()
         .from(schema.scrapedInternships)
@@ -833,7 +839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
         return res.status(403).json({ message: "Access denied. Recruiter account required." });
       }
@@ -841,7 +847,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const file = req.file;
       const jobPostingId = parseInt(req.body.jobPostingId);
       const importSource = req.body.source || 'manual_upload'; // 'indeed', 'linkedin', 'csv', 'manual_upload'
-      
+
       if (!file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
@@ -859,16 +865,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
         const lines = fileContent.split('\n');
         const headers = lines[0].split(',').map((h: string) => h.trim().toLowerCase());
-        
+
         for (let i = 1; i < lines.length; i++) {
           if (!lines[i].trim()) continue;
-          
+
           const values = lines[i].split(',');
           const applicant: any = {};
-          
+
           headers.forEach((header: string, index: number) => {
             const value = values[index]?.trim().replace(/^["']|["']$/g, '');
-            
+
             // Map common ATS column names
             if (header.includes('name') || header.includes('full name')) applicant.name = value;
             if (header.includes('email')) applicant.email = value;
@@ -883,19 +889,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (header.includes('education')) applicant.education = value;
             if (header.includes('skills')) applicant.skills = value.split(';').map((s: string) => s.trim());
           });
-          
+
           if (applicant.email) {
             applicants.push(applicant);
           }
         }
       }
-      
+
       // Parse JSON format (for API exports)
       else if (file.mimetype === 'application/json' || file.originalname.endsWith('.json')) {
         const jsonData = JSON.parse(fileContent);
         applicants = Array.isArray(jsonData) ? jsonData : [jsonData];
       }
-      
+
       else {
         return res.status(400).json({ message: "Unsupported file format. Please upload CSV or JSON." });
       }
@@ -903,12 +909,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import applicants into database
       const imported = [];
       const failed = [];
-      
+
       for (const applicantData of applicants) {
         try {
           // Check if user exists, create if not
           let applicantUser = await storage.getUserByEmail(applicantData.email);
-          
+
           if (!applicantUser) {
             // Create new user account for imported applicant
             applicantUser = await storage.upsertUser({
@@ -996,14 +1002,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
         return res.status(403).json({ message: "Access denied" });
       }
 
       // Get all applications with source metadata
       const applications = await storage.getApplicationsForRecruiter(userId);
-      
+
       const importStats = applications.reduce((acc: any, app: any) => {
         const source = app.resumeData?.source || 'platform';
         acc[source] = (acc[source] || 0) + 1;
@@ -1037,7 +1043,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         page: z.string().optional().default("1"),
         limit: z.string().optional().default("20")
       }).safeParse(req.query);
-      
+
       if (!queryValidation.success) {
         return handleError(res, queryValidation.error, "Invalid query parameters", 400);
       }
@@ -1170,7 +1176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         limit: true,
         status: true
       }).safeParse(req.query);
-      
+
       if (!queryValidation.success) {
         return handleError(res, queryValidation.error, "Invalid query parameters", 400);
       }
@@ -1226,7 +1232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     for (const appId of applicationIds) {
       const application = await storage.getJobPostingApplication(appId);
-      
+
       if (!application) {
         continue;
       }
@@ -1330,7 +1336,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return parsed;
         })
       }).safeParse(req.params);
-      
+
       if (!paramValidation.success) {
         return handleError(res, paramValidation.error, "Invalid application ID", 400);
       }
@@ -1393,7 +1399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const config = getEmailConfig();
       const testResult = await testEmailConfiguration();
-      
+
       res.json({
         currentProvider: config.provider,
         fromAddress: config.from,
@@ -1429,7 +1435,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const testResult = await testEmailConfiguration();
-      
+
       // Send a test email
       const success = await sendEmail({
         to: testEmail,
@@ -1472,13 +1478,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/extension/profile', isAuthenticatedExtension, async (req: any, res) => {
     try {
       console.log('Extension profile request received');
-      
+
       // Check for session user first
       const sessionUser = req.session?.user;
-      
+
       if (sessionUser && sessionUser.id) {
         console.log('Authenticated user found, fetching real profile data');
-        
+
         // Get real user profile from database
         const [profile, skills, workExperience, education, user] = await Promise.all([
           storage.getUserProfile(sessionUser.id),
@@ -1487,12 +1493,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           storage.getUserEducation(sessionUser.id),
           storage.getUser(sessionUser.id)
         ]);
-        
+
         // Build profile response with real data
         const fullNameParts = profile?.fullName?.trim().split(' ') || [];
         const firstName = fullNameParts[0] || sessionUser.firstName || sessionUser.email?.split('@')[0] || '';
         const lastName = fullNameParts.slice(1).join(' ') || sessionUser.lastName || '';
-        
+
         const extensionProfile = {
           authenticated: true,
           firstName: firstName,
@@ -1539,7 +1545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           planType: user?.planType || 'free',
           subscriptionStatus: user?.subscriptionStatus || 'free'
         };
-        
+
         console.log('Returning real profile data for authenticated user:', {
           email: extensionProfile.email,
           skillsCount: extensionProfile.skillsCount,
@@ -1548,7 +1554,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         return res.json(extensionProfile);
       }
-      
+
       // Fallback: should not reach here due to isAuthenticatedExtension middleware
       console.log('No authenticated user, requiring login');
       res.status(401).json({ 
@@ -1556,7 +1562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: 'Please log in to AutoJobr to access profile data',
         loginRequired: true
       });
-      
+
     } catch (error) {
       console.error('Error fetching extension profile:', error);
       res.status(500).json({ message: 'Failed to fetch profile' });
@@ -1639,7 +1645,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Get subscription tier details
     const tiers = await subscriptionPaymentService.getSubscriptionTiers(userType);
     const selectedTier = tiers.find((t: any) => t.id === tierId);
-    
+
     if (!selectedTier) {
       return res.status(400).json({ error: 'Invalid tier ID' });
     }
@@ -1648,7 +1654,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (paymentMethod === 'paypal') {
       const { PayPalSubscriptionService } = await import('./paypalSubscriptionService');
       const paypalService = new PayPalSubscriptionService();
-      
+
       try {
         const subscription = await paypalService.createSubscription(
           userId,
@@ -1689,13 +1695,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Handle Razorpay subscriptions
     if (paymentMethod === 'razorpay') {
       const { razorpayService } = await import('./razorpayService');
-      
+
       if (!razorpayService.isAvailable()) {
         return res.status(503).json({ 
           error: 'Razorpay payment is not available. Please use PayPal or contact support.' 
         });
       }
-      
+
       try {
         const subscription = await razorpayService.createSubscription(
           userId,
@@ -1727,7 +1733,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/subscription/success", async (req, res) => {
     try {
       const { userId, subscription_id } = req.query;
-      
+
       if (subscription_id) {
         // Update subscription status to active
         await db.update(schema.subscriptions)
@@ -1809,9 +1815,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/subscription/activate/:subscriptionId", asyncHandler(async (req: any, res: any) => {
     const { subscriptionId } = req.params;
-    const { paypalSubscriptionService } = await import('./paypalSubscriptionService');
-    const success = await paypalSubscriptionService.activateSubscription(subscriptionId);
-    
+    const { PayPalSubscriptionService } = await import('./paypalSubscriptionService');
+    const success = await PayPalSubscriptionService.activateSubscription(subscriptionId);
+
     if (success) {
       res.json({ message: 'Subscription activated successfully' });
     } else {
@@ -1827,13 +1833,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     await subscriptionPaymentService.handlePaymentSuccess(orderId, paymentDetails);
-    
+
     res.json({ success: true, message: 'Subscription activated successfully' });
   }));
 
   app.post("/api/subscription/cancel", isAuthenticated, asyncHandler(async (req: any, res: any) => {
     const userId = req.user.id;
-    
+
     // Find user's active subscription
     const userSubscription = await db.query.subscriptions.findFirst({
       where: and(
@@ -1843,21 +1849,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     if (userSubscription?.paypalSubscriptionId) {
-      const { paypalSubscriptionService } = await import('./paypalSubscriptionService');
-      await paypalSubscriptionService.cancelSubscription(
+      const { PayPalSubscriptionService } = await import('./paypalSubscriptionService');
+      await PayPalSubscriptionService.cancelSubscription(
         userSubscription.paypalSubscriptionId,
         'User requested cancellation'
       );
     } else {
       await subscriptionPaymentService.cancelSubscription(userId);
     }
-    
+
     res.json({ success: true, message: 'Subscription cancelled successfully' });
   }));
 
   app.get("/api/subscription/current", isAuthenticated, asyncHandler(async (req: any, res: any) => {
     const userId = req.user.id;
-    
+
     const userSubscription = await db.query.subscriptions.findFirst({
       where: eq(schema.subscriptions.userId, userId),
       orderBy: [desc(schema.subscriptions.createdAt)]
@@ -2030,7 +2036,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/quick-login', asyncHandler(async (req: any, res: any) => {
     try {
       const { email } = req.body;
-      
+
       if (!email) {
         return res.status(400).json({ message: 'Email required' });
       }
@@ -2058,7 +2064,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error('Session save error:', err);
           return res.status(500).json({ message: 'Login failed - session error' });
         }
-        
+
         console.log('Quick login session saved for user:', user.id);
         res.json({ 
           message: 'Quick login successful', 
@@ -2153,14 +2159,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (user?.userType !== 'recruiter') {
         return res.status(403).json({ message: 'This endpoint is for recruiters only' });
       }
 
       const { subscriptionEnforcementService } = await import('./subscriptionEnforcementService');
       const limitsStatus = await subscriptionEnforcementService.enforceAllLimits(userId);
-      
+
       res.json({
         success: true,
         planType: user.planType || 'free',
@@ -2179,7 +2185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const { feature } = req.params;
-      
+
       const access = await premiumFeaturesService.checkFeatureAccess(userId, feature);
       res.json(access);
     } catch (error) {
@@ -2227,7 +2233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error('Error destroying session:', err);
           return res.status(500).json({ message: 'Failed to logout' });
         }
-        
+
         // Clear the session cookie
         res.clearCookie('connect.sid', {
           path: '/',
@@ -2235,7 +2241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax'
         });
-        
+
         res.json({ message: 'Logged out successfully' });
       });
     } catch (error) {
@@ -2250,7 +2256,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/send-verification', async (req, res) => {
     try {
       const { email, companyName, companyWebsite } = req.body;
-      
+
       if (!email || !companyName) {
         return res.status(400).json({ message: "Email and company name are required" });
       }
@@ -2259,13 +2265,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const emailDomain = email.split('@')[1].toLowerCase();
       const localPart = email.split('@')[0].toLowerCase();
       const blockedDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com'];
-      
+
       if (blockedDomains.includes(emailDomain)) {
         return res.status(400).json({ 
           message: 'Please use a company email address. Personal email addresses are not allowed for recruiter accounts.' 
         });
       }
-      
+
       // Handle .edu domains - allow recruiting emails, block student emails
       if (emailDomain.endsWith('.edu')) {
         const allowedUniPrefixes = [
@@ -2273,12 +2279,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'employment', 'hiring', 'admin', 'staff', 'faculty', 'career',
           'careerservices', 'placement', 'alumni', 'workforce'
         ];
-        
+
         const isRecruitingEmail = allowedUniPrefixes.some(prefix => 
           localPart.startsWith(prefix) || 
           localPart.includes(prefix)
         );
-        
+
         if (!isRecruitingEmail) {
           return res.status(400).json({ 
             message: 'Student .edu emails are not allowed for recruiter accounts. University recruiters should use emails like hr@university.edu or careers@university.edu.' 
@@ -2322,7 +2328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           return res.status(500).json({ message: 'Failed to send verification email' });
         }
-        
+
         res.json({ 
           message: "Verification email sent successfully. Please check your email and click the verification link."
         });
@@ -2342,21 +2348,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/verify-email', async (req, res) => {
     try {
       const { token } = req.query;
-      
+
       if (!token) {
         return res.status(400).json({ message: "Verification token is required" });
       }
 
       // Get token from database
       const tokenRecord = await storage.getEmailVerificationToken(token as string);
-      
+
       if (!tokenRecord || tokenRecord.expiresAt < new Date()) {
         return res.status(400).json({ message: "Invalid or expired verification token" });
       }
 
       // Find existing user by email and mark email as verified (keep as job_seeker)
       const existingUser = await storage.getUserByEmail(tokenRecord.email);
-      
+
       if (existingUser) {
         // Just verify email, don't change user type
         await storage.upsertUser({
@@ -2380,7 +2386,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/verify-company-email', async (req, res) => {
     try {
       const { token } = req.query;
-      
+
       if (!token) {
         return res.status(400).json({ message: "Company verification token is required" });
       }
@@ -2389,16 +2395,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const companyVerification = await db.select().from(companyEmailVerifications)
         .where(eq(companyEmailVerifications.verificationToken, token as string))
         .limit(1);
-      
+
       if (!companyVerification.length || companyVerification[0].expiresAt < new Date()) {
         return res.status(400).json({ message: "Invalid or expired company verification token" });
       }
 
       const verification = companyVerification[0];
-      
+
       // Update user to recruiter status
       const existingUser = await storage.getUserByEmail(verification.email);
-      
+
       if (existingUser) {
         await storage.upsertUser({
           ...existingUser,
@@ -2431,24 +2437,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/company-verification/:userId', async (req, res) => {
     try {
       const { userId } = req.params;
-      
+
       // Get user and check if they should be upgraded to recruiter
       const user = await storage.getUser(userId);
-      
+
       if (!user) {
         return res.json({ isVerified: false });
       }
-      
+
       // Auto-upgrade verified users with company domains to recruiter status
       if (user.emailVerified && user.userType === 'job_seeker' && user.email) {
         const emailDomain = user.email.split('@')[1];
         const companyDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com'];
-        
+
         // If it's not a common personal email domain, consider it a company email
         if (!companyDomains.includes(emailDomain.toLowerCase())) {
           // Auto-upgrade to recruiter
           const companyName = emailDomain.split('.')[0].charAt(0).toUpperCase() + emailDomain.split('.')[0].slice(1);
-          
+
           await storage.upsertUser({
             ...user,
             userType: 'recruiter',
@@ -2456,7 +2462,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             availableRoles: "job_seeker,recruiter",
             // currentRole will be automatically set to match userType
           });
-          
+
           // Create company verification record
           try {
             await db.insert(companyEmailVerifications).values({
@@ -2473,7 +2479,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Company verification record might already exist, that's okay
             console.log('Company verification record creation skipped - may already exist');
           }
-          
+
           // Update user object for response
           user.userType = 'recruiter';
           user.companyName = `${companyName} Company`;
@@ -2484,7 +2490,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
         return res.status(403).json({ message: "Access denied. Recruiter account required." });
       }
@@ -2501,7 +2507,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
         return res.status(403).json({ message: "Access denied. Recruiter account required." });
       }
@@ -2525,13 +2531,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const { interviewType, id } = req.params;
-      
+
       const results = await interviewAssignmentService.getPartialResultsForRecruiter(
         parseInt(id), 
         interviewType as 'virtual' | 'mock', 
         userId
       );
-      
+
       res.json(results);
     } catch (error) {
       handleError(res, error, "Failed to fetch interview results");
@@ -2542,7 +2548,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
         return res.status(403).json({ message: "Access denied. Recruiter account required." });
       }
@@ -2559,7 +2565,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
         return res.status(403).json({ message: "Access denied. Recruiter account required." });
       }
@@ -2577,18 +2583,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { token } = req.params;
       const userId = req.user.id;
-      
+
       const invitation = await db.select()
         .from(schema.interviewInvitations)
         .where(eq(schema.interviewInvitations.token, token))
         .limit(1);
-      
+
       if (!invitation.length || invitation[0].expiryDate < new Date()) {
         return res.status(404).json({ message: 'Invalid or expired invitation' });
       }
-      
+
       const invitationData = invitation[0];
-      
+
       // Check if this specific user has already used this invitation
       const existingUse = await db.select()
         .from(schema.invitationUses)
@@ -2597,19 +2603,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           eq(schema.invitationUses.candidateId, userId)
         ))
         .limit(1);
-      
+
       if (existingUse.length > 0) {
         return res.status(400).json({ message: 'You have already used this invitation' });
       }
-      
+
       // Check if invitation has reached max uses
       if (invitationData.maxUses !== null && invitationData.usageCount !== null && invitationData.usageCount >= invitationData.maxUses) {
         return res.status(400).json({ message: 'This invitation has reached its maximum number of uses' });
       }
-      
+
       // Get user info for tracking
       const user = await storage.getUser(userId);
-      
+
       // Record the use and increment usage count
       await db.insert(schema.invitationUses).values({
         invitationId: invitationData.id,
@@ -2618,11 +2624,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         candidateName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : null,
         usedAt: new Date()
       });
-      
+
       await db.update(schema.interviewInvitations)
         .set({ usageCount: sql`${schema.interviewInvitations.usageCount} + 1` })
         .where(eq(schema.interviewInvitations.token, token));
-      
+
       // Create job application if jobPostingId exists
       if (invitationData.jobPostingId) {
         try {
@@ -2637,17 +2643,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('Job application already exists or failed to create:', error);
         }
       }
-      
+
       // Create interview assignment
       let interviewUrl = '';
-      
+
       if (invitationData.interviewType === 'virtual') {
         // Import the chat interview service
         const { chatInterviewService } = await import('./chatInterviewService.js');
-        
+
         // Generate unique session ID for chat interview
         const sessionId = crypto.randomBytes(32).toString('hex');
-        
+
         // Create interview record in virtualInterviews table
         const interview = await db.insert(virtualInterviews).values({
           userId,
@@ -2667,7 +2673,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           interviewerPersonality: 'professional',
           company: invitationData.company || ''
         }).returning();
-        
+
         // Set the interview URL to the chat interview path
         interviewUrl = `/chat-interview/${sessionId}`;
       } else if (invitationData.interviewType === 'mock') {
@@ -2685,7 +2691,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         interviewUrl = `/mock-interview/${interview.sessionId}`;
       }
-      
+
       res.json({
         success: true,
         interviewUrl,
@@ -2698,19 +2704,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Advanced Assessment Assignment Routes
-  
+
   // Skills Verification Assignment
   app.post('/api/skills-verifications/assign', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
         return res.status(403).json({ message: "Access denied. Recruiter account required." });
       }
 
       const { candidateId, jobPostingId, projectTemplateId, timeLimit, dueDate, role, company, difficulty } = req.body;
-      
+
       const verification = await skillsVerificationService.createSkillsVerification(
         candidateId,
         userId,
@@ -2718,7 +2724,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         projectTemplateId,
         { timeLimit, additionalRequirements: role ? `Role: ${role}, Company: ${company}, Difficulty: ${difficulty}` : undefined }
       );
-      
+
       res.json({ message: 'Skills verification assigned successfully', verification });
     } catch (error) {
       handleError(res, error, "Failed to assign skills verification");
@@ -2730,20 +2736,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
         return res.status(403).json({ message: "Access denied. Recruiter account required." });
       }
 
       const { candidateId, jobPostingId, questionCount, dueDate, role, company } = req.body;
-      
+
       const assessment = await personalityAssessmentService.createPersonalityAssessment(
         candidateId,
         userId,
         jobPostingId,
         { type: 'big_five', questionCount }
       );
-      
+
       res.json({ message: 'Personality assessment assigned successfully', assessment });
     } catch (error) {
       handleError(res, error, "Failed to assign personality assessment");
@@ -2755,13 +2761,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
         return res.status(403).json({ message: "Access denied. Recruiter account required." });
       }
 
       const { candidateId, jobPostingId, scenarioType, simulationDifficulty, dueDate, role, company } = req.body;
-      
+
       const assessment = await simulationAssessmentService.createSimulationAssessment(
         candidateId,
         userId,
@@ -2769,7 +2775,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         scenarioType,
         simulationDifficulty
       );
-      
+
       res.json({ message: 'Simulation assessment assigned successfully', assessment });
     } catch (error) {
       handleError(res, error, "Failed to assign simulation assessment");
@@ -2781,13 +2787,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
         return res.status(403).json({ message: "Access denied. Recruiter account required." });
       }
 
       const { candidateId, jobPostingId, videoQuestions, preparationTime, dueDate, role, company } = req.body;
-      
+
       const questions = Array.from({ length: videoQuestions }, (_, i) => ({
         id: `q${i + 1}`,
         question: `Please describe your experience with ${role} responsibilities.`,
@@ -2797,7 +2803,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         retakesAllowed: 1,
         difficulty: 'medium' as const
       }));
-      
+
       const interview = await videoInterviewService.createVideoInterview(
         candidateId,
         userId,
@@ -2808,7 +2814,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           expiryDate: new Date(dueDate)
         }
       );
-      
+
       res.json({ message: 'Video interview assigned successfully', interview });
     } catch (error) {
       handleError(res, error, "Failed to assign video interview");
@@ -2816,7 +2822,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Advanced Assessment Routes
-  
+
   // Video Interview Routes
   app.post('/api/video-interviews/create', isAuthenticated, async (req, res) => {
     try {
@@ -2825,57 +2831,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: 'Authentication required' });
       }
       const recruiterId = req.user.id;
-      
+
       const interview = await videoInterviewService.createVideoInterview(
         candidateId,
         recruiterId,
         jobId,
         { questions, totalTimeLimit, expiryDate }
       );
-      
+
       res.json(interview);
     } catch (error) {
       handleError(res, error, "Failed to create video interview");
     }
   });
-  
+
   app.post('/api/video-interviews/:id/upload-response', isAuthenticated, async (req, res) => {
     try {
       const interviewId = parseInt(req.params.id);
       const { questionId, videoFile, metadata } = req.body;
-      
+
       const fileName = await videoInterviewService.uploadVideoResponse(
         interviewId,
         questionId,
         Buffer.from(videoFile, 'base64'),
         metadata
       );
-      
+
       res.json({ fileName, success: true });
     } catch (error) {
       handleError(res, error, "Failed to upload video response");
     }
   });
-  
+
   app.post('/api/video-interviews/responses/:id/analyze', isAuthenticated, async (req, res) => {
     try {
       const responseId = parseInt(req.params.id);
       const { question } = req.body;
-      
+
       const analysis = await videoInterviewService.analyzeVideoResponse(responseId, question);
-      
+
       res.json(analysis);
     } catch (error) {
       handleError(res, error, "Failed to analyze video response");
     }
   });
-  
+
   app.get('/api/video-interviews/:id/report', isAuthenticated, async (req, res) => {
     try {
       const interviewId = parseInt(req.params.id);
-      
+
       const report = await videoInterviewService.generateInterviewReport(interviewId);
-      
+
       res.json(report);
     } catch (error) {
       handleError(res, error, "Failed to generate interview report");
@@ -2890,7 +2896,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: 'Authentication required' });
       }
       const recruiterId = req.user.id;
-      
+
       const assessment = await simulationAssessmentService.createSimulationAssessment(
         candidateId,
         recruiterId,
@@ -2898,44 +2904,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         scenarioType,
         difficulty
       );
-      
+
       res.json(assessment);
     } catch (error) {
       handleError(res, error, "Failed to create simulation assessment");
     }
   });
-  
+
   app.post('/api/simulation-assessments/:id/start', isAuthenticated, async (req, res) => {
     try {
       const assessmentId = parseInt(req.params.id);
-      
+
       const sessionId = await simulationAssessmentService.startSimulation(assessmentId);
-      
+
       res.json({ sessionId });
     } catch (error) {
       handleError(res, error, "Failed to start simulation");
     }
   });
-  
+
   app.post('/api/simulation-assessments/:sessionId/action', isAuthenticated, async (req, res) => {
     try {
       const { sessionId } = req.params;
       const action = req.body;
-      
+
       await simulationAssessmentService.recordAction(sessionId, action);
-      
+
       res.json({ success: true });
     } catch (error) {
       handleError(res, error, "Failed to record action");
     }
   });
-  
+
   app.post('/api/simulation-assessments/:sessionId/complete', isAuthenticated, async (req, res) => {
     try {
       const { sessionId } = req.params;
-      
+
       const result = await simulationAssessmentService.completeSimulation(sessionId);
-      
+
       res.json(result);
     } catch (error) {
       handleError(res, error, "Failed to complete simulation");
@@ -2950,27 +2956,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: 'Authentication required' });
       }
       const recruiterId = req.user.id;
-      
+
       const assessment = await personalityAssessmentService.createPersonalityAssessment(
         candidateId,
         recruiterId,
         jobId,
         config
       );
-      
+
       res.json(assessment);
     } catch (error) {
       handleError(res, error, "Failed to create personality assessment");
     }
   });
-  
+
   app.post('/api/personality-assessments/:id/submit', isAuthenticated, async (req, res) => {
     try {
       const assessmentId = parseInt(req.params.id);
       const { responses } = req.body;
-      
+
       const profile = await personalityAssessmentService.submitResponses(assessmentId, responses);
-      
+
       res.json(profile);
     } catch (error) {
       handleError(res, error, "Failed to submit personality assessment");
@@ -2985,7 +2991,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: 'Authentication required' });
       }
       const recruiterId = req.user.id;
-      
+
       const verification = await skillsVerificationService.createSkillsVerification(
         candidateId,
         recruiterId,
@@ -2993,20 +2999,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         projectTemplateId,
         customizations
       );
-      
+
       res.json(verification);
     } catch (error) {
       handleError(res, error, "Failed to create skills verification");
     }
   });
-  
+
   app.post('/api/skills-verifications/:id/submit', isAuthenticated, async (req, res) => {
     try {
       const verificationId = parseInt(req.params.id);
       const { submissions } = req.body;
-      
+
       const result = await skillsVerificationService.submitProject(verificationId);
-      
+
       res.json(result);
     } catch (error) {
       handleError(res, error, "Failed to submit skills verification");
@@ -3017,9 +3023,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/ai-detection/analyze', isAuthenticated, async (req, res) => {
     try {
       const { userResponse, questionContext, behavioralData } = req.body;
-      
+
       const detection = await aiDetectionService.detectAIUsage(userResponse, questionContext, behavioralData);
-      
+
       res.json(detection);
     } catch (error) {
       handleError(res, error, "Failed to analyze AI usage");
@@ -3029,12 +3035,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         }
       }
-      
+
       const verification = user?.emailVerified && user?.userType === 'recruiter' ? {
         company_name: user.companyName,
         verified_at: new Date()
       } : null;
-      
+
       res.json({ 
         isVerified: !!verification,
         companyName: verification?.company_name,
@@ -3135,7 +3141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error('Session save error after company verification:', err);
           return res.status(500).json({ message: 'Verification completed but session update failed' });
         }
-        
+
         res.json({ 
           message: 'Company verification completed successfully',
           user: {
@@ -3156,11 +3162,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/user/complete-onboarding', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      
+
       if (userId === 'demo-user-id') {
         return res.json({ message: "Onboarding completed for demo user" });
       }
-      
+
       // In a real implementation, this would update the database
       // For now, return success
       res.json({ message: "Onboarding completed successfully" });
@@ -3179,16 +3185,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('Timestamp:', new Date().toISOString());
     console.log('Environment:', process.env.NODE_ENV);
     console.log('Request headers:', JSON.stringify(req.headers, null, 2));
-    
+
     try {
       const userId = req.user.id;
       const { name } = req.body;
       const file = req.file;
-      
+
       console.log('User ID:', userId);
       console.log('Request body:', JSON.stringify(req.body, null, 2));
       console.log('File received:', file ? 'YES' : 'NO');
-      
+
       if (file) {
         console.log('File details:', {
           originalname: file.originalname,
@@ -3199,24 +3205,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           buffer: file.buffer ? `Buffer of ${file.buffer.length} bytes` : 'NO BUFFER'
         });
       }
-      
+
       if (!file) {
         console.log('ERROR: No file in request');
         return res.status(400).json({ message: "No file uploaded" });
       }
-      
+
       // Parse resume content using NLP FIRST, then GROQ as fallback
       let resumeText = '';
       let parsedData = null;
-      
+
       console.log('🔍 Starting resume parsing with NLP-first approach...');
-      
+
       try {
         // STEP 1: Use free NLP parser FIRST to extract structured data from resume
         console.log('📝 Attempting NLP-based resume parsing...');
         parsedData = await resumeParser.parseResumeFile(file.buffer, file.mimetype);
         console.log('✅ NLP parsing successful:', parsedData);
-        
+
         // Create structured resume text for analysis using NLP data
         resumeText = `
 Resume Document: ${file.originalname}
@@ -3283,7 +3289,7 @@ Additional Information:
 • Industry involvement and networking
         `.trim();
       }
-      
+
       // Get user profile for better analysis
       let userProfile;
       try {
@@ -3291,16 +3297,16 @@ Additional Information:
       } catch (error) {
         // Could not fetch user profile for analysis
       }
-      
+
       // Get user for AI tier assessment
       const user = await storage.getUser(userId);
-      
+
       // STEP 2: Analyze resume with GROQ AI (as fallback for detailed analysis)
       let analysis;
       try {
         console.log('🤖 Attempting GROQ AI analysis for detailed insights...');
         analysis = await groqService.analyzeResume(resumeText, userProfile, user);
-        
+
         // Ensure analysis has required properties
         if (!analysis || typeof analysis.atsScore === 'undefined') {
           throw new Error('Invalid analysis response from GROQ');
@@ -3309,10 +3315,10 @@ Additional Information:
       } catch (analysisError) {
         console.error('❌ GROQ analysis failed:', analysisError);
         console.log('🔄 Using NLP-based fallback analysis (estimated scores)...');
-        
+
         // Generate better fallback scores based on NLP parsing success
         const baseScore = parsedData && Object.keys(parsedData).length > 3 ? 80 : 65;
-        
+
         analysis = {
           atsScore: baseScore,
           recommendations: [
@@ -3335,17 +3341,17 @@ Additional Information:
             suggestions: ["Detailed AI analysis will be available when service is restored"]
           }
         };
-        
+
         console.log(`📊 Fallback analysis generated with ${baseScore}% estimated ATS score`);
       }
-      
+
       // Get existing resumes count from database
       const existingResumes = await storage.getUserResumes(userId);
-      
+
       // Check resume upload limits using premium features service
       const { premiumFeaturesService } = await import('./premiumFeaturesService');
       const limitCheck = await premiumFeaturesService.checkFeatureLimit(userId, 'resumeUploads');
-      
+
       if (!limitCheck.allowed) {
         return res.status(400).json({ 
           message: `You've reached your resume upload limit of ${limitCheck.limit}. Upgrade to Premium for unlimited resumes.`,
@@ -3355,11 +3361,11 @@ Additional Information:
           planType: limitCheck.planType
         });
       }
-      
+
       // Store physical file using FileStorageService (not in database)
       const storedFile = await fileStorage.storeResume(file, userId);
       console.log(`[FILE_STORAGE] Resume file stored with ID: ${storedFile.id}`);
-      
+
       // Create metadata entry for database storage (no file data)
       const resumeData = {
         name: req.body.name || file.originalname.replace(/\.[^/.]+$/, "") || "New Resume",
@@ -3373,13 +3379,13 @@ Additional Information:
         mimeType: file.mimetype
         // fileData is intentionally omitted - physical files stored on file system
       };
-      
+
       // Store metadata in database (no physical file data)
       const newResume = await storage.storeResume(userId, resumeData);
-      
+
       // Invalidate user cache after resume upload
       invalidateUserCache(userId);
-      
+
       console.log('Resume upload successful for user:', userId);
       return res.json({ 
         success: true,
@@ -3400,7 +3406,7 @@ Additional Information:
         type: req.file.mimetype
       } : 'No file');
       console.error("=== END ERROR LOG ===");
-      
+
       res.status(500).json({ 
         message: "Failed to upload resume",
         error: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : 'Unknown error') : 'Internal server error',
@@ -3415,9 +3421,9 @@ Additional Information:
     try {
       const userId = req.user.id;
       const resumeId = parseInt(req.params.id);
-      
+
       // Setting active resume
-      
+
       // Set all user resumes to inactive in database
       await db.update(schema.resumes)
         .set({ isActive: false })
@@ -3451,21 +3457,21 @@ Additional Information:
     try {
       const userId = req.user.id;
       const cacheKey = `resumes_${userId}`;
-      
+
       // Check cache first (user-scoped)
       const cachedResumes = getCached(cacheKey, userId);
       if (cachedResumes) {
         return res.json(cachedResumes);
       }
-      
+
       // Fetching resumes for user
-      
+
       // Use the database storage service to get resumes
       const resumes = await storage.getUserResumes(userId);
-      
+
       // Cache resumes for 1 minute (user-scoped)
       setCache(cacheKey, resumes, 60000, userId);
-      
+
       // Returning resumes for user
       res.json(resumes);
     } catch (error) {
@@ -3479,18 +3485,18 @@ Additional Information:
     try {
       const userId = req.user.id;
       const resumeId = parseInt(req.params.id);
-      
+
       // Get resume record from resumes table with ownership verification
       const [resume] = await db.select().from(resumes).where(
         and(eq(resumes.id, resumeId), eq(resumes.userId, userId))
       );
-      
+
       if (!resume) {
         return res.status(404).json({ message: "Resume not found" });
       }
-      
+
       let fileBuffer: Buffer;
-      
+
       // Handle both database and filesystem storage
       if (resume.fileData) {
         // Database storage: decode base64
@@ -3501,20 +3507,20 @@ Additional Information:
           const fs = await import('fs/promises');
           const path = await import('path');
           const zlib = await import('zlib');
-          
+
           // Use the exact filePath from the ownership-validated resumes record
           const fullPath = path.resolve(resume.filePath);
-          
+
           // Security check: ensure path is within expected uploads directory
           const uploadsDir = path.resolve('./uploads');
           if (!fullPath.startsWith(uploadsDir)) {
             console.error(`Security violation: attempted access to ${fullPath} outside uploads directory`);
             return res.status(403).json({ message: "Access denied" });
           }
-          
+
           // Read file directly from validated path
           const rawBuffer = await fs.readFile(fullPath);
-          
+
           // Handle compressed files (if path ends with .gz)
           if (fullPath.endsWith('.gz')) {
             fileBuffer = await new Promise((resolve, reject) => {
@@ -3526,7 +3532,7 @@ Additional Information:
           } else {
             fileBuffer = rawBuffer;
           }
-          
+
           console.log(`✅ Secure file access: userId=${userId}, file=${resume.fileName}, size=${fileBuffer.length} bytes`);
         } catch (error) {
           console.error(`File access error for userId=${userId}, path=${resume.filePath}:`, error);
@@ -3535,12 +3541,12 @@ Additional Information:
       } else {
         return res.status(404).json({ message: "Resume file data not available" });
       }
-      
+
       // Set appropriate headers
       res.setHeader('Content-Type', resume.mimeType || 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${resume.fileName}"`);
       res.setHeader('Content-Length', fileBuffer.length);
-      
+
       res.send(fileBuffer);
     } catch (error) {
       console.error("Error downloading resume:", error);
@@ -3556,7 +3562,7 @@ Additional Information:
       const userId = req.user.id;
       const applicationId = parseInt(req.params.applicationId);
       const user = await storage.getUser(userId);
-      
+
       if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
         return res.status(403).json({ message: "Access denied. Recruiter account required." });
       }
@@ -3575,20 +3581,20 @@ Additional Information:
 
       // Get applicant's active resume using the modern file storage system
       const applicantId = application.applicantId;
-      
+
       let resume;
       try {
         // Get applicant's resumes from database
         const applicantResumes = await storage.getUserResumes(applicantId);
         const activeResume = applicantResumes.find((r: any) => r.isActive) || applicantResumes[0];
-        
+
         if (!activeResume) {
           return res.status(404).json({ message: "No resume found for this applicant" });
         }
 
         // Retrieve the file from file storage using the stored file ID
         const fileBuffer = await fileStorage.retrieveResume(activeResume.filePath, applicantId);
-        
+
         if (!fileBuffer) {
           return res.status(404).json({ message: "Resume file not found in storage" });
         }
@@ -3598,12 +3604,12 @@ Additional Information:
           fileName: activeResume.fileName || 'resume.pdf',
           mimeType: activeResume.mimeType || 'application/pdf'
         };
-        
+
       } catch (error) {
         console.error("Error fetching applicant resume:", error);
         return res.status(500).json({ message: "Error retrieving resume" });
       }
-      
+
       if (!resume || !resume.fileBuffer) {
         return res.status(404).json({ message: "Resume not found or not available for download" });
       }
@@ -3612,7 +3618,7 @@ Additional Information:
   res.setHeader('Content-Type', resume.mimeType || 'application/octet-stream');
   res.setHeader('Content-Disposition', `attachment; filename="${resume.fileName}"`);
   res.setHeader('Content-Length', String(resume.fileBuffer.length));
-      
+
       res.send(resume.fileBuffer);
     } catch (error) {
       console.error("Error downloading resume:", error);
@@ -3623,26 +3629,26 @@ Additional Information:
   // ===== TASK MANAGEMENT API ROUTES =====
   // Create new task
   app.post('/api/tasks', isAuthenticated, TaskService.createTask);
-  
+
   // Get user's tasks (with filtering)
   app.get('/api/tasks', isAuthenticated, TaskService.getUserTasks);
-  
+
   // Update task status
   app.patch('/api/tasks/:taskId/status', isAuthenticated, TaskService.updateTaskStatus);
-  
+
   // Delete task
   app.delete('/api/tasks/:taskId', isAuthenticated, TaskService.deleteTask);
-  
+
   // Get task statistics/analytics
   app.get('/api/tasks/stats', isAuthenticated, TaskService.getTaskStats);
 
   // ===== REMINDER SYSTEM API ROUTES (for Chrome Extension) =====
   // Get pending reminders for extension popup
   app.get('/api/reminders/pending', isAuthenticated, TaskService.getPendingReminders);
-  
+
   // Snooze a reminder
   app.patch('/api/reminders/:reminderId/snooze', isAuthenticated, TaskService.snoozeReminder);
-  
+
   // Dismiss a reminder
   app.patch('/api/reminders/:reminderId/dismiss', isAuthenticated, TaskService.dismissReminder);
 
@@ -3670,7 +3676,7 @@ Additional Information:
       });
     }
   });
-  
+
   // Protected referral marketplace endpoints  
   app.use('/api/referral-marketplace', isAuthenticated, referralMarketplaceRoutes);
 
