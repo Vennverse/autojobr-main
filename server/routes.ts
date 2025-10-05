@@ -1543,7 +1543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Start Interview from Shareable Link
+  // Start Interview/Test from Shareable Link
   app.post('/api/interviews/link/:linkId/start', isAuthenticated, async (req: any, res) => {
     try {
       const { linkId } = req.params;
@@ -1556,25 +1556,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .limit(1);
 
       if (!invitation) {
-        return res.status(404).json({ message: 'Interview link not found' });
+        return res.status(404).json({ message: 'Link not found' });
       }
 
       // Check expiry
       if (invitation.expiryDate && new Date(invitation.expiryDate) < new Date()) {
-        return res.status(410).json({ message: 'This interview link has expired' });
+        return res.status(410).json({ message: 'This link has expired' });
       }
 
       // Check if max uses exceeded
       if (invitation.maxUses && invitation.usageCount >= invitation.maxUses) {
-        return res.status(410).json({ message: 'This interview link has reached its maximum number of uses' });
+        return res.status(410).json({ message: 'This link has reached its maximum number of uses' });
       }
 
-      // Parse interview config
+      // Parse config
       const config = typeof invitation.interviewConfig === 'string' 
         ? JSON.parse(invitation.interviewConfig) 
         : invitation.interviewConfig;
 
-      // Create new session based on interview type
+      // Create new session based on type
       const newSessionId = `${invitation.interviewType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       if (invitation.interviewType === 'virtual') {
@@ -1610,7 +1610,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await db.insert(mockInterviews).values({
           userId: userId,
           sessionId: newSessionId,
-          interviewType: config.interviewType || 'technical',
+          interviewType: config.interviewType || 'coding',
           role: invitation.role,
           company: invitation.company || '',
           difficulty: invitation.difficulty,
@@ -1628,15 +1628,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({
           success: true,
           sessionId: newSessionId,
-          redirectUrl: `/mock-interview/session/${newSessionId}`
+          redirectUrl: `/mock-interview/${newSessionId}`
+        });
+      } else if (invitation.interviewType === 'test') {
+        // Create test assignment
+        const testTemplate = config.testTemplate || await storage.getTestTemplate(config.testTemplateId);
+
+        if (!testTemplate) {
+          return res.status(400).json({ message: 'Test template not found' });
+        }
+
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 7); // 7 days to complete
+
+        const [assignment] = await db.insert(schema.testAssignments).values({
+          recruiterId: invitation.recruiterId,
+          candidateId: userId,
+          testTemplateId: testTemplate.id,
+          jobPostingId: invitation.jobPostingId,
+          dueDate: dueDate,
+          status: 'pending',
+          assignmentType: 'link_based'
+        }).returning();
+
+        // Increment usage count
+        await db.update(schema.interviewInvitations)
+          .set({ usageCount: invitation.usageCount + 1 })
+          .where(eq(schema.interviewInvitations.id, invitation.id));
+
+        return res.json({
+          success: true,
+          assignmentId: assignment.id,
+          redirectUrl: `/test/${assignment.id}`
         });
       }
 
-      res.status(400).json({ message: 'Unsupported interview type' });
+      return res.status(400).json({ message: 'Unsupported assignment type' });
 
     } catch (error) {
-      console.error('Error starting interview from link:', error);
-      res.status(500).json({ message: 'Failed to start interview' });
+      console.error('Error starting assignment from link:', error);
+      res.status(500).json({ message: 'Failed to start assignment' });
     }
   });
 
@@ -2303,7 +2334,7 @@ Requirements:
     res.json({ success: true, message: 'Subscription activated successfully' });
   }));
 
-  app.post("/api/subscription/cancel", isAuthenticated, asyncHandler(async (req: any, res: any) => {
+  app.post("/api/subscription/cancel", isAuthenticated, asyncHandler(async (req: any, res) => {
     const userId = req.user.id;
 
     // Find user's active subscription
@@ -3057,7 +3088,7 @@ Requirements:
       }
 
       const stats = await interviewAssignmentService.getAssignmentStats(userId);
-      
+
       // Return stats with all 6 interview types
       res.json({
         totalAssigned: stats.total,
@@ -3677,7 +3708,8 @@ Requirements:
       //     userId: userId,
       //     verificationToken: `manual-verification-${Date.now()}`,
       //     isVerified: true,
-      //     verifiedAt: new Date()
+      //     verifiedAt: new Date(),
+      //     expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       //   });
       // }
 

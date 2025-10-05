@@ -165,11 +165,12 @@ export default function InterviewAssignments() {
 
   const [linkGeneration, setLinkGeneration] = useState({
     jobPostingId: '',
-    interviewType: 'virtual' as 'virtual' | 'mock' | 'skills-verification' | 'personality' | 'simulation' | 'video-interview',
+    interviewType: 'virtual' as 'virtual' | 'mock' | 'test' | 'skills-verification' | 'personality' | 'simulation' | 'video-interview',
     role: '',
     company: '',
     difficulty: 'medium',
-    expiresInDays: 7
+    expiresInDays: 7,
+    testTemplateId: ''
   });
 
   // Fetch candidates (job seekers)

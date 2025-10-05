@@ -127,17 +127,69 @@ export default function InterviewLink() {
     );
   }
 
+  const getAssignmentIcon = () => {
+    if (interviewData?.interviewType === 'test') {
+      return <FileText className="h-6 w-6 text-purple-600" />;
+    } else if (interviewData?.interviewType === 'virtual' || interviewData?.interviewType === 'chat') {
+      return <Video className="h-6 w-6 text-blue-600" />;
+    } else {
+      return <Code className="h-6 w-6 text-green-600" />;
+    }
+  };
+
+  const getAssignmentTitle = () => {
+    if (interviewData?.interviewType === 'test') {
+      return 'Test Assignment';
+    } else {
+      return 'Interview Invitation';
+    }
+  };
+
+  const getAssignmentBadge = () => {
+    if (interviewData?.interviewType === 'test') {
+      return 'Test Assessment';
+    } else if (interviewData?.interviewType === 'virtual' || interviewData?.interviewType === 'chat') {
+      return 'AI Interview';
+    } else {
+      return 'Coding Test';
+    }
+  };
+
+  const getExpectationsList = () => {
+    if (interviewData?.interviewType === 'test') {
+      return (
+        <>
+          <li>• Timed test questions</li>
+          <li>• Multiple question types</li>
+          <li>• Instant scoring and feedback</li>
+        </>
+      );
+    } else if (interviewData?.interviewType === 'virtual' || interviewData?.interviewType === 'chat') {
+      return (
+        <>
+          <li>• AI-powered conversational interview</li>
+          <li>• Real-time questions and feedback</li>
+          <li>• Professional assessment and scoring</li>
+        </>
+      );
+    } else {
+      return (
+        <>
+          <li>• Technical coding challenges</li>
+          <li>• Live code execution environment</li>
+          <li>• Automated testing and scoring</li>
+        </>
+      );
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="text-2xl flex items-center gap-2">
-            {interviewData?.interviewType === 'virtual' || interviewData?.interviewType === 'chat' ? (
-              <Video className="h-6 w-6 text-blue-600" />
-            ) : (
-              <Code className="h-6 w-6 text-green-600" />
-            )}
-            Interview Invitation
+            {getAssignmentIcon()}
+            {getAssignmentTitle()}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -153,9 +205,7 @@ export default function InterviewLink() {
 
             <div className="flex items-center gap-4">
               <Badge variant="outline" className="capitalize">
-                {interviewData?.interviewType === 'virtual' || interviewData?.interviewType === 'chat' 
-                  ? 'AI Interview' 
-                  : 'Coding Test'}
+                {getAssignmentBadge()}
               </Badge>
               <Badge variant="outline" className="capitalize">
                 {interviewData?.difficulty} Level
@@ -175,19 +225,7 @@ export default function InterviewLink() {
               What to Expect:
             </h4>
             <ul className="space-y-1 text-sm text-blue-800 dark:text-blue-200">
-              {interviewData?.interviewType === 'virtual' || interviewData?.interviewType === 'chat' ? (
-                <>
-                  <li>• AI-powered conversational interview</li>
-                  <li>• Real-time questions and feedback</li>
-                  <li>• Professional assessment and scoring</li>
-                </>
-              ) : (
-                <>
-                  <li>• Technical coding challenges</li>
-                  <li>• Live code execution environment</li>
-                  <li>• Automated testing and scoring</li>
-                </>
-              )}
+              {getExpectationsList()}
             </ul>
           </div>
 
@@ -205,7 +243,7 @@ export default function InterviewLink() {
                 </>
               ) : (
                 <>
-                  {isAuthenticated ? 'Start Interview' : 'Login to Start'}
+                  {isAuthenticated ? `Start ${interviewData?.interviewType === 'test' ? 'Test' : 'Interview'}` : 'Login to Start'}
                 </>
               )}
             </Button>
@@ -220,7 +258,7 @@ export default function InterviewLink() {
 
           {!isAuthenticated && (
             <p className="text-sm text-center text-gray-600 dark:text-gray-400">
-              You'll need to login or create an account to take this interview
+              You'll need to login or create an account to take this {interviewData?.interviewType === 'test' ? 'test' : 'interview'}
             </p>
           )}
         </CardContent>

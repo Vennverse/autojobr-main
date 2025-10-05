@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 interface InterviewAssignmentModalProps {
   open: boolean;
   onClose: () => void;
-  interviewType: 'virtual' | 'mock' | 'skills-verification' | 'personality' | 'simulation' | 'video-interview';
+  interviewType: 'virtual' | 'mock' | 'skills-verification' | 'personality' | 'simulation' | 'video-interview' | 'test';
   candidates: { id: string; name: string; email: string; }[];
   jobPostings: { id: number; title: string; company: string; companyName?: string; description?: string }[];
   onAssignmentSuccess: () => void;
@@ -70,7 +70,13 @@ export default function InterviewAssignmentModal({
     simulationDifficulty: 'medium',
     // Video interview specific
     videoQuestions: 3,
-    preparationTime: 30
+    preparationTime: 30,
+    // Test assignment specific
+    testType: 'coding', // Default to coding test
+    testDifficulty: 'medium',
+    testDuration: 60,
+    testLanguage: 'javascript',
+    testTotalQuestions: 5
   });
 
   // Fetch candidates when job posting is selected
@@ -234,6 +240,9 @@ export default function InterviewAssignmentModal({
         case 'mock':
           endpoint = '/api/interviews/mock/assign';
           break;
+        case 'test': // Handle test assignment
+          endpoint = '/api/tests/assign';
+          break;
         case 'skills-verification':
           endpoint = '/api/skills-verifications/assign';
           break;
@@ -255,7 +264,7 @@ export default function InterviewAssignmentModal({
         let payload = {
           candidateId,
           jobPostingId: formData.jobPostingId ? Number(formData.jobPostingId) : null,
-          interviewType: formData.interviewTypeSpecific,
+          interviewType: formData.interviewTypeSpecific, // This might need adjustment for 'test'
           role: formData.role,
           company: selectedJob?.company || formData.company,
           difficulty: formData.difficulty,
@@ -277,6 +286,16 @@ export default function InterviewAssignmentModal({
               ...payload,
               language: formData.language,
               totalQuestions: formData.totalQuestions
+            };
+            break;
+          case 'test': // Test assignment specific fields
+            payload = {
+              ...payload,
+              testType: formData.testType,
+              testDifficulty: formData.testDifficulty,
+              testDuration: formData.testDuration,
+              testLanguage: formData.testLanguage,
+              testTotalQuestions: formData.testTotalQuestions,
             };
             break;
           case 'skills-verification':
@@ -328,7 +347,7 @@ export default function InterviewAssignmentModal({
       if (successCount > 0) {
         toast({
           title: "Success",
-          description: `${interviewType === 'virtual' ? 'Virtual' : 'Mock'} interview assigned to ${successCount} candidate${successCount > 1 ? 's' : ''}${failCount > 0 ? ` (${failCount} failed)` : ''}`,
+          description: `${interviewType === 'virtual' ? 'Virtual' : interviewType === 'test' ? 'Test' : 'Mock'} interview assigned to ${successCount} candidate${successCount > 1 ? 's' : ''}${failCount > 0 ? ` (${failCount} failed)` : ''}`,
         });
         onAssignmentSuccess();
         onClose();
@@ -373,7 +392,13 @@ export default function InterviewAssignmentModal({
       scenarioType: 'customer_service',
       simulationDifficulty: 'medium',
       videoQuestions: 3,
-      preparationTime: 30
+      preparationTime: 30,
+      // Reset test specific fields
+      testType: 'coding',
+      testDifficulty: 'medium',
+      testDuration: 60,
+      testLanguage: 'javascript',
+      testTotalQuestions: 5
     });
     setSelectedCandidates([]);
     setJobCandidates([]);
@@ -429,6 +454,11 @@ export default function InterviewAssignmentModal({
                 <User className="h-5 w-5 text-blue-600" />
                 Assign Virtual AI Interview
               </>
+            ) : interviewType === 'test' ? (
+              <>
+                <Briefcase className="h-5 w-5 text-purple-600" />
+                Assign Test Assignment
+              </>
             ) : (
               <>
                 <Briefcase className="h-5 w-5 text-green-600" />
@@ -439,6 +469,8 @@ export default function InterviewAssignmentModal({
           <DialogDescription>
             {interviewType === 'virtual'
               ? 'Assign a virtual AI interview to candidates or generate a shareable link.'
+              : interviewType === 'test'
+              ? 'Assign a test to candidates or generate a shareable link.'
               : 'Assign a coding test to candidates or generate a shareable link.'}
           </DialogDescription>
         </DialogHeader>
@@ -646,6 +678,9 @@ export default function InterviewAssignmentModal({
                     <SelectItem value="behavioral">Behavioral</SelectItem>
                     <SelectItem value="system_design">System Design</SelectItem>
                     {interviewType === 'virtual' && <SelectItem value="mixed">Mixed</SelectItem>}
+                    {interviewType === 'test' && <SelectItem value="coding">Coding</SelectItem>}
+                    {interviewType === 'test' && <SelectItem value="qa">QA</SelectItem>}
+                    {interviewType === 'test' && <SelectItem value="math">Math</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
@@ -676,6 +711,73 @@ export default function InterviewAssignmentModal({
                         <SelectItem value="challenging">Challenging</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+              ) : interviewType === 'test' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="testType">Test Type</Label>
+                    <Select value={formData.testType} onValueChange={(value) => setFormData(prev => ({ ...prev, testType: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="coding">Coding</SelectItem>
+                        <SelectItem value="qa">QA</SelectItem>
+                        <SelectItem value="math">Math</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="testDifficulty">Difficulty Level</Label>
+                    <Select value={formData.testDifficulty} onValueChange={(value) => setFormData(prev => ({ ...prev, testDifficulty: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="easy">Easy</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="hard">Hard</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="testDuration">Duration (minutes)</Label>
+                    <Input
+                      id="testDuration"
+                      type="number"
+                      value={formData.testDuration}
+                      onChange={(e) => setFormData(prev => ({ ...prev, testDuration: Number(e.target.value) }))}
+                      min="15"
+                      max="120"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="testLanguage">Programming Language</Label>
+                    <Select value={formData.testLanguage} onValueChange={(value) => setFormData(prev => ({ ...prev, testLanguage: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="javascript">JavaScript</SelectItem>
+                        <SelectItem value="python">Python</SelectItem>
+                        <SelectItem value="java">Java</SelectItem>
+                        <SelectItem value="cpp">C++</SelectItem>
+                        <SelectItem value="go">Go</SelectItem>
+                        <SelectItem value="rust">Rust</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="testTotalQuestions">Total Questions</Label>
+                    <Input
+                      id="testTotalQuestions"
+                      type="number"
+                      value={formData.testTotalQuestions}
+                      onChange={(e) => setFormData(prev => ({ ...prev, testTotalQuestions: Number(e.target.value) }))}
+                      min="1"
+                      max="10"
+                    />
                   </div>
                 </div>
               ) : (
