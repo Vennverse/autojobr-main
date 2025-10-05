@@ -3661,27 +3661,174 @@ Additional Information:
           mimeType: activeResume.mimeType || 'application/pdf'
         };
         
-      } catch (error) {
-        console.error("Error fetching applicant resume:", error);
-        return res.status(500).json({ message: "Error retrieving resume" });
-      }
-      
-      if (!resume || !resume.fileBuffer) {
-        return res.status(404).json({ message: "Resume not found or not available for download" });
-      }
+      }\n\nimport express, { type Express } from "express";
+import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from 'ws';
+import path from "path";
+import fs from "fs";
+import multer from "multer";
+import { fileURLToPath } from "url";
 
-      // Set appropriate headers and send file
-      res.setHeader('Content-Type', resume.mimeType);
-      res.setHeader('Content-Disposition', `"attachment; filename="${resume.fileName}"`");
-      res.setHeader('Content-Length', resume.fileBuffer.length);
-      
-      res.send(resume.fileBuffer);
-    } catch (error) {
-      console.error("Error downloading resume:", error);
-      res.status(500).json({ message: "Failed to download resume" });
-    }
+// Fix for __dirname in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// WebSocket connection management
+const wsConnections = new Map<string, Set<WebSocket>>();
+
+// Helper function to broadcast message to user's connections
+const broadcastToUser = (userId: string, message: any) => {
+  const userConnections = wsConnections.get(userId);
+  if (userConnections) {
+    const messageStr = JSON.stringify(message);
+    userConnections.forEach(ws => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(messageStr);
+      }
+    });
+  }
+};
+import { db } from "./db";
+import { eq, desc, and, or, like, isNotNull, count, asc, isNull, sql, inArray } from "drizzle-orm";
+import * as schema from "@shared/schema";
+import { resumes, userResumes } from "@shared/schema";
+import { apiKeyRotationService } from "./apiKeyRotationService.js";
+import { companyVerificationService } from "./companyVerificationService.js";
+import { adminFixService } from "./adminFixService.js";
+import { recruiterDashboardFix } from "./recruiterDashboardFix.js";
+import { sendEmail, getEmailConfig, testEmailConfiguration } from "./emailService.js";
+import { usageMonitoringService } from "./usageMonitoringService.js";
+import { cacheService, cacheMiddleware } from "./cacheService.js";
+import { FileStorageService } from "./fileStorage.js";
+import { performanceMonitor } from "./performanceMonitor.js";
+import { 
+  conditionalRequestMiddleware, 
+  deduplicationMiddleware, 
+  rateLimitMiddleware 
+} from "./optimizedMiddleware.js";
+import { customNLPService } from "./customNLP.js";
+import { UserRoleService } from "./userRoleService.js";
+import { PremiumFeaturesService } from "./premiumFeaturesService.js";
+import { SubscriptionService } from "./subscriptionService.js";
+import { predictiveSuccessService } from "./predictiveSuccessService.js";
+import { viralExtensionService } from "./viralExtensionService.js";
+import { rankingTestService } from "./rankingTestService.js";
+import { setupSimpleChatRoutes } from "./simpleChatRoutes.js";
+import { simpleWebSocketService } from "./simpleWebSocketService.js";
+import { simplePromotionalEmailService } from "./simplePromotionalEmailService.js";
+import { internshipScrapingService } from "./internshipScrapingService.js";
+import { dailySyncService } from "./dailySyncService.js";
+import crypto from 'crypto';
+import { 
+  checkJobPostingLimit,
+  checkApplicantLimit,
+  checkTestInterviewLimit,
+  checkChatAccess,
+  checkResumeAccess,
+  checkPremiumTargetingAccess
+} from "./subscriptionLimitMiddleware.js";
+import { subscriptionEnforcementService } from "./subscriptionEnforcementService.js";
+import { ResumeParser } from "./resumeParser.js";
+import virtualInterviewRoutes from "./virtualInterviewRoutes.js";
+import chatInterviewRoutes from "./chatInterviewRoutes.js";
+import { ResumeService, resumeUploadMiddleware } from "./resumeService.js";
+import { TaskService } from "./taskService.js";
+import referralMarketplaceRoutes from "./referralMarketplaceRoutes.js";
+import { AIResumeGeneratorService } from "./aiResumeGeneratorService.js";
+
+// Initialize services
+const resumeParser = new ResumeParser();
+const premiumFeaturesService = new PremiumFeaturesService();
+const subscriptionService = new SubscriptionService();
+
+// OPTIMIZATION: Enhanced in-memory cache with better performance
+const cache = new Map();
+const CACHE_TTL = 10 * 60 * 1000; // Increased to 10 minutes
+const MAX_CACHE_SIZE = 2000; // Increased cache size for better hit rates
+
+// Track user activity for online/offline status
+const userActivity = new Map<string, number>();
+const ONLINE_THRESHOLD = 5 * 60 * 1000; // 5 minutes - user is considered online if active within 5 minutes
+
+// Initialize file storage service
+const fileStorage = new FileStorageService();
+
+// Helper functions for job matching
+function hasCommonKeywords(title1: string, title2: string): boolean {
+  const commonWords = ['developer', 'engineer', 'manager', 'analyst', 'designer', 'specialist', 'senior', 'junior', 'lead', 'principal'];
+  return commonWords.some(word => title1.includes(word) && title2.includes(word));
+}
+
+function calculateTitleSimilarity(userTitle: string, jobTitle: string): number {
+  const userWords = userTitle.split(/\s+/).filter(w => w.length > 2);
+  const jobWords = jobTitle.split(/\s+/).filter(w => w.length > 2);
+  
+  const matches = userWords.filter(word => jobWords.some(jw => jw.includes(word) || word.includes(jw)));
+  const similarity = matches.length / Math.max(userWords.length, jobWords.length);
+  
+  return Math.round(similarity * 15); // Max 15 points for partial match
+}
+
+function hasSkillVariations(skill: string, text: string): boolean {
+  const variations = new Map([
+    ['javascript', ['js', 'node', 'react', 'vue', 'angular']],
+    ['python', ['django', 'flask', 'pandas', 'numpy']],
+    ['java', ['spring', 'maven', 'gradle', 'jvm']],
+    ['css', ['sass', 'scss', 'less', 'styling']],
+    ['sql', ['mysql', 'postgres', 'database', 'db']],
+    ['aws', ['amazon', 'cloud', 'ec2', 's3']],
+    ['docker', ['container', 'kubernetes', 'k8s']],
+    ['git', ['github', 'gitlab', 'version control']]
+  ]);
+  
+  const skillVariations = variations.get(skill) || [];
+  return skillVariations.some(variation => text.includes(variation));
+}
+
+// SECURITY FIX: Ensure all cache keys are properly scoped by user ID
+const ensureUserScopedKey = (key: string, userId?: string): string => {
+  if (!userId) {
+    console.warn(`[CACHE_SECURITY] Cache key "${key}" used without user ID scoping`);
+    return key;
+  }
+  
+  // If key already contains user ID, return as is
+  if (key.includes(`_${userId}_`) || key.startsWith(`${userId}_`) || key.endsWith(`_${userId}`)) {
+    return key;
+  }
+  
+  // Add user ID scoping to prevent cross-user data leakage
+  return `user_${userId}_${key}`;
+};
+
+const getCached = (key: string, userId?: string) => {
+  const scopedKey = ensureUserScopedKey(key, userId);
+  const item = cache.get(scopedKey);
+  if (item && Date.now() - item.timestamp < (item.ttl || CACHE_TTL)) {
+    return item.data;
+  }
+  cache.delete(scopedKey);
+  return null;
+};
+
+const setCache = (key: string, data: any, ttl?: number, userId?: string) => {
+  const scopedKey = ensureUserScopedKey(key, userId);
+  
+  // Prevent cache from growing too large
+  if (cache.size >= MAX_CACHE_SIZE) {
+    // Remove oldest entries (simple LRU)
+    const oldestKey = cache.keys().next().value;
+    cache.delete(oldestKey);
+  }
+  cache.set(scopedKey, { 
+    data, 
+    timestamp: Date.now(), 
+    ttl: ttl || CACHE_TTL,
+    userId: userId // Track which user owns this cache entry
   });
+};
 
+// Helper function to invalidate user-specific cache
 const invalidateUserCache = (userId: string) => {
   const keysToDelete = [];
   for (const key of Array.from(cache.keys())) {
