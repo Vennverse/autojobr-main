@@ -1605,8 +1605,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create assignment based on link type
       let redirectUrl = '/dashboard';
 
-      // Map interview types - technical/behavioral/etc are all virtual interviews
-      const mappedType = ['technical', 'behavioral', 'system_design', 'coding'].includes(link.interviewType) 
+      // Map interview types - technical/behavioral/chat/etc are all virtual interviews
+      const mappedType = ['technical', 'behavioral', 'system_design', 'coding', 'chat'].includes(link.interviewType) 
         ? 'virtual' 
         : link.interviewType;
 
