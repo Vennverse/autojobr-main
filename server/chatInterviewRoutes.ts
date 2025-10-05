@@ -563,6 +563,75 @@ router.post('/assign', isAuthenticated, async (req: any, res) => {
   }
 });
 
+// Chat interview retake payment endpoint
+router.post('/:sessionId/retake-payment', requireAuthForInterview, async (req: any, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { paymentProvider, paymentIntentId } = req.body;
+    const userId = req.user?.id || req.session?.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    if (!paymentProvider || !paymentIntentId) {
+      return res.status(400).json({ message: 'Payment provider and payment intent ID are required' });
+    }
+
+    // Get interview
+    const interview = await db.select()
+      .from(virtualInterviews)
+      .where(and(
+        eq(virtualInterviews.sessionId, sessionId),
+        eq(virtualInterviews.userId, userId)
+      ))
+      .limit(1);
+
+    if (!interview.length) {
+      return res.status(404).json({ message: 'Interview not found' });
+    }
+
+    // Verify payment based on provider
+    let paymentVerified = false;
+    if (paymentProvider === 'paypal') {
+      // PayPal verification
+      paymentVerified = paymentIntentId.startsWith('PAYPAL_');
+    } else if (paymentProvider === 'amazon_pay') {
+      // Amazon Pay verification
+      paymentVerified = paymentIntentId.startsWith('AMAZON_PAY_');
+    }
+
+    if (!paymentVerified) {
+      return res.status(400).json({ message: 'Payment verification failed' });
+    }
+
+    // Enable retake by resetting the interview status
+    await db.update(virtualInterviews)
+      .set({
+        status: 'assigned',
+        retakeAllowed: true,
+        retakePaymentId: paymentIntentId,
+        startTime: null,
+        endTime: null,
+        updatedAt: new Date()
+      })
+      .where(eq(virtualInterviews.id, interview[0].id));
+
+    // Clear previous messages to start fresh
+    await db.delete(virtualInterviewMessages)
+      .where(eq(virtualInterviewMessages.interviewId, interview[0].id));
+
+    res.json({ 
+      success: true, 
+      message: 'Payment verified. You can now retake the interview.',
+      sessionId 
+    });
+  } catch (error) {
+    console.error('Error processing chat interview retake payment:', error);
+    res.status(500).json({ message: 'Failed to process retake payment' });
+  }
+});
+
 // Get interview feedback for completed interviews
 router.get('/:sessionId/feedback', requireAuthForInterview, async (req: any, res) => {
   try {

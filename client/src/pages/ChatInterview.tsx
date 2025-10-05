@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Send, Clock, MessageCircle, User, Bot } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
+import { useQuery } from '@tanstack/react-query'; // Import useQuery
 
 interface ChatMessage {
   id?: number;
@@ -23,18 +24,28 @@ interface InterviewState {
   status: string;
 }
 
+// Define InterviewSession interface to match the useQuery return type
+interface InterviewSession {
+  sessionId: string;
+  currentQuestionCount: number;
+  totalQuestions: number;
+  timeRemaining: number;
+  status: string;
+  retakeAllowed?: boolean; // Add retakeAllowed property
+}
+
 function ChatInterview() {
   const [, params] = useRoute('/chat-interview/:sessionId');
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  
+
   const [interview, setInterview] = useState<InterviewState | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentMessage, setCurrentMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sessionId = params?.sessionId;
 
@@ -48,6 +59,25 @@ function ChatInterview() {
     loadMessages();
     initializeProctoring();
   }, [sessionId]);
+
+  // Fetch interview session
+  const { data: session, isLoading, error } = useQuery<InterviewSession>({
+    queryKey: [`/api/chat-interview/${sessionId}/messages`],
+    enabled: !!sessionId,
+    retry: false,
+  });
+
+  // Check if interview is completed and needs retake payment
+  useEffect(() => {
+    if (session?.status === 'completed' && !session.retakeAllowed) {
+      toast({
+        title: "Interview Already Completed",
+        description: "This interview has been completed. You can purchase a retake for $5.",
+      });
+      setLocation(`/virtual-interview-complete/${sessionId}`);
+    }
+  }, [session, sessionId, setLocation, toast]);
+
 
   const initializeProctoring = async () => {
     try {
@@ -117,7 +147,7 @@ function ChatInterview() {
   // Timer countdown effect
   useEffect(() => {
     if (!interview || timeRemaining <= 0) return;
-    
+
     const timer = setInterval(() => {
       setTimeRemaining(prev => {
         if (prev <= 1) {
@@ -127,7 +157,7 @@ function ChatInterview() {
         return prev - 1;
       });
     }, 1000);
-    
+
     return () => clearInterval(timer);
   }, [interview, timeRemaining]);
 
@@ -140,7 +170,7 @@ function ChatInterview() {
     try {
       setLoading(true);
       const response = await apiRequest(`/api/chat-interview/${sessionId}/messages`, 'GET');
-      
+
       setInterview({
         sessionId: sessionId!,
         currentQuestionCount: response.currentQuestionCount,
@@ -148,7 +178,7 @@ function ChatInterview() {
         timeRemaining: response.timeRemaining,
         status: response.status
       });
-      
+
       setMessages(response.messages || []);
       setTimeRemaining(response.timeRemaining || 1800);
 
@@ -159,14 +189,14 @@ function ChatInterview() {
 
     } catch (error: any) {
       console.error('Error loading messages:', error);
-      
+
       // Check if this is an authentication error with redirect URL
       if (error.response?.status === 401 && error.response?.data?.redirectUrl) {
         console.log('🎭 Redirecting to auth page:', error.response.data.redirectUrl);
         window.location.href = error.response.data.redirectUrl;
         return;
       }
-      
+
       toast({
         title: "Error",
         description: "Failed to load interview chat",
@@ -182,17 +212,17 @@ function ChatInterview() {
     if (!currentMessage.trim() || !interview || sending) return;
 
     const messageToSend = currentMessage.trim();
-    
+
     try {
       setSending(true);
-      
+
       // Add user message to chat immediately for better UX
       const userMessage: ChatMessage = {
         sender: 'candidate',
         content: messageToSend,
         timestamp: new Date().toISOString()
       };
-      
+
       setMessages(prev => [...prev, userMessage]);
       setCurrentMessage('');
 
@@ -206,7 +236,7 @@ function ChatInterview() {
         content: response.response,
         timestamp: new Date().toISOString()
       };
-      
+
       setMessages(prev => [...prev, aiMessage]);
 
       // Update interview state
@@ -227,20 +257,20 @@ function ChatInterview() {
 
     } catch (error: any) {
       console.error('Error sending message:', error);
-      
+
       // Check if this is an authentication error with redirect URL
       if (error.response?.status === 401 && error.response?.data?.redirectUrl) {
         console.log('🎭 Redirecting to auth page:', error.response.data.redirectUrl);
         window.location.href = error.response.data.redirectUrl;
         return;
       }
-      
+
       toast({
         title: "Error",
         description: "Failed to send message",
         variant: "destructive",
       });
-      
+
       // Remove the user message we added optimistically
       setMessages(prev => prev.slice(0, -1));
       setCurrentMessage(messageToSend); // Restore the original message
@@ -255,7 +285,7 @@ function ChatInterview() {
       description: "Your interview time has expired.",
       variant: "default",
     });
-    
+
     try {
       await apiRequest(`/api/chat-interview/${sessionId}/complete`, 'POST');
       setLocation(`/virtual-interview-complete/${sessionId}`);
@@ -277,7 +307,7 @@ function ChatInterview() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  if (loading) {
+  if (loading || isLoading) { // Also check for isLoading from useQuery
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <Card className="w-full max-w-md">
@@ -286,6 +316,19 @@ function ChatInterview() {
             <p className="text-center text-gray-600 dark:text-gray-400">
               Loading your interview chat...
             </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Handle error state from useQuery
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center space-y-4 pt-6">
+            <p className="text-center text-red-600">Error loading interview. Please try again later.</p>
           </CardContent>
         </Card>
       </div>
@@ -332,8 +375,8 @@ function ChatInterview() {
                     }`}
                   >
                     <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                      message.sender === 'candidate' 
-                        ? 'bg-blue-600 text-white' 
+                      message.sender === 'candidate'
+                        ? 'bg-blue-600 text-white'
                         : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                     }`}>
                       {message.sender === 'candidate' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}

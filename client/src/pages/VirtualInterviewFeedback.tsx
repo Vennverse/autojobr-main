@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import PayPalHostedButton from "@/components/PayPalHostedButton";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { PayPalInterviewPayment } from '@/components/PayPalInterviewPayment';
 
 interface InterviewFeedback {
   interview: {
@@ -129,6 +130,42 @@ export default function VirtualInterviewFeedback() {
     return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100";
   };
 
+  const [showPayment, setShowPayment] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
+
+  const handlePaymentSuccess = async (paymentIntentId: string, paymentProvider: string) => {
+    try {
+      setProcessingPayment(true);
+
+      const response = await apiRequest(`/api/virtual-interview/${sessionId}/retake-payment`, 'POST', {
+        paymentProvider,
+        paymentIntentId
+      });
+
+      toast({
+        title: "Payment Successful!",
+        description: "You can now retake the interview.",
+      });
+
+      setShowPayment(false);
+
+      // Redirect to start interview again
+      setTimeout(() => {
+        setLocation('/virtual-interview/start');
+      }, 1500);
+    } catch (error: any) {
+      console.error('Payment verification error:', error);
+      toast({
+        title: "Payment Verification Failed",
+        description: error.message || "Please try again or contact support.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
       <div className="max-w-4xl mx-auto">
@@ -143,7 +180,7 @@ export default function VirtualInterviewFeedback() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
-          
+
           <div className="text-center space-y-2">
             <div className="flex items-center justify-center gap-2 mb-2">
               <Award className="w-8 h-8 text-yellow-500" />
@@ -345,77 +382,64 @@ export default function VirtualInterviewFeedback() {
               </CardContent>
             </Card>
 
-            {/* Retake Section for Low Scores */}
-            {interview.overallScore < 70 && (
-              <Card className="border-2 border-orange-200 bg-orange-50 dark:bg-orange-950/20">
+            {/* Retake Option */}
+            {(interview.overallScore < 70 || !showRetakePayment) && (
+              <Card className="border-2 border-blue-200 bg-blue-50 dark:bg-blue-950/20">
                 <CardHeader>
-                  <CardTitle className="text-orange-800 dark:text-orange-200 flex items-center gap-2">
+                  <CardTitle className="text-blue-800 dark:text-blue-200 flex items-center gap-2">
                     <RefreshCw className="w-5 h-5" />
-                    Improve Your Score
+                    {interview.overallScore < 70 ? 'Improve Your Score' : 'Perfect Your Performance'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-sm text-orange-700 dark:text-orange-300">
-                    Your score of {interview.overallScore}% shows room for improvement. 
-                    Retake the interview to practice and improve your performance!
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    {interview.overallScore < 70 
+                      ? "Your score shows room for improvement. Retake the interview to practice and achieve a better result!"
+                      : "Already did great? Retake to achieve an even higher score and perfect your interview skills!"}
                   </p>
-                  
-                  <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium text-sm">Interview Retake</span>
-                      <span className="font-bold text-lg text-orange-600">$5</span>
-                    </div>
-                    <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                      <li>• Fresh set of questions</li>
-                      <li>• Same role and difficulty</li>
-                      <li>• Instant access after payment</li>
-                      <li>• Best score counts</li>
-                    </ul>
-                  </div>
 
                   {!showRetakePayment ? (
-                    <Button
-                      onClick={() => setShowRetakePayment(true)}
-                      className="w-full bg-orange-600 hover:bg-orange-700"
-                      data-testid="show-retake-payment"
-                    >
-                      <CreditCard className="w-4 h-4 mr-2" />
-                      Pay $5 to Retake Interview
-                    </Button>
-                  ) : (
-                    <div className="space-y-4">
-                      <PayPalHostedButton
-                        purpose="virtual_interview"
-                        amount={5}
-                        itemName={`${interview.role.replace(/_/g, ' ')} Interview Retake`}
-                        onPaymentSuccess={(data) => {
-                          toast({
-                            title: "Payment Successful!",
-                            description: "Your interview retake access has been granted. Starting new interview...",
-                          });
-                          
-                          // Redirect to virtual interview start page
-                          setTimeout(() => {
-                            setLocation('/virtual-interview-start');
-                          }, 1500);
-                        }}
-                        onPaymentError={(error) => {
-                          toast({
-                            title: "Payment Failed",
-                            description: error.message || "There was an error processing your payment. Please try again.",
-                            variant: "destructive",
-                          });
-                        }}
-                        description="Complete payment to retake your virtual interview"
-                      />
-                      
+                    <div className="space-y-3">
+                      <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium text-sm">Interview Retake</span>
+                          <span className="font-bold text-xl text-blue-600">$5</span>
+                        </div>
+                        <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                          <li>• Fresh set of questions</li>
+                          <li>• Same role and difficulty</li>
+                          <li>• Instant access after payment</li>
+                          <li>• Best score counts</li>
+                        </ul>
+                      </div>
+
                       <Button
-                        variant="ghost"
-                        onClick={() => setShowRetakePayment(false)}
-                        className="w-full text-sm"
+                        onClick={() => setShowRetakePayment(true)}
+                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        disabled={processingPayment}
                       >
-                        Cancel Payment
+                        {processingPayment ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Retake Interview - $5
+                          </>
+                        )}
                       </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <PayPalInterviewPayment
+                        amount={5}
+                        sessionId={sessionId || ''}
+                        interviewType="virtual_interview"
+                        onSuccess={handlePaymentSuccess}
+                        onCancel={() => setShowRetakePayment(false)}
+                      />
                     </div>
                   )}
                 </CardContent>
@@ -435,7 +459,7 @@ export default function VirtualInterviewFeedback() {
                 <Button 
                   variant="outline" 
                   className="w-full"
-                  onClick={() => setLocation('/virtual-interview-start')}
+                  onClick={() => setLocation('/virtual-interview/start')}
                   data-testid="take-another-interview"
                 >
                   Take Another Interview
