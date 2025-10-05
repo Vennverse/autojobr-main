@@ -535,6 +535,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // RECRUITER-SPECIFIC ENDPOINTS - Must be authenticated
+  app.get('/api/recruiter/jobs', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      const jobPostings = await storage.getRecruiterJobPostings(userId);
+      console.log(`[RECRUITER JOBS] Recruiter ${userId} has ${jobPostings.length} jobs`);
+      res.json(jobPostings);
+    } catch (error) {
+      console.error('[RECRUITER JOBS ERROR]:', error);
+      handleError(res, error, "Failed to fetch recruiter job postings");
+    }
+  });
+
+  app.get('/api/recruiter/applications', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      const applications = await storage.getApplicationsForRecruiter(userId);
+      console.log(`[RECRUITER APPLICATIONS] Recruiter ${userId} has ${applications.length} applications`);
+      res.json(applications);
+    } catch (error) {
+      console.error('[RECRUITER APPLICATIONS ERROR]:', error);
+      handleError(res, error, "Failed to fetch recruiter applications");
+    }
+  });
+
   // Internship scraping endpoints
   app.post('/api/internships/scrape', isAuthenticated, async (req: any, res) => {
     try {
@@ -2991,7 +3028,15 @@ Requirements:
           // Update user object for response
           user.userType = 'recruiter';
           user.companyName = `${companyName} Company`;
+        }
+      }
 
+      res.json({ isVerified: true, isRecruiter: user.userType === 'recruiter' });
+    } catch (error) {
+      console.error('Error checking company verification:', error);
+      res.status(500).json({ message: 'Failed to check verification status' });
+    }
+  });
 
   // Interview Assignment API Routes
   app.get('/api/interviews/assigned', isAuthenticated, async (req: any, res) => {
@@ -3537,26 +3582,6 @@ Requirements:
       res.json(detection);
     } catch (error) {
       handleError(res, error, "Failed to analyze AI usage");
-    }
-  });
-
-
-        }
-      }
-
-      const verification = user?.emailVerified && user?.userType === 'recruiter' ? {
-        company_name: user.companyName,
-        verified_at: new Date()
-      } : null;
-
-      res.json({ 
-        isVerified: !!verification,
-        companyName: verification?.company_name,
-        verifiedAt: verification?.verified_at 
-      });
-    } catch (error) {
-      console.error("Error checking company verification:", error);
-      res.status(500).json({ message: "Failed to check verification status" });
     }
   });
 
