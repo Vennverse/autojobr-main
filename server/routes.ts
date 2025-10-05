@@ -2773,6 +2773,93 @@ Requirements:
     }
   }));
 
+  // ============ QUESTION BANK API ROUTES ============
+  
+  // Search questions with filters
+  app.get('/api/question-bank/search', asyncHandler(async (req: any, res: any) => {
+    try {
+      const { q, category, domain, difficulty } = req.query;
+
+      let query = db.select().from(schema.questionBank)
+        .where(eq(schema.questionBank.isActive, true));
+
+      // Apply filters
+      const conditions = [eq(schema.questionBank.isActive, true)];
+      
+      if (category && category !== 'all') {
+        conditions.push(eq(schema.questionBank.category, category));
+      }
+      if (domain && domain !== 'all') {
+        conditions.push(eq(schema.questionBank.domain, domain));
+      }
+      if (difficulty && difficulty !== 'all') {
+        conditions.push(eq(schema.questionBank.difficulty, difficulty));
+      }
+
+      let questions = await db.select()
+        .from(schema.questionBank)
+        .where(and(...conditions));
+
+      // Apply text search if provided
+      if (q && typeof q === 'string' && q.trim()) {
+        const searchTerm = q.toLowerCase();
+        questions = questions.filter(question => 
+          question.question.toLowerCase().includes(searchTerm) ||
+          (question.tags && question.tags.some(tag => tag.toLowerCase().includes(searchTerm))) ||
+          (question.keywords && question.keywords.some(keyword => keyword.toLowerCase().includes(searchTerm)))
+        );
+      }
+
+      res.json(questions);
+    } catch (error) {
+      console.error('Error searching questions:', error);
+      res.status(500).json({ message: 'Failed to search questions' });
+    }
+  }));
+
+  // Get question bank stats
+  app.get('/api/question-bank/stats', asyncHandler(async (req: any, res: any) => {
+    try {
+      const allQuestions = await db.select()
+        .from(schema.questionBank)
+        .where(eq(schema.questionBank.isActive, true));
+
+      const stats = {
+        total: allQuestions.length,
+        aptitude: allQuestions.filter(q => q.category === 'general_aptitude').length,
+        english: allQuestions.filter(q => q.category === 'english').length,
+        domain: allQuestions.filter(q => q.category === 'domain_specific').length,
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching question stats:', error);
+      res.status(500).json({ message: 'Failed to fetch stats' });
+    }
+  }));
+
+  // Add new question
+  app.post('/api/question-bank/questions', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const userId = req.user.id;
+      const questionData = req.body;
+
+      const [newQuestion] = await db.insert(schema.questionBank).values({
+        ...questionData,
+        createdBy: userId,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+
+      res.json(newQuestion);
+    } catch (error) {
+      console.error('Error adding question:', error);
+      res.status(500).json({ message: 'Failed to add question' });
+    }
+  }));
+
+  // ============ END QUESTION BANK API ROUTES ============
+
   // User activity tracking for online/offline status
   app.post('/api/user/activity', isAuthenticated, asyncHandler(async (req: any, res) => {
     const userId = req.user.id;
@@ -3421,6 +3508,80 @@ Requirements:
       res.json({ message: 'Video interview assigned successfully', interview });
     } catch (error) {
       handleError(res, error, "Failed to assign video interview");
+    }
+  });
+
+  // Test Assignment Route
+  app.post('/api/tests/assign', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      }
+
+      const {
+        candidateId,
+        jobPostingId,
+        testType,
+        testDifficulty,
+        testDuration,
+        testLanguage,
+        testTotalQuestions,
+        dueDate,
+        role,
+        company
+      } = req.body;
+
+      // Get or create test template
+      const [template] = await db
+        .select()
+        .from(schema.testTemplates)
+        .where(
+          and(
+            eq(schema.testTemplates.createdBy, userId),
+            eq(schema.testTemplates.testType, testType),
+            eq(schema.testTemplates.difficulty, testDifficulty)
+          )
+        )
+        .limit(1);
+
+      let templateId = template?.id;
+
+      if (!templateId) {
+        // Create new template
+        const [newTemplate] = await db.insert(schema.testTemplates).values({
+          name: `${testType} Test - ${testDifficulty}`,
+          description: `Auto-generated ${testType} test`,
+          testType: testType || 'general',
+          difficulty: testDifficulty || 'medium',
+          duration: testDuration || 60,
+          language: testLanguage || 'javascript',
+          totalQuestions: testTotalQuestions || 5,
+          createdBy: userId
+        }).returning();
+        templateId = newTemplate.id;
+      }
+
+      // Create test assignment
+      const [assignment] = await db.insert(schema.testAssignments).values({
+        testTemplateId: templateId,
+        recruiterId: userId,
+        jobSeekerId: candidateId,
+        jobPostingId: jobPostingId || null,
+        dueDate: new Date(dueDate),
+        status: 'assigned'
+      }).returning();
+
+      res.json({
+        message: 'Test assigned successfully',
+        assignment,
+        testId: assignment.id
+      });
+    } catch (error) {
+      console.error('Error assigning test:', error);
+      handleError(res, error, "Failed to assign test");
     }
   });
 
