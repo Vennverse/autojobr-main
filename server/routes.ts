@@ -1449,24 +1449,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Parse interview config
       const config = typeof interviewConfig === 'string' ? JSON.parse(interviewConfig) : interviewConfig;
 
+      // Validate required fields
+      if (!config.role) {
+        return res.status(400).json({
+          message: 'Role is required for generating interview link'
+        });
+      }
+
       // Calculate expiry date
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + (expiryDays || 7));
 
       // Store shareable link metadata in interview_invitations table
-      await db.insert(schema.interviewInvitations).values({
+      const [invitation] = await db.insert(schema.interviewInvitations).values({
         token: linkId,
         recruiterId: recruiterId,
-        jobPostingId: jobPostingId || null,
+        jobPostingId: jobPostingId ? parseInt(jobPostingId) : null,
         interviewType: interviewType,
         interviewConfig: JSON.stringify(config),
         role: config.role,
         company: config.company || '',
-        difficulty: config.difficulty,
+        difficulty: config.difficulty || 'medium',
         expiryDate: expiresAt,
         maxUses: null, // null means unlimited uses
         usageCount: 0
-      });
+      }).returning();
 
       res.json({
         success: true,
@@ -1476,7 +1483,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiresAt,
         interviewType,
         role: config.role,
-        company: config.company
+        company: config.company,
+        invitationId: invitation.id
       });
 
     } catch (error) {
@@ -1493,58 +1501,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { linkId } = req.params;
 
-      // Try to find the link in virtual interviews
-      const virtualResult = await db.execute(sql`
-        SELECT * FROM virtual_interviews 
-        WHERE session_id = ${linkId} AND assignment_type = 'shareable_link'
-        LIMIT 1
-      `);
+      // Find the invitation in interview_invitations table
+      const [invitation] = await db.select()
+        .from(schema.interviewInvitations)
+        .where(eq(schema.interviewInvitations.token, linkId))
+        .limit(1);
 
-      if (virtualResult.rows.length > 0) {
-        const interview = virtualResult.rows[0];
-
-        // Check if link is expired
-        if (interview.link_expires_at && new Date(interview.link_expires_at) < new Date()) {
-          return res.status(410).json({ message: 'This interview link has expired' });
-        }
-
-        return res.json({
-          success: true,
-          interviewType: 'virtual',
-          linkId,
-          role: interview.role,
-          company: interview.company,
-          difficulty: interview.difficulty,
-          expiresAt: interview.link_expires_at
-        });
+      if (!invitation) {
+        return res.status(404).json({ message: 'Interview link not found' });
       }
 
-      // Try to find in mock interviews
-      const mockResult = await db.execute(sql`
-        SELECT * FROM mock_interviews 
-        WHERE session_id = ${linkId} AND assignment_type = 'shareable_link'
-        LIMIT 1
-      `);
-
-      if (mockResult.rows.length > 0) {
-        const interview = mockResult.rows[0];
-
-        if (interview.link_expires_at && new Date(interview.link_expires_at) < new Date()) {
-          return res.status(410).json({ message: 'This interview link has expired' });
-        }
-
-        return res.json({
-          success: true,
-          interviewType: 'mock',
-          linkId,
-          role: interview.role,
-          company: interview.company,
-          difficulty: interview.difficulty,
-          expiresAt: interview.link_expires_at
-        });
+      // Check if link is expired
+      if (invitation.expiryDate && new Date(invitation.expiryDate) < new Date()) {
+        return res.status(410).json({ message: 'This interview link has expired' });
       }
 
-      res.status(404).json({ message: 'Interview link not found' });
+      // Check if max uses exceeded (if maxUses is set)
+      if (invitation.maxUses && invitation.usageCount >= invitation.maxUses) {
+        return res.status(410).json({ message: 'This interview link has reached its maximum number of uses' });
+      }
+
+      // Parse interview config
+      const config = typeof invitation.interviewConfig === 'string' 
+        ? JSON.parse(invitation.interviewConfig) 
+        : invitation.interviewConfig;
+
+      res.json({
+        success: true,
+        interviewType: invitation.interviewType,
+        linkId,
+        role: invitation.role,
+        company: invitation.company,
+        difficulty: invitation.difficulty,
+        expiresAt: invitation.expiryDate,
+        config: config
+      });
 
     } catch (error) {
       console.error('Error accessing shareable link:', error);
@@ -1558,72 +1549,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { linkId } = req.params;
       const userId = req.user.id;
 
-      // Find the shareable link template
-      const virtualResult = await db.execute(sql`
-        SELECT * FROM virtual_interviews 
-        WHERE session_id = ${linkId} AND assignment_type = 'shareable_link'
-        LIMIT 1
-      `);
+      // Find the invitation
+      const [invitation] = await db.select()
+        .from(schema.interviewInvitations)
+        .where(eq(schema.interviewInvitations.token, linkId))
+        .limit(1);
 
-      if (virtualResult.rows.length > 0) {
-        const template = virtualResult.rows[0];
+      if (!invitation) {
+        return res.status(404).json({ message: 'Interview link not found' });
+      }
 
-        // Check expiry
-        if (template.link_expires_at && new Date(template.link_expires_at) < new Date()) {
-          return res.status(410).json({ message: 'This interview link has expired' });
-        }
+      // Check expiry
+      if (invitation.expiryDate && new Date(invitation.expiryDate) < new Date()) {
+        return res.status(410).json({ message: 'This interview link has expired' });
+      }
 
-        // Create new interview session for this user
-        const newSessionId = `interview_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // Check if max uses exceeded
+      if (invitation.maxUses && invitation.usageCount >= invitation.maxUses) {
+        return res.status(410).json({ message: 'This interview link has reached its maximum number of uses' });
+      }
 
-        await db.execute(sql`
-          INSERT INTO virtual_interviews (
-            user_id, session_id, interview_type, role, company, difficulty,
-            duration, total_questions, questions_asked, status, assignment_type,
-            interviewer_personality, created_at
-          ) VALUES (
-            ${userId}, ${newSessionId}, ${template.interview_type}, 
-            ${template.role}, ${template.company}, ${template.difficulty},
-            ${template.duration || 30}, ${template.total_questions || 5}, 0,
-            'assigned', 'link_based', ${template.interviewer_personality || 'professional'},
-            NOW()
-          )
-        `);
+      // Parse interview config
+      const config = typeof invitation.interviewConfig === 'string' 
+        ? JSON.parse(invitation.interviewConfig) 
+        : invitation.interviewConfig;
+
+      // Create new session based on interview type
+      const newSessionId = `${invitation.interviewType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      if (invitation.interviewType === 'virtual') {
+        // Create virtual interview session
+        await db.insert(virtualInterviews).values({
+          userId: userId,
+          sessionId: newSessionId,
+          interviewType: config.interviewType || 'technical',
+          role: invitation.role,
+          company: invitation.company || '',
+          difficulty: invitation.difficulty,
+          duration: config.duration || 30,
+          totalQuestions: config.totalQuestions || 5,
+          questionsAsked: 0,
+          status: 'active',
+          assignmentType: 'link_based',
+          interviewerPersonality: config.interviewerPersonality || 'professional',
+          jobDescription: config.jobDescription || ''
+        });
+
+        // Increment usage count
+        await db.update(schema.interviewInvitations)
+          .set({ usageCount: invitation.usageCount + 1 })
+          .where(eq(schema.interviewInvitations.id, invitation.id));
 
         return res.json({
           success: true,
           sessionId: newSessionId,
           redirectUrl: `/chat-interview/${newSessionId}`
         });
-      }
+      } else if (invitation.interviewType === 'mock') {
+        // Create mock interview session
+        await db.insert(mockInterviews).values({
+          userId: userId,
+          sessionId: newSessionId,
+          interviewType: config.interviewType || 'technical',
+          role: invitation.role,
+          company: invitation.company || '',
+          difficulty: invitation.difficulty,
+          language: config.language || 'javascript',
+          totalQuestions: config.totalQuestions || 5,
+          status: 'active',
+          assignmentType: 'link_based'
+        });
 
-      // Try mock interviews
-      const mockResult = await db.execute(sql`
-        SELECT * FROM mock_interviews 
-        WHERE session_id = ${linkId} AND assignment_type = 'shareable_link'
-        LIMIT 1
-      `);
-
-      if (mockResult.rows.length > 0) {
-        const template = mockResult.rows[0];
-
-        if (template.link_expires_at && new Date(template.link_expires_at) < new Date()) {
-          return res.status(410).json({ message: 'This interview link has expired' });
-        }
-
-        const newSessionId = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-        await db.execute(sql`
-          INSERT INTO mock_interviews (
-            user_id, session_id, interview_type, role, company, difficulty,
-            language, total_questions, status, assignment_type, created_at
-          ) VALUES (
-            ${userId}, ${newSessionId}, ${template.interview_type},
-            ${template.role}, ${template.company}, ${template.difficulty},
-            ${template.language || 'javascript'}, ${template.total_questions || 5},
-            'assigned', 'link_based', NOW()
-          )
-        `);
+        // Increment usage count
+        await db.update(schema.interviewInvitations)
+          .set({ usageCount: invitation.usageCount + 1 })
+          .where(eq(schema.interviewInvitations.id, invitation.id));
 
         return res.json({
           success: true,
@@ -1632,7 +1632,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      res.status(404).json({ message: 'Interview link not found' });
+      res.status(400).json({ message: 'Unsupported interview type' });
 
     } catch (error) {
       console.error('Error starting interview from link:', error);
