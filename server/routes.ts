@@ -1389,6 +1389,227 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate Shareable Interview Link
+  app.post('/api/interviews/generate-link', isAuthenticated, async (req: any, res) => {
+    try {
+      const { jobPostingId, interviewType, interviewConfig, expiryDays } = req.body;
+      const recruiterId = req.user.id;
+
+      // Generate unique link ID
+      const linkId = `link_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const baseUrl = process.env.FRONTEND_URL || 'https://autojobr.com';
+      const shareableLink = `${baseUrl}/interview-link/${linkId}`;
+
+      // Parse interview config
+      const config = typeof interviewConfig === 'string' ? JSON.parse(interviewConfig) : interviewConfig;
+
+      // Calculate expiry date
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + (expiryDays || 7));
+
+      // Store shareable link in database based on interview type
+      if (interviewType === 'virtual' || interviewType === 'chat') {
+        // Virtual/Chat interviews use virtualInterviews table
+        await db.execute(sql`
+          INSERT INTO virtual_interviews (
+            session_id, recruiter_id, job_posting_id, interview_type,
+            role, company, difficulty, status, shareable_link, 
+            link_expires_at, assignment_type, created_at
+          ) VALUES (
+            ${linkId}, ${recruiterId}, ${jobPostingId}, ${interviewType},
+            ${config.role}, ${config.company}, ${config.difficulty},
+            'shareable_link', ${shareableLink}, ${expiresAt.toISOString()},
+            'shareable_link', NOW()
+          )
+        `);
+      } else if (interviewType === 'mock') {
+        // Mock interviews
+        await db.execute(sql`
+          INSERT INTO mock_interviews (
+            session_id, recruiter_id, job_posting_id, interview_type,
+            role, company, difficulty, status, shareable_link,
+            link_expires_at, assignment_type, created_at
+          ) VALUES (
+            ${linkId}, ${recruiterId}, ${jobPostingId}, ${interviewType},
+            ${config.role}, ${config.company}, ${config.difficulty},
+            'shareable_link', ${shareableLink}, ${expiresAt.toISOString()},
+            'shareable_link', NOW()
+          )
+        `);
+      }
+
+      res.json({
+        success: true,
+        link: shareableLink,
+        linkId,
+        shareableLink,
+        expiresAt,
+        interviewType,
+        role: config.role,
+        company: config.company
+      });
+
+    } catch (error) {
+      console.error('Error generating shareable link:', error);
+      res.status(500).json({
+        message: 'Failed to generate shareable link',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Access Interview via Shareable Link
+  app.get('/api/interviews/link/:linkId', async (req: any, res) => {
+    try {
+      const { linkId } = req.params;
+
+      // Try to find the link in virtual interviews
+      const virtualResult = await db.execute(sql`
+        SELECT * FROM virtual_interviews 
+        WHERE session_id = ${linkId} AND assignment_type = 'shareable_link'
+        LIMIT 1
+      `);
+
+      if (virtualResult.rows.length > 0) {
+        const interview = virtualResult.rows[0];
+        
+        // Check if link is expired
+        if (interview.link_expires_at && new Date(interview.link_expires_at) < new Date()) {
+          return res.status(410).json({ message: 'This interview link has expired' });
+        }
+
+        return res.json({
+          success: true,
+          interviewType: 'virtual',
+          linkId,
+          role: interview.role,
+          company: interview.company,
+          difficulty: interview.difficulty,
+          expiresAt: interview.link_expires_at
+        });
+      }
+
+      // Try to find in mock interviews
+      const mockResult = await db.execute(sql`
+        SELECT * FROM mock_interviews 
+        WHERE session_id = ${linkId} AND assignment_type = 'shareable_link'
+        LIMIT 1
+      `);
+
+      if (mockResult.rows.length > 0) {
+        const interview = mockResult.rows[0];
+        
+        if (interview.link_expires_at && new Date(interview.link_expires_at) < new Date()) {
+          return res.status(410).json({ message: 'This interview link has expired' });
+        }
+
+        return res.json({
+          success: true,
+          interviewType: 'mock',
+          linkId,
+          role: interview.role,
+          company: interview.company,
+          difficulty: interview.difficulty,
+          expiresAt: interview.link_expires_at
+        });
+      }
+
+      res.status(404).json({ message: 'Interview link not found' });
+
+    } catch (error) {
+      console.error('Error accessing shareable link:', error);
+      res.status(500).json({ message: 'Failed to access interview link' });
+    }
+  });
+
+  // Start Interview from Shareable Link
+  app.post('/api/interviews/link/:linkId/start', isAuthenticated, async (req: any, res) => {
+    try {
+      const { linkId } = req.params;
+      const userId = req.user.id;
+
+      // Find the shareable link template
+      const virtualResult = await db.execute(sql`
+        SELECT * FROM virtual_interviews 
+        WHERE session_id = ${linkId} AND assignment_type = 'shareable_link'
+        LIMIT 1
+      `);
+
+      if (virtualResult.rows.length > 0) {
+        const template = virtualResult.rows[0];
+        
+        // Check expiry
+        if (template.link_expires_at && new Date(template.link_expires_at) < new Date()) {
+          return res.status(410).json({ message: 'This interview link has expired' });
+        }
+
+        // Create new interview session for this user
+        const newSessionId = `interview_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        await db.execute(sql`
+          INSERT INTO virtual_interviews (
+            user_id, session_id, interview_type, role, company, difficulty,
+            duration, total_questions, questions_asked, status, assignment_type,
+            interviewer_personality, created_at
+          ) VALUES (
+            ${userId}, ${newSessionId}, ${template.interview_type}, 
+            ${template.role}, ${template.company}, ${template.difficulty},
+            ${template.duration || 30}, ${template.total_questions || 5}, 0,
+            'assigned', 'link_based', ${template.interviewer_personality || 'professional'},
+            NOW()
+          )
+        `);
+
+        return res.json({
+          success: true,
+          sessionId: newSessionId,
+          redirectUrl: `/chat-interview/${newSessionId}`
+        });
+      }
+
+      // Try mock interviews
+      const mockResult = await db.execute(sql`
+        SELECT * FROM mock_interviews 
+        WHERE session_id = ${linkId} AND assignment_type = 'shareable_link'
+        LIMIT 1
+      `);
+
+      if (mockResult.rows.length > 0) {
+        const template = mockResult.rows[0];
+        
+        if (template.link_expires_at && new Date(template.link_expires_at) < new Date()) {
+          return res.status(410).json({ message: 'This interview link has expired' });
+        }
+
+        const newSessionId = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        await db.execute(sql`
+          INSERT INTO mock_interviews (
+            user_id, session_id, interview_type, role, company, difficulty,
+            language, total_questions, status, assignment_type, created_at
+          ) VALUES (
+            ${userId}, ${newSessionId}, ${template.interview_type},
+            ${template.role}, ${template.company}, ${template.difficulty},
+            ${template.language || 'javascript'}, ${template.total_questions || 5},
+            'assigned', 'link_based', NOW()
+          )
+        `);
+
+        return res.json({
+          success: true,
+          sessionId: newSessionId,
+          redirectUrl: `/mock-interview/session/${newSessionId}`
+        });
+      }
+
+      res.status(404).json({ message: 'Interview link not found' });
+
+    } catch (error) {
+      console.error('Error starting interview from link:', error);
+      res.status(500).json({ message: 'Failed to start interview' });
+    }
+  });
+
   // Interview Prep API - Generate interview preparation insights
   app.post('/api/interview-prep', isAuthenticated, async (req: any, res) => {
     try {

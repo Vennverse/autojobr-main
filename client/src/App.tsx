@@ -104,6 +104,8 @@ import RemoteJobSearch2025 from "@/pages/blog/remote-job-search-2025";
 import JobAlertsPage from "@/pages/job-alerts";
 import CompanyCareerPage from "@/pages/company-career-page";
 
+// Import lazy for dynamic imports
+import { lazy } from "react";
 
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -328,6 +330,7 @@ function Router() {
                   <Route path="/virtual-interview/:sessionId/feedback" component={VirtualInterviewFeedback} />
                   <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
                   <Route path="/chat-interview/:sessionId" component={ChatInterview} />
+                  <Route path="/interview-link/:linkId" component={lazy(() => import("./pages/InterviewLink"))} />
                   <Route path="/jobs/:id" component={ViewJob} />
                   <Route path="/career-ai-assistant" component={CareerAIAssistant} />
                   <Route path="/subscription" component={Subscription} />
@@ -362,6 +365,7 @@ function Router() {
               <Route path="/virtual-interview/:sessionId/feedback" component={VirtualInterviewFeedback} />
               <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
               <Route path="/chat-interview/:sessionId" component={ChatInterview} />
+              <Route path="/interview-link/:linkId" component={lazy(() => import("./pages/InterviewLink"))} />
               <Route path="/subscription" component={Subscription} />
               <Route path="/referral-marketplace" component={ReferralMarketplace} />
               <Route path="/become-referrer" component={BecomeReferrer} />
@@ -395,6 +399,20 @@ function Router() {
           <Route path="/mock-interview/:sessionId">
             {(params) => {
               const redirectUrl = encodeURIComponent(`/mock-interview/${params.sessionId}`);
+              window.location.href = `/auth?redirect=${redirectUrl}`;
+              return null;
+            }}
+          </Route>
+          <Route path="/chat-interview/:sessionId">
+            {(params) => {
+              const redirectUrl = encodeURIComponent(`/chat-interview/${params.sessionId}`);
+              window.location.href = `/auth?redirect=${redirectUrl}`;
+              return null;
+            }}
+          </Route>
+          <Route path="/interview-link/:linkId">
+            {(params) => {
+              const redirectUrl = encodeURIComponent(`/interview-link/${params.linkId}`);
               window.location.href = `/auth?redirect=${redirectUrl}`;
               return null;
             }}
