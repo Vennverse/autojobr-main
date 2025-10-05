@@ -3670,10 +3670,10 @@ Additional Information:
         return res.status(404).json({ message: "Resume not found or not available for download" });
       }
 
-      // Set appropriate headers and send file
-      res.setHeader('Content-Type', resume.mimeType);
-      res.setHeader('Content-Disposition', `"attachment; filename="${resume.fileName}"`");
-      res.setHeader('Content-Length', resume.fileBuffer.length);
+  // Set appropriate headers and send file
+  res.setHeader('Content-Type', resume.mimeType || 'application/octet-stream');
+  res.setHeader('Content-Disposition', `attachment; filename="${resume.fileName}"`);
+  res.setHeader('Content-Length', String(resume.fileBuffer.length));
       
       res.send(resume.fileBuffer);
     } catch (error) {
