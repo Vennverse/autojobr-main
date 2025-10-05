@@ -66,9 +66,6 @@ import { subscriptionPaymentService } from "./subscriptionPaymentService";
 import { interviewAssignmentService } from "./interviewAssignmentService";
 import { mockInterviewService } from "./mockInterviewService";
 import { aiService } from './aiService';
-import { groqService } from './groqService';
-import { emailService } from './emailService';
-import { emailNotificationService } from './emailNotificationService';
 import { interviewPrepService, interviewPrepSchema } from './interviewPrepService';
 import { salaryInsightsService, salaryInsightsSchema } from './salaryInsightsService';
 
@@ -837,7 +834,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== MOUNT REFERRAL MARKETPLACE ROUTES =====
   app.use('/api/referral-marketplace', referralMarketplaceRoutes);
-  
+
   // ===== MOUNT BIDDER SYSTEM ROUTES =====
   const bidderRoutes = (await import('./bidderRoutes.js')).default;
   app.use('/api', bidderRoutes);
@@ -1623,7 +1620,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Interview Prep API - Generate interview preparation insights
-  app.post('/api/interview-prep', isAuthenticated, async (req: any, res) => {
+  app.post('/api/interview-prep', isAuthenticated, rateLimitMiddleware(10, 60), async (req: any, res) => {
     try {
       const validationResult = interviewPrepSchema.safeParse(req.body);
 
@@ -1634,7 +1631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const preparation = interviewPrepService.generatePreparation(validationResult.data);
+      const preparation = await interviewPrepService.generatePreparation(validationResult.data);
 
       res.json({
         success: true,
@@ -1650,7 +1647,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Salary Insights API - Get salary range and compensation insights
-  app.post('/api/salary-insights', isAuthenticated, async (req: any, res) => {
+  app.post('/api/salary-insights', isAuthenticated, rateLimitMiddleware(10, 60), async (req: any, res) => {
     try {
       const validationResult = salaryInsightsSchema.safeParse(req.body);
 
@@ -1661,7 +1658,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const insights = salaryInsightsService.generateInsights(validationResult.data);
+      const insights = await salaryInsightsService.generateInsights(validationResult.data);
 
       res.json({
         success: true,
@@ -2316,7 +2313,7 @@ Requirements:
   app.get("/api/subscription/status", isAuthenticated, asyncHandler(async (req: any, res: any) => {
     const userId = req.user.id;
     const user = await storage.getUser(userId);
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -2695,7 +2692,7 @@ Requirements:
     try {
       const userId = req.user.id;
       const { feature } = req.params;
-      
+
       const result = await premiumFeaturesService.checkFeatureLimit(userId, feature as any);
       res.json(result);
     } catch (error) {
@@ -2709,7 +2706,7 @@ Requirements:
     try {
       const userId = req.user.id;
       const { feature } = req.body;
-      
+
       const result = await premiumFeaturesService.validateFeatureUsage(userId, feature);
       res.json(result);
     } catch (error) {
@@ -2969,7 +2966,7 @@ Requirements:
 
           await storage.upsertUser({
             ...user,
-            userType: 'recruiter', // Database trigger will automatically set currentRole: 'recruiter'
+            userType: 'recruiter', // Database trigger will automatically set currentRole to match userType
             companyName: `${companyName} Company`,
             availableRoles: "job_seeker,recruiter" // Allow both roles
           });
@@ -4064,8 +4061,6 @@ Additional Information:
       res.status(500).json({ message: "Failed to download resume" });
     }
   });
-
-  // Duplicate resume set-active route removed - consolidated above
 
   // Resume download route for recruiters (from job applications)
   app.get('/api/recruiter/resume/download/:applicationId', isAuthenticated, async (req: any, res) => {
