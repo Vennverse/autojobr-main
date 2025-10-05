@@ -69,6 +69,10 @@ import { aiService } from './aiService';
 import { interviewPrepService, interviewPrepSchema } from './interviewPrepService';
 import { salaryInsightsService, salaryInsightsSchema } from './salaryInsightsService';
 import { questionBankService } from "./questionBankService";
+import { seo } from './routes/seo';
+
+// Import services
+import { db } from "./db";
 
 // Placeholder for User type if not globally available
 type User = schema.users.$inferSelect;
@@ -594,7 +598,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         createdBy: userId,
       };
-      
+
       const template = await storage.createTestTemplate(templateData);
       res.json(template);
     } catch (error) {
@@ -607,10 +611,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const templateId = parseInt(req.params.id);
       const { aptitudeQuestions, englishQuestions, domainQuestions, includeExtremeQuestions, jobProfile, difficultyLevel } = req.body;
-      
+
       // Get job profile tags
       const tags = jobProfile ? [jobProfile] : [];
-      
+
       // Generate questions from question bank
       const questions = await questionBankService.generateTestForProfile(
         tags,
@@ -622,10 +626,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         includeExtremeQuestions !== false
       );
-      
+
       // Update template with generated questions
       await storage.updateTestTemplate(templateId, { questions });
-      
+
       res.json(questions);
     } catch (error) {
       console.error('Error generating test questions:', error);
@@ -2094,7 +2098,7 @@ Requirements:
   paymentCredentialsRouter(app);
 
   // ============ RETAKE PAYMENT ROUTES ============
-  
+
   // Virtual interview retake payment endpoint
   app.post('/api/interviews/virtual/:interviewId/retake-payment', isAuthenticated, async (req: any, res) => {
     try {
@@ -2198,7 +2202,7 @@ Requirements:
       res.status(500).json({ message: 'Failed to process retake payment' });
     }
   });
-  
+
   // ============ END RETAKE PAYMENT ROUTES ============
 
   // Subscription Payment Routes - Consolidated
@@ -2923,7 +2927,7 @@ Requirements:
   }));
 
   // ============ QUESTION BANK API ROUTES ============
-  
+
   // Search questions with filters
   app.get('/api/question-bank/search', asyncHandler(async (req: any, res: any) => {
     try {
@@ -2934,7 +2938,7 @@ Requirements:
 
       // Apply filters
       const conditions = [eq(schema.questionBank.isActive, true)];
-      
+
       if (category && category !== 'all') {
         conditions.push(eq(schema.questionBank.category, category));
       }
@@ -3631,7 +3635,7 @@ Requirements:
         return res.status(403).json({ message: "Access denied. Recruiter account required." });
       }
 
-      const { candidateId, jobPostingId, videoQuestions, preparationTime, dueDate, role, company } = req.body;
+      const { candidateId, jobPostingId, videoQuestions, preparationTime, dueDate, role, company, difficulty } = req.body;
 
       const questions = Array.from({ length: videoQuestions }, (_, i) => ({
         id: `q${i + 1}`,
@@ -4575,6 +4579,14 @@ Additional Information:
   // Bidder system routes (auth is handled per-route within bidderRoutes)
   const bidderRoutes = await import('./bidderRoutes.js');
   app.use('/api', bidderRoutes.default);
+
+  // SEO Routes
+  app.use('/api', seo);
+
+  // Proctoring & Anti-Cheating Routes
+  app.use('/api', proctoring);
+
+  // ===== HEALTH CHECK =====
 
   console.log('🎉 [ROUTES] All routes registered successfully!');
   console.log('🎉 [ROUTES] Total app._router.stack length:', app._router?.stack?.length || 'unknown');
