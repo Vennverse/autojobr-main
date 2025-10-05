@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import path from "path";
@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 import { db } from "./db";
 import { eq, desc, and, or, like, isNotNull, count, asc, isNull, sql, inArray } from "drizzle-orm";
 import * as schema from "@shared/schema";
-import { resumes, userResumes, insertInternshipApplicationSchema, companyEmailVerifications, virtualInterviews, users } from "@shared/schema";
+import { resumes, userResumes, insertInternshipApplicationSchema, companyEmailVerifications, virtualInterviews, users, mockInterviews, jobPostingApplications, invitationUses } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated, isAuthenticatedExtension } from "./auth";
 import { storage } from "./storage";
@@ -68,6 +68,10 @@ import { mockInterviewService } from "./mockInterviewService";
 import { aiService } from './aiService';
 import { interviewPrepService, interviewPrepSchema } from './interviewPrepService';
 import { salaryInsightsService, salaryInsightsSchema } from './salaryInsightsService';
+import { questionBankService } from "./questionBankService";
+
+// Placeholder for User type if not globally available
+type User = schema.users.$inferSelect;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1544,131 +1548,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Start Interview/Test from Shareable Link
-  app.post('/api/interviews/link/:linkId/start', isAuthenticated, async (req: any, res) => {
-    try {
-      const { linkId } = req.params;
-      const userId = req.user.id;
+  app.post('/api/interviews/link/:linkId/start', isAuthenticated, async (req: Request, res: Response) => {
+    const { linkId } = req.params;
+    const user = req.user as User | undefined;
 
-      // Find the invitation
-      const [invitation] = await db.select()
-        .from(schema.interviewInvitations)
-        .where(eq(schema.interviewInvitations.token, linkId))
-        .limit(1);
-
-      if (!invitation) {
-        return res.status(404).json({ message: 'Link not found' });
-      }
-
-      // Check expiry
-      if (invitation.expiryDate && new Date(invitation.expiryDate) < new Date()) {
-        return res.status(410).json({ message: 'This link has expired' });
-      }
-
-      // Check if max uses exceeded
-      if (invitation.maxUses && invitation.usageCount >= invitation.maxUses) {
-        return res.status(410).json({ message: 'This link has reached its maximum number of uses' });
-      }
-
-      // Parse config
-      const config = typeof invitation.interviewConfig === 'string' 
-        ? JSON.parse(invitation.interviewConfig) 
-        : invitation.interviewConfig;
-
-      // Create new session based on type
-      const newSessionId = `${invitation.interviewType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-      if (invitation.interviewType === 'virtual') {
-        // Create virtual interview session
-        await db.insert(virtualInterviews).values({
-          userId: userId,
-          sessionId: newSessionId,
-          interviewType: config.interviewType || 'technical',
-          role: invitation.role,
-          company: invitation.company || '',
-          difficulty: invitation.difficulty,
-          duration: config.duration || 30,
-          totalQuestions: config.totalQuestions || 5,
-          questionsAsked: 0,
-          status: 'active',
-          assignmentType: 'link_based',
-          interviewerPersonality: config.interviewerPersonality || 'professional',
-          jobDescription: config.jobDescription || ''
-        });
-
-        // Increment usage count
-        await db.update(schema.interviewInvitations)
-          .set({ usageCount: invitation.usageCount + 1 })
-          .where(eq(schema.interviewInvitations.id, invitation.id));
-
-        return res.json({
-          success: true,
-          sessionId: newSessionId,
-          redirectUrl: `/chat-interview/${newSessionId}`
-        });
-      } else if (invitation.interviewType === 'mock') {
-        // Create mock interview session
-        await db.insert(mockInterviews).values({
-          userId: userId,
-          sessionId: newSessionId,
-          interviewType: config.interviewType || 'coding',
-          role: invitation.role,
-          company: invitation.company || '',
-          difficulty: invitation.difficulty,
-          language: config.language || 'javascript',
-          totalQuestions: config.totalQuestions || 5,
-          status: 'active',
-          assignmentType: 'link_based'
-        });
-
-        // Increment usage count
-        await db.update(schema.interviewInvitations)
-          .set({ usageCount: invitation.usageCount + 1 })
-          .where(eq(schema.interviewInvitations.id, invitation.id));
-
-        return res.json({
-          success: true,
-          sessionId: newSessionId,
-          redirectUrl: `/mock-interview/${newSessionId}`
-        });
-      } else if (invitation.interviewType === 'test') {
-        // Create test assignment
-        const testTemplate = config.testTemplate || await storage.getTestTemplate(config.testTemplateId);
-
-        if (!testTemplate) {
-          return res.status(400).json({ message: 'Test template not found' });
-        }
-
-        const dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + 7); // 7 days to complete
-
-        const [assignment] = await db.insert(schema.testAssignments).values({
-          recruiterId: invitation.recruiterId,
-          candidateId: userId,
-          testTemplateId: testTemplate.id,
-          jobPostingId: invitation.jobPostingId,
-          dueDate: dueDate,
-          status: 'pending',
-          assignmentType: 'link_based'
-        }).returning();
-
-        // Increment usage count
-        await db.update(schema.interviewInvitations)
-          .set({ usageCount: invitation.usageCount + 1 })
-          .where(eq(schema.interviewInvitations.id, invitation.id));
-
-        return res.json({
-          success: true,
-          assignmentId: assignment.id,
-          redirectUrl: `/test/${assignment.id}`
-        });
-      }
-
-      return res.status(400).json({ message: 'Unsupported assignment type' });
-
-    } catch (error) {
-      console.error('Error starting assignment from link:', error);
-      res.status(500).json({ message: 'Failed to start assignment' });
+    if (!user) {
+      return res.status(401).json({ message: 'Authentication required' });
     }
+
+    const link = await storage.getInterviewLinkByLinkId(linkId);
+    if (!link) {
+      return res.status(404).json({ message: 'Interview link not found' });
+    }
+
+    // Check if link is expired
+    if (link.expiresAt && new Date(link.expiresAt) < new Date()) {
+      return res.status(410).json({ message: 'This interview link has expired' });
+    }
+
+    // Check if max uses exceeded
+    if (link.maxUses && link.usageCount >= link.maxUses) {
+      return res.status(410).json({ message: 'This link has reached its maximum number of uses' });
+    }
+
+    // AUTO-APPLY: If link is for a job posting, auto-apply the user if not already applied
+    if (link.jobPostingId) {
+      const existingApplication = await db
+        .select()
+        .from(schema.jobPostingApplications)
+        .where(
+          and(
+            eq(schema.jobPostingApplications.jobPostingId, link.jobPostingId),
+            eq(schema.jobPostingApplications.jobSeekerId, user.id)
+          )
+        )
+        .then(rows => rows[0]);
+
+      if (!existingApplication) {
+        console.log(`🎯 Auto-applying user ${user.email} to job ${link.jobPostingId} via interview link`);
+
+        await db.insert(schema.jobPostingApplications).values({
+          jobPostingId: link.jobPostingId,
+          jobSeekerId: user.id,
+          status: 'applied',
+          appliedAt: new Date(),
+          source: 'interview_link'
+        });
+      }
+    }
+
+    // Create assignment based on link type
+    let redirectUrl = '/dashboard';
+
+    switch (link.interviewType) {
+      case 'virtual':
+        if (link.interviewUrl) {
+          redirectUrl = link.interviewUrl;
+        } else {
+          // Create virtual interview assignment
+          const interviewData = JSON.parse(link.interviewData || '{}');
+          const virtualInterview = await interviewAssignmentService.assignVirtualInterview({
+            recruiterId: link.recruiterId,
+            candidateId: user.id,
+            jobPostingId: link.jobPostingId,
+            interviewType: interviewData.interviewType || 'technical',
+            role: interviewData.role || 'Software Engineer',
+            company: interviewData.company,
+            difficulty: interviewData.difficulty || 'medium',
+            duration: interviewData.duration || 30,
+            dueDate: link.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            interviewerPersonality: interviewData.personality || 'professional',
+            jobDescription: interviewData.jobDescription
+          });
+          redirectUrl = `/chat-interview/${virtualInterview.sessionId}`;
+        }
+        break;
+      case 'mock':
+        // Create mock interview assignment
+        const mockData = JSON.parse(link.interviewData || '{}');
+        const mockInterview = await interviewAssignmentService.assignMockInterview({
+          recruiterId: link.recruiterId,
+          candidateId: user.id,
+          jobPostingId: link.jobPostingId,
+          interviewType: mockData.interviewType || 'technical',
+          role: mockData.role || 'Software Engineer',
+          company: mockData.company,
+          difficulty: mockData.difficulty || 'medium',
+          language: mockData.language || 'javascript',
+          totalQuestions: mockData.totalQuestions || 5,
+          dueDate: link.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        });
+        redirectUrl = `/mock-interview?sessionId=${mockInterview.sessionId}`;
+        break;
+      case 'test':
+        // Create test assignment
+        const testData = JSON.parse(link.interviewData || '{}');
+        if (testData.testTemplateId) {
+          const testAssignment = await storage.createTestAssignment({
+            testTemplateId: testData.testTemplateId,
+            jobSeekerId: user.id,
+            recruiterId: link.recruiterId,
+            jobPostingId: link.jobPostingId,
+            dueDate: link.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            status: 'assigned'
+          });
+          redirectUrl = `/test/${testAssignment.id}`;
+        } else {
+          redirectUrl = '/test-assignments';
+        }
+        break;
+      case 'video-interview':
+        redirectUrl = '/ChatInterview?fromInvite=true';
+        break;
+    }
+
+    // Increment usage count for the link
+    await db.update(schema.interviewInvitations)
+      .set({ usageCount: sql`${schema.interviewInvitations.usageCount} + 1` })
+      .where(eq(schema.interviewInvitations.id, link.id));
+
+    res.json({ redirectUrl });
   });
 
   // Interview Prep API - Generate interview preparation insights
@@ -2990,7 +2989,7 @@ Requirements:
             isVerified: true, 
             verifiedAt: new Date() 
           })
-          .where(eq(companyEmailVerifications.id, verification.id));
+          .where(eq(schema.companyEmailVerifications.id, verification.id));
       }
 
       // Redirect to sign in page with company verification success

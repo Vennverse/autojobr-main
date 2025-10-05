@@ -2,12 +2,12 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Plus, 
-  Video, 
-  Code, 
-  Users, 
-  Clock, 
+import {
+  Plus,
+  Video,
+  Code,
+  Users,
+  Clock,
   Award,
   TrendingUp,
   Calendar,
@@ -170,7 +170,7 @@ export default function InterviewAssignments() {
     company: '',
     difficulty: 'medium',
     expiresInDays: 7,
-    testTemplateId: ''
+    testTemplateId: null as number | null
   });
 
   // Fetch candidates (job seekers)
@@ -224,6 +224,33 @@ export default function InterviewAssignments() {
     },
     retry: 1
   });
+
+  // Fetch test templates
+  const { data: templates = [] } = useQuery({
+    queryKey: ['/api/tests/templates'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/tests/templates', {
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Test templates fetch error:', errorText);
+          throw new Error('Failed to fetch test templates');
+        }
+
+        const data = await response.json();
+        console.log('Test templates fetched:', data);
+        return data;
+      } catch (error) {
+        console.error('Test templates query error:', error);
+        throw error;
+      }
+    },
+    retry: 1
+  });
+
 
   // Fetch interview assignment stats
   const { data: stats } = useQuery({
@@ -279,7 +306,8 @@ export default function InterviewAssignments() {
         interviewConfig: JSON.stringify({
           role: linkGeneration.role,
           company: linkGeneration.company,
-          difficulty: linkGeneration.difficulty
+          difficulty: linkGeneration.difficulty,
+          testTemplateId: linkGeneration.interviewType === 'test' ? linkGeneration.testTemplateId : undefined
         }),
         expiryDays: linkGeneration.expiresInDays || 7
       };
@@ -349,7 +377,7 @@ export default function InterviewAssignments() {
     if (!currentStats) {
       return { count: 0, completed: 0, pending: 0, avgScore: 0 };
     }
-    
+
     switch (typeId) {
       case 'virtual': return currentStats.virtual || { count: 0, completed: 0, pending: 0, avgScore: 0 };
       case 'mock': return currentStats.mock || { count: 0, completed: 0, pending: 0, avgScore: 0 };
@@ -495,7 +523,7 @@ export default function InterviewAssignments() {
 
                     {/* Action Buttons */}
                     <div className="flex gap-2 pt-2">
-                      <Button 
+                      <Button
                         onClick={() => openAssignmentModal(type.id as any)}
                         className={`flex-1 ${type.bgColor} hover:opacity-90`}
                         size="sm"
@@ -503,7 +531,7 @@ export default function InterviewAssignments() {
                         <Send className="h-4 w-4 mr-1" />
                         Assign
                       </Button>
-                      <Button 
+                      <Button
                         onClick={() => openLinkModal(type.id as any)}
                         variant="outline"
                         size="sm"
@@ -717,7 +745,7 @@ export default function InterviewAssignments() {
               <Label>Interview Type</Label>
               <Select
                 value={linkGeneration.interviewType}
-                onValueChange={(value: any) => setLinkGeneration(prev => ({ ...prev, interviewType: value }))}
+                onValueChange={(value: any) => setLinkGeneration(prev => ({ ...prev, interviewType: value, testTemplateId: null }))}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -725,6 +753,7 @@ export default function InterviewAssignments() {
                 <SelectContent>
                   <SelectItem value="virtual">Virtual AI Interview</SelectItem>
                   <SelectItem value="mock">Mock Coding Test</SelectItem>
+                  <SelectItem value="test">Test Assessment</SelectItem>
                   <SelectItem value="skills-verification">Skills Test</SelectItem>
                   <SelectItem value="personality">Personality Assessment</SelectItem>
                   <SelectItem value="simulation">Simulation Test</SelectItem>
@@ -734,17 +763,17 @@ export default function InterviewAssignments() {
             </div>
 
             <div>
-              <Label>Role {linkGeneration.interviewType === 'virtual' ? '*' : ''}</Label>
+              <Label>Role {linkGeneration.interviewType === 'virtual' || linkGeneration.interviewType === 'test' ? '*' : ''}</Label>
               <Input
                 value={linkGeneration.role}
                 onChange={(e) => setLinkGeneration(prev => ({ ...prev, role: e.target.value }))}
                 placeholder="e.g., Senior Software Engineer"
-                required={linkGeneration.interviewType === 'virtual'}
+                required={linkGeneration.interviewType === 'virtual' || linkGeneration.interviewType === 'test'}
                 disabled={!!linkGeneration.jobPostingId && linkGeneration.jobPostingId !== "no-job"}
               />
-              {linkGeneration.interviewType === 'virtual' && (
+              {(linkGeneration.interviewType === 'virtual' || linkGeneration.interviewType === 'test') && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  Role is required for virtual interviews to provide context to the AI interviewer
+                  Role is required for {linkGeneration.interviewType === 'virtual' ? 'virtual interviews' : 'test assessments'} to provide context
                 </p>
               )}
             </div>
@@ -793,11 +822,38 @@ export default function InterviewAssignments() {
                 />
               </div>
             </div>
+
+            {/* Conditional rendering for test template selection */}
+            {linkGeneration.interviewType === 'test' && (
+              <>
+                <div>
+                  <Label>Test Template</Label>
+                  <Select
+                    value={linkGeneration.testTemplateId?.toString() || ''}
+                    onValueChange={(value) => setLinkGeneration(prev => ({ ...prev, testTemplateId: parseInt(value) }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select test template" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60 overflow-y-auto">
+                      {templates?.map((template: any) => (
+                        <SelectItem key={template.id} value={template.id.toString()}>
+                          {template.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
             <Button
               onClick={generateShareableLink}
-              disabled={!linkGeneration.role || !linkGeneration.interviewType}
+              disabled={
+                (!linkGeneration.role && (linkGeneration.interviewType === 'virtual' || linkGeneration.interviewType === 'test')) ||
+                (linkGeneration.interviewType === 'test' && linkGeneration.testTemplateId === null)
+              }
               className="w-full"
             >
               Generate Link
@@ -837,7 +893,7 @@ export default function InterviewAssignments() {
                         size="sm"
                         variant="outline"
                         onClick={() => {
-                          navigator.clipboard.writeText(link.link);
+                          navigator.clipboard.writeText(link.shareableLink);
                           toast({
                             title: "Link Copied!",
                             description: "Interview link copied to clipboard",
@@ -850,7 +906,7 @@ export default function InterviewAssignments() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => window.open(link.link, '_blank')}
+                        onClick={() => window.open(link.shareableLink, '_blank')}
                       >
                         <ExternalLink className="h-4 w-4 mr-1" />
                         Open
@@ -858,9 +914,9 @@ export default function InterviewAssignments() {
                     </div>
                   </div>
                   <div className="mt-2">
-                    <Input 
-                      value={link.link} 
-                      readOnly 
+                    <Input
+                      value={link.shareableLink}
+                      readOnly
                       className="text-xs bg-white dark:bg-gray-800"
                     />
                   </div>
