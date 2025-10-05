@@ -1456,32 +1456,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store shareable link in database based on interview type
       if (interviewType === 'virtual' || interviewType === 'chat') {
         // Virtual/Chat interviews use virtualInterviews table
-        await db.execute(sql`
-          INSERT INTO virtual_interviews (
-            session_id, recruiter_id, job_posting_id, interview_type,
-            role, company, difficulty, status, shareable_link, 
-            link_expires_at, assignment_type, created_at
-          ) VALUES (
-            ${linkId}, ${recruiterId}, ${jobPostingId}, ${interviewType},
-            ${config.role}, ${config.company}, ${config.difficulty},
-            'shareable_link', ${shareableLink}, ${expiresAt.toISOString()},
-            'shareable_link', NOW()
-          )
-        `);
+        await db.insert(virtualInterviews).values({
+          sessionId: linkId,
+          assignedBy: recruiterId,
+          jobPostingId: jobPostingId || null,
+          interviewType: interviewType,
+          role: config.role,
+          company: config.company,
+          difficulty: config.difficulty,
+          status: 'shareable_link',
+          assignmentType: 'shareable_link',
+          duration: 30,
+          totalQuestions: 5,
+          questionsAsked: 0,
+          interviewerPersonality: 'professional'
+        });
       } else if (interviewType === 'mock') {
         // Mock interviews
-        await db.execute(sql`
-          INSERT INTO mock_interviews (
-            session_id, recruiter_id, job_posting_id, interview_type,
-            role, company, difficulty, status, shareable_link,
-            link_expires_at, assignment_type, created_at
-          ) VALUES (
-            ${linkId}, ${recruiterId}, ${jobPostingId}, ${interviewType},
-            ${config.role}, ${config.company}, ${config.difficulty},
-            'shareable_link', ${shareableLink}, ${expiresAt.toISOString()},
-            'shareable_link', NOW()
-          )
-        `);
+        await db.insert(mockInterviews).values({
+          sessionId: linkId,
+          assignedBy: recruiterId,
+          jobPostingId: jobPostingId || null,
+          interviewType: interviewType,
+          role: config.role,
+          company: config.company,
+          difficulty: config.difficulty,
+          status: 'shareable_link',
+          assignmentType: 'shareable_link',
+          language: 'javascript',
+          totalQuestions: 5
+        });
       }
 
       res.json({
