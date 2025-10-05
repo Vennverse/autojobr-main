@@ -3131,27 +3131,32 @@ Requirements:
   });
 
 
+  // Process interview invitation after user authentication
   app.post('/api/interviews/invite/:token/use', isAuthenticated, async (req: any, res) => {
     try {
       const { token } = req.params;
       const userId = req.user.id;
 
-      const invitation = await db.select()
+      // Find the invitation
+      const [invitation] = await db.select()
         .from(schema.interviewInvitations)
         .where(eq(schema.interviewInvitations.token, token))
         .limit(1);
 
-      if (!invitation.length || invitation[0].expiryDate < new Date()) {
-        return res.status(404).json({ message: 'Invalid or expired invitation' });
+      if (!invitation) {
+        return res.status(404).json({ message: 'Interview link not found' });
       }
 
-      const invitationData = invitation[0];
+      // Check expiry
+      if (invitation.expiryDate && new Date(invitation.expiryDate) < new Date()) {
+        return res.status(410).json({ message: 'This interview link has expired' });
+      }
 
       // Check if this specific user has already used this invitation
       const existingUse = await db.select()
         .from(schema.invitationUses)
         .where(and(
-          eq(schema.invitationUses.invitationId, invitationData.id),
+          eq(schema.invitationUses.invitationId, invitation.id),
           eq(schema.invitationUses.candidateId, userId)
         ))
         .limit(1);
@@ -3161,31 +3166,92 @@ Requirements:
       }
 
       // Check if invitation has reached max uses
-      if (invitationData.maxUses !== null && invitationData.usageCount !== null && invitationData.usageCount >= invitationData.maxUses) {
-        return res.status(400).json({ message: 'This invitation has reached its maximum number of uses' });
+      if (invitation.maxUses !== null && invitation.usageCount !== null && invitation.usageCount >= invitation.maxUses) {
+        return res.status(410).json({ message: 'This invitation has reached its maximum number of uses' });
       }
 
       // Get user info for tracking
       const user = await storage.getUser(userId);
 
-      // Record the use and increment usage count
+      // Parse interview config
+      const config = typeof invitation.interviewConfig === 'string' 
+        ? JSON.parse(invitation.interviewConfig) 
+        : invitation.interviewConfig;
+
+      // Create interview assignment based on type
+      let interviewUrl = '';
+      let sessionId = '';
+
+      if (invitation.interviewType === 'virtual' || invitation.interviewType === 'chat') {
+        // Generate unique session ID for chat interview
+        sessionId = `virtual_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // Create virtual interview record
+        await db.insert(virtualInterviews).values({
+          userId,
+          sessionId,
+          role: invitation.role || 'software_engineer',
+          interviewType: config.interviewType || 'technical',
+          difficulty: invitation.difficulty || 'medium',
+          duration: config.duration || 30,
+          totalQuestions: config.totalQuestions || 5,
+          questionsAsked: 0,
+          status: 'assigned',
+          assignedBy: invitation.recruiterId,
+          assignedAt: new Date(),
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          jobPostingId: invitation.jobPostingId || null,
+          assignmentType: 'link_based',
+          interviewerPersonality: config.interviewerPersonality || 'professional',
+          company: invitation.company || '',
+          jobDescription: config.jobDescription || ''
+        });
+
+        interviewUrl = `/chat-interview/${sessionId}`;
+      } else if (invitation.interviewType === 'mock') {
+        // Generate session ID for mock interview
+        sessionId = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // Create mock interview record
+        await db.insert(schema.mockInterviews).values({
+          userId,
+          sessionId,
+          role: invitation.role || 'software_engineer',
+          interviewType: config.interviewType || 'technical',
+          difficulty: invitation.difficulty || 'medium',
+          language: config.language || 'javascript',
+          totalQuestions: config.totalQuestions || 5,
+          status: 'assigned',
+          assignedBy: invitation.recruiterId,
+          assignedAt: new Date(),
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          jobPostingId: invitation.jobPostingId || null,
+          assignmentType: 'link_based',
+          company: invitation.company || ''
+        });
+
+        interviewUrl = `/mock-interview/session/${sessionId}`;
+      }
+
+      // Record the invitation use
       await db.insert(schema.invitationUses).values({
-        invitationId: invitationData.id,
+        invitationId: invitation.id,
         candidateId: userId,
         candidateEmail: user?.email || null,
         candidateName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : null,
         usedAt: new Date()
       });
 
+      // Increment usage count
       await db.update(schema.interviewInvitations)
         .set({ usageCount: sql`${schema.interviewInvitations.usageCount} + 1` })
-        .where(eq(schema.interviewInvitations.token, token));
+        .where(eq(schema.interviewInvitations.id, invitation.id));
 
       // Create job application if jobPostingId exists
-      if (invitationData.jobPostingId) {
+      if (invitation.jobPostingId) {
         try {
           await db.insert(schema.jobPostingApplications).values({
-            jobPostingId: invitationData.jobPostingId,
+            jobPostingId: invitation.jobPostingId,
             applicantId: userId,
             status: 'applied',
             appliedAt: new Date()
@@ -3196,62 +3262,17 @@ Requirements:
         }
       }
 
-      // Create interview assignment
-      let interviewUrl = '';
-
-      if (invitationData.interviewType === 'virtual') {
-        // Import the chat interview service
-        const { chatInterviewService } = await import('./chatInterviewService.js');
-
-        // Generate unique session ID for chat interview
-        const sessionId = crypto.randomBytes(32).toString('hex');
-
-        // Create interview record in virtualInterviews table
-        const interview = await db.insert(virtualInterviews).values({
-          userId,
-          sessionId,
-          role: invitationData.role || 'software_engineer',
-          interviewType: 'technical',
-          difficulty: invitationData.difficulty || 'medium',
-          duration: 30,
-          totalQuestions: 5,
-          questionsAsked: 0,
-          status: 'assigned',
-          assignedBy: invitationData.recruiterId,
-          assignedAt: new Date(),
-          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          jobPostingId: invitationData.jobPostingId || null,
-          assignmentType: 'recruiter_assigned',
-          interviewerPersonality: 'professional',
-          company: invitationData.company || ''
-        }).returning();
-
-        // Set the interview URL to the chat interview path
-        interviewUrl = `/chat-interview/${sessionId}`;
-      } else if (invitationData.interviewType === 'mock') {
-        const interview = await interviewAssignmentService.assignMockInterview({
-          recruiterId: invitationData.recruiterId,
-          candidateId: userId,
-          jobPostingId: invitationData.jobPostingId ?? undefined,
-          interviewType: 'technical',
-          role: invitationData.role,
-          company: invitationData.company ?? undefined,
-          difficulty: invitationData.difficulty ?? undefined,
-          language: 'javascript',
-          totalQuestions: 5,
-          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        });
-        interviewUrl = `/mock-interview/${interview.sessionId}`;
-      }
-
       res.json({
         success: true,
+        sessionId,
         interviewUrl,
-        interviewType: invitationData.interviewType,
+        interviewType: invitation.interviewType,
         message: 'Interview assigned successfully'
       });
+
     } catch (error) {
-      handleError(res, error, "Failed to use interview invitation");
+      console.error('Error processing interview invitation:', error);
+      handleError(res, error, "Failed to process interview invitation");
     }
   });
 
