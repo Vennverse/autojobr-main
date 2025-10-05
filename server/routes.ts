@@ -576,6 +576,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test templates endpoints
+  app.get('/api/test-templates', async (req: any, res) => {
+    try {
+      const templates = await storage.getTestTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error('Error fetching test templates:', error);
+      handleError(res, error, "Failed to fetch test templates");
+    }
+  });
+
+  app.post('/api/test-templates', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const templateData = {
+        ...req.body,
+        createdBy: userId,
+      };
+      
+      const template = await storage.createTestTemplate(templateData);
+      res.json(template);
+    } catch (error) {
+      console.error('Error creating test template:', error);
+      handleError(res, error, "Failed to create test template");
+    }
+  });
+
+  app.post('/api/test-templates/:id/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const templateId = parseInt(req.params.id);
+      const { aptitudeQuestions, englishQuestions, domainQuestions, includeExtremeQuestions, jobProfile, difficultyLevel } = req.body;
+      
+      // Get job profile tags
+      const tags = jobProfile ? [jobProfile] : [];
+      
+      // Generate questions from question bank
+      const questions = await questionBankService.generateTestForProfile(
+        tags,
+        (aptitudeQuestions || 15) + (englishQuestions || 6) + (domainQuestions || 9),
+        {
+          aptitude: aptitudeQuestions || 15,
+          english: englishQuestions || 6,
+          domain: domainQuestions || 9
+        },
+        includeExtremeQuestions !== false
+      );
+      
+      // Update template with generated questions
+      await storage.updateTestTemplate(templateId, { questions });
+      
+      res.json(questions);
+    } catch (error) {
+      console.error('Error generating test questions:', error);
+      handleError(res, error, "Failed to generate test questions");
+    }
+  });
+
   // Internship scraping endpoints
   app.post('/api/internships/scrape', isAuthenticated, async (req: any, res) => {
     try {

@@ -274,7 +274,7 @@ export interface IStorage {
   getJobPostingApplications(jobPostingId: number): Promise<JobPostingApplication[]>;
   getJobPostingApplication(id: number): Promise<JobPostingApplication | undefined>;
   getApplicationsForRecruiter(recruiterId: string): Promise<JobPostingApplication[]>;
-  getApplicationsForJobSeeker(jobSeekerId: string): Promise<JobPostingApplication[]>;
+  getApplicationsForJobSeeker(jobSeekerId: string): Promise<JobApplication[]>;
   getApplicationsForJob(jobId: number): Promise<JobPostingApplication[]>;
   createJobPostingApplication(application: InsertJobPostingApplication): Promise<JobPostingApplication>;
   updateJobPostingApplication(id: number, application: Partial<InsertJobPostingApplication>): Promise<JobPostingApplication>;
@@ -1421,6 +1421,7 @@ export class DatabaseStorage implements IStorage {
     }, undefined);
   }
 
+  // Create test template
   async createTestTemplate(template: InsertTestTemplate): Promise<TestTemplate> {
     return await handleDbOperation(async () => {
       const [newTemplate] = await this.db.insert(testTemplates).values(template).returning();
@@ -1428,6 +1429,7 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  // Update test template
   async updateTestTemplate(id: number, template: Partial<InsertTestTemplate>): Promise<TestTemplate> {
     return await handleDbOperation(async () => {
       const [updatedTemplate] = await this.db
