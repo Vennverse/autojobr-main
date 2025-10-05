@@ -842,6 +842,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const bidderRoutes = (await import('./bidderRoutes.js')).default;
   app.use('/api', bidderRoutes);
 
+  // ===== MOUNT PAYMENT ROUTES =====
+  const { paymentRoutes } = await import('./paymentRoutes.js');
+  app.use('/api/payment', paymentRoutes);
+
   // Import applicants from external sources (CSV, JSON, or ATS export)
   app.post('/api/recruiter/import-applicants', isAuthenticated, upload.single('file'), async (req: any, res) => {
     try {
@@ -2137,6 +2141,74 @@ Requirements:
     res.redirect('/?subscription=cancelled&message=Subscription setup was cancelled');
   });
 
+  // PayPal Subscription Verification Endpoint (for frontend)
+  app.post('/api/paypal/verify-subscription', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const { subscriptionId, planId, planType } = req.body;
+      const userId = req.user.id;
+
+      if (!subscriptionId || !planId || !planType) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Missing required fields' 
+        });
+      }
+
+      // Update user subscription in database
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 1); // 1 month from now
+
+      await db.update(schema.users)
+        .set({
+          planType,
+          subscriptionStatus: 'active',
+          paypalSubscriptionId: subscriptionId,
+          subscriptionStartDate: new Date(),
+          subscriptionEndDate: endDate,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.users.id, userId));
+
+      // Also create/update subscription record
+      await db.insert(schema.subscriptions).values({
+        userId,
+        tier: planType,
+        tierId: planId,
+        paypalSubscriptionId: subscriptionId,
+        status: 'active',
+        paymentMethod: 'paypal',
+        amount: planType === 'premium' ? '5.00' : planType === 'ultra_premium' ? '15.00' : '0.00',
+        currency: 'USD',
+        billingCycle: 'monthly',
+        startDate: new Date(),
+        endDate: endDate,
+        nextBillingDate: endDate,
+        createdAt: new Date()
+      }).onConflictDoUpdate({
+        target: schema.subscriptions.userId,
+        set: {
+          tier: planType,
+          tierId: planId,
+          paypalSubscriptionId: subscriptionId,
+          status: 'active',
+          updatedAt: new Date()
+        }
+      });
+
+      res.json({ 
+        success: true, 
+        message: 'Subscription verified and activated',
+        planType 
+      });
+    } catch (error) {
+      console.error('PayPal subscription verification error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to verify subscription' 
+      });
+    }
+  }));
+
   // PayPal Webhook Handler for subscription events
   app.post("/api/webhook/paypal-subscription", async (req, res) => {
     try {
@@ -2239,6 +2311,25 @@ Requirements:
     });
 
     res.json(userSubscription || null);
+  }));
+
+  app.get("/api/subscription/status", isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    const userId = req.user.id;
+    const user = await storage.getUser(userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const usage = await usageMonitoringService.generateUsageReport(userId);
+
+    res.json({
+      planType: user.planType || 'free',
+      subscriptionStatus: user.subscriptionStatus || 'free',
+      subscriptionEndDate: user.subscriptionEndDate,
+      usage: usage.usage,
+      limits: usage.limits
+    });
   }));
 
   // ACE FEATURE ROUTES - Predictive Success Intelligence
@@ -2572,6 +2663,58 @@ Requirements:
     } catch (error) {
       console.error('Error fetching premium usage stats:', error);
       res.status(500).json({ message: 'Failed to fetch usage stats' });
+    }
+  }));
+
+  // 7. Premium Features Overview Endpoint
+  app.get('/api/premium/features', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const userId = req.user.id;
+      const [usage, access, value, user] = await Promise.all([
+        premiumFeaturesService.getUserUsageStats(userId),
+        premiumFeaturesService.getPremiumFeatureAccess(userId),
+        premiumFeaturesService.getPremiumValue(userId),
+        storage.getUser(userId)
+      ]);
+
+      res.json({
+        planType: user?.planType || 'free',
+        usage,
+        access,
+        value,
+        isPremium: user?.planType === 'premium' || user?.planType === 'enterprise'
+      });
+    } catch (error) {
+      console.error('Error fetching premium features:', error);
+      res.status(500).json({ message: 'Failed to fetch premium features' });
+    }
+  }));
+
+  // 8. Check Specific Feature Limit Endpoint
+  app.get('/api/premium/check-limit/:feature', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const userId = req.user.id;
+      const { feature } = req.params;
+      
+      const result = await premiumFeaturesService.checkFeatureLimit(userId, feature as any);
+      res.json(result);
+    } catch (error) {
+      console.error('Error checking feature limit:', error);
+      res.status(500).json({ message: 'Failed to check feature limit' });
+    }
+  }));
+
+  // 9. Validate Feature Usage Endpoint
+  app.post('/api/premium/validate-usage', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const userId = req.user.id;
+      const { feature } = req.body;
+      
+      const result = await premiumFeaturesService.validateFeatureUsage(userId, feature);
+      res.json(result);
+    } catch (error) {
+      console.error('Error validating feature usage:', error);
+      res.status(500).json({ message: 'Failed to validate feature usage' });
     }
   }));
 
