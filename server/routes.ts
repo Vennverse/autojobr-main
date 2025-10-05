@@ -1443,6 +1443,205 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Chat Interview Assignment Routes
+  app.post('/api/chat-interview/assign', isAuthenticated, async (req: any, res) => {
+    try {
+      const recruiterId = req.user?.id || req.session?.user?.id;
+      if (!recruiterId) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+
+      const assignmentData = {
+        ...req.body,
+        recruiterId
+      };
+
+      const result = await interviewAssignmentService.assignVirtualInterview(assignmentData);
+      res.json({ success: true, ...result });
+    } catch (error) {
+      console.error('Chat interview assignment error:', error);
+      res.status(500).json({ 
+        message: 'Failed to assign chat interview',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Interview Statistics
+  app.get('/api/interviews/stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const recruiterId = req.user?.id || req.session?.user?.id;
+      if (!recruiterId) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+
+      const stats = await interviewAssignmentService.getAssignmentStats(recruiterId);
+      res.json(stats);
+    } catch (error) {
+      console.error('Interview stats error:', error);
+      res.status(500).json({ message: 'Failed to fetch interview statistics' });
+    }
+  });
+
+  // Generate Shareable Interview Link
+  app.post('/api/interviews/generate-link', isAuthenticated, async (req: any, res) => {
+    try {
+      const recruiterId = req.user?.id || req.session?.user?.id;
+      if (!recruiterId) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+
+      const { jobPostingId, interviewType, interviewConfig, expiryDays } = req.body;
+      
+      const sessionId = `shared_${interviewType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + (expiryDays || 7));
+
+      const shareableLink = `${process.env.BASE_URL || 'https://autojobr.com'}/interview-invite/${sessionId}`;
+
+      // Store the shareable link configuration
+      const config = JSON.parse(interviewConfig || '{}');
+      
+      res.json({
+        sessionId,
+        shareableLink,
+        expiresAt,
+        interviewType,
+        role: config.role,
+        company: config.company,
+        difficulty: config.difficulty
+      });
+    } catch (error) {
+      console.error('Generate link error:', error);
+      res.status(500).json({ message: 'Failed to generate shareable link' });
+    }
+  });
+
+  // Assign Virtual Interview
+  app.post('/api/interviews/virtual/assign', isAuthenticated, async (req: any, res) => {
+    try {
+      const recruiterId = req.user?.id || req.session?.user?.id;
+      if (!recruiterId) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+
+      const assignmentData = {
+        ...req.body,
+        recruiterId
+      };
+
+      const result = await interviewAssignmentService.assignVirtualInterview(assignmentData);
+      res.json({ success: true, ...result });
+    } catch (error) {
+      console.error('Virtual interview assignment error:', error);
+      res.status(500).json({ message: 'Failed to assign virtual interview' });
+    }
+  });
+
+  // Assign Mock Interview
+  app.post('/api/interviews/mock/assign', isAuthenticated, async (req: any, res) => {
+    try {
+      const recruiterId = req.user?.id || req.session?.user?.id;
+      if (!recruiterId) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+
+      const assignmentData = {
+        ...req.body,
+        recruiterId
+      };
+
+      const result = await interviewAssignmentService.assignMockInterview(assignmentData);
+      res.json({ success: true, ...result });
+    } catch (error) {
+      console.error('Mock interview assignment error:', error);
+      res.status(500).json({ message: 'Failed to assign mock interview' });
+    }
+  });
+
+  // Pipeline Analytics
+  app.get('/api/recruiter/pipeline-analytics', isAuthenticated, async (req: any, res) => {
+    try {
+      const recruiterId = req.user?.id || req.session?.user?.id;
+      if (!recruiterId) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+
+      const applications = await storage.getRecruiterApplications(recruiterId);
+      
+      const analytics = {
+        totalApplications: applications.length,
+        byStage: applications.reduce((acc: any, app: any) => {
+          acc[app.status] = (acc[app.status] || 0) + 1;
+          return acc;
+        }, {}),
+        averageTimeToHire: 0,
+        conversionRates: {},
+        topSources: []
+      };
+
+      res.json(analytics);
+    } catch (error) {
+      console.error('Pipeline analytics error:', error);
+      res.status(500).json({ message: 'Failed to fetch pipeline analytics' });
+    }
+  });
+
+  // Bulk Application Actions
+  app.post('/api/recruiter/applications/bulk', isAuthenticated, async (req: any, res) => {
+    try {
+      const recruiterId = req.user?.id || req.session?.user?.id;
+      if (!recruiterId) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+
+      const { action, applicationIds, notes } = req.body;
+
+      for (const appId of applicationIds) {
+        if (action === 'reject') {
+          await storage.updateApplicationStatus(appId, 'rejected', notes);
+        } else if (action === 'advance') {
+          await storage.updateApplicationStatus(appId, 'interview', notes);
+        }
+      }
+
+      res.json({ success: true, message: `${action} applied to ${applicationIds.length} applications` });
+    } catch (error) {
+      console.error('Bulk action error:', error);
+      res.status(500).json({ message: 'Failed to perform bulk action' });
+    }
+  });
+
+  // Schedule Appointment with Candidate
+  app.post('/api/recruiter/schedule-appointment', isAuthenticated, async (req: any, res) => {
+    try {
+      const recruiterId = req.user?.id || req.session?.user?.id;
+      if (!recruiterId) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+
+      const { 
+        applicationId, 
+        candidateEmail, 
+        candidateName, 
+        jobTitle,
+        schedulingLink,
+        finalEmailContent
+      } = req.body;
+
+      await sendEmail({
+        to: candidateEmail,
+        subject: `Interview Scheduling - ${jobTitle}`,
+        html: finalEmailContent
+      });
+
+      res.json({ success: true, message: 'Appointment email sent successfully' });
+    } catch (error) {
+      console.error('Schedule appointment error:', error);
+      res.status(500).json({ message: 'Failed to schedule appointment' });
+    }
+  });
+
   // Email configuration endpoints
   app.get('/api/admin/email/config', isAuthenticated, async (req: any, res) => {
     try {
