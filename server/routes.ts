@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 import { db } from "./db";
 import { eq, desc, and, or, like, isNotNull, count, asc, isNull, sql, inArray } from "drizzle-orm";
 import * as schema from "@shared/schema";
-import { resumes, userResumes, insertInternshipApplicationSchema, companyEmailVerifications, virtualInterviews } from "@shared/schema";
+import { resumes, userResumes, insertInternshipApplicationSchema, companyEmailVerifications, virtualInterviews, users } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated, isAuthenticatedExtension } from "./auth";
 import { storage } from "./storage";
@@ -1472,7 +1472,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (virtualResult.rows.length > 0) {
         const interview = virtualResult.rows[0];
-        
+
         // Check if link is expired
         if (interview.link_expires_at && new Date(interview.link_expires_at) < new Date()) {
           return res.status(410).json({ message: 'This interview link has expired' });
@@ -1498,7 +1498,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (mockResult.rows.length > 0) {
         const interview = mockResult.rows[0];
-        
+
         if (interview.link_expires_at && new Date(interview.link_expires_at) < new Date()) {
           return res.status(410).json({ message: 'This interview link has expired' });
         }
@@ -1537,7 +1537,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (virtualResult.rows.length > 0) {
         const template = virtualResult.rows[0];
-        
+
         // Check expiry
         if (template.link_expires_at && new Date(template.link_expires_at) < new Date()) {
           return res.status(410).json({ message: 'This interview link has expired' });
@@ -1545,7 +1545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Create new interview session for this user
         const newSessionId = `interview_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
+
         await db.execute(sql`
           INSERT INTO virtual_interviews (
             user_id, session_id, interview_type, role, company, difficulty,
@@ -1576,13 +1576,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (mockResult.rows.length > 0) {
         const template = mockResult.rows[0];
-        
+
         if (template.link_expires_at && new Date(template.link_expires_at) < new Date()) {
           return res.status(410).json({ message: 'This interview link has expired' });
         }
 
         const newSessionId = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
+
         await db.execute(sql`
           INSERT INTO mock_interviews (
             user_id, session_id, interview_type, role, company, difficulty,
@@ -1614,7 +1614,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/interview-prep', isAuthenticated, async (req: any, res) => {
     try {
       const validationResult = interviewPrepSchema.safeParse(req.body);
-      
+
       if (!validationResult.success) {
         return res.status(400).json({ 
           message: 'Invalid request data', 
@@ -1623,7 +1623,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const preparation = interviewPrepService.generatePreparation(validationResult.data);
-      
+
       res.json({
         success: true,
         ...preparation
@@ -1641,7 +1641,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/salary-insights', isAuthenticated, async (req: any, res) => {
     try {
       const validationResult = salaryInsightsSchema.safeParse(req.body);
-      
+
       if (!validationResult.success) {
         return res.status(400).json({ 
           message: 'Invalid request data', 
@@ -1650,7 +1650,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const insights = salaryInsightsService.generateInsights(validationResult.data);
-      
+
       res.json({
         success: true,
         ...insights
@@ -1664,202 +1664,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Chat Interview Assignment Routes
-  app.post('/api/chat-interview/assign', isAuthenticated, async (req: any, res) => {
+  // Cover Letter Generation API - Generate personalized cover letters
+  app.post('/api/generate-cover-letter', isAuthenticated, async (req: any, res) => {
     try {
-      const recruiterId = req.user?.id || req.session?.user?.id;
-      if (!recruiterId) {
-        return res.status(401).json({ message: 'Not authenticated' });
+      const { jobDescription, jobTitle, companyName, resumeId } = req.body;
+
+      if (!jobDescription) {
+        return res.status(400).json({ 
+          message: 'Job description is required' 
+        });
       }
 
-      const assignmentData = {
-        ...req.body,
-        recruiterId
-      };
+      const userId = req.user.id;
 
-      const result = await interviewAssignmentService.assignVirtualInterview(assignmentData);
-      res.json({ success: true, ...result });
-    } catch (error) {
-      console.error('Chat interview assignment error:', error);
-      res.status(500).json({ 
-        message: 'Failed to assign chat interview',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
+      // Get user's resume if resumeId provided
+      let resumeText = '';
+      if (resumeId) {
+        const [resume] = await db.select()
+          .from(userResumes)
+          .where(and(
+            eq(userResumes.userId, userId),
+            eq(userResumes.id, resumeId)
+          ))
+          .limit(1);
 
-  // Interview Statistics
-  app.get('/api/interviews/stats', isAuthenticated, async (req: any, res) => {
-    try {
-      const recruiterId = req.user?.id || req.session?.user?.id;
-      if (!recruiterId) {
-        return res.status(401).json({ message: 'Not authenticated' });
-      }
-
-      const stats = await interviewAssignmentService.getAssignmentStats(recruiterId);
-      res.json(stats);
-    } catch (error) {
-      console.error('Interview stats error:', error);
-      res.status(500).json({ message: 'Failed to fetch interview statistics' });
-    }
-  });
-
-  // Generate Shareable Interview Link
-  app.post('/api/interviews/generate-link', isAuthenticated, async (req: any, res) => {
-    try {
-      const recruiterId = req.user?.id || req.session?.user?.id;
-      if (!recruiterId) {
-        return res.status(401).json({ message: 'Not authenticated' });
-      }
-
-      const { jobPostingId, interviewType, interviewConfig, expiryDays } = req.body;
-      
-      const sessionId = `shared_${interviewType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + (expiryDays || 7));
-
-      const shareableLink = `${process.env.BASE_URL || 'https://autojobr.com'}/interview-invite/${sessionId}`;
-
-      // Store the shareable link configuration
-      const config = JSON.parse(interviewConfig || '{}');
-      
-      res.json({
-        sessionId,
-        shareableLink,
-        expiresAt,
-        interviewType,
-        role: config.role,
-        company: config.company,
-        difficulty: config.difficulty
-      });
-    } catch (error) {
-      console.error('Generate link error:', error);
-      res.status(500).json({ message: 'Failed to generate shareable link' });
-    }
-  });
-
-  // Assign Virtual Interview
-  app.post('/api/interviews/virtual/assign', isAuthenticated, async (req: any, res) => {
-    try {
-      const recruiterId = req.user?.id || req.session?.user?.id;
-      if (!recruiterId) {
-        return res.status(401).json({ message: 'Not authenticated' });
-      }
-
-      const assignmentData = {
-        ...req.body,
-        recruiterId
-      };
-
-      const result = await interviewAssignmentService.assignVirtualInterview(assignmentData);
-      res.json({ success: true, ...result });
-    } catch (error) {
-      console.error('Virtual interview assignment error:', error);
-      res.status(500).json({ message: 'Failed to assign virtual interview' });
-    }
-  });
-
-  // Assign Mock Interview
-  app.post('/api/interviews/mock/assign', isAuthenticated, async (req: any, res) => {
-    try {
-      const recruiterId = req.user?.id || req.session?.user?.id;
-      if (!recruiterId) {
-        return res.status(401).json({ message: 'Not authenticated' });
-      }
-
-      const assignmentData = {
-        ...req.body,
-        recruiterId
-      };
-
-      const result = await interviewAssignmentService.assignMockInterview(assignmentData);
-      res.json({ success: true, ...result });
-    } catch (error) {
-      console.error('Mock interview assignment error:', error);
-      res.status(500).json({ message: 'Failed to assign mock interview' });
-    }
-  });
-
-  // Pipeline Analytics
-  app.get('/api/recruiter/pipeline-analytics', isAuthenticated, async (req: any, res) => {
-    try {
-      const recruiterId = req.user?.id || req.session?.user?.id;
-      if (!recruiterId) {
-        return res.status(401).json({ message: 'Not authenticated' });
-      }
-
-      const applications = await storage.getRecruiterApplications(recruiterId);
-      
-      const analytics = {
-        totalApplications: applications.length,
-        byStage: applications.reduce((acc: any, app: any) => {
-          acc[app.status] = (acc[app.status] || 0) + 1;
-          return acc;
-        }, {}),
-        averageTimeToHire: 0,
-        conversionRates: {},
-        topSources: []
-      };
-
-      res.json(analytics);
-    } catch (error) {
-      console.error('Pipeline analytics error:', error);
-      res.status(500).json({ message: 'Failed to fetch pipeline analytics' });
-    }
-  });
-
-  // Bulk Application Actions
-  app.post('/api/recruiter/applications/bulk', isAuthenticated, async (req: any, res) => {
-    try {
-      const recruiterId = req.user?.id || req.session?.user?.id;
-      if (!recruiterId) {
-        return res.status(401).json({ message: 'Not authenticated' });
-      }
-
-      const { action, applicationIds, notes } = req.body;
-
-      for (const appId of applicationIds) {
-        if (action === 'reject') {
-          await storage.updateApplicationStatus(appId, 'rejected', notes);
-        } else if (action === 'advance') {
-          await storage.updateApplicationStatus(appId, 'interview', notes);
+        if (resume) {
+          resumeText = resume.resumeText || '';
         }
       }
 
-      res.json({ success: true, message: `${action} applied to ${applicationIds.length} applications` });
-    } catch (error) {
-      console.error('Bulk action error:', error);
-      res.status(500).json({ message: 'Failed to perform bulk action' });
-    }
-  });
+      // Get user profile for personalization
+      const [userProfile] = await db.select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
 
-  // Schedule Appointment with Candidate
-  app.post('/api/recruiter/schedule-appointment', isAuthenticated, async (req: any, res) => {
-    try {
-      const recruiterId = req.user?.id || req.session?.user?.id;
-      if (!recruiterId) {
-        return res.status(401).json({ message: 'Not authenticated' });
-      }
+      // Generate cover letter using AI
+      const prompt = `Generate a professional, personalized cover letter based on:
 
-      const { 
-        applicationId, 
-        candidateEmail, 
-        candidateName, 
-        jobTitle,
-        schedulingLink,
-        finalEmailContent
-      } = req.body;
+Job Title: ${jobTitle || 'Not specified'}
+Company: ${companyName || 'Not specified'}
+Job Description: ${jobDescription}
 
-      await sendEmail({
-        to: candidateEmail,
-        subject: `Interview Scheduling - ${jobTitle}`,
-        html: finalEmailContent
+Candidate Background:
+${resumeText ? `Resume: ${resumeText.substring(0, 1000)}...` : 'Professional with relevant experience'}
+
+Requirements:
+- Opening paragraph that shows enthusiasm and explains why you're interested
+- Body paragraphs highlighting relevant experience and skills that match the job
+- Closing paragraph with call to action
+- Professional, engaging tone
+- Personalized to the specific company and role
+- 3-4 paragraphs total
+- No placeholder text like [Your Name] - use actual information`;
+
+      const completion = await aiService.createChatCompletion([
+        {
+          role: "system",
+          content: "You are an expert career coach and professional writer. Generate compelling, personalized cover letters that highlight the candidate's strengths and match them to the job requirements."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ], {
+        temperature: 0.7,
+        max_tokens: 800,
+        user: req.user
       });
 
-      res.json({ success: true, message: 'Appointment email sent successfully' });
+      const coverLetter = completion.choices[0]?.message?.content || '';
+
+      res.json({
+        success: true,
+        coverLetter,
+        jobTitle,
+        companyName
+      });
     } catch (error) {
-      console.error('Schedule appointment error:', error);
-      res.status(500).json({ message: 'Failed to schedule appointment' });
+      console.error('Cover letter generation error:', error);
+      res.status(500).json({ 
+        message: 'Failed to generate cover letter',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
@@ -2373,7 +2260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
 
   // ACE FEATURE ROUTES - Viral Extension Network Effects
-  app.post('/api/extension/track-application', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+  app.post('/api/extension/track-application', isAuthenticated, asyncHandler(async (req: any, res) => {
     try {
       const { jobUrl, applicationData } = req.body;
       const userId = req.user.id;
@@ -2394,7 +2281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }));
 
-  app.post('/api/extension/share-intel', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+  app.post('/api/extension/share-intel', isAuthenticated, asyncHandler(async (req: any, res) => {
     try {
       const { jobUrl, intelligence } = req.body;
       const userId = req.user.id;
@@ -2415,7 +2302,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }));
 
-  app.post('/api/extension/create-referral', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+  app.post('/api/extension/create-referral', isAuthenticated, asyncHandler(async (req: any, res) => {
     try {
       const { jobUrl } = req.body;
       const userId = req.user.id;
@@ -2435,7 +2322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }));
 
-  app.get('/api/extension/viral-leaderboard', asyncHandler(async (req: any, res: any) => {
+  app.get('/api/extension/viral-leaderboard', asyncHandler(async (req: any, res) => {
     try {
       const leaderboard = await viralExtensionService.getViralLeaderboard();
 
@@ -2449,7 +2336,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }));
 
-  app.post('/api/extension/application-boost', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+  app.post('/api/extension/application-boost', isAuthenticated, asyncHandler(async (req: any, res) => {
     try {
       const { jobUrl } = req.body;
       const userId = req.user.id;
@@ -2557,7 +2444,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }));
 
-  // Auth routes - consolidated (duplicate routes removed)
+  // API for getting user data
   app.get('/api/user', isAuthenticated, asyncHandler(async (req: any, res: any) => {
     // Get fresh user data from database for accurate role information
     try {
@@ -2681,14 +2568,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
 
   // User activity tracking for online/offline status
-  app.post('/api/user/activity', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+  app.post('/api/user/activity', isAuthenticated, asyncHandler(async (req: any, res) => {
     const userId = req.user.id;
     userActivity.set(userId, Date.now());
     res.json({ success: true });
   }));
 
   // Get user online status
-  app.get('/api/user/status/:userId', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+  app.get('/api/user/status/:userId', isAuthenticated, asyncHandler(async (req: any, res) => {
     const { userId } = req.params;
     const lastActivity = userActivity.get(userId);
     const isOnline = lastActivity && (Date.now() - lastActivity) < ONLINE_THRESHOLD;
@@ -2931,10 +2818,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           await storage.upsertUser({
             ...user,
-            userType: 'recruiter',
+            userType: 'recruiter', // Database trigger will automatically set currentRole: 'recruiter'
             companyName: `${companyName} Company`,
-            availableRoles: "job_seeker,recruiter",
-            // currentRole will be automatically set to match userType
+            availableRoles: "job_seeker,recruiter" // Allow both roles
           });
 
           // Create company verification record
