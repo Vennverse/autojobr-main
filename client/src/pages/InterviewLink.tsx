@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useRoute, useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,14 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { Loader2, Video, Code, Clock, AlertCircle } from 'lucide-react';
+import { Loader2, Video, Code, Clock, AlertCircle, FileText } from 'lucide-react';
 
 export default function InterviewLink() {
   const [, params] = useRoute('/interview-link/:linkId');
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
-  
+
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
   const [interviewData, setInterviewData] = useState<any>(null);
@@ -35,7 +34,7 @@ export default function InterviewLink() {
     try {
       setLoading(true);
       const response = await fetch(`/api/interviews/link/${linkId}`);
-      
+
       if (response.status === 410) {
         setError('This interview link has expired');
         setLoading(false);
@@ -75,7 +74,7 @@ export default function InterviewLink() {
       }
 
       const data = await response.json();
-      
+
       toast({
         title: "Interview Started",
         description: "Redirecting you to your interview...",
