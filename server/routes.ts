@@ -1978,6 +1978,13 @@ Requirements:
 
   // Auth middleware was already set up at the beginning of registerRoutes
 
+  // Setup Simple Chat Routes
+  setupSimpleChatRoutes(app);
+  console.log('✅ Simple Chat routes registered');
+
+  // Initialize WebSocket service for real-time chat
+  console.log('🔌 WebSocket service ready for chat connections');
+
   // Setup payment routes
   // Payment routes are mounted inline below
 

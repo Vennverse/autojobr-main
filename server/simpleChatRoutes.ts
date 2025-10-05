@@ -8,6 +8,7 @@ import { simpleWebSocketService } from "./simpleWebSocketService";
  * Clean, minimal API for encrypted messaging
  */
 export function setupSimpleChatRoutes(app: Express) {
+  console.log('🔧 Setting up Simple Chat routes...');
 
   /**
    * GET /api/simple-chat/users
@@ -179,4 +180,13 @@ export function setupSimpleChatRoutes(app: Express) {
       timestamp: new Date().toISOString()
     });
   });
+
+  console.log('✅ Simple Chat routes registered successfully');
+  console.log('   - GET /api/simple-chat/users');
+  console.log('   - GET /api/simple-chat/conversations');
+  console.log('   - POST /api/simple-chat/conversations');
+  console.log('   - GET /api/simple-chat/messages/:conversationId');
+  console.log('   - POST /api/simple-chat/conversations/:conversationId/messages');
+  console.log('   - POST /api/simple-chat/conversations/:conversationId/read');
+  console.log('   - GET /api/simple-chat/health');
 }
