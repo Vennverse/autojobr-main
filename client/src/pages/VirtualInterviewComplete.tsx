@@ -7,11 +7,13 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import PayPalHostedButton from '@/components/PayPalHostedButton';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function VirtualInterviewComplete() {
   const [, params] = useRoute('/virtual-interview-complete/:sessionId');
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   
   const [completing, setCompleting] = useState(true);
   const [completed, setCompleted] = useState(false);
@@ -22,12 +24,23 @@ export default function VirtualInterviewComplete() {
   const sessionId = params?.sessionId;
 
   useEffect(() => {
+    // Check authentication first
+    if (authLoading) return;
+    
+    if (!isAuthenticated) {
+      // Redirect to login page with return URL
+      const returnUrl = `/virtual-interview-complete/${sessionId}`;
+      setLocation(`/auth-page?returnUrl=${encodeURIComponent(returnUrl)}`);
+      return;
+    }
+
     if (!sessionId) {
       setLocation('/virtual-interview-start');
       return;
     }
+    
     completeInterview();
-  }, [sessionId]);
+  }, [sessionId, authLoading, isAuthenticated]);
 
   const completeInterview = async () => {
     try {
@@ -41,7 +54,9 @@ export default function VirtualInterviewComplete() {
       
       toast({
         title: "Interview Completed",
-        description: "Your interview has been completed and analyzed. You can now view your feedback!",
+        description: response.assignmentType === 'recruiter_assigned' 
+          ? "Your interview has been submitted successfully. Thank you for completing it!"
+          : "Your interview has been completed and analyzed. You can now view your feedback!",
       });
     } catch (error) {
       console.error('Error completing interview:', error);
@@ -64,6 +79,30 @@ export default function VirtualInterviewComplete() {
     setLocation('/virtual-interview-start');
   };
 
+  const goToDashboard = () => {
+    setLocation('/dashboard');
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center space-y-4 pt-6">
+            <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Checking Authentication
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Please wait while we verify your account...
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (completing) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
@@ -85,6 +124,9 @@ export default function VirtualInterviewComplete() {
   }
 
   if (completed) {
+    // Check if this is a recruiter-assigned interview
+    const isRecruiterAssigned = interviewData?.assignmentType === 'recruiter_assigned';
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <Card className="w-full max-w-md">
@@ -100,25 +142,112 @@ export default function VirtualInterviewComplete() {
           <CardContent className="space-y-6">
             <div className="text-center">
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                Congratulations! You've successfully completed your virtual AI interview.
-                Your responses have been analyzed and your personalized feedback is ready.
+                {isRecruiterAssigned 
+                  ? "Congratulations! You've successfully completed your assigned interview. Your responses have been submitted to the recruiter."
+                  : "Congratulations! You've successfully completed your virtual AI interview. Your responses have been analyzed and your personalized feedback is ready."}
               </p>
             </div>
 
-            {/* Show retake option for low scores or recruiter-assigned interviews */}
-            {(interviewData?.overallScore < 70 || interviewData?.assignedByRecruiter) && (
+            {/* Show retake option for recruiter-assigned interviews */}
+            {isRecruiterAssigned && (
               <Card className="border-2 border-orange-200 bg-orange-50 dark:bg-orange-950/20 mb-4">
                 <CardHeader>
                   <CardTitle className="text-orange-800 dark:text-orange-200 flex items-center gap-2 text-lg">
                     <RefreshCw className="w-5 h-5" />
-                    {interviewData?.overallScore < 70 ? 'Improve Your Score' : 'Retake Available'}
+                    Want to Improve Your Performance?
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-orange-700 dark:text-orange-300">
-                    {interviewData?.assignedByRecruiter 
-                      ? 'This interview was assigned by a recruiter. You can retake it to improve your performance and show your best abilities!'
-                      : `Your score of ${interviewData?.overallScore}% shows room for improvement. Retake the interview to practice and improve your performance!`}
+                    This interview was assigned by a recruiter. You can retake it to practice and improve your performance before the recruiter reviews your submission!
+                  </p>
+                  
+                  <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-sm">Interview Retake</span>
+                      <span className="font-bold text-lg text-orange-600">$5</span>
+                    </div>
+                    <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                      <li>• Fresh set of questions</li>
+                      <li>• Same role and difficulty</li>
+                      <li>• Instant access after payment</li>
+                      <li>• Best performance counts</li>
+                    </ul>
+                  </div>
+
+                  {!showRetakePayment ? (
+                    <Button
+                      onClick={() => setShowRetakePayment(true)}
+                      className="w-full bg-orange-600 hover:bg-orange-700"
+                    >
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Pay $5 to Retake Interview
+                    </Button>
+                  ) : (
+                    <div className="space-y-4">
+                      <PayPalHostedButton
+                        purpose="virtual_interview"
+                        amount={5}
+                        itemName={`${(interviewData?.role || 'Interview').replace(/_/g, ' ')} Retake`}
+                        onPaymentSuccess={async (paymentData) => {
+                          try {
+                            // Call existing backend retake payment endpoint
+                            await apiRequest(`/api/interviews/virtual/${interviewId}/retake-payment`, 'POST', {
+                              paymentProvider: 'paypal',
+                              amount: 500 // $5 in cents
+                            });
+                            
+                            toast({
+                              title: "Payment Successful!",
+                              description: "Your interview retake access has been granted. Starting new interview...",
+                            });
+                            
+                            setTimeout(() => {
+                              setLocation('/virtual-interview-start');
+                            }, 1500);
+                          } catch (error: any) {
+                            toast({
+                              title: "Payment Processing Error",
+                              description: error.message || "Failed to process retake payment",
+                              variant: "destructive"
+                            });
+                          }
+                        }}
+                        onPaymentError={(error) => {
+                          toast({
+                            title: "Payment Failed",
+                            description: error.message || "There was an error processing your payment. Please try again.",
+                            variant: "destructive",
+                          });
+                        }}
+                        description="Complete payment to retake your virtual interview"
+                      />
+                      
+                      <Button
+                        variant="ghost"
+                        onClick={() => setShowRetakePayment(false)}
+                        className="w-full text-sm"
+                      >
+                        Cancel Payment
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+            
+            {/* Show retake option for self-initiated interviews with low scores */}
+            {!isRecruiterAssigned && interviewData?.overallScore < 70 && (
+              <Card className="border-2 border-orange-200 bg-orange-50 dark:bg-orange-950/20 mb-4">
+                <CardHeader>
+                  <CardTitle className="text-orange-800 dark:text-orange-200 flex items-center gap-2 text-lg">
+                    <RefreshCw className="w-5 h-5" />
+                    Improve Your Score
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-orange-700 dark:text-orange-300">
+                    Your score of {interviewData?.overallScore}% shows room for improvement. Retake the interview to practice and improve your performance!
                   </p>
                   
                   <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border">
@@ -196,28 +325,45 @@ export default function VirtualInterviewComplete() {
             )}
             
             <div className="space-y-3">
-              <Button
-                onClick={goToFeedback}
-                className="w-full"
-                size="lg"
-              >
-                View Your Feedback
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
+              {/* Only show feedback button for self-initiated interviews */}
+              {!isRecruiterAssigned && (
+                <Button
+                  onClick={goToFeedback}
+                  className="w-full"
+                  size="lg"
+                >
+                  View Your Feedback
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              )}
               
-              <Button
-                onClick={startNewInterview}
-                variant="outline"
-                className="w-full"
-                size="lg"
-              >
-                Start Another Interview
-              </Button>
+              {/* Show different buttons based on interview type */}
+              {isRecruiterAssigned ? (
+                <Button
+                  onClick={goToDashboard}
+                  variant="outline"
+                  className="w-full"
+                  size="lg"
+                >
+                  Return to Dashboard
+                </Button>
+              ) : (
+                <Button
+                  onClick={startNewInterview}
+                  variant="outline"
+                  className="w-full"
+                  size="lg"
+                >
+                  Start Another Interview
+                </Button>
+              )}
             </div>
 
             <div className="text-center">
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Your interview results have been saved to your profile
+                {isRecruiterAssigned 
+                  ? "Your interview responses have been submitted to the recruiter"
+                  : "Your interview results have been saved to your profile"}
               </p>
             </div>
           </CardContent>

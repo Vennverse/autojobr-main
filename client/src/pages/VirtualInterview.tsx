@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Loader2, MessageCircle, Clock, User, Bot } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/hooks/use-auth';
 
 interface InterviewMessage {
   sender: 'interviewer' | 'candidate';
@@ -29,6 +30,7 @@ export default function VirtualInterview() {
   const [, params] = useRoute('/virtual-interview/:sessionId');
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   
   const [interview, setInterview] = useState<InterviewState | null>(null);
   const [messages, setMessages] = useState<InterviewMessage[]>([]);
@@ -54,8 +56,18 @@ export default function VirtualInterview() {
   }
 
   useEffect(() => {
+    // Check authentication first
+    if (authLoading) return;
+    
+    if (!isAuthenticated) {
+      // Redirect to login page with return URL
+      const returnUrl = `/virtual-interview/${sessionId}`;
+      setLocation(`/auth-page?returnUrl=${encodeURIComponent(returnUrl)}`);
+      return;
+    }
+    
     loadCurrentQuestion();
-  }, [sessionId]);
+  }, [sessionId, authLoading, isAuthenticated]);
 
   // Timer countdown effect
   useEffect(() => {
@@ -202,6 +214,26 @@ export default function VirtualInterview() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center space-y-4 pt-6">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Checking Authentication
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Please wait while we verify your account...
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">

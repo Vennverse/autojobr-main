@@ -49,8 +49,18 @@ export default function InterviewInvite() {
 
       switch (interviewType) {
         case 'virtual':
-          // Redirect to virtual interview start
-          navigate(`/virtual-interview-start?fromInvite=true`);
+          // Redirect to chat interview with the session ID
+          if (data.interviewUrl && data.interviewUrl.includes('/virtual-interview/')) {
+            // Extract session ID from the URL
+            const sessionId = data.interviewUrl.split('/virtual-interview/')[1];
+            navigate(`/chat-interview/${sessionId}`);
+          } else if (data.interviewUrl && data.interviewUrl.includes('/chat-interview/')) {
+            // If the URL already points to chat interview, use it directly
+            navigate(data.interviewUrl);
+          } else {
+            // Fallback to virtual interview start
+            navigate(`/virtual-interview-start?fromInvite=true`);
+          }
           break;
         case 'mock':
           // Redirect to mock interview
