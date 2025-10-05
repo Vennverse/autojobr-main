@@ -1389,6 +1389,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Interview Prep API - Generate interview preparation insights
+  app.post('/api/interview-prep', isAuthenticated, async (req: any, res) => {
+    try {
+      const validationResult = interviewPrepSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: 'Invalid request data', 
+          errors: validationResult.error.errors 
+        });
+      }
+
+      const preparation = interviewPrepService.generatePreparation(validationResult.data);
+      
+      res.json({
+        success: true,
+        ...preparation
+      });
+    } catch (error) {
+      console.error('Interview prep error:', error);
+      res.status(500).json({ 
+        message: 'Failed to generate interview preparation',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Salary Insights API - Get salary range and compensation insights
+  app.post('/api/salary-insights', isAuthenticated, async (req: any, res) => {
+    try {
+      const validationResult = salaryInsightsSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: 'Invalid request data', 
+          errors: validationResult.error.errors 
+        });
+      }
+
+      const insights = salaryInsightsService.generateInsights(validationResult.data);
+      
+      res.json({
+        success: true,
+        ...insights
+      });
+    } catch (error) {
+      console.error('Salary insights error:', error);
+      res.status(500).json({ 
+        message: 'Failed to generate salary insights',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Email configuration endpoints
   app.get('/api/admin/email/config', isAuthenticated, async (req: any, res) => {
     try {
