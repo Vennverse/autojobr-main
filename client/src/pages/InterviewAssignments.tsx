@@ -225,12 +225,12 @@ export default function InterviewAssignments() {
     retry: 1
   });
 
-  // Fetch test templates
+  // Fetch test templates for link generation
   const { data: templates = [] } = useQuery({
-    queryKey: ['/api/tests/templates'],
+    queryKey: ['/api/test-templates'],
     queryFn: async () => {
       try {
-        const response = await fetch('/api/tests/templates', {
+        const response = await fetch('/api/test-templates', {
           credentials: 'include'
         });
 
