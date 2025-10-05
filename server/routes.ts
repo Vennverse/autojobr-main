@@ -1549,59 +1549,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Start Interview/Test from Shareable Link
   app.post('/api/interviews/link/:linkId/start', isAuthenticated, async (req: Request, res: Response) => {
-    const { linkId } = req.params;
-    const user = req.user as User | undefined;
+    try {
+      const { linkId } = req.params;
+      const user = req.user as User | undefined;
 
-    if (!user) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
-
-    const link = await storage.getInterviewLinkByLinkId(linkId);
-    if (!link) {
-      return res.status(404).json({ message: 'Interview link not found' });
-    }
-
-    // Check if link is expired
-    if (link.expiresAt && new Date(link.expiresAt) < new Date()) {
-      return res.status(410).json({ message: 'This interview link has expired' });
-    }
-
-    // Check if max uses exceeded
-    if (link.maxUses && link.usageCount >= link.maxUses) {
-      return res.status(410).json({ message: 'This link has reached its maximum number of uses' });
-    }
-
-    // AUTO-APPLY: If link is for a job posting, auto-apply the user if not already applied
-    if (link.jobPostingId) {
-      const existingApplication = await db
-        .select()
-        .from(schema.jobPostingApplications)
-        .where(
-          and(
-            eq(schema.jobPostingApplications.jobPostingId, link.jobPostingId),
-            eq(schema.jobPostingApplications.jobSeekerId, user.id)
-          )
-        )
-        .then(rows => rows[0]);
-
-      if (!existingApplication) {
-        console.log(`🎯 Auto-applying user ${user.email} to job ${link.jobPostingId} via interview link`);
-
-        await db.insert(schema.jobPostingApplications).values({
-          jobPostingId: link.jobPostingId,
-          jobSeekerId: user.id,
-          status: 'applied',
-          appliedAt: new Date(),
-          source: 'interview_link'
-        });
+      if (!user) {
+        return res.status(401).json({ message: 'Authentication required' });
       }
-    }
 
-    // Create assignment based on link type
-    let redirectUrl = '/dashboard';
+      // Find the invitation in interview_invitations table
+      const [link] = await db.select()
+        .from(schema.interviewInvitations)
+        .where(eq(schema.interviewInvitations.token, linkId))
+        .limit(1);
 
-    switch (link.interviewType) {
-      case 'virtual':
+      if (!link) {
+        return res.status(404).json({ message: 'Interview link not found' });
+      }
+
+      // Check if link is expired
+      if (link.expiryDate && new Date(link.expiryDate) < new Date()) {
+        return res.status(410).json({ message: 'This interview link has expired' });
+      }
+
+      // Check if max uses exceeded
+      if (link.maxUses && link.usageCount >= link.maxUses) {
+        return res.status(410).json({ message: 'This link has reached its maximum number of uses' });
+      }
+
+      // AUTO-APPLY: If link is for a job posting, auto-apply the user if not already applied
+      if (link.jobPostingId) {
+        const existingApplication = await db
+          .select()
+          .from(schema.jobPostingApplications)
+          .where(
+            and(
+              eq(schema.jobPostingApplications.jobPostingId, link.jobPostingId),
+              eq(schema.jobPostingApplications.applicantId, user.id)
+            )
+          )
+          .then(rows => rows[0]);
+
+        if (!existingApplication) {
+          console.log(`🎯 Auto-applying user ${user.email} to job ${link.jobPostingId} via interview link`);
+
+          await db.insert(schema.jobPostingApplications).values({
+            jobPostingId: link.jobPostingId,
+            applicantId: user.id,
+            status: 'applied',
+            appliedAt: new Date()
+          });
+        }
+      }
+
+      // Create assignment based on link type
+      let redirectUrl = '/dashboard';
+
+      // Map interview types - technical/behavioral/etc are all virtual interviews
+      const mappedType = ['technical', 'behavioral', 'system_design', 'coding'].includes(link.interviewType) 
+        ? 'virtual' 
+        : link.interviewType;
+
+      switch (mappedType) {
+        case 'virtual':
         if (link.interviewUrl) {
           redirectUrl = link.interviewUrl;
         } else {
@@ -1662,12 +1672,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         break;
     }
 
-    // Increment usage count for the link
-    await db.update(schema.interviewInvitations)
-      .set({ usageCount: sql`${schema.interviewInvitations.usageCount} + 1` })
-      .where(eq(schema.interviewInvitations.id, link.id));
+      // Increment usage count for the link
+      await db.update(schema.interviewInvitations)
+        .set({ usageCount: sql`${schema.interviewInvitations.usageCount} + 1` })
+        .where(eq(schema.interviewInvitations.id, link.id));
 
-    res.json({ redirectUrl });
+      res.json({ redirectUrl });
+    } catch (error) {
+      console.error('Error starting interview from link:', error);
+      res.status(500).json({ message: 'Failed to start interview' });
+    }
   });
 
   // Interview Prep API - Generate interview preparation insights
@@ -2022,6 +2036,82 @@ Requirements:
   // Payment credentials check routes
   paymentCredentialsRouter(app);
 
+  // ============ RETAKE PAYMENT ROUTES ============
+  
+  // Virtual interview retake payment endpoint
+  app.post('/api/interviews/virtual/:interviewId/retake-payment', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const interviewId = req.params.interviewId;
+      const { paymentProvider, amount } = req.body;
+
+      if (!paymentProvider) {
+        return res.status(400).json({ message: 'Payment provider required' });
+      }
+
+      // Record the payment in database
+      await db.insert(schema.testRetakePayments).values({
+        testAssignmentId: null, // Virtual interviews don't have test assignment IDs
+        userId: userId,
+        amount: amount || 500, // $5 in cents
+        currency: 'USD',
+        paymentProvider: paymentProvider,
+        paymentStatus: 'completed'
+      });
+
+      // Reset the virtual interview session to allow retake
+      await db.update(schema.virtualInterviewSessions)
+        .set({
+          status: 'assigned',
+          startedAt: null,
+          completedAt: null
+        })
+        .where(eq(schema.virtualInterviewSessions.sessionId, interviewId));
+
+      res.json({ success: true, message: 'Virtual interview retake payment processed successfully' });
+    } catch (error) {
+      console.error('Virtual interview retake payment error:', error);
+      res.status(500).json({ message: 'Failed to process retake payment' });
+    }
+  });
+
+  // Mock interview retake payment endpoint
+  app.post('/api/interviews/mock/:sessionId/retake-payment', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const sessionId = req.params.sessionId;
+      const { paymentProvider, amount } = req.body;
+
+      if (!paymentProvider) {
+        return res.status(400).json({ message: 'Payment provider required' });
+      }
+
+      // Record the payment in database
+      await db.insert(schema.testRetakePayments).values({
+        testAssignmentId: null, // Mock interviews don't have test assignment IDs
+        userId: userId,
+        amount: amount || 500, // $5 in cents
+        currency: 'USD',
+        paymentProvider: paymentProvider,
+        paymentStatus: 'completed'
+      });
+
+      // Reset the mock interview session to allow retake
+      await db.update(schema.mockInterviewSessions)
+        .set({
+          status: 'pending',
+          startedAt: null,
+          completedAt: null
+        })
+        .where(eq(schema.mockInterviewSessions.sessionId, sessionId));
+
+      res.json({ success: true, message: 'Mock interview retake payment processed successfully' });
+    } catch (error) {
+      console.error('Mock interview retake payment error:', error);
+      res.status(500).json({ message: 'Failed to process retake payment' });
+    }
+  });
+
   // Test retake payment endpoint
   app.post('/api/test-assignments/:id/retake/payment', isAuthenticated, async (req: any, res) => {
     try {
@@ -2051,6 +2141,8 @@ Requirements:
       res.status(500).json({ message: 'Failed to process retake payment' });
     }
   });
+  
+  // ============ END RETAKE PAYMENT ROUTES ============
 
   // Subscription Payment Routes - Consolidated
   app.get("/api/subscription/tiers", asyncHandler(async (req: any, res: any) => {
