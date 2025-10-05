@@ -71,7 +71,7 @@ export default function TestTaking() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-  
+
   // Enhanced anti-cheating state
   const [deviceFingerprint, setDeviceFingerprint] = useState<any>(null);
   const [behavioralData, setBehavioralData] = useState<any>({
@@ -88,17 +88,17 @@ export default function TestTaking() {
   const [proctoringSummary, setProctoringSummary] = useState<any>(null);
   const [advancedViolations, setAdvancedViolations] = useState<any[]>([]);
   const [riskScore, setRiskScore] = useState<number>(0);
-  
+
   // Mouse and keyboard tracking
   const [lastMousePosition, setLastMousePosition] = useState<{x: number, y: number}>({ x: 0, y: 0 });
   const [keystrokeBuffer, setKeystrokeBuffer] = useState<any[]>([]);
   const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
-  
+
   // Authentication state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  
+
   // Results modal state
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [testResults, setTestResults] = useState<any>(null);
@@ -131,19 +131,19 @@ export default function TestTaking() {
       motionLevel: 0,
       timestamp: Date.now()
     };
-    
+
     setDeviceFingerprint(fingerprint);
-    
+
     // Send to backend for analysis
     try {
       await apiRequest(`/api/test-assignments/${assignmentId}/device-fingerprint`, 'POST', fingerprint);
     } catch (error) {
       console.error('Failed to send device fingerprint:', error);
     }
-    
+
     return fingerprint;
   }, [assignmentId]);
-  
+
   // Enhanced behavioral tracking
   const trackKeystroke = useCallback((event: KeyboardEvent) => {
     const keystroke = {
@@ -152,19 +152,19 @@ export default function TestTaking() {
       duration: 0, // Will be calculated on keyup
       interval: 0
     };
-    
+
     setKeystrokeBuffer(prev => {
       const newBuffer = [...prev, keystroke];
       // Keep only last 100 keystrokes for performance
       return newBuffer.slice(-100);
     });
-    
+
     setBehavioralData((prev: any) => ({
       ...prev,
       keystrokes: [...prev.keystrokes, keystroke]
     }));
   }, []);
-  
+
   const trackMouseMovement = useCallback((event: MouseEvent) => {
     const now = Date.now();
     const movement = {
@@ -174,7 +174,7 @@ export default function TestTaking() {
       velocity: 0,
       acceleration: 0
     };
-    
+
     // Calculate velocity
     if (lastMousePosition) {
       const dx = movement.x - lastMousePosition.x;
@@ -182,15 +182,15 @@ export default function TestTaking() {
       const distance = Math.sqrt(dx * dx + dy * dy);
       movement.velocity = distance; // Simplified velocity
     }
-    
+
     setLastMousePosition({ x: movement.x, y: movement.y });
-    
+
     setBehavioralData((prev: any) => ({
       ...prev,
       mouseMovements: [...prev.mouseMovements.slice(-50), movement] // Keep last 50
     }));
   }, [lastMousePosition]);
-  
+
   const trackMouseClick = useCallback((event: MouseEvent) => {
     const click = {
       x: event.clientX,
@@ -199,13 +199,13 @@ export default function TestTaking() {
       button: event.button,
       element: (event.target as Element)?.tagName || 'unknown'
     };
-    
+
     setBehavioralData((prev: any) => ({
       ...prev,
       mouseClicks: [...prev.mouseClicks, click]
     }));
   }, []);
-  
+
   const trackScrollEvent = useCallback((event: Event) => {
     const wheelEvent = event as WheelEvent;
     const scroll = {
@@ -213,26 +213,26 @@ export default function TestTaking() {
       deltaY: wheelEvent.deltaY,
       timestamp: Date.now()
     };
-    
+
     setBehavioralData((prev: any) => ({
       ...prev,
       scrollEvents: [...prev.scrollEvents, scroll]
     }));
   }, []);
-  
+
   const trackFocusEvent = useCallback((type: 'focus' | 'blur') => {
     const focusEvent = {
       type,
       timestamp: Date.now(),
       target: document.activeElement?.tagName || 'unknown'
     };
-    
+
     setBehavioralData((prev: any) => ({
       ...prev,
       focusEvents: [...prev.focusEvents, focusEvent]
     }));
   }, []);
-  
+
   // Advanced violation detection
   const detectAdvancedViolation = useCallback(async (type: string, data: any) => {
     const violation = {
@@ -242,20 +242,20 @@ export default function TestTaking() {
       severity: determineSeverity(type, data),
       sessionId: assignmentId
     };
-    
+
     setAdvancedViolations(prev => [...prev, violation]);
-    
+
     // Send to backend for processing
     try {
       await apiRequest(`/api/test-assignments/${assignmentId}/violation`, 'POST', violation);
     } catch (error) {
       console.error('Failed to report violation:', error);
     }
-    
+
     // Update risk score
     calculateRiskScore([...advancedViolations, violation]);
   }, [assignmentId, advancedViolations]);
-  
+
   const determineSeverity = (type: string, data: any): 'low' | 'medium' | 'high' | 'critical' => {
     const severityMap: {[key: string]: string} = {
       'tab_switch': 'medium',
@@ -267,10 +267,10 @@ export default function TestTaking() {
       'external_device': 'medium',
       'rapid_responses': 'high'
     };
-    
+
     return (severityMap[type] || 'medium') as 'low' | 'medium' | 'high' | 'critical';
   };
-  
+
   const calculateRiskScore = (violations: any[]) => {
     const weights = {
       low: 5,
@@ -278,21 +278,21 @@ export default function TestTaking() {
       high: 30,
       critical: 50
     };
-    
+
     const score = violations.reduce((total, violation) => 
       total + weights[violation.severity as keyof typeof weights], 0
     );
-    
+
     setRiskScore(Math.min(100, score));
   };
-  
+
   // Helper functions for device fingerprinting
   const getWebGLFingerprint = (): string => {
     try {
       const canvas = document.createElement('canvas');
       const gl = canvas.getContext('webgl') as WebGLRenderingContext || canvas.getContext('experimental-webgl') as WebGLRenderingContext;
       if (!gl) return '';
-      
+
       const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
       return debugInfo ? 
         gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) + '|' + 
@@ -301,13 +301,13 @@ export default function TestTaking() {
       return '';
     }
   };
-  
+
   const getCanvasFingerprint = (): string => {
     try {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) return '';
-      
+
       ctx.textBaseline = 'top';
       ctx.font = '14px Arial';
       ctx.fillText('Fingerprint test 🎯', 2, 2);
@@ -316,7 +316,7 @@ export default function TestTaking() {
       return '';
     }
   };
-  
+
   const getAudioFingerprint = (): string => {
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -325,18 +325,18 @@ export default function TestTaking() {
       return '';
     }
   };
-  
+
   const detectFonts = async (): Promise<string[]> => {
     // Simplified font detection
     const testFonts = ['Arial', 'Times New Roman', 'Courier New', 'Helvetica', 'Georgia'];
     return testFonts; // In real implementation, would test font availability
   };
-  
+
   const getBrightness = async (): Promise<number> => {
     // Simplified brightness detection using camera if available
     return 0.8; // Default brightness
   };
-  
+
   // Camera monitoring functions
   const startCamera = async () => {
     try {
@@ -346,7 +346,7 @@ export default function TestTaking() {
       });
       setCameraStream(stream);
       setCameraPermission('granted');
-      
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.play();
@@ -395,15 +395,15 @@ export default function TestTaking() {
       console.log('onSuccess called with response:', response);
       exitFullscreen();
       setIsSubmitting(false);
-      
+
       // CRITICAL: Invalidate cache to prevent retaking completed tests
       queryClient.invalidateQueries({ queryKey: [`/api/test-assignments/${assignmentId}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/jobseeker/test-assignments'] });
       queryClient.invalidateQueries({ queryKey: [`/api/test-assignments/${assignmentId}/questions`] });
-      
+
       // Store test results and show modal for all completions
       const timeSpent = startTimeRef.current ? Math.round((new Date().getTime() - startTimeRef.current.getTime()) / 1000) : 0;
-      
+
       setTestResults({
         score: response.score || 0,
         passingScore: (assignment as any)?.testTemplate?.passingScore || 70,
@@ -412,9 +412,9 @@ export default function TestTaking() {
         testTitle: (assignment as any)?.testTemplate?.title || 'Test',
         recruiterName: (assignment as any)?.recruiter?.name || (assignment as any)?.recruiter?.companyName || 'Recruiter'
       });
-      
+
       setShowResultsModal(true);
-      
+
       toast({ 
         title: "Test Submitted Successfully!", 
         description: `Score: ${response.score || 0}%`,
@@ -438,25 +438,25 @@ export default function TestTaking() {
       generateDeviceFingerprint();
     }
   }, [testStarted, deviceFingerprint, generateDeviceFingerprint]);
-  
+
   // Enhanced behavioral tracking
   useEffect(() => {
     if (!testStarted || isSubmitting || showResultsModal) return;
-    
+
     const handleKeyDown = (e: KeyboardEvent) => trackKeystroke(e);
     const handleMouseMove = (e: MouseEvent) => trackMouseMovement(e);
     const handleMouseClick = (e: MouseEvent) => trackMouseClick(e);
     const handleScroll = (e: Event) => trackScrollEvent(e);
     const handleFocus = () => trackFocusEvent('focus');
     const handleBlur = () => trackFocusEvent('blur');
-    
+
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('click', handleMouseClick);
     document.addEventListener('wheel', handleScroll);
     window.addEventListener('focus', handleFocus);
     window.addEventListener('blur', handleBlur);
-    
+
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('mousemove', handleMouseMove);
@@ -466,11 +466,11 @@ export default function TestTaking() {
       window.removeEventListener('blur', handleBlur);
     };
   }, [testStarted, isSubmitting, showResultsModal, trackKeystroke, trackMouseMovement, trackMouseClick, trackScrollEvent, trackFocusEvent]);
-  
+
   // Enhanced network monitoring - disabled to prevent infinite loops
   useEffect(() => {
     if (!testStarted || isSubmitting) return;
-    
+
     // Network monitoring temporarily disabled to prevent API call loops
     // const originalFetch = window.fetch;
     // window.fetch = async (...args) => {
@@ -496,11 +496,11 @@ export default function TestTaking() {
     //   window.fetch = originalFetch;
     // };
   }, [testStarted, isSubmitting, detectAdvancedViolation]);
-  
+
   // Developer tools detection
   useEffect(() => {
     if (!testStarted) return;
-    
+
     const detectDevTools = () => {
       const threshold = 160;
       if (window.outerHeight - window.innerHeight > threshold || 
@@ -511,53 +511,60 @@ export default function TestTaking() {
         });
       }
     };
-    
+
     const interval = setInterval(detectDevTools, 1000);
     return () => clearInterval(interval);
   }, [testStarted, detectAdvancedViolation]);
-  
-  // Anti-cheating measures (enhanced)
+
+  // Anti-cheating measures with automatic test closure
   useEffect(() => {
-    if (!testStarted || isSubmitting || showResultsModal) return;
+    if (assignment?.status !== 'in_progress') return;
 
     const handleVisibilityChange = () => {
-      if (document.hidden && !isSubmitting && !showResultsModal) {
+      if (document.hidden) {
         const newCount = tabSwitchCount + 1;
         setTabSwitchCount(newCount);
         setWarningCount(prev => prev + 1);
-        
-        // Enhanced violation tracking
-        detectAdvancedViolation('tab_switch', {
-          count: newCount,
-          timestamp: Date.now(),
-          duration: 0 // Could track how long they were away
-        });
-        
+
+        // Auto-close test after 3 tab switches
+        if (newCount >= 3) {
+          toast({
+            title: "Test Terminated",
+            description: "Test closed due to excessive tab switching violations.",
+            variant: "destructive"
+          });
+          handleSubmitTest(); // Auto-submit the test
+          return;
+        }
+
         toast({
           title: "Warning: Tab Switch Detected",
-          description: `You've switched tabs ${newCount} times. Multiple violations may result in test cancellation.`,
+          description: `You've switched tabs ${newCount} times. Test will be closed at 3 violations.`,
           variant: "destructive"
         });
       }
     };
 
     const handleCopy = (e: ClipboardEvent) => {
-      if (isSubmitting || showResultsModal) return;
       e.preventDefault();
       const newCount = copyAttempts + 1;
       setCopyAttempts(newCount);
       setWarningCount(prev => prev + 1);
-      
-      // Enhanced violation tracking
-      detectAdvancedViolation('copy_attempt', {
-        count: newCount,
-        selection: window.getSelection()?.toString() || '',
-        element: (e.target as Element)?.tagName
-      });
-      
+
+      // Auto-close test after 2 copy attempts
+      if (newCount >= 2) {
+        toast({
+          title: "Test Terminated",
+          description: "Test closed due to copy attempt violations.",
+          variant: "destructive"
+        });
+        handleSubmitTest(); // Auto-submit the test
+        return;
+      }
+
       toast({
         title: "Warning: Copy Attempt Detected",
-        description: `Copy/paste is disabled. Attempt ${newCount} recorded.`,
+        description: `Copy/paste is disabled. Test will be closed at 2 violations. Attempt ${newCount} recorded.`,
         variant: "destructive"
       });
     };
@@ -614,6 +621,33 @@ export default function TestTaking() {
       document.removeEventListener('contextmenu', handleRightClick);
     };
   }, [testStarted, tabSwitchCount, copyAttempts, warningCount, isSubmitting, showResultsModal]);
+
+  const handleFullscreenChange = () => {
+      const isCurrentlyFullscreen = !!document.fullscreenElement;
+      setIsFullscreen(isCurrentlyFullscreen);
+
+      if (!isCurrentlyFullscreen && assignment?.status === 'in_progress') {
+        const newWarningCount = warningCount + 1;
+        setWarningCount(newWarningCount);
+
+        // Auto-close test after 5 total warnings
+        if (newWarningCount >= 5) {
+          toast({
+            title: "Test Terminated",
+            description: "Test closed due to excessive security violations.",
+            variant: "destructive"
+          });
+          handleSubmitTest(); // Auto-submit the test
+          return;
+        }
+
+        toast({
+          title: "Warning: Fullscreen Exited",
+          description: `Please stay in fullscreen mode. Test will be closed at 5 total violations. (${newWarningCount}/5)`,
+          variant: "destructive"
+        });
+      }
+    };
 
   // Timer
   useEffect(() => {
@@ -674,14 +708,17 @@ export default function TestTaking() {
     if (assignment?.testTemplate?.timeLimit) {
       setTimeLeft(assignment.testTemplate.timeLimit * 60);
     }
-    
+
     // Start camera monitoring
     await startCamera();
-    
+
     setTestStarted(true);
     startTimeRef.current = new Date();
     enterFullscreen();
-    
+
+    // Add event listener for fullscreen change
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
     toast({
       title: "Test Started",
       description: "Camera monitoring is active. Good luck!",
@@ -691,12 +728,12 @@ export default function TestTaking() {
 
   const handleAnswerChange = (questionId: string, answer: any) => {
     const now = Date.now();
-    
+
     // Track response timing for behavioral analysis
     if (!responseStartTime) {
       setResponseStartTime(now);
     }
-    
+
     // Record response data for analysis
     const responseData = {
       questionId,
@@ -706,12 +743,12 @@ export default function TestTaking() {
       keystrokes: keystrokeBuffer,
       wordCount: answer?.toString().split(' ').length || 0
     };
-    
+
     setBehavioralData((prev: any) => ({
       ...prev,
       responses: [...prev.responses, responseData]
     }));
-    
+
     // Check for suspiciously fast responses
     if (responseStartTime && (now - responseStartTime) < 5000 && answer?.toString().length > 50) {
       detectAdvancedViolation('rapid_responses', {
@@ -720,7 +757,7 @@ export default function TestTaking() {
         questionId
       });
     }
-    
+
     setAnswers(prev => ({
       ...prev,
       [questionId]: answer
@@ -729,17 +766,18 @@ export default function TestTaking() {
 
   const handleSubmitTest = async () => {
     if (isSubmitting || showResultsModal) return;
-    
+
     setIsSubmitting(true);
     setTestStarted(false); // Stop anti-cheating monitoring
     stopCamera(); // Stop camera monitoring
-    
+    document.removeEventListener('fullscreenchange', handleFullscreenChange); // Clean up listener
+
     const timeSpent = startTimeRef.current ? Math.round((new Date().getTime() - startTimeRef.current.getTime()) / 1000) : 0;
-    
+
     // Skip proctoring summary for now to ensure submission works
     console.log('Submitting test with answers:', answers);
     console.log('Time spent:', timeSpent);
-    
+
     submitTestMutation.mutate({
       answers,
       timeSpent,
@@ -759,13 +797,13 @@ export default function TestTaking() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
-    
+
     try {
       const response = await apiRequest("/api/auth/email/login", "POST", {
         email,
         password,
       });
-      
+
       if (response.ok) {
         toast({ title: "Login successful! Loading your test..." });
         window.location.reload(); // Refresh to update auth state
@@ -1032,7 +1070,7 @@ export default function TestTaking() {
                   Camera Active
                 </Badge>
               )}
-              
+
               {warningCount > 0 && (
                 <Badge variant="destructive">
                   <AlertTriangle className="w-4 h-4 mr-1" />

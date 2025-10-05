@@ -17,7 +17,7 @@ export class TestService {
   // Generate predefined test templates for different job profiles
   async createPlatformTestTemplates(): Promise<void> {
     const templates = this.getPredefinedTemplates();
-    
+
     for (const template of templates) {
       try {
         await storage.createTestTemplate(template);
@@ -410,18 +410,18 @@ export class TestService {
             <h1>🎯 Test Assignment</h1>
             <p>You've been assigned a skills assessment</p>
           </div>
-          
+
           <div class="content">
             <p>Hello <strong>${recipientName}</strong>,</p>
-            
+
             <p>You have been assigned a skills assessment by <strong>${recruiterName}</strong> as part of your job application process.</p>
-            
+
             <div class="test-card">
               <div class="test-title">${testTitle}</div>
               <p><strong>Due Date:</strong> <span class="due-date">${dueDateStr}</span></p>
               <p>Please complete this test before the deadline to continue with your application.</p>
             </div>
-            
+
             <div class="warning">
               <strong>⚠️ Important:</strong> 
               <ul>
@@ -431,11 +431,11 @@ export class TestService {
                 <li>You will have the option to retake the test for $5 if needed</li>
               </ul>
             </div>
-            
+
             <div style="text-align: center; margin: 30px 0;">
               <a href="${testUrl}" class="cta-button">Take Test Now</a>
             </div>
-            
+
             <div class="footer">
               <p>This test is part of the AutoJobr platform. If you have any questions, please contact the recruiter directly.</p>
               <p style="color: #999; font-size: 12px;">© 2025 AutoJobr. All rights reserved.</p>
@@ -573,7 +573,7 @@ export class TestService {
           "Code splitting → SSG → Service Workers → DB indexing",
           "Bundle optimization → CDN headers → React.memo → Query optimization", 
           "Lazy loading → Tree shaking → SSR streaming → Connection pooling",
-          "Critical CSS → Component lazy loading → Database sharding → Redis clustering"
+          "Critical CSS → Component lazy loading → Database sharding → Connection pooling"
         ],
         correctAnswer: 3,
         points: 30,
@@ -688,6 +688,60 @@ export class TestService {
         explanation: "Requires expert knowledge of cloud architecture, Kubernetes, GitOps, security, and large-scale operations. Only top DevOps engineers can implement this complexity."
       }
     ];
+  }
+  
+  // Method to complete a test assignment
+  async completeTest(assignmentId: number, terminationReason: string = 'Completed'): Promise<void> {
+    const assignment = await storage.getTestAssignment(assignmentId);
+    if (!assignment) {
+      console.error(`Test assignment ${assignmentId} not found.`);
+      return;
+    }
+
+    const endTime = new Date();
+    const score = this.calculateScore(assignment.testTemplate.questions, assignment.answers);
+    const status = (score >= assignment.testTemplate.passingScore) ? 'passed' : 'failed';
+
+    await storage.updateTestAssignment(assignmentId, {
+      completionTime: endTime,
+      score: score,
+      status: status,
+      terminationReason: terminationReason
+    });
+
+    // Optionally send completion email
+    if (status === 'passed') {
+      await sendEmail({
+        to: assignment.candidateEmail,
+        subject: `Test Result: ${assignment.testTemplate.title} - Passed`,
+        html: `<h1>Congratulations!</h1><p>You have successfully passed the ${assignment.testTemplate.title} test with a score of ${score}%.</p>`,
+      });
+    } else {
+      await sendEmail({
+        to: assignment.candidateEmail,
+        subject: `Test Result: ${assignment.testTemplate.title} - Failed`,
+        html: `<h1>Test Result</h1><p>You did not pass the ${assignment.testTemplate.title} test. Your score was ${score}%.</p>`,
+      });
+    }
+  }
+
+  async submitTestAnswer(assignmentId: number, questionId: number, answer: string, violationData?: any): Promise<void> {
+    await storage.submitAnswer(assignmentId, questionId, answer);
+
+    // Check for critical violations and auto-terminate if needed
+    if (violationData) {
+      const { tabSwitches = 0, copyAttempts = 0, totalWarnings = 0 } = violationData;
+
+      // Critical violation thresholds
+      if (tabSwitches >= 3 || copyAttempts >= 2 || totalWarnings >= 5) {
+        console.log(`🚨 Critical violations detected - Auto-terminating test ${assignmentId}`);
+
+        const assignment = await storage.getTestAssignment(assignmentId);
+        if (assignment && assignment.status === 'in_progress') {
+          await this.completeTest(assignmentId, 'Terminated due to security violations');
+        }
+      }
+    }
   }
 }
 

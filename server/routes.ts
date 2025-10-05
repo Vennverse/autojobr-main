@@ -3383,6 +3383,7 @@ Requirements:
     }
   });
 
+
   app.get('/api/candidates/for-job/:jobId', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -3825,18 +3826,6 @@ Requirements:
       res.json(assessment);
     } catch (error) {
       handleError(res, error, "Failed to create simulation assessment");
-    }
-  });
-
-  app.post('/api/simulation-assessments/:id/start', isAuthenticated, async (req, res) => {
-    try {
-      const assessmentId = parseInt(req.params.id);
-
-      const sessionId = await simulationAssessmentService.startSimulation(assessmentId);
-
-      res.json({ sessionId });
-    } catch (error) {
-      handleError(res, error, "Failed to start simulation");
     }
   });
 

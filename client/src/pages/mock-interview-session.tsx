@@ -268,9 +268,20 @@ export default function MockInterviewSession() {
         setTabSwitchCount(newCount);
         setWarningCount(prev => prev + 1);
         
+        // Auto-close interview after 3 tab switches
+        if (newCount >= 3) {
+          toast({
+            title: "Interview Terminated",
+            description: "Interview closed due to excessive tab switching violations.",
+            variant: "destructive"
+          });
+          completeInterviewMutation.mutate(); // Auto-complete the interview
+          return;
+        }
+        
         toast({
           title: "Warning: Tab Switch Detected",
-          description: `You've switched tabs ${newCount} times. Multiple violations may result in interview cancellation.`,
+          description: `You've switched tabs ${newCount} times. Interview will be closed at 3 violations.`,
           variant: "destructive"
         });
       }
