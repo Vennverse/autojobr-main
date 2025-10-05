@@ -1453,40 +1453,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + (expiryDays || 7));
 
-      // Store shareable link in database based on interview type
-      if (interviewType === 'virtual' || interviewType === 'chat') {
-        // Virtual/Chat interviews use virtualInterviews table
-        await db.insert(virtualInterviews).values({
-          sessionId: linkId,
-          assignedBy: recruiterId,
-          jobPostingId: jobPostingId || null,
-          interviewType: interviewType,
-          role: config.role,
-          company: config.company,
-          difficulty: config.difficulty,
-          status: 'shareable_link',
-          assignmentType: 'shareable_link',
-          duration: 30,
-          totalQuestions: 5,
-          questionsAsked: 0,
-          interviewerPersonality: 'professional'
-        });
-      } else if (interviewType === 'mock') {
-        // Mock interviews
-        await db.insert(mockInterviews).values({
-          sessionId: linkId,
-          assignedBy: recruiterId,
-          jobPostingId: jobPostingId || null,
-          interviewType: interviewType,
-          role: config.role,
-          company: config.company,
-          difficulty: config.difficulty,
-          status: 'shareable_link',
-          assignmentType: 'shareable_link',
-          language: 'javascript',
-          totalQuestions: 5
-        });
-      }
+      // Store shareable link metadata in interview_invitations table
+      await db.insert(schema.interviewInvitations).values({
+        token: linkId,
+        recruiterId: recruiterId,
+        jobPostingId: jobPostingId || null,
+        interviewType: interviewType,
+        interviewConfig: JSON.stringify(config),
+        role: config.role,
+        company: config.company || '',
+        difficulty: config.difficulty,
+        expiryDate: expiresAt,
+        maxUses: null, // null means unlimited uses
+        usageCount: 0
+      });
 
       res.json({
         success: true,
