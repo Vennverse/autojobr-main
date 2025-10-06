@@ -393,12 +393,71 @@ export class JobSpyService {
   async scrapeTechJobs(): Promise<JobSpyResult> {
     const config: JobSpyConfig = {
       search_terms: [
+        // Core Tech Roles
         'software engineer',
         'frontend developer', 
         'backend developer',
         'full stack developer',
         'data scientist',
-        'devops engineer'
+        'devops engineer',
+        'mobile developer',
+        'cloud engineer',
+        'data engineer',
+        'machine learning engineer',
+        'product manager',
+        'qa engineer',
+        'security engineer',
+        'site reliability engineer',
+        
+        // Finance Roles
+        'financial analyst',
+        'investment banker',
+        'accountant',
+        'financial advisor',
+        'portfolio manager',
+        'risk analyst',
+        'compliance officer',
+        'treasury analyst',
+        'fp&a analyst',
+        'tax accountant',
+        'audit manager',
+        'credit analyst',
+        
+        // Sales Roles
+        'sales representative',
+        'account executive',
+        'business development manager',
+        'sales manager',
+        'account manager',
+        'sales engineer',
+        'sales director',
+        'inside sales representative',
+        'territory manager',
+        'channel sales manager',
+        
+        // Marketing Roles
+        'marketing manager',
+        'digital marketing manager',
+        'content marketing manager',
+        'social media manager',
+        'brand manager',
+        'marketing coordinator',
+        'seo specialist',
+        'growth marketing manager',
+        'product marketing manager',
+        'email marketing specialist',
+        
+        // Law Roles
+        'corporate lawyer',
+        'legal counsel',
+        'paralegal',
+        'contract manager',
+        'compliance manager',
+        'legal assistant',
+        'intellectual property lawyer',
+        'litigation attorney',
+        'employment lawyer',
+        'general counsel'
       ],
       locations: [
         // USA - Top tech hubs
@@ -437,7 +496,7 @@ export class JobSpyService {
         'Remote Europe'
       ],
       job_sites: ['indeed', 'linkedin'],
-      results_wanted: 50,
+      results_wanted: 100,
       country: 'USA'
     };
 
