@@ -562,20 +562,26 @@ Skills: ${userProfile.skills?.map((s: any) => s.skillName).join(', ') || 'None l
     userSkills: any[];
     progressUpdate?: string;
   }, user?: any): Promise<any> {
-    // Optimized prompt - 40% fewer tokens
+    const accessInfo = this.hasAIAccess(user);
+    const isPremium = accessInfo.tier === 'premium';
+    
+    // Optimized prompt with reduced tokens for free users
     const exp = data.userProfile?.yearsExperience || 0;
-    const skills = data.userSkills?.slice(0, 8).map((s: any) => s.skillName).join(',') || 'None';
+    const skillsToInclude = isPremium ? 12 : 5; // Premium gets more context
+    const skills = data.userSkills?.slice(0, skillsToInclude).map((s: any) => s.skillName).join(',') || 'None';
     const loc = data.location || 'Not specified';
     
-    const prompt = `Career analysis for ${data.careerGoal} in ${loc}. ${exp}yr exp. Skills: ${skills}. Timeframe: ${data.timeframe}.
-${data.progressUpdate ? `Progress: ${data.progressUpdate.substring(0, 100)}` : ''}
+    // Premium users get detailed analysis, free users get essential analysis
+    const prompt = isPremium 
+      ? `Career analysis for ${data.careerGoal} in ${loc}. ${exp}yr exp. Skills: ${skills}. Timeframe: ${data.timeframe}.
+${data.progressUpdate ? `Recent progress: ${data.progressUpdate.substring(0, 150)}` : ''}
 
-Return JSON:
+Return detailed JSON with:
 {
   "insights": [
-    {"type":"path","title":"Career Strategy","content":"Strategy for ${exp}yr professional","priority":"high","timeframe":"${data.timeframe}","actionItems":["3-4 actions"]},
-    {"type":"skill","title":"Skill Development","content":"Priority skills for ${exp}yr exp","priority":"high","timeframe":"months","actionItems":["2-3 actions"]},
-    {"type":"location","title":"${loc} Market","content":"Market analysis","priority":"high","timeframe":"current","actionItems":["2-3 strategies"]}
+    {"type":"path","title":"Career Strategy","content":"Comprehensive strategy for ${exp}yr professional","priority":"high","timeframe":"${data.timeframe}","actionItems":["4-5 detailed actions"]},
+    {"type":"skill","title":"Skill Development","content":"Priority skills analysis","priority":"high","timeframe":"months","actionItems":["3-4 learning actions"]},
+    {"type":"location","title":"${loc} Market","content":"Detailed market analysis with salary data","priority":"high","timeframe":"current","actionItems":["3-4 location strategies"]}
   ],
   "careerPath": {
     "currentRole":"${data.userProfile?.professionalTitle || 'Current'}",
@@ -584,15 +590,32 @@ Return JSON:
     "location":"${loc}",
     "currency":"local symbol",
     "successProbability":number,
-    "steps":[{"position":"role","timeline":"months","isCurrentLevel":bool,"requiredSkills":["skills"],"averageSalary":"LOCAL range","salaryUSD":"USD","marketDemand":"High/Med/Low","companiesHiring":["companies"]}]
+    "steps":[{"position":"detailed role","timeline":"precise months","isCurrentLevel":bool,"requiredSkills":["specific skills"],"averageSalary":"LOCAL range with currency","salaryUSD":"USD equivalent","marketDemand":"High/Med/Low with reasoning","companiesHiring":["actual company names"]}]
   },
-  "skillGaps":[{"skill":"name","currentLevel":0-10,"targetLevel":0-10,"importance":0-10,"learningResources":["resources"],"timeToAcquire":"months"}],
-  "locationContext":{"country":"","city":"","currency":"","currencyCode":"","costOfLivingVsUS":"","topCompanies":[],"averageTaxRate":"","benefits":[],"remoteOpportunities":"","marketMaturity":"","visaNotes":""},
-  "networkingOpportunities":[{"type":"","platforms":[],"targetConnections":"","localEvents":[]}],
-  "marketTiming":{"currentConditions":"","hiringSeasons":"","trendingSkills":[],"recommendation":""}
-}
+  "skillGaps":[{"skill":"specific name","currentLevel":0-10,"targetLevel":0-10,"importance":0-10,"learningResources":["detailed resources with links"],"timeToAcquire":"precise timeframe"}],
+  "locationContext":{"country":"","city":"","currency":"","currencyCode":"","costOfLivingVsUS":"percentage","topCompanies":["actual companies"],"averageTaxRate":"rate","benefits":["specific benefits"],"remoteOpportunities":"detailed info","marketMaturity":"analysis","visaNotes":"if applicable"},
+  "networkingOpportunities":[{"type":"category","platforms":["specific platforms"],"targetConnections":"who to connect with","localEvents":["actual events"]}],
+  "marketTiming":{"currentConditions":"detailed analysis","hiringSeasons":"specific periods","trendingSkills":["current trends"],"recommendation":"actionable advice"}
+}`
+      : `Career path to ${data.careerGoal}. ${exp}yr exp. Skills: ${skills}.
 
-Use local currency. Calculate realistic timelines for ${exp}yr exp. List actual companies in ${loc}.`;
+Return concise JSON:
+{
+  "insights":[
+    {"type":"path","title":"Career Strategy","content":"Key strategy for ${exp}yr pro","priority":"high","timeframe":"${data.timeframe}","actionItems":["2-3 actions"]},
+    {"type":"skill","title":"Skills","content":"Priority skills","priority":"high","timeframe":"months","actionItems":["2 actions"]}
+  ],
+  "careerPath":{
+    "currentRole":"${data.userProfile?.professionalTitle || 'Current'}",
+    "targetRole":"${data.careerGoal}",
+    "totalTimeframe":"${data.timeframe}",
+    "location":"${loc}",
+    "currency":"USD",
+    "successProbability":number,
+    "steps":[{"position":"role","timeline":"months","isCurrentLevel":bool,"requiredSkills":["skills"],"averageSalary":"range","marketDemand":"High/Med/Low"}]
+  },
+  "skillGaps":[{"skill":"name","currentLevel":0-10,"targetLevel":0-10,"importance":0-10,"learningResources":["resources"],"timeToAcquire":"months"}]
+}`;
 
     try {
       const accessInfo = this.hasAIAccess(user);
@@ -602,16 +625,29 @@ Use local currency. Calculate realistic timelines for ${exp}yr exp. List actual 
         return this.generateFallbackCareerAnalysis(data, accessInfo);
       }
 
+      // Use tier-appropriate model and token limits
+      const maxTokens = isPremium ? 2000 : 1200; // Premium gets more detailed response
+      const systemPrompt = isPremium
+        ? `Expert international career coach. You have deep knowledge of:
+- Global salary ranges in local currencies with exact figures
+- Location-specific companies and detailed market analysis
+- Realistic career progression timelines based on experience level
+- Cost of living and tax implications worldwide
+- Industry-specific networking opportunities
+
+Return ONLY valid JSON. Provide detailed, actionable insights with specific data.`
+        : `Career guidance expert. Provide:
+- Essential career path steps
+- Core skill requirements
+- Basic market insights
+- Key action items
+
+Return ONLY valid JSON. Be concise but helpful.`;
+
       const completion = await this.createChatCompletion([
         {
           role: "system",
-          content: `Expert international career coach. You have deep knowledge of:
-- Global salary ranges in local currencies
-- Location-specific companies and markets
-- Realistic career progression timelines based on experience
-- Cost of living and tax implications worldwide
-
-Return ONLY valid JSON. Calculate dynamic timelines - don't use fixed ranges.`
+          content: systemPrompt
         },
         {
           role: "user",
@@ -619,7 +655,7 @@ Return ONLY valid JSON. Calculate dynamic timelines - don't use fixed ranges.`
         }
       ], {
         temperature: 0.2,
-        max_tokens: 2000,
+        max_tokens: maxTokens,
         user
       });
 

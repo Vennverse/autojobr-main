@@ -277,12 +277,13 @@ Return JSON array:
         return [];
       }
 
+      // Use fast 8B model for all users on job recommendations to save tokens
       const completion = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
         return await client.chat.completions.create({
-          model: "llama-3.1-8b-instant",
+          model: "llama-3.1-8b-instant", // Fast model for all users
           messages: [{ role: "user", content: prompt }],
           temperature: 0.3,
-          max_tokens: 1500,
+          max_tokens: 1000, // Reduced tokens for efficiency
         });
       });
 
