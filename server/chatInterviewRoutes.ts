@@ -637,9 +637,13 @@ router.get('/history', isAuthenticated, async (req: any, res) => {
   try {
     const userId = req.user.id;
 
+    // Only fetch self-initiated interviews (exclude recruiter-assigned ones)
     const interviews = await db.select()
       .from(virtualInterviews)
-      .where(eq(virtualInterviews.userId, userId))
+      .where(and(
+        eq(virtualInterviews.userId, userId),
+        eq(virtualInterviews.assignmentType, 'self')
+      ))
       .orderBy(desc(virtualInterviews.createdAt))
       .limit(20);
 
