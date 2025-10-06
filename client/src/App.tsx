@@ -334,6 +334,7 @@ function Router() {
                   <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
                   <Route path="/chat-interview/:sessionId" component={ChatInterview} />
                   <Route path="/interview-link/:linkId" component={InterviewLink} />
+                  <Route path="/test-taking/:id" component={TestTaking} />
                   <Route path="/subscription" component={Subscription} />
                   <Route path="/job-seeker-premium" component={JobSeekerPremium} />
                   <Route path="/referral-marketplace" component={ReferralMarketplace} />

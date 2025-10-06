@@ -21,7 +21,8 @@ import {
   RefreshCw,
   Building,
   AlertTriangle,
-  TrendingUp
+  TrendingUp,
+  Eye
 } from "lucide-react";
 
 const statusIcons = {
@@ -54,9 +55,9 @@ export default function JobSeekerTests() {
       assignment.testTemplate?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       assignment.recruiter?.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       assignment.recruiter?.firstName?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = statusFilter === "all" || assignment.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -89,59 +90,20 @@ export default function JobSeekerTests() {
   };
 
   const getActionButton = (assignment: any) => {
-    const isExpired = isOverdue(assignment.dueDate, assignment.status);
-    const passingScore = assignment.testTemplate?.passingScore || 70;
-    const hasFailed = assignment.status === 'completed' && assignment.score < passingScore;
-    const hasPassed = assignment.status === 'completed' && assignment.score >= passingScore;
-    
     if (assignment.status === 'completed') {
       return (
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setLocation(`/test/${assignment.id}/results`)}
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            View Results
-          </Button>
-          
-          {/* Show retake option ONLY for failed tests and only if payment made or retake allowed */}
-          {hasFailed && !assignment.retakeAllowed && (
-            <Button
-              size="sm"
-              onClick={() => setLocation(`/test/${assignment.id}/retake-payment`)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Retake $5
-            </Button>
-          )}
-          
-          {/* Only allow retake if explicitly allowed (after payment) and failed */}
-          {hasFailed && assignment.retakeAllowed && (
-            <Button
-              size="sm"
-              onClick={() => setLocation(`/test/${assignment.id}`)}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Start Retake
-            </Button>
-          )}
-          
-          {/* No retake option for passed tests */}
-          {hasPassed && (
-            <Badge variant="outline" className="text-green-600 border-green-200">
-              <CheckCircle className="w-3 h-3 mr-1" />
-              Test Passed
-            </Badge>
-          )}
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setLocation(`/test/${assignment.id}/results`)}
+        >
+          <FileText className="w-4 h-4 mr-2" />
+          View Results
+        </Button>
       );
     }
-    
-    if (isExpired) {
+
+    if (isOverdue(assignment.dueDate, assignment.status)) {
       return (
         <Button variant="outline" size="sm" disabled>
           <XCircle className="w-4 h-4 mr-2" />
@@ -149,23 +111,23 @@ export default function JobSeekerTests() {
         </Button>
       );
     }
-    
+
     if (assignment.status === 'started') {
       return (
         <Button
           size="sm"
-          onClick={() => setLocation(`/test/${assignment.id}`)}
+          onClick={() => setLocation(`/test-taking/${assignment.id}`)}
         >
           <PlayCircle className="w-4 h-4 mr-2" />
           Continue Test
         </Button>
       );
     }
-    
+
     return (
       <Button
         size="sm"
-        onClick={() => setLocation(`/test/${assignment.id}`)}
+        onClick={() => setLocation(`/test-taking/${assignment.id}`)}
       >
         <PlayCircle className="w-4 h-4 mr-2" />
         Take Test
@@ -212,7 +174,7 @@ export default function JobSeekerTests() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
@@ -224,7 +186,7 @@ export default function JobSeekerTests() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
@@ -236,7 +198,7 @@ export default function JobSeekerTests() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
@@ -307,7 +269,7 @@ export default function JobSeekerTests() {
                         {assignment.recruiter?.companyName?.[0] || assignment.recruiter?.firstName?.[0]}
                       </AvatarFallback>
                     </Avatar>
-                    
+
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="text-lg font-semibold">{assignment.testTemplate?.title}</h3>
@@ -321,20 +283,20 @@ export default function JobSeekerTests() {
                           <Badge variant="destructive">Overdue</Badge>
                         )}
                       </div>
-                      
+
                       <div className="flex items-center gap-2 mb-2">
                         <Building className="w-4 h-4 text-gray-500" />
                         <span className="text-sm text-gray-600">
                           {assignment.recruiter?.companyName || `${assignment.recruiter?.firstName} ${assignment.recruiter?.lastName}`}
                         </span>
                       </div>
-                      
+
                       {assignment.testTemplate?.description && (
                         <p className="text-sm text-gray-600 mb-3">
                           {assignment.testTemplate.description}
                         </p>
                       )}
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                         <div className="flex items-center gap-1">
                           <Clock className="w-4 h-4 text-gray-500" />
@@ -342,14 +304,14 @@ export default function JobSeekerTests() {
                             {assignment.testTemplate?.timeLimit} minutes
                           </span>
                         </div>
-                        
+
                         <div className="flex items-center gap-1">
                           <Trophy className="w-4 h-4 text-gray-500" />
                           <span className="text-gray-600">
                             {assignment.testTemplate?.passingScore}% to pass
                           </span>
                         </div>
-                        
+
                         <div className="flex items-center gap-1">
                           <Calendar className="w-4 h-4 text-gray-500" />
                           <span className="text-gray-600">
@@ -357,7 +319,7 @@ export default function JobSeekerTests() {
                           </span>
                         </div>
                       </div>
-                      
+
                       {/* Results Display */}
                       {assignment.status === 'completed' && (
                         <div className="mt-4 space-y-3">
@@ -370,14 +332,14 @@ export default function JobSeekerTests() {
                                   </div>
                                   <div className="text-xs text-gray-600">Score</div>
                                 </div>
-                                
+
                                 <div className="text-center">
                                   <div className={`text-lg font-bold ${assignment.score >= assignment.testTemplate?.passingScore ? 'text-green-600' : 'text-red-600'}`}>
                                     {assignment.score >= assignment.testTemplate?.passingScore ? 'PASSED' : 'FAILED'}
                                   </div>
                                   <div className="text-xs text-gray-600">Result</div>
                                 </div>
-                                
+
                                 {assignment.timeSpent && (
                                   <div className="text-center">
                                     <div className="text-lg font-bold text-gray-700">
@@ -387,7 +349,7 @@ export default function JobSeekerTests() {
                                   </div>
                                 )}
                               </div>
-                              
+
                               <div className="flex items-center gap-2">
                                 <Progress 
                                   value={assignment.score} 
@@ -402,7 +364,7 @@ export default function JobSeekerTests() {
                               </div>
                             </div>
                           </div>
-                          
+
                           {/* Violations Warning */}
                           {assignment.answers?._violations?.totalViolations > 0 && (
                             <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -417,7 +379,7 @@ export default function JobSeekerTests() {
                               </p>
                             </div>
                           )}
-                          
+
                           {/* Retake Motivation for Failed Tests */}
                           {assignment.score < assignment.testTemplate?.passingScore && !assignment.retakeAllowed && (
                             <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
@@ -456,7 +418,7 @@ export default function JobSeekerTests() {
                           )}
                         </div>
                       )}
-                      
+
                       {/* Progress Display */}
                       {assignment.status === 'started' && (
                         <div className="mt-4 p-3 bg-blue-50 rounded-lg">
@@ -470,7 +432,7 @@ export default function JobSeekerTests() {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex flex-col gap-2">
                     {getActionButton(assignment)}
                   </div>
