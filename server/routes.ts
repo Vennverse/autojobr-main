@@ -644,6 +644,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const { answers, timeSpent, warningCount = 0, tabSwitchCount = 0, copyAttempts = 0 } = req.body;
       
+      console.log(`[TEST SUBMIT] Assignment ${assignmentId} - Warnings: ${warningCount}, TabSwitches: ${tabSwitchCount}, CopyAttempts: ${copyAttempts}`);
+      
       const assignment = await storage.getTestAssignment(assignmentId);
       
       if (!assignment) {
@@ -659,22 +661,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const questions = assignment.testTemplate?.questions || [];
       const scoreResult = await testService.calculateScore(questions, answers);
       
-      // Update assignment with results
+      // Determine termination reason
+      let terminationReason = 'Completed';
+      if (warningCount >= 5) {
+        terminationReason = 'Auto-terminated: Excessive violations (5+ warnings)';
+        console.log(`🚨 Test ${assignmentId} auto-terminated due to excessive violations`);
+      }
+      
+      // Update assignment with results and violation tracking
       const updatedAssignment = await storage.updateTestAssignment(assignmentId, {
-        status: 'completed',
+        status: warningCount >= 5 ? 'terminated' : 'completed',
         completionTime: new Date(),
         score: scoreResult.percentageScore,
         answers: answers,
         timeSpent: timeSpent,
         warningCount: warningCount,
         tabSwitchCount: tabSwitchCount,
-        copyAttempts: copyAttempts
+        copyAttempts: copyAttempts,
+        terminationReason: terminationReason
       });
       
       res.json({
         success: true,
         score: scoreResult.percentageScore,
-        assignment: updatedAssignment
+        assignment: updatedAssignment,
+        terminated: warningCount >= 5,
+        warningCount: warningCount
       });
     } catch (error) {
       console.error('Error submitting test:', error);

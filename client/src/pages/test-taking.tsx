@@ -526,20 +526,9 @@ export default function TestTaking() {
         setTabSwitchCount(newCount);
         setWarningCount(prev => prev + 1);
 
-        // Auto-close test after 3 tab switches
-        if (newCount >= 3) {
-          toast({
-            title: "Test Terminated",
-            description: "Test closed due to excessive tab switching violations.",
-            variant: "destructive"
-          });
-          handleSubmitTest(); // Auto-submit the test
-          return;
-        }
-
         toast({
-          title: "Warning: Tab Switch Detected",
-          description: `You've switched tabs ${newCount} times. Test will be closed at 3 violations.`,
+          title: "⚠️ Warning: Tab Switch Detected",
+          description: `Total warnings: ${warningCount + 1}/5. Test auto-terminates at 5 warnings.`,
           variant: "destructive"
         });
       }
@@ -551,20 +540,9 @@ export default function TestTaking() {
       setCopyAttempts(newCount);
       setWarningCount(prev => prev + 1);
 
-      // Auto-close test after 2 copy attempts
-      if (newCount >= 2) {
-        toast({
-          title: "Test Terminated",
-          description: "Test closed due to copy attempt violations.",
-          variant: "destructive"
-        });
-        handleSubmitTest(); // Auto-submit the test
-        return;
-      }
-
       toast({
-        title: "Warning: Copy Attempt Detected",
-        description: `Copy/paste is disabled. Test will be closed at 2 violations. Attempt ${newCount} recorded.`,
+        title: "⚠️ Warning: Copy Attempt Blocked",
+        description: `Total warnings: ${warningCount + 1}/5. Test auto-terminates at 5 warnings.`,
         variant: "destructive"
       });
     };
@@ -630,20 +608,9 @@ export default function TestTaking() {
         const newWarningCount = warningCount + 1;
         setWarningCount(newWarningCount);
 
-        // Auto-close test after 5 total warnings
-        if (newWarningCount >= 5) {
-          toast({
-            title: "Test Terminated",
-            description: "Test closed due to excessive security violations.",
-            variant: "destructive"
-          });
-          handleSubmitTest(); // Auto-submit the test
-          return;
-        }
-
         toast({
-          title: "Warning: Fullscreen Exited",
-          description: `Please stay in fullscreen mode. Test will be closed at 5 total violations. (${newWarningCount}/5)`,
+          title: "⚠️ Warning: Fullscreen Exited",
+          description: `Total warnings: ${newWarningCount}/5. Test auto-terminates at 5 warnings.`,
           variant: "destructive"
         });
       }
@@ -669,17 +636,24 @@ export default function TestTaking() {
   // Auto-submit on excessive violations  
   useEffect(() => {
     if (warningCount >= 5 && !isSubmitting && !showResultsModal && testStarted) {
+      console.log('🚨 AUTO-TERMINATING TEST - 5 warnings reached');
+      
       toast({
-        title: "Test Cancelled",
-        description: "Too many violations detected. Test will be submitted automatically.",
+        title: "Test Terminated",
+        description: "Maximum violations (5) reached. Test is being submitted automatically.",
         variant: "destructive"
       });
-      // Add a small delay to ensure the user sees the message
+      
+      // Stop all monitoring and submit immediately
+      setTestStarted(false);
+      stopCamera();
+      
+      // Force submit after brief delay
       setTimeout(() => {
         if (!isSubmitting && !showResultsModal) {
           handleSubmitTest();
         }
-      }, 2000);
+      }, 1500);
     }
   }, [warningCount, isSubmitting, showResultsModal, testStarted]);
 
@@ -698,8 +672,15 @@ export default function TestTaking() {
   };
 
   const exitFullscreen = () => {
-    if (document.exitFullscreen) {
-      document.exitFullscreen();
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(err => {
+          console.log('Fullscreen exit error (safe to ignore):', err);
+        });
+      }
+      setIsFullscreen(false);
+    } catch (error) {
+      console.log('Fullscreen exit error (safe to ignore):', error);
       setIsFullscreen(false);
     }
   };
@@ -1072,9 +1053,9 @@ export default function TestTaking() {
               )}
 
               {warningCount > 0 && (
-                <Badge variant="destructive">
+                <Badge variant="destructive" className="text-sm font-bold">
                   <AlertTriangle className="w-4 h-4 mr-1" />
-                  {warningCount} Warning{warningCount > 1 ? 's' : ''}
+                  Warnings: {warningCount}/5
                 </Badge>
               )}
               <div className="flex items-center gap-2">
