@@ -80,6 +80,7 @@ import RecruiterProfile from "@/pages/recruiter/profile";
 import BidderDashboard from "@/pages/bidder-dashboard";
 import BidderLanding from "@/pages/bidder-landing";
 import BidderProfile from "@/pages/bidder-profile";
+import InterviewLink from "@/pages/InterviewLink";
 
 // SEO Landing Pages to Beat Competition
 import FreeJobApplicationAutomation from "@/pages/seo/FreeJobApplicationAutomation";
@@ -332,7 +333,7 @@ function Router() {
                   <Route path="/virtual-interview/:sessionId/feedback" component={VirtualInterviewFeedback} />
                   <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
                   <Route path="/chat-interview/:sessionId" component={ChatInterview} />
-                  <Route path="/interview-link/:linkId" component={lazy(() => import("./pages/InterviewLink"))} />
+                  <Route path="/interview-link/:linkId" component={InterviewLink} />
                   <Route path="/jobs/:id" component={ViewJob} />
                   <Route path="/career-ai-assistant" component={CareerAIAssistant} />
                   <Route path="/subscription" component={Subscription} />
@@ -413,13 +414,7 @@ function Router() {
               return null;
             }}
           </Route>
-          <Route path="/interview-link/:linkId">
-            {(params) => {
-              const redirectUrl = encodeURIComponent(`/interview-link/${params.linkId}`);
-              window.location.href = `/auth?redirect=${redirectUrl}`;
-              return null;
-            }}
-          </Route>
+          <Route path="/interview-link/:linkId" component={InterviewLink} />
         </>
       )}
       <Route component={NotFound} />
