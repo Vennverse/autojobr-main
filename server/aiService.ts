@@ -562,115 +562,37 @@ Skills: ${userProfile.skills?.map((s: any) => s.skillName).join(', ') || 'None l
     userSkills: any[];
     progressUpdate?: string;
   }, user?: any): Promise<any> {
-    const prompt = `Career path analysis. Return JSON only.
+    // Optimized prompt - 40% fewer tokens
+    const exp = data.userProfile?.yearsExperience || 0;
+    const skills = data.userSkills?.slice(0, 8).map((s: any) => s.skillName).join(',') || 'None';
+    const loc = data.location || 'Not specified';
+    
+    const prompt = `Career analysis for ${data.careerGoal} in ${loc}. ${exp}yr exp. Skills: ${skills}. Timeframe: ${data.timeframe}.
+${data.progressUpdate ? `Progress: ${data.progressUpdate.substring(0, 100)}` : ''}
 
-TARGET ROLE: ${data.careerGoal}
-LOCATION: ${data.location || 'Not specified'}
-DESIRED TIMEFRAME: ${data.timeframe}
-CURRENT EXPERIENCE: ${data.userProfile?.yearsExperience || 0} years
-CURRENT TITLE: ${data.userProfile?.professionalTitle || 'Not specified'}
-CURRENT SKILLS: ${data.userSkills?.slice(0, 12).map((s: any) => s.skillName).join(', ') || 'None'}
-${data.progressUpdate ? `RECENT PROGRESS: ${data.progressUpdate}` : ''}
-
-CRITICAL REQUIREMENTS:
-1. Detect location and provide salaries in LOCAL currency with symbol
-2. Calculate REALISTIC timelines based on user's current experience (${data.userProfile?.yearsExperience || 0}yr)
-3. Consider location-specific market conditions and cost of living
-4. Provide ${data.location || 'location'}-specific companies and resources
-
-JSON structure:
+Return JSON:
 {
   "insights": [
-    {
-      "type": "path",
-      "title": "Career Strategy",
-      "content": "Personalized strategy for ${data.userProfile?.yearsExperience || 0}yr exp professional",
-      "priority": "high",
-      "timeframe": "${data.timeframe}",
-      "actionItems": ["3-4 specific actions based on current level"]
-    },
-    {
-      "type": "skill",
-      "title": "Skill Development",
-      "content": "Priority skills considering current ${data.userProfile?.yearsExperience || 0}yr experience",
-      "priority": "high",
-      "timeframe": "realistic months based on gaps",
-      "actionItems": ["2-3 learning actions"]
-    },
-    {
-      "type": "location",
-      "title": "${data.location || 'Market'} Insights",
-      "content": "Location-specific market analysis with currency, costs, companies",
-      "priority": "high",
-      "timeframe": "current",
-      "actionItems": ["2-3 location strategies"]
-    }
+    {"type":"path","title":"Career Strategy","content":"Strategy for ${exp}yr professional","priority":"high","timeframe":"${data.timeframe}","actionItems":["3-4 actions"]},
+    {"type":"skill","title":"Skill Development","content":"Priority skills for ${exp}yr exp","priority":"high","timeframe":"months","actionItems":["2-3 actions"]},
+    {"type":"location","title":"${loc} Market","content":"Market analysis","priority":"high","timeframe":"current","actionItems":["2-3 strategies"]}
   ],
   "careerPath": {
-    "currentRole": "${data.userProfile?.professionalTitle || 'Current role'}",
-    "targetRole": "${data.careerGoal}",
-    "totalTimeframe": "${data.timeframe}",
-    "location": "${data.location || 'Not specified'}",
-    "currency": "detect and use local currency symbol",
-    "successProbability": number (realistic % based on experience),
-    "steps": [
-      {
-        "position": "realistic next role title",
-        "timeline": "calculate based on ${data.userProfile?.yearsExperience || 0}yr current exp and skill gaps",
-        "isCurrentLevel": true/false,
-        "requiredSkills": ["3-5 specific skills"],
-        "averageSalary": "LOCAL_CURRENCY low-high range",
-        "salaryUSD": "USD equivalent for reference",
-        "marketDemand": "High/Medium/Low in ${data.location}",
-        "companiesHiring": ["3-5 actual companies in ${data.location}"]
-      }
-    ]
+    "currentRole":"${data.userProfile?.professionalTitle || 'Current'}",
+    "targetRole":"${data.careerGoal}",
+    "totalTimeframe":"${data.timeframe}",
+    "location":"${loc}",
+    "currency":"local symbol",
+    "successProbability":number,
+    "steps":[{"position":"role","timeline":"months","isCurrentLevel":bool,"requiredSkills":["skills"],"averageSalary":"LOCAL range","salaryUSD":"USD","marketDemand":"High/Med/Low","companiesHiring":["companies"]}]
   },
-  "skillGaps": [
-    {
-      "skill": "specific skill name",
-      "currentLevel": 0-10,
-      "targetLevel": 0-10,
-      "importance": 0-10,
-      "learningResources": ["specific courses/platforms available in ${data.location}"],
-      "timeToAcquire": "realistic months based on skill complexity"
-    }
-  ],
-  "locationContext": {
-    "country": "detected country",
-    "city": "detected city if provided",
-    "currency": "local currency with symbol",
-    "currencyCode": "ISO code",
-    "costOfLivingVsUS": "percentage comparison",
-    "topCompanies": ["5-8 major tech employers in this location"],
-    "averageTaxRate": "typical rate",
-    "benefits": ["common benefits in this country"],
-    "remoteOpportunities": "assessment for this market",
-    "marketMaturity": "tech scene analysis",
-    "visaNotes": "if relevant for relocation"
-  },
-  "networkingOpportunities": [
-    {
-      "type": "category",
-      "platforms": ["popular in ${data.location}"],
-      "targetConnections": "who to connect with",
-      "localEvents": ["actual event types in ${data.location}"]
-    }
-  ],
-  "marketTiming": {
-    "currentConditions": "${data.location} market status",
-    "hiringSeasons": "best months in ${data.location}",
-    "trendingSkills": ["hot skills in ${data.location}"],
-    "recommendation": "when to apply based on ${data.location} patterns"
-  }
+  "skillGaps":[{"skill":"name","currentLevel":0-10,"targetLevel":0-10,"importance":0-10,"learningResources":["resources"],"timeToAcquire":"months"}],
+  "locationContext":{"country":"","city":"","currency":"","currencyCode":"","costOfLivingVsUS":"","topCompanies":[],"averageTaxRate":"","benefits":[],"remoteOpportunities":"","marketMaturity":"","visaNotes":""},
+  "networkingOpportunities":[{"type":"","platforms":[],"targetConnections":"","localEvents":[]}],
+  "marketTiming":{"currentConditions":"","hiringSeasons":"","trendingSkills":[],"recommendation":""}
 }
 
-IMPORTANT:
-- Calculate timelines dynamically based on ${data.userProfile?.yearsExperience || 0} years experience
-- Someone with 0yr needs longer timeline than 5yr experience
-- Provide actual salary ranges in local currency (INR for India, EUR for Germany, etc.)
-- List real companies operating in ${data.location || 'the specified location'}
-- Consider ${data.location} specific hiring patterns and seasons`;
+Use local currency. Calculate realistic timelines for ${exp}yr exp. List actual companies in ${loc}.`;
 
     try {
       const accessInfo = this.hasAIAccess(user);
