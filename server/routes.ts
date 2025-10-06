@@ -69,7 +69,7 @@ import { aiService } from './aiService';
 import { interviewPrepService, interviewPrepSchema } from './interviewPrepService';
 import { salaryInsightsService, salaryInsightsSchema } from './salaryInsightsService';
 import { questionBankService } from "./questionBankService";
-import { seo } from './routes/seo';
+import seo from './routes/seo';
 
 // Import services
 import { db } from "./db";
