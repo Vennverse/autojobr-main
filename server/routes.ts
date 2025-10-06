@@ -581,6 +581,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test assignment routes for job seekers
+  app.get('/api/test-assignments/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const assignmentId = parseInt(req.params.id);
+      const userId = req.user.id;
+      
+      const assignment = await storage.getTestAssignment(assignmentId);
+      
+      if (!assignment) {
+        return res.status(404).json({ message: 'Test assignment not found' });
+      }
+      
+      // Verify the assignment belongs to this user
+      if (assignment.jobSeekerId !== userId) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      res.json(assignment);
+    } catch (error) {
+      console.error('Error fetching test assignment:', error);
+      handleError(res, error, "Failed to fetch test assignment");
+    }
+  });
+
+  app.get('/api/test-assignments/:id/questions', isAuthenticated, async (req: any, res) => {
+    try {
+      const assignmentId = parseInt(req.params.id);
+      const userId = req.user.id;
+      
+      const assignment = await storage.getTestAssignment(assignmentId);
+      
+      if (!assignment) {
+        return res.status(404).json({ message: 'Test assignment not found' });
+      }
+      
+      // Verify the assignment belongs to this user
+      if (assignment.jobSeekerId !== userId) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      // Return questions from the test template
+      const questions = assignment.testTemplate?.questions || [];
+      res.json(questions);
+    } catch (error) {
+      console.error('Error fetching test questions:', error);
+      handleError(res, error, "Failed to fetch test questions");
+    }
+  });
+
+  app.post('/api/test-assignments/:id/submit', isAuthenticated, async (req: any, res) => {
+    try {
+      const assignmentId = parseInt(req.params.id);
+      const userId = req.user.id;
+      const { answers, timeSpent, warningCount = 0, tabSwitchCount = 0, copyAttempts = 0 } = req.body;
+      
+      const assignment = await storage.getTestAssignment(assignmentId);
+      
+      if (!assignment) {
+        return res.status(404).json({ message: 'Test assignment not found' });
+      }
+      
+      // Verify the assignment belongs to this user
+      if (assignment.jobSeekerId !== userId) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      // Calculate score
+      const questions = assignment.testTemplate?.questions || [];
+      const scoreResult = await testService.calculateScore(questions, answers);
+      
+      // Update assignment with results
+      const updatedAssignment = await storage.updateTestAssignment(assignmentId, {
+        status: 'completed',
+        completionTime: new Date(),
+        score: scoreResult.percentageScore,
+        answers: answers,
+        timeSpent: timeSpent,
+        warningCount: warningCount,
+        tabSwitchCount: tabSwitchCount,
+        copyAttempts: copyAttempts
+      });
+      
+      res.json({
+        success: true,
+        score: scoreResult.percentageScore,
+        assignment: updatedAssignment
+      });
+    } catch (error) {
+      console.error('Error submitting test:', error);
+      handleError(res, error, "Failed to submit test");
+    }
+  });
+
   // Test templates endpoints
   app.get('/api/test-templates', async (req: any, res) => {
     try {
