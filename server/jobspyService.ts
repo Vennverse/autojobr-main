@@ -388,7 +388,7 @@ export class JobSpyService {
   }
 
   /**
-   * Quick scrape with predefined tech job searches
+   * Quick scrape with predefined tech job searches - Global coverage
    */
   async scrapeTechJobs(): Promise<JobSpyResult> {
     const config: JobSpyConfig = {
@@ -401,15 +401,43 @@ export class JobSpyService {
         'devops engineer'
       ],
       locations: [
+        // USA - Top tech hubs
         'New York, NY',
         'San Francisco, CA', 
         'Los Angeles, CA',
         'Austin, TX',
         'Seattle, WA',
-        'Remote'
+        
+        // India - Major tech cities
+        'Bangalore, India',
+        'Mumbai, India',
+        'Delhi, India',
+        'Hyderabad, India',
+        'Pune, India',
+        
+        // UK
+        'London, UK',
+        'Manchester, UK',
+        'Edinburgh, UK',
+        
+        // Europe
+        'Berlin, Germany',
+        'Amsterdam, Netherlands',
+        'Paris, France',
+        'Barcelona, Spain',
+        
+        // Australia
+        'Sydney, Australia',
+        'Melbourne, Australia',
+        
+        // Remote
+        'Remote',
+        'Remote India',
+        'Remote USA',
+        'Remote Europe'
       ],
       job_sites: ['indeed', 'linkedin'],
-      results_wanted: 30,
+      results_wanted: 50,
       country: 'USA'
     };
 
