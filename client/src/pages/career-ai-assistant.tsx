@@ -1035,94 +1035,105 @@ Examples:
               {/* Career Path Tab */}
               <TabsContent value="path" className="space-y-6">
                 {/* Career Path Chart */}
-                {careerPath && (
+                {careerPath && careerPath.steps && careerPath.steps.length > 0 && (
                   <div className="bg-gray-50 rounded-lg p-4 border">
                     <h4 className="font-semibold text-black mb-3 flex items-center gap-2">
                       <TrendingUp className="w-4 h-4 text-green-600" />
                       Career Progression Path
                     </h4>
-                    {careerPath.steps && careerPath.steps.length > 0 ? (
-                      <div className="h-48">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={careerPath.steps.slice(0, 4).map((step, index) => {
-                            // Simple salary parsing
-                            const salaryMatch = step.averageSalary.match(/\d+/g);
-                            const salary = salaryMatch ? parseInt(salaryMatch[0]) : 50 + (index * 20);
-
-                            return {
-                              step: step.position.length > 15 ? step.position.substring(0, 15) + '...' : step.position,
-                              salary: salary,
-                              timeline: step.timeline,
-                              demand: step.marketDemand === 'High' ? 90 : step.marketDemand === 'Medium' ? 70 : 50,
+                    <div className="h-48">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={careerPath.steps.slice(0, 4).map((step, index) => {
+                          // Enhanced salary parsing to handle various formats
+                          let salary = 50 + (index * 20); // default fallback
+                          
+                          if (step.averageSalary) {
+                            const salaryStr = step.averageSalary.toString();
+                            const salaryMatch = salaryStr.match(/\d+/g);
+                            
+                            if (salaryMatch && salaryMatch.length > 0) {
+                              const parsedSalary = parseInt(salaryMatch[0]);
+                              // If salary seems to be in full format (e.g., 80000), convert to k
+                              salary = parsedSalary > 1000 ? Math.floor(parsedSalary / 1000) : parsedSalary;
                             }
-                          })}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                            <XAxis 
-                              dataKey="step" 
-                              angle={-45} 
-                              textAnchor="end" 
-                              height={80}
-                              tick={{ fontSize: 10 }}
-                            />
-                            <YAxis 
-                              yAxisId="salary"
-                              orientation="left"
-                              tick={{ fontSize: 10 }}
-                              label={{ value: 'Salary (k)', angle: -90, position: 'insideLeft' }}
-                            />
-                            <YAxis 
-                              yAxisId="demand"
-                              orientation="right"
-                              tick={{ fontSize: 10 }}
-                              label={{ value: 'Market Demand', angle: 90, position: 'insideRight' }}
-                            />
-                            <Tooltip 
-                              content={({ active, payload, label }) => {
-                                if (active && payload && payload.length) {
-                                  const data = payload[0].payload;
-                                  return (
-                                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border">
-                                      <p className="font-medium">{data.step}</p>
-                                      <p className="text-sm text-blue-600">Timeline: {data.timeline}</p>
-                                      <p className="text-sm text-green-600">Salary: ${data.salary}k</p>
-                                      <p className="text-sm text-purple-600">Market Demand: {data.demand > 60 ? 'High' : data.demand > 40 ? 'Medium' : 'Low'}</p>
-                                    </div>
-                                  );
-                                }
-                                return null;
-                              }}
-                            />
-                            <Legend />
-                            <Line 
-                              yAxisId="salary"
-                              type="monotone" 
-                              dataKey="salary" 
-                              stroke="#10b981" 
-                              strokeWidth={3}
-                              dot={{ fill: '#10b981', strokeWidth: 2, r: 6 }}
-                              name="Salary (k)"
-                            />
-                            <Line 
-                              yAxisId="demand"
-                              type="monotone" 
-                              dataKey="demand" 
-                              stroke="#8b5cf6"
-                              strokeWidth={2}
-                              dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }}
-                              name="Market Demand"
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                      ) : (
-                        <div className="h-48 flex items-center justify-center bg-white rounded border border-dashed">
-                          <div className="text-center text-gray-500">
-                            <TrendingUp className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                            <p className="text-sm">Career path data will appear here</p>
-                            <p className="text-xs mt-1">Generate analysis with more profile details for detailed progression steps</p>
-                          </div>
-                        </div>
-                      )}
+                          }
+
+                          // Determine market demand score
+                          let demandScore = 50; // default
+                          if (step.marketDemand) {
+                            const demand = step.marketDemand.toLowerCase();
+                            if (demand.includes('high') || demand.includes('strong')) demandScore = 90;
+                            else if (demand.includes('medium') || demand.includes('moderate')) demandScore = 70;
+                            else if (demand.includes('low') || demand.includes('weak')) demandScore = 40;
+                          }
+
+                          return {
+                            step: step.position && step.position.length > 15 ? step.position.substring(0, 15) + '...' : (step.position || `Step ${index + 1}`),
+                            fullPosition: step.position || `Step ${index + 1}`,
+                            salary: salary,
+                            timeline: step.timeline || 'N/A',
+                            demand: demandScore,
+                            marketDemand: step.marketDemand || 'N/A'
+                          }
+                        })}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                          <XAxis 
+                            dataKey="step" 
+                            angle={-45} 
+                            textAnchor="end" 
+                            height={80}
+                            tick={{ fontSize: 10 }}
+                          />
+                          <YAxis 
+                            yAxisId="salary"
+                            orientation="left"
+                            tick={{ fontSize: 10 }}
+                            label={{ value: 'Salary (k)', angle: -90, position: 'insideLeft' }}
+                          />
+                          <YAxis 
+                            yAxisId="demand"
+                            orientation="right"
+                            tick={{ fontSize: 10 }}
+                            label={{ value: 'Market Demand', angle: 90, position: 'insideRight' }}
+                          />
+                          <Tooltip 
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                const data = payload[0].payload;
+                                return (
+                                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border">
+                                    <p className="font-medium">{data.fullPosition}</p>
+                                    <p className="text-sm text-blue-600">Timeline: {data.timeline}</p>
+                                    <p className="text-sm text-green-600">Salary: ${data.salary}k</p>
+                                    <p className="text-sm text-purple-600">Market Demand: {data.marketDemand}</p>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Legend />
+                          <Line 
+                            yAxisId="salary"
+                            type="monotone" 
+                            dataKey="salary" 
+                            stroke="#10b981" 
+                            strokeWidth={3}
+                            dot={{ fill: '#10b981', strokeWidth: 2, r: 6 }}
+                            name="Salary (k)"
+                          />
+                          <Line 
+                            yAxisId="demand"
+                            type="monotone" 
+                            dataKey="demand" 
+                            stroke="#8b5cf6"
+                            strokeWidth={2}
+                            dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }}
+                            name="Market Demand"
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
                 )}
 
@@ -1211,50 +1222,58 @@ Examples:
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
-                      {careerPath?.steps.map((step, index) => (
-                        <div key={index} className="relative">
-                          {index < careerPath.steps.length - 1 && (
-                            <div className="absolute left-6 top-12 w-0.5 h-16 bg-border" />
-                          )}
-                          <div className="flex gap-4">
-                            <div className="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                              <span className="text-primary font-bold">{index + 1}</span>
-                            </div>
-                            <div className="flex-1 space-y-3">
-                              <div>
-                                <h3 className="font-semibold text-lg">{step.position}</h3>
-                                <p className="text-muted-foreground">{step.timeline}</p>
+                      {careerPath?.steps && careerPath.steps.length > 0 ? (
+                        careerPath.steps.map((step, index) => (
+                          <div key={index} className="relative">
+                            {index < careerPath.steps.length - 1 && (
+                              <div className="absolute left-6 top-12 w-0.5 h-16 bg-border" />
+                            )}
+                            <div className="flex gap-4">
+                              <div className="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                                <span className="text-primary font-bold">{index + 1}</span>
                               </div>
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                              <div className="flex-1 space-y-3">
                                 <div>
-                                  <p className="font-medium mb-1">Required Skills</p>
-                                  <div className="flex flex-wrap gap-1">
-                                    {step.requiredSkills.slice(0, 3).map((skill, i) => (
-                                      <Badge key={i} variant="secondary" className="text-xs">
-                                        {skill}
-                                      </Badge>
-                                    ))}
+                                  <h3 className="font-semibold text-lg">{step.position}</h3>
+                                  <p className="text-muted-foreground">{step.timeline}</p>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                  <div>
+                                    <p className="font-medium mb-1">Required Skills</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {step.requiredSkills && step.requiredSkills.length > 0 ? (
+                                        step.requiredSkills.slice(0, 3).map((skill, i) => (
+                                          <Badge key={i} variant="secondary" className="text-xs">
+                                            {skill}
+                                          </Badge>
+                                        ))
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground">No skills specified</span>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                                <div>
-                                  <p className="font-medium mb-1">Average Salary</p>
-                                  <p className="text-green-600 font-semibold">{step.averageSalary}</p>
-                                </div>
-                                <div>
-                                  <p className="font-medium mb-1">Market Demand</p>
-                                  <Badge variant={step.marketDemand === 'High' ? 'default' : 'secondary'}>
-                                    {step.marketDemand}
-                                  </Badge>
+                                  <div>
+                                    <p className="font-medium mb-1">Average Salary</p>
+                                    <p className="text-green-600 font-semibold">{step.averageSalary || 'N/A'}</p>
+                                  </div>
+                                  <div>
+                                    <p className="font-medium mb-1">Market Demand</p>
+                                    <Badge variant={step.marketDemand === 'High' ? 'default' : 'secondary'}>
+                                      {step.marketDemand || 'N/A'}
+                                    </Badge>
+                                  </div>
                                 </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      )) || (
+                        ))
+                      ) : (
                         <div className="text-center py-8 bg-gray-100 dark:bg-gray-800 rounded-lg border border-dashed">
                           <Map className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                          <p className="text-lg font-medium text-gray-700 dark:text-gray-300">No Career Path Steps Found</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Please ensure your career goal is specific enough to generate detailed path steps.</p>
+                          <p className="text-lg font-medium text-gray-700 dark:text-gray-300">No Career Path Steps Available</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                            Your career analysis is processing. Career path steps will appear once AI completes the detailed analysis with your specific career goal and location.
+                          </p>
                         </div>
                       )}
                     </div>

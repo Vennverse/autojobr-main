@@ -1886,9 +1886,27 @@ Requirements:
         .where(eq(schema.careerAiAnalyses.userId, userId));
 
       // Get skill progress if available
-      const skillProgress = latestAnalysis?.skillGaps || [];
+      const skillGaps = latestAnalysis?.skillGaps || [];
+      const careerPath = latestAnalysis?.careerPath || null;
       
-      // Calculate progress metrics
+      // Calculate actual skill improvement rate
+      let skillImprovementRate = 0;
+      if (Array.isArray(skillGaps) && skillGaps.length > 0) {
+        const avgCurrentLevel = skillGaps.reduce((sum: number, gap: any) => {
+          return sum + (gap.currentLevel || 0);
+        }, 0) / skillGaps.length;
+        
+        const avgTargetLevel = skillGaps.reduce((sum: number, gap: any) => {
+          return sum + (gap.targetLevel || 10);
+        }, 0) / skillGaps.length;
+        
+        // Calculate as percentage of target achieved
+        skillImprovementRate = avgTargetLevel > 0 
+          ? Math.round((avgCurrentLevel / avgTargetLevel) * 100) 
+          : 0;
+      }
+      
+      // Calculate progress metrics with real data
       const progressMetrics = {
         totalAnalyses: totalAnalyses[0]?.count || 0,
         latestAnalysis: latestAnalysis ? {
@@ -1898,9 +1916,9 @@ Requirements:
           careerPath: latestAnalysis.careerPath,
           createdAt: latestAnalysis.createdAt
         } : null,
-        skillImprovementRate: skillProgress.length > 0 
-          ? Math.round((skillProgress.reduce((sum: number, gap: any) => sum + (gap.currentLevel || 0), 0) / skillProgress.length) * 10)
-          : 0
+        skillImprovementRate,
+        careerPathSteps: careerPath?.steps?.length || 0,
+        hasCareerPath: !!(careerPath?.steps && careerPath.steps.length > 0)
       };
 
       res.json(progressMetrics);
