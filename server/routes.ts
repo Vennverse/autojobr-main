@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 import { db } from "./db";
 import { eq, desc, and, or, like, isNotNull, count, asc, isNull, sql, inArray } from "drizzle-orm";
 import * as schema from "@shared/schema";
-import { resumes, userResumes, insertInternshipApplicationSchema, companyEmailVerifications, virtualInterviews, users, mockInterviews, jobPostingApplications, invitationUses } from "@shared/schema";
+import { resumes, userResumes, insertInternshipApplicationSchema, companyEmailVerifications, virtualInterviews, users, mockInterviews, jobPostingApplications, invitationUses, insertUserProfileSchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated, isAuthenticatedExtension } from "./auth";
 import { storage } from "./storage";
@@ -2927,6 +2927,50 @@ Requirements:
     } catch (error) {
       console.error("Error updating profile:", error);
       res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  app.post('/api/upload-profile-image', isAuthenticated, upload.single('image'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No image file provided" });
+      }
+
+      // Create uploads directory if it doesn't exist
+      const uploadsDir = path.join(process.cwd(), 'uploads', 'profile-images');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      // Generate unique filename
+      const fileExtension = path.extname(req.file.originalname);
+      const fileName = `${userId}-${Date.now()}${fileExtension}`;
+      const filePath = path.join(uploadsDir, fileName);
+
+      // Save file to disk
+      fs.writeFileSync(filePath, req.file.buffer);
+
+      // Generate URL for the image
+      const imageUrl = `/uploads/profile-images/${fileName}`;
+
+      // Update user's profileImageUrl
+      await db.update(schema.users)
+        .set({ profileImageUrl: imageUrl })
+        .where(eq(schema.users.id, userId));
+
+      // Clear cache
+      cache.delete(`profile_${userId}`);
+
+      res.json({ 
+        success: true, 
+        imageUrl,
+        message: "Profile image uploaded successfully" 
+      });
+    } catch (error) {
+      console.error("Error uploading profile image:", error);
+      res.status(500).json({ message: "Failed to upload profile image" });
     }
   });
 
