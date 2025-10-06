@@ -236,7 +236,12 @@ export default function EnhancedDashboard() {
   // Career AI analysis data
   const { data: careerAiData } = useQuery({
     queryKey: ["/api/career-ai/saved"],
-    retry: false,
+    enabled: !!user,
+  });
+
+  const { data: careerAnalytics } = useQuery({
+    queryKey: ['/api/career-ai/analytics'],
+    enabled: !!user,
   });
 
   // Define key variables early to avoid hoisting issues
@@ -933,41 +938,43 @@ export default function EnhancedDashboard() {
             </Card>
 
             {/* Premium CTA for non-premium users */}
-            {!isPremium && (
-              <motion.div
-                variants={pulseVariants}
-                initial="rest"
-                animate="pulse"
-                className="mx-auto max-w-2xl"
-              >
-                <Card className="border-2 border-blue-300 bg-blue-50 dark:bg-blue-950 shadow-lg">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-blue-600 rounded-full">
-                        <Rocket className="w-6 h-6 text-white" />
+            {!isPremium &&
+              (dailyUsage.aiCoachQuestions >= freemiumLimits.aiCoachQuestions.free ||
+                dailyUsage.jobApplications >= freemiumLimits.jobApplications.free) && (
+                <motion.div
+                  variants={pulseVariants}
+                  initial="rest"
+                  animate="pulse"
+                  className="mx-auto max-w-2xl"
+                >
+                  <Card className="border-2 border-blue-300 bg-blue-50 dark:bg-blue-950 shadow-lg">
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-blue-600 rounded-full">
+                          <Rocket className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
+                            🚀 Unlock Premium Features
+                          </h3>
+                          <p className="text-sm text-blue-700 dark:text-blue-300">
+                            Get unlimited applications, AI interviews, priority
+                            support & exclusive features
+                          </p>
+                        </div>
+                        <Button
+                          size="lg"
+                          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg"
+                          onClick={() => setLocation("/job-seeker-premium")}
+                        >
+                          Upgrade Now
+                          <Sparkles className="w-4 h-4 ml-2" />
+                        </Button>
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
-                          🚀 Unlock Premium Features
-                        </h3>
-                        <p className="text-sm text-blue-700 dark:text-blue-300">
-                          Get unlimited applications, AI interviews, priority
-                          support & exclusive features
-                        </p>
-                      </div>
-                      <Button
-                        size="lg"
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg"
-                        onClick={() => setLocation("/job-seeker-premium")}
-                      >
-                        Upgrade Now
-                        <Sparkles className="w-4 h-4 ml-2" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
           </motion.div>
 
           {/* Clean Usage Tracker */}
@@ -1010,38 +1017,21 @@ export default function EnhancedDashboard() {
             )}
 
           {/* Career Analytics Preview */}
-          {careerAiData?.hasAnalysis ? (
+          {(careerAiData?.hasAnalysis || careerAnalytics?.latestAnalysis) && (
             <motion.div variants={itemVariants}>
-              <Card className="border shadow-sm bg-white">
+              <Card className="col-span-full">
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-3 rounded-xl bg-blue-50">
-                        <Brain className="w-6 h-6 text-blue-600" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl font-bold text-black">
-                          🎯 Career Analytics
-                        </CardTitle>
-                        <p className="text-gray-600 text-sm">
-                          AI-powered insights from your latest analysis
-                        </p>
-                      </div>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="border-blue-200 text-blue-600 hover:bg-blue-50"
-                      onClick={() => setLocation("/career-ai-assistant")}
-                      data-testid="button-view-full-analysis"
-                    >
-                      View Full Analysis
-                      <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  </div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Brain className="w-5 h-5 text-purple-600" />
+                    Career AI Insights
+                    {careerAnalytics?.totalAnalyses > 0 && (
+                      <Badge variant="secondary" className="ml-2">
+                        {careerAnalytics.totalAnalyses} {careerAnalytics.totalAnalyses === 1 ? 'Analysis' : 'Analyses'}
+                      </Badge>
+                    )}
+                  </CardTitle>
                 </CardHeader>
-
-                <CardContent className="pb-6">
+                <CardContent>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Skills Radar Chart */}
                     {careerAiData?.analysis?.skillGaps && careerAiData.analysis.skillGaps.length > 0 && (
@@ -1104,7 +1094,7 @@ export default function EnhancedDashboard() {
                               // Simple salary parsing
                               const salaryMatch = step.averageSalary.match(/\d+/g);
                               const salary = salaryMatch ? parseInt(salaryMatch[0]) : 50 + (index * 20);
-                              
+
                               return {
                                 step: step.position.length > 15 ? step.position.substring(0, 15) + '...' : step.position,
                                 salary: salary,
@@ -1143,7 +1133,7 @@ export default function EnhancedDashboard() {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Quick insights preview */}
                   {careerAiData?.analysis?.insights && careerAiData.analysis.insights.length > 0 && (
                     <div className="mt-4 bg-blue-50 rounded-lg p-4 border">
@@ -1163,11 +1153,23 @@ export default function EnhancedDashboard() {
                       </div>
                     </div>
                   )}
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="mt-4 border-blue-200 text-blue-600 hover:bg-blue-50"
+                    onClick={() => setLocation("/career-ai-assistant")}
+                    data-testid="button-view-full-analysis"
+                  >
+                    View Full Analysis
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
                 </CardContent>
               </Card>
             </motion.div>
-          ) : (
-            // First-time user prompt
+          )}
+
+          {/* First-time user prompt for Career Analytics */}
+          {!careerAiData?.hasAnalysis && !careerAnalytics?.latestAnalysis && (
             <motion.div variants={itemVariants}>
               <Card className="border-2 border-dashed border-blue-200 bg-blue-50">
                 <CardContent className="p-6 text-center">
@@ -2139,7 +2141,7 @@ export default function EnhancedDashboard() {
             <motion.div variants={itemVariants}>
               <Card className="border shadow-sm bg-white overflow-hidden relative">
                 <div className="absolute inset-0 bg-green-50 pattern-dots pattern-green-200 pattern-bg-transparent pattern-size-4 pattern-opacity-30"></div>
-                
+
                 <CardHeader className="relative z-10 pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg font-bold text-black">
                     <Upload className="h-5 w-5 text-green-600" />
@@ -2149,7 +2151,7 @@ export default function EnhancedDashboard() {
                     Upload and optimize your resumes with AI-powered ATS scoring
                   </p>
                 </CardHeader>
-                
+
                 <CardContent className="relative z-10 pb-4 space-y-3">
                   {/* Compact Status */}
                   <div className="flex items-center justify-between text-xs bg-gray-50 rounded p-2 border">
@@ -2240,7 +2242,7 @@ export default function EnhancedDashboard() {
             <motion.div variants={itemVariants}>
               <Card className="border shadow-sm bg-white overflow-hidden relative">
                 <div className="absolute inset-0 bg-blue-50 pattern-dots pattern-blue-200 pattern-bg-transparent pattern-size-4 pattern-opacity-30"></div>
-                
+
                 <CardHeader className="relative z-10 pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg font-bold text-black">
                     <PenTool className="h-5 w-5 text-blue-600" />
@@ -2250,7 +2252,7 @@ export default function EnhancedDashboard() {
                     Generate personalized cover letters with AI
                   </p>
                 </CardHeader>
-                
+
                 <CardContent className="relative z-10 pb-4 space-y-3">
                   {/* Compact Input Section */}
                   <div className="grid grid-cols-2 gap-2">
@@ -2267,7 +2269,7 @@ export default function EnhancedDashboard() {
                       data-testid="input-job-title"
                     />
                   </div>
-                  
+
                   <textarea
                     placeholder="Paste the job description here..."
                     className="w-full p-2 rounded bg-gray-50 border border-gray-200 text-black placeholder:text-gray-500 h-20 resize-none text-sm"

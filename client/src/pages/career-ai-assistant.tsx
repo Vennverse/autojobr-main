@@ -90,6 +90,17 @@ interface CareerPath {
   successProbability: number;
 }
 
+interface CareerAIResult {
+  insights: CareerInsight[];
+  skillGaps: SkillGap[];
+  careerPath: CareerPath | null;
+  networkingOpportunities: any[];
+  marketTiming: any[];
+  aiTier: 'premium' | 'basic';
+  upgradeMessage: string;
+  daysLeft: number;
+}
+
 export default function CareerAIAssistant() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -113,7 +124,7 @@ export default function CareerAIAssistant() {
   const [marketTiming, setMarketTiming] = useState<any[]>([]);
   const [isConnected, setIsConnected] = useState(true); // HTTP polling connection status
   const [hasUserInput, setHasUserInput] = useState(false); // Track if user has made changes
-  
+
   // Real-time progress tracking
   const [analysisProgress, setAnalysisProgress] = useState<{
     isActive: boolean;
@@ -169,7 +180,7 @@ export default function CareerAIAssistant() {
 
     const stageIndex = Math.min(Math.floor(pollAttempts / 3), stages.length - 1);
     const stage = stages[stageIndex];
-    
+
     setAnalysisProgress({
       isActive: true,
       stage: 'simulating',
@@ -186,7 +197,7 @@ export default function CareerAIAssistant() {
         setAnalysisProgress(prev => ({ ...prev, isActive: false }));
         setIsGenerating(false);
         setAnalysisJobId(null);
-        
+
         toast({
           title: "Analysis Complete!",
           description: "Your career analysis is ready. Note: This is running in demo mode.",
@@ -207,7 +218,7 @@ export default function CareerAIAssistant() {
     const pollProgress = async () => {
       try {
         pollAttempts++;
-        
+
         // Timeout protection
         if (pollAttempts > maxPollAttempts) {
           console.warn('Analysis polling timeout reached');
@@ -219,7 +230,7 @@ export default function CareerAIAssistant() {
           });
           setIsGenerating(false);
           setAnalysisJobId(null);
-          
+
           toast({
             title: "Analysis Timeout",
             description: "The analysis is taking too long. Please try again with a simpler request.",
@@ -229,10 +240,10 @@ export default function CareerAIAssistant() {
         }
 
         const response = await fetch(`/api/career-ai/progress/${analysisJobId}`);
-        
+
         if (response.ok) {
           const data = await response.json();
-          
+
           if (data.status === 'completed') {
             // Analysis completed successfully
             setInsights(data.result.insights || []);
@@ -243,11 +254,11 @@ export default function CareerAIAssistant() {
             setAiTier(data.result.aiTier || 'basic');
             setUpgradeMessage(data.result.upgradeMessage || "");
             setDaysLeft(data.result.daysLeft || 0);
-            
+
             setAnalysisProgress(prev => ({ ...prev, isActive: false }));
             setIsGenerating(false);
             setAnalysisJobId(null);
-            
+
             toast({
               title: "Analysis Complete!",
               description: "Your personalized career insights are ready.",
@@ -256,7 +267,7 @@ export default function CareerAIAssistant() {
             setAnalysisProgress(prev => ({ ...prev, isActive: false }));
             setIsGenerating(false);
             setAnalysisJobId(null);
-            
+
             toast({
               title: "Analysis Failed",
               description: data.error || "Failed to generate career analysis",
@@ -284,7 +295,7 @@ export default function CareerAIAssistant() {
               progressStuckCounter = 0;
               lastProgress = currentProgress;
             }
-            
+
             // Update progress normally
             setAnalysisProgress({
               isActive: true,
@@ -318,20 +329,20 @@ export default function CareerAIAssistant() {
         }
       } catch (error) {
         console.error('Failed to poll analysis progress:', error);
-        
+
         // If this is fallback mode, run simulation instead of error handling
         if (analysisJobId === 'fallback-simulation') {
           runFallbackSimulation(pollAttempts);
           return;
         }
-        
+
         // On network errors, show user-friendly message but keep trying
         setAnalysisProgress(prev => ({
           ...prev,
           message: 'Connection issue... retrying...',
           currentStep: 'Reconnecting to analysis service'
         }));
-        
+
         // If too many failures, switch to fallback simulation
         if (pollAttempts > 15) {
           console.log('Switching to fallback simulation due to connection issues');
@@ -344,7 +355,7 @@ export default function CareerAIAssistant() {
     // Start polling immediately, then every 2 seconds
     pollProgress();
     const interval = setInterval(pollProgress, 2000);
-    
+
     return () => clearInterval(interval);
   }, [analysisJobId, isGenerating]);
 
@@ -364,7 +375,7 @@ export default function CareerAIAssistant() {
         setAiTier(data.aiTier || 'basic');
         setUpgradeMessage(data.upgradeMessage || "");
         setDaysLeft(data.daysLeft || 0);
-        
+
         if (data.hasAnalysis) {
           setSavedAnalysis(data);
           // Only set form values from saved analysis if user hasn't made changes
@@ -375,7 +386,7 @@ export default function CareerAIAssistant() {
           }
           setCompletedTasks(data.completedTasks || []);
           setProgressUpdate(data.progressUpdate || "");
-          
+
           // Set analysis results
           if (data.analysis) {
             setInsights(data.analysis.insights || []);
@@ -403,7 +414,7 @@ export default function CareerAIAssistant() {
     }
 
     setIsGenerating(true);
-    
+
     // Initialize progress tracking
     setAnalysisProgress({
       isActive: true,
@@ -412,7 +423,7 @@ export default function CareerAIAssistant() {
       message: 'Preparing to analyze your career path...',
       currentStep: 'Connecting to AI analysis engine'
     });
-    
+
     try {
       const response = await fetch('/api/career-ai/analyze', {
         method: 'POST',
@@ -435,7 +446,7 @@ export default function CareerAIAssistant() {
       if (response.ok) {
         const result = await response.json();
         console.log('Career AI Analysis Result:', result); // Debug log
-        
+
         if (result.jobId) {
           // Analysis started successfully - begin polling for progress
           setAnalysisJobId(result.jobId);
@@ -451,16 +462,16 @@ export default function CareerAIAssistant() {
           setAiTier(result.aiTier || 'basic');
           setUpgradeMessage(result.upgradeMessage || "");
           setDaysLeft(result.daysLeft || 0);
-          
+
           setInsights(result.insights || []);
           setSkillGaps(result.skillGaps || []);
           setCareerPath(result.careerPath || null);
           setNetworkingOpportunities(result.networkingOpportunities || []);
           setMarketTiming(result.marketTiming || []);
-          
+
           setProgressUpdate("");
           setIsGenerating(false);
-          
+
           // Reset analysis progress to inactive
           setAnalysisProgress({
             isActive: false,
@@ -469,7 +480,7 @@ export default function CareerAIAssistant() {
             message: 'Analysis completed successfully',
             currentStep: 'Ready'
           });
-          
+
           if (result.upgradeMessage) {
             toast({
               title: "Premium AI Model Trial Ended",
@@ -564,7 +575,7 @@ export default function CareerAIAssistant() {
       if (response.ok) {
         setCompletedTasks(newCompletedTasks);
         setProgressUpdate(newProgressUpdate);
-        
+
         toast({
           title: "Progress Updated",
           description: "Your career progress has been saved",
@@ -587,7 +598,7 @@ export default function CareerAIAssistant() {
     const newCompletedTasks = completed 
       ? [...completedTasks, taskId]
       : completedTasks.filter(id => id !== taskId);
-    
+
     updateProgress(newCompletedTasks, progressUpdate);
   };
 
@@ -614,7 +625,7 @@ export default function CareerAIAssistant() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
+
       <main className="container mx-auto px-4 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -635,7 +646,7 @@ export default function CareerAIAssistant() {
               Get personalized career guidance powered by AI. Analyze your career path, identify skill gaps, 
               optimize timing for moves, and discover networking opportunities.
             </p>
-            
+
             {/* AI Tier Status Banner */}
             <div className="max-w-2xl mx-auto">
               {aiTier === 'premium' && daysLeft > 0 && (
@@ -651,7 +662,7 @@ export default function CareerAIAssistant() {
                   </p>
                 </div>
               )}
-              
+
               {upgradeMessage && (
                 <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
                   <div className="flex items-center gap-2">
@@ -671,7 +682,7 @@ export default function CareerAIAssistant() {
                   </Button>
                 </div>
               )}
-              
+
               {aiTier === 'basic' && !upgradeMessage && (
                 <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                   <div className="flex items-center gap-2">
@@ -775,7 +786,7 @@ export default function CareerAIAssistant() {
                   <span>Location-specific insights will include market data, salary ranges, and opportunities in {location}</span>
                 </div>
               )}
-              
+
               {/* Enhanced Progress Update Section */}
               {insights.length > 0 && (
                 <div className="space-y-4">
@@ -847,7 +858,7 @@ Examples:
                           className="min-h-[120px] resize-none"
                           data-testid="input-progress-update"
                         />
-                        
+
                         {progressUpdate && (
                           <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
                             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -922,7 +933,7 @@ Examples:
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-blue-700 dark:text-blue-300">Progress</span>
@@ -936,7 +947,7 @@ Examples:
                         data-testid="progress-bar-analysis"
                       />
                     </div>
-                    
+
                     <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
                       <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
                       {isConnected ? 'Connected' : 'Connecting...'} to real-time updates
@@ -1023,229 +1034,232 @@ Examples:
 
               {/* Career Path Tab */}
               <TabsContent value="path" className="space-y-6">
+                {/* Career Path Chart */}
                 {careerPath && (
-                  <>
-                    {/* Career Progress Visualization */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <TrendingUp className="h-5 w-5" />
-                          Career Progression Timeline
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                          Salary progression and timeline to reach your career goal
-                        </p>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="h-80">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={careerPath.steps.map((step, index) => {
-                              // Robust salary parsing for ranges like "$120k - $150k" or "$120,000"
-                              const salaryNumbers = (step.averageSalary.match(/\d+/g) || []).map(n => parseInt(n, 10));
-                              const salaryMin = salaryNumbers[0] || 50;
-                              const salaryMax = salaryNumbers.length > 1 ? salaryNumbers[1] : salaryMin + 20;
-                              
-                              return {
-                                step: index + 1,
-                                position: step.position.length > 15 ? step.position.substring(0, 15) + '...' : step.position,
-                                fullPosition: step.position,
-                                timeline: step.timeline,
-                                salaryMin,
-                                salaryMax,
-                                demandScore: step.marketDemand === 'High' ? 8 : step.marketDemand === 'Medium' ? 5 : 2
-                              };
-                            })}>
-                              <CartesianGrid strokeDasharray="3 3" />
-                              <XAxis 
-                                dataKey="position" 
-                                angle={-45} 
-                                textAnchor="end" 
-                                height={80}
-                                tick={{ fontSize: 10 }}
-                              />
-                              <YAxis 
-                                yAxisId="salary"
-                                orientation="left"
-                                tick={{ fontSize: 10 }}
-                                label={{ value: 'Salary (k)', angle: -90, position: 'insideLeft' }}
-                              />
-                              <YAxis 
-                                yAxisId="demand"
-                                orientation="right"
-                                tick={{ fontSize: 10 }}
-                                label={{ value: 'Market Demand', angle: 90, position: 'insideRight' }}
-                              />
-                              <Tooltip 
-                                content={({ active, payload, label }) => {
-                                  if (active && payload && payload.length) {
-                                    const data = payload[0].payload;
-                                    return (
-                                      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border">
-                                        <p className="font-medium">{data.fullPosition}</p>
-                                        <p className="text-sm text-blue-600">Timeline: {data.timeline}</p>
-                                        <p className="text-sm text-green-600">Salary: ${data.salaryMin}k - ${data.salaryMax}k</p>
-                                        <p className="text-sm text-purple-600">Market Demand: {data.demandScore > 6 ? 'High' : data.demandScore > 4 ? 'Medium' : 'Low'}</p>
-                                      </div>
-                                    );
-                                  }
-                                  return null;
-                                }}
-                              />
-                              <Legend />
-                              <Line 
-                                yAxisId="salary"
-                                type="monotone" 
-                                dataKey="salaryMax" 
-                                stroke="#10b981" 
-                                strokeWidth={3}
-                                dot={{ fill: '#10b981', strokeWidth: 2, r: 6 }}
-                                name="Max Salary (k)"
-                              />
-                              <Line 
-                                yAxisId="demand"
-                                type="monotone" 
-                                dataKey="demandScore" 
-                                stroke="#8b5cf6"
-                                strokeWidth={2}
-                                dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }}
-                                name="Market Demand Score"
-                              />
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </CardContent>
-                    </Card>
+                  <div className="bg-gray-50 rounded-lg p-4 border">
+                    <h4 className="font-semibold text-black mb-3 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-green-600" />
+                      Career Progression Path
+                    </h4>
+                    {careerPath.steps && careerPath.steps.length > 0 ? (
+                      <div className="h-48">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={careerPath.steps.slice(0, 4).map((step, index) => {
+                            // Simple salary parsing
+                            const salaryMatch = step.averageSalary.match(/\d+/g);
+                            const salary = salaryMatch ? parseInt(salaryMatch[0]) : 50 + (index * 20);
 
-                    {/* Success Probability & Timeline Summary */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <Target className="h-5 w-5" />
-                            Success Probability
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex items-center justify-center h-32">
-                            <div className="relative w-24 h-24">
-                              <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                  <Pie
-                                    data={[
-                                      { name: 'Success', value: careerPath.successProbability, fill: '#10b981' },
-                                      { name: 'Challenge', value: 100 - careerPath.successProbability, fill: '#e5e7eb' }
-                                    ]}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={30}
-                                    outerRadius={48}
-                                    startAngle={90}
-                                    endAngle={450}
-                                    dataKey="value"
-                                  >
-                                  </Pie>
-                                </PieChart>
-                              </ResponsiveContainer>
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="text-2xl font-bold text-green-600">{careerPath.successProbability}%</span>
-                              </div>
-                            </div>
+                            return {
+                              step: step.position.length > 15 ? step.position.substring(0, 15) + '...' : step.position,
+                              salary: salary,
+                              timeline: step.timeline,
+                              demand: step.marketDemand === 'High' ? 90 : step.marketDemand === 'Medium' ? 70 : 50,
+                            }
+                          })}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <XAxis 
+                              dataKey="step" 
+                              angle={-45} 
+                              textAnchor="end" 
+                              height={80}
+                              tick={{ fontSize: 10 }}
+                            />
+                            <YAxis 
+                              yAxisId="salary"
+                              orientation="left"
+                              tick={{ fontSize: 10 }}
+                              label={{ value: 'Salary (k)', angle: -90, position: 'insideLeft' }}
+                            />
+                            <YAxis 
+                              yAxisId="demand"
+                              orientation="right"
+                              tick={{ fontSize: 10 }}
+                              label={{ value: 'Market Demand', angle: 90, position: 'insideRight' }}
+                            />
+                            <Tooltip 
+                              content={({ active, payload, label }) => {
+                                if (active && payload && payload.length) {
+                                  const data = payload[0].payload;
+                                  return (
+                                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border">
+                                      <p className="font-medium">{data.step}</p>
+                                      <p className="text-sm text-blue-600">Timeline: {data.timeline}</p>
+                                      <p className="text-sm text-green-600">Salary: ${data.salary}k</p>
+                                      <p className="text-sm text-purple-600">Market Demand: {data.demand > 60 ? 'High' : data.demand > 40 ? 'Medium' : 'Low'}</p>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              }}
+                            />
+                            <Legend />
+                            <Line 
+                              yAxisId="salary"
+                              type="monotone" 
+                              dataKey="salary" 
+                              stroke="#10b981" 
+                              strokeWidth={3}
+                              dot={{ fill: '#10b981', strokeWidth: 2, r: 6 }}
+                              name="Salary (k)"
+                            />
+                            <Line 
+                              yAxisId="demand"
+                              type="monotone" 
+                              dataKey="demand" 
+                              stroke="#8b5cf6"
+                              strokeWidth={2}
+                              dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }}
+                              name="Market Demand"
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                      ) : (
+                        <div className="h-48 flex items-center justify-center bg-white rounded border border-dashed">
+                          <div className="text-center text-gray-500">
+                            <TrendingUp className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                            <p className="text-sm">Career path data will appear here</p>
+                            <p className="text-xs mt-1">Generate analysis with more profile details for detailed progression steps</p>
                           </div>
-                          <p className="text-center text-sm text-muted-foreground mt-2">
-                            Based on market trends and your profile
-                          </p>
-                        </CardContent>
-                      </Card>
-
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <Clock className="h-5 w-5" />
-                            Timeline Overview
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-4">
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm text-muted-foreground">Total Duration</span>
-                              <span className="font-semibold">{careerPath.totalTimeframe}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm text-muted-foreground">Career Steps</span>
-                              <span className="font-semibold">{careerPath.steps.length} positions</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm text-muted-foreground">Current Role</span>
-                              <span className="font-semibold text-blue-600">{careerPath.currentRole}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm text-muted-foreground">Target Role</span>
-                              <span className="font-semibold text-green-600">{careerPath.targetRole}</span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-
-                    {/* Detailed Career Path Steps */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Trophy className="h-5 w-5" />
-                          Detailed Career Path
-                        </CardTitle>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>Success Probability: {careerPath.successProbability}%</span>
-                          <span>Total Timeframe: {careerPath.totalTimeframe}</span>
                         </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-6">
-                          {careerPath.steps.map((step, index) => (
-                            <div key={index} className="relative">
-                              {index < careerPath.steps.length - 1 && (
-                                <div className="absolute left-6 top-12 w-0.5 h-16 bg-border" />
-                              )}
-                              <div className="flex gap-4">
-                                <div className="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                                  <span className="text-primary font-bold">{index + 1}</span>
-                                </div>
-                                <div className="flex-1 space-y-3">
-                                  <div>
-                                    <h3 className="font-semibold text-lg">{step.position}</h3>
-                                    <p className="text-muted-foreground">{step.timeline}</p>
-                                  </div>
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                                    <div>
-                                      <p className="font-medium mb-1">Required Skills</p>
-                                      <div className="flex flex-wrap gap-1">
-                                        {step.requiredSkills.slice(0, 3).map((skill, i) => (
-                                          <Badge key={i} variant="secondary" className="text-xs">
-                                            {skill}
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    </div>
-                                    <div>
-                                      <p className="font-medium mb-1">Average Salary</p>
-                                      <p className="text-green-600 font-semibold">{step.averageSalary}</p>
-                                    </div>
-                                    <div>
-                                      <p className="font-medium mb-1">Market Demand</p>
-                                      <Badge variant={step.marketDemand === 'High' ? 'default' : 'secondary'}>
-                                        {step.marketDemand}
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </>
+                      )}
+                  </div>
                 )}
+
+                {/* Success Probability & Timeline Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Target className="h-5 w-5" />
+                        Success Probability
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-center h-32">
+                        <div className="relative w-24 h-24">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={[
+                                  { name: 'Success', value: careerPath?.successProbability ?? 70, fill: '#10b981' },
+                                  { name: 'Challenge', value: careerPath?.successProbability ? 100 - careerPath.successProbability : 30, fill: '#e5e7eb' }
+                                ]}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={30}
+                                outerRadius={48}
+                                startAngle={90}
+                                endAngle={450}
+                                dataKey="value"
+                              >
+                              </Pie>
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-2xl font-bold text-green-600">{Math.round(careerPath?.successProbability ?? 70)}%</span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-center text-sm text-muted-foreground mt-2">
+                        Based on market trends and your profile
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Clock className="h-5 w-5" />
+                        Timeline Overview
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Total Duration</span>
+                          <span className="font-semibold">{careerPath?.totalTimeframe ?? 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Career Steps</span>
+                          <span className="font-semibold">{careerPath?.steps.length ?? 0} positions</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Current Role</span>
+                          <span className="font-semibold text-blue-600">{careerPath?.currentRole ?? 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Target Role</span>
+                          <span className="font-semibold text-green-600">{careerPath?.targetRole ?? 'N/A'}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Detailed Career Path Steps */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Trophy className="h-5 w-5" />
+                      Detailed Career Path
+                    </CardTitle>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span>Success Probability: {careerPath?.successProbability ?? 0}%</span>
+                      <span>Total Timeframe: {careerPath?.totalTimeframe ?? 'N/A'}</span>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      {careerPath?.steps.map((step, index) => (
+                        <div key={index} className="relative">
+                          {index < careerPath.steps.length - 1 && (
+                            <div className="absolute left-6 top-12 w-0.5 h-16 bg-border" />
+                          )}
+                          <div className="flex gap-4">
+                            <div className="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                              <span className="text-primary font-bold">{index + 1}</span>
+                            </div>
+                            <div className="flex-1 space-y-3">
+                              <div>
+                                <h3 className="font-semibold text-lg">{step.position}</h3>
+                                <p className="text-muted-foreground">{step.timeline}</p>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                <div>
+                                  <p className="font-medium mb-1">Required Skills</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {step.requiredSkills.slice(0, 3).map((skill, i) => (
+                                      <Badge key={i} variant="secondary" className="text-xs">
+                                        {skill}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div>
+                                  <p className="font-medium mb-1">Average Salary</p>
+                                  <p className="text-green-600 font-semibold">{step.averageSalary}</p>
+                                </div>
+                                <div>
+                                  <p className="font-medium mb-1">Market Demand</p>
+                                  <Badge variant={step.marketDemand === 'High' ? 'default' : 'secondary'}>
+                                    {step.marketDemand}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )) || (
+                        <div className="text-center py-8 bg-gray-100 dark:bg-gray-800 rounded-lg border border-dashed">
+                          <Map className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                          <p className="text-lg font-medium text-gray-700 dark:text-gray-300">No Career Path Steps Found</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Please ensure your career goal is specific enough to generate detailed path steps.</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               {/* Skill Gaps Tab */}

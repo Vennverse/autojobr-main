@@ -1866,6 +1866,50 @@ Requirements:
     }
   });
 
+  // Get career analytics summary for dashboard
+  app.get('/api/career-ai/analytics', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      // Get latest analysis
+      const latestAnalysis = await db.query.careerAiAnalyses.findFirst({
+        where: (table, { eq, and }) => and(
+          eq(table.userId, userId),
+          eq(table.isActive, true)
+        ),
+        orderBy: (table, { desc }) => [desc(table.createdAt)]
+      });
+
+      // Get total analyses count
+      const totalAnalyses = await db.select({ count: count() })
+        .from(schema.careerAiAnalyses)
+        .where(eq(schema.careerAiAnalyses.userId, userId));
+
+      // Get skill progress if available
+      const skillProgress = latestAnalysis?.skillGaps || [];
+      
+      // Calculate progress metrics
+      const progressMetrics = {
+        totalAnalyses: totalAnalyses[0]?.count || 0,
+        latestAnalysis: latestAnalysis ? {
+          careerGoal: latestAnalysis.careerGoal,
+          insights: latestAnalysis.insights,
+          skillGaps: latestAnalysis.skillGaps,
+          careerPath: latestAnalysis.careerPath,
+          createdAt: latestAnalysis.createdAt
+        } : null,
+        skillImprovementRate: skillProgress.length > 0 
+          ? Math.round((skillProgress.reduce((sum: number, gap: any) => sum + (gap.currentLevel || 0), 0) / skillProgress.length) * 10)
+          : 0
+      };
+
+      res.json(progressMetrics);
+    } catch (error) {
+      console.error("Error fetching career analytics:", error);
+      res.status(500).json({ message: "Failed to fetch career analytics" });
+    }
+  });
+
   // Get specific career analysis by ID
   app.get('/api/career-ai/analysis/:id', isAuthenticated, async (req: any, res) => {
     try {
