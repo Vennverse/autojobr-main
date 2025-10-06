@@ -217,7 +217,7 @@ function Router() {
       <Route path="/jobs/dallas" component={() => <Jobs location="dallas" />} />
 
       {/* International locations */}
-      <Route path="/jobs/london" component={() => <Jobs location="london" />} />
+      <Route path="/jobs/london" component={()={() => <Jobs location="london" />} />
       <Route path="/jobs/toronto" component={() => <Jobs location="toronto" />} />
       <Route path="/jobs/sydney" component={() => <Jobs location="sydney" />} />
       <Route path="/jobs/berlin" component={() => <Jobs location="berlin" />} />

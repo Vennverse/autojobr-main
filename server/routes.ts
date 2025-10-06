@@ -1891,21 +1891,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         redirectUrl = `/mock-interview?sessionId=${mockInterview.sessionId}`;
         break;
       case 'test':
-        // Create test assignment
+        // Create test assignment from interview link
         const testData = JSON.parse(link.interviewData || '{}');
-        if (testData.testTemplateId) {
-          const testAssignment = await storage.createTestAssignment({
-            testTemplateId: testData.testTemplateId,
-            jobSeekerId: user.id,
-            recruiterId: link.recruiterId,
-            jobPostingId: link.jobPostingId,
-            dueDate: link.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-            status: 'assigned'
-          });
-          redirectUrl = `/test/${testAssignment.id}`;
+        
+        // Get test template ID from link data or use default
+        const templateId = testData.testTemplateId || link.testTemplateId;
+        
+        if (!templateId) {
+          // No template specified - get a default template
+          const templates = await storage.getTestTemplates();
+          if (templates.length === 0) {
+            throw new Error('No test templates available');
+          }
+          testData.testTemplateId = templates[0].id;
         } else {
-          redirectUrl = '/test-assignments';
+          testData.testTemplateId = templateId;
         }
+        
+        // Create the test assignment
+        const testAssignment = await storage.createTestAssignment({
+          testTemplateId: testData.testTemplateId,
+          jobSeekerId: user.id,
+          recruiterId: link.recruiterId,
+          jobPostingId: link.jobPostingId || null,
+          dueDate: link.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          status: 'assigned'
+        });
+        
+        console.log(`✅ Test assignment created: ${testAssignment.id} for candidate ${user.id}`);
+        redirectUrl = `/test-taking/${testAssignment.id}`;
         break;
       case 'video-interview':
         redirectUrl = '/ChatInterview?fromInvite=true';
