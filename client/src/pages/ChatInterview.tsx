@@ -159,7 +159,7 @@ function ChatInterview() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [interview, timeRemaining]);
+  }, [interview]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {

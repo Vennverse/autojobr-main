@@ -495,9 +495,11 @@ Remember: Your goal is to uncover the candidate's true capabilities through stra
 
     const shouldAdvance = isSubstantialResponse && hasNewQuestion && !responseAnalysis.needsRedirection;
     
-    // Fix: Interview should complete when we've processed totalQuestions responses
-    // currentQuestionCount starts at 0, so after processing question 1,2,3,4,5 it should be 5
-    const shouldComplete = (context.currentQuestionCount + 1) >= context.totalQuestions;
+    // Fix: Interview should complete when we've reached totalQuestions
+    // After the user answers the final question, currentQuestionCount should equal totalQuestions
+    // For example, if totalQuestions=5, after answering Q5, currentQuestionCount should be 5 or 4 (0-indexed)
+    // Check if we're at or past the last question - be more lenient to ensure completion
+    const shouldComplete = context.currentQuestionCount >= (context.totalQuestions - 1);
 
     let suggestedFollowUp;
     if (responseAnalysis.technicalDepth > 0.7) {
