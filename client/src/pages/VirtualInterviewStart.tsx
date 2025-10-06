@@ -6,11 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Brain, Clock, DollarSign, CheckCircle, MessageCircle } from 'lucide-react';
+import { Loader2, Brain, Clock, DollarSign, CheckCircle, MessageCircle, History, TrendingUp, Award, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import PayPalHostedButton from '@/components/PayPalHostedButton';
 import { usePaymentAccess } from '@/hooks/usePaymentAccess';
+import { useQuery } from '@tanstack/react-query';
+import { Progress } from '@/components/ui/progress';
 
 interface InterviewConfig {
   interviewType: string;
@@ -46,6 +48,13 @@ export default function VirtualInterviewStart() {
   } | null>(null);
   const [checkingEligibility, setCheckingEligibility] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+
+  // Fetch past interviews
+  const { data: pastInterviews, isLoading: loadingHistory } = useQuery({
+    queryKey: ['/api/virtual-interview/history'],
+    queryFn: () => apiRequest('/api/virtual-interview/history', 'GET'),
+    retry: false
+  });
 
   const checkEligibility = async () => {
     try {
@@ -487,6 +496,182 @@ export default function VirtualInterviewStart() {
               </Card>
             </div>
           </div>
+        </div>
+
+        {/* Past Interviews History Section */}
+        <div className="mt-12">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="w-5 h-5" />
+                Your Interview History
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingHistory ? (
+                <div className="text-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+                  <p className="text-gray-600 dark:text-gray-400">Loading your interview history...</p>
+                </div>
+              ) : pastInterviews && pastInterviews.length > 0 ? (
+                <div className="space-y-4">
+                  {pastInterviews.map((interview: any, index: number) => {
+                    const getScoreColor = (score: number) => {
+                      if (score >= 80) return 'text-green-600 dark:text-green-400';
+                      if (score >= 60) return 'text-yellow-600 dark:text-yellow-400';
+                      return 'text-red-600 dark:text-red-400';
+                    };
+
+                    const getScoreBadge = (score: number) => {
+                      if (score >= 80) return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
+                      if (score >= 60) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100';
+                      return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100';
+                    };
+
+                    return (
+                      <Card key={interview.id || index} className="border-2 hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="flex flex-col md:flex-row justify-between gap-4">
+                            {/* Interview Details */}
+                            <div className="flex-1 space-y-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4 className="font-semibold text-lg">
+                                  {interview.role?.replace(/_/g, ' ') || 'Interview'}
+                                </h4>
+                                {interview.company && (
+                                  <Badge variant="outline">{interview.company}</Badge>
+                                )}
+                              </div>
+                              
+                              <div className="flex flex-wrap gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-4 h-4" />
+                                  {new Date(interview.startTime || interview.createdAt).toLocaleDateString()}
+                                </span>
+                                <span>•</span>
+                                <span className="capitalize">{interview.interviewType?.replace('_', ' ')}</span>
+                                <span>•</span>
+                                <span className="capitalize">{interview.difficulty}</span>
+                                <span>•</span>
+                                <span>{interview.duration || 30} min</span>
+                              </div>
+
+                              {/* Performance Metrics */}
+                              {interview.status === 'completed' && (
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+                                  <div>
+                                    <p className="text-xs text-gray-500">Overall Score</p>
+                                    <p className={`text-lg font-bold ${getScoreColor(interview.overallScore || 0)}`}>
+                                      {interview.overallScore || 0}%
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-gray-500">Technical</p>
+                                    <div className="flex items-center gap-1">
+                                      <Progress value={interview.technicalScore || 0} className="h-2 w-16" />
+                                      <span className="text-sm font-medium">{interview.technicalScore || 0}%</span>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-gray-500">Communication</p>
+                                    <div className="flex items-center gap-1">
+                                      <Progress value={interview.communicationScore || 0} className="h-2 w-16" />
+                                      <span className="text-sm font-medium">{interview.communicationScore || 0}%</span>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-gray-500">Questions</p>
+                                    <p className="text-sm font-medium">
+                                      {interview.questionsAsked || 0}/{interview.totalQuestions || 0}
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Key Insights */}
+                              {interview.status === 'completed' && (interview.strengths || interview.weaknesses) && (
+                                <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2">
+                                  {interview.strengths && interview.strengths.length > 0 && (
+                                    <div>
+                                      <p className="text-xs font-semibold text-green-600 dark:text-green-400 flex items-center gap-1">
+                                        <CheckCircle className="w-3 h-3" />
+                                        Key Strengths
+                                      </p>
+                                      <ul className="text-xs text-gray-600 dark:text-gray-400 ml-4 mt-1">
+                                        {interview.strengths.slice(0, 2).map((strength: string, i: number) => (
+                                          <li key={i} className="list-disc">{strength}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                  {interview.weaknesses && interview.weaknesses.length > 0 && (
+                                    <div>
+                                      <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                                        <TrendingUp className="w-3 h-3" />
+                                        Areas to Improve
+                                      </p>
+                                      <ul className="text-xs text-gray-600 dark:text-gray-400 ml-4 mt-1">
+                                        {interview.weaknesses.slice(0, 2).map((weakness: string, i: number) => (
+                                          <li key={i} className="list-disc">{weakness}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex flex-col justify-between gap-2 md:min-w-[180px]">
+                              {interview.status === 'completed' ? (
+                                <>
+                                  <Badge className={getScoreBadge(interview.overallScore || 0)}>
+                                    {interview.overallScore >= 80 ? 'Excellent' : interview.overallScore >= 60 ? 'Good' : 'Needs Work'}
+                                  </Badge>
+                                  <Button
+                                    onClick={() => setLocation(`/virtual-interview/${interview.sessionId}/feedback`)}
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full"
+                                  >
+                                    <Award className="w-4 h-4 mr-2" />
+                                    View Feedback
+                                  </Button>
+                                </>
+                              ) : interview.status === 'active' ? (
+                                <>
+                                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">In Progress</Badge>
+                                  <Button
+                                    onClick={() => setLocation(`/chat-interview/${interview.sessionId}`)}
+                                    size="sm"
+                                    className="w-full"
+                                  >
+                                    Resume Interview
+                                  </Button>
+                                </>
+                              ) : (
+                                <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                                  {interview.status || 'Pending'}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">No Interview History Yet</p>
+                  <p className="text-gray-500 dark:text-gray-500 text-sm mt-1">
+                    Start your first AI interview to build your practice history
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
