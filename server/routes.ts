@@ -1858,7 +1858,7 @@ Requirements:
         orderBy: (table, { desc }) => [desc(table.createdAt)],
         limit: 10
       });
-      
+
       res.json(analyses);
     } catch (error) {
       console.error("Error fetching career analyses:", error);
@@ -1870,7 +1870,7 @@ Requirements:
   app.get('/api/career-ai/analytics', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      
+
       // Get latest analysis
       const latestAnalysis = await db.query.careerAiAnalyses.findFirst({
         where: (table, { eq, and }) => and(
@@ -1888,24 +1888,24 @@ Requirements:
       // Get skill progress if available
       const skillGaps = latestAnalysis?.skillGaps || [];
       const careerPath = latestAnalysis?.careerPath || null;
-      
+
       // Calculate actual skill improvement rate
       let skillImprovementRate = 0;
       if (Array.isArray(skillGaps) && skillGaps.length > 0) {
         const avgCurrentLevel = skillGaps.reduce((sum: number, gap: any) => {
           return sum + (gap.currentLevel || 0);
         }, 0) / skillGaps.length;
-        
+
         const avgTargetLevel = skillGaps.reduce((sum: number, gap: any) => {
           return sum + (gap.targetLevel || 10);
         }, 0) / skillGaps.length;
-        
+
         // Calculate as percentage of target achieved
         skillImprovementRate = avgTargetLevel > 0 
           ? Math.round((avgCurrentLevel / avgTargetLevel) * 100) 
           : 0;
       }
-      
+
       // Calculate progress metrics with real data
       const progressMetrics = {
         totalAnalyses: totalAnalyses[0]?.count || 0,
@@ -1933,18 +1933,18 @@ Requirements:
     try {
       const userId = req.user.id;
       const analysisId = parseInt(req.params.id);
-      
+
       const analysis = await db.query.careerAiAnalyses.findFirst({
         where: (table, { eq, and }) => and(
           eq(table.id, analysisId),
           eq(table.userId, userId)
         )
       });
-      
+
       if (!analysis) {
         return res.status(404).json({ message: "Analysis not found" });
       }
-      
+
       res.json(analysis);
     } catch (error) {
       console.error("Error fetching career analysis:", error);
@@ -2892,15 +2892,15 @@ Requirements:
     try {
       const userId = req.user.id;
       const cacheKey = `profile_${userId}`;
-      
+
       const cached = getCached(cacheKey);
       if (cached) {
         return res.json(cached);
       }
-      
+
       const profile = await storage.getUserProfile(userId);
-      
-      setCache(cacheKey, profile, undefined, userId);
+
+      setCache(cacheKey, profile, 300000, userId); // Cache for 5 minutes
       res.json(profile);
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -2911,18 +2911,18 @@ Requirements:
   app.post('/api/profile', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      
+
       const bodyData = { ...req.body, userId };
       if (bodyData.lastResumeAnalysis && typeof bodyData.lastResumeAnalysis === 'string') {
         bodyData.lastResumeAnalysis = new Date(bodyData.lastResumeAnalysis);
       }
-      
+
       const profileData = insertUserProfileSchema.parse(bodyData);
       const profile = await storage.upsertUserProfile(profileData);
-      
+
       cache.delete(`profile_${userId}`);
       cache.delete(`recommendations_${userId}`);
-      
+
       res.json(profile);
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -2975,7 +2975,7 @@ Requirements:
         ),
         orderBy: (table, { desc }) => [desc(table.updatedAt)]
       });
-      
+
       // Return enhanced structure with proper data
       if (analysis) {
         res.json({
@@ -3001,22 +3001,22 @@ Requirements:
   app.post('/api/career-ai/analyze', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { careerGoal, location, timeframe, progressUpdate } = req.body;
+      const { careerGoal, location, timeframe, progressUpdate, userProfile, userSkills, userApplications, jobAnalyses, completedTasks } = req.body;
 
       // Generate comprehensive career analysis with complete data
       const timeframeYears = parseInt(timeframe?.split('-')[0]) || 2;
-      
+
       // Generate realistic career progression steps
       const steps = [];
       const baseRole = careerGoal || 'Professional';
       const levels = ['Junior', 'Mid-Level', 'Senior', 'Lead', 'Principal'];
       const stepCount = Math.min(timeframeYears + 1, 5);
-      
+
       for (let i = 0; i < stepCount; i++) {
         const level = levels[Math.min(i, levels.length - 1)];
         const timeline = i === 0 ? 'Current' : `${i * 6}-${(i + 1) * 6} months`;
         const baseSalary = 50 + (i * 25);
-        
+
         steps.push({
           position: `${level} ${baseRole}`,
           timeline: timeline,
@@ -3167,7 +3167,7 @@ Requirements:
         location,
         timeframe,
         progressUpdate,
-        completedTasks: [],
+        completedTasks,
         analysisData: mockAnalysis,
         insights: mockAnalysis.insights,
         careerPath: mockAnalysis.careerPath,

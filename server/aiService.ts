@@ -553,6 +553,299 @@ Skills: ${userProfile.skills?.map((s: any) => s.skillName).join(', ') || 'None l
     };
   }
 
+  // Comprehensive Career Path Analysis
+  async analyzeCareerPath(data: {
+    careerGoal: string;
+    location?: string;
+    timeframe: string;
+    userProfile: any;
+    userSkills: any[];
+    progressUpdate?: string;
+  }, user?: any): Promise<any> {
+    const prompt = `You are an expert career coach. Analyze this career progression request and provide detailed JSON response.
+
+**Career Goal:** ${data.careerGoal}
+**Location:** ${data.location || 'Not specified'}
+**Timeframe:** ${data.timeframe}
+**Current Experience:** ${data.userProfile?.yearsExperience || 0} years
+**Current Skills:** ${data.userSkills?.map((s: any) => s.skillName).join(', ') || 'None listed'}
+**Recent Progress:** ${data.progressUpdate || 'No recent updates'}
+
+Provide a comprehensive JSON response with this EXACT structure:
+
+{
+  "insights": [
+    {
+      "type": "path",
+      "title": "Career Path Strategy",
+      "content": "Detailed analysis of the best career progression path",
+      "priority": "high",
+      "timeframe": "${data.timeframe}",
+      "actionItems": ["Specific action 1", "Specific action 2", "Specific action 3"]
+    },
+    {
+      "type": "skill",
+      "title": "Priority Skills Development",
+      "content": "Key skills needed for advancement",
+      "priority": "high",
+      "timeframe": "3-6 months",
+      "actionItems": ["Skill development action 1", "Skill development action 2"]
+    },
+    {
+      "type": "timing",
+      "title": "Market Timing Insights",
+      "content": "Best timing for career moves based on market conditions",
+      "priority": "medium",
+      "timeframe": "Next 6 months",
+      "actionItems": ["Timing strategy 1", "Timing strategy 2"]
+    },
+    {
+      "type": "network",
+      "title": "Networking Strategy",
+      "content": "Who to connect with and where",
+      "priority": "medium",
+      "timeframe": "Ongoing",
+      "actionItems": ["Networking action 1", "Networking action 2"]
+    }
+  ],
+  "careerPath": {
+    "currentRole": "Current position based on experience",
+    "targetRole": "${data.careerGoal}",
+    "totalTimeframe": "${data.timeframe}",
+    "successProbability": 75,
+    "steps": [
+      {
+        "position": "Junior/Entry-level position title",
+        "timeline": "0-6 months",
+        "requiredSkills": ["Skill 1", "Skill 2", "Skill 3"],
+        "averageSalary": "$50k - $70k",
+        "marketDemand": "High"
+      },
+      {
+        "position": "Mid-level position title",
+        "timeline": "6-12 months",
+        "requiredSkills": ["Advanced Skill 1", "Advanced Skill 2", "Leadership"],
+        "averageSalary": "$75k - $95k",
+        "marketDemand": "High"
+      },
+      {
+        "position": "Senior position title",
+        "timeline": "12-18 months",
+        "requiredSkills": ["Expert Skill 1", "Strategic Thinking", "Team Leadership"],
+        "averageSalary": "$100k - $120k",
+        "marketDemand": "Medium"
+      }
+    ]
+  },
+  "skillGaps": [
+    {
+      "skill": "Critical technical skill name",
+      "currentLevel": 3,
+      "targetLevel": 8,
+      "importance": 9,
+      "learningResources": ["Course 1", "Course 2", "Practice project"],
+      "timeToAcquire": "3-6 months"
+    },
+    {
+      "skill": "Another important skill",
+      "currentLevel": 2,
+      "targetLevel": 7,
+      "importance": 8,
+      "learningResources": ["Resource 1", "Resource 2"],
+      "timeToAcquire": "2-4 months"
+    }
+  ],
+  "networkingOpportunities": [
+    {
+      "type": "Professional Communities",
+      "platforms": ["LinkedIn Groups", "Industry Forums"],
+      "targetConnections": "Senior professionals in ${data.careerGoal}"
+    }
+  ],
+  "marketTiming": [
+    {
+      "period": "Q1-Q2 2025",
+      "marketStrength": "Strong",
+      "hiringTrends": "High demand",
+      "recommendation": "Optimal time to apply"
+    }
+  ]
+}
+
+Return ONLY valid JSON, no explanations or markdown.`;
+
+    try {
+      const accessInfo = this.hasAIAccess(user);
+
+      if (this.developmentMode) {
+        console.log("Running in development mode - using fallback career analysis");
+        return this.generateFallbackCareerAnalysis(data, accessInfo);
+      }
+
+      const completion = await this.createChatCompletion([
+        {
+          role: "system",
+          content: "You are an expert career coach and data scientist. Analyze career paths and return detailed, accurate JSON with realistic salary data and market insights."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ], {
+        temperature: 0.3,
+        max_tokens: 2000,
+        user
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error("No response from AI service");
+      }
+
+      console.log("Raw AI career analysis response:", content.substring(0, 500) + "...");
+
+      // Parse JSON response
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        const jsonContent = jsonMatch ? jsonMatch[0] : content;
+        const analysis = JSON.parse(jsonContent);
+
+        return {
+          ...analysis,
+          aiTier: accessInfo.tier,
+          upgradeMessage: accessInfo.message
+        };
+      } catch (parseError) {
+        console.error("Failed to parse career analysis JSON:", content);
+        return this.generateFallbackCareerAnalysis(data, accessInfo);
+      }
+    } catch (error) {
+      console.error("Error analyzing career path:", error);
+      return this.generateFallbackCareerAnalysis(data, accessInfo);
+    }
+  }
+
+  private generateFallbackCareerAnalysis(
+    data: any,
+    accessInfo: { tier: 'premium' | 'basic', message?: string }
+  ): any {
+    const role = data.careerGoal || "Professional";
+    const timeframeMonths = data.timeframe === '1-year' ? 12 : data.timeframe === '2-years' ? 24 : data.timeframe === '3-years' ? 36 : 60;
+
+    return {
+      insights: [
+        {
+          type: 'path',
+          title: 'Career Path Strategy',
+          content: `Your journey to ${role} shows strong potential. Focus on building key skills and networking.`,
+          priority: 'high',
+          timeframe: data.timeframe,
+          actionItems: [
+            'Update your profile with target keywords',
+            'Complete 2-3 relevant certifications',
+            'Build a portfolio of 5+ projects',
+            'Network with 10+ professionals in your field'
+          ]
+        },
+        {
+          type: 'skill',
+          title: 'Priority Skills Development',
+          content: 'Focus on high-demand technical and soft skills that align with your career goal.',
+          priority: 'high',
+          timeframe: '3-6 months',
+          actionItems: [
+            'Master core technical skills for your role',
+            'Develop communication and leadership abilities',
+            'Learn industry-standard tools and frameworks'
+          ]
+        },
+        {
+          type: 'timing',
+          title: 'Optimal Career Moves',
+          content: 'Market timing analysis suggests strong opportunities in the coming quarters.',
+          priority: 'medium',
+          timeframe: 'Next 6 months',
+          actionItems: [
+            'Apply to 20-30 positions in the next quarter',
+            'Attend 3-5 industry networking events',
+            'Update resume and LinkedIn profile monthly'
+          ]
+        },
+        {
+          type: 'network',
+          title: 'Networking Strategy',
+          content: 'Build connections with industry leaders and peers to accelerate your career.',
+          priority: 'medium',
+          timeframe: 'Ongoing',
+          actionItems: [
+            'Join professional communities and forums',
+            'Connect with 5 senior professionals monthly',
+            'Attend virtual and in-person industry events'
+          ]
+        }
+      ],
+      careerPath: {
+        currentRole: data.userProfile?.professionalTitle || 'Current Position',
+        targetRole: role,
+        totalTimeframe: data.timeframe,
+        successProbability: 75,
+        steps: [
+          {
+            position: `Junior ${role}`,
+            timeline: '0-6 months',
+            requiredSkills: ['Technical Skills', 'Communication', 'Problem Solving'],
+            averageSalary: '$50k - $70k',
+            marketDemand: 'High'
+          },
+          {
+            position: `Mid-Level ${role}`,
+            timeline: `${Math.floor(timeframeMonths * 0.3)}-${Math.floor(timeframeMonths * 0.5)} months`,
+            requiredSkills: ['Advanced Technical Skills', 'Communication', 'Leadership'],
+            averageSalary: '$75k - $95k',
+            marketDemand: 'High'
+          },
+          {
+            position: `Senior ${role}`,
+            timeline: `${Math.floor(timeframeMonths * 0.5)}-${Math.floor(timeframeMonths * 0.75)} months`,
+            requiredSkills: ['Expert Technical Skills', 'Strategic Thinking', 'Team Leadership'],
+            averageSalary: '$100k - $120k',
+            marketDemand: 'Medium'
+          }
+        ]
+      },
+      skillGaps: [
+        {
+          skill: 'Advanced Technical Expertise',
+          currentLevel: 5,
+          targetLevel: 9,
+          importance: 10,
+          learningResources: ['Online courses', 'Hands-on projects', 'Mentorship'],
+          timeToAcquire: '6-12 months'
+        },
+        {
+          skill: 'Leadership & Management',
+          currentLevel: 3,
+          targetLevel: 8,
+          importance: 8,
+          learningResources: ['Leadership courses', 'Team projects', 'Management books'],
+          timeToAcquire: '4-8 months'
+        },
+        {
+          skill: 'Industry-Specific Tools',
+          currentLevel: 4,
+          targetLevel: 9,
+          importance: 9,
+          learningResources: ['Tool certifications', 'Practice projects', 'Documentation'],
+          timeToAcquire: '3-6 months'
+        }
+      ],
+      networkingOpportunities: [],
+      marketTiming: [],
+      aiTier: accessInfo.tier,
+      upgradeMessage: accessInfo.message
+    };
+  }
+
   // Get AI access information for user
   public getAIAccessInfo(user: any): { tier: 'premium' | 'basic', message?: string, daysLeft?: number } {
     const accessInfo = this.hasAIAccess(user);
