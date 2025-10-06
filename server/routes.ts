@@ -5292,6 +5292,12 @@ Return ONLY the JSON object, no additional text.`;
   // Protected referral marketplace endpoints  
   app.use('/api/referral-marketplace', isAuthenticated, referralMarketplaceRoutes);
 
+  // Virtual Interview Routes
+  app.use('/api/virtual-interview', virtualInterviewRoutes);
+
+  // Chat Interview Routes  
+  app.use('/api/chat-interview', chatInterviewRoutes);
+
   // Bidder system routes (auth is handled per-route within bidderRoutes)
   const bidderRoutes = await import('./bidderRoutes.js');
   app.use('/api', bidderRoutes.default);
