@@ -2782,6 +2782,83 @@ Requirements:
     }
   }));
 
+  // Profile and Skills Routes
+  app.get('/api/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const cacheKey = `profile_${userId}`;
+      
+      const cached = getCached(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+      
+      const profile = await storage.getUserProfile(userId);
+      
+      setCache(cacheKey, profile, undefined, userId);
+      res.json(profile);
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      res.status(500).json({ message: "Failed to fetch profile" });
+    }
+  });
+
+  app.post('/api/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      const bodyData = { ...req.body, userId };
+      if (bodyData.lastResumeAnalysis && typeof bodyData.lastResumeAnalysis === 'string') {
+        bodyData.lastResumeAnalysis = new Date(bodyData.lastResumeAnalysis);
+      }
+      
+      const profileData = insertUserProfileSchema.parse(bodyData);
+      const profile = await storage.upsertUserProfile(profileData);
+      
+      cache.delete(`profile_${userId}`);
+      cache.delete(`recommendations_${userId}`);
+      
+      res.json(profile);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  app.get('/api/skills', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const skills = await storage.getUserSkills(userId);
+      res.json(skills);
+    } catch (error) {
+      console.error("Error fetching skills:", error);
+      res.status(500).json({ message: "Failed to fetch skills" });
+    }
+  });
+
+  app.post('/api/skills', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const skillData = insertUserSkillSchema.parse({ ...req.body, userId });
+      const skill = await storage.addUserSkill(skillData);
+      res.json(skill);
+    } catch (error) {
+      console.error("Error adding skill:", error);
+      res.status(500).json({ message: "Failed to add skill" });
+    }
+  });
+
+  app.delete('/api/skills/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const skillId = parseInt(req.params.id);
+      await storage.deleteUserSkill(skillId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting skill:", error);
+      res.status(500).json({ message: "Failed to delete skill" });
+    }
+  });
+
   // MISSING PREMIUM API ENDPOINTS - CRITICAL FOR FRONTEND
 
   // 1. Usage Monitoring Endpoint
