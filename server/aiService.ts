@@ -553,7 +553,7 @@ Skills: ${userProfile.skills?.map((s: any) => s.skillName).join(', ') || 'None l
     };
   }
 
-  // Comprehensive Career Path Analysis
+  // Comprehensive Career Path Analysis with smart location and experience-based calculations
   async analyzeCareerPath(data: {
     careerGoal: string;
     location?: string;
@@ -562,117 +562,115 @@ Skills: ${userProfile.skills?.map((s: any) => s.skillName).join(', ') || 'None l
     userSkills: any[];
     progressUpdate?: string;
   }, user?: any): Promise<any> {
-    const prompt = `You are an expert career coach. Analyze this career progression request and provide detailed JSON response.
+    const prompt = `Career path analysis. Return JSON only.
 
-**Career Goal:** ${data.careerGoal}
-**Location:** ${data.location || 'Not specified'}
-**Timeframe:** ${data.timeframe}
-**Current Experience:** ${data.userProfile?.yearsExperience || 0} years
-**Current Skills:** ${data.userSkills?.map((s: any) => s.skillName).join(', ') || 'None listed'}
-**Recent Progress:** ${data.progressUpdate || 'No recent updates'}
+TARGET ROLE: ${data.careerGoal}
+LOCATION: ${data.location || 'Not specified'}
+DESIRED TIMEFRAME: ${data.timeframe}
+CURRENT EXPERIENCE: ${data.userProfile?.yearsExperience || 0} years
+CURRENT TITLE: ${data.userProfile?.professionalTitle || 'Not specified'}
+CURRENT SKILLS: ${data.userSkills?.slice(0, 12).map((s: any) => s.skillName).join(', ') || 'None'}
+${data.progressUpdate ? `RECENT PROGRESS: ${data.progressUpdate}` : ''}
 
-Provide a comprehensive JSON response with this EXACT structure:
+CRITICAL REQUIREMENTS:
+1. Detect location and provide salaries in LOCAL currency with symbol
+2. Calculate REALISTIC timelines based on user's current experience (${data.userProfile?.yearsExperience || 0}yr)
+3. Consider location-specific market conditions and cost of living
+4. Provide ${data.location || 'location'}-specific companies and resources
 
+JSON structure:
 {
   "insights": [
     {
       "type": "path",
-      "title": "Career Path Strategy",
-      "content": "Detailed analysis of the best career progression path",
+      "title": "Career Strategy",
+      "content": "Personalized strategy for ${data.userProfile?.yearsExperience || 0}yr exp professional",
       "priority": "high",
       "timeframe": "${data.timeframe}",
-      "actionItems": ["Specific action 1", "Specific action 2", "Specific action 3"]
+      "actionItems": ["3-4 specific actions based on current level"]
     },
     {
       "type": "skill",
-      "title": "Priority Skills Development",
-      "content": "Key skills needed for advancement",
+      "title": "Skill Development",
+      "content": "Priority skills considering current ${data.userProfile?.yearsExperience || 0}yr experience",
       "priority": "high",
-      "timeframe": "3-6 months",
-      "actionItems": ["Skill development action 1", "Skill development action 2"]
+      "timeframe": "realistic months based on gaps",
+      "actionItems": ["2-3 learning actions"]
     },
     {
-      "type": "timing",
-      "title": "Market Timing Insights",
-      "content": "Best timing for career moves based on market conditions",
-      "priority": "medium",
-      "timeframe": "Next 6 months",
-      "actionItems": ["Timing strategy 1", "Timing strategy 2"]
-    },
-    {
-      "type": "network",
-      "title": "Networking Strategy",
-      "content": "Who to connect with and where",
-      "priority": "medium",
-      "timeframe": "Ongoing",
-      "actionItems": ["Networking action 1", "Networking action 2"]
+      "type": "location",
+      "title": "${data.location || 'Market'} Insights",
+      "content": "Location-specific market analysis with currency, costs, companies",
+      "priority": "high",
+      "timeframe": "current",
+      "actionItems": ["2-3 location strategies"]
     }
   ],
   "careerPath": {
-    "currentRole": "Current position based on experience",
+    "currentRole": "${data.userProfile?.professionalTitle || 'Current role'}",
     "targetRole": "${data.careerGoal}",
     "totalTimeframe": "${data.timeframe}",
-    "successProbability": 75,
+    "location": "${data.location || 'Not specified'}",
+    "currency": "detect and use local currency symbol",
+    "successProbability": number (realistic % based on experience),
     "steps": [
       {
-        "position": "Junior/Entry-level position title",
-        "timeline": "0-6 months",
-        "requiredSkills": ["Skill 1", "Skill 2", "Skill 3"],
-        "averageSalary": "$50k - $70k",
-        "marketDemand": "High"
-      },
-      {
-        "position": "Mid-level position title",
-        "timeline": "6-12 months",
-        "requiredSkills": ["Advanced Skill 1", "Advanced Skill 2", "Leadership"],
-        "averageSalary": "$75k - $95k",
-        "marketDemand": "High"
-      },
-      {
-        "position": "Senior position title",
-        "timeline": "12-18 months",
-        "requiredSkills": ["Expert Skill 1", "Strategic Thinking", "Team Leadership"],
-        "averageSalary": "$100k - $120k",
-        "marketDemand": "Medium"
+        "position": "realistic next role title",
+        "timeline": "calculate based on ${data.userProfile?.yearsExperience || 0}yr current exp and skill gaps",
+        "isCurrentLevel": true/false,
+        "requiredSkills": ["3-5 specific skills"],
+        "averageSalary": "LOCAL_CURRENCY low-high range",
+        "salaryUSD": "USD equivalent for reference",
+        "marketDemand": "High/Medium/Low in ${data.location}",
+        "companiesHiring": ["3-5 actual companies in ${data.location}"]
       }
     ]
   },
   "skillGaps": [
     {
-      "skill": "Critical technical skill name",
-      "currentLevel": 3,
-      "targetLevel": 8,
-      "importance": 9,
-      "learningResources": ["Course 1", "Course 2", "Practice project"],
-      "timeToAcquire": "3-6 months"
-    },
-    {
-      "skill": "Another important skill",
-      "currentLevel": 2,
-      "targetLevel": 7,
-      "importance": 8,
-      "learningResources": ["Resource 1", "Resource 2"],
-      "timeToAcquire": "2-4 months"
+      "skill": "specific skill name",
+      "currentLevel": 0-10,
+      "targetLevel": 0-10,
+      "importance": 0-10,
+      "learningResources": ["specific courses/platforms available in ${data.location}"],
+      "timeToAcquire": "realistic months based on skill complexity"
     }
   ],
+  "locationContext": {
+    "country": "detected country",
+    "city": "detected city if provided",
+    "currency": "local currency with symbol",
+    "currencyCode": "ISO code",
+    "costOfLivingVsUS": "percentage comparison",
+    "topCompanies": ["5-8 major tech employers in this location"],
+    "averageTaxRate": "typical rate",
+    "benefits": ["common benefits in this country"],
+    "remoteOpportunities": "assessment for this market",
+    "marketMaturity": "tech scene analysis",
+    "visaNotes": "if relevant for relocation"
+  },
   "networkingOpportunities": [
     {
-      "type": "Professional Communities",
-      "platforms": ["LinkedIn Groups", "Industry Forums"],
-      "targetConnections": "Senior professionals in ${data.careerGoal}"
+      "type": "category",
+      "platforms": ["popular in ${data.location}"],
+      "targetConnections": "who to connect with",
+      "localEvents": ["actual event types in ${data.location}"]
     }
   ],
-  "marketTiming": [
-    {
-      "period": "Q1-Q2 2025",
-      "marketStrength": "Strong",
-      "hiringTrends": "High demand",
-      "recommendation": "Optimal time to apply"
-    }
-  ]
+  "marketTiming": {
+    "currentConditions": "${data.location} market status",
+    "hiringSeasons": "best months in ${data.location}",
+    "trendingSkills": ["hot skills in ${data.location}"],
+    "recommendation": "when to apply based on ${data.location} patterns"
+  }
 }
 
-Return ONLY valid JSON, no explanations or markdown.`;
+IMPORTANT:
+- Calculate timelines dynamically based on ${data.userProfile?.yearsExperience || 0} years experience
+- Someone with 0yr needs longer timeline than 5yr experience
+- Provide actual salary ranges in local currency (INR for India, EUR for Germany, etc.)
+- List real companies operating in ${data.location || 'the specified location'}
+- Consider ${data.location} specific hiring patterns and seasons`;
 
     try {
       const accessInfo = this.hasAIAccess(user);
@@ -685,14 +683,20 @@ Return ONLY valid JSON, no explanations or markdown.`;
       const completion = await this.createChatCompletion([
         {
           role: "system",
-          content: "You are an expert career coach and data scientist. Analyze career paths and return detailed, accurate JSON with realistic salary data and market insights."
+          content: `Expert international career coach. You have deep knowledge of:
+- Global salary ranges in local currencies
+- Location-specific companies and markets
+- Realistic career progression timelines based on experience
+- Cost of living and tax implications worldwide
+
+Return ONLY valid JSON. Calculate dynamic timelines - don't use fixed ranges.`
         },
         {
           role: "user",
           content: prompt
         }
       ], {
-        temperature: 0.3,
+        temperature: 0.2,
         max_tokens: 2000,
         user
       });
@@ -725,62 +729,52 @@ Return ONLY valid JSON, no explanations or markdown.`;
     }
   }
 
+  // Smart fallback with dynamic calculations
   private generateFallbackCareerAnalysis(
     data: any,
     accessInfo: { tier: 'premium' | 'basic', message?: string }
   ): any {
     const role = data.careerGoal || "Professional";
-    const timeframeMonths = data.timeframe === '1-year' ? 12 : data.timeframe === '2-years' ? 24 : data.timeframe === '3-years' ? 36 : 60;
+    const currentExp = data.userProfile?.yearsExperience || 0;
+    const location = data.location || 'United States';
+    
+    // Calculate realistic progression steps based on experience
+    const steps = this.calculateCareerSteps(role, currentExp, data.timeframe, location);
 
     return {
       insights: [
         {
           type: 'path',
           title: 'Career Path Strategy',
-          content: `Your journey to ${role} shows strong potential. Focus on building key skills and networking.`,
+          content: `Based on your ${currentExp} years of experience, here's your realistic path to ${role}.`,
           priority: 'high',
           timeframe: data.timeframe,
           actionItems: [
-            'Update your profile with target keywords',
-            'Complete 2-3 relevant certifications',
-            'Build a portfolio of 5+ projects',
-            'Network with 10+ professionals in your field'
+            currentExp < 2 ? 'Focus on building foundational skills' : 'Leverage existing experience',
+            'Build targeted portfolio projects',
+            `Network with professionals in ${location}`
           ]
         },
         {
           type: 'skill',
-          title: 'Priority Skills Development',
-          content: 'Focus on high-demand technical and soft skills that align with your career goal.',
+          title: 'Skill Development',
+          content: `Priority skills for someone with ${currentExp} years experience.`,
           priority: 'high',
-          timeframe: '3-6 months',
+          timeframe: currentExp < 2 ? '6-12 months' : '3-6 months',
           actionItems: [
-            'Master core technical skills for your role',
-            'Develop communication and leadership abilities',
-            'Learn industry-standard tools and frameworks'
+            'Master core technical skills',
+            'Develop soft skills'
           ]
         },
         {
-          type: 'timing',
-          title: 'Optimal Career Moves',
-          content: 'Market timing analysis suggests strong opportunities in the coming quarters.',
-          priority: 'medium',
-          timeframe: 'Next 6 months',
+          type: 'location',
+          title: `${location} Market`,
+          content: `Market analysis for ${location}. Research local companies and salary ranges.`,
+          priority: 'high',
+          timeframe: 'current',
           actionItems: [
-            'Apply to 20-30 positions in the next quarter',
-            'Attend 3-5 industry networking events',
-            'Update resume and LinkedIn profile monthly'
-          ]
-        },
-        {
-          type: 'network',
-          title: 'Networking Strategy',
-          content: 'Build connections with industry leaders and peers to accelerate your career.',
-          priority: 'medium',
-          timeframe: 'Ongoing',
-          actionItems: [
-            'Join professional communities and forums',
-            'Connect with 5 senior professionals monthly',
-            'Attend virtual and in-person industry events'
+            'Research local salary benchmarks',
+            'Connect with local recruiters'
           ]
         }
       ],
@@ -788,62 +782,159 @@ Return ONLY valid JSON, no explanations or markdown.`;
         currentRole: data.userProfile?.professionalTitle || 'Current Position',
         targetRole: role,
         totalTimeframe: data.timeframe,
-        successProbability: 75,
-        steps: [
-          {
-            position: `Junior ${role}`,
-            timeline: '0-6 months',
-            requiredSkills: ['Technical Skills', 'Communication', 'Problem Solving'],
-            averageSalary: '$50k - $70k',
-            marketDemand: 'High'
-          },
-          {
-            position: `Mid-Level ${role}`,
-            timeline: `${Math.floor(timeframeMonths * 0.3)}-${Math.floor(timeframeMonths * 0.5)} months`,
-            requiredSkills: ['Advanced Technical Skills', 'Communication', 'Leadership'],
-            averageSalary: '$75k - $95k',
-            marketDemand: 'High'
-          },
-          {
-            position: `Senior ${role}`,
-            timeline: `${Math.floor(timeframeMonths * 0.5)}-${Math.floor(timeframeMonths * 0.75)} months`,
-            requiredSkills: ['Expert Technical Skills', 'Strategic Thinking', 'Team Leadership'],
-            averageSalary: '$100k - $120k',
-            marketDemand: 'Medium'
-          }
-        ]
+        location: location,
+        currency: 'Local currency (research specific to your location)',
+        successProbability: this.calculateSuccessProbability(currentExp, steps.length),
+        steps: steps
       },
       skillGaps: [
         {
-          skill: 'Advanced Technical Expertise',
-          currentLevel: 5,
+          skill: 'Advanced Technical Skills',
+          currentLevel: Math.min(currentExp + 2, 7),
           targetLevel: 9,
           importance: 10,
-          learningResources: ['Online courses', 'Hands-on projects', 'Mentorship'],
-          timeToAcquire: '6-12 months'
+          learningResources: ['Online courses', 'Bootcamps', 'Mentorship'],
+          timeToAcquire: currentExp > 3 ? '3-6 months' : '6-9 months'
         },
         {
-          skill: 'Leadership & Management',
-          currentLevel: 3,
+          skill: 'Leadership & Communication',
+          currentLevel: Math.min(currentExp + 1, 6),
           targetLevel: 8,
-          importance: 8,
-          learningResources: ['Leadership courses', 'Team projects', 'Management books'],
+          importance: currentExp > 3 ? 10 : 7,
+          learningResources: ['Leadership courses', 'Team projects'],
           timeToAcquire: '4-8 months'
-        },
-        {
-          skill: 'Industry-Specific Tools',
-          currentLevel: 4,
-          targetLevel: 9,
-          importance: 9,
-          learningResources: ['Tool certifications', 'Practice projects', 'Documentation'],
-          timeToAcquire: '3-6 months'
         }
       ],
-      networkingOpportunities: [],
-      marketTiming: [],
+      locationContext: {
+        country: location.includes(',') ? location.split(',').pop()?.trim() : location,
+        city: location.includes(',') ? location.split(',')[0] : undefined,
+        currency: 'Research local currency and salary standards',
+        costOfLivingVsUS: 'Varies by location',
+        topCompanies: ['Research major employers in your area'],
+        averageTaxRate: 'Check local tax regulations',
+        benefits: ['Standard benefits vary by country'],
+        remoteOpportunities: 'Growing globally',
+        marketMaturity: 'Research your local tech scene',
+        visaNotes: 'Consider if planning international move'
+      },
+      networkingOpportunities: [
+        {
+          type: 'Professional Networks',
+          platforms: ['LinkedIn', 'Local meetups', 'Industry events'],
+          targetConnections: `${role} professionals in ${location}`,
+          localEvents: ['Check Meetup.com and Eventbrite for local tech events']
+        }
+      ],
+      marketTiming: {
+        currentConditions: 'Research current hiring trends in your location',
+        hiringSeasons: 'Typically Q1 and Q3 are strong',
+        trendingSkills: ['AI/ML', 'Cloud', 'Full-stack development'],
+        recommendation: 'Start applying and networking now'
+      },
       aiTier: accessInfo.tier,
       upgradeMessage: accessInfo.message
     };
+  }
+
+  // Calculate career steps based on current experience
+  private calculateCareerSteps(
+    targetRole: string,
+    currentExp: number,
+    timeframe: string,
+    location: string
+  ): any[] {
+    const timeframeMonths = timeframe === '1-year' ? 12 : 
+                           timeframe === '2-years' ? 24 : 
+                           timeframe === '3-years' ? 36 : 60;
+
+    const steps: any[] = [];
+    
+    // Determine starting point based on experience
+    let startLevel: 'junior' | 'mid' | 'senior' | 'lead';
+    if (currentExp < 2) startLevel = 'junior';
+    else if (currentExp < 5) startLevel = 'mid';
+    else if (currentExp < 8) startLevel = 'senior';
+    else startLevel = 'lead';
+
+    // Define progression levels
+    const levels = ['junior', 'mid', 'senior', 'lead', 'principal'];
+    const startIndex = levels.indexOf(startLevel);
+
+    // Calculate how many steps needed
+    const targetLevels = levels.slice(startIndex);
+    const stepsNeeded = Math.min(targetLevels.length, Math.ceil(timeframeMonths / 6));
+
+    let cumulativeMonths = 0;
+    
+    for (let i = 0; i < stepsNeeded; i++) {
+      const level = targetLevels[i];
+      const isCurrentLevel = i === 0;
+      
+      // Calculate realistic timeline for this step
+      let stepDuration: number;
+      if (isCurrentLevel) {
+        stepDuration = 0; // Current position
+      } else if (currentExp < 2) {
+        stepDuration = 12; // Slower progression for beginners
+      } else if (currentExp < 5) {
+        stepDuration = 9;
+      } else {
+        stepDuration = 6; // Faster for experienced
+      }
+
+      const stepEnd = cumulativeMonths + stepDuration;
+
+      steps.push({
+        position: `${level.charAt(0).toUpperCase() + level.slice(1)} ${targetRole}`,
+        timeline: isCurrentLevel 
+          ? 'Current position' 
+          : `${cumulativeMonths}-${stepEnd} months`,
+        isCurrentLevel,
+        requiredSkills: this.getSkillsForLevel(level),
+        averageSalary: `Research ${location} salary for ${level} level`,
+        salaryUSD: this.getEstimatedSalaryUSD(level),
+        marketDemand: i < 2 ? 'High' : 'Medium',
+        companiesHiring: [`Research companies hiring ${level} roles in ${location}`]
+      });
+
+      cumulativeMonths = stepEnd;
+      
+      // Don't exceed timeframe
+      if (cumulativeMonths >= timeframeMonths) break;
+    }
+
+    return steps;
+  }
+
+  private getSkillsForLevel(level: string): string[] {
+    const skillMap: Record<string, string[]> = {
+      'junior': ['Core technical skills', 'Problem solving', 'Communication'],
+      'mid': ['Advanced technical skills', 'System design', 'Mentoring'],
+      'senior': ['Architecture', 'Leadership', 'Strategic thinking'],
+      'lead': ['Team management', 'Business acumen', 'Vision setting'],
+      'principal': ['Org-level impact', 'Technical strategy', 'Thought leadership']
+    };
+    return skillMap[level] || ['Core skills', 'Communication'];
+  }
+
+  private getEstimatedSalaryUSD(level: string): string {
+    const ranges: Record<string, string> = {
+      'junior': '$50k - $80k USD',
+      'mid': '$80k - $120k USD',
+      'senior': '$120k - $180k USD',
+      'lead': '$180k - $250k USD',
+      'principal': '$250k - $400k USD'
+    };
+    return ranges[level] || '$60k - $100k USD';
+  }
+
+  private calculateSuccessProbability(currentExp: number, stepsNeeded: number): number {
+    // More experience = higher probability
+    // Fewer steps = higher probability
+    let base = 60;
+    base += Math.min(currentExp * 3, 20); // Up to +20 for experience
+    base -= (stepsNeeded - 1) * 5; // -5 for each additional step
+    return Math.max(50, Math.min(90, base));
   }
 
   // Get AI access information for user
