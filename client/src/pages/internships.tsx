@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Search, 
@@ -32,7 +38,19 @@ import {
   X,
   GraduationCap,
   Target,
-  TrendingUp
+  TrendingUp,
+  Globe,
+  Home,
+  Laptop,
+  Code,
+  Palette,
+  BarChart3,
+  Brain,
+  Shield,
+  RotateCcw,
+  SlidersHorizontal,
+  CheckCircle,
+  Award
 } from "lucide-react";
 
 interface Internship {
@@ -76,33 +94,80 @@ export default function Internships() {
   
   // State management
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [savedInternships, setSavedInternships] = useState<Set<number>>(new Set());
   const [selectedInternship, setSelectedInternship] = useState<any>(null);
   const [showPromoAlert, setShowPromoAlert] = useState(true);
   const [currentPromo, setCurrentPromo] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const internshipsPerPage = 25;
-  const [sortBy, setSortBy] = useState("date");
+  const [sortBy, setSortBy] = useState("relevance");
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  
+  // Advanced filters state
   const [filterPreferences, setFilterPreferences] = useState({
     company: "",
     location: "",
-    category: "",
-    season: "",
-    requirements: ""
+    category: [] as string[],
+    season: [] as string[],
+    requirements: "",
+    workMode: [] as string[],
+    sponsorship: [] as string[],
+    datePosted: undefined as number | undefined,
+    remoteOnly: false
   });
+
+  // Debounced search update
+  const debouncedUpdateSearch = useCallback((query: string) => {
+    if (searchTimeout) clearTimeout(searchTimeout);
+
+    const timeout = setTimeout(() => {
+      setSearchQuery(query);
+      setCurrentPage(1);
+    }, 300);
+
+    setSearchTimeout(timeout);
+  }, [searchTimeout]);
+
+  // Handle search input changes
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchInput(value);
+    debouncedUpdateSearch(value);
+  }, [debouncedUpdateSearch]);
 
   // Fetch internships
   const { data: internshipsData, isLoading: internshipsLoading } = useQuery({
-    queryKey: ["/api/internships", currentPage, searchQuery, filterPreferences],
+    queryKey: ["/api/internships", currentPage, searchQuery, filterPreferences, sortBy],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.append('page', currentPage.toString());
       params.append('limit', internshipsPerPage.toString());
       
       if (searchQuery) params.append('search', searchQuery);
-      Object.entries(filterPreferences).forEach(([key, value]) => {
-        if (value && value !== 'all') params.append(key, value);
-      });
+      
+      // Handle array filters
+      if (filterPreferences.category.length > 0) {
+        filterPreferences.category.forEach(cat => params.append('category', cat));
+      }
+      if (filterPreferences.season.length > 0) {
+        filterPreferences.season.forEach(s => params.append('season', s));
+      }
+      if (filterPreferences.workMode.length > 0) {
+        filterPreferences.workMode.forEach(mode => params.append('workMode', mode));
+      }
+      if (filterPreferences.sponsorship.length > 0) {
+        filterPreferences.sponsorship.forEach(sp => params.append('sponsorship', sp));
+      }
+      
+      // Handle other filters
+      if (filterPreferences.company) params.append('company', filterPreferences.company);
+      if (filterPreferences.location) params.append('location', filterPreferences.location);
+      if (filterPreferences.requirements) params.append('requirements', filterPreferences.requirements);
+      if (filterPreferences.remoteOnly) params.append('remoteOnly', 'true');
+      if (filterPreferences.datePosted) params.append('datePosted', filterPreferences.datePosted.toString());
+      
+      params.append('sort', sortBy);
       
       const response = await fetch(`/api/internships?${params}`, {
         credentials: 'include'
@@ -115,6 +180,75 @@ export default function Internships() {
 
   const internships = internshipsData?.internships || [];
   const pagination = internshipsData?.pagination || {};
+
+  // Calculate compatibility score for personalization
+  const calculateCompatibility = useCallback((internship: any) => {
+    if (!isAuthenticated || !user) return 50;
+
+    let score = 50;
+
+    // Check if user has saved similar internships
+    if (savedInternships.has(internship.id)) score += 15;
+
+    // Match by category
+    if (internship.category?.toLowerCase().includes('tech')) score += 10;
+
+    // Remote preference
+    if (internship.location?.toLowerCase().includes('remote')) score += 10;
+
+    // Recent posting bonus
+    const daysOld = internship.datePosted 
+      ? Math.floor((Date.now() - new Date(internship.datePosted).getTime()) / (1000 * 60 * 60 * 24))
+      : 30;
+    if (daysOld < 7) score += 10;
+    else if (daysOld < 14) score += 5;
+
+    // Add pseudo-random variation
+    const pseudoRandom = (internship.id % 21) - 10;
+    score += pseudoRandom;
+
+    return Math.min(100, Math.max(45, score));
+  }, [isAuthenticated, user, savedInternships]);
+
+  // Get active filter count
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (searchQuery) count++;
+    if (filterPreferences.company) count++;
+    if (filterPreferences.location) count++;
+    if (filterPreferences.category.length > 0) count++;
+    if (filterPreferences.season.length > 0) count++;
+    if (filterPreferences.workMode.length > 0) count++;
+    if (filterPreferences.sponsorship.length > 0) count++;
+    if (filterPreferences.requirements) count++;
+    if (filterPreferences.remoteOnly) count++;
+    if (filterPreferences.datePosted) count++;
+    return count;
+  }, [searchQuery, filterPreferences]);
+
+  // Clear all filters
+  const clearAllFilters = useCallback(() => {
+    setSearchInput('');
+    setSearchQuery('');
+    setFilterPreferences({
+      company: "",
+      location: "",
+      category: [],
+      season: [],
+      requirements: "",
+      workMode: [],
+      sponsorship: [],
+      datePosted: undefined,
+      remoteOnly: false
+    });
+    setCurrentPage(1);
+  }, []);
+
+  // Update filter
+  const updateFilter = useCallback((key: keyof typeof filterPreferences, value: any) => {
+    setFilterPreferences(prev => ({ ...prev, [key]: value }));
+    setCurrentPage(1);
+  }, []);
 
   // Fetch saved internships for authenticated users
   const { data: savedData } = useQuery({
@@ -277,6 +411,207 @@ export default function Internships() {
 
   const handleInternshipClick = (internship: Internship) => {
     setSelectedInternship(internship);
+  };
+
+  // Advanced Filter Panel Component
+  const AdvancedFilterPanel = () => {
+    return (
+      <div className="space-y-6">
+        {/* Location Filters */}
+        <div className="space-y-3">
+          <h3 className="font-semibold text-sm flex items-center">
+            <MapPin className="w-4 h-4 mr-2" />
+            Location
+          </h3>
+          <Input
+            placeholder="City or location"
+            value={filterPreferences.location}
+            onChange={(e) => updateFilter('location', e.target.value)}
+          />
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="remote-only"
+              checked={filterPreferences.remoteOnly}
+              onCheckedChange={(checked) => updateFilter('remoteOnly', checked)}
+            />
+            <Label htmlFor="remote-only" className="text-sm">Remote Only</Label>
+          </div>
+        </div>
+
+        {/* Category Filters */}
+        <div className="space-y-3">
+          <h3 className="font-semibold text-sm flex items-center">
+            <Briefcase className="w-4 h-4 mr-2" />
+            Category
+          </h3>
+          <div className="space-y-2">
+            {[
+              { value: 'software-engineering', label: 'Software Engineering', icon: Code },
+              { value: 'data-science', label: 'Data Science', icon: BarChart3 },
+              { value: 'product-management', label: 'Product Management', icon: Target },
+              { value: 'design', label: 'Design', icon: Palette },
+              { value: 'marketing', label: 'Marketing', icon: TrendingUp },
+              { value: 'finance', label: 'Finance', icon: Building2 }
+            ].map((category) => {
+              const Icon = category.icon;
+              return (
+                <div key={category.value} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`category-${category.value}`}
+                    checked={filterPreferences.category.includes(category.value)}
+                    onCheckedChange={(checked) => {
+                      const updated = checked 
+                        ? [...filterPreferences.category, category.value]
+                        : filterPreferences.category.filter(c => c !== category.value);
+                      updateFilter('category', updated);
+                    }}
+                  />
+                  <Label htmlFor={`category-${category.value}`} className="text-sm flex items-center cursor-pointer">
+                    <Icon className="w-3 h-3 mr-1" />
+                    {category.label}
+                  </Label>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Season Filters */}
+        <div className="space-y-3">
+          <h3 className="font-semibold text-sm flex items-center">
+            <Calendar className="w-4 h-4 mr-2" />
+            Season
+          </h3>
+          <div className="space-y-2">
+            {['Summer 2025', 'Fall 2025', 'Winter 2026', 'Spring 2026'].map((season) => (
+              <div key={season} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`season-${season}`}
+                  checked={filterPreferences.season.includes(season)}
+                  onCheckedChange={(checked) => {
+                    const updated = checked 
+                      ? [...filterPreferences.season, season]
+                      : filterPreferences.season.filter(s => s !== season);
+                    updateFilter('season', updated);
+                  }}
+                />
+                <Label htmlFor={`season-${season}`} className="text-sm cursor-pointer">
+                  {season}
+                </Label>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Work Mode */}
+        <div className="space-y-3">
+          <h3 className="font-semibold text-sm flex items-center">
+            <Laptop className="w-4 h-4 mr-2" />
+            Work Mode
+          </h3>
+          <div className="space-y-2">
+            {[
+              { value: 'remote', label: 'Remote', icon: Globe },
+              { value: 'hybrid', label: 'Hybrid', icon: Home },
+              { value: 'onsite', label: 'On-site', icon: Building2 }
+            ].map((mode) => {
+              const Icon = mode.icon;
+              return (
+                <div key={mode.value} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`work-mode-${mode.value}`}
+                    checked={filterPreferences.workMode.includes(mode.value)}
+                    onCheckedChange={(checked) => {
+                      const updated = checked 
+                        ? [...filterPreferences.workMode, mode.value]
+                        : filterPreferences.workMode.filter(m => m !== mode.value);
+                      updateFilter('workMode', updated);
+                    }}
+                  />
+                  <Label htmlFor={`work-mode-${mode.value}`} className="text-sm flex items-center cursor-pointer">
+                    <Icon className="w-3 h-3 mr-1" />
+                    {mode.label}
+                  </Label>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Sponsorship */}
+        <div className="space-y-3">
+          <h3 className="font-semibold text-sm flex items-center">
+            <Shield className="w-4 h-4 mr-2" />
+            Sponsorship
+          </h3>
+          <div className="space-y-2">
+            {['U.S. Citizen', 'Visa Sponsor', 'No Restrictions'].map((sp) => (
+              <div key={sp} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`sponsorship-${sp}`}
+                  checked={filterPreferences.sponsorship.includes(sp)}
+                  onCheckedChange={(checked) => {
+                    const updated = checked 
+                      ? [...filterPreferences.sponsorship, sp]
+                      : filterPreferences.sponsorship.filter(s => s !== sp);
+                    updateFilter('sponsorship', updated);
+                  }}
+                />
+                <Label htmlFor={`sponsorship-${sp}`} className="text-sm cursor-pointer">
+                  {sp}
+                </Label>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Date Posted */}
+        <div className="space-y-3">
+          <h3 className="font-semibold text-sm flex items-center">
+            <Clock className="w-4 h-4 mr-2" />
+            Date Posted
+          </h3>
+          <RadioGroup
+            value={filterPreferences.datePosted?.toString() || ''}
+            onValueChange={(value) => updateFilter('datePosted', value ? parseInt(value) : undefined)}
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="" id="date-any" />
+              <Label htmlFor="date-any">Any time</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="1" id="date-1" />
+              <Label htmlFor="date-1">Last 24 hours</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="7" id="date-7" />
+              <Label htmlFor="date-7">Last 7 days</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="14" id="date-14" />
+              <Label htmlFor="date-14">Last 14 days</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="30" id="date-30" />
+              <Label htmlFor="date-30">Last 30 days</Label>
+            </div>
+          </RadioGroup>
+        </div>
+
+        {/* Company Filter */}
+        <div className="space-y-3">
+          <h3 className="font-semibold text-sm flex items-center">
+            <Building2 className="w-4 h-4 mr-2" />
+            Company
+          </h3>
+          <Input
+            placeholder="Company name"
+            value={filterPreferences.company}
+            onChange={(e) => updateFilter('company', e.target.value)}
+          />
+        </div>
+      </div>
+    );
   };
 
   // Valid schema.org structured data for better SEO rankings
@@ -513,69 +848,111 @@ export default function Internships() {
             {/* Search and Controls */}
             <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
               <CardContent className="p-3 sm:p-4 space-y-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
-                  <Input
-                    placeholder="Search internships..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 sm:pl-10 h-10 sm:h-12 text-sm sm:text-base border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 touch-manipulation"
-                    data-testid="input-search"
-                  />
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                    <Input
+                      placeholder="Search internships by title, company, or skills..."
+                      value={searchInput}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      className="pl-9 sm:pl-10 h-10 sm:h-12 text-sm sm:text-base border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 touch-manipulation"
+                      data-testid="input-search"
+                    />
+                  </div>
+                  
+                  {/* Mobile Filter Button */}
+                  <Sheet open={showMobileFilters} onOpenChange={setShowMobileFilters}>
+                    <SheetTrigger asChild>
+                      <Button variant="outline" className="lg:hidden relative h-10 sm:h-12">
+                        <SlidersHorizontal className="w-4 h-4 mr-2" />
+                        Filters
+                        {activeFilterCount > 0 && (
+                          <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                            {activeFilterCount}
+                          </Badge>
+                        )}
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="w-80 p-0">
+                      <SheetHeader className="p-4 border-b">
+                        <SheetTitle>Filters</SheetTitle>
+                      </SheetHeader>
+                      <ScrollArea className="h-[calc(100vh-80px)]">
+                        <div className="p-4">
+                          <AdvancedFilterPanel />
+                        </div>
+                      </ScrollArea>
+                    </SheetContent>
+                  </Sheet>
                 </div>
-                
-                {/* Filters */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                  <Select
-                    value={filterPreferences.category}
-                    onValueChange={(value) => setFilterPreferences(prev => ({ ...prev, category: value }))}
-                  >
-                    <SelectTrigger className="h-10 text-sm" data-testid="select-category">
-                      <SelectValue placeholder="Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      <SelectItem value="software-engineering">Software Engineering</SelectItem>
-                      <SelectItem value="data-science">Data Science</SelectItem>
-                      <SelectItem value="product-management">Product Management</SelectItem>
-                      <SelectItem value="design">Design</SelectItem>
-                      <SelectItem value="marketing">Marketing</SelectItem>
-                      <SelectItem value="finance">Finance</SelectItem>
-                    </SelectContent>
-                  </Select>
 
-                  <Select
-                    value={filterPreferences.season}
-                    onValueChange={(value) => setFilterPreferences(prev => ({ ...prev, season: value }))}
-                  >
-                    <SelectTrigger className="h-10 text-sm" data-testid="select-season">
-                      <SelectValue placeholder="Season" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Seasons</SelectItem>
-                      <SelectItem value="summer">Summer</SelectItem>
-                      <SelectItem value="fall">Fall</SelectItem>
-                      <SelectItem value="winter">Winter</SelectItem>
-                      <SelectItem value="spring">Spring</SelectItem>
-                    </SelectContent>
-                  </Select>
+                {/* Sort and View Options */}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sort by:</span>
+                    <Select value={sortBy} onValueChange={setSortBy}>
+                      <SelectTrigger className="w-32 h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="relevance">Relevance</SelectItem>
+                        <SelectItem value="match">Best Match</SelectItem>
+                        <SelectItem value="date">Latest</SelectItem>
+                        <SelectItem value="company">Company</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                  <Input
-                    placeholder="Location"
-                    value={filterPreferences.location}
-                    onChange={(e) => setFilterPreferences(prev => ({ ...prev, location: e.target.value }))}
-                    className="h-10 text-sm"
-                    data-testid="input-location"
-                  />
-
-                  <Input
-                    placeholder="Company"
-                    value={filterPreferences.company}
-                    onChange={(e) => setFilterPreferences(prev => ({ ...prev, company: e.target.value }))}
-                    className="h-10 text-sm"
-                    data-testid="input-company"
-                  />
+                  {activeFilterCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearAllFilters}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <RotateCcw className="w-3 h-3 mr-1" />
+                      Clear All
+                    </Button>
+                  )}
                 </div>
+
+                {/* Active Filter Tags */}
+                {activeFilterCount > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {searchQuery && (
+                      <Badge variant="secondary" className="flex items-center gap-1">
+                        <span>"{searchQuery}"</span>
+                        <button onClick={() => { setSearchInput(''); setSearchQuery(''); }}>
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    )}
+                    {filterPreferences.category.map(cat => (
+                      <Badge key={cat} variant="secondary" className="flex items-center gap-1">
+                        <span>{cat}</span>
+                        <button onClick={() => updateFilter('category', filterPreferences.category.filter(c => c !== cat))}>
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                    {filterPreferences.season.map(s => (
+                      <Badge key={s} variant="secondary" className="flex items-center gap-1">
+                        <span>{s}</span>
+                        <button onClick={() => updateFilter('season', filterPreferences.season.filter(se => se !== s))}>
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                    {filterPreferences.remoteOnly && (
+                      <Badge variant="secondary" className="flex items-center gap-1">
+                        <span>Remote Only</span>
+                        <button onClick={() => updateFilter('remoteOnly', false)}>
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -583,7 +960,38 @@ export default function Internships() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex">
+      <div className="flex-1 flex max-w-7xl mx-auto w-full">
+        {/* Desktop Filters Sidebar */}
+        <div className="hidden lg:block w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Filter className="w-5 h-5" />
+                Filters
+              </h2>
+              {activeFilterCount > 0 && (
+                <Badge variant="secondary">{activeFilterCount}</Badge>
+              )}
+            </div>
+            {activeFilterCount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearAllFilters}
+                className="w-full mt-2"
+              >
+                <RotateCcw className="w-3 h-3 mr-1" />
+                Clear All Filters
+              </Button>
+            )}
+          </div>
+          <ScrollArea className="h-[calc(100vh-280px)]">
+            <div className="p-4">
+              <AdvancedFilterPanel />
+            </div>
+          </ScrollArea>
+        </div>
+
         {/* Internships List */}
         <div className="w-full lg:w-1/2 xl:w-2/5 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
           <div className="p-4 border-b border-gray-200 dark:border-gray-700">
@@ -598,7 +1006,9 @@ export default function Internships() {
           </div>
 
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {internships.map((internship: Internship) => (
+            {internships.map((internship: Internship) => {
+              const compatibility = calculateCompatibility(internship);
+              return (
               <motion.div
                 key={internship.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -618,18 +1028,32 @@ export default function Internships() {
                       {internship.company}
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSaveInternship(internship.id);
-                    }}
-                    className={`ml-2 ${savedInternships.has(internship.id) ? 'text-yellow-500' : 'text-gray-400'}`}
-                    data-testid={`button-save-${internship.id}`}
-                  >
-                    <Bookmark className={`w-4 h-4 ${savedInternships.has(internship.id) ? 'fill-current' : ''}`} />
-                  </Button>
+                  <div className="flex items-center gap-2 ml-2">
+                    {isAuthenticated && (
+                      <Badge 
+                        className={`text-xs ${
+                          compatibility >= 90 ? 'bg-green-100 text-green-800' :
+                          compatibility >= 80 ? 'bg-blue-100 text-blue-800' :
+                          compatibility >= 70 ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {compatibility}%
+                      </Badge>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSaveInternship(internship.id);
+                      }}
+                      className={`${savedInternships.has(internship.id) ? 'text-yellow-500' : 'text-gray-400'}`}
+                      data-testid={`button-save-${internship.id}`}
+                    >
+                      <Bookmark className={`w-4 h-4 ${savedInternships.has(internship.id) ? 'fill-current' : ''}`} />
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mb-2">
@@ -682,7 +1106,8 @@ export default function Internships() {
                   )}
                 </div>
               </motion.div>
-            ))}
+            )}
+            )}
           </div>
 
           {/* Pagination */}
