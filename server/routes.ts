@@ -3573,6 +3573,102 @@ Return ONLY the JSON object, no additional text.`;
     }
   }));
 
+  // ============ RANKING TEST API ROUTES ============
+
+  // Get available test categories and domains
+  app.get('/api/ranking-tests/categories', asyncHandler(async (req: any, res: any) => {
+    try {
+      const categories = await rankingTestService.getAvailableTests();
+      res.json(categories);
+    } catch (error) {
+      console.error('Error getting ranking test categories:', error);
+      res.status(500).json({ message: 'Failed to get test categories' });
+    }
+  }));
+
+  // Get user's ranking test history
+  app.get('/api/ranking-tests/history', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const userId = req.user.id;
+      const history = await rankingTestService.getUserTestHistory(userId);
+      res.json(history);
+    } catch (error) {
+      console.error('Error getting ranking test history:', error);
+      res.status(500).json({ message: 'Failed to get test history' });
+    }
+  }));
+
+  // Get user's ranking test usage stats
+  app.get('/api/ranking-tests/usage', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const userId = req.user.id;
+      const usage = await rankingTestService.getUserUsage(userId);
+      res.json(usage);
+    } catch (error) {
+      console.error('Error getting ranking test usage:', error);
+      res.status(500).json({ message: 'Failed to get usage stats' });
+    }
+  }));
+
+  // Create new ranking test
+  app.post('/api/ranking-tests/create', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const userId = req.user.id;
+      const { category, domain, difficultyLevel, useFreeTest } = req.body;
+
+      if (!category || !domain || !difficultyLevel) {
+        return res.status(400).json({ message: 'Category, domain, and difficulty level are required' });
+      }
+
+      const test = await rankingTestService.createRankingTest(userId, category, domain, difficultyLevel);
+      res.json(test);
+    } catch (error) {
+      console.error('Error creating ranking test:', error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : 'Failed to create ranking test' 
+      });
+    }
+  }));
+
+  // Submit ranking test answers
+  app.post('/api/ranking-tests/:testId/submit', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const testId = parseInt(req.params.testId);
+      const { answers, timeSpent } = req.body;
+
+      if (!answers || typeof timeSpent !== 'number') {
+        return res.status(400).json({ message: 'Answers and time spent are required' });
+      }
+
+      const result = await rankingTestService.submitRankingTest(testId, answers, timeSpent);
+      res.json(result);
+    } catch (error) {
+      console.error('Error submitting ranking test:', error);
+      res.status(500).json({ message: 'Failed to submit test' });
+    }
+  }));
+
+  // Get leaderboard for a category/domain
+  app.get('/api/ranking-tests/leaderboard', asyncHandler(async (req: any, res: any) => {
+    try {
+      const { category, domain, type } = req.query;
+
+      if (!category || !domain || !type) {
+        return res.status(400).json({ message: 'Category, domain, and type are required' });
+      }
+
+      const leaderboard = await rankingTestService.getLeaderboard(
+        category as string,
+        domain as string,
+        type as 'weekly' | 'monthly' | 'all-time'
+      );
+      res.json(leaderboard);
+    } catch (error) {
+      console.error('Error getting leaderboard:', error);
+      res.status(500).json({ message: 'Failed to get leaderboard' });
+    }
+  }));
+
   // ============ QUESTION BANK API ROUTES ============
 
   // Search questions with filters
