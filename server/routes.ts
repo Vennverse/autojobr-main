@@ -621,8 +621,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Access denied' });
       }
       
-      // Return questions from the test template
-      const questions = assignment.testTemplate?.questions || [];
+      // Get questions from the test template
+      let questions = assignment.testTemplate?.questions || [];
+      
+      // If no questions in assignment, fetch from template directly
+      if (questions.length === 0 && assignment.testTemplateId) {
+        const template = await storage.getTestTemplate(assignment.testTemplateId);
+        questions = template?.questions || [];
+      }
+      
+      console.log(`[TEST QUESTIONS] Assignment ${assignmentId}: ${questions.length} questions found`);
       res.json(questions);
     } catch (error) {
       console.error('Error fetching test questions:', error);

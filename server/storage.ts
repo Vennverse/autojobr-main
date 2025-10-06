@@ -140,17 +140,17 @@ import { db } from "./db";
 
 // Type definitions for missing exports
 type JobPosting = typeof jobPostings.$inferSelect;
-type InsertJobPosting = z.infer<typeof insertJobPostingSchema>;
+type InsertJobPosting = z.Infer<typeof insertJobPostingSchema>;
 type JobPostingApplication = typeof jobPostingApplications.$inferSelect;
-type InsertJobPostingApplication = z.infer<typeof insertJobPostingApplicationSchema>;
+type InsertJobPostingApplication = z.Infer<typeof insertJobPostingApplicationSchema>;
 type Conversation = typeof conversations.$inferSelect;
-type InsertConversation = z.infer<typeof insertConversationSchema>;
+type InsertConversation = z.Infer<typeof insertConversationSchema>;
 type Message = typeof messages.$inferSelect;
-type InsertMessage = z.infer<typeof insertMessageSchema>;
+type InsertMessage = z.Infer<typeof insertMessageSchema>;
 type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
-type InsertEmailVerificationToken = z.infer<typeof insertEmailVerificationTokenSchema>;
+type InsertEmailVerificationToken = z.Infer<typeof insertEmailVerificationTokenSchema>;
 type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
-type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
+type InsertPasswordResetToken = z.Infer<typeof insertPasswordResetTokenSchema>;
 
 // Helper function to handle database errors gracefully
 async function handleDbOperation<T>(operation: () => Promise<T>, fallback?: T): Promise<T> {
@@ -1589,9 +1589,22 @@ export class DatabaseStorage implements IStorage {
 
   async getTestAssignment(id: number): Promise<TestAssignment | undefined> {
     return await handleDbOperation(async () => {
-      const [assignment] = await this.db.select().from(testAssignments).where(eq(testAssignments.id, id));
-      return assignment;
-    }, undefined);
+      const [assignment] = await this.db
+        .select({
+          assignment: testAssignments,
+          testTemplate: testTemplates,
+        })
+        .from(testAssignments)
+        .leftJoin(testTemplates, eq(testAssignments.testTemplateId, testTemplates.id))
+        .where(eq(testAssignments.id, id));
+
+      if (!assignment) return undefined;
+
+      return {
+        ...assignment.assignment,
+        testTemplate: assignment.testTemplate,
+      } as TestAssignment;
+    });
   }
 
   async createTestAssignment(assignment: InsertTestAssignment): Promise<TestAssignment> {
