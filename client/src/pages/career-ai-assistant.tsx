@@ -708,11 +708,15 @@ export default function CareerAIAssistant() {
                 </div>
                 Personal AI Career Assistant
               </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Powered by Groq AI ({aiTier === 'premium' ? 'llama-3.3-70b-versatile' : 'llama-3.1-8b-instant'}) • Get personalized career guidance with location-specific insights
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              
+              <CardContent className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-purple-600" />
+                <span className="text-sm font-medium text-purple-800 dark:text-purple-200">
+                  Powered by Groq AI • Get personalized career guidance with location-specific insights
+                </span>
+              </div>
+            
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground mb-2 block">
@@ -1046,11 +1050,11 @@ Examples:
                         <LineChart data={careerPath.steps.slice(0, 4).map((step, index) => {
                           // Enhanced salary parsing to handle various formats
                           let salary = 50 + (index * 20); // default fallback
-                          
+
                           if (step.averageSalary) {
                             const salaryStr = step.averageSalary.toString();
                             const salaryMatch = salaryStr.match(/\d+/g);
-                            
+
                             if (salaryMatch && salaryMatch.length > 0) {
                               const parsedSalary = parseInt(salaryMatch[0]);
                               // If salary seems to be in full format (e.g., 80000), convert to k
