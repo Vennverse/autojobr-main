@@ -104,6 +104,9 @@ import RemoteJobSearch2025 from "@/pages/blog/remote-job-search-2025";
 import JobAlertsPage from "@/pages/job-alerts";
 import CompanyCareerPage from "@/pages/company-career-page";
 
+// Import RankingTestTaking component
+import RankingTestTaking from './pages/ranking-test-taking';
+
 // Import lazy for dynamic imports
 import { lazy } from "react";
 
@@ -313,8 +316,7 @@ function Router() {
                   <Route path="/job-seeker-tests" component={JobSeekerTests} />
                   <Route path="/job-seeker/tests" component={JobSeekerTests} />
                   <Route path="/ranking-tests" component={RankingTests} />
-                  <Route path="/task-management" component={TaskManagement} />
-                  <Route path="/job-seeker-tasks" component={JobSeekerTasks} />
+                  <Route path="/ranking-test/:id" component={RankingTestTaking} />
                   <Route path="/test/:id" component={TestTaking} />
                   <Route path="/test/:id/retake-payment">
                     {(params) => <TestRetakePayment />}

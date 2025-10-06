@@ -3610,6 +3610,28 @@ Return ONLY the JSON object, no additional text.`;
     }
   }));
 
+  // Get single ranking test
+  app.get('/api/ranking-tests/:testId', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const testId = parseInt(req.params.testId);
+      const test = await rankingTestService.getRankingTest(testId);
+      
+      if (!test) {
+        return res.status(404).json({ message: 'Test not found' });
+      }
+      
+      // Verify ownership
+      if (test.userId !== req.user.id) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      res.json(test);
+    } catch (error) {
+      console.error('Error getting ranking test:', error);
+      res.status(500).json({ message: 'Failed to get test' });
+    }
+  }));
+
   // Create new ranking test
   app.post('/api/ranking-tests/create', isAuthenticated, asyncHandler(async (req: any, res: any) => {
     try {

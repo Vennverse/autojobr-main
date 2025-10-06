@@ -21,6 +21,12 @@ import { QUESTION_BANK, getQuestionsByCategory } from "./questionBank";
 import { testService } from "./testService";
 
 class RankingTestService {
+  // Get a single ranking test by ID
+  async getRankingTest(testId: number): Promise<RankingTest | null> {
+    const [test] = await db.select().from(rankingTests).where(eq(rankingTests.id, testId));
+    return test || null;
+  }
+
   // Create a new ranking test for a user
   async createRankingTest(userId: string, category: string, domain: string, difficultyLevel: string): Promise<RankingTest> {
     // Check user's free practice allocation from users table
