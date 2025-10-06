@@ -41,6 +41,7 @@ import { simpleWebSocketService } from "./simpleWebSocketService.js";
 import { simplePromotionalEmailService } from "./simplePromotionalEmailService.js";
 import { internshipScrapingService } from "./internshipScrapingService.js";
 import { dailySyncService } from "./dailySyncService.js";
+import { jobSpyService } from "./jobspyService.js";
 import crypto from 'crypto';
 import { 
   checkJobPostingLimit,
@@ -720,6 +721,184 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         message: 'Daily sync failed',
         error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Public endpoint to trigger job scraping (for testing/development)
+  app.post('/api/trigger-job-scraper', async (req: any, res) => {
+    try {
+      const status = dailySyncService.getStatus();
+      
+      if (status.isRunning) {
+        return res.json({
+          message: 'Job scraping is already running',
+          status: 'running',
+          ...status
+        });
+      }
+
+      console.log('🚀 Manually triggering job scraper from public endpoint...');
+      
+      // Trigger the sync in the background
+      dailySyncService.triggerManualSync().catch(error => {
+        console.error('❌ Background sync error:', error);
+      });
+
+      res.json({
+        message: 'Job scraping has been triggered and is running in the background',
+        status: 'started',
+        note: 'This will scrape jobs from Indeed, LinkedIn, and other major job sites globally. Check logs for progress.'
+      });
+    } catch (error) {
+      console.error('❌ Failed to trigger job scraper:', error);
+      res.status(500).json({ 
+        message: 'Failed to trigger job scraper',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // ===== JOBSPY ADMIN API ROUTES =====
+  
+  // Test JobSpy installation
+  app.get('/api/jobspy/test', isAuthenticated, async (req: any, res) => {
+    try {
+      // Admin check
+      if (!req.user || (req.user.email !== 'admin@autojobr.com' && req.user.userType !== 'admin')) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const result = await jobSpyService.testJobSpy();
+      res.json(result);
+    } catch (error) {
+      console.error('❌ JobSpy test failed:', error);
+      res.status(500).json({ 
+        success: false,
+        message: error instanceof Error ? error.message : 'JobSpy test failed'
+      });
+    }
+  });
+
+  // Get JobSpy configuration options
+  app.get('/api/jobspy/config', isAuthenticated, async (req: any, res) => {
+    try {
+      // Admin check
+      if (!req.user || (req.user.email !== 'admin@autojobr.com' && req.user.userType !== 'admin')) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      res.json({
+        available_job_sites: ['indeed', 'linkedin', 'zip_recruiter', 'glassdoor', 'naukri'],
+        common_locations: [
+          'New York, NY', 'San Francisco, CA', 'Los Angeles, CA', 'Austin, TX', 'Seattle, WA',
+          'Chicago, IL', 'Boston, MA', 'Remote', 'Mumbai, India', 'Bangalore, India', 
+          'Delhi, India', 'London, UK', 'Berlin, Germany'
+        ],
+        search_terms_by_category: {
+          tech: ['software engineer', 'frontend developer', 'backend developer', 'full stack developer', 
+                 'data scientist', 'devops engineer', 'mobile developer'],
+          business: ['product manager', 'business analyst', 'project manager', 'account manager'],
+          entry_level: ['junior software engineer', 'entry level developer', 'graduate trainee', 'fresher developer']
+        },
+        countries: ['USA', 'India', 'UK', 'Canada', 'Germany', 'France'],
+        max_results_per_search: 50
+      });
+    } catch (error) {
+      console.error('❌ Failed to get JobSpy config:', error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : 'Failed to get config'
+      });
+    }
+  });
+
+  // Custom JobSpy scraping
+  app.post('/api/jobspy/scrape', isAuthenticated, async (req: any, res) => {
+    try {
+      // Admin check
+      if (!req.user || (req.user.email !== 'admin@autojobr.com' && req.user.userType !== 'admin')) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const config = req.body;
+      console.log('[JOBSPY_API] Custom scraping requested:', config);
+      
+      const result = await jobSpyService.scrapeJobs(config);
+      res.json(result);
+    } catch (error) {
+      console.error('❌ Custom JobSpy scraping failed:', error);
+      res.status(500).json({ 
+        success: false,
+        error: error instanceof Error ? error.message : 'Scraping failed'
+      });
+    }
+  });
+
+  // Scrape tech jobs
+  app.post('/api/jobspy/scrape-tech', isAuthenticated, async (req: any, res) => {
+    try {
+      // Admin check
+      if (!req.user || (req.user.email !== 'admin@autojobr.com' && req.user.userType !== 'admin')) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      console.log('[JOBSPY_API] Tech jobs scraping requested');
+      const result = await jobSpyService.scrapeTechJobs();
+      res.json(result);
+    } catch (error) {
+      console.error('❌ Tech jobs scraping failed:', error);
+      res.status(500).json({ 
+        success: false,
+        error: error instanceof Error ? error.message : 'Scraping failed'
+      });
+    }
+  });
+
+  // Scrape remote jobs
+  app.post('/api/jobspy/scrape-remote', isAuthenticated, async (req: any, res) => {
+    try {
+      // Admin check
+      if (!req.user || (req.user.email !== 'admin@autojobr.com' && req.user.userType !== 'admin')) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      console.log('[JOBSPY_API] Remote jobs scraping requested');
+      const result = await jobSpyService.scrapeRemoteJobs();
+      res.json(result);
+    } catch (error) {
+      console.error('❌ Remote jobs scraping failed:', error);
+      res.status(500).json({ 
+        success: false,
+        error: error instanceof Error ? error.message : 'Scraping failed'
+      });
+    }
+  });
+
+  // Scrape jobs by role
+  app.post('/api/jobspy/scrape-role', isAuthenticated, async (req: any, res) => {
+    try {
+      // Admin check
+      if (!req.user || (req.user.email !== 'admin@autojobr.com' && req.user.userType !== 'admin')) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const { role, location } = req.body;
+      
+      if (!role) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Role is required'
+        });
+      }
+
+      console.log(`[JOBSPY_API] Role-specific scraping requested: ${role} in ${location || 'default locations'}`);
+      const result = await jobSpyService.scrapeJobsByRole(role, location);
+      res.json(result);
+    } catch (error) {
+      console.error('❌ Role-specific scraping failed:', error);
+      res.status(500).json({ 
+        success: false,
+        error: error instanceof Error ? error.message : 'Scraping failed'
       });
     }
   });
@@ -1845,9 +2024,46 @@ Candidate Background:
 ${resumeText ? `Resume: ${resumeText.substring(0, 1000)}...` : 'Professional with relevant experience'}
 
 Requirements:
-- Opening paragraph that shows enthusiasm and explains why you're interested
-- Body paragraphs highlighting relevant experience and skills that match the job
+- Opening paragraph that shows enthusiasm and explains why you're interested in this specific role
+- Body paragraphs highlighting relevant experience and skills that match the job requirements
+- Specific examples of achievements that align with the job description
+- Closing paragraph with a call to action
+- Professional tone throughout
+- Keep it concise (300-400 words)
 
+Format the cover letter with proper paragraphs. Do not include [Date], [Your Address], or [Hiring Manager] placeholders - start directly with the greeting.
+
+Return only the cover letter text, no additional formatting or explanations.`;
+
+      console.log('🤖 Generating AI cover letter...');
+
+      const aiResponse = await aiService.createChatCompletion([
+        { role: 'system', content: 'You are an expert cover letter writer. Write professional, compelling cover letters that highlight candidate strengths.' },
+        { role: 'user', content: prompt }
+      ], {
+        temperature: 0.7,
+        max_tokens: 1000,
+        user: req.user
+      });
+
+      const coverLetter = aiResponse.choices[0]?.message?.content || '';
+
+      console.log('✅ Cover letter generated successfully');
+
+      res.json({
+        success: true,
+        coverLetter: coverLetter.trim(),
+        jobTitle,
+        companyName
+      });
+    } catch (error: any) {
+      console.error("Error generating cover letter:", error);
+      res.status(500).json({ 
+        message: "Failed to generate cover letter",
+        error: error.message 
+      });
+    }
+  });
 
   // Get all career analyses for user (history)
   app.get('/api/career-ai/analyses', isAuthenticated, async (req: any, res) => {
@@ -1949,44 +2165,6 @@ Requirements:
     } catch (error) {
       console.error("Error fetching career analysis:", error);
       res.status(500).json({ message: "Failed to fetch analysis" });
-    }
-  });
-
-- Closing paragraph with call to action
-- Professional, engaging tone
-- Personalized to the specific company and role
-- 3-4 paragraphs total
-- No placeholder text like [Your Name] - use actual information`;
-
-      const completion = await aiService.createChatCompletion([
-        {
-          role: "system",
-          content: "You are an expert career coach and professional writer. Generate compelling, personalized cover letters that highlight the candidate's strengths and match them to the job requirements."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ], {
-        temperature: 0.7,
-        max_tokens: 800,
-        user: req.user
-      });
-
-      const coverLetter = completion.choices[0]?.message?.content || '';
-
-      res.json({
-        success: true,
-        coverLetter,
-        jobTitle,
-        companyName
-      });
-    } catch (error) {
-      console.error('Cover letter generation error:', error);
-      res.status(500).json({ 
-        message: 'Failed to generate cover letter',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
     }
   });
 
@@ -4977,6 +5155,86 @@ Additional Information:
     } catch (error) {
       console.error("Error downloading resume:", error);
       res.status(500).json({ message: "Failed to download resume" });
+    }
+  });
+
+  // AI Resume Improvement endpoint
+  app.post('/api/ai/resume-improvements', isAuthenticated, async (req: any, res) => {
+    try {
+      const { resumeText, jobDescription } = req.body;
+
+      if (!resumeText || resumeText.trim().length === 0) {
+        return res.status(400).json({ message: "Resume text is required" });
+      }
+
+      const prompt = `You are an expert resume writer and career advisor. Analyze the following resume and provide specific, actionable improvements.
+
+RESUME CONTENT:
+${resumeText}
+
+${jobDescription ? `TARGET JOB DESCRIPTION:\n${jobDescription}\n\n` : ''}
+
+Provide improvements in the following JSON format:
+{
+  "summary": "Brief overall assessment of the resume (2-3 sentences)",
+  "strengths": ["strength 1", "strength 2", "strength 3"],
+  "improvements": [
+    {
+      "section": "Section name (e.g., 'Professional Summary', 'Work Experience', 'Skills')",
+      "issue": "What's wrong with the current content",
+      "suggestion": "Specific improvement suggestion",
+      "example": "Improved version of the text"
+    }
+  ],
+  "keywordSuggestions": ["keyword1", "keyword2", "keyword3"],
+  "atsScore": 75,
+  "impactMetrics": {
+    "beforeImpact": "Current impact level (Low/Medium/High)",
+    "afterImpact": "Potential impact level after improvements (Low/Medium/High)",
+    "quantificationScore": 65
+  }
+}
+
+Focus on:
+1. Adding quantifiable achievements and metrics
+2. Using strong action verbs
+3. Tailoring content to the job description (if provided)
+4. Improving ATS compatibility
+5. Making accomplishments more impactful
+
+Return ONLY the JSON object, no additional text.`;
+
+      console.log('🤖 Generating AI resume improvements...');
+      
+      const aiResponse = await aiService.createChatCompletion([
+        { role: 'system', content: 'You are an expert resume writer. Always respond with valid JSON only.' },
+        { role: 'user', content: prompt }
+      ], {
+        temperature: 0.7,
+        max_tokens: 3000,
+        user: req.user
+      });
+
+      // Parse AI response
+      let improvements;
+      try {
+        const content = aiResponse.choices[0]?.message?.content || '{}';
+        const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) || content.match(/(\{[\s\S]*\})/);
+        const jsonStr = jsonMatch ? jsonMatch[1] : content;
+        improvements = JSON.parse(jsonStr);
+        console.log('✅ AI resume improvements generated successfully');
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', parseError);
+        throw new Error('AI response parsing failed');
+      }
+
+      res.json(improvements);
+    } catch (error: any) {
+      console.error("Error generating resume improvements:", error);
+      res.status(500).json({ 
+        message: "Failed to generate improvements",
+        error: error.message 
+      });
     }
   });
 

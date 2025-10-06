@@ -268,7 +268,7 @@ export class JobSpyService {
   };
 
   constructor() {
-    this.pythonPath = 'python3';
+    this.pythonPath = 'uv';
     // Always use the server directory path since Python files are not compiled
     // This works for both development and production
     this.scriptPath = path.join(process.cwd(), 'server', 'jobspy_scraper.py');
@@ -284,7 +284,7 @@ export class JobSpyService {
       console.log('[JOBSPY_SERVICE] Starting JobSpy scraping...');
       console.log('[JOBSPY_SERVICE] Config:', config);
 
-      const pythonProcess = spawn(this.pythonPath, [this.scriptPath, configJson], {
+      const pythonProcess = spawn(this.pythonPath, ['run', 'python', this.scriptPath, configJson], {
         stdio: ['pipe', 'pipe', 'pipe'],
         env: {
           ...process.env,
