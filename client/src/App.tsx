@@ -367,6 +367,7 @@ function Router() {
               <Route path="/chat-interview/:sessionId" component={ChatInterview} />
               <Route path="/interview-link/:linkId" component={lazy(() => import("./pages/InterviewLink"))} />
               <Route path="/subscription" component={Subscription} />
+              <Route path="/career-ai-assistant" component={CareerAIAssistant} />
               <Route path="/referral-marketplace" component={ReferralMarketplace} />
               <Route path="/become-referrer" component={BecomeReferrer} />
               <Route path="/my-bookings" component={MyBookings} />

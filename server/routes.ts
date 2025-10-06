@@ -2859,6 +2859,131 @@ Requirements:
     }
   });
 
+  // Career AI Routes
+  app.get('/api/career-ai/saved', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const analysis = await db.query.careerAiAnalyses.findFirst({
+        where: (table, { eq, and }) => and(
+          eq(table.userId, userId),
+          eq(table.isActive, true)
+        ),
+        orderBy: (table, { desc }) => [desc(table.updatedAt)]
+      });
+      res.json(analysis || null);
+    } catch (error) {
+      console.error("Error fetching saved career analysis:", error);
+      res.status(500).json({ message: "Failed to fetch saved analysis" });
+    }
+  });
+
+  app.post('/api/career-ai/analyze', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { careerGoal, location, timeframe, progressUpdate } = req.body;
+
+      // For now, return a mock response until AI service is integrated
+      const mockAnalysis = {
+        insights: [
+          {
+            type: 'path',
+            title: 'Career Path Analysis',
+            content: `Based on your goal to become a ${careerGoal || 'professional'}, here's a structured path forward.`,
+            priority: 'high',
+            timeframe: timeframe || '2 years',
+            actionItems: ['Update your profile', 'Complete skill assessments', 'Network with professionals']
+          }
+        ],
+        skillGaps: [],
+        careerPath: {
+          currentRole: 'Current Position',
+          targetRole: careerGoal || 'Target Position',
+          steps: [],
+          totalTimeframe: timeframe || '2 years',
+          successProbability: 75
+        },
+        networkingOpportunities: [],
+        marketTiming: []
+      };
+
+      // Save to database
+      const [savedAnalysis] = await db.insert(schema.careerAiAnalyses).values({
+        userId,
+        careerGoal: careerGoal || '',
+        location,
+        timeframe,
+        progressUpdate,
+        completedTasks: [],
+        analysisData: mockAnalysis,
+        insights: mockAnalysis.insights,
+        careerPath: mockAnalysis.careerPath,
+        skillGaps: mockAnalysis.skillGaps,
+        networkingOpportunities: mockAnalysis.networkingOpportunities,
+        marketTiming: mockAnalysis.marketTiming,
+        isActive: true
+      }).returning();
+
+      res.json({ ...mockAnalysis, id: savedAnalysis.id });
+    } catch (error) {
+      console.error("Error analyzing career:", error);
+      res.status(500).json({ message: "Failed to analyze career path" });
+    }
+  });
+
+  app.get('/api/career-ai/progress/:jobId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { jobId } = req.params;
+      // Return progress for async job (mock for now)
+      res.json({
+        isActive: false,
+        stage: 'complete',
+        progress: 100,
+        message: 'Analysis complete'
+      });
+    } catch (error) {
+      console.error("Error fetching career analysis progress:", error);
+      res.status(500).json({ message: "Failed to fetch progress" });
+    }
+  });
+
+  app.post('/api/career-ai/save-progress', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { analysisId, completedTasks } = req.body;
+
+      await db.update(schema.careerAiAnalyses)
+        .set({ 
+          completedTasks,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.careerAiAnalyses.id, analysisId));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error saving career progress:", error);
+      res.status(500).json({ message: "Failed to save progress" });
+    }
+  });
+
+  app.post('/api/career-ai/update-progress', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { analysisId, progressUpdate } = req.body;
+
+      await db.update(schema.careerAiAnalyses)
+        .set({ 
+          progressUpdate,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.careerAiAnalyses.id, analysisId));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating career progress:", error);
+      res.status(500).json({ message: "Failed to update progress" });
+    }
+  });
+
   // MISSING PREMIUM API ENDPOINTS - CRITICAL FOR FRONTEND
 
   // 1. Usage Monitoring Endpoint
