@@ -3003,162 +3003,130 @@ Requirements:
       const userId = req.user.id;
       const { careerGoal, location, timeframe, progressUpdate, userProfile, userSkills, userApplications, jobAnalyses, completedTasks } = req.body;
 
-      // Generate comprehensive career analysis with complete data
+      // Build comprehensive context for AI analysis
+      const userContext = {
+        profile: userProfile || {},
+        skills: userSkills || [],
+        applications: userApplications?.slice(0, 10) || [],
+        jobAnalyses: jobAnalyses?.slice(0, 5) || [],
+        completedTasks: completedTasks || [],
+        progressUpdate: progressUpdate || ''
+      };
+
       const timeframeYears = parseInt(timeframe?.split('-')[0]) || 2;
 
-      // Generate realistic career progression steps
-      const steps = [];
-      const baseRole = careerGoal || 'Professional';
-      const levels = ['Junior', 'Mid-Level', 'Senior', 'Lead', 'Principal'];
-      const stepCount = Math.min(timeframeYears + 1, 5);
+      // Create AI prompt for comprehensive career analysis
+      const prompt = `You are an expert career advisor and AI assistant. Analyze the following career profile and provide personalized, actionable career guidance.
 
-      for (let i = 0; i < stepCount; i++) {
-        const level = levels[Math.min(i, levels.length - 1)];
-        const timeline = i === 0 ? 'Current' : `${i * 6}-${(i + 1) * 6} months`;
-        const baseSalary = 50 + (i * 25);
+USER CAREER GOAL: ${careerGoal || 'Career advancement'}
+LOCATION: ${location || 'Not specified'}
+TIMEFRAME: ${timeframe || '2 years'}
 
-        steps.push({
-          position: `${level} ${baseRole}`,
-          timeline: timeline,
-          requiredSkills: [
-            'Technical Skills',
-            'Communication',
-            'Leadership',
-            'Problem Solving'
-          ].slice(0, 2 + i),
-          averageSalary: `$${baseSalary}k - $${baseSalary + 20}k`,
-          marketDemand: i < 2 ? 'High' : i < 4 ? 'Medium' : 'Growing'
-        });
+USER PROFILE:
+${JSON.stringify(userContext.profile, null, 2)}
+
+CURRENT SKILLS:
+${userContext.skills.map((s: any) => `- ${s.name || s}: ${s.level || 'N/A'}`).join('\n') || 'No skills listed'}
+
+RECENT APPLICATIONS (${userContext.applications.length}):
+${userContext.applications.map((app: any) => `- ${app.jobTitle || app.position} at ${app.company}`).join('\n') || 'No recent applications'}
+
+PROGRESS UPDATES:
+${userContext.progressUpdate || 'No updates provided'}
+
+COMPLETED TASKS:
+${userContext.completedTasks.join(', ') || 'No tasks completed'}
+
+Please provide a comprehensive career analysis in the following JSON format:
+{
+  "insights": [
+    {
+      "type": "path|skill|timing|network|analytics",
+      "title": "Clear, actionable title",
+      "content": "Detailed insight based on user's actual data",
+      "priority": "high|medium|low",
+      "timeframe": "When to act on this",
+      "actionItems": ["Specific action 1", "Specific action 2", "Specific action 3"]
+    }
+  ],
+  "skillGaps": [
+    {
+      "skill": "Specific skill name",
+      "currentLevel": 1-10,
+      "targetLevel": 1-10,
+      "importance": 1-10,
+      "learningResources": ["Resource 1", "Resource 2"],
+      "timeToAcquire": "Time estimate"
+    }
+  ],
+  "careerPath": {
+    "currentRole": "User's current role",
+    "targetRole": "${careerGoal}",
+    "steps": [
+      {
+        "position": "Realistic position title",
+        "timeline": "Timeframe",
+        "requiredSkills": ["Skill 1", "Skill 2"],
+        "averageSalary": "Salary range",
+        "marketDemand": "High|Medium|Low"
       }
+    ],
+    "totalTimeframe": "${timeframe}",
+    "successProbability": 1-100
+  },
+  "networkingOpportunities": [
+    {
+      "type": "conference|meetup|online",
+      "name": "Event name",
+      "date": "When",
+      "relevance": "High|Medium|Low",
+      "expectedConnections": "Number"
+    }
+  ],
+  "marketTiming": [
+    {
+      "quarter": "Q1 2025",
+      "demandScore": 1-100,
+      "competitionLevel": 1-100,
+      "recommendation": "Specific recommendation"
+    }
+  ]
+}
 
-      const mockAnalysis = {
-        insights: [
-          {
-            type: 'path',
-            title: 'Career Path Strategy',
-            content: `Your journey to ${careerGoal} in ${location || 'your location'} shows strong potential. Focus on building key skills and networking.`,
-            priority: 'high',
-            timeframe: timeframe || '2-years',
-            actionItems: [
-              'Update your profile with target keywords',
-              'Complete 2-3 relevant certifications',
-              'Build a portfolio of 5+ projects',
-              'Network with 10+ professionals in your field'
-            ]
-          },
-          {
-            type: 'skill',
-            title: 'Priority Skills Development',
-            content: 'Focus on high-demand technical and soft skills that align with your career goal.',
-            priority: 'high',
-            timeframe: '3-6 months',
-            actionItems: [
-              'Master core technical skills for your role',
-              'Develop communication and leadership abilities',
-              'Learn industry-standard tools and frameworks'
-            ]
-          },
-          {
-            type: 'timing',
-            title: 'Optimal Career Moves',
-            content: 'Market timing analysis suggests strong opportunities in the coming quarters.',
-            priority: 'medium',
-            timeframe: 'Next 6 months',
-            actionItems: [
-              'Apply to 20-30 positions in the next 3 months',
-              'Target companies with active hiring',
-              'Leverage referrals for better success rates'
-            ]
-          },
-          {
-            type: 'network',
-            title: 'Networking Strategy',
-            content: 'Build strategic connections to accelerate your career progression.',
-            priority: 'medium',
-            timeframe: 'Ongoing',
-            actionItems: [
-              'Attend 2-3 industry events per month',
-              'Connect with 5 professionals weekly on LinkedIn',
-              'Join relevant professional communities'
-            ]
-          }
-        ],
-        skillGaps: [
-          {
-            skill: 'Technical Expertise',
-            currentLevel: 6,
-            targetLevel: 9,
-            importance: 9,
-            learningResources: [
-              'Online courses (Coursera, Udemy)',
-              'Industry certifications',
-              'Hands-on projects'
-            ],
-            timeToAcquire: '3-6 months'
-          },
-          {
-            skill: 'Leadership & Communication',
-            currentLevel: 5,
-            targetLevel: 8,
-            importance: 8,
-            learningResources: [
-              'Leadership workshops',
-              'Public speaking courses',
-              'Mentorship programs'
-            ],
-            timeToAcquire: '6-12 months'
-          },
-          {
-            skill: 'Domain Knowledge',
-            currentLevel: 7,
-            targetLevel: 9,
-            importance: 9,
-            learningResources: [
-              'Industry publications',
-              'Professional conferences',
-              'Advanced training programs'
-            ],
-            timeToAcquire: '6-12 months'
-          }
-        ],
-        careerPath: {
-          currentRole: 'Current Position',
-          targetRole: careerGoal || 'Target Position',
-          steps: steps,
-          totalTimeframe: timeframe || '2-years',
-          successProbability: 78
-        },
-        networkingOpportunities: [
-          {
-            type: 'conference',
-            name: 'Industry Leadership Summit',
-            date: 'Next Quarter',
-            relevance: 'High',
-            expectedConnections: '50+'
-          },
-          {
-            type: 'meetup',
-            name: 'Professional Networking Group',
-            date: 'Monthly',
-            relevance: 'Medium',
-            expectedConnections: '20-30'
-          }
-        ],
-        marketTiming: [
-          {
-            quarter: 'Q1 2025',
-            demandScore: 85,
-            competitionLevel: 65,
-            recommendation: 'Strong time to apply'
-          },
-          {
-            quarter: 'Q2 2025',
-            demandScore: 90,
-            competitionLevel: 70,
-            recommendation: 'Peak hiring season'
-          }
-        ]
-      };
+Make the analysis:
+1. Personalized based on their actual profile, skills, and applications
+2. Realistic and achievable within the timeframe
+3. Specific with clear action items
+4. Data-driven where possible
+5. Include at least 4 insights covering different aspects (path, skills, timing, networking)
+
+Return ONLY the JSON object, no additional text.`;
+
+      console.log('🤖 Generating AI-powered career analysis...');
+      
+      // Call AI service for analysis
+      const aiResponse = await aiService.createChatCompletion([
+        { role: 'system', content: 'You are an expert career advisor. Always respond with valid JSON only.' },
+        { role: 'user', content: prompt }
+      ], {
+        temperature: 0.7,
+        max_tokens: 4000,
+        user: req.user
+      });
+
+      // Parse AI response
+      let aiAnalysis;
+      try {
+        const content = aiResponse.choices[0]?.message?.content || '{}';
+        // Remove markdown code blocks if present
+        const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) || content.match(/(\{[\s\S]*\})/);
+        const jsonStr = jsonMatch ? jsonMatch[1] : content;
+        aiAnalysis = JSON.parse(jsonStr);
+        console.log('✅ AI analysis parsed successfully');
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', parseError);
+        throw new Error('AI response parsing failed');
+      }
 
       // Save to database
       const [savedAnalysis] = await db.insert(schema.careerAiAnalyses).values({
@@ -3168,17 +3136,17 @@ Requirements:
         timeframe,
         progressUpdate,
         completedTasks,
-        analysisData: mockAnalysis,
-        insights: mockAnalysis.insights,
-        careerPath: mockAnalysis.careerPath,
-        skillGaps: mockAnalysis.skillGaps,
-        networkingOpportunities: mockAnalysis.networkingOpportunities,
-        marketTiming: mockAnalysis.marketTiming,
+        analysisData: aiAnalysis,
+        insights: aiAnalysis.insights || [],
+        careerPath: aiAnalysis.careerPath || null,
+        skillGaps: aiAnalysis.skillGaps || [],
+        networkingOpportunities: aiAnalysis.networkingOpportunities || [],
+        marketTiming: aiAnalysis.marketTiming || [],
         isActive: true
       }).returning();
 
-      console.log('Career AI Analysis Result:', { ...mockAnalysis, id: savedAnalysis.id });
-      res.json({ ...mockAnalysis, id: savedAnalysis.id });
+      console.log('💾 Career AI analysis saved to database');
+      res.json({ ...aiAnalysis, id: savedAnalysis.id });
     } catch (error) {
       console.error("Error analyzing career:", error);
       res.status(500).json({ message: "Failed to analyze career path" });
