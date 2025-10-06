@@ -136,9 +136,9 @@ export default function TestManagement() {
       timeLimit: 30,
       passingScore: 70,
       useQuestionBank: false,
-      aptitudeQuestions: 15,
-      englishQuestions: 6,
-      domainQuestions: 9,
+      aptitudeQuestions: 30, // 2 per minute ratio: 30 min = 60 questions total
+      englishQuestions: 15,
+      domainQuestions: 15,
       includeExtremeQuestions: true,
       questions: [
         {
@@ -774,9 +774,20 @@ export default function TestManagement() {
                           min="1" 
                           max="180" 
                           {...field} 
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                          onChange={(e) => {
+                            const minutes = parseInt(e.target.value) || 30;
+                            const totalQuestions = minutes * 2; // 2 questions per minute
+                            field.onChange(minutes);
+                            // Auto-adjust question distribution
+                            createTestForm.setValue('aptitudeQuestions', Math.floor(totalQuestions * 0.5));
+                            createTestForm.setValue('englishQuestions', Math.floor(totalQuestions * 0.25));
+                            createTestForm.setValue('domainQuestions', Math.floor(totalQuestions * 0.25));
+                          }}
                         />
                       </FormControl>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {field.value * 2} total questions (2 per minute)
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -832,7 +843,7 @@ export default function TestManagement() {
                 {(useQuestionBank || watchUseQuestionBank) && (
                   <div className="space-y-4 pl-4 border-l-2 border-blue-200">
                     <div className="text-sm text-gray-600 mb-3">
-                      Configure automatic question distribution:
+                      Configure automatic question distribution (2 questions per minute):
                     </div>
                     
                     <div className="grid grid-cols-3 gap-4">
