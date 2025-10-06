@@ -2367,6 +2367,10 @@ export const premiumTargetingJobs = pgTable("premium_targeting_jobs", {
 
 // Create aliases for missing exports to fix import errors
 export const educations = education;
+// Backwards-compatible aliases: some server files reference the older names
+// virtualInterviewSessions / mockInterviewSessions — map them to the current tables
+export const virtualInterviewSessions = virtualInterviews;
+export const mockInterviewSessions = mockInterviews;
 
 // Task management insert schemas
 export const insertTaskSchema = createInsertSchema(tasks).omit({
