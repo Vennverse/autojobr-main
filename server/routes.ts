@@ -489,6 +489,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     fs.mkdirSync(profilesDir, { recursive: true });
   }
 
+  // Profile routes
+  app.get('/api/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const cacheKey = `profile_${userId}`;
+      
+      // Check cache first
+      const cached = getCached(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+      
+      const profile = await storage.getUserProfile(userId);
+      
+      // Cache the result (user-scoped)
+      setCache(cacheKey, profile, undefined, userId);
+      res.json(profile);
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      res.status(500).json({ message: "Failed to fetch profile" });
+    }
+  });
+
+  app.post('/api/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      console.log("Profile update request body:", JSON.stringify(req.body, null, 2));
+      
+      // Convert date strings to Date objects if needed
+      const bodyData = { ...req.body, userId };
+      if (bodyData.lastResumeAnalysis && typeof bodyData.lastResumeAnalysis === 'string') {
+        bodyData.lastResumeAnalysis = new Date(bodyData.lastResumeAnalysis);
+      }
+      
+      console.log("Processed body data:", JSON.stringify(bodyData, null, 2));
+      
+      const profileData = insertUserProfileSchema.parse(bodyData);
+      console.log("Parsed profile data:", JSON.stringify(profileData, null, 2));
+      
+      const profile = await storage.upsertUserProfile(profileData);
+      
+      // Invalidate profile cache
+      cache.delete(`profile_${userId}`);
+      cache.delete(`recommendations_${userId}`);
+      
+      res.json(profile);
+    } catch (error) {
+      console.error("PROFILE UPDATE ERROR:", error);
+      
+      // Provide more specific error messages
+      if (error instanceof Error && error.name === 'ZodError') {
+        console.error("Zod validation errors:", (error as any).errors);
+        return res.status(400).json({ 
+          message: "Invalid profile data", 
+          details: (error as any).errors?.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', '),
+          validationErrors: (error as any).errors
+        });
+      }
+      
+      if (error instanceof Error && error.message?.includes('duplicate key')) {
+        return res.status(409).json({ message: "Profile already exists" });
+      }
+      
+      res.status(500).json({ 
+        message: "Failed to update profile", 
+        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : 'Unknown error') : undefined,
+        errorName: error instanceof Error ? error.name : 'UnknownError',
+        stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined
+      });
+    }
+  });
+
   // Health check endpoint for deployment verification
   app.get('/api/health', (req, res) => {
     res.status(200).json({ 
