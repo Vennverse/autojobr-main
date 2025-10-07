@@ -29,6 +29,9 @@ export default function VideoPractice() {
   const [videoFeedback, setVideoFeedback] = useState<string>('');
   const [audioLevel, setAudioLevel] = useState(0);
   const [isVideoReady, setIsVideoReady] = useState(false);
+  const [videoAnalysis, setVideoAnalysis] = useState<any>(null);
+  const faceAnalysisRef = useRef<SimpleFaceAnalysis | null>(null);
+  const analysisIntervalRef = useRef<any>(null);
 
   const analyzeVideo = async (blob: Blob, questionId: string) => {
     console.log('Analyzing video for question:', questionId);
@@ -242,7 +245,37 @@ export default function VideoPractice() {
 
       // Initialize audio analysis
       audioAnalysisRef.current = new SimpleAudioAnalysis();
-      audioAnalysisRef.current.start();
+      await audioAnalysisRef.current.start(streamRef.current!);
+
+      // Initialize face analysis
+      if (videoRef.current) {
+        faceAnalysisRef.current = new SimpleFaceAnalysis(videoRef.current);
+        
+        // Run analysis every 2 seconds
+        analysisIntervalRef.current = setInterval(async () => {
+          if (faceAnalysisRef.current) {
+            const analysis = await faceAnalysisRef.current.analyzeFrame();
+            setVideoAnalysis(analysis);
+            
+            // Update feedback based on analysis
+            const feedback: string[] = [];
+            if (!analysis.isWellFramed) {
+              feedback.push(...analysis.recommendations);
+            }
+            if (analysis.eyeContact < 50) {
+              feedback.push('Try to look at the camera more');
+            }
+            if (analysis.motion === 'excessive') {
+              feedback.push('Reduce excessive movement - stay steady');
+            }
+            if (feedback.length > 0) {
+              setVideoFeedback(feedback[0]);
+            } else {
+              setVideoFeedback('');
+            }
+          }
+        }, 2000);
+      }
 
     } catch (error) {
       console.error('Failed to start recognition:', error);
@@ -263,6 +296,10 @@ export default function VideoPractice() {
 
     if (timerRef.current) {
       clearInterval(timerRef.current);
+    }
+
+    if (analysisIntervalRef.current) {
+      clearInterval(analysisIntervalRef.current);
     }
 
     // Stop video recording
@@ -425,9 +462,30 @@ export default function VideoPractice() {
             </div>
 
             {videoFeedback && (
-              <div className="flex items-start gap-2 text-red-500 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded">
+              <div className="flex items-start gap-2 text-amber-600 dark:text-amber-400 text-sm bg-amber-50 dark:bg-amber-900/20 p-3 rounded">
                 <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <p>{videoFeedback}</p>
+              </div>
+            )}
+
+            {videoAnalysis && isRecording && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Eye Contact</p>
+                  <p className="text-lg font-semibold">{videoAnalysis.eyeContact}%</p>
+                </div>
+                <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Posture</p>
+                  <p className="text-lg font-semibold capitalize">{videoAnalysis.posture}</p>
+                </div>
+                <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Motion</p>
+                  <p className="text-lg font-semibold capitalize">{videoAnalysis.motion}</p>
+                </div>
+                <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Expression</p>
+                  <p className="text-lg font-semibold capitalize">{videoAnalysis.facialExpression}</p>
+                </div>
               </div>
             )}
 
