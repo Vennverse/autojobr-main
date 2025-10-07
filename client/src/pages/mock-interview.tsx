@@ -85,8 +85,7 @@ export default function MockInterview() {
   const { data: usageInfo, refetch: refetchUsage } = useQuery({
     queryKey: ['/api/mock-interview/usage'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/mock-interview/usage');
-      return response.json();
+      return await apiRequest('/api/mock-interview/usage', 'GET');
     },
   });
 
@@ -105,12 +104,7 @@ export default function MockInterview() {
   // Start interview mutation
   const startInterviewMutation = useMutation({
     mutationFn: async (data: StartInterviewForm & { isPaid?: boolean; paymentVerificationId?: string }) => {
-      const response = await apiRequest('POST', '/api/mock-interview/start', data);
-      if (response.status === 402) {
-        const errorData = await response.json();
-        throw new Error(JSON.stringify({ requiresPayment: true, ...errorData }));
-      }
-      return await response.json();
+      return await apiRequest('/api/mock-interview/start', 'POST', data);
     },
     onSuccess: (data) => {
       console.log('Mock interview started successfully:', data);
