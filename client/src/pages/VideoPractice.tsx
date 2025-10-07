@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Video, Mic, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { SimpleFaceAnalysis, SimpleAudioAnalysis } from '@/lib/faceAnalysis';
 
 export default function VideoPractice() {
   const [, setLocation] = useLocation();
@@ -20,6 +21,38 @@ export default function VideoPractice() {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const audioAnalysisRef = useRef<SimpleAudioAnalysis | null>(null);
+  const [videoFeedback, setVideoFeedback] = useState<string>('');
+  const [audioLevel, setAudioLevel] = useState(0);
+
+  const analyzeVideo = async (blob: Blob, questionId: string) => {
+    console.log('Analyzing video for question:', questionId);
+
+    // Lightweight browser-based analysis
+    const videoElement = document.createElement('video');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    videoElement.src = URL.createObjectURL(blob);
+
+    return new Promise((resolve) => {
+      videoElement.onloadedmetadata = () => {
+        canvas.width = videoElement.videoWidth;
+        canvas.height = videoElement.videoHeight;
+
+        const analysis = {
+          duration: videoElement.duration,
+          resolution: `${videoElement.videoWidth}x${videoElement.videoHeight}`,
+          fileSize: blob.size,
+          // Sample frames for basic brightness/quality check
+          videoQuality: blob.size / videoElement.duration > 50000 ? 'good' : 'low'
+        };
+
+        resolve(analysis);
+      };
+    });
+  };
 
   useEffect(() => {
     // Check browser support for Web Speech API
@@ -135,6 +168,8 @@ export default function VideoPractice() {
       recognitionRef.current.start();
       setIsRecording(true);
       setRecordingTime(0);
+      setVideoFeedback(''); // Clear previous feedback
+      setAudioLevel(0); // Reset audio level
 
       // Start timer
       timerRef.current = setInterval(() => {
@@ -147,6 +182,10 @@ export default function VideoPractice() {
           return newTime;
         });
       }, 1000);
+
+      // Initialize audio analysis
+      audioAnalysisRef.current = new SimpleAudioAnalysis();
+      audioAnalysisRef.current.start();
 
     } catch (error) {
       console.error('Failed to start recognition:', error);
@@ -169,6 +208,19 @@ export default function VideoPractice() {
       clearInterval(timerRef.current);
     }
 
+    // Stop audio analysis and get feedback
+    if (audioAnalysisRef.current) {
+      audioAnalysisRef.current.stop();
+      const audioAnalysisResult = audioAnalysisRef.current.getAnalysis();
+      setAudioLevel(audioAnalysisResult.avgVolume);
+      // Basic audio feedback
+      if (audioAnalysisResult.avgVolume < 0.2) {
+        setVideoFeedback('Your audio level is very low. Please speak louder.');
+      } else if (audioAnalysisResult.avgVolume > 0.8) {
+        setVideoFeedback('Your audio level is very high. You may be shouting.');
+      }
+    }
+
     const wordCount = transcript.trim().split(/\s+/).filter(w => w.length > 0).length;
 
     if (wordCount < 50) {
@@ -182,10 +234,18 @@ export default function VideoPractice() {
 
     try {
       setLoading(true);
+      // In a real scenario, you would send the recorded blob to the backend for full video analysis
+      // For now, we'll just use the placeholder analyzeVideo function
+      // const videoBlob = await getRecordedVideoBlob(); // Assuming you have a way to get the video blob
+      // const videoAnalysis = await analyzeVideo(videoBlob, session.questions[currentQuestion].id);
+      // console.log('Video Analysis:', videoAnalysis);
+
       const response = await apiRequest(`/api/video-practice/${session.sessionId}/response`, 'POST', {
         questionId: session.questions[currentQuestion].id,
         transcript: transcript.trim(),
-        duration: recordingTime
+        duration: recordingTime,
+        // audioAnalysis: audioAnalysisRef.current?.getAnalysis(),
+        // videoAnalysis: videoAnalysis, // Include video analysis results if available
       });
 
       if (response.isComplete) {
@@ -272,6 +332,13 @@ export default function VideoPractice() {
                 {transcript || 'Click "Start Recording" and speak your answer. Your speech will be automatically transcribed here in real-time.'}
               </p>
             </div>
+
+            {videoFeedback && (
+              <div className="flex items-start gap-2 text-red-500 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded">
+                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <p>{videoFeedback}</p>
+              </div>
+            )}
 
             <div className="flex gap-4">
               {!isRecording ? (
