@@ -109,7 +109,7 @@ export function ProfileAvatar({
 
     try {
       const formData = new FormData();
-      formData.append('profileImage', file);
+      formData.append('image', file);
       formData.append('userId', user.id);
 
       const response = await fetch('/api/upload-profile-image', {
