@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "AutoJobr Autopilot",
-  "version": "3.0.0",
-  "description": "AI-powered autopilot job search - Searchless job finding, bulk auto-apply, ATS resume optimizer, and referral finder across 100+ job boards",
+  "version": "2.1.1",
+  "description": "AI-powered job autopilot: auto-apply in bulk, optimize resumes, and find referrals across 100+ job boards.",
   "permissions": [
     "storage",
     "activeTab",
