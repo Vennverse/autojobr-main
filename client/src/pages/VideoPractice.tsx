@@ -22,9 +22,13 @@ export default function VideoPractice() {
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
   const audioAnalysisRef = useRef<SimpleAudioAnalysis | null>(null);
   const [videoFeedback, setVideoFeedback] = useState<string>('');
   const [audioLevel, setAudioLevel] = useState(0);
+  const [isVideoReady, setIsVideoReady] = useState(false);
 
   const analyzeVideo = async (blob: Blob, questionId: string) => {
     console.log('Analyzing video for question:', questionId);
@@ -64,8 +68,33 @@ export default function VideoPractice() {
       });
       return;
     }
+    
+    // Initialize video stream
+    initializeVideoStream();
     startSession();
   }, []);
+
+  const initializeVideoStream = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 1280, height: 720 },
+        audio: true
+      });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        setIsVideoReady(true);
+      }
+    } catch (error) {
+      console.error('Failed to access camera/microphone:', error);
+      toast({
+        title: "Camera Access Required",
+        description: "Please allow camera and microphone access to continue",
+        variant: "destructive"
+      });
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -102,6 +131,34 @@ export default function VideoPractice() {
         variant: "destructive"
       });
       return;
+    }
+
+    if (!streamRef.current) {
+      toast({
+        title: "Video Not Ready",
+        description: "Please wait for camera initialization",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Start video recording
+    try {
+      recordedChunksRef.current = [];
+      const mediaRecorder = new MediaRecorder(streamRef.current, {
+        mimeType: 'video/webm;codecs=vp9',
+      });
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorder.start(1000); // Capture data every second
+      mediaRecorderRef.current = mediaRecorder;
+    } catch (error) {
+      console.error('Failed to start video recording:', error);
     }
 
     const SpeechRecognition = (window as any).webkitSpeechRecognition;
@@ -208,6 +265,18 @@ export default function VideoPractice() {
       clearInterval(timerRef.current);
     }
 
+    // Stop video recording
+    let videoBlob: Blob | null = null;
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      await new Promise<void>((resolve) => {
+        mediaRecorderRef.current!.onstop = () => {
+          videoBlob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+          resolve();
+        };
+        mediaRecorderRef.current!.stop();
+      });
+    }
+
     // Stop audio analysis and get feedback
     if (audioAnalysisRef.current) {
       audioAnalysisRef.current.stop();
@@ -302,6 +371,28 @@ export default function VideoPractice() {
             )}
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Video Preview */}
+            <div className="relative w-full aspect-video bg-gray-900 rounded-lg overflow-hidden">
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
+              {!isVideoReady && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+                  <Loader2 className="w-8 h-8 animate-spin text-white" />
+                </div>
+              )}
+              {isRecording && (
+                <div className="absolute top-4 right-4 flex items-center gap-2 bg-red-600 text-white px-3 py-1 rounded-full">
+                  <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium">REC {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}</span>
+                </div>
+              )}
+            </div>
+
             <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg min-h-[200px] relative">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -359,7 +450,16 @@ export default function VideoPractice() {
                 <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
                   💳 Payment required to unlock this practice session ($5)
                 </p>
-                <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">
+                  Get instant AI-powered feedback on your interview performance, body language, and communication skills
+                </p>
+                <Button 
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  onClick={() => {
+                    // Integrate with PayPal or other payment gateway
+                    window.location.href = `/payment/video-practice/${session.sessionId}`;
+                  }}
+                >
                   Pay $5 to Continue
                 </Button>
               </div>

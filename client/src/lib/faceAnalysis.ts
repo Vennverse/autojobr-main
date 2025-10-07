@@ -52,10 +52,12 @@ export class SimpleFaceAnalysis {
   }
 }
 
-// For audio analysis
+// For audio analysis with enhanced metrics
 export class SimpleAudioAnalysis {
   private audioContext: AudioContext;
   private analyser: AnalyserNode;
+  private volumeHistory: number[] = [];
+  private maxHistoryLength = 100;
   
   constructor(stream: MediaStream) {
     this.audioContext = new AudioContext();
@@ -70,11 +72,47 @@ export class SimpleAudioAnalysis {
     this.analyser.getByteFrequencyData(dataArray);
     
     const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-    return Math.round(average);
+    const normalized = average / 255;
+    
+    // Track volume history
+    this.volumeHistory.push(normalized);
+    if (this.volumeHistory.length > this.maxHistoryLength) {
+      this.volumeHistory.shift();
+    }
+    
+    return normalized;
   }
   
   isSpeaking(): boolean {
-    return this.getVolumeLevel() > 30;
+    return this.getVolumeLevel() > 0.15;
+  }
+  
+  getAnalysis() {
+    const avgVolume = this.volumeHistory.length > 0
+      ? this.volumeHistory.reduce((a, b) => a + b) / this.volumeHistory.length
+      : 0;
+    
+    return {
+      avgVolume,
+      peakVolume: Math.max(...this.volumeHistory),
+      volumeConsistency: this.calculateConsistency(),
+      speechClarity: avgVolume > 0.3 && avgVolume < 0.8 ? 'good' : avgVolume < 0.3 ? 'too_quiet' : 'too_loud'
+    };
+  }
+  
+  private calculateConsistency(): number {
+    if (this.volumeHistory.length < 2) return 0;
+    
+    const variance = this.volumeHistory.reduce((sum, val) => {
+      const avg = this.volumeHistory.reduce((a, b) => a + b) / this.volumeHistory.length;
+      return sum + Math.pow(val - avg, 2);
+    }, 0) / this.volumeHistory.length;
+    
+    return Math.max(0, 1 - variance);
+  }
+  
+  stop() {
+    // Cleanup but preserve analysis data
   }
   
   cleanup() {

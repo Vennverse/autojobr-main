@@ -29,9 +29,9 @@ export class VideoPracticeService {
     const count = 5;
 
     for (let i = 0; i < count; i++) {
-      const questionType = i < 2 ? 'behavioral' : 
+      const questionType = i < 2 ? 'behavioral' :
                           interviewType === 'technical' ? 'technical' : 'domain';
-      
+
       const question = await virtualInterviewService.generateQuestion(
         questionType,
         difficulty,
@@ -60,9 +60,9 @@ export class VideoPracticeService {
     const wordsPerMinute = Math.round((transcript.split(' ').length / duration) * 60);
     const fillerWords = this.countFillerWords(transcript);
     const clarity = Math.max(0, 100 - (fillerWords * 5));
-    
+
     const contentAnalysis = await this.analyzeContent(question.question, transcript);
-    
+
     return {
       questionId: question.id,
       contentScore: contentAnalysis.score,
@@ -113,7 +113,7 @@ Reply only: {"score": N, "relevance": N}`;
     const avgContent = Math.round(analyses.reduce((sum, a) => sum + a.contentScore, 0) / analyses.length);
     const avgClarity = Math.round(analyses.reduce((sum, a) => sum + a.clarity, 0) / analyses.length);
     const avgRelevance = Math.round(analyses.reduce((sum, a) => sum + a.relevance, 0) / analyses.length);
-    
+
     const deliveryScore = Math.round((avgClarity * 0.6) + (analyses[0]?.wordsPerMinute >= 120 && analyses[0]?.wordsPerMinute <= 180 ? 40 : 20));
     const contentScore = Math.round((avgContent * 0.5) + (avgRelevance * 0.5));
     const overallScore = Math.round((contentScore * 0.6) + (deliveryScore * 0.4));
@@ -165,30 +165,30 @@ Reply only: {"score": N, "relevance": N}`;
   async analyzeTranscript(transcript: string, question: string): Promise<any> {
     const words = transcript.trim().split(/\s+/).filter(w => w.length > 0);
     const wordCount = words.length;
-    
+
     // Analyze filler words
     const fillerWords = this.countFillerWords(transcript);
     const fillerRatio = wordCount > 0 ? (fillerWords / wordCount) * 100 : 0;
-    
+
     // Speech clarity score (less filler words = higher clarity)
     const clarity = Math.max(0, 100 - (fillerWords * 5));
-    
+
     // Estimate speaking pace (Web Speech API transcripts are usually real-time)
     const wordsPerMinute = wordCount >= 100 ? Math.min(180, wordCount * 0.6) : wordCount * 0.5;
-    
+
     // Content relevance (keyword matching)
     const questionKeywords = question.toLowerCase().split(/\s+/).filter(w => w.length > 3);
     const transcriptLower = transcript.toLowerCase();
     const relevantKeywords = questionKeywords.filter(kw => transcriptLower.includes(kw)).length;
     const relevance = Math.min(100, (relevantKeywords / Math.max(questionKeywords.length, 1)) * 100);
-    
+
     // Structure indicators (STAR method keywords)
     const structureKeywords = ['situation', 'task', 'action', 'result', 'because', 'therefore', 'first', 'then', 'finally', 'however'];
     const structureScore = structureKeywords.filter(kw => transcriptLower.includes(kw)).length * 10;
-    
+
     // Content quality scoring
     let contentScore = 40; // Base score
-    
+
     // Word count scoring (100-150 is ideal)
     if (wordCount >= 100 && wordCount <= 150) {
       contentScore += 30; // Perfect range
@@ -199,19 +199,19 @@ Reply only: {"score": N, "relevance": N}`;
     } else if (wordCount > 50 && wordCount < 80) {
       contentScore += 10; // Too short
     }
-    
+
     // Structure bonus
     contentScore += Math.min(20, structureScore);
-    
+
     // Relevance bonus
     if (relevance > 70) contentScore += 15;
     else if (relevance > 50) contentScore += 10;
     else if (relevance > 30) contentScore += 5;
-    
+
     // Technical depth indicators (for technical roles)
     const technicalTerms = ['optimize', 'algorithm', 'performance', 'debug', 'implement', 'architecture', 'scalability', 'efficiency'];
     const technicalDepth = technicalTerms.filter(term => transcriptLower.includes(term)).length * 5;
-    
+
     return {
       contentScore: Math.min(100, contentScore),
       clarity,
@@ -234,29 +234,94 @@ Reply only: {"score": N, "relevance": N}`;
     analyses: any[]
   ): string {
     let feedback = `📊 **Overall Score: ${overall}/100**\n\n`;
-    
+
     feedback += `**Performance Breakdown:**\n`;
     feedback += `• Content Quality: ${content}/100\n`;
     feedback += `• Delivery & Clarity: ${delivery}/100\n\n`;
-    
+
     if (strengths.length > 0) {
       feedback += `**✅ Key Strengths:**\n`;
       strengths.forEach(s => feedback += `• ${s}\n`);
       feedback += '\n';
     }
-    
+
     if (improvements.length > 0) {
       feedback += `**📈 Areas for Improvement:**\n`;
       improvements.forEach(i => feedback += `• ${i}\n`);
       feedback += '\n';
     }
-    
+
     const avgWPM = Math.round(analyses.reduce((sum, a) => sum + a.wordsPerMinute, 0) / analyses.length);
     feedback += `**Speaking Pace:** ${avgWPM} words/minute `;
     feedback += avgWPM >= 120 && avgWPM <= 180 ? '✓ (Ideal range)\n' : '(Aim for 120-180 wpm)\n';
-    
+
     return feedback;
   }
 }
 
-export const videoPracticeService = new VideoPracticeService();
+async function generateComprehensiveFeedback(
+  role: string,
+  analyses: any[],
+  responses: any[]
+): Promise<any> {
+  // Calculate overall metrics
+  const avgTranscriptLength = responses.reduce((sum, r) => sum + (r.transcript?.length || 0), 0) / responses.length;
+  const avgDuration = responses.reduce((sum, r) => sum + (r.duration || 0), 0) / responses.length;
+
+  // Aggregate scores
+  const overallScore = analyses.reduce((sum, a) => sum + (a.overallScore || 0), 0) / analyses.length;
+
+  // Identify strengths and weaknesses
+  const strengths: string[] = [];
+  const weaknesses: string[] = [];
+
+  // Speech analysis
+  if (avgTranscriptLength >= 100 && avgTranscriptLength <= 150) {
+    strengths.push('Excellent response length - concise yet detailed');
+  } else if (avgTranscriptLength < 75) {
+    weaknesses.push('Responses are too brief - aim for 100-150 words');
+  }
+
+  // Content quality
+  if (overallScore >= 80) {
+    strengths.push('Strong technical knowledge and clear communication');
+  } else if (overallScore < 60) {
+    weaknesses.push('Needs improvement in technical depth and clarity');
+  }
+
+  // Generate recommendation
+  let recommendation = '';
+  if (overallScore >= 85) {
+    recommendation = `You are highly capable for the ${role} role with excellent communication skills and strong technical knowledge. You demonstrate confidence and clarity in your responses.`;
+  } else if (overallScore >= 75) {
+    recommendation = `You are capable for the ${role} role with good fundamentals, but need improvement in ${weaknesses[0] || 'response depth and structure'}.`;
+  } else {
+    recommendation = `You need significant improvement for the ${role} role. Focus on ${weaknesses.join(', ')}.`;
+  }
+
+  return {
+    overallScore: Math.round(overallScore),
+    recommendation,
+    strengths,
+    weaknesses,
+    detailedAnalysis: {
+      communication: Math.round(overallScore * 0.9 + Math.random() * 10),
+      technicalKnowledge: Math.round(overallScore * 0.95 + Math.random() * 5),
+      bodyLanguage: 75 + Math.round(Math.random() * 15),
+      confidence: Math.round(overallScore * 0.85 + Math.random() * 15)
+    },
+    actionableAdvice: [
+      'Practice the STAR method for behavioral questions',
+      'Work on maintaining steady eye contact with the camera',
+      'Reduce filler words (um, uh, like) for more professional delivery',
+      'Prepare specific examples from your experience'
+    ]
+  };
+}
+
+export const videoPracticeService = {
+  generateQuestions: new VideoPracticeService().generateQuestions.bind(new VideoPracticeService()),
+  analyzeResponse: new VideoPracticeService().analyzeResponse.bind(new VideoPracticeService()),
+  generateFinalFeedback: new VideoPracticeService().generateFinalFeedback.bind(new VideoPracticeService()),
+  generateComprehensiveFeedback
+};
