@@ -1,0 +1,45 @@
+📝 Refined Feature Description:
+AI Video Interview Practice is a realistic interview simulation where job seekers practice with AI-generated questions that mirror actual interviews—no theoretical coding challenges, just real-world scenarios. For technical roles, the AI asks practical questions about your experience, problem-solving approach, and asks you to explain code logic/flow verbally (not write running code); your verbal explanation is auto-transcribed to 100-150 words for AI analysis. For non-technical roles, you write your answer and provide a verbal explanation of your thought process. After completing all questions, the AI analyzes your responses, body language, speech patterns, and content quality to deliver comprehensive feedback: "You are capable for this [Role] with strong [specific strengths], but need improvement in [specific areas]" with actionable tips for your next real interview.
+
+🎬 User Experience Flow:
+What happens when you select "Mock Video Interview Practice":
+
+Setup (30 seconds)
+
+Choose your role (e.g., "Frontend Developer" or "Marketing Manager")
+Select difficulty level (Entry/Mid/Senior)
+Pay $5 (or use credit from bundle)
+Interview Begins (15-20 minutes)
+
+Question 1-3: General/Behavioral
+"Tell me about a challenging project you worked on"
+"How do you handle tight deadlines?"
+Record 60-90 second video answer
+Question 4-6: Technical (if tech role)
+"Explain how you would optimize this database query"
+"Walk me through your approach to debugging production issues"
+Show code snippet or whiteboard logic
+Explain verbally (AI transcribes to 100-150 words)
+NO code execution needed - just your thought process
+Question 4-6: Domain-specific (if non-tech)
+"How would you develop a go-to-market strategy?"
+Write brief answer (text box)
+Explain verbally your reasoning
+AI Analysis (Instant)
+
+Processes your videos + transcripts
+Analyzes: content quality, speech clarity, body language, technical accuracy
+Detailed Feedback Report
+
+Overall Assessment: "You demonstrate strong capability for Senior Frontend Developer role"
+Strengths: "Excellent problem-solving explanation, clear communication, confident body language"
+Improvements Needed: "Add more specific metrics when discussing past projects, reduce filler words ('um', 'like'), maintain eye contact"
+Recommendation: "Focus on STAR method for behavioral questions, practice explaining complex concepts simply"
+✨ Key Differentiators:
+✅ Realistic questions - What interviewers actually ask, not LeetCode
+✅ Verbal logic explanation - For coding, explain your thinking (auto-transcribed)
+✅ No code execution pressure - Focus on communication, not syntax
+✅ Holistic feedback - Content + delivery + presence
+✅ Role-specific - Questions tailored to your target position
+
+This sounds perfect! It bridges the gap between text-based practice and real video interviews. You're testing both what they know (content) and how they communicate (delivery) - exactly what real interviewers evaluate.
