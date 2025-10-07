@@ -350,8 +350,8 @@ export default function VideoPractice() {
         questionId: session.questions[currentQuestion].id,
         transcript: transcript.trim(),
         duration: recordingTime,
-        // audioAnalysis: audioAnalysisRef.current?.getAnalysis(),
-        // videoAnalysis: videoAnalysis, // Include video analysis results if available
+        videoAnalysis: videoAnalysis || null,
+        audioAnalysis: audioAnalysisRef.current?.getAnalysis() || null
       });
 
       if (response.isComplete) {

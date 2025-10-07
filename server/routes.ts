@@ -916,7 +916,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/video-practice/:sessionId/response', isAuthenticated, async (req: any, res) => {
     try {
       const { sessionId } = req.params;
-      const { questionId, transcript, duration } = req.body;
+      const { questionId, transcript, duration, videoAnalysis, audioAnalysis } = req.body;
       
       const session = await storage.getVideoPracticeSessionBySessionId(sessionId);
       if (!session || session.userId !== req.user.id) {
@@ -924,7 +924,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const responses = session.responses ? JSON.parse(session.responses) : [];
-      responses.push({ questionId, transcript, duration, timestamp: new Date() });
+      responses.push({ 
+        questionId, 
+        transcript, 
+        duration, 
+        videoAnalysis: videoAnalysis || null,
+        audioAnalysis: audioAnalysis || null,
+        timestamp: new Date() 
+      });
       
       const questions = JSON.parse(session.questions);
       const isComplete = responses.length >= questions.length;
@@ -954,18 +961,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const responses = JSON.parse(session.responses || '[]');
       const questions = JSON.parse(session.questions);
       
-      // Analyze each response
+      // Analyze each response with video and audio data
       const analyses = [];
       for (let i = 0; i < responses.length; i++) {
         const analysis = await videoPracticeService.analyzeResponse(
           questions[i],
           responses[i].transcript,
-          responses[i].duration
+          responses[i].duration,
+          responses[i].videoAnalysis,
+          responses[i].audioAnalysis
         );
         analyses.push(analysis);
       }
       
-      // Generate final feedback
+      // Generate final comprehensive feedback
       const feedback = await videoPracticeService.generateFinalFeedback(session.role, analyses);
       
       await storage.updateVideoPracticeSession(session.id, {
