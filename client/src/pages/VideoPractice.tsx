@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,10 +24,10 @@ export default function VideoPractice() {
   useEffect(() => {
     // Check browser support for Web Speech API
     if (!('webkitSpeechRecognition' in window)) {
-      toast({ 
-        title: "Browser Not Supported", 
-        description: "Please use Chrome, Edge, or Safari for speech recognition", 
-        variant: "destructive" 
+      toast({
+        title: "Browser Not Supported",
+        description: "Please use Chrome, Edge, or Safari for speech recognition",
+        variant: "destructive"
       });
       return;
     }
@@ -64,10 +63,10 @@ export default function VideoPractice() {
 
   const startRecording = () => {
     if (!('webkitSpeechRecognition' in window)) {
-      toast({ 
-        title: "Error", 
-        description: "Speech recognition not supported in this browser", 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: "Speech recognition not supported in this browser",
+        variant: "destructive"
       });
       return;
     }
@@ -88,7 +87,7 @@ export default function VideoPractice() {
 
     recognitionRef.current.onresult = (event: any) => {
       let interimTranscript = '';
-      
+
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
@@ -97,25 +96,25 @@ export default function VideoPractice() {
           interimTranscript += transcript;
         }
       }
-      
+
       setTranscript(finalTranscriptText + interimTranscript);
     };
 
     recognitionRef.current.onerror = (event: any) => {
       console.error('Speech recognition error:', event.error);
       setIsListening(false);
-      
+
       if (event.error === 'no-speech') {
-        toast({ 
-          title: "No Speech Detected", 
-          description: "Please speak into your microphone", 
-          variant: "destructive" 
+        toast({
+          title: "No Speech Detected",
+          description: "Please speak into your microphone",
+          variant: "destructive"
         });
       } else if (event.error === 'not-allowed') {
-        toast({ 
-          title: "Microphone Access Denied", 
-          description: "Please allow microphone access to continue", 
-          variant: "destructive" 
+        toast({
+          title: "Microphone Access Denied",
+          description: "Please allow microphone access to continue",
+          variant: "destructive"
         });
       }
     };
@@ -136,7 +135,7 @@ export default function VideoPractice() {
       recognitionRef.current.start();
       setIsRecording(true);
       setRecordingTime(0);
-      
+
       // Start timer
       timerRef.current = setInterval(() => {
         setRecordingTime(prev => {
@@ -148,13 +147,13 @@ export default function VideoPractice() {
           return newTime;
         });
       }, 1000);
-      
+
     } catch (error) {
       console.error('Failed to start recognition:', error);
-      toast({ 
-        title: "Error", 
-        description: "Failed to start recording. Please try again.", 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: "Failed to start recording. Please try again.",
+        variant: "destructive"
       });
     }
   };
@@ -165,18 +164,18 @@ export default function VideoPractice() {
       setIsRecording(false);
       setIsListening(false);
     }
-    
+
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
 
     const wordCount = transcript.trim().split(/\s+/).filter(w => w.length > 0).length;
-    
+
     if (wordCount < 50) {
-      toast({ 
-        title: "Response Too Short", 
-        description: `Your response has only ${wordCount} words. Aim for 100-150 words for better feedback.`, 
-        variant: "destructive" 
+      toast({
+        title: "Response Too Short",
+        description: `Your response has only ${wordCount} words. Aim for 100-150 words for better feedback.`,
+        variant: "destructive"
       });
       return;
     }
@@ -259,7 +258,7 @@ export default function VideoPractice() {
                   )}
                 </div>
               </div>
-              
+
               {isListening && (
                 <div className="absolute top-2 right-2">
                   <div className="flex items-center gap-2 text-red-500 animate-pulse">
@@ -268,7 +267,7 @@ export default function VideoPractice() {
                   </div>
                 </div>
               )}
-              
+
               <p className="whitespace-pre-wrap text-sm leading-relaxed">
                 {transcript || 'Click "Start Recording" and speak your answer. Your speech will be automatically transcribed here in real-time.'}
               </p>
@@ -276,17 +275,28 @@ export default function VideoPractice() {
 
             <div className="flex gap-4">
               {!isRecording ? (
-                <Button onClick={startRecording} className="flex-1" size="lg" disabled={loading}>
+                <Button onClick={startRecording} className="flex-1" size="lg" disabled={session?.paymentStatus === 'pending'}>
                   <Mic className="w-4 h-4 mr-2" />
                   Start Recording
                 </Button>
               ) : (
-                <Button onClick={stopRecording} variant="destructive" className="flex-1" size="lg" disabled={loading}>
+                <Button onClick={stopRecording} variant="destructive" className="flex-1" size="lg">
                   <CheckCircle className="w-4 h-4 mr-2" />
-                  {loading ? 'Submitting...' : 'Stop & Submit'}
+                  Stop & Submit
                 </Button>
               )}
             </div>
+
+            {session?.paymentStatus === 'pending' && (
+              <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200">
+                <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
+                  💳 Payment required to unlock this practice session ($5)
+                </p>
+                <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                  Pay $5 to Continue
+                </Button>
+              </div>
+            )}
 
             {wordCount > 0 && wordCount < 100 && !isRecording && (
               <div className="flex items-start gap-2 text-amber-600 dark:text-amber-400 text-sm bg-amber-50 dark:bg-amber-900/20 p-3 rounded">

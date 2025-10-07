@@ -872,6 +872,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== VIDEO PRACTICE API ROUTES =====
+  
+  // Start video practice session
+  app.post('/api/video-practice/start', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { role, interviewType, difficulty } = req.body;
+      
+      // Generate session ID
+      const sessionId = `vp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Generate questions using video practice service
+      const { videoPracticeService } = await import('./videoPracticeService.js');
+      const questions = await videoPracticeService.generateQuestions(role, interviewType, difficulty);
+      
+      // Create session in database
+      const session = await storage.createVideoPracticeSession({
+        userId,
+        sessionId,
+        role,
+        interviewType,
+        difficulty,
+        questions: JSON.stringify(questions),
+        status: 'in_progress',
+        paymentStatus: 'pending',
+        paymentAmount: 500 // $5 in cents
+      });
+      
+      res.json({
+        sessionId,
+        questions,
+        paymentRequired: true,
+        amount: 500
+      });
+    } catch (error) {
+      console.error('Video practice start error:', error);
+      handleError(res, error, 'Failed to start video practice session');
+    }
+  });
+  
+  // Submit response for a question
+  app.post('/api/video-practice/:sessionId/response', isAuthenticated, async (req: any, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { questionId, transcript, duration } = req.body;
+      
+      const session = await storage.getVideoPracticeSessionBySessionId(sessionId);
+      if (!session || session.userId !== req.user.id) {
+        return res.status(404).json({ message: 'Session not found' });
+      }
+      
+      const responses = session.responses ? JSON.parse(session.responses) : [];
+      responses.push({ questionId, transcript, duration, timestamp: new Date() });
+      
+      const questions = JSON.parse(session.questions);
+      const isComplete = responses.length >= questions.length;
+      
+      await storage.updateVideoPracticeSession(session.id, {
+        responses: JSON.stringify(responses),
+        status: isComplete ? 'completed' : 'in_progress'
+      });
+      
+      res.json({ success: true, isComplete });
+    } catch (error) {
+      handleError(res, error, 'Failed to submit response');
+    }
+  });
+  
+  // Complete session and get feedback
+  app.post('/api/video-practice/:sessionId/complete', isAuthenticated, async (req: any, res) => {
+    try {
+      const { sessionId } = req.params;
+      
+      const session = await storage.getVideoPracticeSessionBySessionId(sessionId);
+      if (!session || session.userId !== req.user.id) {
+        return res.status(404).json({ message: 'Session not found' });
+      }
+      
+      const { videoPracticeService } = await import('./videoPracticeService.js');
+      const responses = JSON.parse(session.responses || '[]');
+      const questions = JSON.parse(session.questions);
+      
+      // Analyze each response
+      const analyses = [];
+      for (let i = 0; i < responses.length; i++) {
+        const analysis = await videoPracticeService.analyzeResponse(
+          questions[i],
+          responses[i].transcript,
+          responses[i].duration
+        );
+        analyses.push(analysis);
+      }
+      
+      // Generate final feedback
+      const feedback = await videoPracticeService.generateFinalFeedback(session.role, analyses);
+      
+      await storage.updateVideoPracticeSession(session.id, {
+        analysis: JSON.stringify(feedback),
+        overallScore: feedback.overallScore,
+        completedAt: new Date()
+      });
+      
+      res.json({ feedback });
+    } catch (error) {
+      handleError(res, error, 'Failed to generate feedback');
+    }
+  });
+
   // ===== JOBSPY ADMIN API ROUTES =====
 
   // Test JobSpy installation
