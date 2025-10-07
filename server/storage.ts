@@ -134,6 +134,10 @@ import {
   type InsertPersonalityAssessment,
   type SkillsVerification,
   type InsertSkillsVerification,
+  // Video Practice Session Table
+  videoPracticeSessions,
+  type VideoPracticeSession,
+  type InsertVideoPracticeSession,
 } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
@@ -199,8 +203,8 @@ export interface IStorage {
 
   // Education operations
   getUserEducation(userId: string): Promise<Education[]>;
-  addEducation(education: InsertEducation): Promise<Education>;
-  updateEducation(id: number, education: Partial<InsertEducation>): Promise<Education>;
+  addEducation(educationData: InsertEducation): Promise<Education>;
+  updateEducation(id: number, educationData: Partial<InsertEducation>): Promise<Education>;
   deleteEducation(id: number): Promise<void>;
 
   // Job applications operations
@@ -489,6 +493,10 @@ export interface IStorage {
   getVideoPracticeSessionBySessionId(sessionId: string): Promise<VideoPracticeSession | undefined>;
   getUserVideoPracticeSessions(userId: string): Promise<VideoPracticeSession[]>;
   updateVideoPracticeSession(id: number, data: Partial<InsertVideoPracticeSession>): Promise<VideoPracticeSession>;
+  createVideoPractice(data: any): Promise<any>;
+  getVideoPracticeBySessionId(sessionId: string): Promise<any>;
+  updateVideoPractice(sessionId: string, data: any): Promise<any>;
+  getUserVideoPractices(userId: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2774,14 +2782,45 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateVideoPracticeSession(id: number, data: Partial<InsertVideoPracticeSession>): Promise<VideoPracticeSession> {
-    return await handleDbOperation(async () => {
-      const [session] = await this.db
-        .update(videoPracticeSessions)
-        .set(data)
-        .where(eq(videoPracticeSessions.id, id))
-        .returning();
-      return session;
-    });
+    const [session] = await this.db
+      .update(videoPracticeSessions)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(videoPracticeSessions.id, id))
+      .returning();
+    return session;
+  }
+
+  async createVideoPractice(data: any): Promise<any> {
+    const [session] = await this.db
+      .insert(videoPracticeSessions)
+      .values(data)
+      .returning();
+    return session;
+  }
+
+  async getVideoPracticeBySessionId(sessionId: string): Promise<any> {
+    const [session] = await this.db
+      .select()
+      .from(videoPracticeSessions)
+      .where(eq(videoPracticeSessions.sessionId, sessionId));
+    return session;
+  }
+
+  async updateVideoPractice(sessionId: string, data: any): Promise<any> {
+    const [session] = await this.db
+      .update(videoPracticeSessions)
+      .set(data)
+      .where(eq(videoPracticeSessions.sessionId, sessionId))
+      .returning();
+    return session;
+  }
+
+  async getUserVideoPractices(userId: string): Promise<any[]> {
+    return await this.db
+      .select()
+      .from(videoPracticeSessions)
+      .where(eq(videoPracticeSessions.userId, userId))
+      .orderBy(desc(videoPracticeSessions.createdAt));
   }
 
   async createSimulationAssessment(data: InsertSimulationAssessment): Promise<SimulationAssessment> {

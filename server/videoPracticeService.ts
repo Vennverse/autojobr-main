@@ -161,6 +161,39 @@ Reply only: {"score": N, "relevance": N}`;
     };
   }
 
+  // Simple ML-based scoring from transcript analysis
+  async analyzeTranscript(transcript: string, question: string): Promise<any> {
+    const words = transcript.trim().split(/\s+/);
+    const wordCount = words.length;
+    
+    // Simple metrics
+    const fillerWords = this.countFillerWords(transcript);
+    const clarity = Math.max(0, 100 - (fillerWords * 5));
+    const wordsPerMinute = wordCount >= 100 ? Math.min(180, wordCount * 0.6) : wordCount * 0.5;
+    
+    // Content relevance (simple keyword matching)
+    const questionKeywords = question.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+    const transcriptLower = transcript.toLowerCase();
+    const relevantKeywords = questionKeywords.filter(kw => transcriptLower.includes(kw)).length;
+    const relevance = Math.min(100, (relevantKeywords / Math.max(questionKeywords.length, 1)) * 100);
+    
+    // Content score based on length and structure
+    let contentScore = 50;
+    if (wordCount >= 100 && wordCount <= 200) contentScore += 30;
+    if (wordCount > 200) contentScore += 20;
+    if (transcript.includes('because') || transcript.includes('therefore')) contentScore += 10;
+    if (relevance > 60) contentScore += 10;
+    
+    return {
+      contentScore: Math.min(100, contentScore),
+      clarity,
+      wordsPerMinute,
+      fillerWords,
+      relevance,
+      wordCount
+    };
+  }
+
   private buildDetailedFeedback(
     overall: number,
     content: number,

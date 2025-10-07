@@ -13,7 +13,7 @@ import {
   SidebarTrigger,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { 
+import {
   Search,
   Bookmark,
   TrendingUp,
@@ -598,8 +598,8 @@ export function ContextualSidebar() {
                   const Icon = item.icon;
                   return (
                     <SidebarMenuItem key={item.name}>
-                      <SidebarMenuButton 
-                        asChild 
+                      <SidebarMenuButton
+                        asChild
                         isActive={item.current}
                         tooltip={item.name}
                       >

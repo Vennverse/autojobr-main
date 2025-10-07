@@ -345,6 +345,8 @@ function Router() {
                   <Route path="/bidder-profile" component={BidderProfile} />
                   <Route path="/chat" component={SimpleChatPage} />
                   <Route path="/messaging" component={SimpleChatPage} />
+                  {/* AI Video Interview Practice Route */}
+                  <Route path="/video-practice" component={lazy(() => import("./pages/VideoPractice"))} />
                 </>
               )}
             </>
@@ -377,6 +379,8 @@ function Router() {
               <Route path="/bidder-profile" component={BidderProfile} />
               <Route path="/chat" component={SimpleChatPage} />
               <Route path="/messaging" component={SimpleChatPage} />
+              {/* AI Video Interview Practice Route */}
+              <Route path="/video-practice" component={lazy(() => import("./pages/VideoPractice"))} />
             </>
           )}
         </>

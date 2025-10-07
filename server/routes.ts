@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 import { db } from "./db";
 import { eq, desc, and, or, like, isNotNull, count, asc, isNull, sql, inArray } from "drizzle-orm";
 import * as schema from "@shared/schema";
-import { resumes, userResumes, insertInternshipApplicationSchema, companyEmailVerifications, virtualInterviews, users, mockInterviews, jobPostingApplications, invitationUses, insertUserProfileSchema } from "@shared/schema";
+import { resumes, userResumes, insertInternshipApplicationSchema, companyEmailVerifications, virtualInterviews, users, mockInterviews, jobPostingApplications, invitationUses, insertUserProfileSchema, insertUserSkillSchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated, isAuthenticatedExtension } from "./auth";
 import { storage } from "./storage";
@@ -586,18 +586,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const assignmentId = parseInt(req.params.id);
       const userId = req.user.id;
-      
+
       const assignment = await storage.getTestAssignment(assignmentId);
-      
+
       if (!assignment) {
         return res.status(404).json({ message: 'Test assignment not found' });
       }
-      
+
       // Verify the assignment belongs to this user
       if (assignment.jobSeekerId !== userId) {
         return res.status(403).json({ message: 'Access denied' });
       }
-      
+
       res.json(assignment);
     } catch (error) {
       console.error('Error fetching test assignment:', error);
@@ -609,27 +609,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const assignmentId = parseInt(req.params.id);
       const userId = req.user.id;
-      
+
       const assignment = await storage.getTestAssignment(assignmentId);
-      
+
       if (!assignment) {
         return res.status(404).json({ message: 'Test assignment not found' });
       }
-      
+
       // Verify the assignment belongs to this user
       if (assignment.jobSeekerId !== userId) {
         return res.status(403).json({ message: 'Access denied' });
       }
-      
+
       // Get questions from the test template
       let questions = assignment.testTemplate?.questions || [];
-      
+
       // If no questions in assignment, fetch from template directly
       if (questions.length === 0 && assignment.testTemplateId) {
         const template = await storage.getTestTemplate(assignment.testTemplateId);
         questions = template?.questions || [];
       }
-      
+
       console.log(`[TEST QUESTIONS] Assignment ${assignmentId}: ${questions.length} questions found`);
       res.json(questions);
     } catch (error) {
@@ -643,31 +643,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const assignmentId = parseInt(req.params.id);
       const userId = req.user.id;
       const { answers, timeSpent, warningCount = 0, tabSwitchCount = 0, copyAttempts = 0 } = req.body;
-      
+
       console.log(`[TEST SUBMIT] Assignment ${assignmentId} - Warnings: ${warningCount}, TabSwitches: ${tabSwitchCount}, CopyAttempts: ${copyAttempts}`);
-      
+
       const assignment = await storage.getTestAssignment(assignmentId);
-      
+
       if (!assignment) {
         return res.status(404).json({ message: 'Test assignment not found' });
       }
-      
+
       // Verify the assignment belongs to this user
       if (assignment.jobSeekerId !== userId) {
         return res.status(403).json({ message: 'Access denied' });
       }
-      
+
       // Calculate score
       const questions = assignment.testTemplate?.questions || [];
       const scoreResult = await testService.calculateScore(questions, answers);
-      
+
       // Determine termination reason
       let terminationReason = 'Completed';
       if (warningCount >= 5) {
         terminationReason = 'Auto-terminated: Excessive violations (5+ warnings)';
         console.log(`🚨 Test ${assignmentId} auto-terminated due to excessive violations`);
       }
-      
+
       // Update assignment with results and violation tracking
       const updatedAssignment = await storage.updateTestAssignment(assignmentId, {
         status: warningCount >= 5 ? 'terminated' : 'completed',
@@ -680,7 +680,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         copyAttempts: copyAttempts,
         terminationReason: terminationReason
       });
-      
+
       res.json({
         success: true,
         score: scoreResult.percentageScore,
@@ -842,7 +842,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/trigger-job-scraper', async (req: any, res) => {
     try {
       const status = dailySyncService.getStatus();
-      
+
       if (status.isRunning) {
         return res.json({
           message: 'Job scraping is already running',
@@ -852,7 +852,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log('🚀 Manually triggering job scraper from public endpoint...');
-      
+
       // Trigger the sync in the background
       dailySyncService.triggerManualSync().catch(error => {
         console.error('❌ Background sync error:', error);
@@ -873,7 +873,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ===== JOBSPY ADMIN API ROUTES =====
-  
+
   // Test JobSpy installation
   app.get('/api/jobspy/test', isAuthenticated, async (req: any, res) => {
     try {
@@ -935,7 +935,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const config = req.body;
       console.log('[JOBSPY_API] Custom scraping requested:', config);
-      
+
       const result = await jobSpyService.scrapeJobs(config);
       res.json(result);
     } catch (error) {
@@ -996,7 +996,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { role, location } = req.body;
-      
+
       if (!role) {
         return res.status(400).json({ 
           success: false,
@@ -1958,7 +1958,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create assignment based on link type
       let redirectUrl = '/dashboard';
 
-      // Map interview types - technical/behavioral/chat/etc are all virtual interviews
+      // Map interview types - technical/behavioral/chat are all virtual interviews
       const mappedType = ['technical', 'behavioral', 'system_design', 'coding', 'chat'].includes(link.interviewType) 
         ? 'virtual' 
         : link.interviewType;
@@ -2006,10 +2006,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       case 'test':
         // Create test assignment from interview link
         const testData = JSON.parse(link.interviewData || '{}');
-        
+
         // Get test template ID from link data or use default
         const templateId = testData.testTemplateId || link.testTemplateId;
-        
+
         if (!templateId) {
           // No template specified - get a default template
           const templates = await storage.getTestTemplates();
@@ -2020,17 +2020,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           testData.testTemplateId = templateId;
         }
-        
+
         // Create the test assignment
         const testAssignment = await storage.createTestAssignment({
           testTemplateId: testData.testTemplateId,
-          jobSeekerId: user.id,
           recruiterId: link.recruiterId,
+          jobSeekerId: user.id,
           jobPostingId: link.jobPostingId || null,
           dueDate: link.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
           status: 'assigned'
         });
-        
+
         console.log(`✅ Test assignment created: ${testAssignment.id} for candidate ${user.id}`);
         redirectUrl = `/test-taking/${testAssignment.id}`;
         break;
@@ -3238,7 +3238,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
   app.post('/api/upload-profile-image', isAuthenticated, upload.single('image'), async (req: any, res) => {
     try {
       const userId = req.user.id;
-      
+
       if (!req.file) {
         return res.status(400).json({ message: "No image file provided" });
       }
@@ -3452,7 +3452,7 @@ Make the analysis:
 Return ONLY the JSON object, no additional text.`;
 
       console.log('🤖 Generating AI-powered career analysis...');
-      
+
       // Call AI service for analysis
       const aiResponse = await aiService.createChatCompletion([
         { role: 'system', content: 'You are an expert career advisor. Always respond with valid JSON only.' },
@@ -3742,16 +3742,16 @@ Return ONLY the JSON object, no additional text.`;
     try {
       const testId = parseInt(req.params.testId);
       const test = await rankingTestService.getRankingTest(testId);
-      
+
       if (!test) {
         return res.status(404).json({ message: 'Test not found' });
       }
-      
+
       // Verify ownership
       if (test.userId !== req.user.id) {
         return res.status(403).json({ message: 'Access denied' });
       }
-      
+
       res.json(test);
     } catch (error) {
       console.error('Error getting ranking test:', error);
@@ -5450,7 +5450,7 @@ Focus on:
 Return ONLY the JSON object, no additional text.`;
 
       console.log('🤖 Generating AI resume improvements...');
-      
+
       const aiResponse = await aiService.createChatCompletion([
         { role: 'system', content: 'You are an expert resume writer. Always respond with valid JSON only.' },
         { role: 'user', content: prompt }
