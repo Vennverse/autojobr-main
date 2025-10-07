@@ -402,8 +402,18 @@ export default function VideoPractice() {
               {question.question}
             </CardTitle>
             {question.type === 'technical' && (
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                💡 Explain your thought process verbally - no code execution needed
+              <p className="text-sm text-blue-600 dark:text-blue-400 mt-2 bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
+                💡 <strong>Technical Question:</strong> Explain your approach and logic verbally. We want to understand your thought process and problem-solving approach - NO code execution needed, just walk through your reasoning (100-150 words).
+              </p>
+            )}
+            {question.type === 'domain' && (
+              <p className="text-sm text-purple-600 dark:text-purple-400 mt-2 bg-purple-50 dark:bg-purple-900/20 p-3 rounded">
+                💡 <strong>Domain Question:</strong> Provide your answer verbally and explain your reasoning. Focus on your approach and decision-making process (100-150 words).
+              </p>
+            )}
+            {question.type === 'behavioral' && (
+              <p className="text-sm text-green-600 dark:text-green-400 mt-2 bg-green-50 dark:bg-green-900/20 p-3 rounded">
+                💡 <strong>Behavioral Question:</strong> Share a specific example from your experience. Use the STAR method (Situation, Task, Action, Result) for a 60-90 second response.
               </p>
             )}
           </CardHeader>

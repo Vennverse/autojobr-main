@@ -27,27 +27,108 @@ export class VideoPracticeService {
     difficulty: string
   ): Promise<VideoPracticeQuestion[]> {
     const questions: VideoPracticeQuestion[] = [];
-    const count = 5;
+    const isTechnical = interviewType === 'technical';
+    
+    // First 3 questions: Always General/Behavioral (realistic interview flow)
+    const behavioralPrompts = [
+      `Generate a realistic behavioral interview question for ${role} at ${difficulty} level. Focus on past experiences and challenges. The candidate will record a 60-90 second video answer.`,
+      `Generate a realistic question about handling work situations for ${role}. Ask about deadlines, teamwork, or problem-solving. Keep it conversational like a real interview.`,
+      `Generate a situational question for ${role} about professional challenges or decision-making. Make it specific to their role but realistic.`
+    ];
 
-    for (let i = 0; i < count; i++) {
-      const questionType = i < 2 ? 'behavioral' :
-                          interviewType === 'technical' ? 'technical' : 'domain';
+    for (let i = 0; i < 3; i++) {
+      const aiResponse = await aiService.createChatCompletion([
+        {
+          role: 'system',
+          content: 'You are an experienced interviewer. Generate ONE realistic interview question that would actually be asked in real interviews. No theoretical puzzles, just practical questions about experience and approach.'
+        },
+        {
+          role: 'user',
+          content: behavioralPrompts[i]
+        }
+      ], {
+        temperature: 0.7,
+        max_tokens: 150
+      });
 
-      const question = await virtualInterviewService.generateQuestion(
-        questionType,
-        difficulty,
-        role,
-        i + 1,
-        [],
-        ''
-      );
+      const questionText = aiResponse.choices[0]?.message?.content?.trim() || 
+        `Tell me about a challenging ${i === 0 ? 'project' : i === 1 ? 'deadline situation' : 'team collaboration experience'} in your ${role.toLowerCase()} work.`;
 
       questions.push({
         id: `q${i + 1}`,
-        question: question.question,
-        type: questionType as any,
+        question: questionText,
+        type: 'behavioral',
         timeLimit: 90
       });
+    }
+
+    // Next 3 questions: Technical OR Domain-specific
+    if (isTechnical) {
+      // For technical roles: Ask about logic, flow, approach (NO code execution)
+      const technicalPrompts = [
+        `Generate a technical question for ${role} asking them to EXPLAIN their approach to a coding problem. Emphasize: "Explain your thought process verbally, no code execution needed - just walk through your logic and approach."`,
+        `Generate a debugging scenario question for ${role}. Ask them to explain how they would debug or optimize something. Focus on their problem-solving approach, not actual code.`,
+        `Generate a system design or architecture question for ${role} at ${difficulty} level. Ask them to explain their approach and reasoning verbally.`
+      ];
+
+      for (let i = 0; i < 3; i++) {
+        const aiResponse = await aiService.createChatCompletion([
+          {
+            role: 'system',
+            content: 'You are a technical interviewer. Generate questions that assess problem-solving and technical thinking. Explicitly tell candidates to EXPLAIN their approach verbally - we want their logic and thought process, NOT running code.'
+          },
+          {
+            role: 'user',
+            content: technicalPrompts[i]
+          }
+        ], {
+          temperature: 0.6,
+          max_tokens: 200
+        });
+
+        const questionText = aiResponse.choices[0]?.message?.content?.trim() || 
+          `Explain your approach to ${i === 0 ? 'optimizing a slow database query' : i === 1 ? 'debugging a production issue' : 'designing a scalable system'}. Walk through your thought process verbally - we want your logic, not code execution.`;
+
+        questions.push({
+          id: `q${i + 4}`,
+          question: questionText,
+          type: 'technical',
+          timeLimit: 90
+        });
+      }
+    } else {
+      // For non-technical roles: Domain-specific questions with written + verbal
+      const domainPrompts = [
+        `Generate a practical ${role} question about strategy or planning. The candidate will write a brief answer and then explain their reasoning verbally.`,
+        `Generate a ${role} question about solving a real-world challenge in their domain. They'll provide written response and verbal explanation.`,
+        `Generate a ${role} question about decision-making or process improvement. Ask for written answer with verbal justification.`
+      ];
+
+      for (let i = 0; i < 3; i++) {
+        const aiResponse = await aiService.createChatCompletion([
+          {
+            role: 'system',
+            content: `You are interviewing for a ${role} position. Generate practical, domain-specific questions that real hiring managers ask. The candidate will write their answer AND explain verbally.`
+          },
+          {
+            role: 'user',
+            content: domainPrompts[i]
+          }
+        ], {
+          temperature: 0.6,
+          max_tokens: 200
+        });
+
+        const questionText = aiResponse.choices[0]?.message?.content?.trim() || 
+          `How would you ${i === 0 ? 'develop a strategy for' : i === 1 ? 'handle a challenge in' : 'improve the process of'} [domain-specific scenario]? Write your answer and explain your reasoning verbally.`;
+
+        questions.push({
+          id: `q${i + 4}`,
+          question: questionText,
+          type: 'domain',
+          timeLimit: 90
+        });
+      }
     }
 
     return questions;
@@ -218,47 +299,54 @@ Reply only: {"score": N, "relevance": N}`;
       // Aggregate all strengths and weaknesses
       const allStrengths = analyses.flatMap(a => a.strengths || []);
       const allWeaknesses = analyses.flatMap(a => a.weaknesses || []);
-      const allImprovements = analyses.flatMap(a => a.improvements || []);
 
-      // Use AI to generate comprehensive final feedback
-      const prompt = `Generate final interview feedback for ${role} position:
+      // Enhanced prompt matching your requirements
+      const prompt = `Analyze this ${role} interview and provide honest, constructive feedback in the exact format below.
 
-Performance Metrics:
+Performance Data:
 - Content Quality: ${avgContentScore}/100
-- Delivery: ${avgDeliveryScore}/100
+- Delivery & Speech: ${avgDeliveryScore}/100
 - Body Language: ${avgBodyLanguageScore}/100
-- Communication: ${avgCommunicationQuality}/100
+- Communication Clarity: ${avgCommunicationQuality}/100
 - Overall Score: ${avgOverallScore}/100
 
 Questions Answered: ${analyses.length}
+Observed Strengths: ${[...new Set(allStrengths)].slice(0, 5).join(', ')}
+Areas Needing Work: ${[...new Set(allWeaknesses)].slice(0, 5).join(', ')}
 
-Observed Strengths: ${[...new Set(allStrengths)].join(', ')}
-Areas for Improvement: ${[...new Set(allWeaknesses)].join(', ')}
+CRITICAL: Your feedback must follow this EXACT format - assess capability honestly:
 
-Generate comprehensive final feedback as JSON:
+1. Start with capability assessment:
+   - If score >= 75: "You are capable for this ${role} role with strong [specific strengths]"
+   - If score 60-74: "You show potential for this ${role} role but need improvement in [specific areas]"
+   - If score < 60: "You need significant development for this ${role} role, particularly in [critical areas]"
+
+2. Then provide specific improvements needed
+
+Return as JSON:
 {
+  "capabilityAssessment": "You are [capable/show potential/need development] for this ${role} role...",
   "overallScore": ${avgOverallScore},
-  "verdict": "Strong Candidate/Good Candidate/Needs Improvement/Not Ready",
-  "detailedFeedback": "2-3 paragraph comprehensive analysis",
-  "topStrengths": ["top 3 specific strengths"],
-  "criticalImprovements": ["top 3 actionable improvements"],
-  "bodyLanguageFeedback": "specific feedback on posture, eye contact, expressions",
-  "communicationFeedback": "specific feedback on speech clarity, pace, confidence",
-  "nextSteps": ["specific action 1", "specific action 2", "specific action 3"],
-  "readinessLevel": "percentage ready for real ${role} interview"
+  "specificStrengths": ["strength 1 with example", "strength 2 with example", "strength 3 with example"],
+  "criticalImprovements": ["improvement 1 - be specific", "improvement 2 - be specific", "improvement 3 - be specific"],
+  "bodyLanguageFeedback": "Specific observations about posture, eye contact, gestures",
+  "speechPatternFeedback": "Specific observations about pace, clarity, filler words, confidence",
+  "technicalDepth": "Assessment of technical knowledge or domain expertise demonstrated",
+  "nextSteps": ["actionable step 1", "actionable step 2", "actionable step 3"],
+  "readinessLevel": "${avgOverallScore}% ready for real ${role} interview"
 }`;
 
       const completion = await aiService.createChatCompletion([
         {
           role: "system",
-          content: "You are an expert interview coach providing final comprehensive feedback. Be encouraging but honest. Return valid JSON only."
+          content: `You are an experienced ${role} hiring manager providing honest interview feedback. Be direct about capability - if someone is ready, say so. If they need work, specify exactly what. Format: "You are capable/need improvement in X" with specific examples. Return valid JSON only.`
         },
         {
           role: "user",
           content: prompt
         }
       ], {
-        temperature: 0.4,
+        temperature: 0.3,
         max_tokens: 1000
       });
 
@@ -279,30 +367,36 @@ Generate comprehensive final feedback as JSON:
           bodyLanguage: avgBodyLanguageScore,
           communication: avgCommunicationQuality
         },
-        questionsAnalyzed: analyses.length
+        questionsAnalyzed: analyses.length,
+        verdict: avgOverallScore >= 75 ? 'Capable' : avgOverallScore >= 60 ? 'Shows Potential' : 'Needs Development'
       };
 
     } catch (error) {
       console.error('Error generating final feedback:', error);
-      // Fallback feedback
       const avgScore = Math.round(analyses.reduce((sum, a) => sum + (a.overallScore || 0), 0) / analyses.length);
 
       return {
+        capabilityAssessment: avgScore >= 75 
+          ? `You are capable for this ${role} role with strong communication skills and good technical understanding.`
+          : avgScore >= 60
+          ? `You show potential for this ${role} role but need improvement in response depth and technical clarity.`
+          : `You need significant development for this ${role} role, particularly in technical knowledge and communication confidence.`,
         overallScore: avgScore,
-        verdict: avgScore >= 75 ? 'Good Candidate' : 'Needs Improvement',
-        detailedFeedback: `You completed ${analyses.length} interview questions with an average score of ${avgScore}/100. Your responses demonstrate potential, but there are areas for improvement. Focus on providing more specific examples, maintaining better eye contact, and speaking with more confidence.`,
-        topStrengths: ['Completed all questions', 'Attempted comprehensive answers', 'Showed enthusiasm'],
-        criticalImprovements: ['Add more concrete examples', 'Improve body language', 'Enhance technical depth'],
-        bodyLanguageFeedback: 'Work on maintaining steady eye contact with the camera and minimizing fidgeting.',
-        communicationFeedback: 'Speak clearly at a moderate pace, and try to sound more confident in your delivery.',
-        nextSteps: ['Practice with more technical questions', 'Record yourself and review body language', 'Prepare specific examples using STAR method'],
-        readinessLevel: `${Math.max(60, avgScore)}% ready`,
+        specificStrengths: ['Completed all questions', 'Showed engagement', 'Attempted comprehensive answers'],
+        criticalImprovements: ['Provide more specific examples from experience', 'Improve technical depth in explanations', 'Enhance confidence in delivery'],
+        bodyLanguageFeedback: 'Work on maintaining steady eye contact with camera and minimizing nervous movements.',
+        speechPatternFeedback: 'Reduce filler words (um, uh), speak at moderate pace, and project more confidence.',
+        technicalDepth: 'Demonstrates basic understanding but needs more real-world examples and deeper technical insights.',
+        nextSteps: ['Practice STAR method with specific examples', 'Review core technical concepts for the role', 'Record mock interviews to improve delivery'],
+        readinessLevel: `${Math.max(50, avgScore)}% ready for real ${role} interview`,
+        verdict: avgScore >= 75 ? 'Capable' : avgScore >= 60 ? 'Shows Potential' : 'Needs Development',
         performanceBreakdown: {
           content: avgScore,
-          delivery: avgScore - 5,
-          bodyLanguage: avgScore - 10,
+          delivery: Math.max(0, avgScore - 5),
+          bodyLanguage: Math.max(0, avgScore - 10),
           communication: avgScore
-        }
+        },
+        questionsAnalyzed: analyses.length
       };
     }
   }
