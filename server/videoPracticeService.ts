@@ -161,36 +161,67 @@ Reply only: {"score": N, "relevance": N}`;
     };
   }
 
-  // Simple ML-based scoring from transcript analysis
+  // Simple ML-based scoring from transcript analysis (Web Speech API output)
   async analyzeTranscript(transcript: string, question: string): Promise<any> {
-    const words = transcript.trim().split(/\s+/);
+    const words = transcript.trim().split(/\s+/).filter(w => w.length > 0);
     const wordCount = words.length;
     
-    // Simple metrics
+    // Analyze filler words
     const fillerWords = this.countFillerWords(transcript);
+    const fillerRatio = wordCount > 0 ? (fillerWords / wordCount) * 100 : 0;
+    
+    // Speech clarity score (less filler words = higher clarity)
     const clarity = Math.max(0, 100 - (fillerWords * 5));
+    
+    // Estimate speaking pace (Web Speech API transcripts are usually real-time)
     const wordsPerMinute = wordCount >= 100 ? Math.min(180, wordCount * 0.6) : wordCount * 0.5;
     
-    // Content relevance (simple keyword matching)
+    // Content relevance (keyword matching)
     const questionKeywords = question.toLowerCase().split(/\s+/).filter(w => w.length > 3);
     const transcriptLower = transcript.toLowerCase();
     const relevantKeywords = questionKeywords.filter(kw => transcriptLower.includes(kw)).length;
     const relevance = Math.min(100, (relevantKeywords / Math.max(questionKeywords.length, 1)) * 100);
     
-    // Content score based on length and structure
-    let contentScore = 50;
-    if (wordCount >= 100 && wordCount <= 200) contentScore += 30;
-    if (wordCount > 200) contentScore += 20;
-    if (transcript.includes('because') || transcript.includes('therefore')) contentScore += 10;
-    if (relevance > 60) contentScore += 10;
+    // Structure indicators (STAR method keywords)
+    const structureKeywords = ['situation', 'task', 'action', 'result', 'because', 'therefore', 'first', 'then', 'finally', 'however'];
+    const structureScore = structureKeywords.filter(kw => transcriptLower.includes(kw)).length * 10;
+    
+    // Content quality scoring
+    let contentScore = 40; // Base score
+    
+    // Word count scoring (100-150 is ideal)
+    if (wordCount >= 100 && wordCount <= 150) {
+      contentScore += 30; // Perfect range
+    } else if (wordCount >= 80 && wordCount < 100) {
+      contentScore += 20; // Slightly short
+    } else if (wordCount > 150 && wordCount <= 200) {
+      contentScore += 25; // Slightly long
+    } else if (wordCount > 50 && wordCount < 80) {
+      contentScore += 10; // Too short
+    }
+    
+    // Structure bonus
+    contentScore += Math.min(20, structureScore);
+    
+    // Relevance bonus
+    if (relevance > 70) contentScore += 15;
+    else if (relevance > 50) contentScore += 10;
+    else if (relevance > 30) contentScore += 5;
+    
+    // Technical depth indicators (for technical roles)
+    const technicalTerms = ['optimize', 'algorithm', 'performance', 'debug', 'implement', 'architecture', 'scalability', 'efficiency'];
+    const technicalDepth = technicalTerms.filter(term => transcriptLower.includes(term)).length * 5;
     
     return {
       contentScore: Math.min(100, contentScore),
       clarity,
       wordsPerMinute,
       fillerWords,
-      relevance,
-      wordCount
+      fillerRatio: Math.round(fillerRatio * 10) / 10,
+      relevance: Math.round(relevance),
+      wordCount,
+      structureScore: Math.min(100, structureScore),
+      technicalDepth: Math.min(100, technicalDepth)
     };
   }
 
