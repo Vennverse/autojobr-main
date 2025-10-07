@@ -148,41 +148,104 @@ export default function AIResumeImprovementModal({
                 <span className="font-medium">AI Analysis Complete! Copy the sections you want to use:</span>
               </div>
 
-              {improvements.professionalSummary && (
+              {improvements.summary && (
                 <Card>
                   <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        Improved Professional Summary
-                      </CardTitle>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => copyToClipboard(improvements.professionalSummary, "Professional Summary")}
-                      >
-                        <Copy className="h-4 w-4 mr-1" />
-                        Copy
-                      </Button>
-                    </div>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Overall Assessment
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm leading-relaxed bg-gray-50 dark:bg-gray-800 p-3 rounded border">
-                      {improvements.professionalSummary}
+                      {improvements.summary}
                     </p>
                   </CardContent>
                 </Card>
               )}
 
-              {improvements.improvedSkills && improvements.improvedSkills.length > 0 && (
+              {improvements.atsScore && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">ATS Compatibility Score</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-3">
+                      <div className="text-3xl font-bold text-blue-600">{improvements.atsScore}%</div>
+                      <div className="text-sm text-gray-600">
+                        {improvements.atsScore >= 80 ? "Excellent! Your resume is well-optimized for ATS systems." : 
+                         improvements.atsScore >= 60 ? "Good, but there's room for improvement." : 
+                         "Needs work to pass ATS screening."}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {improvements.strengths && improvements.strengths.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Resume Strengths</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2 text-sm">
+                      {improvements.strengths.map((strength: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-green-500 mt-1">✓</span>
+                          <span>{strength}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+
+              {improvements.improvements && improvements.improvements.length > 0 && (
                 <Card>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">Enhanced Skills Section</CardTitle>
+                      <CardTitle className="text-lg">Improvement Suggestions</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {improvements.improvements.map((item: any, index: number) => (
+                        <div key={index} className="border-l-4 border-blue-500 pl-4">
+                          <div className="font-semibold text-sm mb-1">{item.section}</div>
+                          <div className="text-sm text-gray-600 mb-2">{item.issue}</div>
+                          <div className="text-sm mb-2">{item.suggestion}</div>
+                          {item.example && (
+                            <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded border relative">
+                              <div className="text-xs text-gray-500 mb-1">Improved version:</div>
+                              <div className="text-sm">{item.example}</div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="absolute top-2 right-2"
+                                onClick={() => copyToClipboard(item.example, `${item.section} improvement`)}
+                                data-testid={`button-copy-improvement-${index}`}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {improvements.keywordSuggestions && improvements.keywordSuggestions.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">Keyword Suggestions</CardTitle>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => copyToClipboard(improvements.improvedSkills.join(", "), "Skills")}
+                        onClick={() => copyToClipboard(improvements.keywordSuggestions.join(", "), "Keywords")}
+                        data-testid="button-copy-keywords"
                       >
                         <Copy className="h-4 w-4 mr-1" />
                         Copy
@@ -191,70 +254,12 @@ export default function AIResumeImprovementModal({
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
-                      {improvements.improvedSkills.map((skill: string, index: number) => (
+                      {improvements.keywordSuggestions.map((keyword: string, index: number) => (
                         <Badge key={index} variant="secondary" className="text-xs">
-                          {skill}
+                          {keyword}
                         </Badge>
                       ))}
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {improvements.bulletPointImprovements && improvements.bulletPointImprovements.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">Improved Experience Bullets</CardTitle>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => copyToClipboard(
-                          improvements.bulletPointImprovements.join("\n• "), 
-                          "Experience Bullets"
-                        )}
-                      >
-                        <Copy className="h-4 w-4 mr-1" />
-                        Copy All
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2 text-sm">
-                      {improvements.bulletPointImprovements.map((bullet: string, index: number) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <span className="text-gray-400 mt-1">•</span>
-                          <span className="flex-1 bg-gray-50 dark:bg-gray-800 p-2 rounded border">
-                            {bullet}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => copyToClipboard(bullet, "Bullet Point")}
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              )}
-
-              {improvements.recommendations && improvements.recommendations.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">AI Recommendations</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2 text-sm">
-                      {improvements.recommendations.map((rec: string, index: number) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <span className="text-blue-500 mt-1">→</span>
-                          <span>{rec}</span>
-                        </li>
-                      ))}
-                    </ul>
                   </CardContent>
                 </Card>
               )}
