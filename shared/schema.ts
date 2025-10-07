@@ -833,6 +833,26 @@ export const videoResponses = pgTable("video_responses", {
   uploadedAt: timestamp("uploaded_at").defaultNow()
 });
 
+// Video Practice Sessions - Job seeker practice interviews
+export const videoPracticeSessions = pgTable("video_practice_sessions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  sessionId: varchar("session_id").notNull().unique(),
+  role: varchar("role").notNull(),
+  interviewType: varchar("interview_type").notNull(), // technical, behavioral, mixed
+  difficulty: varchar("difficulty").notNull(), // entry, mid, senior
+  questions: text("questions").notNull(), // JSON array
+  responses: text("responses"), // JSON array with {questionId, transcript, videoPath, duration}
+  overallScore: integer("overall_score"),
+  analysis: text("analysis"), // JSON with detailed feedback
+  status: varchar("status").notNull().default("in_progress"), // in_progress, completed
+  paymentStatus: varchar("payment_status").notNull().default("pending"), // pending, paid
+  paymentAmount: integer("payment_amount").default(500), // $5 in cents
+  startedAt: timestamp("started_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
 export const simulationAssessments = pgTable("simulation_assessments", {
   id: serial("id").primaryKey(),
   candidateId: text("candidate_id").notNull(),
@@ -3471,6 +3491,13 @@ export const insertVideoResponseSchema = createInsertSchema(videoResponses).omit
   uploadedAt: true,
 });
 
+// Video Practice Session insert schema
+export const insertVideoPracticeSessionSchema = createInsertSchema(videoPracticeSessions).omit({
+  id: true,
+  createdAt: true,
+  startedAt: true,
+});
+
 // Simulation Assessment insert schema
 export const insertSimulationAssessmentSchema = createInsertSchema(simulationAssessments).omit({
   id: true,
@@ -3495,6 +3522,9 @@ export type InsertVideoInterview = z.infer<typeof insertVideoInterviewSchema>;
 
 export type VideoResponse = typeof videoResponses.$inferSelect;
 export type InsertVideoResponse = z.infer<typeof insertVideoResponseSchema>;
+
+export type VideoPracticeSession = typeof videoPracticeSessions.$inferSelect;
+export type InsertVideoPracticeSession = z.infer<typeof insertVideoPracticeSessionSchema>;
 
 export type SimulationAssessment = typeof simulationAssessments.$inferSelect;
 export type InsertSimulationAssessment = z.infer<typeof insertSimulationAssessmentSchema>;
