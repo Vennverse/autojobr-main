@@ -762,15 +762,14 @@ export const ResumeAnalysisModal: React.FC<ResumeAnalysisModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             {analysis ? 'AI Resume Analysis - Enhanced Report' : 'AI Resume Generator'}
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 max-h-[calc(90vh-120px)]">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
           <TabsList className={`grid w-full ${!analysis ? 'grid-cols-1' : 'grid-cols-6'} flex-shrink-0`}>
             {analysis && (
               <>
@@ -804,9 +803,8 @@ export const ResumeAnalysisModal: React.FC<ResumeAnalysisModalProps> = ({
             )}
           </TabsList>
 
-          <div className="flex-1 overflow-hidden">
-            <ScrollArea className="h-full max-h-[calc(90vh-200px)]">
-              <div className="p-6 space-y-6 pb-12">
+          <ScrollArea className="flex-1">
+            <div className="p-6 space-y-6 pb-12">
                 {analysis && (
                   <>
                     <TabsContent value="overview" className="mt-0">
@@ -944,9 +942,7 @@ export const ResumeAnalysisModal: React.FC<ResumeAnalysisModalProps> = ({
                 )}
               </div>
             </ScrollArea>
-          </div>
         </Tabs>
-        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
