@@ -337,6 +337,7 @@ function Router() {
                   <Route path="/test-taking/:id" component={TestTaking} />
                   <Route path="/subscription" component={Subscription} />
                   <Route path="/job-seeker-premium" component={JobSeekerPremium} />
+                  <Route path="/career-ai-assistant" component={CareerAIAssistant} />
                   <Route path="/referral-marketplace" component={ReferralMarketplace} />
                   <Route path="/become-referrer" component={BecomeReferrer} />
                   <Route path="/my-bookings" component={MyBookings} />
