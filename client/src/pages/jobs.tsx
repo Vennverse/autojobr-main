@@ -2066,8 +2066,9 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                   Page {pagination.page} of {pagination.totalPages}
                 </p>
               </div>
-            </div>
+            )}
           </div>
+        </div>
 
           {/* Enhanced Job Detail Panel - Mobile Optimized */}
           <div className="h-full">
