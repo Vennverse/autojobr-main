@@ -2173,6 +2173,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         Find Referrals
                       </Button>
                     </div>
+                  </div>
 
                     {/* Interview Prep Results - Inline Display */}
                     {interviewPrepData && (
