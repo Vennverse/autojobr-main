@@ -33,10 +33,11 @@ export class VideoPracticeService {
     const isAIAvailable = !aiService['developmentMode'];
     
     // First 3 questions: Always General/Behavioral (realistic interview flow)
+    const companyContext = company ? ` at ${company}` : '';
     const behavioralPrompts = [
-      `Generate a realistic behavioral interview question for ${role} at ${difficulty} level. Focus on past experiences and challenges. The candidate will record a 60-90 second video answer.`,
-      `Generate a realistic question about handling work situations for ${role}. Ask about deadlines, teamwork, or problem-solving. Keep it conversational like a real interview.`,
-      `Generate a situational question for ${role} about professional challenges or decision-making. Make it specific to their role but realistic.`
+      `You are interviewing a candidate for a ${role} position${companyContext}. Generate ONE specific behavioral question at ${difficulty} level that asks about a PAST EXPERIENCE. Use the STAR method framework (Situation, Task, Action, Result). Make it conversational and realistic - something an actual hiring manager would ask. Focus on: leadership, teamwork, conflict resolution, or problem-solving. The candidate has 60-90 seconds to answer via video.`,
+      `Generate ONE realistic behavioral question for ${role}${companyContext} about handling a challenging work situation. Ask about: meeting tight deadlines, handling difficult stakeholders, managing priorities, or adapting to change. Frame it naturally like: "Tell me about a time when..." or "Describe a situation where...". Keep it specific to ${difficulty} level experience.`,
+      `Create ONE situational question for ${role}${companyContext} that tests decision-making and judgment. Focus on: ethical dilemmas, resource constraints, conflicting priorities, or strategic thinking. Make it relevant to ${difficulty} level responsibilities. Ask them to walk through their thought process and reasoning.`
     ];
 
     // Fallback questions for when AI is unavailable
@@ -90,9 +91,9 @@ export class VideoPracticeService {
       ];
 
       const technicalPrompts = [
-        `Generate a technical question for ${role} asking them to EXPLAIN their approach to a coding problem. Emphasize: "Explain your thought process verbally, no code execution needed - just walk through your logic and approach."`,
-        `Generate a debugging scenario question for ${role}. Ask them to explain how they would debug or optimize something. Focus on their problem-solving approach, not actual code.`,
-        `Generate a system design or architecture question for ${role} at ${difficulty} level. Ask them to explain their approach and reasoning verbally.`
+        `You are interviewing a ${role}${companyContext}. Generate ONE technical problem-solving question at ${difficulty} level. Ask them to VERBALLY EXPLAIN their approach to solving a real-world technical challenge (e.g., optimizing performance, designing a feature, handling scale). Explicitly state: "Walk through your thought process and approach verbally - we want to understand your logic and problem-solving methodology, not see code execution." Make it specific to their role.`,
+        `Create ONE debugging/troubleshooting scenario for ${role}${companyContext} at ${difficulty} level. Describe a realistic production issue (performance problem, bug, system failure) and ask: "How would you systematically debug and resolve this?" Focus on their analytical thinking, not coding. Examples: slow queries, memory leaks, API failures, race conditions.`,
+        `Generate ONE system design or architecture question for ${role}${companyContext} at ${difficulty} level. Ask them to design a specific system or feature (e.g., "Design a URL shortener", "How would you architect a real-time chat system?"). Request they explain: key components, data flow, scalability considerations, and trade-offs. Emphasize verbal explanation of their reasoning.`
       ];
 
       for (let i = 0; i < 3; i++) {
@@ -137,9 +138,9 @@ export class VideoPracticeService {
       ];
 
       const domainPrompts = [
-        `Generate a practical ${role} question about strategy or planning. The candidate will write a brief answer and then explain their reasoning verbally.`,
-        `Generate a ${role} question about solving a real-world challenge in their domain. They'll provide written response and verbal explanation.`,
-        `Generate a ${role} question about decision-making or process improvement. Ask for written answer with verbal justification.`
+        `You are interviewing for ${role}${companyContext}. Generate ONE strategic question at ${difficulty} level about planning, goal-setting, or roadmap development specific to this role. Ask them to explain their approach to: prioritization, stakeholder management, resource allocation, or strategic planning. Make it realistic and role-specific. Candidate will explain verbally in 60-90 seconds.`,
+        `Create ONE real-world scenario question for ${role}${companyContext} at ${difficulty} level. Present a realistic challenge they'd face in this role (e.g., conflicting stakeholder requests, budget cuts, missed deadlines, team conflicts). Ask: "How would you handle this situation?" Focus on their decision-making process, communication approach, and problem-solving methodology.`,
+        `Generate ONE process improvement or optimization question for ${role}${companyContext}. Ask how they would improve an existing workflow, increase efficiency, reduce costs, or enhance quality in a specific area relevant to their role. Request they explain: current state analysis, proposed solution, implementation steps, and success metrics. At ${difficulty} level.`
       ];
 
       for (let i = 0; i < 3; i++) {
@@ -189,15 +190,17 @@ export class VideoPracticeService {
   ): Promise<any> {
     try {
       // Use AI service to analyze the transcript in context of the question
-      const prompt = `Analyze this interview response comprehensively:
+      const prompt = `You are an expert interview coach analyzing a video interview response. Be thorough, constructive, and specific in your feedback.
 
-Question: ${question.question}
-Question Type: ${question.type}
-Expected Duration: 60-90 seconds
-Actual Duration: ${duration} seconds
+**Interview Context:**
+- Position: ${role || 'Not specified'}
+- Question Type: ${question.type}
+- Question Asked: "${question.question}"
+- Expected Response Time: 60-90 seconds
+- Actual Response Time: ${duration} seconds
 
-Candidate's Response (transcribed):
-${transcript}
+**Candidate's Transcribed Response:**
+"${transcript}"
 
 ${videoAnalysis ? `
 Video Analysis:

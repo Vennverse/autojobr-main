@@ -19,6 +19,13 @@ export default function VideoPractice() {
   const [loading, setLoading] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isListening, setIsListening] = useState(false);
+  const [showSetup, setShowSetup] = useState(true);
+  const [setupData, setSetupData] = useState({
+    role: '',
+    company: '',
+    interviewType: 'technical' as 'technical' | 'behavioral',
+    difficulty: 'medium' as 'easy' | 'medium' | 'hard'
+  });
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -71,31 +78,66 @@ export default function VideoPractice() {
       });
       return;
     }
-    
-    // Initialize video stream
-    initializeVideoStream();
-    startSession();
   }, []);
 
   const initializeVideoStream = async () => {
     try {
+      // First check if media devices are available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Media devices not supported in this browser');
+      }
+
+      // Request permissions with optimal settings
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 1280, height: 720 },
-        audio: true
+        video: { 
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
       });
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        // Wait for video to be ready
+        await new Promise<void>((resolve) => {
+          videoRef.current!.onloadedmetadata = () => {
+            videoRef.current!.play();
+            resolve();
+          };
+        });
         streamRef.current = stream;
         setIsVideoReady(true);
+        
+        toast({
+          title: "Camera Ready",
+          description: "Camera and microphone initialized successfully",
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to access camera/microphone:', error);
+      
+      let errorMessage = "Please allow camera and microphone access to continue";
+      
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        errorMessage = "Camera/microphone access was denied. Please enable permissions in your browser settings.";
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        errorMessage = "No camera or microphone found. Please connect a camera and microphone.";
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        errorMessage = "Camera/microphone is already in use by another application.";
+      }
+      
       toast({
-        title: "Camera Access Required",
-        description: "Please allow camera and microphone access to continue",
+        title: "Camera Access Failed",
+        description: errorMessage,
         variant: "destructive"
       });
+      
+      throw error;
     }
   };
 
@@ -111,14 +153,30 @@ export default function VideoPractice() {
   }, []);
 
   const startSession = async () => {
+    if (!setupData.role.trim()) {
+      toast({
+        title: "Role Required",
+        description: "Please enter the job role/position you're interviewing for",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setLoading(true);
+      
+      // Initialize video stream first
+      await initializeVideoStream();
+      
       const response = await apiRequest('/api/video-practice/start', 'POST', {
-        role: 'Software Engineer',
-        interviewType: 'technical',
-        difficulty: 'medium'
+        role: setupData.role,
+        company: setupData.company || undefined,
+        interviewType: setupData.interviewType,
+        difficulty: setupData.difficulty
       });
+      
       setSession(response);
+      setShowSetup(false);
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -374,6 +432,126 @@ export default function VideoPractice() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (showSetup && !session) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
+        <div className="max-w-2xl mx-auto mt-12">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-2xl">
+                <Video className="w-6 h-6" />
+                AI Video Interview Practice - Setup
+              </CardTitle>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                Configure your practice session to get started
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Job Role / Position *
+                  </label>
+                  <input
+                    type="text"
+                    value={setupData.role}
+                    onChange={(e) => setSetupData(prev => ({ ...prev, role: e.target.value }))}
+                    placeholder="e.g., Software Engineer, Product Manager, Data Scientist"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Company Name (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={setupData.company}
+                    onChange={(e) => setSetupData(prev => ({ ...prev, company: e.target.value }))}
+                    placeholder="e.g., Google, Microsoft, Startup XYZ"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Interview Type
+                  </label>
+                  <select
+                    value={setupData.interviewType}
+                    onChange={(e) => setSetupData(prev => ({ ...prev, interviewType: e.target.value as any }))}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700"
+                  >
+                    <option value="technical">Technical Interview</option>
+                    <option value="behavioral">Behavioral Interview</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {setupData.interviewType === 'technical' 
+                      ? 'Focus on technical skills, problem-solving, and domain knowledge'
+                      : 'Focus on past experiences, soft skills, and situational responses'}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Difficulty Level
+                  </label>
+                  <select
+                    value={setupData.difficulty}
+                    onChange={(e) => setSetupData(prev => ({ ...prev, difficulty: e.target.value as any }))}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700"
+                  >
+                    <option value="easy">Easy - Entry Level</option>
+                    <option value="medium">Medium - Mid Level</option>
+                    <option value="hard">Hard - Senior Level</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
+                  <strong>📋 What to Expect:</strong>
+                </p>
+                <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1 ml-4 list-disc">
+                  <li>6 realistic interview questions tailored to your role</li>
+                  <li>60-90 seconds to answer each question</li>
+                  <li>Real-time speech-to-text transcription</li>
+                  <li>AI-powered feedback on content, delivery, and body language</li>
+                  <li>Comprehensive performance analysis at the end</li>
+                </ul>
+              </div>
+
+              <Button 
+                onClick={startSession} 
+                className="w-full" 
+                size="lg"
+                disabled={loading || !setupData.role.trim()}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Initializing Camera...
+                  </>
+                ) : (
+                  <>
+                    <Video className="w-4 h-4 mr-2" />
+                    Start Interview Practice
+                  </>
+                )}
+              </Button>
+
+              <p className="text-xs text-center text-gray-500">
+                Make sure your camera and microphone are working before starting
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
