@@ -80,7 +80,7 @@ import {
   Building,
   Factory
 } from "lucide-react";
-import JobCard from "@/components/job-card";
+import { JobCard } from "@/components/job-card";
 import PredictiveSuccessWidget from "@/components/PredictiveSuccessWidget";
 import ViralExtensionWidget from "@/components/ViralExtensionWidget";
 
@@ -2304,6 +2304,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                       </motion.div>
                     )}
                     </div>
+                  </div>
 
                   <div className="space-y-6">
                     {/* Job Details Grid */}
@@ -2478,7 +2479,6 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                 </CardContent>
               </Card>
             )}
-            </div>
           </div>
 
           {/* Promotional Sidebar for Non-Authenticated Users */}
