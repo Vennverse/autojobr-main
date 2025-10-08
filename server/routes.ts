@@ -561,19 +561,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Scraped jobs endpoint
+  // Scraped jobs endpoint with pagination
   app.get('/api/scraped-jobs', async (req: any, res) => {
     try {
-      const search = req.query.search as string;
+      const search = req.query.q as string || req.query.search as string;
       const category = req.query.category as string;
       const location = req.query.location as string;
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.size as string) || 25;
+      const offset = (page - 1) * pageSize;
       
-      // Fetch scraped jobs from database
-      let query = db.select().from(scrapedJobs).where(eq(scrapedJobs.isActive, true));
+      // Build base query
+      let conditions: any[] = [eq(scrapedJobs.isActive, true)];
       
-      // Apply filters if provided
+      // Apply filters
       if (search) {
-        query = query.where(
+        conditions.push(
           or(
             like(scrapedJobs.title, `%${search}%`),
             like(scrapedJobs.company, `%${search}%`),
@@ -583,12 +586,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (location) {
-        query = query.where(like(scrapedJobs.location, `%${location}%`));
+        conditions.push(like(scrapedJobs.location, `%${location}%`));
       }
       
-      const jobs = await query.limit(100).orderBy(desc(scrapedJobs.datePosted));
+      // Get total count
+      const totalResult = await db
+        .select({ count: count() })
+        .from(scrapedJobs)
+        .where(and(...conditions));
       
-      res.json(jobs);
+      const total = totalResult[0]?.count || 0;
+      
+      // Fetch paginated jobs
+      const jobs = await db
+        .select()
+        .from(scrapedJobs)
+        .where(and(...conditions))
+        .orderBy(desc(scrapedJobs.datePosted))
+        .limit(pageSize)
+        .offset(offset);
+      
+      res.json({
+        jobs,
+        pagination: {
+          total,
+          page,
+          size: pageSize,
+          totalPages: Math.ceil(total / pageSize)
+        }
+      });
     } catch (error) {
       console.error('[SCRAPED JOBS ERROR]:', error);
       res.status(500).json({ message: 'Failed to fetch scraped jobs', error: String(error) });
@@ -3148,7 +3174,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
   app.post('/api/ai/interview-prep', isAuthenticated, asyncHandler(async (req: any, res: any) => {
     try {
       const validatedData = interviewPrepSchema.parse(req.body);
-      const result = await interviewPrepService.generateInterviewPrep(validatedData);
+      const result = interviewPrepService.generatePreparation(validatedData);
       res.json(result);
     } catch (error) {
       console.error('Interview prep error:', error);
@@ -3160,7 +3186,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
   app.post('/api/ai/salary-insights', isAuthenticated, asyncHandler(async (req: any, res: any) => {
     try {
       const validatedData = salaryInsightsSchema.parse(req.body);
-      const result = await salaryInsightsService.generateSalaryInsights(validatedData);
+      const result = salaryInsightsService.generateInsights(validatedData);
       res.json(result);
     } catch (error) {
       console.error('Salary insights error:', error);
