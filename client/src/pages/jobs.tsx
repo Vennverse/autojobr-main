@@ -2220,13 +2220,13 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                       </Button>
                     </div>
 
-                    {/* Advanced AI Features */}
+                    {/* Advanced AI Features - 3 Action Buttons */}
                     <div className="flex flex-wrap gap-2 mt-4">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleInterviewPrep(selectedJob)}
-                        disabled={loadingInterviewPrep}
+                        disabled={loadingInterviewPrep || !isAuthenticated}
                         className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-cyan-100 dark:hover:from-blue-900/30 dark:hover:to-cyan-900/30 text-blue-700 dark:text-blue-300"
                         data-testid="button-interview-prep"
                       >
@@ -2237,7 +2237,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         variant="outline"
                         size="sm"
                         onClick={() => handleSalaryInsights(selectedJob)}
-                        disabled={loadingSalary}
+                        disabled={loadingSalary || !isAuthenticated}
                         className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-700 hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-900/30 dark:hover:to-emerald-900/30 text-green-700 dark:text-green-300"
                         data-testid="button-salary-insights"
                       >
@@ -2248,6 +2248,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         variant="outline"
                         size="sm"
                         onClick={() => handleFindReferrals(selectedJob)}
+                        disabled={!isAuthenticated}
                         className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-700 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-900/30 dark:hover:to-pink-900/30 text-purple-700 dark:text-purple-300"
                         data-testid="button-find-referrals"
                       >
@@ -2256,134 +2257,135 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                       </Button>
                     </div>
 
-                    <div>
+                    {/* Inline Results Display Section */}
+                    <div className="mt-4 space-y-4">
                       {/* Interview Prep Results - Inline Display */}
                       {interviewPrepData && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700"
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">
-                            <Target className="w-5 h-5" />
-                            Interview Preparation
-                          </h4>
-                          <Button variant="ghost" size="sm" onClick={() => setInterviewPrepData(null)}>
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-
-                        {interviewPrepData.companyInsights && (
-                          <div className="mb-4">
-                            <h5 className="font-medium text-sm text-blue-800 dark:text-blue-200 mb-2">Company Insights</h5>
-                            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                              {interviewPrepData.companyInsights}
-                            </p>
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                              <Target className="w-5 h-5" />
+                              Interview Preparation
+                            </h4>
+                            <Button variant="ghost" size="sm" onClick={() => setInterviewPrepData(null)}>
+                              <X className="w-4 h-4" />
+                            </Button>
                           </div>
-                        )}
 
-                        {interviewPrepData.questions && interviewPrepData.questions.length > 0 && (
-                          <div className="mb-4">
-                            <h5 className="font-medium text-sm text-blue-800 dark:text-blue-200 mb-2">Practice Questions</h5>
-                            <ul className="space-y-2">
-                              {interviewPrepData.questions.slice(0, 5).map((q: string, i: number) => (
-                                <li key={i} className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2">
-                                  <span className="text-blue-600 dark:text-blue-400 font-medium">{i + 1}.</span>
-                                  <span>{q}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
+                          {interviewPrepData.companyInsights && (
+                            <div className="mb-4">
+                              <h5 className="font-medium text-sm text-blue-800 dark:text-blue-200 mb-2">Company Insights</h5>
+                              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                                {interviewPrepData.companyInsights}
+                              </p>
+                            </div>
+                          )}
 
-                        {interviewPrepData.tips && (
-                          <div>
-                            <h5 className="font-medium text-sm text-blue-800 dark:text-blue-200 mb-2">Preparation Tips</h5>
-                            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                              {interviewPrepData.tips}
-                            </p>
-                          </div>
-                        )}
-                      </motion.div>
-                    )}
+                          {interviewPrepData.questions && interviewPrepData.questions.length > 0 && (
+                            <div className="mb-4">
+                              <h5 className="font-medium text-sm text-blue-800 dark:text-blue-200 mb-2">Practice Questions</h5>
+                              <ul className="space-y-2">
+                                {interviewPrepData.questions.slice(0, 5).map((q: string, i: number) => (
+                                  <li key={i} className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                                    <span className="text-blue-600 dark:text-blue-400 font-medium">{i + 1}.</span>
+                                    <span>{q}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {interviewPrepData.tips && (
+                            <div>
+                              <h5 className="font-medium text-sm text-blue-800 dark:text-blue-200 mb-2">Preparation Tips</h5>
+                              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                                {interviewPrepData.tips}
+                              </p>
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
 
                       {/* Salary Insights Results - Inline Display */}
                       {salaryInsightsData && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700"
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-semibold text-green-900 dark:text-green-100 flex items-center gap-2">
-                            <DollarSign className="w-5 h-5" />
-                            Salary Insights
-                          </h4>
-                          <Button variant="ghost" size="sm" onClick={() => setSalaryInsightsData(null)}>
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold text-green-900 dark:text-green-100 flex items-center gap-2">
+                              <DollarSign className="w-5 h-5" />
+                              Salary Insights
+                            </h4>
+                            <Button variant="ghost" size="sm" onClick={() => setSalaryInsightsData(null)}>
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
 
-                        {salaryInsightsData.salaryRange && 
-                         salaryInsightsData.salaryRange.median && 
-                         !isNaN(salaryInsightsData.salaryRange.median) && 
-                         salaryInsightsData.salaryRange.median > 0 ? (
-                          <div className="mb-4">
-                            <h5 className="font-medium text-sm text-green-800 dark:text-green-200 mb-2">Salary Range ({salaryInsightsData.currency || 'USD'})</h5>
-                            <div className="grid grid-cols-3 gap-3">
-                              <div className="text-center p-2 bg-white dark:bg-gray-800 rounded">
-                                <p className="text-xs text-gray-600 dark:text-gray-400">Min</p>
-                                <p className="text-lg font-bold text-green-700 dark:text-green-300">
-                                  ${salaryInsightsData.salaryRange.min?.toLocaleString() || '0'}
-                                </p>
-                              </div>
-                              <div className="text-center p-2 bg-white dark:bg-gray-800 rounded">
-                                <p className="text-xs text-gray-600 dark:text-gray-400">Median</p>
-                                <p className="text-lg font-bold text-green-700 dark:text-green-300">
-                                  ${salaryInsightsData.salaryRange.median?.toLocaleString() || '0'}
-                                </p>
-                              </div>
-                              <div className="text-center p-2 bg-white dark:bg-gray-800 rounded">
-                                <p className="text-xs text-gray-600 dark:text-gray-400">Max</p>
-                                <p className="text-lg font-bold text-green-700 dark:text-green-300">
-                                  ${salaryInsightsData.salaryRange.max?.toLocaleString() || '0'}
-                                </p>
+                          {salaryInsightsData.salaryRange && 
+                           salaryInsightsData.salaryRange.median && 
+                           !isNaN(salaryInsightsData.salaryRange.median) && 
+                           salaryInsightsData.salaryRange.median > 0 ? (
+                            <div className="mb-4">
+                              <h5 className="font-medium text-sm text-green-800 dark:text-green-200 mb-2">Salary Range ({salaryInsightsData.currency || 'USD'})</h5>
+                              <div className="grid grid-cols-3 gap-3">
+                                <div className="text-center p-2 bg-white dark:bg-gray-800 rounded">
+                                  <p className="text-xs text-gray-600 dark:text-gray-400">Min</p>
+                                  <p className="text-lg font-bold text-green-700 dark:text-green-300">
+                                    ${salaryInsightsData.salaryRange.min?.toLocaleString() || '0'}
+                                  </p>
+                                </div>
+                                <div className="text-center p-2 bg-white dark:bg-gray-800 rounded">
+                                  <p className="text-xs text-gray-600 dark:text-gray-400">Median</p>
+                                  <p className="text-lg font-bold text-green-700 dark:text-green-300">
+                                    ${salaryInsightsData.salaryRange.median?.toLocaleString() || '0'}
+                                  </p>
+                                </div>
+                                <div className="text-center p-2 bg-white dark:bg-gray-800 rounded">
+                                  <p className="text-xs text-gray-600 dark:text-gray-400">Max</p>
+                                  <p className="text-lg font-bold text-green-700 dark:text-green-300">
+                                    ${salaryInsightsData.salaryRange.max?.toLocaleString() || '0'}
+                                  </p>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded">
-                            <p className="text-sm text-yellow-800 dark:text-yellow-300">
-                              ⚠️ Salary data not available for this position. This may be due to limited market data or the job title not being recognized in our database. We're using estimated ranges based on similar roles.
-                            </p>
-                          </div>
-                        )}
+                          ) : (
+                            <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded">
+                              <p className="text-sm text-yellow-800 dark:text-yellow-300">
+                                ⚠️ Salary data not available for this position. This may be due to limited market data or the job title not being recognized in our database. We're using estimated ranges based on similar roles.
+                              </p>
+                            </div>
+                          )}
 
-                        {salaryInsightsData.marketInsights && (
-                          <div className="mb-4">
-                            <h5 className="font-medium text-sm text-green-800 dark:text-green-200 mb-2">Market Insights</h5>
-                            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                              {salaryInsightsData.marketInsights}
-                            </p>
-                          </div>
-                        )}
+                          {salaryInsightsData.marketInsights && (
+                            <div className="mb-4">
+                              <h5 className="font-medium text-sm text-green-800 dark:text-green-200 mb-2">Market Insights</h5>
+                              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                                {salaryInsightsData.marketInsights}
+                              </p>
+                            </div>
+                          )}
 
-                        {salaryInsightsData.negotiationTips && salaryInsightsData.negotiationTips.length > 0 && (
-                          <div>
-                            <h5 className="font-medium text-sm text-green-800 dark:text-green-200 mb-2">Negotiation Tips</h5>
-                            <ul className="space-y-1">
-                              {salaryInsightsData.negotiationTips.slice(0, 4).map((tip: string, i: number) => (
-                                <li key={i} className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2">
-                                  <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                                  <span>{tip}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </motion.div>
-                    )}
+                          {salaryInsightsData.negotiationTips && salaryInsightsData.negotiationTips.length > 0 && (
+                            <div>
+                              <h5 className="font-medium text-sm text-green-800 dark:text-green-200 mb-2">Negotiation Tips</h5>
+                              <ul className="space-y-1">
+                                {salaryInsightsData.negotiationTips.slice(0, 4).map((tip: string, i: number) => (
+                                  <li key={i} className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                                    <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                                    <span>{tip}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
                     </div>
                   </div>
 
