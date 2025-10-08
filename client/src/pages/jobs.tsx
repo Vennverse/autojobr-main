@@ -2174,8 +2174,9 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                       </Button>
                     </div>
 
-                    {/* Interview Prep Results - Inline Display */}
-                    {interviewPrepData && (
+                    <div>
+                      {/* Interview Prep Results - Inline Display */}
+                      {interviewPrepData && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
@@ -2224,10 +2225,9 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         )}
                       </motion.div>
                     )}
-                  </div>
 
-                    {/* Salary Insights Results - Inline Display */}
-                    {salaryInsightsData && (
+                      {/* Salary Insights Results - Inline Display */}
+                      {salaryInsightsData && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
@@ -2302,7 +2302,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         )}
                       </motion.div>
                     )}
-                  </div>
+                    </div>
 
                   <div className="space-y-6">
                     {/* Job Details Grid */}
