@@ -564,6 +564,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Scraped jobs endpoint with pagination and improved search
   app.get('/api/scraped-jobs', async (req: any, res) => {
     try {
+      console.log('[SCRAPED JOBS] Request received with params:', req.query);
+      
       const search = req.query.q as string || req.query.search as string;
       const category = req.query.category as string;
       const location = req.query.location as string;
@@ -576,71 +578,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pageSize = parseInt(req.query.size as string) || 25;
       const offset = (page - 1) * pageSize;
       
-      // Build base query
-      let conditions: any[] = [eq(scrapedJobs.isActive, true)];
+      console.log('[SCRAPED JOBS] Parsed filters:', { search, category, location, country, city, workMode, jobType, experienceLevel, page, pageSize });
+      
+      // Build base query - simplified to avoid SQL errors
+      const conditions: any[] = [eq(scrapedJobs.isActive, true)];
       
       // Apply search filter
-      if (search) {
+      if (search && search.trim().length > 0) {
         const searchTerm = search.toLowerCase().trim();
-        if (searchTerm.length > 0) {
-          const searchCondition = or(
-            like(sql`LOWER(${scrapedJobs.title})`, `%${searchTerm}%`),
-            like(sql`LOWER(${scrapedJobs.company})`, `%${searchTerm}%`),
-            like(sql`LOWER(${scrapedJobs.description})`, `%${searchTerm}%`)
-          );
-          if (searchCondition) conditions.push(searchCondition);
-        }
+        conditions.push(
+          or(
+            sql`LOWER(${scrapedJobs.title}) LIKE ${`%${searchTerm}%`}`,
+            sql`LOWER(${scrapedJobs.company}) LIKE ${`%${searchTerm}%`}`,
+            sql`LOWER(COALESCE(${scrapedJobs.description}, '')) LIKE ${`%${searchTerm}%`}`
+          )!
+        );
       }
       
       // Apply location filters
-      if (location) {
-        conditions.push(like(sql`LOWER(${scrapedJobs.location})`, `%${location.toLowerCase()}%`));
+      if (location && location.trim().length > 0) {
+        conditions.push(sql`LOWER(COALESCE(${scrapedJobs.location}, '')) LIKE ${`%${location.toLowerCase()}%`}`);
       }
       
-      if (country) {
-        conditions.push(like(sql`LOWER(${scrapedJobs.countryCode})`, `%${country.toLowerCase()}%`));
+      if (country && country.trim().length > 0) {
+        conditions.push(sql`LOWER(COALESCE(${scrapedJobs.countryCode}, '')) LIKE ${`%${country.toLowerCase()}%`}`);
       }
       
-      if (city) {
-        conditions.push(like(sql`LOWER(${scrapedJobs.city})`, `%${city.toLowerCase()}%`));
+      if (city && city.trim().length > 0) {
+        conditions.push(sql`LOWER(COALESCE(${scrapedJobs.city}, '')) LIKE ${`%${city.toLowerCase()}%`}`);
       }
       
       // Apply category filter
-      if (category) {
-        conditions.push(like(sql`LOWER(${scrapedJobs.category})`, `%${category.toLowerCase()}%`));
+      if (category && category.trim().length > 0) {
+        conditions.push(sql`LOWER(COALESCE(${scrapedJobs.category}, '')) LIKE ${`%${category.toLowerCase()}%`}`);
       }
       
       // Apply work mode filter
-      if (workMode) {
-        conditions.push(like(sql`LOWER(${scrapedJobs.workMode})`, `%${workMode.toLowerCase()}%`));
+      if (workMode && workMode.trim().length > 0) {
+        conditions.push(sql`LOWER(COALESCE(${scrapedJobs.workMode}, '')) LIKE ${`%${workMode.toLowerCase()}%`}`);
       }
       
       // Apply job type filter
-      if (jobType) {
-        conditions.push(like(sql`LOWER(${scrapedJobs.jobType})`, `%${jobType.toLowerCase()}%`));
+      if (jobType && jobType.trim().length > 0) {
+        conditions.push(sql`LOWER(COALESCE(${scrapedJobs.jobType}, '')) LIKE ${`%${jobType.toLowerCase()}%`}`);
       }
       
       // Apply experience level filter
-      if (experienceLevel) {
-        conditions.push(like(sql`LOWER(${scrapedJobs.experienceLevel})`, `%${experienceLevel.toLowerCase()}%`));
+      if (experienceLevel && experienceLevel.trim().length > 0) {
+        conditions.push(sql`LOWER(COALESCE(${scrapedJobs.experienceLevel}, '')) LIKE ${`%${experienceLevel.toLowerCase()}%`}`);
       }
+      
+      console.log('[SCRAPED JOBS] Conditions count:', conditions.length);
       
       // Get total count
       const totalResult = await db
         .select({ count: count() })
         .from(scrapedJobs)
-        .where(and(...conditions));
+        .where(conditions.length > 0 ? and(...conditions) : undefined);
       
       const total = Number(totalResult[0]?.count || 0);
+      
+      console.log('[SCRAPED JOBS] Total jobs found:', total);
       
       // Fetch paginated jobs
       const jobs = await db
         .select()
         .from(scrapedJobs)
-        .where(and(...conditions))
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
         .orderBy(desc(scrapedJobs.createdAt))
         .limit(pageSize)
         .offset(offset);
+      
+      console.log('[SCRAPED JOBS] Returning', jobs.length, 'jobs for page', page);
       
       res.json({
         jobs,
@@ -653,7 +662,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('[SCRAPED JOBS ERROR]:', error);
-      res.status(500).json({ message: 'Failed to fetch scraped jobs', error: String(error) });
+      res.status(500).json({ 
+        message: 'Failed to fetch scraped jobs', 
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
     }
   });
 
