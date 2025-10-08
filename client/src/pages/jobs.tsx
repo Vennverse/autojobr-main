@@ -1925,7 +1925,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         .filter(job => {
                           // Filter out excluded terms
                           if (excludeTerms.length > 0) {
-                            const jobText = `${job.title} ${job.description} ${job.company}`.toLowerCase();
+                            const jobText = `${job.title} ${job.description || ''} ${job.company || job.companyName || ''}`.toLowerCase();
                             return !excludeTerms.some(term => jobText.includes(term.toLowerCase()));
                           }
                           return true;
@@ -1938,10 +1938,14 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                           }
                           return true;
                         })
-                        .map((job: any) => (
-                          viewMode === 'compact' ? (
+                        .map((job: any) => {
+                          const jobId = `${job.source || 'job'}-${job.id}`;
+                          const companyName = job.company || job.companyName || 'Company';
+                          const jobLocation = job.location || 'Remote';
+                          
+                          return viewMode === 'compact' ? (
                             <div 
-                              key={job.id}
+                              key={jobId}
                               className="flex items-center gap-4 p-3 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
                               onClick={() => handleJobClick(job)}
                             >
@@ -1949,7 +1953,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                                 <div className="flex items-start justify-between gap-2">
                                   <div className="flex-1 min-w-0">
                                     <h3 className="font-semibold truncate">{job.title}</h3>
-                                    <p className="text-sm text-muted-foreground truncate">{job.company || job.companyName}</p>
+                                    <p className="text-sm text-muted-foreground truncate">{companyName}</p>
                                   </div>
                                   {isAuthenticated && (
                                     <Badge variant={calculateCompatibility(job) >= 70 ? 'default' : 'secondary'} className="shrink-0">
@@ -1985,22 +1989,95 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                               </div>
                             </div>
                           ) : (
-                            <JobCard
-                              key={job.id}
-                              job={job}
-                              onApply={() => handleApply(job)}
-                              onSave={() => handleSaveJob(job.id)}
-                              onInterviewPrep={() => handleInterviewPrep(job)}
-                              onSalaryInsights={() => handleSalaryInsights(job)}
-                              onFindReferrals={() => handleFindReferrals(job)}
-                              isApplied={appliedJobIds.includes(job.id)}
-                              isSaved={savedJobs.has(job.id)}
-                              compatibility={calculateCompatibility(job)}
-                              isAuthenticated={isAuthenticated}
-                              viewMode={viewMode}
-                            />
-                          )
-                        ))}
+                            <Card key={jobId} className="hover:shadow-md transition-shadow">
+                              <CardContent className="p-4 sm:p-6">
+                                <div className="flex items-start justify-between mb-3 sm:mb-4">
+                                  <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                                      <Building className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <h3 className="font-semibold text-foreground text-sm sm:text-base truncate">{companyName}</h3>
+                                      <p className="text-xs sm:text-sm text-muted-foreground flex items-center">
+                                        <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
+                                        <span className="truncate">{jobLocation}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  {isAuthenticated && (
+                                    <div className={cn(
+                                      "text-xs sm:text-sm font-semibold px-2 py-1 rounded whitespace-nowrap ml-2",
+                                      calculateCompatibility(job) >= 90 ? "bg-green-100 text-green-800" :
+                                      calculateCompatibility(job) >= 75 ? "bg-blue-100 text-blue-800" :
+                                      calculateCompatibility(job) >= 60 ? "bg-yellow-100 text-yellow-800" :
+                                      "bg-gray-100 text-gray-800"
+                                    )}>
+                                      {calculateCompatibility(job)}% Match
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <h4 className="text-base sm:text-lg font-semibold text-foreground mb-2">
+                                  {job.title}
+                                </h4>
+                                
+                                {job.description && (
+                                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                                    {job.description}
+                                  </p>
+                                )}
+                                
+                                <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+                                  {job.jobType && (
+                                    <span className="flex items-center">
+                                      <Briefcase className="w-3 h-3 mr-1" />
+                                      {formatJobType(job.jobType)}
+                                    </span>
+                                  )}
+                                  {job.workMode && (
+                                    <span className="flex items-center">
+                                      <MapPin className="w-3 h-3 mr-1" />
+                                      {formatWorkMode(job.workMode)}
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                <div className="flex space-x-2">
+                                  <Button 
+                                    className="flex-1 text-sm sm:text-base" 
+                                    onClick={() => handleApply(job)}
+                                    disabled={appliedJobIds.includes(job.id)}
+                                    size="sm"
+                                  >
+                                    {appliedJobIds.includes(job.id) ? (
+                                      <>
+                                        <Clock className="w-4 h-4 mr-1 sm:mr-2" />
+                                        <span className="hidden sm:inline">Applied</span>
+                                        <span className="sm:hidden">Done</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ExternalLink className="w-4 h-4 mr-1 sm:mr-2" />
+                                        <span className="hidden sm:inline">Apply Now</span>
+                                        <span className="sm:hidden">Apply</span>
+                                      </>
+                                    )}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleSaveJob(job.id)}
+                                    className={cn(
+                                      savedJobs.has(job.id) && "bg-primary/10 border-primary text-primary"
+                                    )}
+                                  >
+                                    <Bookmark className={cn("w-4 h-4", savedJobs.has(job.id) && "fill-current")} />
+                                  </Button>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
                     </div>
                   </>
                 )}
