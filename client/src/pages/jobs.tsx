@@ -2224,6 +2224,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         )}
                       </motion.div>
                     )}
+                  </div>
 
                     {/* Salary Insights Results - Inline Display */}
                     {salaryInsightsData && (
