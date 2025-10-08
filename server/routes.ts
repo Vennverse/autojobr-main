@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 import { db } from "./db";
 import { eq, desc, and, or, like, isNotNull, count, asc, isNull, sql, inArray } from "drizzle-orm";
 import * as schema from "@shared/schema";
-import { resumes, userResumes, insertInternshipApplicationSchema, companyEmailVerifications, virtualInterviews, users, mockInterviews, jobPostingApplications, invitationUses, insertUserProfileSchema, insertUserSkillSchema } from "@shared/schema";
+import { resumes, userResumes, insertInternshipApplicationSchema, companyEmailVerifications, virtualInterviews, users, mockInterviews, jobPostingApplications, invitationUses, insertUserProfileSchema, insertUserSkillSchema, scrapedJobs } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated, isAuthenticatedExtension } from "./auth";
 import { storage } from "./storage";

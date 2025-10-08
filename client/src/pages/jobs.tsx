@@ -687,21 +687,24 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     setInterviewPrepData(null);
 
     try {
-      const response = await fetch('/api/ai/interview-prep', {
+      const prepResponse = await fetch('/api/ai/interview-prep', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           jobTitle: job.title,
-          company: job.companyName || job.company,
+          company: job.company || job.companyName,
+          experienceLevel: job.experienceLevel || job.experience_level,
           jobDescription: job.description,
-          requirements: job.requirements
+          requirements: Array.isArray(job.requirements) 
+            ? job.requirements 
+            : (job.requiredSkills || [])
         })
       });
 
-      const data = await response.json();
-      
-      if (response.ok) {
+      const data = await prepResponse.json();
+
+      if (prepResponse.ok) {
         setInterviewPrepData(data);
         toast({
           title: "Interview Prep Ready!",
@@ -745,7 +748,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       const jobTitle = job.title?.trim() || 'Position';
       const company = (job.companyName || job.company || 'Company')?.trim();
       const location = job.location?.trim() || 'Remote';
-      
+
       // Edge case: Parse experience level safely
       let experienceLevel = 0;
       if (job.experienceLevel) {
@@ -762,7 +765,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         ? job.requiredSkills.filter(s => s && typeof s === 'string')
         : [];
 
-      const response = await fetch('/api/ai/salary-insights', {
+      const salaryResponse = await fetch('/api/ai/salary-insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -776,45 +779,51 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       });
 
       // Edge case: Network error or timeout
-      if (!response) {
+      if (!salaryResponse) {
         throw new Error('Network error - please check your connection');
       }
 
-      const data = await response.json();
-      
-      if (response.ok) {
-        // Edge case: Validate response data structure
-        if (!data || typeof data !== 'object') {
-          throw new Error('Invalid response format');
+      if (salaryResponse.ok) {
+        const contentType = salaryResponse.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const salaryData = await salaryResponse.json();
+          // Edge case: Validate response data structure
+          if (!salaryData || typeof salaryData !== 'object') {
+            throw new Error('Invalid response format');
+          }
+
+          // Edge case: Missing salary range
+          if (!salaryData.salaryRange || !salaryData.salaryRange.median) {
+            salaryData.salaryRange = {
+              min: 60000,
+              median: 85000,
+              max: 110000
+            };
+            salaryData.marketInsights = (salaryData.marketInsights || '') + ' Note: Estimated salary range based on limited data.';
+          }
+
+          setSalaryInsightsData(salaryData);
+
+          const medianSalary = salaryData.salaryRange?.median;
+          const salaryDisplay = medianSalary && !isNaN(medianSalary) 
+            ? `$${medianSalary.toLocaleString()}` 
+            : 'Available';
+
+          toast({
+            title: "Salary Insights Ready!",
+            description: `Estimated: ${salaryDisplay}`
+          });
+        } else {
+          console.error('Salary insights returned non-JSON response');
+          throw new Error('Received unexpected response format from salary insights API.');
         }
-
-        // Edge case: Missing salary range
-        if (!data.salaryRange || !data.salaryRange.median) {
-          data.salaryRange = {
-            min: 60000,
-            median: 85000,
-            max: 110000
-          };
-          data.marketInsights = (data.marketInsights || '') + ' Note: Estimated salary range based on limited data.';
-        }
-
-        setSalaryInsightsData(data);
-        
-        const medianSalary = data.salaryRange?.median;
-        const salaryDisplay = medianSalary && !isNaN(medianSalary) 
-          ? `$${medianSalary.toLocaleString()}` 
-          : 'Available';
-
-        toast({
-          title: "Salary Insights Ready!",
-          description: `Estimated: ${salaryDisplay}`
-        });
       } else {
-        throw new Error(data.message || 'Failed to get salary insights');
+        const errorData = await salaryResponse.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || 'Failed to get salary insights');
       }
     } catch (error) {
       console.error('Salary insights error:', error);
-      
+
       // Edge case: Provide helpful error message
       let errorMessage = "Please try again later.";
       if (error instanceof Error) {
@@ -847,7 +856,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     const companyName = job.companyName || job.company || '';
     const referralUrl = `/referral-marketplace?companyName=${encodeURIComponent(companyName)}`;
     window.open(referralUrl, '_blank');
-    
+
     toast({
       title: "Opening Referral Marketplace",
       description: `Browse referrals for ${companyName} in a new tab.`
@@ -1961,7 +1970,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                             <X className="w-4 h-4" />
                           </Button>
                         </div>
-                        
+
                         {interviewPrepData.companyInsights && (
                           <div className="mb-4">
                             <h5 className="font-medium text-sm text-blue-800 dark:text-blue-200 mb-2">Company Insights</h5>
@@ -1970,7 +1979,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                             </p>
                           </div>
                         )}
-                        
+
                         {interviewPrepData.questions && interviewPrepData.questions.length > 0 && (
                           <div className="mb-4">
                             <h5 className="font-medium text-sm text-blue-800 dark:text-blue-200 mb-2">Practice Questions</h5>
@@ -1984,7 +1993,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                             </ul>
                           </div>
                         )}
-                        
+
                         {interviewPrepData.tips && (
                           <div>
                             <h5 className="font-medium text-sm text-blue-800 dark:text-blue-200 mb-2">Preparation Tips</h5>
@@ -2012,7 +2021,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                             <X className="w-4 h-4" />
                           </Button>
                         </div>
-                        
+
                         {salaryInsightsData.salaryRange && 
                          salaryInsightsData.salaryRange.median && 
                          !isNaN(salaryInsightsData.salaryRange.median) && 
@@ -2047,7 +2056,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                             </p>
                           </div>
                         )}
-                        
+
                         {salaryInsightsData.marketInsights && (
                           <div className="mb-4">
                             <h5 className="font-medium text-sm text-green-800 dark:text-green-200 mb-2">Market Insights</h5>
@@ -2056,7 +2065,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                             </p>
                           </div>
                         )}
-                        
+
                         {salaryInsightsData.negotiationTips && salaryInsightsData.negotiationTips.length > 0 && (
                           <div>
                             <h5 className="font-medium text-sm text-green-800 dark:text-green-200 mb-2">Negotiation Tips</h5>
@@ -2073,7 +2082,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                       </motion.div>
                     )}
 
-                    
+
                   </div>
 
                   <div className="space-y-6">
