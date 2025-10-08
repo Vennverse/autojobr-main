@@ -83,6 +83,7 @@ import {
 import JobCard from "@/components/job-card";
 import PredictiveSuccessWidget from "@/components/PredictiveSuccessWidget";
 import ViralExtensionWidget from "@/components/ViralExtensionWidget";
+import "@/styles/scrollbar.css";
 
 
 // Utility functions for professional job formatting
@@ -722,7 +723,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       });
 
       const data = await response.json();
-      
+
       if (response.ok) {
         setInterviewPrepData(data);
         toast({
@@ -767,7 +768,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       const jobTitle = job.title?.trim() || 'Position';
       const company = (job.companyName || job.company || 'Company')?.trim();
       const location = job.location?.trim() || 'Remote';
-      
+
       // Edge case: Parse experience level safely
       let experienceLevel = 0;
       if (job.experienceLevel) {
@@ -803,7 +804,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       }
 
       const data = await response.json();
-      
+
       if (response.ok) {
         // Edge case: Validate response data structure
         if (!data || typeof data !== 'object') {
@@ -821,7 +822,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         }
 
         setSalaryInsightsData(data);
-        
+
         const medianSalary = data.salaryRange?.median;
         const salaryDisplay = medianSalary && !isNaN(medianSalary) 
           ? `$${medianSalary.toLocaleString()}` 
@@ -836,7 +837,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       }
     } catch (error) {
       console.error('Salary insights error:', error);
-      
+
       // Edge case: Provide helpful error message
       let errorMessage = "Please try again later.";
       if (error instanceof Error) {
@@ -869,7 +870,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     const companyName = job.companyName || job.company || '';
     const referralUrl = `/referral-marketplace?companyName=${encodeURIComponent(companyName)}`;
     window.open(referralUrl, '_blank');
-    
+
     toast({
       title: "Opening Referral Marketplace",
       description: `Browse referrals for ${companyName} in a new tab.`
@@ -1648,7 +1649,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 h-full">
             {/* Job List Panel - Left Side (2/5 width) */}
             <div className="lg:col-span-2 h-full flex flex-col bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="flex-1 overflow-y-auto px-3 py-2" style={{ scrollbarWidth: 'thin' }}>
+              <div className="flex-1 overflow-y-auto px-3 py-2 scrollbar-thin" >
             {jobsLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <Card key={i} className="border-0 shadow-sm">
@@ -1865,7 +1866,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
 
           {/* Job Details Panel - Right Side (3/5 width) */}
           <div className="lg:col-span-3 h-full flex flex-col bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div className="flex-1 overflow-y-auto p-4" style={{ scrollbarWidth: 'thin' }}>
+            <div className="flex-1 overflow-y-auto p-4 scrollbar-thin">
             {selectedJob ? (
               <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
                 <CardContent className="p-4 sm:p-6">
@@ -1985,7 +1986,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                             <X className="w-4 h-4" />
                           </Button>
                         </div>
-                        
+
                         {interviewPrepData.companyInsights && (
                           <div className="mb-4">
                             <h5 className="font-medium text-sm text-blue-800 dark:text-blue-200 mb-2">Company Insights</h5>
@@ -1994,7 +1995,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                             </p>
                           </div>
                         )}
-                        
+
                         {interviewPrepData.questions && interviewPrepData.questions.length > 0 && (
                           <div className="mb-4">
                             <h5 className="font-medium text-sm text-blue-800 dark:text-blue-200 mb-2">Practice Questions</h5>
@@ -2008,7 +2009,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                             </ul>
                           </div>
                         )}
-                        
+
                         {interviewPrepData.tips && (
                           <div>
                             <h5 className="font-medium text-sm text-blue-800 dark:text-blue-200 mb-2">Preparation Tips</h5>
@@ -2037,7 +2038,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                             <X className="w-4 h-4" />
                           </Button>
                         </div>
-                        
+
                         {salaryInsightsData.salaryRange && 
                          salaryInsightsData.salaryRange.median && 
                          !isNaN(salaryInsightsData.salaryRange.median) && 
@@ -2072,7 +2073,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                             </p>
                           </div>
                         )}
-                        
+
                         {salaryInsightsData.marketInsights && (
                           <div className="mb-4">
                             <h5 className="font-medium text-sm text-green-800 dark:text-green-200 mb-2">Market Insights</h5>
@@ -2081,7 +2082,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                             </p>
                           </div>
                         )}
-                        
+
                         {salaryInsightsData.negotiationTips && salaryInsightsData.negotiationTips.length > 0 && (
                           <div>
                             <h5 className="font-medium text-sm text-green-800 dark:text-green-200 mb-2">Negotiation Tips</h5>
@@ -2098,7 +2099,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                       </motion.div>
                     )}
 
-                    
+
                   </div>
 
                   <div className="space-y-6">
