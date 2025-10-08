@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -279,28 +279,6 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
   const [loadingInterviewPrep, setLoadingInterviewPrep] = useState(false);
   const [loadingSalary, setLoadingSalary] = useState(false);
 
-  // Refs for auto-scroll to results
-  const interviewPrepRef = useRef<HTMLDivElement>(null);
-  const salaryInsightsRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll to interview prep when data loads
-  useEffect(() => {
-    if (interviewPrepData && interviewPrepRef.current) {
-      setTimeout(() => {
-        interviewPrepRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 100);
-    }
-  }, [interviewPrepData]);
-
-  // Auto-scroll to salary insights when data loads  
-  useEffect(() => {
-    if (salaryInsightsData && salaryInsightsRef.current) {
-      setTimeout(() => {
-        salaryInsightsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 100);
-    }
-  }, [salaryInsightsData]);
-
   // Convert route-based parameters to filter format
   const routeBasedFilters = useMemo(() => {
     const filters: Partial<FilterState> = {};
@@ -351,7 +329,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     remote_only: searchParams.get('remote_only') === 'true',
     sort: searchParams.get('sort') || 'relevance',
     page: parseInt(searchParams.get('page') || '1'),
-    size: parseInt(searchParams.get('size') || '15')
+    size: parseInt(searchParams.get('size') || '25')
   }), [searchParams, routeBasedFilters]);
 
   // Debounced search query
@@ -1642,13 +1620,12 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         </div>
       </div>
 
-      {/* Main Content - LinkedIn Style: Fixed Height, Independent Scrolling */}
-      <div className="w-full overflow-hidden" style={{ height: 'calc(100vh - 240px)' }}>
-        <div className="max-w-7xl mx-auto h-full px-2 sm:px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 h-full">
-            {/* Job List Panel - Left Side (2/5 width) */}
-            <div className="lg:col-span-2 h-full flex flex-col bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="flex-1 overflow-y-auto px-3 py-2" style={{ scrollbarWidth: 'thin' }}>
+      {/* Main Content - Mobile Optimized */}
+      <div className="flex-1 max-w-7xl mx-auto w-full px-2 sm:px-4 py-4 sm:py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6 h-full">
+          {/* Job List - Mobile Optimized */}
+          <div className="h-full">
+            <div className="h-[calc(100vh-200px)] sm:h-[calc(100vh-240px)] overflow-y-auto pr-1 lg:pr-2 space-y-3 lg:space-y-4">
             {jobsLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <Card key={i} className="border-0 shadow-sm">
@@ -1863,9 +1840,9 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
             </div>
           </div>
 
-          {/* Job Details Panel - Right Side (3/5 width) */}
-          <div className="lg:col-span-3 h-full flex flex-col bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div className="flex-1 overflow-y-auto p-4" style={{ scrollbarWidth: 'thin' }}>
+          {/* Enhanced Job Detail Panel - Mobile Optimized */}
+          <div className="h-full">
+            <div className="h-[calc(100vh-200px)] sm:h-[calc(100vh-240px)] overflow-y-auto pl-1 lg:pl-2">
             {selectedJob ? (
               <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
                 <CardContent className="p-4 sm:p-6">
@@ -1971,7 +1948,6 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                     {/* Interview Prep Results - Inline Display */}
                     {interviewPrepData && (
                       <motion.div
-                        ref={interviewPrepRef}
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700"
@@ -2023,7 +1999,6 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                     {/* Salary Insights Results - Inline Display */}
                     {salaryInsightsData && (
                       <motion.div
-                        ref={salaryInsightsRef}
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700"
@@ -2276,14 +2251,9 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
             )}
             </div>
           </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Promotional Sidebar for Non-Authenticated Users */}
-      {!isAuthenticated && (
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 mt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Promotional Sidebar for Non-Authenticated Users */}
+          {!isAuthenticated && (
             <div className="hidden lg:block space-y-4">
               {/* Sign Up CTA */}
               <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700">
@@ -2387,9 +2357,9 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                 </CardContent>
               </Card>
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

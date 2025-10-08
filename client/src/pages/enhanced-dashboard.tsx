@@ -758,21 +758,6 @@ export default function EnhancedDashboard() {
       usageCount: (mockInterviewStats as any)?.totalSessions || 0,
       successRate: "89%",
     },
-    {
-      title: "AI Video Practice",
-      description:
-        "Record video responses with auto-transcription and get AI feedback on content and delivery",
-      icon: Video,
-      route: "/video-practice",
-      stats: "Realistic Practice",
-      gradient: "from-purple-600 to-pink-600",
-      action: "Practice Now",
-      helpText:
-        "Practice with video recording and speech analysis - no coding execution, just explain your thinking",
-      isNew: true,
-      usageCount: 0,
-      successRate: "90%",
-    },
   ];
 
   const quickActions = [

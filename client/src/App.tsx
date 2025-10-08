@@ -81,6 +81,7 @@ import BidderDashboard from "@/pages/bidder-dashboard";
 import BidderLanding from "@/pages/bidder-landing";
 import BidderProfile from "@/pages/bidder-profile";
 import InterviewLink from "@/pages/InterviewLink";
+import VideoPractice from "@/pages/VideoPractice";
 
 // SEO Landing Pages to Beat Competition
 import FreeJobApplicationAutomation from "@/pages/seo/FreeJobApplicationAutomation";
@@ -347,8 +348,8 @@ function Router() {
                   <Route path="/chat" component={SimpleChatPage} />
                   <Route path="/messaging" component={SimpleChatPage} />
                   {/* AI Video Interview Practice Route */}
-                  <Route path="/video-practice" component={lazy(() => import("./pages/VideoPractice").catch(() => import("./pages/mock-interview")))} />
-                  <Route path="/video-practice/feedback/:sessionId" component={lazy(() => import("./pages/VirtualInterviewFeedback").catch(() => import("./pages/mock-interview-results")))} />
+                  <Route path="/video-practice" component={VideoPractice} />
+                  <Route path="/video-practice/feedback/:sessionId" component={VirtualInterviewFeedback} />
                 </>
               )}
             </>
@@ -382,8 +383,8 @@ function Router() {
               <Route path="/chat" component={SimpleChatPage} />
               <Route path="/messaging" component={SimpleChatPage} />
               {/* AI Video Interview Practice Route */}
-              <Route path="/video-practice" component={lazy(() => import("./pages/VideoPractice").catch(() => import("./pages/mock-interview")))} />
-              <Route path="/video-practice/feedback/:sessionId" component={lazy(() => import("./pages/VirtualInterviewFeedback").catch(() => import("./pages/mock-interview-results")))} />
+              <Route path="/video-practice" component={VideoPractice} />
+              <Route path="/video-practice/feedback/:sessionId" component={VirtualInterviewFeedback} />
             </>
           )}
         </>
