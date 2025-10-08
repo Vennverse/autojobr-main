@@ -561,12 +561,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Scraped jobs endpoint with pagination
+  // Scraped jobs endpoint with pagination and improved search
   app.get('/api/scraped-jobs', async (req: any, res) => {
     try {
       const search = req.query.q as string || req.query.search as string;
       const category = req.query.category as string;
       const location = req.query.location as string;
+      const country = req.query.country as string;
+      const city = req.query.city as string;
+      const workMode = req.query.work_mode as string;
+      const jobType = req.query.job_type as string;
+      const experienceLevel = req.query.experience_level as string;
       const page = parseInt(req.query.page as string) || 1;
       const pageSize = parseInt(req.query.size as string) || 25;
       const offset = (page - 1) * pageSize;
@@ -574,19 +579,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Build base query
       let conditions: any[] = [eq(scrapedJobs.isActive, true)];
       
-      // Apply filters
+      // Apply search filter with improved logic - split terms and search multiple fields
       if (search) {
-        conditions.push(
-          or(
-            like(scrapedJobs.title, `%${search}%`),
-            like(scrapedJobs.company, `%${search}%`),
-            like(scrapedJobs.description, `%${search}%`)
-          )
-        );
+        // Split search query into individual words for flexible matching
+        const searchTerms = search.toLowerCase().trim().split(/\s+/).filter(term => term.length > 2);
+        
+        if (searchTerms.length > 0) {
+          // Create OR conditions for each search term across multiple fields
+          const searchConditions = searchTerms.map(term => 
+            or(
+              like(sql`LOWER(${scrapedJobs.title})`, `%${term}%`),
+              like(sql`LOWER(${scrapedJobs.company})`, `%${term}%`),
+              like(sql`LOWER(${scrapedJobs.description})`, `%${term}%`),
+              sql`EXISTS (SELECT 1 FROM unnest(${scrapedJobs.skills}) AS skill WHERE LOWER(skill) LIKE ${`%${term}%`})`,
+              sql`EXISTS (SELECT 1 FROM unnest(${scrapedJobs.tags}) AS tag WHERE LOWER(tag) LIKE ${`%${term}%`})`
+            )
+          );
+          
+          // All search terms should match (AND logic between terms)
+          conditions.push(and(...searchConditions));
+        }
       }
       
+      // Apply location filters
       if (location) {
-        conditions.push(like(scrapedJobs.location, `%${location}%`));
+        conditions.push(like(sql`LOWER(${scrapedJobs.location})`, `%${location.toLowerCase()}%`));
+      }
+      
+      if (country) {
+        conditions.push(like(sql`LOWER(${scrapedJobs.countryCode})`, `%${country.toLowerCase()}%`));
+      }
+      
+      if (city) {
+        conditions.push(like(sql`LOWER(${scrapedJobs.city})`, `%${city.toLowerCase()}%`));
+      }
+      
+      // Apply category filter
+      if (category) {
+        conditions.push(like(sql`LOWER(${scrapedJobs.category})`, `%${category.toLowerCase()}%`));
+      }
+      
+      // Apply work mode filter
+      if (workMode) {
+        conditions.push(like(sql`LOWER(${scrapedJobs.workMode})`, `%${workMode.toLowerCase()}%`));
+      }
+      
+      // Apply job type filter
+      if (jobType) {
+        conditions.push(like(sql`LOWER(${scrapedJobs.jobType})`, `%${jobType.toLowerCase()}%`));
+      }
+      
+      // Apply experience level filter
+      if (experienceLevel) {
+        conditions.push(like(sql`LOWER(${scrapedJobs.experienceLevel})`, `%${experienceLevel.toLowerCase()}%`));
       }
       
       // Get total count
@@ -595,14 +640,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(scrapedJobs)
         .where(and(...conditions));
       
-      const total = totalResult[0]?.count || 0;
+      const total = Number(totalResult[0]?.count || 0);
       
-      // Fetch paginated jobs
+      // Fetch paginated jobs - FIXED: use postedAt instead of datePosted
       const jobs = await db
         .select()
         .from(scrapedJobs)
         .where(and(...conditions))
-        .orderBy(desc(scrapedJobs.datePosted))
+        .orderBy(desc(scrapedJobs.postedAt))
         .limit(pageSize)
         .offset(offset);
       

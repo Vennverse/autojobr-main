@@ -17,7 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from "@/components/ui/sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -451,7 +451,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     staleTime: 60000, // 1 minute
   });
 
-  // Combine scraped and platform jobs (scraped jobs are already filtered by API)
+  // Combine scraped and platform jobs with proper pagination handling
   const allJobs = useMemo(() => {
     const scrapedJobsWithMeta = jobs.map((job: any) => ({
       ...job,
@@ -462,7 +462,8 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       source: 'scraped'
     }));
 
-    const platformJobsWithMeta = platformJobs.map((job: any) => ({
+    // Only show platform jobs on first page to avoid pagination issues
+    const platformJobsWithMeta = (filters.page === 1 ? platformJobs : []).map((job: any) => ({
       ...job,
       company: job.companyName || job.company_name || job.company,
       companyName: job.companyName || job.company_name || job.company,
@@ -471,8 +472,9 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       source: 'platform'
     }));
 
+    // Platform jobs first (higher priority), then scraped jobs
     return [...platformJobsWithMeta, ...scrapedJobsWithMeta];
-  }, [jobs, platformJobs]);
+  }, [jobs, platformJobs, filters.page]);
 
   // Get user profile for compatibility scoring
   const { data: userProfile } = useQuery<UserProfile>({
