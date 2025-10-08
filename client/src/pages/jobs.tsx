@@ -23,11 +23,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Search, 
-  MapPin, 
-  Building2, 
-  Clock, 
+import {
+  Search,
+  MapPin,
+  Building2,
+  Clock,
   DollarSign,
   Eye,
   Send,
@@ -91,11 +91,11 @@ const formatJobType = (jobType?: string) => {
 
   const typeMap: { [key: string]: string } = {
     'platform': 'Full-time',
-    'scraped': 'Full-time', 
+    'scraped': 'Full-time',
     'full_time': 'Full-time',
     'part_time': 'Part-time',
     'contract': 'Contract-based',
-    'freelance': 'Freelance', 
+    'freelance': 'Freelance',
     'temporary': 'Temporary',
     'internship': 'Internship'
   };
@@ -109,7 +109,7 @@ const formatWorkMode = (workMode?: string) => {
   const modeMap: { [key: string]: string } = {
     'onsite': 'On-site',
     'remote': 'Remote',
-    'hybrid': 'Hybrid', 
+    'hybrid': 'Hybrid',
     'field': 'Field-based'
   };
 
@@ -352,7 +352,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     const newParams = new URLSearchParams(searchParams);
 
     Object.entries(newFilters).forEach(([key, value]) => {
-      if (value === undefined || value === null || value === '' || 
+      if (value === undefined || value === null || value === '' ||
           (Array.isArray(value) && value.length === 0)) {
         newParams.delete(key);
       } else if (Array.isArray(value)) {
@@ -491,8 +491,8 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     const jobSkills = job.requiredSkills || [];
 
     if (jobSkills.length > 0 && userSkills.length > 0) {
-      const skillsMatch = jobSkills.filter((skill: string) => 
-        userSkills.some((userSkill: string) => 
+      const skillsMatch = jobSkills.filter((skill: string) =>
+        userSkills.some((userSkill: string) =>
           userSkill.toLowerCase().includes(skill.toLowerCase()) ||
           skill.toLowerCase().includes(userSkill.toLowerCase())
         )
@@ -637,7 +637,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     },
     onSuccess: () => {
       toast({
-        title: "Application Submitted", 
+        title: "Application Submitted",
         description: "Your application has been sent to the recruiter!"
       });
       queryClient.invalidateQueries({ queryKey: ["/api/applications"] });
@@ -716,8 +716,8 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
           company: job.company || job.companyName,
           experienceLevel: job.experienceLevel || job.experience_level,
           jobDescription: job.description,
-          requirements: Array.isArray(job.requirements) 
-            ? job.requirements 
+          requirements: Array.isArray(job.requirements)
+            ? job.requirements
             : (job.requiredSkills || [])
         })
       });
@@ -781,7 +781,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       }
 
       // Edge case: Ensure skills is an array
-      const skills = Array.isArray(job.requiredSkills) 
+      const skills = Array.isArray(job.requiredSkills)
         ? job.requiredSkills.filter(s => s && typeof s === 'string')
         : [];
 
@@ -825,8 +825,8 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
           setSalaryInsightsData(salaryData);
 
           const medianSalary = salaryData.salaryRange?.median;
-          const salaryDisplay = medianSalary && !isNaN(medianSalary) 
-            ? `$${medianSalary.toLocaleString()}` 
+          const salaryDisplay = medianSalary && !isNaN(medianSalary)
+            ? `$${medianSalary.toLocaleString()}`
             : 'Available';
 
           toast({
@@ -994,7 +994,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                     checked={filters.job_type?.includes(type.value) || false}
                     onCheckedChange={(checked) => {
                       const current = filters.job_type || [];
-                      const updated = checked 
+                      const updated = checked
                         ? [...current, type.value]
                         : current.filter(t => t !== type.value);
                       updateFilters({ job_type: updated });
@@ -1032,7 +1032,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                     checked={filters.work_mode?.includes(mode.value) || false}
                     onCheckedChange={(checked) => {
                       const current = filters.work_mode || [];
-                      const updated = checked 
+                      const updated = checked
                         ? [...current, mode.value]
                         : current.filter(m => m !== mode.value);
                       updateFilters({ work_mode: updated });
@@ -1071,7 +1071,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                     checked={filters.experience_level?.includes(level.value) || false}
                     onCheckedChange={(checked) => {
                       const current = filters.experience_level || [];
-                      const updated = checked 
+                      const updated = checked
                         ? [...current, level.value]
                         : current.filter(l => l !== level.value);
                       updateFilters({ experience_level: updated });
@@ -1241,7 +1241,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     if (filters.date_posted) {
       const dateMap: { [key: number]: string } = {
         1: 'Last 24 hours',
-        7: 'Last 7 days', 
+        7: 'Last 7 days',
         14: 'Last 14 days',
         30: 'Last 30 days'
       };
@@ -1371,7 +1371,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/jobs';
 
     if (category) {
-      const categoryName = category.split('-').map(word => 
+      const categoryName = category.split('-').map(word =>
         word.charAt(0).toUpperCase() + word.slice(1)
       ).join(' ');
 
@@ -1389,7 +1389,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     }
 
     if (location) {
-      const locationName = location.split('-').map(word => 
+      const locationName = location.split('-').map(word =>
         word.charAt(0).toUpperCase() + word.slice(1)
       ).join(' ');
 
@@ -1407,7 +1407,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     }
 
     if (country) {
-      const countryName = country === 'usa' ? 'United States' : 
+      const countryName = country === 'usa' ? 'United States' :
                          country === 'uk' ? 'United Kingdom' :
                          country.charAt(0).toUpperCase() + country.slice(1);
 
@@ -1609,7 +1609,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                 {isAuthenticated ? 'Your Perfect Job Matches' : 'Discover Your Dream Career'}
               </h1>
               <p className="text-sm sm:text-lg text-gray-600 dark:text-gray-300 mt-2">
-                {isAuthenticated 
+                {isAuthenticated
                   ? `AI-curated opportunities based on your profile`
                   : `${pagination.total}+ jobs from top companies worldwide • AI-powered matching`}
               </p>
@@ -1663,8 +1663,8 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                     <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder={
-                        searchMode === 'smart' 
-                          ? "Try: 'Google engineer' or 'remote developer python'" 
+                        searchMode === 'smart'
+                          ? "Try: 'Google engineer' or 'remote developer python'"
                           : "Search by exact job title, company, or keywords..."
                       }
                       value={searchInput}
@@ -1871,7 +1871,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                       <Search className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
                       <h3 className="text-lg font-semibold mb-2">No jobs found</h3>
                       <p className="text-muted-foreground mb-4">
-                        {searchInput 
+                        {searchInput
                           ? `No results for "${searchInput}". Try different keywords or clear filters.`
                           : 'Try adjusting your filters or search terms'
                         }
@@ -1910,8 +1910,8 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                     </div>
 
                     <div className={
-                      viewMode === 'grid' 
-                        ? 'grid grid-cols-1 md:grid-cols-2 gap-4' 
+                      viewMode === 'grid'
+                        ? 'grid grid-cols-1 md:grid-cols-2 gap-4'
                         : viewMode === 'compact'
                         ? 'space-y-2'
                         : 'space-y-4'
@@ -1935,7 +1935,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         })
                         .map((job: any) => (
                           viewMode === 'compact' ? (
-                            <div 
+                            <div
                               key={job.id}
                               className="flex items-center gap-4 p-3 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
                               onClick={() => handleJobClick(job)}
@@ -2066,9 +2066,8 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                   Page {pagination.page} of {pagination.totalPages}
                 </p>
               </div>
-            )}
+            </div>
           </div>
-        </div>
 
           {/* Enhanced Job Detail Panel - Mobile Optimized */}
           <div className="h-full">
@@ -2096,7 +2095,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                           )}
                         </div>
                       </div>
-                      <Badge 
+                      <Badge
                         className={`flex-shrink-0 text-xs sm:text-sm bg-blue-100 text-blue-800`}
                       >
                         New
@@ -2114,7 +2113,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                           onClick={() => handleApply(selectedJob)}
                           className="bg-blue-600 hover:bg-blue-700 text-white text-sm h-9 px-4 touch-manipulation"
                         >
-                          {!isAuthenticated ? 'Sign in to Apply' : 
+                          {!isAuthenticated ? 'Sign in to Apply' :
                            selectedJob.applyType === 'external' ? (
                              <><ExternalLink className="w-4 h-4 mr-1" />Apply</>
                            ) : 'Easy Apply'}
@@ -2129,8 +2128,8 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         <Bookmark className="w-4 h-4 mr-2" />
                         <span className="hidden sm:inline">{savedJobs.has(selectedJob.id) ? 'Saved' : 'Save'}</span>
                       </Button>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="icon"
                         onClick={() => setLocation(`/jobs/${selectedJob.id}`)}
                         className="h-9 w-9 touch-manipulation"
@@ -2244,9 +2243,9 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                           </Button>
                         </div>
 
-                        {salaryInsightsData.salaryRange && 
-                         salaryInsightsData.salaryRange.median && 
-                         !isNaN(salaryInsightsData.salaryRange.median) && 
+                        {salaryInsightsData.salaryRange &&
+                         salaryInsightsData.salaryRange.median &&
+                         !isNaN(salaryInsightsData.salaryRange.median) &&
                          salaryInsightsData.salaryRange.median > 0 ? (
                           <div className="mb-4">
                             <h5 className="font-medium text-sm text-green-800 dark:text-green-200 mb-2">Salary Range ({salaryInsightsData.currency || 'USD'})</h5>
@@ -2330,9 +2329,9 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         <div>
                           <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Salary Range</span>
                           <p className="text-gray-900 dark:text-white font-medium">
-                            {selectedJob.minSalary && selectedJob.maxSalary 
+                            {selectedJob.minSalary && selectedJob.maxSalary
                               ? `$${selectedJob.minSalary.toLocaleString()} - $${selectedJob.maxSalary.toLocaleString()}`
-                              : selectedJob.minSalary 
+                              : selectedJob.minSalary
                               ? `$${selectedJob.minSalary.toLocaleString()}+`
                               : `Up to $${selectedJob.maxSalary?.toLocaleString()}`
                             }
@@ -2480,113 +2479,6 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
             )}
             </div>
           </div>
-
-          {/* Promotional Sidebar for Non-Authenticated Users */}
-          {!isAuthenticated && (
-            <div className="hidden lg:block space-y-4">
-              {/* Sign Up CTA */}
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700">
-                <CardContent className="p-6">
-                  <div className="text-center">
-                    <SparklesIcon className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                      Unlock Your Career Potential
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm">
-                      Get personalized job matches, one-click applications, and AI-powered career tools
-                    </p>
-                    <Button 
-                      onClick={() => setLocation('/auth')}
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium"
-                    >
-                      Sign Up Free
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* AI Tools Promotion */}
-              <Card className="border-0 shadow-lg bg-white dark:bg-gray-800">
-                <CardContent className="p-6">
-                  <h4 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                    <Brain className="w-5 h-5 text-purple-600" />
-                    AI-Powered Tools
-                  </h4>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex items-start gap-3">
-                      <ZapIcon className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">Resume Optimizer</p>
-                        <p className="text-gray-600 dark:text-gray-300">Beat ATS systems with AI analysis</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <MessageCircle className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">AI Interview Prep</p>
-                        <p className="text-gray-600 dark:text-gray-300">Practice with virtual interviews</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Target className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">Smart Matching</p>
-                        <p className="text-gray-600 dark:text-gray-300">Find perfect job matches instantly</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Chrome Extension Promotion */}
-              <Card className="border-0 shadow-lg bg-white dark:bg-gray-800">
-                <CardContent className="p-6">
-                  <h4 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                    <Chrome className="w-5 h-5 text-green-600" />
-                    Chrome Extension
-                  </h4>
-                  <div className="space-y-3 text-sm">
-                    <p className="text-gray-600 dark:text-gray-300">
-                      Auto-apply to 100+ jobs daily with one click
-                    </p>
-                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                      <CheckCircle className="w-4 h-4" />
-                      <span className="font-medium">10x faster applications</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                      <CheckCircle className="w-4 h-4" />
-                      <span className="font-medium">Auto-fill job forms</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                      <CheckCircle className="w-4 h-4" />
-                      <span className="font-medium">Track all applications</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Recruiter Benefits */}
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-red-50 dark:from-gray-800 dark:to-gray-700">
-                <CardContent className="p-6">
-                  <h4 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                    <Users className="w-5 h-5 text-orange-600" />
-                    For Recruiters
-                  </h4>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-3">
-                    Find top candidates 10x faster with AI-powered matching
-                  </p>
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setLocation('/auth')}
-                    className="w-full border-orange-600 text-orange-600 hover:bg-orange-50"
-                  >
-                    Hire Talent
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          )}
         </div>
       </div>
     </div>
