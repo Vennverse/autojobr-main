@@ -2672,6 +2672,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
           )}
         </div>
       </div>
+      </div>
     </div>
   );
 }
