@@ -78,7 +78,8 @@ import {
   Car,
   GraduationCap,
   Building,
-  Factory
+  Factory,
+  Loader2
 } from "lucide-react";
 import JobCard from "@/components/job-card";
 import PredictiveSuccessWidget from "@/components/PredictiveSuccessWidget";
@@ -365,6 +366,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
   const [showPromoAlert, setShowPromoAlert] = useState(true);
   const [currentPromo, setCurrentPromo] = useState(0);
   const [savedJobs, setSavedJobs] = useState<Set<number>>(new Set());
+  const [applyingJobId, setApplyingJobId] = useState<number | null>(null); // State to track applying job
 
   // Update URL when filters change
   const updateFilters = useCallback((newFilters: Partial<FilterState>) => {
@@ -654,6 +656,53 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     }
   });
 
+  // Handle Easy Apply
+  const handleEasyApply = async (job: JobPosting) => {
+    if (!isAuthenticated) {
+      setLocation('/auth');
+      return;
+    }
+
+    setApplyingJobId(job.id); // Set loading state for this job
+
+    try {
+      const response = await fetch(`/api/jobs/postings/${job.id}/apply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          resumeId: null, // Assuming default resume selection or user selection
+          coverLetter: "", // Assuming no cover letter for easy apply
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to apply. Please try again.');
+      }
+
+      toast({
+        title: "Application Sent!",
+        description: `Your application for ${job.title} has been submitted.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/applications"] }); // Refresh applications list
+
+    } catch (error) {
+      console.error("Easy Apply Error:", error);
+      let errorMessage = "An unexpected error occurred.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      toast({
+        title: "Easy Apply Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setApplyingJobId(null); // Reset loading state
+    }
+  };
+
   // Helper functions
   const appliedJobIds = Array.isArray(applications) ? applications.map((app: any) => app.jobPostingId) : [];
 
@@ -688,8 +737,8 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       }
     }
 
-    // Handle platform jobs
-    applyMutation.mutate(job.id);
+    // Handle platform jobs (Easy Apply)
+    handleEasyApply(job);
   };
 
   const handleSaveJob = (jobId: number) => {
