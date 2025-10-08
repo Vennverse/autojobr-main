@@ -73,7 +73,8 @@ import { questionBankService } from "./questionBankService";
 import seo from './routes/seo';
 
 // Import services
-import { db } from "./db";
+// Note: Redundant import of db - already imported above.
+// import { db } from "./db";
 
 // Placeholder for User type if not globally available
 type User = schema.users.$inferSelect;
@@ -549,11 +550,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const jobId = parseInt(req.params.id);
       const job = await storage.getJobPosting(jobId);
-      
+
       if (!job) {
         return res.status(404).json({ message: 'Job posting not found' });
       }
-      
+
       res.json(job);
     } catch (error) {
       console.error('[JOB POSTING ERROR]:', error);
@@ -565,7 +566,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/scraped-jobs', async (req: any, res) => {
     try {
       console.log('[SCRAPED JOBS] Request received with params:', req.query);
-      
+
       const search = req.query.q as string || req.query.search as string;
       const category = req.query.category as string;
       const location = req.query.location as string;
@@ -577,12 +578,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const page = parseInt(req.query.page as string) || 1;
       const pageSize = parseInt(req.query.size as string) || 25;
       const offset = (page - 1) * pageSize;
-      
+
       console.log('[SCRAPED JOBS] Parsed filters:', { search, category, location, country, city, workMode, jobType, experienceLevel, page, pageSize });
-      
+
       // Build base query - simplified to avoid SQL errors
       const conditions: any[] = [eq(scrapedJobs.isActive, true)];
-      
+
       // Apply search filter
       if (search && search.trim().length > 0) {
         const searchTerm = search.toLowerCase().trim();
@@ -594,52 +595,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
           )!
         );
       }
-      
+
       // Apply location filters
       if (location && location.trim().length > 0) {
         conditions.push(sql`LOWER(COALESCE(${scrapedJobs.location}, '')) LIKE ${`%${location.toLowerCase()}%`}`);
       }
-      
+
       if (country && country.trim().length > 0) {
         conditions.push(sql`LOWER(COALESCE(${scrapedJobs.countryCode}, '')) LIKE ${`%${country.toLowerCase()}%`}`);
       }
-      
+
       if (city && city.trim().length > 0) {
         conditions.push(sql`LOWER(COALESCE(${scrapedJobs.city}, '')) LIKE ${`%${city.toLowerCase()}%`}`);
       }
-      
+
       // Apply category filter
       if (category && category.trim().length > 0) {
         conditions.push(sql`LOWER(COALESCE(${scrapedJobs.category}, '')) LIKE ${`%${category.toLowerCase()}%`}`);
       }
-      
+
       // Apply work mode filter
       if (workMode && workMode.trim().length > 0) {
         conditions.push(sql`LOWER(COALESCE(${scrapedJobs.workMode}, '')) LIKE ${`%${workMode.toLowerCase()}%`}`);
       }
-      
+
       // Apply job type filter
       if (jobType && jobType.trim().length > 0) {
         conditions.push(sql`LOWER(COALESCE(${scrapedJobs.jobType}, '')) LIKE ${`%${jobType.toLowerCase()}%`}`);
       }
-      
+
       // Apply experience level filter
       if (experienceLevel && experienceLevel.trim().length > 0) {
         conditions.push(sql`LOWER(COALESCE(${scrapedJobs.experienceLevel}, '')) LIKE ${`%${experienceLevel.toLowerCase()}%`}`);
       }
-      
+
       console.log('[SCRAPED JOBS] Conditions count:', conditions.length);
-      
+
       // Get total count
       const totalResult = await db
         .select({ count: count() })
         .from(scrapedJobs)
         .where(conditions.length > 0 ? and(...conditions) : undefined);
-      
+
       const total = Number(totalResult[0]?.count || 0);
-      
+
       console.log('[SCRAPED JOBS] Total jobs found:', total);
-      
+
       // Fetch paginated jobs
       const jobs = await db
         .select()
@@ -648,9 +649,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .orderBy(desc(scrapedJobs.createdAt))
         .limit(pageSize)
         .offset(offset);
-      
+
       console.log('[SCRAPED JOBS] Returning', jobs.length, 'jobs for page', page);
-      
+
       res.json({
         jobs,
         pagination: {
@@ -999,20 +1000,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ===== VIDEO PRACTICE API ROUTES =====
-  
+
   // Start video practice session
   app.post('/api/video-practice/start', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const { role, interviewType, difficulty } = req.body;
-      
+
       // Generate session ID
       const sessionId = `vp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       // Generate questions using video practice service
       const { videoPracticeService } = await import('./videoPracticeService.js');
       const questions = await videoPracticeService.generateQuestions(role, interviewType, difficulty);
-      
+
       // Create session in database
       const session = await storage.createVideoPracticeSession({
         userId,
@@ -1025,7 +1026,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentStatus: 'pending',
         paymentAmount: 500 // $5 in cents
       });
-      
+
       res.json({
         sessionId,
         questions,
@@ -1037,19 +1038,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       handleError(res, error, 'Failed to start video practice session');
     }
   });
-  
+
   // Submit response for a question
   app.post('/api/video-practice/:sessionId/response', isAuthenticated, async (req: any, res) => {
     try {
       const { sessionId } = req.params;
       const { questionId, transcript, duration, videoAnalysis, audioAnalysis } = req.body;
-      
+
       const session = await storage.getVideoPracticeSessionBySessionId(sessionId);
       if (!session || session.userId !== req.user.id) {
         return res.status(404).json({ message: 'Session not found' });
       }
-      
+
       const responses = session.responses ? JSON.parse(session.responses) : [];
+      // Find the question object to pass to analyzeResponse
+      const currentQuestion = session.questions ? JSON.parse(session.questions).find((q: any) => q.id === questionId) : null;
+
+      if (!currentQuestion) {
+        return res.status(400).json({ message: 'Invalid question ID' });
+      }
+
+      // Placeholder for actual analysis service call
+      // In a real scenario, you would call a service here to analyze the response
+      // For now, we'll just push the data and mark as complete if all questions are answered
+
+      // Update session with new response
       responses.push({ 
         questionId, 
         transcript, 
@@ -1058,40 +1071,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         audioAnalysis: audioAnalysis || null,
         timestamp: new Date() 
       });
-      
-      const questions = JSON.parse(session.questions);
+
+      const questions = session.questions ? JSON.parse(session.questions) : [];
       const isComplete = responses.length >= questions.length;
-      
+
       await storage.updateVideoPracticeSession(session.id, {
         responses: JSON.stringify(responses),
         status: isComplete ? 'completed' : 'in_progress'
       });
-      
+
+      // After submitting response, if it's the last one, trigger analysis
+      if (isComplete) {
+        // This part needs to be integrated with the analysis flow
+        console.log(`Video practice session ${sessionId} completed. Triggering analysis...`);
+        // The actual analysis logic will be in the 'complete' endpoint.
+        // Here, we just confirm submission and completion.
+      }
+
       res.json({ success: true, isComplete });
     } catch (error) {
       handleError(res, error, 'Failed to submit response');
     }
   });
-  
+
   // Complete session and get feedback
   app.post('/api/video-practice/:sessionId/complete', isAuthenticated, async (req: any, res) => {
     try {
       const { sessionId } = req.params;
-      
+
       const session = await storage.getVideoPracticeSessionBySessionId(sessionId);
       if (!session || session.userId !== req.user.id) {
         return res.status(404).json({ message: 'Session not found' });
       }
-      
+
       const { videoPracticeService } = await import('./videoPracticeService.js');
       const responses = JSON.parse(session.responses || '[]');
       const questions = JSON.parse(session.questions);
-      
+
       // Analyze each response with video and audio data
       const analyses = [];
       for (let i = 0; i < responses.length; i++) {
+        // Find the corresponding question object
+        const question = questions.find((q: any) => q.id === responses[i].questionId);
+        if (!question) continue;
+
         const analysis = await videoPracticeService.analyzeResponse(
-          questions[i],
+          session.role, // Pass role here
+          question,
           responses[i].transcript,
           responses[i].duration,
           responses[i].videoAnalysis,
@@ -1099,16 +1125,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
         analyses.push(analysis);
       }
-      
+
       // Generate final comprehensive feedback
       const feedback = await videoPracticeService.generateFinalFeedback(session.role, analyses);
-      
+
       await storage.updateVideoPracticeSession(session.id, {
         analysis: JSON.stringify(feedback),
         overallScore: feedback.overallScore,
         completedAt: new Date()
       });
-      
+
       res.json({ feedback });
     } catch (error) {
       handleError(res, error, 'Failed to generate feedback');
@@ -4092,7 +4118,8 @@ Return ONLY the JSON object, no additional text.`;
     try {
       const { q, category, domain, difficulty } = req.query;
 
-      let query = db.select().from(schema.questionBank)
+      let query = db.select()
+        .from(schema.questionBank)
         .where(eq(schema.questionBank.isActive, true));
 
       // Apply filters
@@ -5327,411 +5354,7 @@ Skills & Technologies:
 Education:
 • Academic qualifications and degrees
 • Professional certifications and training
-• Continuing education and skill development
-
-Additional Information:
-• Professional achievements and recognition
-• Relevant projects and contributions
-• Industry involvement and networking
-        `.trim();
-      }
-
-      // Get user profile for better analysis
-      let userProfile;
-      try {
-        userProfile = await storage.getUserProfile(userId);
-      } catch (error) {
-        // Could not fetch user profile for analysis
-      }
-
-      // Get user for AI tier assessment
-      const user = await storage.getUser(userId);
-
-      // STEP 2: Analyze resume with GROQ AI (as fallback for detailed analysis)
-      let analysis;
-      try {
-        console.log('🤖 Attempting GROQ AI analysis for detailed insights...');
-        analysis = await groqService.analyzeResume(resumeText, userProfile, user);
-
-        // Ensure analysis has required properties
-        if (!analysis || typeof analysis.atsScore === 'undefined') {
-          throw new Error('Invalid analysis response from GROQ');
-        }
-        console.log('✅ GROQ analysis completed successfully');
-      } catch (analysisError) {
-        console.error('❌ GROQ analysis failed:', analysisError);
-        console.log('🔄 Using NLP-based fallback analysis (estimated scores)...');
-
-        // Generate better fallback scores based on NLP parsing success
-        const baseScore = parsedData && Object.keys(parsedData).length > 3 ? 80 : 65;
-
-        analysis = {
-          atsScore: baseScore,
-          recommendations: [
-            "Resume successfully parsed with NLP analysis",
-            "AI analysis temporarily unavailable - scores are estimated"
-          ],
-          keywordOptimization: {
-            missingKeywords: [],
-            overusedKeywords: [],
-            suggestions: ["Resume parsing completed with local NLP methods"]
-          },
-          formatting: {
-            score: baseScore,
-            issues: [],
-            improvements: ["Resume structure analyzed"]
-          },
-          content: {
-            strengthsFound: ["Professional resume format detected", "Contact information extracted"],
-            weaknesses: [],
-            suggestions: ["Detailed AI analysis will be available when service is restored"]
-          }
-        };
-
-        console.log(`📊 Fallback analysis generated with ${baseScore}% estimated ATS score`);
-      }
-
-      // Get existing resumes count from database
-      const existingResumes = await storage.getUserResumes(userId);
-
-      // Check resume upload limits using premium features service
-      const { premiumFeaturesService } = await import('./premiumFeaturesService');
-      const limitCheck = await premiumFeaturesService.checkFeatureLimit(userId, 'resumeUploads');
-
-      if (!limitCheck.allowed) {
-        return res.status(400).json({ 
-          message: `You've reached your resume upload limit of ${limitCheck.limit}. Upgrade to Premium for unlimited resumes.`,
-          upgradeRequired: true,
-          current: limitCheck.current,
-          limit: limitCheck.limit,
-          planType: limitCheck.planType
-        });
-      }
-
-      // Store physical file using FileStorageService (not in database)
-      const storedFile = await fileStorage.storeResume(file, userId);
-      console.log(`[FILE_STORAGE] Resume file stored with ID: ${storedFile.id}`);
-
-      // Create metadata entry for database storage (no file data)
-      const resumeData = {
-        name: req.body.name || file.originalname.replace(/\.[^/.]+$/, "") || "New Resume",
-        fileName: file.originalname,
-        filePath: storedFile.id, // Store file ID for retrieval, not full path
-        isActive: existingResumes.length === 0, // First resume is active by default
-        atsScore: analysis.atsScore,
-        analysis: analysis,
-        resumeText: resumeText,
-        fileSize: file.size,
-        mimeType: file.mimetype
-        // fileData is intentionally omitted - physical files stored on file system
-      };
-
-      // Store metadata in database (no physical file data)
-      const newResume = await storage.storeResume(userId, resumeData);
-
-      // Invalidate user cache after resume upload
-      invalidateUserCache(userId);
-
-      console.log('Resume upload successful for user:', userId);
-      return res.json({ 
-        success: true,
-        analysis: analysis,
-        fileName: file.originalname,
-        message: "Resume uploaded and analyzed successfully",
-        resume: newResume,
-        parsedData: parsedData // Include parsed data for auto-filling onboarding form
-      });
-    } catch (error) {
-      console.error("=== RESUME UPLOAD ERROR ===");
-      console.error("Error details:", error);
-      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
-      console.error("User ID:", req.user?.id);
-      console.error("File info:", req.file ? {
-        name: req.file.originalname,
-        size: req.file.size,
-        type: req.file.mimetype
-      } : 'No file');
-      console.error("=== END ERROR LOG ===");
-
-      res.status(500).json({ 
-        message: "Failed to upload resume",
-        error: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : 'Unknown error') : 'Internal server error',
-        success: false
-      });
-      return;
-    }
-  });
-
-  // Set active resume endpoint
-  app.post('/api/resumes/:id/set-active', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const resumeId = parseInt(req.params.id);
-
-      // Setting active resume
-
-      // Set all user resumes to inactive in database
-      await db.update(schema.resumes)
-        .set({ isActive: false })
-        .where(eq(schema.resumes.userId, userId));
-
-      // Set the selected resume to active
-      const result = await db.update(schema.resumes)
-        .set({ isActive: true })
-        .where(and(
-          eq(schema.resumes.id, resumeId),
-          eq(schema.resumes.userId, userId)
-        ))
-        .returning();
-
-      if (result.length === 0) {
-        return res.status(404).json({ message: "Resume not found" });
-      }
-
-      // Clear cache
-      const cacheKey = `resumes_${userId}`;
-      cache.delete(cacheKey);
-
-      res.json({ message: "Active resume updated successfully" });
-    } catch (error) {
-      console.error("Error setting active resume:", error);
-      res.status(500).json({ message: "Failed to set active resume" });
-    }
-  });
-
-  app.get('/api/resumes', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const cacheKey = `resumes_${userId}`;
-
-      // Check cache first (user-scoped)
-      const cachedResumes = getCached(cacheKey, userId);
-      if (cachedResumes) {
-        return res.json(cachedResumes);
-      }
-
-      // Fetching resumes for user
-
-      // Use the database storage service to get resumes
-      const resumes = await storage.getUserResumes(userId);
-
-      // Cache resumes for 1 minute (user-scoped)
-      setCache(cacheKey, resumes, 60000, userId);
-
-      // Returning resumes for user
-      res.json(resumes);
-    } catch (error) {
-      console.error("Error fetching resumes:", error);
-      res.status(500).json({ message: "Failed to fetch resumes" });
-    }
-  });
-
-  // Download resume file - FIXED: Using resumes table with proper security
-  app.get('/api/resumes/:id/download', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const resumeId = parseInt(req.params.id);
-
-      // Get resume record from resumes table with ownership verification
-      const [resume] = await db.select().from(resumes).where(
-        and(eq(resumes.id, resumeId), eq(resumes.userId, userId))
-      );
-
-      if (!resume) {
-        return res.status(404).json({ message: "Resume not found" });
-      }
-
-      let fileBuffer: Buffer;
-
-      // Handle both database and filesystem storage
-      if (resume.fileData) {
-        // Database storage: decode base64
-        fileBuffer = Buffer.from(resume.fileData, 'base64');
-      } else if (resume.filePath) {
-        // Filesystem storage: SECURE - use exact path from ownership-validated record
-        try {
-          const fs = await import('fs/promises');
-          const path = await import('path');
-          const zlib = await import('zlib');
-
-          // Use the exact filePath from the ownership-validated resumes record
-          const fullPath = path.resolve(resume.filePath);
-
-          // Security check: ensure path is within expected uploads directory
-          const uploadsDir = path.resolve('./uploads');
-          if (!fullPath.startsWith(uploadsDir)) {
-            console.error(`Security violation: attempted access to ${fullPath} outside uploads directory`);
-            return res.status(403).json({ message: "Access denied" });
-          }
-
-          // Read file directly from validated path
-          const rawBuffer = await fs.readFile(fullPath);
-
-          // Handle compressed files (if path ends with .gz)
-          if (fullPath.endsWith('.gz')) {
-            fileBuffer = await new Promise((resolve, reject) => {
-              zlib.gunzip(rawBuffer, (err, decompressed) => {
-                if (err) reject(err);
-                else resolve(decompressed);
-              });
-            });
-          } else {
-            fileBuffer = rawBuffer;
-          }
-
-          console.log(`✅ Secure file access: userId=${userId}, file=${resume.fileName}, size=${fileBuffer.length} bytes`);
-        } catch (error) {
-          console.error(`File access error for userId=${userId}, path=${resume.filePath}:`, error);
-          return res.status(404).json({ message: "Resume file not found in storage" });
-        }
-      } else {
-        return res.status(404).json({ message: "Resume file data not available" });
-      }
-
-      // Set appropriate headers
-      res.setHeader('Content-Type', resume.mimeType || 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="${resume.fileName}"`);
-      res.setHeader('Content-Length', fileBuffer.length);
-
-      res.send(fileBuffer);
-    } catch (error) {
-      console.error("Error downloading resume:", error);
-      res.status(500).json({ message: "Failed to download resume" });
-    }
-  });
-
-  // Resume download route for recruiters (from job applications)
-  app.get('/api/recruiter/resume/download/:applicationId', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const applicationId = parseInt(req.params.applicationId);
-      const user = await storage.getUser(userId);
-
-      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
-        return res.status(403).json({ message: "Access denied. Recruiter account required." });
-      }
-
-      // Get application  
-      const application = await storage.getJobPostingApplication(applicationId);
-      if (!application) {
-        return res.status(404).json({ message: "Application not found" });
-      }
-
-      // Get job posting to verify recruiter owns it
-      const jobPosting = await storage.getJobPosting(application.jobPostingId);
-      if (!jobPosting || jobPosting.recruiterId !== userId) {
-        return res.status(403).json({ message: "Access denied. You can only download resumes from your job postings." });
-      }
-
-      // Get applicant's active resume using the modern file storage system
-      const applicantId = application.applicantId;
-
-      let resume;
-      try {
-        // Get applicant's resumes from database
-        const applicantResumes = await storage.getUserResumes(applicantId);
-        const activeResume = applicantResumes.find((r: any) => r.isActive) || applicantResumes[0];
-
-        if (!activeResume) {
-          return res.status(404).json({ message: "No resume found for this applicant" });
-        }
-
-        // Retrieve the file from file storage using the stored file ID
-        const fileBuffer = await fileStorage.retrieveResume(activeResume.filePath, applicantId);
-
-        if (!fileBuffer) {
-          return res.status(404).json({ message: "Resume file not found in storage" });
-        }
-
-        resume = {
-          fileBuffer: fileBuffer,
-          fileName: activeResume.fileName || 'resume.pdf',
-          mimeType: activeResume.mimeType || 'application/pdf'
-        };
-
-      } catch (error) {
-        console.error("Error fetching applicant resume:", error);
-        return res.status(500).json({ message: "Error retrieving resume" });
-      }
-
-      if (!resume || !resume.fileBuffer) {
-        return res.status(404).json({ message: "Resume not found or not available for download" });
-      }
-
-  // Set appropriate headers and send file
-  res.setHeader('Content-Type', resume.mimeType || 'application/octet-stream');
-  res.setHeader('Content-Disposition', `attachment; filename="${resume.fileName}"`);
-  res.setHeader('Content-Length', String(resume.fileBuffer.length));
-
-      res.send(resume.fileBuffer);
-    } catch (error) {
-      console.error("Error downloading resume:", error);
-      res.status(500).json({ message: "Failed to download resume" });
-    }
-  });
-
-  // AI Resume Improvement endpoint
-  app.post('/api/ai/resume-improvements', isAuthenticated, async (req: any, res) => {
-    try {
-      const { resumeText, jobDescription } = req.body;
-
-      if (!resumeText || resumeText.trim().length === 0) {
-        return res.status(400).json({ message: "Resume text is required" });
-      }
-
-      const prompt = `You are an expert resume writer and career advisor. Analyze the following resume and provide specific, actionable improvements.
-
-RESUME CONTENT:
-${resumeText}
-
-${jobDescription ? `TARGET JOB DESCRIPTION:\n${jobDescription}\n\n` : ''}
-
-Provide improvements in the following JSON format:
-{
-  "summary": "Brief overall assessment of the resume (2-3 sentences)",
-  "strengths": ["strength 1", "strength 2", "strength 3"],
-  "improvements": [
-    {
-      "section": "Section name (e.g., 'Professional Summary', 'Work Experience', 'Skills')",
-      "issue": "What's wrong with the current content",
-      "suggestion": "Specific improvement suggestion",
-      "example": "Improved version of the text"
-    }
-  ],
-  "keywordSuggestions": ["keyword1", "keyword2", "keyword3"],
-  "atsScore": 75,
-  "impactMetrics": {
-    "beforeImpact": "Current impact level (Low/Medium/High)",
-    "afterImpact": "Potential impact level after improvements (Low/Medium/High)",
-    "quantificationScore": 65
-  }
-}
-
-Focus on:
-1. Adding quantifiable achievements and metrics
-2. Using strong action verbs
-3. Tailoring content to the job description (if provided)
-4. Improving ATS compatibility
-5. Making accomplishments more impactful
-
-Return ONLY the JSON object, no additional text.`;
-
-      console.log('🤖 Generating AI resume improvements...');
-
-      const aiResponse = await aiService.createChatCompletion([
-        { role: 'system', content: 'You are an expert resume writer. Always respond with valid JSON only.' },
-        { role: 'user', content: prompt }
-      ], {
-        temperature: 0.7,
-        max_tokens: 3000,
-        user: req.user
-      });
-
-      // Parse AI response
-      let improvements;
-      try {
-        const content = aiResponse.choices[0]?.message?.content || '{}';
-        const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) || content.match(/(\{[\s\S]*\})/);
+• Continuing education and(?:json)?\s*(\{[\s\S]*\})\s*```/) || content.match(/(\{[\s\S]*\})/);
         const jsonStr = jsonMatch ? jsonMatch[1] : content;
         improvements = JSON.parse(jsonStr);
         console.log('✅ AI resume improvements generated successfully');

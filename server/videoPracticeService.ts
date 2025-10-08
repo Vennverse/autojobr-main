@@ -24,13 +24,14 @@ export class VideoPracticeService {
   async generateQuestions(
     role: string,
     interviewType: string,
-    difficulty: string
+    difficulty: string,
+    company?: string
   ): Promise<VideoPracticeQuestion[]> {
     const questions: VideoPracticeQuestion[] = [];
-    const isTechnical = interviewType === 'technical';
+    const isTechnical = interviewType?.toLowerCase() === 'technical';
     
     // Check if AI service is available
-    const isAIAvailable = !aiService['developmentMode'];
+    const isAIAvailable = aiService && aiService.createChatCompletion && !aiService['developmentMode'];
     
     // First 3 questions: Always General/Behavioral (realistic interview flow)
     const companyContext = company ? ` at ${company}` : '';
@@ -66,7 +67,8 @@ export class VideoPracticeService {
             max_tokens: 150
           });
 
-          questionText = aiResponse.choices[0]?.message?.content?.trim() || fallbackBehavioral[i];
+          const text = aiResponse.choices?.[0]?.message?.content?.trim();
+          questionText = text && text.length > 10 ? text : fallbackBehavioral[i];
         } catch (error) {
           console.log(`AI question generation failed, using fallback for question ${i + 1}`);
           questionText = fallbackBehavioral[i];
@@ -182,6 +184,7 @@ export class VideoPracticeService {
   }
 
   async analyzeResponse(
+    role: string,
     question: any,
     transcript: string,
     duration: number,
@@ -608,9 +611,11 @@ async function generateComprehensiveFeedback(
   };
 }
 
+const serviceInstance = new VideoPracticeService();
+
 export const videoPracticeService = {
-  generateQuestions: new VideoPracticeService().generateQuestions.bind(new VideoPracticeService()),
-  analyzeResponse: new VideoPracticeService().analyzeResponse.bind(new VideoPracticeService()),
-  generateFinalFeedback: new VideoPracticeService().generateFinalFeedback.bind(new VideoPracticeService()),
+  generateQuestions: serviceInstance.generateQuestions.bind(serviceInstance),
+  analyzeResponse: serviceInstance.analyzeResponse.bind(serviceInstance),
+  generateFinalFeedback: serviceInstance.generateFinalFeedback.bind(serviceInstance),
   generateComprehensiveFeedback
 };

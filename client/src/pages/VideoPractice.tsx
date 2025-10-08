@@ -84,9 +84,11 @@ export default function VideoPractice() {
     try {
       // First check if media devices are available
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Media devices not supported in this browser');
+        throw new Error('Media devices not supported in this browser. Please use Chrome, Firefox, or Safari.');
       }
 
+      console.log('Requesting camera and microphone permissions...');
+      
       // Request permissions with optimal settings
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
@@ -97,9 +99,12 @@ export default function VideoPractice() {
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true
+          autoGainControl: true,
+          sampleRate: 48000
         }
       });
+      
+      console.log('Permissions granted. Video tracks:', stream.getVideoTracks().length, 'Audio tracks:', stream.getAudioTracks().length);
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -111,11 +116,24 @@ export default function VideoPractice() {
           };
         });
         streamRef.current = stream;
+        
+        // Verify both video and audio tracks
+        const videoTracks = stream.getVideoTracks();
+        const audioTracks = stream.getAudioTracks();
+        
+        if (videoTracks.length === 0) {
+          throw new Error('No camera detected or camera access denied');
+        }
+        
+        if (audioTracks.length === 0) {
+          throw new Error('No microphone detected or microphone access denied');
+        }
+        
         setIsVideoReady(true);
         
         toast({
-          title: "Camera Ready",
-          description: "Camera and microphone initialized successfully",
+          title: "✅ Ready to Record",
+          description: `Camera: ${videoTracks[0].label || 'Active'} | Microphone: ${audioTracks[0].label || 'Active'}`,
         });
       }
     } catch (error: any) {
@@ -164,6 +182,16 @@ export default function VideoPractice() {
 
     try {
       setLoading(true);
+      
+      // Check permissions before starting
+      try {
+        const permissions = await navigator.permissions.query({ name: 'camera' as PermissionName });
+        const audioPermissions = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+        
+        console.log('Camera permission:', permissions.state, 'Microphone permission:', audioPermissions.state);
+      } catch (e) {
+        console.log('Permission API not available, will request directly');
+      }
       
       // Initialize video stream first
       await initializeVideoStream();
@@ -304,6 +332,23 @@ export default function VideoPractice() {
       // Initialize audio analysis
       audioAnalysisRef.current = new SimpleAudioAnalysis();
       await audioAnalysisRef.current.start(streamRef.current!);
+      
+      // Monitor audio levels to verify microphone is working
+      const checkAudioInterval = setInterval(() => {
+        if (audioAnalysisRef.current) {
+          const analysis = audioAnalysisRef.current.getAnalysis();
+          setAudioLevel(analysis.avgVolume);
+          
+          // Warn if no audio detected after 5 seconds
+          if (recordingTime === 5 && analysis.avgVolume < 0.01) {
+            toast({
+              title: "⚠️ No Audio Detected",
+              description: "Please check your microphone. Speak closer to it.",
+              variant: "destructive"
+            });
+          }
+        }
+      }, 1000);
 
       // Initialize face analysis
       if (videoRef.current) {
