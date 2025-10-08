@@ -1685,13 +1685,13 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         </div>
       </div>
 
-      {/* Main Content - LinkedIn Style: Fixed Height, Independent Scrolling */}
-      <div className="w-full overflow-hidden" style={{ height: 'calc(100vh - 160px)' }}>
-        <div className="max-w-7xl mx-auto h-full px-2 sm:px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 h-full">
+      {/* Main Content - Scrollable Panes with Page Flow */}
+      <div className="w-full">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
             {/* Job List Panel - Left Side (2/5 width) */}
-            <div className="lg:col-span-2 h-full flex flex-col bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="flex-1 overflow-y-auto px-2 py-2 scrollbar-thin" style={{ scrollbarWidth: 'thin', scrollbarColor: '#9ca3af #f1f1f1' }}>
+            <div className="lg:col-span-2 flex flex-col bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" style={{ maxHeight: '80vh' }}>
+              <div className="flex-1 overflow-y-auto px-2 py-2 scrollbar-thin" style={{ scrollbarWidth: 'auto', scrollbarColor: '#6b7280 #f1f1f1' }}>
             {jobsLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <Card key={i} className="border-0 shadow-sm">
@@ -1899,8 +1899,8 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
           </div>
 
           {/* Job Details Panel - Right Side (3/5 width) */}
-          <div className="lg:col-span-3 h-full flex flex-col bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div className="flex-1 overflow-y-auto p-3 scrollbar-thin" style={{ scrollbarWidth: 'thin', scrollbarColor: '#9ca3af #f1f1f1' }}>
+          <div className="lg:col-span-3 flex flex-col bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" style={{ maxHeight: '80vh' }}>
+            <div className="flex-1 overflow-y-auto p-3 scrollbar-thin" style={{ scrollbarWidth: 'auto', scrollbarColor: '#6b7280 #f1f1f1' }}>
             {selectedJob ? (
               <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
                 <CardContent className="p-3">
