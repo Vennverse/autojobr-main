@@ -29,6 +29,9 @@ export class VideoPracticeService {
     const questions: VideoPracticeQuestion[] = [];
     const isTechnical = interviewType === 'technical';
     
+    // Check if AI service is available
+    const isAIAvailable = !aiService['developmentMode'];
+    
     // First 3 questions: Always General/Behavioral (realistic interview flow)
     const behavioralPrompts = [
       `Generate a realistic behavioral interview question for ${role} at ${difficulty} level. Focus on past experiences and challenges. The candidate will record a 60-90 second video answer.`,
@@ -36,23 +39,38 @@ export class VideoPracticeService {
       `Generate a situational question for ${role} about professional challenges or decision-making. Make it specific to their role but realistic.`
     ];
 
-    for (let i = 0; i < 3; i++) {
-      const aiResponse = await aiService.createChatCompletion([
-        {
-          role: 'system',
-          content: 'You are an experienced interviewer. Generate ONE realistic interview question that would actually be asked in real interviews. No theoretical puzzles, just practical questions about experience and approach.'
-        },
-        {
-          role: 'user',
-          content: behavioralPrompts[i]
-        }
-      ], {
-        temperature: 0.7,
-        max_tokens: 150
-      });
+    // Fallback questions for when AI is unavailable
+    const fallbackBehavioral = [
+      `Tell me about a challenging project you worked on as a ${role}. What was the situation, what actions did you take, and what was the result?`,
+      `Describe a time when you had to work under a tight deadline as a ${role}. How did you prioritize your tasks and ensure quality?`,
+      `Give me an example of a time when you had to collaborate with a difficult team member. How did you handle the situation?`
+    ];
 
-      const questionText = aiResponse.choices[0]?.message?.content?.trim() || 
-        `Tell me about a challenging ${i === 0 ? 'project' : i === 1 ? 'deadline situation' : 'team collaboration experience'} in your ${role.toLowerCase()} work.`;
+    for (let i = 0; i < 3; i++) {
+      let questionText = fallbackBehavioral[i];
+      
+      if (isAIAvailable) {
+        try {
+          const aiResponse = await aiService.createChatCompletion([
+            {
+              role: 'system',
+              content: 'You are an experienced interviewer. Generate ONE realistic interview question that would actually be asked in real interviews. No theoretical puzzles, just practical questions about experience and approach.'
+            },
+            {
+              role: 'user',
+              content: behavioralPrompts[i]
+            }
+          ], {
+            temperature: 0.7,
+            max_tokens: 150
+          });
+
+          questionText = aiResponse.choices[0]?.message?.content?.trim() || fallbackBehavioral[i];
+        } catch (error) {
+          console.log(`AI question generation failed, using fallback for question ${i + 1}`);
+          questionText = fallbackBehavioral[i];
+        }
+      }
 
       questions.push({
         id: `q${i + 1}`,
@@ -64,7 +82,13 @@ export class VideoPracticeService {
 
     // Next 3 questions: Technical OR Domain-specific
     if (isTechnical) {
-      // For technical roles: Ask about logic, flow, approach (NO code execution)
+      // Fallback technical questions
+      const fallbackTechnical = [
+        `Explain your approach to optimizing a database query that's running slowly. Walk through your thought process verbally - we want your logic and troubleshooting methodology, not code execution.`,
+        `Describe how you would debug a production issue where users are reporting intermittent errors. What's your systematic approach to identifying and resolving the problem?`,
+        `Explain how you would design a scalable system to handle 1 million concurrent users. Walk through your architecture decisions and reasoning verbally.`
+      ];
+
       const technicalPrompts = [
         `Generate a technical question for ${role} asking them to EXPLAIN their approach to a coding problem. Emphasize: "Explain your thought process verbally, no code execution needed - just walk through your logic and approach."`,
         `Generate a debugging scenario question for ${role}. Ask them to explain how they would debug or optimize something. Focus on their problem-solving approach, not actual code.`,
@@ -72,22 +96,30 @@ export class VideoPracticeService {
       ];
 
       for (let i = 0; i < 3; i++) {
-        const aiResponse = await aiService.createChatCompletion([
-          {
-            role: 'system',
-            content: 'You are a technical interviewer. Generate questions that assess problem-solving and technical thinking. Explicitly tell candidates to EXPLAIN their approach verbally - we want their logic and thought process, NOT running code.'
-          },
-          {
-            role: 'user',
-            content: technicalPrompts[i]
-          }
-        ], {
-          temperature: 0.6,
-          max_tokens: 200
-        });
+        let questionText = fallbackTechnical[i];
+        
+        if (isAIAvailable) {
+          try {
+            const aiResponse = await aiService.createChatCompletion([
+              {
+                role: 'system',
+                content: 'You are a technical interviewer. Generate questions that assess problem-solving and technical thinking. Explicitly tell candidates to EXPLAIN their approach verbally - we want their logic and thought process, NOT running code.'
+              },
+              {
+                role: 'user',
+                content: technicalPrompts[i]
+              }
+            ], {
+              temperature: 0.6,
+              max_tokens: 200
+            });
 
-        const questionText = aiResponse.choices[0]?.message?.content?.trim() || 
-          `Explain your approach to ${i === 0 ? 'optimizing a slow database query' : i === 1 ? 'debugging a production issue' : 'designing a scalable system'}. Walk through your thought process verbally - we want your logic, not code execution.`;
+            questionText = aiResponse.choices[0]?.message?.content?.trim() || fallbackTechnical[i];
+          } catch (error) {
+            console.log(`AI technical question generation failed, using fallback for question ${i + 4}`);
+            questionText = fallbackTechnical[i];
+          }
+        }
 
         questions.push({
           id: `q${i + 4}`,
@@ -97,7 +129,13 @@ export class VideoPracticeService {
         });
       }
     } else {
-      // For non-technical roles: Domain-specific questions with written + verbal
+      // Fallback domain questions
+      const fallbackDomain = [
+        `How would you develop a strategy to improve team productivity in your role as ${role}? Explain your approach and the key factors you would consider.`,
+        `Describe how you would handle a major challenge or crisis situation in your domain. Walk through your decision-making process and priorities.`,
+        `Explain how you would improve an existing process or workflow in your field. What steps would you take and how would you measure success?`
+      ];
+
       const domainPrompts = [
         `Generate a practical ${role} question about strategy or planning. The candidate will write a brief answer and then explain their reasoning verbally.`,
         `Generate a ${role} question about solving a real-world challenge in their domain. They'll provide written response and verbal explanation.`,
@@ -105,22 +143,30 @@ export class VideoPracticeService {
       ];
 
       for (let i = 0; i < 3; i++) {
-        const aiResponse = await aiService.createChatCompletion([
-          {
-            role: 'system',
-            content: `You are interviewing for a ${role} position. Generate practical, domain-specific questions that real hiring managers ask. The candidate will write their answer AND explain verbally.`
-          },
-          {
-            role: 'user',
-            content: domainPrompts[i]
-          }
-        ], {
-          temperature: 0.6,
-          max_tokens: 200
-        });
+        let questionText = fallbackDomain[i];
+        
+        if (isAIAvailable) {
+          try {
+            const aiResponse = await aiService.createChatCompletion([
+              {
+                role: 'system',
+                content: `You are interviewing for a ${role} position. Generate practical, domain-specific questions that real hiring managers ask. The candidate will write their answer AND explain verbally.`
+              },
+              {
+                role: 'user',
+                content: domainPrompts[i]
+              }
+            ], {
+              temperature: 0.6,
+              max_tokens: 200
+            });
 
-        const questionText = aiResponse.choices[0]?.message?.content?.trim() || 
-          `How would you ${i === 0 ? 'develop a strategy for' : i === 1 ? 'handle a challenge in' : 'improve the process of'} [domain-specific scenario]? Write your answer and explain your reasoning verbally.`;
+            questionText = aiResponse.choices[0]?.message?.content?.trim() || fallbackDomain[i];
+          } catch (error) {
+            console.log(`AI domain question generation failed, using fallback for question ${i + 4}`);
+            questionText = fallbackDomain[i];
+          }
+        }
 
         questions.push({
           id: `q${i + 4}`,
