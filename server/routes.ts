@@ -579,25 +579,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Build base query
       let conditions: any[] = [eq(scrapedJobs.isActive, true)];
       
-      // Apply search filter with improved logic - split terms and search multiple fields
+      // Apply search filter
       if (search) {
-        // Split search query into individual words for flexible matching
-        const searchTerms = search.toLowerCase().trim().split(/\s+/).filter(term => term.length > 2);
-        
-        if (searchTerms.length > 0) {
-          // Create OR conditions for each search term across multiple fields
-          const searchConditions = searchTerms.map(term => 
-            or(
-              like(sql`LOWER(${scrapedJobs.title})`, `%${term}%`),
-              like(sql`LOWER(${scrapedJobs.company})`, `%${term}%`),
-              like(sql`LOWER(${scrapedJobs.description})`, `%${term}%`),
-              sql`EXISTS (SELECT 1 FROM unnest(${scrapedJobs.skills}) AS skill WHERE LOWER(skill) LIKE ${`%${term}%`})`,
-              sql`EXISTS (SELECT 1 FROM unnest(${scrapedJobs.tags}) AS tag WHERE LOWER(tag) LIKE ${`%${term}%`})`
-            )
+        const searchTerm = search.toLowerCase().trim();
+        if (searchTerm.length > 0) {
+          const searchCondition = or(
+            like(sql`LOWER(${scrapedJobs.title})`, `%${searchTerm}%`),
+            like(sql`LOWER(${scrapedJobs.company})`, `%${searchTerm}%`),
+            like(sql`LOWER(${scrapedJobs.description})`, `%${searchTerm}%`)
           );
-          
-          // All search terms should match (AND logic between terms)
-          conditions.push(and(...searchConditions));
+          if (searchCondition) conditions.push(searchCondition);
         }
       }
       
@@ -642,12 +633,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const total = Number(totalResult[0]?.count || 0);
       
-      // Fetch paginated jobs - FIXED: use postedAt instead of datePosted
+      // Fetch paginated jobs
       const jobs = await db
         .select()
         .from(scrapedJobs)
         .where(and(...conditions))
-        .orderBy(desc(scrapedJobs.postedAt))
+        .orderBy(desc(scrapedJobs.createdAt))
         .limit(pageSize)
         .offset(offset);
       

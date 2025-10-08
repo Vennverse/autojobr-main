@@ -418,10 +418,13 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[JOBS_PAGE] Scraped jobs error:', errorText);
         throw new Error(`Failed to fetch jobs: ${response.status}`);
       }
 
-      return response.json();
+      const data = await response.json();
+      return data;
     },
     staleTime: 30000, // 30 seconds
     gcTime: 300000, // 5 minutes
