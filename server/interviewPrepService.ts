@@ -1148,9 +1148,6 @@ export class InterviewPrepService {
     // Get company type insights
     const companyTypeInsights = this.getCompanyTypeInsights(companyType, company);
 
-    // Get location insights
-    const locationInsights = this.getLocationInsights(location);
-
     // Timeline estimation
     const timeline = this.estimateTimeline(companyType, experienceLevel);
 
@@ -1436,7 +1433,7 @@ export class InterviewPrepService {
     }
 
     return [
-      'How do you build and grow high-performing teams?',
+      'How do you build and scale high-performing teams?',
       'Describe your approach to mentoring and coaching',
       'How do you handle underperformance?',
       'Tell me about a time you had to make a difficult people decision',
@@ -1861,6 +1858,119 @@ export class InterviewPrepService {
     };
 
     return [...universalRedFlags, ...roleRedFlags, ...companyTypeFlags[companyType]];
+  }
+
+  async generateInterviewPrep(data: z.infer<typeof interviewPrepSchema>): Promise<InterviewPreparation> {
+    try {
+      const { jobTitle, company, companyType, experienceLevel, location, jobDescription, requirements, interviewRound } = data;
+
+      // Get role-specific technical topics
+      const normalizedRole = jobTitle.toLowerCase();
+      const technicalTopics = ROLE_TECHNICAL_TOPICS[normalizedRole] || ROLE_TECHNICAL_TOPICS['software engineer'];
+
+      // Get role-specific insights
+      const roleInsights = this.getRoleInsights(jobTitle);
+
+      // Generate questions based on role, experience, and round
+      const questions = this.generateQuestions(jobTitle, experienceLevel, interviewRound, requirements);
+
+      // Generate comprehensive tips
+      const tips = this.generateTips(jobTitle, companyType, experienceLevel, location);
+
+      // Generate preparation checklist
+      const preparationChecklist = this.generateChecklist(jobTitle, experienceLevel, interviewRound);
+
+      // Generate resources
+      const resources = this.generateResources(jobTitle, experienceLevel);
+
+      // Get company type insights
+      const companyTypeData = this.getCompanyTypeInsights(companyType, company || '');
+
+      // Timeline estimation
+      const timeline = this.estimateTimeline(companyType, experienceLevel);
+
+      // Red flags to avoid
+      const redFlags = this.getRedFlags(jobTitle, experienceLevel, companyType);
+
+      return {
+        roleInsights,
+        questions,
+        technicalTopics,
+        tips: {
+          ...tips,
+          location: this.getLocationInsights(location).culturalNotes,
+          negotiation: this.getLocationInsights(location).negotiationTips
+        },
+        preparationChecklist,
+        resources,
+        timeline,
+        redFlags,
+        ...(companyTypeData && { companyTypeInsights: companyTypeData })
+      };
+    } catch (error) {
+      console.error('Error generating interview prep:', error);
+
+      // Return fallback preparation
+      return {
+        roleInsights: {
+          overview: `Prepare for a ${data.jobTitle} position by focusing on core technical skills and behavioral competencies.`,
+          keySkills: ['Communication', 'Problem-solving', 'Technical expertise', 'Team collaboration'],
+          commonChallenges: ['Technical assessments', 'System design questions', 'Behavioral interviews'],
+          interviewFocus: ['Past experience', 'Technical depth', 'Cultural fit', 'Problem-solving approach']
+        },
+        questions: {
+          behavioral: [
+            'Tell me about yourself and your experience.',
+            'Describe a challenging project you worked on.',
+            'How do you handle tight deadlines?'
+          ],
+          technical: [
+            'Explain your approach to problem-solving.',
+            'What technologies are you most comfortable with?',
+            'Walk me through a recent technical challenge.'
+          ],
+          systemDesign: [],
+          situational: [],
+          leadership: []
+        },
+        technicalTopics: {
+          mustKnow: ['Core technical skills', 'Industry fundamentals', 'Best practices'],
+          shouldKnow: ['Advanced concepts', 'Tools and frameworks', 'Methodologies'],
+          niceToHave: ['Emerging technologies', 'Specialized knowledge']
+        },
+        tips: {
+          general: ['Research the company', 'Prepare STAR stories', 'Ask thoughtful questions'],
+          technical: ['Review fundamentals', 'Practice coding', 'Understand trade-offs'],
+          behavioral: ['Use specific examples', 'Quantify achievements', 'Show growth mindset'],
+          negotiation: ['Know your worth', 'Consider total compensation', 'Be prepared to discuss']
+        },
+        preparationChecklist: [
+          {
+            category: 'Research',
+            items: ['Company background', 'Role requirements', 'Team structure'],
+            priority: 'high' as const
+          },
+          {
+            category: 'Technical Prep',
+            items: ['Review key concepts', 'Practice problems', 'Build projects'],
+            priority: 'high' as const
+          },
+          {
+            category: 'Behavioral Prep',
+            items: ['Prepare stories', 'Practice answers', 'Mock interviews'],
+            priority: 'medium' as const
+          }
+        ],
+        resources: [
+          {
+            category: 'Learning',
+            items: ['Online courses', 'Documentation', 'Books']
+          }
+        ],
+        timeline: '2-4 weeks of preparation recommended',
+        redFlags: ['Lack of preparation', 'Poor communication', 'No questions for interviewer']
+      };
+    }
   }
 }
 

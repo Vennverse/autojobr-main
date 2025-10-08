@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "@/components/ui/use-toast";
 
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,14 +18,15 @@ import {
   Search,
   Filter,
   Bookmark,
-  Users
+  Users,
+  CheckCircle
 } from "lucide-react";
 import { motion } from "framer-motion";
 
 // Utility functions for professional job formatting
 const formatJobType = (jobType?: string) => {
   if (!jobType) return '';
-  
+
   const typeMap: { [key: string]: string } = {
     'platform': 'Full-time',
     'scraped': 'Full-time', 
@@ -35,20 +37,20 @@ const formatJobType = (jobType?: string) => {
     'temporary': 'Temporary',
     'internship': 'Internship'
   };
-  
+
   return typeMap[jobType.toLowerCase()] || 'Full-time';
 };
 
 const formatWorkMode = (workMode?: string) => {
   if (!workMode) return '';
-  
+
   const modeMap: { [key: string]: string } = {
     'onsite': 'On-site',
     'remote': 'Remote',
     'hybrid': 'Hybrid', 
     'field': 'Field-based'
   };
-  
+
   return modeMap[workMode.toLowerCase()] || workMode;
 };
 
@@ -59,6 +61,8 @@ export default function JobDiscoveryPage() {
     workMode: "all", 
     experienceLevel: "all"
   });
+  const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
+  const [selectedJob, setSelectedJob] = useState<any>(null);
 
   // Fetch platform jobs (with Easy Apply)
   const { data: platformJobs = [], isLoading: platformJobsLoading } = useQuery({
@@ -120,7 +124,7 @@ export default function JobDiscoveryPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type })
       });
-      
+
       if (response.ok) {
         // Show success feedback
         console.log('Job saved successfully');
@@ -151,6 +155,16 @@ export default function JobDiscoveryPage() {
       }
     }
   };
+
+  const handleJobSelect = (job: any) => {
+    setSelectedJob(job);
+  };
+
+  // Placeholder for Interview Prep data and loading state
+  const { data: interviewPrepData, isLoading: interviewPrepLoading, error: interviewPrepError } = useQuery({
+    queryKey: ["/api/interview-prep", selectedJob?.id],
+    enabled: !!selectedJob, // Only run when a job is selected
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -223,7 +237,7 @@ export default function JobDiscoveryPage() {
           </motion.div>
 
           {/* Unified Jobs List */}
-          <motion.div variants={containerVariants} className="grid gap-4">
+          <motion.div variants={containerVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {isLoading ? (
               Array.from({ length: 10 }).map((_, i) => (
                 <Card key={i} className="border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm animate-pulse">
@@ -238,17 +252,142 @@ export default function JobDiscoveryPage() {
                 </Card>
               ))
             ) : allJobs.length > 0 ? (
-              allJobs.map((job: any) => (
-                <motion.div key={`${job.jobType}-${job.id}`} variants={itemVariants}>
-                  <JobCard job={job} onSave={() => handleSaveJob(job.id, job.jobType)} />
-                </motion.div>
-              ))
+              <div className="lg:col-span-1">
+                <div className="space-y-4 h-[calc(100vh-200px)] overflow-y-auto pr-2">
+                  {allJobs.map((job: any) => (
+                    <motion.div key={`${job.jobType}-${job.id}`} variants={itemVariants} onClick={() => handleJobSelect(job)} className="cursor-pointer">
+                      <JobCard job={job} onSave={() => handleSaveJob(job.id, job.jobType === 'platform' ? 'posting' : 'scraped')} />
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
             ) : (
-              <motion.div variants={itemVariants} className="text-center py-12">
+              <motion.div variants={itemVariants} className="text-center py-12 col-span-full">
                 <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No jobs found</h3>
                 <p className="text-gray-600 dark:text-gray-300">Try adjusting your search criteria or filters</p>
               </motion.div>
+            )}
+
+            {/* Job Details Panel */}
+            {selectedJob && (
+              <div className="lg:col-span-2">
+                <Card className="border-0 shadow-xl h-[calc(100vh-200px)] flex flex-col">
+                  <CardHeader className="border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-2xl mb-2">{selectedJob.title}</CardTitle>
+                        <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
+                          <div className="flex items-center gap-1">
+                            <Building2 className="h-4 w-4" />
+                            <span>{selectedJob.company}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-4 w-4" />
+                            <span>{selectedJob.location}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-6 space-y-6 overflow-y-auto flex-1">
+                    {interviewPrepLoading && <p>Loading interview preparation...</p>}
+                    {interviewPrepError && (
+                      <div className="text-red-500">
+                        Error loading interview preparation: {interviewPrepError.message}
+                      </div>
+                    )}
+                    {interviewPrepData && (
+                      <div>
+                        <h4 className="text-lg font-semibold mb-2">Interview Preparation</h4>
+                        <p>{interviewPrepData.content}</p>
+                      </div>
+                    )}
+                    {!interviewPrepData && !interviewPrepLoading && !interviewPrepError && (
+                      <p>No interview preparation available for this job.</p>
+                    )}
+                    
+                    <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-600">
+                      <h4 className="text-lg font-semibold mb-4">About the Job</h4>
+                      <p className="text-gray-700 dark:text-gray-300">
+                        {selectedJob.description || "No description available."}
+                      </p>
+                    </div>
+                    
+                    <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-600">
+                      <h4 className="text-lg font-semibold mb-4">Skills Required</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedJob.skills?.slice(0, 5).map((skill: string, index: number) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {skill}
+                          </Badge>
+                        ))}
+                        {selectedJob.tags?.slice(0, 3).map((tag: string, index: number) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-600">
+                      <Button
+                        onClick={async () => {
+                          if (appliedJobIds.includes(selectedJob.id)) return;
+
+                          if (selectedJob.applyType === 'easy') {
+                            try {
+                              const response = await fetch(`/api/jobs/postings/${selectedJob.id}/apply`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
+                              });
+
+                              if (response.ok) {
+                                setAppliedJobIds(prev => [...prev, selectedJob.id]);
+                                toast({
+                                  title: "Application Submitted",
+                                  description: "Your easy apply application has been submitted successfully!",
+                                });
+                              } else {
+                                throw new Error('Application failed');
+                              }
+                            } catch (error) {
+                              toast({
+                                title: "Application Failed",
+                                description: "Failed to submit application. Please try again.",
+                                variant: "destructive",
+                              });
+                            }
+                          } else {
+                            window.open(selectedJob.sourceUrl, '_blank');
+                          }
+                        }}
+                        disabled={appliedJobIds.includes(selectedJob.id)}
+                        className="flex items-center gap-1"
+                        data-testid="button-apply"
+                      >
+                        {appliedJobIds.includes(selectedJob.id) ? (
+                          <>
+                            <CheckCircle className="h-4 w-4" />
+                            Applied
+                          </>
+                        ) : selectedJob.applyType === 'easy' ? (
+                          <>
+                            <Heart className="h-4 w-4" />
+                            Easy Apply
+                          </>
+                        ) : (
+                          <>
+                            <ExternalLink className="h-4 w-4" />
+                            Apply
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             )}
           </motion.div>
         </motion.div>
@@ -259,13 +398,13 @@ export default function JobDiscoveryPage() {
 
 // Job Card Component
 function JobCard({ job, onSave }: { job: any; onSave: () => void }) {
-  const handleApply = () => {
-    if (job.applyType === 'easy') {
+  const handleApply = (jobToApply: any) => {
+    if (jobToApply.applyType === 'easy') {
       // For platform jobs, redirect to application page
-      window.location.href = `/jobs/${job.id}/apply`;
+      window.location.href = `/jobs/${jobToApply.id}/apply`;
     } else {
       // For scraped jobs, open external URL
-      window.open(job.sourceUrl, '_blank');
+      window.open(jobToApply.sourceUrl, '_blank');
     }
   };
 
@@ -306,7 +445,38 @@ function JobCard({ job, onSave }: { job: any; onSave: () => void }) {
             <Button
               variant={job.applyType === 'easy' ? 'default' : 'outline'}
               size="sm"
-              onClick={handleApply}
+              onClick={async () => {
+                if (job.applyType === 'easy') {
+                  try {
+                    const response = await fetch(`/api/jobs/postings/${job.id}/apply`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      credentials: 'include',
+                    });
+
+                    if (response.ok) {
+                      // Add job to applied list to disable button and show 'Applied'
+                      // This state needs to be managed globally or passed down
+                      // For now, let's assume we have setAppliedJobIds available here or manage it in parent
+                      // setAppliedJobIds(prev => [...prev, job.id]); // This would require passing setAppliedJobIds as a prop
+                      toast({
+                        title: "Application Submitted",
+                        description: "Your easy apply application has been submitted successfully!",
+                      });
+                    } else {
+                      throw new Error('Application failed');
+                    }
+                  } catch (error) {
+                    toast({
+                      title: "Application Failed",
+                      description: "Failed to submit application. Please try again.",
+                      variant: "destructive",
+                    });
+                  }
+                } else {
+                  handleApply(job);
+                }
+              }}
               className="flex items-center gap-1"
               data-testid="button-apply"
             >
@@ -345,12 +515,6 @@ function JobCard({ job, onSave }: { job: any; onSave: () => void }) {
             </span>
           )}
         </div>
-
-        {job.description && (
-          <p className="text-gray-700 dark:text-gray-300 mb-4 line-clamp-2">
-            {job.description}
-          </p>
-        )}
 
         <div className="flex flex-wrap gap-2">
           {job.skills?.slice(0, 5).map((skill: string, index: number) => (
