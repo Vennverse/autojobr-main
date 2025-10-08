@@ -1943,7 +1943,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                           const jobId = `${job.source || 'job'}-${job.id}`;
                           const companyName = job.company || job.companyName || 'Company';
                           const jobLocation = job.location || 'Remote';
-                          
+
                           return viewMode === 'compact' ? (
                             <div 
                               key={jobId}
@@ -2017,17 +2017,17 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                                     </div>
                                   )}
                                 </div>
-                                
+
                                 <h4 className="text-base sm:text-lg font-semibold text-foreground mb-2">
                                   {job.title}
                                 </h4>
-                                
+
                                 {job.description && (
                                   <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
                                     {job.description}
                                   </p>
                                 )}
-                                
+
                                 <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
                                   {job.jobType && (
                                     <span className="flex items-center">
@@ -2042,7 +2042,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                                     </span>
                                   )}
                                 </div>
-                                
+
                                 <div className="flex space-x-2">
                                   <Button 
                                     className="flex-1 text-sm sm:text-base" 
@@ -2151,7 +2151,6 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
               </div>
             )}
           </div>
-        </div>
 
           {/* Enhanced Job Detail Panel - Mobile Optimized */}
           <div className="h-full">
@@ -2206,7 +2205,6 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                       <Button
                         variant="outline"
                         onClick={() => handleSaveJob(selectedJob.id)}
-                        disabled={savedJobs.has(selectedJob.id)}
                         className="text-sm h-9 px-3 touch-manipulation"
                       >
                         <Bookmark className="w-4 h-4 mr-2" />

@@ -347,7 +347,8 @@ function Router() {
                   <Route path="/chat" component={SimpleChatPage} />
                   <Route path="/messaging" component={SimpleChatPage} />
                   {/* AI Video Interview Practice Route */}
-                  <Route path="/video-practice" component={lazy(() => import("./pages/VideoPractice"))} />
+                  <Route path="/video-practice" component={lazy(() => import("./pages/VideoPractice").catch(() => import("./pages/mock-interview")))} />
+                  <Route path="/video-practice/feedback/:sessionId" component={lazy(() => import("./pages/VideoPracticeFeedback").catch(() => import("./pages/mock-interview-results")))} />
                 </>
               )}
             </>
@@ -381,7 +382,8 @@ function Router() {
               <Route path="/chat" component={SimpleChatPage} />
               <Route path="/messaging" component={SimpleChatPage} />
               {/* AI Video Interview Practice Route */}
-              <Route path="/video-practice" component={lazy(() => import("./pages/VideoPractice"))} />
+              <Route path="/video-practice" component={lazy(() => import("./pages/VideoPractice").catch(() => import("./pages/mock-interview")))} />
+              <Route path="/video-practice/feedback/:sessionId" component={lazy(() => import("./pages/VideoPracticeFeedback").catch(() => import("./pages/mock-interview-results")))} />
             </>
           )}
         </>
