@@ -923,12 +923,12 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
             Location
           </h3>
           <div className="space-y-2">
-            <Select value={filters.country || ''} onValueChange={(value) => updateFilters({ country: value || undefined })}>
+            <Select value={filters.country || 'all'} onValueChange={(value) => updateFilters({ country: value === 'all' ? undefined : value })}>
               <SelectTrigger data-testid="filter-country">
                 <SelectValue placeholder="Select Country" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Countries</SelectItem>
+                <SelectItem value="all">All Countries</SelectItem>
                 {facets?.countries?.map((country) => (
                   <SelectItem key={country.code} value={country.code}>
                     {country.code} ({country.count})
@@ -962,12 +962,12 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
             <Layers className="w-4 h-4 mr-2" />
             Category
           </h3>
-          <Select value={filters.category || ''} onValueChange={(value) => updateFilters({ category: value || undefined })}>
+          <Select value={filters.category || 'all'} onValueChange={(value) => updateFilters({ category: value === 'all' ? undefined : value })}>
             <SelectTrigger data-testid="filter-category">
               <SelectValue placeholder="Select Category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Categories</SelectItem>
+              <SelectItem value="all">All Categories</SelectItem>
               {facets?.categories?.map((category) => (
                 <SelectItem key={category.name} value={category.name}>
                   {category.name} ({category.count})
@@ -1149,12 +1149,12 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
             Date Posted
           </h3>
           <RadioGroup
-            value={filters.date_posted?.toString() || ''}
-            onValueChange={(value) => updateFilters({ date_posted: value ? parseInt(value) : undefined })}
+            value={filters.date_posted?.toString() || 'any'}
+            onValueChange={(value) => updateFilters({ date_posted: value === 'any' ? undefined : parseInt(value) })}
             data-testid="filter-date-posted"
           >
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="" id="date-any" />
+              <RadioGroupItem value="any" id="date-any" />
               <Label htmlFor="date-any">Any time</Label>
             </div>
             <div className="flex items-center space-x-2">
@@ -1196,12 +1196,12 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
             <Globe className="w-4 h-4 mr-2" />
             Source Platform
           </h3>
-          <Select value={filters.source_platform || ''} onValueChange={(value) => updateFilters({ source_platform: value || undefined })}>
+          <Select value={filters.source_platform || 'all'} onValueChange={(value) => updateFilters({ source_platform: value === 'all' ? undefined : value })}>
             <SelectTrigger data-testid="filter-source-platform">
               <SelectValue placeholder="All Sources" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Sources</SelectItem>
+              <SelectItem value="all">All Sources</SelectItem>
               {facets?.sources?.map((source) => (
                 <SelectItem key={source.platform} value={source.platform}>
                   {source.platform} ({source.count})
