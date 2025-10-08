@@ -544,6 +544,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get individual job posting by ID
+  app.get('/api/jobs/postings/:id', async (req: any, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const job = await storage.getJobPosting(jobId);
+      
+      if (!job) {
+        return res.status(404).json({ message: 'Job posting not found' });
+      }
+      
+      res.json(job);
+    } catch (error) {
+      console.error('[JOB POSTING ERROR]:', error);
+      handleError(res, error, "Failed to fetch job posting");
+    }
+  });
+
+  // Scraped jobs endpoint
+  app.get('/api/scraped-jobs', async (req: any, res) => {
+    try {
+      const search = req.query.search as string;
+      const category = req.query.category as string;
+      const location = req.query.location as string;
+      
+      // Fetch scraped jobs from database
+      let query = db.select().from(scrapedJobs).where(eq(scrapedJobs.isActive, true));
+      
+      // Apply filters if provided
+      if (search) {
+        query = query.where(
+          or(
+            like(scrapedJobs.title, `%${search}%`),
+            like(scrapedJobs.company, `%${search}%`),
+            like(scrapedJobs.description, `%${search}%`)
+          )
+        );
+      }
+      
+      if (location) {
+        query = query.where(like(scrapedJobs.location, `%${location}%`));
+      }
+      
+      const jobs = await query.limit(100).orderBy(desc(scrapedJobs.datePosted));
+      
+      res.json(jobs);
+    } catch (error) {
+      console.error('[SCRAPED JOBS ERROR]:', error);
+      res.status(500).json({ message: 'Failed to fetch scraped jobs', error: String(error) });
+    }
+  });
+
   // RECRUITER-SPECIFIC ENDPOINTS - Must be authenticated
   app.get('/api/recruiter/jobs', isAuthenticated, async (req: any, res) => {
     try {
@@ -3090,6 +3141,30 @@ Return only the cover letter text, no additional formatting or explanations.`;
     } catch (error) {
       console.error('Predictive success error:', error);
       res.status(500).json({ message: 'Failed to generate prediction' });
+    }
+  }));
+
+  // Interview Prep AI Route
+  app.post('/api/ai/interview-prep', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const validatedData = interviewPrepSchema.parse(req.body);
+      const result = await interviewPrepService.generateInterviewPrep(validatedData);
+      res.json(result);
+    } catch (error) {
+      console.error('Interview prep error:', error);
+      res.status(500).json({ message: 'Failed to generate interview preparation' });
+    }
+  }));
+
+  // Salary Insights AI Route
+  app.post('/api/ai/salary-insights', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const validatedData = salaryInsightsSchema.parse(req.body);
+      const result = await salaryInsightsService.generateSalaryInsights(validatedData);
+      res.json(result);
+    } catch (error) {
+      console.error('Salary insights error:', error);
+      res.status(500).json({ message: 'Failed to generate salary insights' });
     }
   }));
 
