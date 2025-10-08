@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -279,6 +279,28 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
   const [salaryInsightsData, setSalaryInsightsData] = useState<any>(null);
   const [loadingInterviewPrep, setLoadingInterviewPrep] = useState(false);
   const [loadingSalary, setLoadingSalary] = useState(false);
+
+  // Ref for interview prep results section
+  const interviewPrepRef = useRef<HTMLDivElement>(null);
+  const salaryInsightsRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to interview prep results when they appear
+  useEffect(() => {
+    if (interviewPrepData && interviewPrepRef.current) {
+      setTimeout(() => {
+        interviewPrepRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
+    }
+  }, [interviewPrepData]);
+
+  // Auto-scroll to salary insights when they appear
+  useEffect(() => {
+    if (salaryInsightsData && salaryInsightsRef.current) {
+      setTimeout(() => {
+        salaryInsightsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
+    }
+  }, [salaryInsightsData]);
 
   // UI State and Modes
   const [searchMode, setSearchMode] = useState<'smart' | 'exact'>('smart');
@@ -2261,6 +2283,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                       {/* Interview Prep Results - Inline Display */}
                       {interviewPrepData && (
                         <motion.div
+                          ref={interviewPrepRef}
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700"
@@ -2312,6 +2335,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                       {/* Salary Insights Results - Inline Display */}
                       {salaryInsightsData && (
                         <motion.div
+                          ref={salaryInsightsRef}
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700"
