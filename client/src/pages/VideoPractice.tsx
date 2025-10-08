@@ -87,7 +87,9 @@ export default function VideoPractice() {
         throw new Error('Media devices not supported in this browser');
       }
 
-      // Request permissions with optimal settings
+      console.log('🎥 Requesting camera and microphone permissions...');
+
+      // Request permissions with optimal settings - BOTH video AND audio
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
           width: { ideal: 1280 },
@@ -97,46 +99,71 @@ export default function VideoPractice() {
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true
+          autoGainControl: true,
+          sampleRate: 44100
         }
       });
       
+      console.log('✅ Stream obtained:', {
+        videoTracks: stream.getVideoTracks().length,
+        audioTracks: stream.getAudioTracks().length
+      });
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.muted = true; // Mute local playback to avoid feedback
+        
         // Wait for video to be ready
-        await new Promise<void>((resolve) => {
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Video initialization timeout'));
+          }, 5000);
+
           videoRef.current!.onloadedmetadata = () => {
-            videoRef.current!.play();
-            resolve();
+            clearTimeout(timeout);
+            videoRef.current!.play().then(() => {
+              console.log('✅ Video stream started successfully');
+              resolve();
+            }).catch(reject);
           };
         });
+        
         streamRef.current = stream;
         setIsVideoReady(true);
         
         toast({
-          title: "Camera Ready",
-          description: "Camera and microphone initialized successfully",
+          title: "Camera & Microphone Ready",
+          description: `✅ Video: ${stream.getVideoTracks().length} track, Audio: ${stream.getAudioTracks().length} track`,
         });
       }
     } catch (error: any) {
-      console.error('Failed to access camera/microphone:', error);
+      console.error('❌ Failed to access camera/microphone:', error);
       
       let errorMessage = "Please allow camera and microphone access to continue";
+      let errorTitle = "Camera Access Failed";
       
       if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-        errorMessage = "Camera/microphone access was denied. Please enable permissions in your browser settings.";
+        errorTitle = "Permission Denied";
+        errorMessage = "You blocked camera/microphone access. Click the camera icon in your browser's address bar to enable permissions, then refresh the page.";
       } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-        errorMessage = "No camera or microphone found. Please connect a camera and microphone.";
+        errorTitle = "No Camera/Microphone Found";
+        errorMessage = "No camera or microphone detected. Please connect your devices and refresh the page.";
       } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-        errorMessage = "Camera/microphone is already in use by another application.";
+        errorTitle = "Device In Use";
+        errorMessage = "Camera/microphone is already in use by another application. Please close other apps and try again.";
+      } else if (error.message?.includes('timeout')) {
+        errorTitle = "Initialization Timeout";
+        errorMessage = "Camera took too long to start. Please refresh and try again.";
       }
       
       toast({
-        title: "Camera Access Failed",
+        title: errorTitle,
         description: errorMessage,
-        variant: "destructive"
+        variant: "destructive",
+        duration: 8000
       });
       
+      setIsVideoReady(false);
       throw error;
     }
   };
@@ -301,9 +328,15 @@ export default function VideoPractice() {
         });
       }, 1000);
 
-      // Initialize audio analysis
+      // Initialize audio analysis with the stream
+      if (!streamRef.current) {
+        throw new Error('No media stream available for audio analysis');
+      }
+
       audioAnalysisRef.current = new SimpleAudioAnalysis();
-      await audioAnalysisRef.current.start(streamRef.current!);
+      await audioAnalysisRef.current.start(streamRef.current);
+      
+      console.log('🎤 Audio analysis initialized successfully');
 
       // Initialize face analysis
       if (videoRef.current) {

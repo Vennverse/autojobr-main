@@ -24,13 +24,14 @@ export class VideoPracticeService {
   async generateQuestions(
     role: string,
     interviewType: string,
-    difficulty: string
+    difficulty: string,
+    company?: string
   ): Promise<VideoPracticeQuestion[]> {
     const questions: VideoPracticeQuestion[] = [];
-    const isTechnical = interviewType === 'technical';
+    const isTechnical = interviewType?.toLowerCase() === 'technical';
     
     // Check if AI service is available
-    const isAIAvailable = !aiService['developmentMode'];
+    const isAIAvailable = aiService && typeof aiService.createChatCompletion === 'function' && !aiService['developmentMode'];
     
     // First 3 questions: Always General/Behavioral (realistic interview flow)
     const companyContext = company ? ` at ${company}` : '';
@@ -182,6 +183,7 @@ export class VideoPracticeService {
   }
 
   async analyzeResponse(
+    role: string,
     question: any,
     transcript: string,
     duration: number,
@@ -608,9 +610,11 @@ async function generateComprehensiveFeedback(
   };
 }
 
+const videoPracticeServiceInstance = new VideoPracticeService();
+
 export const videoPracticeService = {
-  generateQuestions: new VideoPracticeService().generateQuestions.bind(new VideoPracticeService()),
-  analyzeResponse: new VideoPracticeService().analyzeResponse.bind(new VideoPracticeService()),
-  generateFinalFeedback: new VideoPracticeService().generateFinalFeedback.bind(new VideoPracticeService()),
+  generateQuestions: videoPracticeServiceInstance.generateQuestions.bind(videoPracticeServiceInstance),
+  analyzeResponse: videoPracticeServiceInstance.analyzeResponse.bind(videoPracticeServiceInstance),
+  generateFinalFeedback: videoPracticeServiceInstance.generateFinalFeedback.bind(videoPracticeServiceInstance),
   generateComprehensiveFeedback
 };

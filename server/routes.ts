@@ -1011,7 +1011,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Generate questions using video practice service
       const { videoPracticeService } = await import('./videoPracticeService.js');
-      const questions = await videoPracticeService.generateQuestions(role, interviewType, difficulty);
+      const { company } = req.body;
+      const questions = await videoPracticeService.generateQuestions(role, interviewType, difficulty, company);
       
       // Create session in database
       const session = await storage.createVideoPracticeSession({
@@ -1091,6 +1092,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const analyses = [];
       for (let i = 0; i < responses.length; i++) {
         const analysis = await videoPracticeService.analyzeResponse(
+          session.role || 'Unknown Role',
           questions[i],
           responses[i].transcript,
           responses[i].duration,
