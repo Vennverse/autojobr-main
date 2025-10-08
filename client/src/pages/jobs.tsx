@@ -710,6 +710,16 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     setInterviewPrepData(null);
 
     try {
+      // Ensure requirements is an array
+      let requirements = [];
+      if (Array.isArray(job.requirements)) {
+        requirements = job.requirements;
+      } else if (typeof job.requirements === 'string' && job.requirements) {
+        requirements = job.requirements.split(',').map(r => r.trim()).filter(Boolean);
+      } else if (job.requiredSkills) {
+        requirements = Array.isArray(job.requiredSkills) ? job.requiredSkills : [];
+      }
+
       const response = await fetch('/api/ai/interview-prep', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -718,7 +728,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
           jobTitle: job.title,
           company: job.companyName || job.company,
           jobDescription: job.description,
-          requirements: job.requirements
+          requirements: requirements
         })
       });
 
@@ -1632,7 +1642,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 h-full">
             {/* Job List Panel - Left Side (2/5 width) */}
             <div className="lg:col-span-2 h-full flex flex-col bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="flex-1 overflow-y-auto px-3 py-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+              <div className="flex-1 overflow-y-auto px-3 py-2" style={{ scrollbarWidth: 'thin', scrollbarColor: '#9ca3af transparent' }}>
             {jobsLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <Card key={i} className="border-0 shadow-sm">
@@ -1849,7 +1859,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
 
           {/* Job Details Panel - Right Side (3/5 width) */}
           <div className="lg:col-span-3 h-full flex flex-col bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div className="flex-1 overflow-y-auto p-4 scrollbar-thin">
+            <div className="flex-1 overflow-y-auto p-4" style={{ scrollbarWidth: 'thin', scrollbarColor: '#9ca3af transparent' }}>
             {selectedJob ? (
               <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
                 <CardContent className="p-4 sm:p-6">
