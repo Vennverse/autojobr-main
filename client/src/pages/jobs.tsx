@@ -342,7 +342,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     remote_only: searchParams.get('remote_only') === 'true',
     sort: searchParams.get('sort') || 'relevance',
     page: parseInt(searchParams.get('page') || '1'),
-    size: parseInt(searchParams.get('size') || '25')
+    size: parseInt(searchParams.get('size') || '15')
   }), [searchParams, routeBasedFilters]);
 
   // Debounced search query state
@@ -1742,12 +1742,12 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         </div>
       </div>
 
-      {/* Main Content - Mobile Optimized */}
+      {/* Main Content - Mobile Optimized with Fixed Height Scrollable Panels */}
       <div className="flex-1 max-w-7xl mx-auto w-full px-2 sm:px-4 py-4 sm:py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6 h-full">
-          {/* Job List Panel */}
-          <div className="h-full">
-            <div className="sticky top-[200px] h-fit overflow-y-auto pr-1 lg:pr-2 space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6" style={{ height: 'calc(100vh - 280px)' }}>
+          {/* Job List Panel - Independently Scrollable */}
+          <div className="flex flex-col h-full">
+            <div className="flex-1 overflow-y-auto pr-1 lg:pr-2 space-y-4" style={{ maxHeight: '100%' }}>
               <FilterTags />
 
               {/* Smart Controls Bar */}
@@ -2131,11 +2131,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
             )}
           </div>
 
-          {/* Enhanced Job Detail Panel - Mobile Optimized */}
-          <div className="h-full">
-            <div className="sticky top-[200px] h-fit overflow-y-auto pl-1 lg:pl-2">
+          {/* Enhanced Job Detail Panel - Independently Scrollable */}
+          <div className="flex flex-col h-full">
+            <div className="flex-1 overflow-y-auto pl-1 lg:pl-2" style={{ maxHeight: '100%' }}>
             {selectedJob ? (
-              <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
+              <Card className="border-0 shadow-sm bg-white dark:bg-gray-800 h-full">
                 <CardContent className="p-4 sm:p-6">
                   <div className="mb-6">
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-4 gap-3">
