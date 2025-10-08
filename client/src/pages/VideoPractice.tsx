@@ -126,7 +126,7 @@ export default function VideoPractice() {
     }
   };
 
-  const startRecording = () => {
+  const startRecording = async () => {
     if (!('webkitSpeechRecognition' in window)) {
       toast({
         title: "Error",
