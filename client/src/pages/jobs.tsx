@@ -1581,75 +1581,58 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         </motion.div>
       )}
 
-      {/* Enhanced Header with Better Typography and Mobile Optimization */}
-      <div className="bg-gradient-to-br from-white via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          <div className="flex flex-col gap-3 sm:gap-4">
+      {/* Compact Header - LinkedIn Style */}
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
+          <div className="flex flex-col gap-2">
             <div>
-              <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent leading-tight">
-                {isAuthenticated ? 'Your Perfect Job Matches' : 'Discover Your Dream Career'}
+              <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                {isAuthenticated ? 'Your Perfect Job Matches' : 'Top job picks for you'}
               </h1>
-              <p className="text-sm sm:text-lg text-gray-600 dark:text-gray-300 mt-2">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                 {isAuthenticated 
                   ? `AI-curated opportunities based on your profile`
-                  : `${pagination.total}+ jobs from top companies worldwide • AI-powered matching`}
+                  : `Based on your profile, preferences, and activity`}
               </p>
-              <div className="flex items-center gap-4 mt-3">
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                  {allJobs.length} results
-                </p>
-                {!isAuthenticated && (
-                  <div className="flex items-center gap-2 text-xs sm:text-sm">
-                    <SparklesIcon className="w-4 h-4 text-yellow-500" />
-                    <span className="text-yellow-600 dark:text-yellow-400 font-medium">
-                      Sign in for personalized matches
-                    </span>
-                  </div>
-                )}
-              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {allJobs.length} results
+              </p>
             </div>
 
-            {/* Search and Sort Controls */}
-            <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
-              <CardContent className="p-3 sm:p-4 space-y-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
-                  <Input
-                    placeholder="Search jobs..."
-                    value={searchInput}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    className="pl-9 sm:pl-10 h-10 sm:h-12 text-sm sm:text-base border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 touch-manipulation"
-                  />
-                </div>
-
-                {/* Sort Options */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sort by:</span>
-                  <Select value={filters.sort} onValueChange={(v) => updateFilters({ sort: v })}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="relevance">Relevance</SelectItem>
-                      <SelectItem value="match">Best Match</SelectItem>
-                      <SelectItem value="date">Latest</SelectItem>
-                      <SelectItem value="salary">Highest Pay</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Compact Search and Sort */}
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  placeholder="Search jobs..."
+                  value={searchInput}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="pl-8 h-9 text-sm border-gray-200 dark:border-gray-700"
+                />
+              </div>
+              <Select value={filters.sort} onValueChange={(v) => updateFilters({ sort: v })}>
+                <SelectTrigger className="w-28 h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="relevance">Relevance</SelectItem>
+                  <SelectItem value="match">Best Match</SelectItem>
+                  <SelectItem value="date">Latest</SelectItem>
+                  <SelectItem value="salary">Highest Pay</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main Content - LinkedIn Style: Fixed Height, Independent Scrolling */}
-      <div className="w-full overflow-hidden" style={{ height: 'calc(100vh - 240px)' }}>
+      <div className="w-full overflow-hidden" style={{ height: 'calc(100vh - 160px)' }}>
         <div className="max-w-7xl mx-auto h-full px-2 sm:px-4">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 h-full">
             {/* Job List Panel - Left Side (2/5 width) */}
             <div className="lg:col-span-2 h-full flex flex-col bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="flex-1 overflow-y-auto px-3 py-2 scrollbar-thin" >
+              <div className="flex-1 overflow-y-auto px-3 py-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
             {jobsLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <Card key={i} className="border-0 shadow-sm">

@@ -1,8 +1,8 @@
 
 /* Custom scrollbar styles for WebKit browsers */
 .scrollbar-thin::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-track {
@@ -11,7 +11,7 @@
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
   background: #cbd5e0;
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
@@ -34,4 +34,17 @@
 
 .dark .scrollbar-thin {
   scrollbar-color: #4a5568 transparent;
+}
+
+/* Additional scrollbar utility classes */
+.scrollbar-thumb-gray-300::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+}
+
+.dark .scrollbar-thumb-gray-600::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+.scrollbar-track-transparent::-webkit-scrollbar-track {
+  background: transparent;
 }
