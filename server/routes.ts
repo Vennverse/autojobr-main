@@ -561,6 +561,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Apply to a job posting (Easy Apply)
+  app.post('/api/jobs/postings/:id/apply', isAuthenticated, async (req: any, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const userId = req.user.id;
+      const { resumeId, coverLetter } = req.body;
+
+      console.log(`[EASY APPLY] User ${userId} applying to job ${jobId}`);
+
+      // Check if job exists
+      const job = await storage.getJobPosting(jobId);
+      if (!job) {
+        return res.status(404).json({ message: 'Job posting not found' });
+      }
+
+      // Check if user already applied
+      const existingApplication = await db
+        .select()
+        .from(schema.jobPostingApplications)
+        .where(
+          and(
+            eq(schema.jobPostingApplications.jobPostingId, jobId),
+            eq(schema.jobPostingApplications.applicantId, userId)
+          )
+        )
+        .then(rows => rows[0]);
+
+      if (existingApplication) {
+        return res.status(400).json({ message: 'You have already applied to this job' });
+      }
+
+      // Create application
+      await db.insert(schema.jobPostingApplications).values({
+        jobPostingId: jobId,
+        applicantId: userId,
+        resumeId: resumeId || null,
+        coverLetter: coverLetter || null,
+        status: 'applied',
+        appliedAt: new Date()
+      });
+
+      console.log(`[EASY APPLY] Application created for user ${userId} on job ${jobId}`);
+
+      res.json({ 
+        success: true, 
+        message: 'Application submitted successfully' 
+      });
+    } catch (error) {
+      console.error('[EASY APPLY ERROR]:', error);
+      handleError(res, error, "Failed to submit application");
+    }
+  });
+
+  // Get user's applications
+  app.get('/api/applications', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      const applications = await db
+        .select()
+        .from(schema.jobPostingApplications)
+        .where(eq(schema.jobPostingApplications.applicantId, userId))
+        .orderBy(desc(schema.jobPostingApplications.appliedAt));
+
+      res.json(applications);
+    } catch (error) {
+      console.error('[APPLICATIONS ERROR]:', error);
+      handleError(res, error, "Failed to fetch applications");
+    }
+  });
+
   // Scraped jobs endpoint with pagination and improved search
   app.get('/api/scraped-jobs', async (req: any, res) => {
     try {

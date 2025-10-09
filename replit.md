@@ -105,6 +105,24 @@ See `shared/schema.ts` for the complete schema definition.
 
 ## Recent Changes
 
+### Oct 09, 2025 - Jobs Page Apply Functionality Fixed ✅
+- ✅ **Fixed Easy Apply endpoint** - Created missing `/api/jobs/postings/:id/apply` POST endpoint
+  - Endpoint was completely missing, causing "Failed to execute 'json' on 'Response'" errors
+  - Added authentication middleware and duplicate application check
+  - Properly creates applications in `jobPostingApplications` table
+- ✅ **Fixed Interview Prep freezing issue**
+  - Root cause: Tips object was being rendered directly instead of iterating over properties
+  - Updated rendering to properly display tips by category (general, technical, behavioral, etc.)
+  - Interview prep now displays correctly without freezing the UI
+- ✅ **Fixed button text logic for job applications**
+  - Scraped/external jobs now show "Apply" button (opens external site in new tab)
+  - Platform jobs now show "Easy Apply" button (uses internal application system)
+  - Applied to both job list cards and detail panel
+- ✅ **Added applications endpoint** - Created `/api/applications` GET endpoint
+  - Returns user's job applications sorted by date
+  - Enables the frontend to track which jobs user has applied to
+  - Prevents duplicate applications by checking existing applications
+
 ### Oct 04, 2025 - Chrome Extension Authentication & Role Detection Fixed ✅
 - ✅ **Fixed university email role detection** in `server/userRoleService.js`:
   - All students/faculty with `.edu`, `.ac.in`, `.edu.*`, `.ac.*` emails → Job Seekers
