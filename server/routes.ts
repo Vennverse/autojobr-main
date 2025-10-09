@@ -796,6 +796,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Improve job description with AI
+  app.post('/api/recruiter/improve-jd', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      const { jobDescription, jobTitle, companyName } = req.body;
+
+      if (!jobDescription || jobDescription.trim().length === 0) {
+        return res.status(400).json({ message: "Job description is required" });
+      }
+
+      const prompt = `You are an expert recruiter and job description writer. Improve the following job description to make it more attractive, clear, and effective.
+
+Job Title: ${jobTitle || 'Not specified'}
+Company: ${companyName || 'Not specified'}
+
+Current Job Description:
+${jobDescription}
+
+Please provide an improved version that:
+1. Is clear and concise
+2. Highlights key responsibilities and qualifications
+3. Uses professional language
+4. Is engaging and attracts top talent
+5. Follows best practices for job postings
+
+Return only the improved job description text, no additional formatting or explanations.`;
+
+      console.log('🤖 Improving job description with AI...');
+
+      const aiResponse = await aiService.createChatCompletion([
+        { role: 'system', content: 'You are an expert job description writer. Write clear, professional, and engaging job descriptions.' },
+        { role: 'user', content: prompt }
+      ], {
+        temperature: 0.7,
+        max_tokens: 1000,
+        user: req.user
+      });
+
+      const improvedDescription = aiResponse.choices[0]?.message?.content || jobDescription;
+
+      console.log('✅ Job description improved successfully');
+
+      res.json({
+        success: true,
+        improvedDescription: improvedDescription.trim()
+      });
+    } catch (error: any) {
+      console.error("Error improving job description:", error);
+      res.status(500).json({ 
+        message: "Failed to improve job description",
+        error: error.message 
+      });
+    }
+  });
+
+  // Create new job posting
+  app.post('/api/recruiter/jobs', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      const jobData = {
+        ...req.body,
+        recruiterId: userId
+      };
+
+      const newJob = await storage.createJobPosting(jobData);
+      console.log(`[JOB CREATED] Recruiter ${userId} created job: ${newJob.id}`);
+      
+      res.json({
+        success: true,
+        message: "Job posted successfully",
+        job: newJob
+      });
+    } catch (error) {
+      console.error('[CREATE JOB ERROR]:', error);
+      handleError(res, error, "Failed to create job posting");
+    }
+  });
+
   app.get('/api/recruiter/applications', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
