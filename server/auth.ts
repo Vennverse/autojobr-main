@@ -495,10 +495,25 @@ export async function setupAuth(app: Express) {
 
   // Logout
   app.post('/api/auth/signout', (req: any, res) => {
+    const userId = req.session?.user?.id;
+    
     req.session.destroy((err: any) => {
       if (err) {
         return res.status(500).json({ message: "Logout failed" });
       }
+      
+      // Clear user-specific cache on logout to prevent data leakage
+      if (userId) {
+        try {
+          const { invalidateUserCache } = require('./routes');
+          invalidateUserCache(userId);
+          console.log(`✅ Cleared cache for logged out user: ${userId}`);
+        } catch (cacheError) {
+          console.error('Error clearing user cache on logout:', cacheError);
+        }
+      }
+      
+      res.clearCookie('autojobr.session');
       res.json({ 
         message: "Logged out successfully",
         redirectTo: "/" 

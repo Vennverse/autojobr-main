@@ -208,7 +208,11 @@ const invalidateUserCache = (userId: string) => {
     }
   }
   keysToDelete.forEach(key => cache.delete(key));
+  console.log(`🗑️ Invalidated ${keysToDelete.length} cache entries for user ${userId}`);
 };
+
+// Export for use in auth.ts
+export { invalidateUserCache };
 
 // Helper function to clear specific cache key
 const clearCache = (key: string) => {
@@ -496,6 +500,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       status: 'ok', 
       timestamp: new Date().toISOString(),
       service: 'autojobr-api'
+    });
+  });
+
+  // Enhanced logout endpoint with cache clearing
+  app.post('/api/auth/logout', (req: any, res) => {
+    const userId = req.session?.user?.id;
+    
+    req.session.destroy((err: any) => {
+      if (err) {
+        console.error('Logout session destroy error:', err);
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      
+      // Clear user-specific cache
+      if (userId) {
+        invalidateUserCache(userId);
+        console.log(`✅ Logout successful - cleared cache for user: ${userId}`);
+      }
+      
+      res.clearCookie('autojobr.session');
+      res.json({ 
+        message: "Logged out successfully",
+        redirectTo: "/" 
+      });
     });
   });
 

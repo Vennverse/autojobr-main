@@ -72,36 +72,35 @@ export function Navbar() {
     mutationFn: async () => {
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Important for session-based auth
+        credentials: 'include',
       });
-      
+
       if (!response.ok) {
-        throw new Error('Logout failed');
+        const error = await response.json();
+        throw new Error(error.message || 'Logout failed');
       }
-      
-      return await response.json();
+
+      return response.json();
     },
     onSuccess: () => {
-      // Clear all cached data
+      // Clear all client-side cache
       queryClient.clear();
-      // Show success message
-      toast({
-        title: "Logged out successfully",
-        description: "You have been logged out of your account.",
-      });
-      // Redirect to auth page
-      window.location.href = '/auth';
+      // Clear session storage
+      sessionStorage.clear();
+      // Clear local storage (except for theme preferences)
+      const theme = localStorage.getItem('theme');
+      localStorage.clear();
+      if (theme) localStorage.setItem('theme', theme);
+      // Force redirect to home
+      window.location.href = '/';
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
-        title: "Logout failed",
-        description: error.message || "Failed to logout properly",
-        variant: "destructive",
+        title: 'Logout Failed',
+        description: error.message,
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   const getPlanBadge = (planType: string) => {
@@ -219,7 +218,7 @@ export function Navbar() {
                   {navigationItems.map((item) => {
                     const Icon = item.icon;
                     const canAccess = canAccessFeature(item.premium || false);
-                    
+
                     return (
                       <Link
                         key={item.name}
@@ -256,7 +255,7 @@ export function Navbar() {
 
             {/* Right side */}
             <div className="hidden md:ml-4 md:flex md:items-center md:space-x-2">
-              
+
               {/* Theme toggle */}
               <Button
                 variant="ghost"
@@ -288,7 +287,7 @@ export function Navbar() {
                   </Button>
                 </Link>
               )}
-              
+
               {/* User Profile Dropdown */}
               {user && (
                 <DropdownMenu>
@@ -401,7 +400,7 @@ export function Navbar() {
               {user ? navigationItems.map((item) => {
                 const Icon = item.icon;
                 const canAccess = canAccessFeature(item.premium || false);
-                
+
                 return (
                   <Link
                     key={item.name}
@@ -442,7 +441,7 @@ export function Navbar() {
                   <span className="flex-1">For Recruiters</span>
                 </Link>
               )}
-              
+
               {/* Mobile User Info */}
               {user && (
                 <div className="mt-6 px-3 py-4 border-t border-gray-200 dark:border-gray-700">
@@ -462,7 +461,7 @@ export function Navbar() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-1">
                     <Link
                       href="/profile"
