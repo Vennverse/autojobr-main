@@ -57,7 +57,7 @@ export default function InterviewLink() {
   const startInterview = async () => {
     if (!isAuthenticated) {
       // Redirect to login with return URL
-      setLocation(`/auth-page?returnUrl=${encodeURIComponent(`/interview-link/${linkId}`)}`);
+      setLocation(`/auth?mode=login&returnUrl=${encodeURIComponent(`/interview-link/${linkId}`)}`);
       return;
     }
 
