@@ -162,6 +162,7 @@ export default function InterviewAssignments() {
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [loadingLinks, setLoadingLinks] = useState(false);
 
   const [linkGeneration, setLinkGeneration] = useState({
     jobPostingId: '',
@@ -277,6 +278,29 @@ export default function InterviewAssignments() {
     },
     retry: 1
   });
+
+  // Fetch previously generated links on component mount
+  useEffect(() => {
+    const fetchGeneratedLinks = async () => {
+      try {
+        setLoadingLinks(true);
+        const response = await fetch('/api/interviews/my-links', {
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          const links = await response.json();
+          setGeneratedLinks(links);
+        }
+      } catch (error) {
+        console.error('Error fetching generated links:', error);
+      } finally {
+        setLoadingLinks(false);
+      }
+    };
+
+    fetchGeneratedLinks();
+  }, []);
 
   const openAssignmentModal = (type: 'virtual' | 'mock' | 'skills-verification' | 'personality' | 'simulation' | 'video-interview') => {
     setSelectedInterviewType(type);
@@ -613,7 +637,16 @@ export default function InterviewAssignments() {
             </Button>
           </div>
 
-          {generatedLinks.length === 0 ? (
+          {loadingLinks ? (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+                  <p className="text-gray-600">Loading your shareable links...</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : generatedLinks.length === 0 ? (
             <Card>
               <CardContent className="p-12 text-center">
                 <Share2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />

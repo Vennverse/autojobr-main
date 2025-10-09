@@ -2309,6 +2309,51 @@ Return only the improved job description text, no additional formatting or expla
     }
   });
 
+  // Get recruiter's generated shareable links
+  app.get('/api/interviews/my-links', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied. Recruiter account required." });
+      }
+
+      // Fetch all active links created by this recruiter
+      const links = await db.select()
+        .from(schema.interviewInvitations)
+        .where(eq(schema.interviewInvitations.recruiterId, userId))
+        .orderBy(desc(schema.interviewInvitations.createdAt))
+        .limit(50);
+
+      // Format the response
+      const formattedLinks = links.map(link => {
+        const baseUrl = process.env.FRONTEND_URL || 'https://autojobr.com';
+        const shareableLink = `${baseUrl}/interview-link/${link.token}`;
+
+        return {
+          id: link.id,
+          linkId: link.token,
+          shareableLink,
+          link: shareableLink,
+          interviewType: link.interviewType,
+          role: link.role,
+          company: link.company,
+          difficulty: link.difficulty,
+          expiresAt: link.expiryDate,
+          createdAt: link.createdAt,
+          usageCount: link.usageCount,
+          maxUses: link.maxUses
+        };
+      });
+
+      res.json(formattedLinks);
+    } catch (error) {
+      console.error('Error fetching recruiter links:', error);
+      res.status(500).json({ message: 'Failed to fetch shareable links' });
+    }
+  });
+
   // Access Interview via Shareable Link
   app.get('/api/interviews/link/:linkId', async (req: any, res) => {
     try {
