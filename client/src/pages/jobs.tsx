@@ -2047,9 +2047,23 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         {interviewPrepData.tips && (
                           <div>
                             <h5 className="font-medium text-sm text-blue-800 dark:text-blue-200 mb-2">Preparation Tips</h5>
-                            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                              {interviewPrepData.tips}
-                            </p>
+                            <div className="space-y-3">
+                              {Object.entries(interviewPrepData.tips).map(([category, tipsList]: [string, any]) => (
+                                Array.isArray(tipsList) && tipsList.length > 0 && (
+                                  <div key={category} className="space-y-1">
+                                    <h6 className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase">{category}</h6>
+                                    <ul className="space-y-1">
+                                      {tipsList.map((tip: string, idx: number) => (
+                                        <li key={idx} className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                                          <span className="text-blue-500">•</span>
+                                          <span>{tip}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )
+                              ))}
+                            </div>
                           </div>
                         )}
                       </motion.div>
