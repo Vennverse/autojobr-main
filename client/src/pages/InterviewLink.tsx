@@ -65,7 +65,13 @@ export default function InterviewLink() {
       setStarting(true);
       const response = await fetch(`/api/interviews/link/${linkId}/start`, {
         method: 'POST',
-        credentials: 'include'
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          domain: interviewData?.domain || 'general'
+        })
       });
 
       if (!response.ok) {
