@@ -1,260 +1,43 @@
 # AutoJobr - Job Application Automation Platform
 
 ## Overview
-AutoJobr is a full-stack web application that automates job applications, helping users apply to thousands of jobs efficiently. The platform includes ATS (Applicant Tracking System) resume optimization, AI-powered cover letter generation, interview preparation, and a Chrome extension for one-click job applications.
+AutoJobr is a full-stack web application designed to automate and streamline the job application process. Its primary purpose is to help users efficiently apply to a large volume of jobs by providing features such as ATS resume optimization, AI-powered cover letter generation, interview preparation, and a Chrome extension for one-click applications. The platform aims to simplify job searching, enhance application quality, and provide tools for career advancement, positioning itself as a comprehensive solution for job seekers.
 
-## Tech Stack
-- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui components, Wouter (routing)
-- **Backend**: Express.js, Node.js
-- **Database**: PostgreSQL (Neon/Replit Database)
-- **ORM**: Drizzle ORM
-- **Authentication**: Passport.js (Google OAuth, Local)
-- **AI Integration**: Groq, OpenRouter, OpenAI, Anthropic
-- **Payments**: Stripe, PayPal, Razorpay
-- **Email**: Resend, SendGrid, Nodemailer
-- **Real-time**: WebSocket (ws)
+## User Preferences
+I prefer detailed explanations. I want iterative development. Ask before making major changes.
 
-## Project Structure
-```
-├── client/                # Frontend React application
-│   ├── src/
-│   │   ├── pages/        # Page components
-│   │   ├── components/   # Reusable UI components
-│   │   └── lib/          # Client utilities
-│   └── index.html
-├── server/               # Backend Express server
-│   ├── index.ts         # Main server entry point
-│   ├── routes.ts        # API route handlers
-│   ├── storage.ts       # Database interface
-│   ├── vite.ts          # Vite dev server setup
-│   └── [services]/      # Business logic services
-├── shared/              # Shared code between frontend/backend
-│   └── schema.ts        # Database schema (Drizzle)
-├── migrations/          # Database migration files
-└── attached_assets/     # Static assets
+## System Architecture
+The project employs a monolithic architecture, combining the frontend and backend within a single repository.
+-   **Frontend**: Built with React 18, TypeScript, Vite, Tailwind CSS for styling, shadcn/ui for components, and Wouter for routing.
+-   **Backend**: Developed using Express.js and Node.js.
+-   **Database**: PostgreSQL, utilizing Drizzle ORM for schema definition and interaction.
+-   **Authentication**: Implemented with Passport.js, supporting Google OAuth and local strategies.
+-   **AI Integration**: Leverages multiple AI providers including Groq, OpenRouter, OpenAI, and Anthropic for features like resume optimization and cover letter generation.
+-   **Payments**: Integrates with Stripe, PayPal, and Razorpay for subscription management.
+-   **Email Services**: Uses Resend, SendGrid, and Nodemailer for notifications and communication.
+-   **Real-time Communication**: Utilizes WebSockets (`ws`) for features like real-time chat.
+-   **UI/UX Decisions**: Employs a modern design approach using Tailwind CSS and shadcn/ui components for a consistent and responsive user interface.
+-   **Feature Specifications**:
+    -   Job Search & Auto-Apply with automated submission.
+    -   ATS Resume Optimization for AI-powered analysis.
+    -   Personalized Cover Letter Generation.
+    -   AI-powered Interview Preparation with feedback.
+    -   Chrome Extension for one-click applications.
+    -   Dashboard for Job Tracking.
+    -   Subscription Management.
+    -   WebSocket-based Real-time Chat.
+-   **System Design Choices**:
+    -   Vite dev server operates in middleware mode during development.
+    -   Production builds output to a `dist/` directory.
+    -   Session storage is handled via PostgreSQL to support multi-instance deployments.
+    -   The WebSocket server runs on the same port as the HTTP server.
+    -   Replit-specific configurations include running `npm run dev` on port 5000, utilizing Replit PostgreSQL, and being configured for Replit Autoscale deployment.
 
-```
-
-## Environment Setup
-
-### Required Environment Variables
-- `DATABASE_URL`: PostgreSQL connection string (auto-provided by Replit)
-- `NODE_ENV`: Set to "development" for dev mode, "production" for prod
-- `PORT`: Server port (always 5000 in Replit)
-- `SESSION_SECRET`: Random secret for session encryption
-
-### Optional API Keys
-- `GROQ_API_KEY`: For AI-powered features
-- `STRIPE_SECRET_KEY`: For payment processing
-- `PAYPAL_CLIENT_ID` & `PAYPAL_CLIENT_SECRET`: PayPal integration
-- `RESEND_API_KEY`: For email notifications
-- `GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`: Google OAuth
-
-## Development
-
-### Running Locally
-```bash
-npm run dev
-```
-This starts:
-- Express server on port 5000
-- Vite dev server with HMR
-- Frontend served at http://localhost:5000
-
-### Database Operations
-```bash
-# Push schema changes to database
-npm run db:push
-
-# Force push (if warnings appear)
-npm run db:push -- --force
-```
-
-### Building for Production
-```bash
-npm run build  # Builds both frontend and backend
-npm run start  # Runs production server
-```
-
-## Key Features
-1. **Job Search & Auto-Apply**: Automated job application submission
-2. **ATS Resume Optimization**: AI-powered resume analysis and optimization
-3. **Cover Letter Generation**: Personalized cover letters using AI
-4. **Interview Preparation**: Mock interviews with AI feedback
-5. **Chrome Extension**: One-click job applications
-6. **Job Tracking**: Dashboard to manage applications
-7. **Subscription Management**: Stripe/PayPal integration
-8. **Real-time Chat**: WebSocket-based communication
-
-## Database Schema
-The application uses a comprehensive PostgreSQL schema with tables for:
-- Users & authentication
-- Job postings & applications
-- Resumes & cover letters
-- Interview data & feedback
-- Subscription & payment info
-- Test assignments & rankings
-
-See `shared/schema.ts` for the complete schema definition.
-
-## Replit Configuration
-- **Workflow**: "Start application" runs `npm run dev` on port 5000
-- **Database**: Uses Replit PostgreSQL (Neon-backed)
-- **Deployment**: Configured for Replit Autoscale deployment
-- **Host**: Frontend binds to 0.0.0.0:5000 for proper proxy handling
-
-## Recent Changes
-
-### Oct 09, 2025 - Jobs Page Apply Functionality Fixed ✅
-- ✅ **Fixed Easy Apply endpoint** - Created missing `/api/jobs/postings/:id/apply` POST endpoint
-  - Endpoint was completely missing, causing "Failed to execute 'json' on 'Response'" errors
-  - Added authentication middleware and duplicate application check
-  - Properly creates applications in `jobPostingApplications` table
-- ✅ **Fixed Interview Prep freezing issue**
-  - Root cause: Tips object was being rendered directly instead of iterating over properties
-  - Updated rendering to properly display tips by category (general, technical, behavioral, etc.)
-  - Interview prep now displays correctly without freezing the UI
-- ✅ **Fixed button text logic for job applications**
-  - Scraped/external jobs now show "Apply" button (opens external site in new tab)
-  - Platform jobs now show "Easy Apply" button (uses internal application system)
-  - Applied to both job list cards and detail panel
-- ✅ **Added applications endpoint** - Created `/api/applications` GET endpoint
-  - Returns user's job applications sorted by date
-  - Enables the frontend to track which jobs user has applied to
-  - Prevents duplicate applications by checking existing applications
-
-### Oct 04, 2025 - Chrome Extension Authentication & Role Detection Fixed ✅
-- ✅ **Fixed university email role detection** in `server/userRoleService.js`:
-  - All students/faculty with `.edu`, `.ac.in`, `.edu.*`, `.ac.*` emails → Job Seekers
-  - University HR/placement staff (emails containing "hr", "talent", "recruiting", "careers", "hiring", "placement") → Recruiters
-  - Public email providers (Gmail, Yahoo, Outlook, etc.) → Always Job Seekers
-- ✅ **Fixed extension popup buttons** (Interview Prep, Salary Insights, Find Referrals):
-  - Changed from background script messaging to direct authenticated API calls
-  - Uses `makeApiRequest()` method with session token from `chrome.storage.local`
-  - Proper error handling with user-friendly messages
-- ✅ **Fixed auto-popup widget buttons** in `extension/content-script.js`:
-  - Interview Prep button → Direct POST to `/api/interview-prep` with `credentials: 'include'`
-  - Salary Insights button → Direct POST to `/api/salary-insights` with `credentials: 'include'`
-  - Referral Finder button → Opens `/referral-marketplace` in new tab
-  - All endpoints protected with `isAuthenticated` middleware
-  - Session cookies automatically sent via `credentials: 'include'`
-
-### Oct 04, 2025 - Production Build Process Fixed ✅
-- ✅ **Fixed production build configuration** in package.json:
-  - Added `build:backend` script using esbuild to compile TypeScript server code
-  - Added `build:frontend` script to build React frontend with Vite
-  - Main `build` script now builds both backend and frontend correctly
-  - Backend output: `dist/index.js` (1.9MB bundled)
-  - Frontend output: `dist/public/` (static assets)
-- ✅ **Verified build process works**:
-  - Backend compiles successfully with ESM format and external packages
-  - Frontend builds with code splitting and optimization
-  - Production start script can now successfully run `node dist/index.js`
-- ✅ **Deployment ready for Replit Autoscale**:
-  - Build command: `npm run build`
-  - Start command: `npm run start`
-  - Both commands verified working correctly
-
-### Oct 04, 2025 - Replit Environment Setup Complete ✅
-- ✅ GitHub repository successfully imported to fresh Replit environment
-- ✅ All npm dependencies installed and verified (950 packages)
-- ✅ nodejs-20 module confirmed installed and operational
-- ✅ Workflow "Start application" configured with correct settings:
-  - Command: `npm run dev`
-  - Port: 5000 (webview output type)
-  - Frontend binds to 0.0.0.0:5000 with allowedHosts: true for Replit proxy
-- ✅ PostgreSQL database connected successfully (Replit DATABASE_URL auto-provided)
-- ✅ Backend services initialized successfully:
-  - Express server on port 5000
-  - WebSocket service on /ws
-  - AI service (Groq/OpenRouter/OpenAI support)
-  - Session management with PostgreSQL store
-  - File storage for resumes/documents
-  - Daily sync service for job scraping
-- ✅ Frontend verified loading - homepage displays correctly with AutoJobr landing page
-- ✅ Vite dev server running with HMR enabled
-- ✅ Application fully operational and ready for development/deployment
-
-### Oct 04, 2025 - Fresh GitHub Import Setup Complete ✅
-- ✅ Successfully imported GitHub repository to fresh Replit environment
-- ✅ Fixed syntax errors in server/routes.ts (removed leftover edit tags)
-- ✅ All npm dependencies installed and verified (950 packages)
-- ✅ Workflow "Start application" configured with webview output type on port 5000
-- ✅ Vite dev server confirmed running with proper Replit proxy configuration:
-  - host: "0.0.0.0" for external access
-  - allowedHosts: true for Replit iframe proxy
-- ✅ PostgreSQL database connected successfully (Replit DATABASE_URL)
-- ✅ Frontend verified loading - homepage displays correctly with AutoJobr landing page
-- ✅ Backend services initialized: AI service, WebSocket, file storage, session management, daily sync
-- ✅ Deployment configured for Replit Autoscale (build: npm run build, run: npm run start)
-- ✅ Application fully operational and ready for development/deployment
-
-### Oct 03, 2025 - Chrome Extension Error Fixes ✅
-- ✅ **Fixed "Detached context" errors** in background.js
-  - Updated sender validation to allow popup messages (which don't have tabs)
-  - Only block invalid content script contexts, not popup messages
-  - Fixed rate limiting key to work with both popup and content script messages
-- ✅ **Fixed "response.json is not a function" error** in popup.js
-  - Removed redundant `.json()` call in loadTasks() - makeApiRequest already returns parsed JSON
-- ✅ **Fixed "Could not establish connection" errors**
-  - Added proper error handling to all chrome.runtime.sendMessage calls
-  - Wrapped messages in Promises with chrome.runtime.lastError checks
-  - Applied to: getApiUrl(), handleInterviewPrep(), handleSalaryInsights(), handleReferralFinder()
-- ✅ **Improved extension UI**
-  - Added CSS for action-row class to properly layout interview prep, salary insights, and referral buttons
-  - Created 3-column grid layout for advanced feature buttons
-  - Enhanced button styling with secondary gradient style
-- ✅ **Verified backend API endpoints**
-  - Confirmed /api/interview-prep endpoint exists and works
-  - Confirmed /api/salary-insights endpoint exists and works
-  - Both endpoints properly integrated with authentication middleware
-
-### Oct 03, 2025 - GitHub Import to Replit Complete ✅
-- ✅ Successfully cloned GitHub repository to Replit environment
-- ✅ All npm dependencies installed (950 packages)
-- ✅ Workflow "Start application" configured with webview output type on port 5000
-- ✅ Vite dev server confirmed running with proper host configuration (0.0.0.0, allowedHosts: true)
-- ✅ PostgreSQL database connected successfully (Replit DATABASE_URL)
-- ✅ Frontend verified loading - homepage displays correctly with "Land Your Dream Job" hero section
-- ✅ Backend services initialized: AI service, WebSocket, file storage, session management, daily sync
-- ✅ Deployment configured for Replit Autoscale (build: npm run build, run: npm run start)
-- ✅ Application fully operational and ready for use
-
-### Oct 02, 2025 - Chrome Extension CORS & Button Fixes
-- ✅ **Fixed CORS configuration** in `server/index.ts` to allow Chrome extension requests
-  - Extension can now make API calls from job sites (LinkedIn, Indeed, etc.)
-  - Added support for `chrome-extension://` and `moz-extension://` protocols
-  - Allows requests from 20+ job board domains where extension runs
-- ✅ **Updated extension API URL handling** in `extension/popup.js`
-  - Now uses `chrome.storage` for flexible API URL configuration
-  - Background script auto-detects correct API URL (localhost → Replit → Production)
-- ✅ **Verified all button handlers** are properly implemented:
-  - Interview Prep, Salary Intel, Find Referrals, Profile, Resume, History, Dashboard
-  - All features properly integrated with background script message handlers
-- ✅ **Created comprehensive setup guide** at `extension/DEVELOPMENT_SETUP.md`
-  - Installation instructions for developers
-  - Troubleshooting guide for common issues
-  - API endpoint documentation
-
-### Oct 02, 2025 - GitHub Import Setup Complete
-- ✅ GitHub repository successfully imported and verified in Replit environment
-- ✅ All dependencies installed and working (nodejs-20 module)
-- ✅ Workflow "Start application" confirmed running with webview output type on port 5000
-- ✅ Vite dev server properly configured with `host: 0.0.0.0` and `allowedHosts: true`
-- ✅ PostgreSQL database connected and operational (using Replit DATABASE_URL)
-- ✅ All backend services initialized: AI service, WebSocket, file storage, session management
-- ✅ Frontend verified loading correctly - homepage displays "Land Your Dream Job" banner
-- ✅ Deployment configuration verified in .replit file (autoscale target with build/run commands)
-- ✅ Application fully functional and accessible
-
-### Oct 01, 2025 - Platform Jobs Endpoint Fixed
-- ✅ Moved `/api/jobs/postings` route to early registration to prevent shadowing
-- ✅ 122 platform jobs accessible via API for all users
-- ✅ Frontend displaying 147 total jobs (122 platform + ~25 scraped)
-
-## Architecture Notes
-- The app uses a monolithic architecture with frontend and backend in one repo
-- Vite dev server runs in middleware mode during development
-- Production build outputs to `dist/` directory
-- Session storage uses PostgreSQL for multi-instance support
-- WebSocket server runs on same port as HTTP server
+## External Dependencies
+-   **Databases**: PostgreSQL (via Neon/Replit Database)
+-   **ORM**: Drizzle ORM
+-   **Authentication Providers**: Google OAuth
+-   **AI Services**: Groq, OpenRouter, OpenAI, Anthropic
+-   **Payment Gateways**: Stripe, PayPal, Razorpay
+-   **Email Services**: Resend, SendGrid, Nodemailer
+-   **Real-time Communication Libraries**: `ws` (WebSocket)
