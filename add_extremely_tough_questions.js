@@ -1,108 +1,321 @@
-
 import postgres from 'postgres';
 
 const client = postgres(process.env.DATABASE_URL);
 
-// EXTREMELY TOUGH QUESTIONS - AI-RESISTANT MCQs
-const TOUGH_QUESTIONS = [
-  // ==================== GENERAL APTITUDE - EXTREME DIFFICULTY ====================
-  { questionId: 'apt_extreme_001', type: 'multiple_choice', category: 'general_aptitude', domain: 'general', subCategory: 'logical_reasoning', difficulty: 'extreme', question: 'In a room, there are 5 people. Each person shakes hands with every other person exactly once, but only if they haven\'t met before. Alice has met Bob and Carol. Bob has met Alice, Carol, and Dave. Carol has met everyone. Dave has met Bob and Carol. Eve has met only Carol. How many handshakes occur in total?', options: ['6', '7', '8', '9'], correctAnswer: '1', explanation: 'Maximum possible handshakes for 5 people = 10. Alice-Bob (already met), Alice-Carol (met), Bob-Carol (met), Bob-Dave (met), Carol-Dave (met), Carol-Eve (met) = 6 already done. Remaining: Alice-Dave, Alice-Eve, Bob-Eve, Dave-Eve = 4. But Alice hasn\'t met Dave or Eve (2), Bob hasn\'t met Eve (1), Dave hasn\'t met Eve (1). But we need to check: Alice-Dave=1, Alice-Eve=1, Bob-Eve=1, Dave-Eve=1 = 4 new handshakes. Total NEW handshakes = 7 (tricky because Carol met everyone means those are done)', points: 10, timeLimit: 5, tags: ['combinatorics', 'graph_theory', 'logic'], keywords: ['handshakes', 'graph', 'combinatorial'] },
-  
-  { questionId: 'apt_extreme_002', type: 'multiple_choice', category: 'general_aptitude', domain: 'general', subCategory: 'numerical_ability', difficulty: 'extreme', question: 'A clock shows 3:15. What is the exact angle between the hour and minute hands?', options: ['0°', '7.5°', '22.5°', '37.5°'], correctAnswer: '1', explanation: 'At 3:15: Minute hand is at 90° (15 min × 6°/min). Hour hand moves 0.5° per minute, so at 3:15 it\'s at 90° + (15 × 0.5°) = 97.5°. Difference = 97.5° - 90° = 7.5°. Most people forget the hour hand moves continuously!', points: 10, timeLimit: 4, tags: ['clock_angles', 'continuous_motion', 'geometry'], keywords: ['clock', 'angles', 'time'] },
-  
-  { questionId: 'apt_extreme_003', type: 'multiple_choice', category: 'general_aptitude', domain: 'general', subCategory: 'pattern_recognition', difficulty: 'extreme', question: 'What is the next number in this sequence: 1, 11, 21, 1211, 111221, 312211, ?', options: ['13112221', '11131221', '13211321', '11132231'], correctAnswer: '0', explanation: 'This is the "Look-and-Say" sequence. Each term describes the previous: 312211 has one 3, one 1, one 2, two 1s, one 2, two 1s = 13112221. This pattern is famous for confusing AI!', points: 10, timeLimit: 5, tags: ['look_and_say', 'recursive_pattern', 'description_sequence'], keywords: ['sequence', 'recursive', 'description'] },
-  
-  { questionId: 'apt_extreme_004', type: 'multiple_choice', category: 'general_aptitude', domain: 'general', subCategory: 'logical_reasoning', difficulty: 'extreme', question: 'Three logicians walk into a bar. The bartender asks "Do all of you want beer?" The first logician says "I don\'t know." The second logician says "I don\'t know." What does the third logician say?', options: ['Yes', 'No', 'I don\'t know', 'Maybe'], correctAnswer: '0', explanation: 'If first said "no," they didn\'t want beer. Since they said "I don\'t know," they want it but don\'t know about others. Same for second. Third knows all three want it, so says "Yes." This tests understanding of common knowledge in logic.', points: 10, timeLimit: 5, tags: ['modal_logic', 'common_knowledge', 'epistemic_logic'], keywords: ['logic', 'knowledge', 'inference'] },
-  
-  { questionId: 'apt_extreme_005', type: 'multiple_choice', category: 'general_aptitude', domain: 'general', subCategory: 'probability', difficulty: 'extreme', question: 'You have two children. One is a boy born on a Tuesday. What is the probability that both children are boys?', options: ['1/2', '13/27', '1/3', '1/7'], correctAnswer: '1', explanation: 'This is the "Boy Born on Tuesday" paradox. With day information, P(both boys | one boy born Tuesday) = 13/27, not 1/2. The day constraint changes the probability space dramatically. Classic Bayesian reasoning problem.', points: 10, timeLimit: 5, tags: ['bayesian', 'conditional_probability', 'paradox'], keywords: ['probability', 'bayesian', 'conditional'] },
-
-  // ==================== ENGLISH - EXTREME DIFFICULTY ====================
-  { questionId: 'eng_extreme_001', type: 'multiple_choice', category: 'english', domain: 'general', subCategory: 'grammar', difficulty: 'extreme', question: 'Which sentence is grammatically CORRECT?', options: ['The data are conclusive.', 'The data is conclusive.', 'Both are correct depending on context.', 'Neither is correct.'], correctAnswer: '2', explanation: 'In formal/scientific writing, "data" (plural of datum) takes "are." In general usage, especially with mass-noun sense, "is" is acceptable. Both can be correct based on register and style guide. This tests prescriptive vs. descriptive grammar knowledge.', points: 10, timeLimit: 4, tags: ['grammar', 'prescriptive_vs_descriptive', 'usage'], keywords: ['data', 'singular_plural', 'usage'] },
-  
-  { questionId: 'eng_extreme_002', type: 'multiple_choice', category: 'english', domain: 'general', subCategory: 'vocabulary', difficulty: 'extreme', question: 'What is the correct meaning of "enervate"?', options: ['To energize', 'To weaken', 'To anger', 'To inspire'], correctAnswer: '1', explanation: 'Despite sounding like "energize," enervate means to weaken or drain of energy. This is a classic false friend that confuses even native speakers and AI systems.', points: 10, timeLimit: 3, tags: ['false_friends', 'etymology', 'vocabulary'], keywords: ['enervate', 'false_friend', 'meaning'] },
-  
-  { questionId: 'eng_extreme_003', type: 'multiple_choice', category: 'english', domain: 'general', subCategory: 'syntax', difficulty: 'extreme', question: 'Identify the grammatical structure: "Buffalo buffalo Buffalo buffalo buffalo buffalo Buffalo buffalo."', options: ['Grammatically incorrect nonsense', 'A valid sentence using homonyms', 'A sentence with only one meaning', 'An infinite recursion error'], correctAnswer: '1', explanation: 'This is a grammatically valid sentence! Buffalo (city) buffalo (animals) [that] Buffalo buffalo (other animals) buffalo (verb: bully) [in turn] buffalo (verb) Buffalo buffalo (animals from Buffalo). Tests understanding of complex syntactic ambiguity.', points: 10, timeLimit: 5, tags: ['syntax', 'ambiguity', 'homonyms'], keywords: ['buffalo', 'homonyms', 'syntax'] },
-  
-  { questionId: 'eng_extreme_004', type: 'multiple_choice', category: 'english', domain: 'general', subCategory: 'semantics', difficulty: 'extreme', question: 'In the sentence "The horse raced past the barn fell," what is the grammatical subject?', options: ['The horse', 'The barn', 'Raced', 'The sentence is ungrammatical'], correctAnswer: '0', explanation: 'This is a garden-path sentence. Parse: "The horse [that was] raced past the barn" (subject) "fell" (verb). The horse that was raced past the barn is what fell. Tests understanding of reduced relative clauses and reanalysis.', points: 10, timeLimit: 5, tags: ['garden_path', 'relative_clauses', 'parsing'], keywords: ['garden_path', 'syntax', 'ambiguity'] },
-  
-  { questionId: 'eng_extreme_005', type: 'multiple_choice', category: 'english', domain: 'general', subCategory: 'semantics', difficulty: 'extreme', question: 'If "All unicorns are white" is true, what can we conclude?', options: ['Some unicorns exist', 'No unicorns are non-white', 'Unicorns exist and are white', 'The statement is meaningless'], correctAnswer: '1', explanation: 'In classical logic, "All X are Y" is vacuously true when X has no members. Since unicorns don\'t exist, the statement is technically true, and we can only conclude the contrapositive: no unicorns are non-white. Tests understanding of vacuous truth and existential import.', points: 10, timeLimit: 5, tags: ['logic', 'vacuous_truth', 'semantics'], keywords: ['vacuous_truth', 'existential', 'logic'] },
-
-  // ==================== COMPUTER SCIENCE - EXTREME DIFFICULTY ====================
-  { questionId: 'tech_extreme_001', type: 'multiple_choice', category: 'domain_specific', domain: 'computer_science', subCategory: 'algorithms', difficulty: 'extreme', question: 'What is the time complexity of the following: for(i=1; i<=n; i*=2) for(j=1; j<=i; j++) print(i,j);?', options: ['O(n)', 'O(n log n)', 'O(2^n)', 'O(n^2)'], correctAnswer: '0', explanation: 'Outer loop runs log(n) times (i doubles). Inner iterations: 1+2+4+8+...+n/2+n = 2n-1 ≈ O(n). This is a geometric series sum, not O(n log n) as many assume! Tests deep understanding of series analysis.', points: 10, timeLimit: 5, tags: ['time_complexity', 'geometric_series', 'analysis'], keywords: ['complexity', 'analysis', 'series'] },
-  
-  { questionId: 'tech_extreme_002', type: 'multiple_choice', category: 'domain_specific', domain: 'computer_science', subCategory: 'concurrency', difficulty: 'extreme', question: 'In the "Dining Philosophers" problem with 5 philosophers, what is the MINIMUM number of forks needed to guarantee deadlock-free execution?', options: ['4', '5', '6', '10'], correctAnswer: '0', explanation: 'With 4 forks and 5 philosophers, at least one philosopher cannot pick up any fork, preventing circular wait. Classic resource allocation problem testing deep concurrency knowledge.', points: 10, timeLimit: 5, tags: ['concurrency', 'deadlock', 'resource_allocation'], keywords: ['deadlock', 'philosophers', 'concurrency'] },
-  
-  { questionId: 'tech_extreme_003', type: 'multiple_choice', category: 'domain_specific', domain: 'computer_science', subCategory: 'type_theory', difficulty: 'extreme', question: 'In JavaScript, what is the result of: [] + [] + {} ?', options: ['[object Object]', '0[object Object]', '[object Object]0', 'NaN'], correctAnswer: '0', explanation: '[]+[] converts both to "", result "". ""+ {} converts {} to "[object Object]". Result: "[object Object]". Tests understanding of type coercion and valueOf/toString precedence.', points: 10, timeLimit: 4, tags: ['type_coercion', 'javascript', 'implicit_conversion'], keywords: ['coercion', 'javascript', 'types'] },
-  
-  { questionId: 'tech_extreme_004', type: 'multiple_choice', category: 'domain_specific', domain: 'computer_science', subCategory: 'floating_point', difficulty: 'extreme', question: 'In IEEE 754 double precision, what is the exact value stored for 0.1 + 0.2?', options: ['0.3', '0.30000000000000004', '0.2999999999999999', '0.30000000000000001'], correctAnswer: '1', explanation: '0.1 and 0.2 cannot be represented exactly in binary. Their sum is 0.30000000000000004 due to rounding errors. Classic floating-point precision problem that confuses many.', points: 10, timeLimit: 4, tags: ['floating_point', 'precision', 'IEEE_754'], keywords: ['floating_point', 'precision', 'rounding'] },
-  
-  { questionId: 'tech_extreme_005', type: 'multiple_choice', category: 'domain_specific', domain: 'computer_science', subCategory: 'cryptography', difficulty: 'extreme', question: 'What makes the RSA cryptosystem secure?', options: ['Integer factorization is hard', 'Discrete logarithm is hard', 'Finding hash collisions is hard', 'Symmetric key distribution'], correctAnswer: '0', explanation: 'RSA security relies on the computational difficulty of factoring large semiprimes. Discrete log is for Diffie-Hellman/ElGamal. Tests understanding of asymmetric cryptography foundations.', points: 10, timeLimit: 4, tags: ['cryptography', 'RSA', 'number_theory'], keywords: ['RSA', 'factorization', 'security'] },
-
-  // ==================== FINANCE - EXTREME DIFFICULTY ====================
-  { questionId: 'fin_extreme_001', type: 'multiple_choice', category: 'domain_specific', domain: 'finance', subCategory: 'derivatives', difficulty: 'extreme', question: 'You sell a call option and buy a put option with the same strike and expiration. This creates a:', options: ['Synthetic long stock', 'Synthetic short stock', 'Straddle', 'Risk-free arbitrage'], correctAnswer: '1', explanation: 'Short call + long put = synthetic short stock position. By put-call parity: P - C = -S + PV(K). This tests deep understanding of option synthetics and put-call parity.', points: 10, timeLimit: 5, tags: ['options', 'synthetics', 'put_call_parity'], keywords: ['synthetic', 'options', 'parity'] },
-  
-  { questionId: 'fin_extreme_002', type: 'multiple_choice', category: 'domain_specific', domain: 'finance', subCategory: 'statistics', difficulty: 'extreme', question: 'A portfolio has Sharpe ratio of 1.5 and volatility of 20%. If risk-free rate is 2%, what is the expected return?', options: ['30%', '32%', '28%', '22%'], correctAnswer: '1', explanation: 'Sharpe = (E[R] - Rf) / σ. So 1.5 = (E[R] - 2%) / 20%. E[R] = 1.5 × 20% + 2% = 32%. Tests understanding of risk-adjusted return metrics.', points: 10, timeLimit: 4, tags: ['sharpe_ratio', 'risk_metrics', 'portfolio'], keywords: ['sharpe', 'volatility', 'return'] },
-  
-  { questionId: 'fin_extreme_003', type: 'multiple_choice', category: 'domain_specific', domain: 'finance', subCategory: 'fixed_income', difficulty: 'extreme', question: 'A bond\'s convexity is positive. If yields fall by 100bps, the bond price will:', options: ['Rise exactly per duration', 'Rise more than duration predicts', 'Rise less than duration predicts', 'Fall due to negative convexity'], correctAnswer: '1', explanation: 'Positive convexity means price increases MORE when yields fall (and decreases LESS when yields rise) than duration alone predicts. Tests understanding of second-order price effects.', points: 10, timeLimit: 4, tags: ['convexity', 'duration', 'bonds'], keywords: ['convexity', 'duration', 'yield'] },
-  
-  { questionId: 'fin_extreme_004', type: 'multiple_choice', category: 'domain_specific', domain: 'finance', subCategory: 'behavioral_finance', difficulty: 'extreme', question: 'Prospect Theory suggests that losses are felt:', options: ['Equally to gains', 'About 2x more intensely than gains', 'Less intensely than gains', 'Only in aggregate'], correctAnswer: '1', explanation: 'Kahneman & Tversky found loss aversion coefficient ~2.25, meaning losses hurt about twice as much as equivalent gains feel good. This asymmetry drives many behavioral biases.', points: 10, timeLimit: 4, tags: ['behavioral_finance', 'prospect_theory', 'psychology'], keywords: ['loss_aversion', 'prospect_theory', 'behavioral'] },
-  
-  { questionId: 'fin_extreme_005', type: 'multiple_choice', category: 'domain_specific', domain: 'finance', subCategory: 'market_microstructure', difficulty: 'extreme', question: 'In a limit order book, "price improvement" occurs when:', options: ['Market order executes at better price than best quote', 'Spread widens', 'Volume increases', 'Volatility decreases'], correctAnswer: '0', explanation: 'Price improvement means execution at a better price than the NBBO (National Best Bid/Offer). Happens due to hidden orders, internalization, or smart routing. Tests microstructure knowledge.', points: 10, timeLimit: 4, tags: ['market_microstructure', 'order_book', 'execution'], keywords: ['price_improvement', 'NBBO', 'execution'] },
-
-  // ==================== SALES - EXTREME DIFFICULTY ====================
-  { questionId: 'sales_extreme_001', type: 'multiple_choice', category: 'domain_specific', domain: 'sales', subCategory: 'negotiation', difficulty: 'extreme', question: 'In BATNA negotiation theory, you should reveal your BATNA to the other party when:', options: ['Always, for transparency', 'Never, to maintain leverage', 'Only when it\'s strong and strengthens your position', 'Only when asked directly'], correctAnswer: '2', explanation: 'Reveal strong BATNAs to increase your leverage; conceal weak ones. Strategic disclosure based on relative strength is key to negotiation power. Tests advanced negotiation theory (Fisher & Ury).', points: 10, timeLimit: 4, tags: ['BATNA', 'negotiation', 'game_theory'], keywords: ['BATNA', 'negotiation', 'leverage'] },
-  
-  { questionId: 'sales_extreme_002', type: 'multiple_choice', category: 'domain_specific', domain: 'sales', subCategory: 'pricing_psychology', difficulty: 'extreme', question: 'The "endowment effect" in sales means customers:', options: ['Value products they own more highly', 'Prefer cheaper options', 'Compare all alternatives equally', 'Ignore sunk costs'], correctAnswer: '0', explanation: 'Kahneman\'s endowment effect: people value things more once they own them. Sales tactic: trials/demos create ownership feeling, increasing perceived value. Tests behavioral economics in sales.', points: 10, timeLimit: 4, tags: ['behavioral_economics', 'endowment_effect', 'psychology'], keywords: ['endowment', 'value', 'ownership'] },
-  
-  { questionId: 'sales_extreme_003', type: 'multiple_choice', category: 'domain_specific', domain: 'sales', subCategory: 'metrics', difficulty: 'extreme', question: 'If CAC = $500, LTV = $1500, and average customer lifecycle = 24 months, what is the LTV:CAC ratio and payback period?', options: ['3:1, 8 months', '3:1, 12 months', '2:1, 8 months', '3:1, need more info for payback'], correctAnswer: '3', explanation: 'LTV:CAC = 1500/500 = 3:1. But payback period needs monthly revenue/margin data, not just LTV. Many assume it\'s 24/3=8mo, but this ignores margin and revenue timing. Tests deep metrics understanding.', points: 10, timeLimit: 5, tags: ['CAC', 'LTV', 'unit_economics'], keywords: ['CAC', 'LTV', 'payback'] },
-  
-  { questionId: 'sales_extreme_004', type: 'multiple_choice', category: 'domain_specific', domain: 'sales', subCategory: 'game_theory', difficulty: 'extreme', question: 'In a pricing game with one competitor, if you both have dominant strategies to defect (price low), you\'re in a:', options: ['Nash equilibrium only', 'Prisoner\'s dilemma', 'Coordination game', 'Zero-sum game'], correctAnswer: '1', explanation: 'Both firms better off cooperating (high prices) but individual incentive to defect (low price) creates prisoner\'s dilemma. Classic oligopoly pricing problem testing game theory application.', points: 10, timeLimit: 5, tags: ['game_theory', 'pricing', 'prisoners_dilemma'], keywords: ['game_theory', 'nash', 'dilemma'] },
-  
-  { questionId: 'sales_extreme_005', type: 'multiple_choice', category: 'domain_specific', domain: 'sales', subCategory: 'forecasting', difficulty: 'extreme', question: 'Your pipeline has $10M with historical 25% win rate. Using Monte Carlo simulation with win probability distribution, expected revenue is:', options: ['$2.5M (simple calculation)', 'Less than $2.5M due to correlation', 'More than $2.5M due to variance', 'Exactly $2.5M (law of large numbers)'], correctAnswer: '1', explanation: 'Deals are often correlated (market conditions, budget cycles). Positive correlation reduces expected value below naive 25% × $10M. Simple probability ignores correlation effects. Tests advanced forecasting knowledge.', points: 10, timeLimit: 5, tags: ['forecasting', 'monte_carlo', 'correlation'], keywords: ['forecasting', 'probability', 'correlation'] },
-
-  // ==================== MARKETING - EXTREME DIFFICULTY ====================
-  { questionId: 'mkt_extreme_001', type: 'multiple_choice', category: 'domain_specific', domain: 'marketing', subCategory: 'attribution', difficulty: 'extreme', question: 'In multi-touch attribution, Shapley value gives:', options: ['All credit to last click', 'Equal credit to all touches', 'Credit based on marginal contribution', 'Credit based on position'], correctAnswer: '2', explanation: 'Shapley value from game theory allocates credit based on each touchpoint\'s average marginal contribution across all possible orderings. Most sophisticated attribution model. Tests advanced marketing analytics.', points: 10, timeLimit: 5, tags: ['attribution', 'shapley_value', 'game_theory'], keywords: ['attribution', 'shapley', 'contribution'] },
-  
-  { questionId: 'mkt_extreme_002', type: 'multiple_choice', category: 'domain_specific', domain: 'marketing', subCategory: 'experimentation', difficulty: 'extreme', question: 'You run an A/B test with p-value = 0.04. The probability your result is a false positive is:', options: ['4%', '96%', 'Cannot determine without prior probability', '50%'], correctAnswer: '2', explanation: 'P-value ≠ P(H0|data). By Bayes theorem, P(false positive|significant) depends on prior probability of true effect. With low prior (most tests), even p=0.04 may have high false discovery rate. Tests Bayesian thinking.', points: 10, timeLimit: 5, tags: ['statistics', 'bayesian', 'hypothesis_testing'], keywords: ['p_value', 'bayesian', 'false_positive'] },
-  
-  { questionId: 'mkt_extreme_003', type: 'multiple_choice', category: 'domain_specific', domain: 'marketing', subCategory: 'network_effects', difficulty: 'extreme', question: 'In Metcalfe\'s Law, network value grows as:', options: ['n (linear)', 'n log n', 'n² (quadratic)', 'n^n (exponential)'], correctAnswer: '2', explanation: 'Metcalfe\'s Law: network value ∝ n² (number of possible connections). However, Odlyzko argues it\'s closer to n log n due to decreasing marginal utility. Original formulation is n². Tests network economics.', points: 10, timeLimit: 4, tags: ['network_effects', 'metcalfe', 'scaling'], keywords: ['network_effects', 'metcalfe', 'value'] },
-  
-  { questionId: 'mkt_extreme_004', type: 'multiple_choice', category: 'domain_specific', domain: 'marketing', subCategory: 'pricing', difficulty: 'extreme', question: 'Price discrimination is most effective when:', options: ['All customers are identical', 'Cannot prevent arbitrage', 'Can segment by willingness to pay and prevent resale', 'Market is perfectly competitive'], correctAnswer: '2', explanation: 'Successful price discrimination requires: ability to segment by WTP and prevent arbitrage (resale). Both conditions necessary. Tests microeconomic pricing theory.', points: 10, timeLimit: 4, tags: ['price_discrimination', 'microeconomics', 'arbitrage'], keywords: ['price_discrimination', 'segmentation', 'arbitrage'] },
-  
-  { questionId: 'mkt_extreme_005', type: 'multiple_choice', category: 'domain_specific', domain: 'marketing', subCategory: 'consumer_behavior', difficulty: 'extreme', question: 'The "decoy effect" works by:', options: ['Making the target option seem better via asymmetric dominance', 'Reducing prices', 'Adding more choices', 'Removing options'], correctAnswer: '0', explanation: 'Decoy effect: introducing inferior "decoy" option makes target seem more attractive via asymmetric dominance. Example: Medium dominates Large- (decoy), making Medium look better vs. Small. Tests behavioral economics.', points: 10, timeLimit: 4, tags: ['decoy_effect', 'behavioral_economics', 'choice_architecture'], keywords: ['decoy', 'asymmetric_dominance', 'behavioral'] },
-
-  // ==================== MANAGEMENT - EXTREME DIFFICULTY ====================
-  { questionId: 'mgmt_extreme_001', type: 'multiple_choice', category: 'domain_specific', domain: 'management', subCategory: 'game_theory', difficulty: 'extreme', question: 'In a repeated prisoner\'s dilemma with unknown end point, the optimal strategy is typically:', options: ['Always defect', 'Always cooperate', 'Tit-for-tat with occasional forgiveness', 'Random choices'], correctAnswer: '2', explanation: 'Axelrod\'s tournaments showed tit-for-tat wins, but with noise, generous tit-for-tat (occasional forgiveness) performs better by avoiding defection spirals. Tests advanced game theory in management.', points: 10, timeLimit: 5, tags: ['game_theory', 'cooperation', 'strategy'], keywords: ['tit_for_tat', 'cooperation', 'repeated_game'] },
-  
-  { questionId: 'mgmt_extreme_002', type: 'multiple_choice', category: 'domain_specific', domain: 'management', subCategory: 'organizational_theory', difficulty: 'extreme', question: 'According to the "March of Folly" concept, organizations repeat mistakes because:', options: ['Lack of information', 'Structural incentives override learning', 'Poor leadership only', 'Random chance'], correctAnswer: '1', explanation: 'Tuchman\'s "March of Folly": institutional structures, incentives, and politics can make organizations pursue policies against their interest despite knowing better. Tests understanding of organizational pathologies.', points: 10, timeLimit: 5, tags: ['organizational_theory', 'institutional_failure', 'incentives'], keywords: ['institutional', 'incentives', 'failure'] },
-  
-  { questionId: 'mgmt_extreme_003', type: 'multiple_choice', category: 'domain_specific', domain: 'management', subCategory: 'decision_theory', difficulty: 'extreme', question: 'In Prospect Theory, the value function is:', options: ['Linear', 'Concave for gains, convex for losses', 'Convex for gains, concave for losses', 'S-shaped: concave for gains, convex for losses'], correctAnswer: '3', explanation: 'Prospect Theory value function is S-shaped: concave for gains (risk averse), convex for losses (risk seeking), steeper for losses (loss aversion). Tests behavioral decision theory.', points: 10, timeLimit: 5, tags: ['prospect_theory', 'decision_theory', 'behavioral'], keywords: ['prospect_theory', 'value_function', 'behavioral'] },
-  
-  { questionId: 'mgmt_extreme_004', type: 'multiple_choice', category: 'domain_specific', domain: 'management', subCategory: 'complexity', difficulty: 'extreme', question: 'In a complex adaptive system, small changes can have disproportionate effects due to:', options: ['Linear scaling', 'Non-linear dynamics and feedback loops', 'Randomness only', 'Hierarchical control'], correctAnswer: '1', explanation: 'Complex adaptive systems exhibit non-linear dynamics where feedback loops can amplify small perturbations. Butterfly effect, tipping points, emergent behavior. Tests complexity science in organizations.', points: 10, timeLimit: 5, tags: ['complexity', 'non_linear', 'feedback'], keywords: ['complexity', 'non_linear', 'emergence'] },
-  
-  { questionId: 'mgmt_extreme_005', type: 'multiple_choice', category: 'domain_specific', domain: 'management', subCategory: 'agency_theory', difficulty: 'extreme', question: 'The principal-agent problem is BEST solved by:', options: ['Perfect monitoring', 'Aligning incentives through contract design', 'Hiring only trustworthy agents', 'Eliminating all information asymmetry'], correctAnswer: '1', explanation: 'Perfect monitoring is often impossible/costly. Eliminating information asymmetry is unrealistic. Optimal contracts align incentives given constraints. Tests microeconomic foundations of corporate governance.', points: 10, timeLimit: 5, tags: ['agency_theory', 'contracts', 'incentives'], keywords: ['principal_agent', 'contracts', 'asymmetric_information'] },
-
-  // ==================== SITUATIONAL JUDGMENT - EXTREME DIFFICULTY ====================
-  { questionId: 'sjt_extreme_001', type: 'multiple_choice', category: 'situational_judgment', domain: 'workplace', subCategory: 'ethics', difficulty: 'extreme', question: 'You discover your company\'s AI hiring tool has 15% racial bias. Legal says it\'s within acceptable limits. Your CEO wants to deploy it to meet diversity targets. You should FIRST:', options: ['Deploy as approved by legal', 'Refuse and resign', 'Document the bias and propose fairness improvements with deployment delay', 'Report to external regulators immediately'], correctAnswer: '2', explanation: 'Professional responsibility: document concerns, propose solutions, escalate internally before external action. Balance stakeholder interests while maintaining ethical standards. Tests ethical decision-making in ambiguous situations.', points: 10, timeLimit: 6, tags: ['ethics', 'AI_bias', 'professional_responsibility'], keywords: ['ethics', 'bias', 'responsibility'] },
-  
-  { questionId: 'sjt_extreme_002', type: 'multiple_choice', category: 'situational_judgment', domain: 'workplace', subCategory: 'leadership', difficulty: 'extreme', question: 'Two top engineers (20% of team output) demand: remote work OR they leave together for a competitor. Remote work would reduce team collaboration 30%. You should:', options: ['Accept demands to retain talent', 'Let them leave to maintain standards', 'Negotiate hybrid solution with performance metrics', 'Counter-offer with compensation increase'], correctAnswer: '2', explanation: 'Optimal: acknowledge concerns, propose data-driven hybrid with clear success metrics. Balances talent retention, team needs, and creates precedent. Tests complex negotiation and leadership under constraints.', points: 10, timeLimit: 6, tags: ['leadership', 'negotiation', 'talent_management'], keywords: ['leadership', 'retention', 'negotiation'] },
-  
-  { questionId: 'sjt_extreme_003', type: 'multiple_choice', category: 'situational_judgment', domain: 'workplace', subCategory: 'crisis_management', difficulty: 'extreme', question: 'Your product caused user data exposure. Legal says don\'t disclose (no legal obligation). Security says breach is minimal. PR says disclosure would tank stock 40%. You should:', options: ['Follow legal advice, don\'t disclose', 'Disclose immediately despite impacts', 'Assess actual user harm, then decide disclosure with full stakeholder input', 'Delay decision until more information'], correctAnswer: '2', explanation: 'Ethical framework: assess actual harm, consider stakeholders (users, shareholders, employees), then transparent decision. Legal minimum ≠ ethical optimum. Tests stakeholder theory and crisis ethics.', points: 10, timeLimit: 6, tags: ['crisis_management', 'ethics', 'stakeholder_theory'], keywords: ['crisis', 'disclosure', 'ethics'] },
-  
-  { questionId: 'sjt_extreme_004', type: 'multiple_choice', category: 'situational_judgment', domain: 'workplace', subCategory: 'strategic_thinking', difficulty: 'extreme', question: 'Competitor launches disruptive product. Your team suggests: A) match them fast (6mo), B) leapfrog with better tech (18mo, risky), C) acquire them (expensive). Market window is 12mo. You choose:', options: ['A - Fast follower strategy', 'B - Innovation leadership despite risk', 'C - Acquisition for speed', 'Parallel A+B with options thinking'], correctAnswer: '3', explanation: 'Real options thinking: fast follower buys time while exploring breakthrough. Keeps options open, manages risk. Tests strategic decision-making under uncertainty with real options framework.', points: 10, timeLimit: 6, tags: ['strategy', 'real_options', 'competitive_dynamics'], keywords: ['strategy', 'options', 'competition'] },
-  
-  { questionId: 'sjt_extreme_005', type: 'multiple_choice', category: 'situational_judgment', domain: 'workplace', subCategory: 'organizational_politics', difficulty: 'extreme', question: 'You have evidence that a VP is sabotaging your project to protect their competing initiative. They have CEO\'s favor. Your project is better for company long-term. You should:', options: ['Escalate to CEO directly with evidence', 'Build coalition with other VPs first, then escalate with support', 'Compete harder to prove superiority', 'Switch to support their project'], correctAnswer: '1', explanation: 'Political capital matters: build coalition, frame as organizational benefit (not personal conflict), then escalate with support. Direct escalation risks backlash. Tests organizational navigation and influence strategies.', points: 10, timeLimit: 6, tags: ['organizational_politics', 'influence', 'coalitions'], keywords: ['politics', 'influence', 'coalition'] }
+// ==================== HARD MCQ CODING QUESTIONS (1 POINT EACH) ====================
+const HARD_MCQ_CODING_QUESTIONS = [
+  {
+    id: 'c_mcq_001',
+    question: 'What is the time complexity of the following code?\n```javascript\nfor(let i=1; i<=n; i*=2) {\n  for(let j=1; j<=n; j++) {\n    console.log(i, j);\n  }\n}\n```',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'algorithms',
+    hints: ['Analyze outer loop iterations', 'Count total operations', 'Outer loop is logarithmic'],
+    testCases: [],
+    options: ['O(n)', 'O(n log n)', 'O(n²)', 'O(log n)'],
+    correctAnswer: 1,
+    explanation: 'Outer loop runs log(n) times (i doubles each time). Inner loop runs n times for each outer iteration. Total: O(n log n)',
+    timeLimit: 3,
+    companies: ['Google', 'Amazon', 'Microsoft'],
+    points: 1
+  },
+  {
+    id: 'c_mcq_002',
+    question: 'In JavaScript, what does `typeof null` return?',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'javascript',
+    hints: ['This is a known JavaScript quirk', 'It\'s not "null"', 'Legacy bug from early JS'],
+    testCases: [],
+    options: ['null', 'object', 'undefined', 'number'],
+    correctAnswer: 1,
+    explanation: 'This is a famous JavaScript bug. `typeof null` returns "object" due to legacy reasons from the original implementation.',
+    timeLimit: 2,
+    companies: ['Facebook', 'Netflix', 'Twitter'],
+    points: 1
+  },
+  {
+    id: 'c_mcq_003',
+    question: 'What is the output of: `console.log(0.1 + 0.2 === 0.3)`?',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'javascript',
+    hints: ['Floating point precision', 'Binary representation', 'Not what you expect'],
+    testCases: [],
+    options: ['true', 'false', 'undefined', 'NaN'],
+    correctAnswer: 1,
+    explanation: 'Due to floating-point precision issues, 0.1 + 0.2 = 0.30000000000000004, not exactly 0.3. This returns false.',
+    timeLimit: 2,
+    companies: ['Google', 'Apple', 'Amazon'],
+    points: 1
+  },
+  {
+    id: 'c_mcq_004',
+    question: 'Which data structure provides the best average case for insert, delete, and search operations?',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'data_structures',
+    hints: ['Think about hash functions', 'O(1) average case', 'Collision handling'],
+    testCases: [],
+    options: ['Array', 'Linked List', 'Hash Table', 'Binary Search Tree'],
+    correctAnswer: 2,
+    explanation: 'Hash tables provide O(1) average case for insert, delete, and search operations using hash functions and collision resolution.',
+    timeLimit: 3,
+    companies: ['Microsoft', 'Amazon', 'Facebook'],
+    points: 1
+  },
+  {
+    id: 'c_mcq_005',
+    question: 'What is the space complexity of merge sort algorithm?',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'algorithms',
+    hints: ['Consider auxiliary space', 'Temporary arrays needed', 'Not in-place sorting'],
+    testCases: [],
+    options: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
+    correctAnswer: 2,
+    explanation: 'Merge sort requires O(n) extra space for temporary arrays during the merge process, making it not an in-place sorting algorithm.',
+    timeLimit: 3,
+    companies: ['Google', 'Microsoft', 'Amazon'],
+    points: 1
+  },
+  {
+    id: 'c_mcq_006',
+    question: 'In a binary search tree with n nodes, what is the worst-case time complexity for search?',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'data_structures',
+    hints: ['Consider unbalanced tree', 'Skewed tree scenario', 'Degenerates to linked list'],
+    testCases: [],
+    options: ['O(log n)', 'O(n)', 'O(n log n)', 'O(1)'],
+    correctAnswer: 1,
+    explanation: 'In the worst case, a BST can become skewed (like a linked list), requiring O(n) time to search through all nodes.',
+    timeLimit: 3,
+    companies: ['Apple', 'Google', 'Amazon'],
+    points: 1
+  },
+  {
+    id: 'c_mcq_007',
+    question: 'What is the output of: `[1, 2, 3] + [4, 5, 6]` in JavaScript?',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'javascript',
+    hints: ['Type coercion', 'Arrays convert to strings', 'String concatenation'],
+    testCases: [],
+    options: ['[1, 2, 3, 4, 5, 6]', '"1,2,34,5,6"', '[5, 7, 9]', 'Error'],
+    correctAnswer: 1,
+    explanation: 'Arrays are converted to strings and concatenated: "1,2,3" + "4,5,6" = "1,2,34,5,6"',
+    timeLimit: 2,
+    companies: ['Netflix', 'Twitter', 'LinkedIn'],
+    points: 1
+  },
+  {
+    id: 'c_mcq_008',
+    question: 'Which sorting algorithm is NOT stable?',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'algorithms',
+    hints: ['Stable maintains relative order', 'In-place swapping', 'Non-adjacent swaps'],
+    testCases: [],
+    options: ['Merge Sort', 'Bubble Sort', 'Quick Sort', 'Insertion Sort'],
+    correctAnswer: 2,
+    explanation: 'Quick Sort is not stable because it can swap non-adjacent elements, changing the relative order of equal elements.',
+    timeLimit: 3,
+    companies: ['Google', 'Facebook', 'Amazon'],
+    points: 1
+  },
+  {
+    id: 'c_mcq_009',
+    question: 'What is the output of `console.log(1 < 2 < 3)` in JavaScript?',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'javascript',
+    hints: ['Left to right evaluation', 'Boolean conversion', 'Chained comparisons'],
+    testCases: [],
+    options: ['true', 'false', 'undefined', 'Error'],
+    correctAnswer: 0,
+    explanation: '(1 < 2) evaluates to true, then true < 3 becomes 1 < 3 (true converts to 1), which is true.',
+    timeLimit: 2,
+    companies: ['Apple', 'Google', 'Microsoft'],
+    points: 1
+  },
+  {
+    id: 'c_mcq_010',
+    question: 'In a min-heap with n elements, what is the time complexity to find the maximum element?',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'data_structures',
+    hints: ['Heap structure properties', 'Min at root', 'Max location unknown'],
+    testCases: [],
+    options: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
+    correctAnswer: 2,
+    explanation: 'The maximum element in a min-heap is at a leaf node, requiring O(n) time to scan all leaves to find it.',
+    timeLimit: 3,
+    companies: ['Amazon', 'Microsoft', 'Google'],
+    points: 1
+  },
+  {
+    id: 'c_mcq_011',
+    question: 'What is the result of `"5" - 3` in JavaScript?',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'javascript',
+    hints: ['Type coercion', 'Numeric context', 'Subtraction operator'],
+    testCases: [],
+    options: ['2', '"2"', '"53"', 'NaN'],
+    correctAnswer: 0,
+    explanation: 'The subtraction operator coerces "5" to number 5, then 5 - 3 = 2 (number)',
+    timeLimit: 2,
+    companies: ['Facebook', 'Netflix', 'Uber'],
+    points: 1
+  },
+  {
+    id: 'c_mcq_012',
+    question: 'Which graph algorithm uses a greedy approach to find the shortest path?',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'algorithms',
+    hints: ['Priority queue based', 'Non-negative edges', 'Named after Dutch scientist'],
+    testCases: [],
+    options: ['Bellman-Ford', 'Dijkstra\'s', 'Floyd-Warshall', 'DFS'],
+    correctAnswer: 1,
+    explanation: 'Dijkstra\'s algorithm uses a greedy approach with a priority queue to find shortest paths from a source vertex.',
+    timeLimit: 3,
+    companies: ['Google', 'Amazon', 'Microsoft'],
+    points: 1
+  },
+  {
+    id: 'c_mcq_013',
+    question: 'What is `!!null` in JavaScript?',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'javascript',
+    hints: ['Double negation', 'Boolean conversion', 'Falsy value'],
+    testCases: [],
+    options: ['null', 'true', 'false', 'undefined'],
+    correctAnswer: 2,
+    explanation: '!null converts null to true (null is falsy), then !true becomes false.',
+    timeLimit: 2,
+    companies: ['Twitter', 'LinkedIn', 'Airbnb'],
+    points: 1
+  },
+  {
+    id: 'c_mcq_014',
+    question: 'Which tree traversal visits nodes in sorted order for a BST?',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'data_structures',
+    hints: ['Left-Root-Right pattern', 'Ascending order', 'Recursive approach'],
+    testCases: [],
+    options: ['Pre-order', 'In-order', 'Post-order', 'Level-order'],
+    correctAnswer: 1,
+    explanation: 'In-order traversal (left-root-right) visits BST nodes in ascending sorted order.',
+    timeLimit: 3,
+    companies: ['Apple', 'Google', 'Amazon'],
+    points: 1
+  },
+  {
+    id: 'c_mcq_015',
+    question: 'What is the worst-case time complexity of QuickSort?',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'algorithms',
+    hints: ['Bad pivot selection', 'Unbalanced partitions', 'Already sorted array'],
+    testCases: [],
+    options: ['O(n log n)', 'O(n²)', 'O(n)', 'O(log n)'],
+    correctAnswer: 1,
+    explanation: 'QuickSort has O(n²) worst-case when the pivot selection creates unbalanced partitions (e.g., already sorted array).',
+    timeLimit: 3,
+    companies: ['Microsoft', 'Amazon', 'Facebook'],
+    points: 1
+  },
+  {
+    id: 'c_mcq_016',
+    question: 'In JavaScript, what is the difference between `==` and `===`?',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'javascript',
+    hints: ['Type coercion', 'Strict equality', 'Value and type'],
+    testCases: [],
+    options: ['No difference', '== checks type, === checks value', '== allows type coercion, === does not', '=== is faster'],
+    correctAnswer: 2,
+    explanation: '== performs type coercion before comparison, while === checks both value and type without coercion (strict equality).',
+    timeLimit: 2,
+    companies: ['Google', 'Facebook', 'Netflix'],
+    points: 1
+  },
+  {
+    id: 'c_mcq_017',
+    question: 'Which data structure is used to implement BFS (Breadth-First Search)?',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'data_structures',
+    hints: ['FIFO structure', 'Level by level', 'Enqueue and dequeue'],
+    testCases: [],
+    options: ['Stack', 'Queue', 'Heap', 'Tree'],
+    correctAnswer: 1,
+    explanation: 'BFS uses a Queue (FIFO) to explore nodes level by level in a graph or tree.',
+    timeLimit: 3,
+    companies: ['Amazon', 'Google', 'Microsoft'],
+    points: 1
+  },
+  {
+    id: 'c_mcq_018',
+    question: 'What does `{} + []` evaluate to in JavaScript?',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'javascript',
+    hints: ['Empty object and array', 'Type coercion', 'Unexpected result'],
+    testCases: [],
+    options: ['0', '"[object Object]"', '""', 'NaN'],
+    correctAnswer: 0,
+    explanation: '{} is treated as a code block (not object), so +[] converts empty array to 0.',
+    timeLimit: 2,
+    companies: ['Twitter', 'Uber', 'Airbnb'],
+    points: 1
+  },
+  {
+    id: 'c_mcq_019',
+    question: 'What is the maximum number of nodes in a binary tree of height h?',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'data_structures',
+    hints: ['Complete binary tree', 'Each level doubles', 'Geometric series'],
+    testCases: [],
+    options: ['2^h', '2^h - 1', '2^(h+1) - 1', '2^(h-1)'],
+    correctAnswer: 2,
+    explanation: 'Maximum nodes = 2^0 + 2^1 + ... + 2^h = 2^(h+1) - 1 (sum of geometric series)',
+    timeLimit: 3,
+    companies: ['Apple', 'Google', 'Amazon'],
+    points: 1
+  },
+  {
+    id: 'c_mcq_020',
+    question: 'Which algorithm is used to detect cycles in a directed graph?',
+    type: 'coding',
+    difficulty: 'hard',
+    category: 'algorithms',
+    hints: ['Graph traversal', 'Track visited and recursion stack', 'DFS based'],
+    testCases: [],
+    options: ['Kruskal\'s', 'Prim\'s', 'DFS with colors', 'Dijkstra\'s'],
+    correctAnswer: 2,
+    explanation: 'DFS with three colors (white, gray, black) can detect cycles in directed graphs by tracking the recursion stack.',
+    timeLimit: 3,
+    companies: ['Microsoft', 'Amazon', 'Google'],
+    points: 1
+  }
 ];
 
-async function addToughQuestions() {
+
+async function addHardMcqCodingQuestions() {
   try {
-    console.log('🧠 Adding EXTREMELY TOUGH AI-resistant MCQ questions...');
-    console.log(`📊 Adding ${TOUGH_QUESTIONS.length} challenging questions`);
+    console.log('🧠 Adding HARD MCQ CODING QUESTIONS...');
+    console.log(`📊 Adding ${HARD_MCQ_CODING_QUESTIONS.length} challenging questions`);
 
     let successCount = 0;
     let skipCount = 0;
 
-    for (const q of TOUGH_QUESTIONS) {
+    for (const q of HARD_MCQ_CODING_QUESTIONS) {
       try {
         const result = await client`
           INSERT INTO question_bank (
@@ -110,41 +323,31 @@ async function addToughQuestions() {
             question, options, correct_answer, explanation, points, time_limit, 
             tags, keywords, is_active, created_by
           ) VALUES (
-            ${q.questionId}, ${q.type}, ${q.category}, ${q.domain}, ${q.subCategory}, ${q.difficulty},
+            ${q.id}, ${q.type}, ${q.category}, 'coding', ${q.category}, ${q.difficulty},
             ${q.question}, ${q.options}, ${q.correctAnswer}, ${q.explanation}, ${q.points}, ${q.timeLimit},
-            ${q.tags}, ${q.keywords}, true, null
+            ${q.hints.concat(q.companies)}, ${q.hints.concat(q.companies)}, true, null
           )
           ON CONFLICT (question_id) DO NOTHING
           RETURNING question_id
         `;
-        
+
         if (result.length > 0) {
           successCount++;
-          console.log(`✅ Added: ${q.questionId} - ${q.subCategory}`);
+          console.log(`✅ Added: ${q.id} - ${q.category}`);
         } else {
           skipCount++;
         }
       } catch (error) {
-        console.error(`❌ Error adding ${q.questionId}:`, error.message);
+        console.error(`❌ Error adding ${q.id}:`, error.message);
       }
     }
-    
+
     console.log('');
-    console.log('🎯 TOUGH QUESTIONS ADDED!');
+    console.log('🎯 HARD MCQ CODING QUESTIONS ADDED!');
     console.log(`✅ Successfully added: ${successCount} questions`);
     console.log(`⏭️ Skipped (existing): ${skipCount} questions`);
     console.log('');
-    console.log('🧠 These questions include:');
-    console.log('   - Logic puzzles that confuse AI (Look-and-Say sequence)');
-    console.log('   - Probability paradoxes (Boy Born Tuesday)');
-    console.log('   - Linguistic traps (Buffalo buffalo, Garden path)');
-    console.log('   - Deep technical knowledge (Floating point, Type coercion)');
-    console.log('   - Advanced finance (Shapley values, Prospect theory)');
-    console.log('   - Game theory applications (Repeated games, Nash equilibria)');
-    console.log('   - Complex ethical dilemmas (Multi-stakeholder conflicts)');
-    console.log('');
-    console.log('💡 All questions are "extreme" difficulty with 10 points each');
-    
+
   } catch (error) {
     console.error('❌ Failed:', error);
   } finally {
@@ -152,4 +355,4 @@ async function addToughQuestions() {
   }
 }
 
-addToughQuestions();
+addHardMcqCodingQuestions();
