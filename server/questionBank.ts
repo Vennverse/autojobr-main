@@ -32,7 +32,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     ],
     sampleAnswer: 'function solution(arr) { return Math.max(...arr); }',
     timeLimit: 15,
-    companies: ['Google', 'Microsoft', 'Amazon']
+    companies: ['Google', 'Microsoft', 'Amazon'],
+    points: 1
   },
   {
     id: 'c002',
@@ -48,7 +49,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     ],
     sampleAnswer: 'function solution(str) { return str.split("").reverse().join(""); }',
     timeLimit: 10,
-    companies: ['Facebook', 'Apple', 'Netflix']
+    companies: ['Facebook', 'Apple', 'Netflix'],
+    points: 1
   },
   {
     id: 'c003',
@@ -64,7 +66,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     ],
     sampleAnswer: 'function solution(n) { if (n <= 1) return false; for (let i = 2; i <= Math.sqrt(n); i++) { if (n % i === 0) return false; } return true; }',
     timeLimit: 20,
-    companies: ['Google', 'Amazon', 'Microsoft']
+    companies: ['Google', 'Amazon', 'Microsoft'],
+    points: 1
   },
   {
     id: 'c004',
@@ -80,7 +83,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     ],
     sampleAnswer: 'function solution(arr) { return arr.reduce((sum, num) => sum + num, 0); }',
     timeLimit: 10,
-    companies: ['Facebook', 'Twitter', 'LinkedIn']
+    companies: ['Facebook', 'Twitter', 'LinkedIn'],
+    points: 1
   },
   {
     id: 'c005',
@@ -96,7 +100,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     ],
     sampleAnswer: 'function solution(arr) { return [...new Set(arr)]; }',
     timeLimit: 15,
-    companies: ['Google', 'Apple', 'Amazon']
+    companies: ['Google', 'Apple', 'Amazon'],
+    points: 1
   },
 
   // ==================== CODING QUESTIONS - MEDIUM ====================
@@ -114,7 +119,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     ],
     sampleAnswer: 'function solution({nums, target}) { const map = new Map(); for (let i = 0; i < nums.length; i++) { const complement = target - nums[i]; if (map.has(complement)) return [map.get(complement), i]; map.set(nums[i], i); } return []; }',
     timeLimit: 25,
-    companies: ['Facebook', 'Google', 'Amazon']
+    companies: ['Facebook', 'Google', 'Amazon'],
+    points: 2
   },
   {
     id: 'c102',
@@ -130,7 +136,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     ],
     sampleAnswer: 'function solution(s) { const stack = []; const pairs = {")": "(", "}": "{", "]": "["}; for (let char of s) { if (char in pairs) { if (stack.pop() !== pairs[char]) return false; } else { stack.push(char); } } return stack.length === 0; }',
     timeLimit: 20,
-    companies: ['Microsoft', 'Apple', 'Google']
+    companies: ['Microsoft', 'Apple', 'Google'],
+    points: 2
   },
   {
     id: 'c103',
@@ -146,7 +153,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     ],
     sampleAnswer: 'function solution(s) { const cleaned = s.replace(/[^A-Za-z0-9]/g, "").toLowerCase(); return cleaned === cleaned.split("").reverse().join(""); }',
     timeLimit: 25,
-    companies: ['Amazon', 'Facebook', 'Netflix']
+    companies: ['Amazon', 'Facebook', 'Netflix'],
+    points: 2
   },
   {
     id: 'c104',
@@ -162,7 +170,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     ],
     sampleAnswer: 'function solution({arr, target}) { let left = 0, right = arr.length - 1; while (left <= right) { const mid = Math.floor((left + right) / 2); if (arr[mid] === target) return mid; else if (arr[mid] < target) left = mid + 1; else right = mid - 1; } return -1; }',
     timeLimit: 30,
-    companies: ['Google', 'Microsoft', 'Apple']
+    companies: ['Google', 'Microsoft', 'Apple'],
+    points: 2
   },
   {
     id: 'c105',
@@ -178,7 +187,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     ],
     sampleAnswer: 'function solution({arr1, arr2}) { let result = [], i = 0, j = 0; while (i < arr1.length && j < arr2.length) { if (arr1[i] <= arr2[j]) result.push(arr1[i++]); else result.push(arr2[j++]); } return result.concat(arr1.slice(i)).concat(arr2.slice(j)); }',
     timeLimit: 30,
-    companies: ['Amazon', 'Google', 'Facebook']
+    companies: ['Amazon', 'Google', 'Facebook'],
+    points: 2
   },
 
   // ==================== CODING QUESTIONS - EXTREME (1% SUCCESS RATE) ====================
@@ -195,7 +205,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     ],
     sampleAnswer: 'class StreamKthSmallest { constructor(k) { this.k = k; this.heap = new MinHeap(); this.count = new Map(); } add(char) { this.count.set(char, (this.count.get(char) || 0) + 1); if (this.heap.size() < this.k) { this.heap.push(char); } else if (char < this.heap.peek()) { this.heap.pop(); this.heap.push(char); } } getKthSmallest() { return this.heap.peek(); } }',
     timeLimit: 90,
-    companies: ['Google', 'Facebook', 'Microsoft']
+    companies: ['Google', 'Facebook', 'Microsoft'],
+    points: 5
   },
   {
     id: 'c902',
@@ -209,7 +220,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     ],
     sampleAnswer: 'class LockFreeHashTable { constructor() { this.buckets = new Array(16).fill(null); this.size = 0; } hash(key) { let hash = 0; for (let i = 0; i < key.length; i++) { hash = ((hash << 5) - hash + key.charCodeAt(i)) & 0x7fffffff; } return hash % this.buckets.length; } put(key, value) { const index = this.hash(key); let current = this.buckets[index]; while (current && current.key !== key) { current = current.next; } if (current) { current.value = value; } else { const newNode = { key, value, next: this.buckets[index] }; this.buckets[index] = newNode; this.size++; } } }',
     timeLimit: 120,
-    companies: ['Intel', 'NVIDIA', 'AMD']
+    companies: ['Intel', 'NVIDIA', 'AMD'],
+    points: 5
   },
 
   // ==================== CODING QUESTIONS - HARD ====================
@@ -227,7 +239,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     ],
     sampleAnswer: 'function solution(s) { let maxLength = 0, start = 0; const charIndex = new Map(); for (let end = 0; end < s.length; end++) { if (charIndex.has(s[end])) { start = Math.max(charIndex.get(s[end]) + 1, start); } charIndex.set(s[end], end); maxLength = Math.max(maxLength, end - start + 1); } return maxLength; }',
     timeLimit: 45,
-    companies: ['Facebook', 'Google', 'Amazon']
+    companies: ['Facebook', 'Google', 'Amazon'],
+    points: 3
   },
   {
     id: 'c202',
@@ -243,7 +256,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     ],
     sampleAnswer: 'function solution({nums1, nums2}) { if (nums1.length > nums2.length) return solution({nums1: nums2, nums2: nums1}); const m = nums1.length, n = nums2.length; let left = 0, right = m; while (left <= right) { const partitionX = Math.floor((left + right) / 2); const partitionY = Math.floor((m + n + 1) / 2) - partitionX; const maxLeftX = partitionX === 0 ? -Infinity : nums1[partitionX - 1]; const minRightX = partitionX === m ? Infinity : nums1[partitionX]; const maxLeftY = partitionY === 0 ? -Infinity : nums2[partitionY - 1]; const minRightY = partitionY === n ? Infinity : nums2[partitionY]; if (maxLeftX <= minRightY && maxLeftY <= minRightX) { if ((m + n) % 2 === 0) return (Math.max(maxLeftX, maxLeftY) + Math.min(minRightX, minRightY)) / 2; else return Math.max(maxLeftX, maxLeftY); } else if (maxLeftX > minRightY) right = partitionX - 1; else left = partitionX + 1; } }',
     timeLimit: 60,
-    companies: ['Google', 'Microsoft', 'Apple']
+    companies: ['Google', 'Microsoft', 'Apple'],
+    points: 3
   },
   {
     id: 'c203',
@@ -259,7 +273,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     ],
     sampleAnswer: 'function solution(height) { let left = 0, right = height.length - 1; let leftMax = 0, rightMax = 0; let water = 0; while (left < right) { if (height[left] < height[right]) { if (height[left] >= leftMax) leftMax = height[left]; else water += leftMax - height[left]; left++; } else { if (height[right] >= rightMax) rightMax = height[right]; else water += rightMax - height[right]; right--; } } return water; }',
     timeLimit: 50,
-    companies: ['Amazon', 'Facebook', 'Google']
+    companies: ['Amazon', 'Facebook', 'Google'],
+    points: 3
   },
 
   // ==================== BEHAVIORAL QUESTIONS ====================
@@ -272,7 +287,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     hints: ['Use the STAR method (Situation, Task, Action, Result)', 'Focus on your actions and communication', 'Show growth and learning'],
     sampleAnswer: 'I once worked with a colleague who was consistently missing deadlines, affecting our sprint goals. I approached them privately to understand their challenges, discovered they were overwhelmed with personal issues, and offered to help redistribute some tasks. I also established regular check-ins to provide support. This improved our team\'s delivery by 40% and strengthened our working relationship.',
     timeLimit: 5,
-    companies: ['Google', 'Microsoft', 'Amazon', 'Facebook']
+    companies: ['Google', 'Microsoft', 'Amazon', 'Facebook'],
+    points: 2
   },
   {
     id: 'b002',
@@ -283,7 +299,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     hints: ['Show learning methodology', 'Mention resources used', 'Quantify the outcome'],
     sampleAnswer: 'When our team needed to migrate to React, I had two weeks to become proficient. I created a structured learning plan: spent mornings on documentation and tutorials, afternoons building small projects, and evenings reviewing best practices. I also joined React communities and found a mentor. This approach helped me successfully lead the migration, reducing our app\'s load time by 30%.',
     timeLimit: 5,
-    companies: ['Netflix', 'Airbnb', 'Uber', 'Twitter']
+    companies: ['Netflix', 'Airbnb', 'Uber', 'Twitter'],
+    points: 2
   },
   {
     id: 'b003',
@@ -294,7 +311,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     hints: ['Show respect for authority', 'Focus on facts and data', 'Demonstrate professional communication'],
     sampleAnswer: 'My manager wanted to rush a feature release without proper testing. I respectfully requested a meeting and presented data showing potential risks and customer impact. I proposed a compromise: a limited beta release to gather feedback first. This approach caught three critical bugs, and the manager appreciated my initiative. We established a new process for balancing speed with quality.',
     timeLimit: 5,
-    companies: ['Apple', 'Google', 'Microsoft', 'Amazon']
+    companies: ['Apple', 'Google', 'Microsoft', 'Amazon'],
+    points: 2
   },
   {
     id: 'b004',
@@ -305,7 +323,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     hints: ['Show proactive thinking', 'Explain the impact', 'Demonstrate ownership'],
     sampleAnswer: 'While working on a client project, I noticed our deployment process was causing frequent downtime. Although it wasn\'t my responsibility, I researched CI/CD solutions and proposed implementing automated deployments. I created a proof of concept during my free time, presented it to the team, and volunteered to lead implementation. This reduced deployment time by 80% and eliminated weekend outages.',
     timeLimit: 5,
-    companies: ['Facebook', 'LinkedIn', 'Spotify', 'Slack']
+    companies: ['Facebook', 'LinkedIn', 'Spotify', 'Slack'],
+    points: 2
   },
   {
     id: 'b005',
@@ -316,7 +335,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     hints: ['Be honest about the failure', 'Focus on lessons learned', 'Show how you applied learning'],
     sampleAnswer: 'I once underestimated the complexity of a database migration, causing a production outage. I immediately took ownership, communicated transparently with stakeholders, and worked with the team to restore service within 2 hours. I then conducted a thorough post-mortem, implemented better testing procedures, and created a rollback plan. This experience taught me to always have contingency plans and improved our team\'s deployment practices.',
     timeLimit: 5,
-    companies: ['Amazon', 'Netflix', 'Uber', 'Airbnb']
+    companies: ['Amazon', 'Netflix', 'Uber', 'Airbnb'],
+    points: 2
   },
 
   // ==================== EXTREME BEHAVIORAL QUESTIONS (1% SUCCESS RATE) ====================
@@ -329,7 +349,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     hints: ['Consider multiple stakeholders', 'Think long-term consequences', 'Balance business and technical concerns'],
     sampleAnswer: 'I would immediately document the issue comprehensively, including potential risks and impact. I\'d schedule a meeting with the CEO and CTO to present three options: (1) immediate fix with performance trade-offs, (2) phased approach with risk mitigation, (3) temporary workarounds with full disclosure. I\'d emphasize that hiding critical flaws violates engineering ethics and could lead to catastrophic failure. I\'d propose a compromise: implement immediate safety measures, communicate transparently with stakeholders about timeline, and dedicate additional resources to minimize the impact. If leadership insists on hiding the issue, I would document my objections and consider escalating to the board or seeking legal counsel, as professional integrity cannot be compromised.',
     timeLimit: 8,
-    companies: ['Uber', 'Facebook', 'Boeing', 'Tesla']
+    companies: ['Uber', 'Facebook', 'Boeing', 'Tesla'],
+    points: 5
   },
   {
     id: 'b902', 
@@ -340,7 +361,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     hints: ['Fiduciary responsibility', 'Team welfare', 'Strategic thinking under pressure'],
     sampleAnswer: 'I would call an emergency leadership meeting to analyze all options with complete financial transparency. First, I\'d explore alternative funding sources (bridge loans, existing investor follow-on, revenue acceleration). Second, I\'d model different scenarios: reduced team size vs. full team acquisition vs. finding new funding. I\'d consult with our legal counsel about fiduciary duties to shareholders and employees. I would then present options to the board with my recommendation based on maximum long-term value creation. If the acquisition offer provides better outcomes for the team and preserves the technology, I\'d negotiate to include intellectual property transfer. Throughout this process, I\'d communicate honestly with the team about the situation while maintaining confidentiality about ongoing negotiations. The decision would prioritize both stakeholder value and team welfare.',
     timeLimit: 8,
-    companies: ['Theranos', 'WeWork', 'Quibi', 'FTX']
+    companies: ['Theranos', 'WeWork', 'Quibi', 'FTX'],
+    points: 5
   },
 
   // ==================== EXTREME FINANCE QUESTIONS (1% SUCCESS RATE) ====================
@@ -353,7 +375,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     hints: ['Mean-variance optimization', 'Lagrange multipliers', 'Portfolio constraint handling'],
     sampleAnswer: 'Using modern portfolio theory, I\'d set up the Lagrangian: L = w\'Σw - λ(w\'μ - 7%) - γ(∑w - 1). Taking derivatives and solving the system of equations with the covariance matrix Σ = [[0.0324, 0.00324, 0.00045], [0.00324, 0.0036, -0.003], [0.00045, -0.003, 0.0625]] and expected returns μ = [8%, 4%, 12%]. The optimal allocation considering the constraint is approximately 45% equities, 25% bonds, 30% new asset class. This yields a portfolio return of ~7.8% with volatility of ~14.2%, significantly improving the Sharpe ratio from 0.28 to 0.41. However, I\'d recommend stress testing this allocation under different market scenarios and implementing gradually to avoid concentration risk.',
     timeLimit: 15,
-    companies: ['Goldman Sachs', 'BlackRock', 'Bridgewater', 'Renaissance Technologies']
+    companies: ['Goldman Sachs', 'BlackRock', 'Bridgewater', 'Renaissance Technologies'],
+    points: 5
   },
   {
     id: 'f902',
@@ -364,7 +387,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     hints: ['Risk-adjusted NPV', 'Probability-weighted scenarios', 'Patent cliff analysis'],
     sampleAnswer: 'Success scenario DCF: Revenue years 1-8: $1.5B * (1-growth_decline), years 9-10: $1.5B * 0.5. EBITDA margin: 85% (high margin biotech). NPV of success scenario: $4.2B. Failure scenario: -$500M development costs. Risk-adjusted NPV: 0.6 * $4.2B + 0.4 * (-$0.5B) = $2.32B. Enterprise value: $2.32B. Equity value: $2.32B + $200M cash - $50M debt = $2.47B. Price per share: $247. However, I\'d apply additional risk discounts for regulatory uncertainty (10-15%), competitive risks (5-10%), and execution risks (5%). Final target range: $190-220 per share.',
     timeLimit: 20,
-    companies: ['J.P. Morgan', 'Morgan Stanley', 'Evercore', 'Centerview Partners']
+    companies: ['J.P. Morgan', 'Morgan Stanley', 'Evercore', 'Centerview Partners'],
+    points: 5
   },
 
   // ==================== SYSTEM DESIGN QUESTIONS ====================
@@ -377,7 +401,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     hints: ['Consider database design', 'Think about caching', 'Plan for high traffic', 'URL encoding strategies'],
     sampleAnswer: 'Key components: Load balancer, Web servers, Database (URL mappings), Cache (Redis), Analytics service. Use base62 encoding for short URLs, implement rate limiting, and use CDN for global distribution. For scaling: database sharding, read replicas, distributed caching, and microservices architecture.',
     timeLimit: 45,
-    companies: ['Google', 'Facebook', 'Amazon', 'Twitter']
+    companies: ['Google', 'Facebook', 'Amazon', 'Twitter'],
+    points: 3
   },
   {
     id: 's002',
@@ -388,7 +413,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     hints: ['WebSocket connections', 'Message queuing', 'Database schema', 'Push notifications'],
     sampleAnswer: 'Architecture: WebSocket servers for real-time communication, message queues (Kafka/RabbitMQ), NoSQL database for message storage, Redis for session management. Implement message status tracking (sent/delivered/read), end-to-end encryption, and push notification services for offline users. Use horizontal scaling and load balancing for high availability.',
     timeLimit: 45,
-    companies: ['WhatsApp', 'Facebook', 'Telegram', 'Signal']
+    companies: ['WhatsApp', 'Facebook', 'Telegram', 'Signal'],
+    points: 3
   },
   {
     id: 's003',
@@ -399,7 +425,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     hints: ['Consistent hashing', 'Replication strategies', 'CAP theorem', 'Failure handling'],
     sampleAnswer: 'Use consistent hashing for data distribution, implement master-slave replication for high availability, use heartbeat mechanisms for failure detection. For consistency: eventual consistency with conflict resolution, write-through/write-behind caching strategies. Include monitoring, metrics collection, and automatic failover mechanisms.',
     timeLimit: 50,
-    companies: ['Redis Labs', 'Amazon', 'Google', 'Microsoft']
+    companies: ['Redis Labs', 'Amazon', 'Google', 'Microsoft'],
+    points: 3
   },
   {
     id: 's004',
@@ -410,7 +437,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     hints: ['Feed generation strategies', 'Content ranking algorithms', 'Caching strategies', 'Real-time updates'],
     sampleAnswer: 'Hybrid approach: push model for active users, pull model for passive users. Use ML algorithms for content ranking, implement timeline generation service, Redis for feed caching. For scaling: content delivery networks, database sharding, and microservices. Include real-time updates via WebSockets and notification services.',
     timeLimit: 50,
-    companies: ['Facebook', 'Twitter', 'Instagram', 'LinkedIn']
+    companies: ['Facebook', 'Twitter', 'Instagram', 'LinkedIn'],
+    points: 3
   },
   {
     id: 's005',
@@ -421,7 +449,8 @@ export const QUESTION_BANK: InterviewQuestion[] = [
     hints: ['Video encoding/transcoding', 'CDN usage', 'Storage systems', 'Recommendation engine'],
     sampleAnswer: 'Components: Upload service, transcoding pipeline, CDN for video delivery, metadata database, recommendation engine. Use cloud storage for video files, implement multiple quality formats, geographic content distribution. For scaling: horizontal scaling of services, caching strategies, and load balancing. Include analytics and monitoring systems.',
     timeLimit: 50,
-    companies: ['YouTube', 'Netflix', 'Twitch', 'Vimeo']
+    companies: ['YouTube', 'Netflix', 'Twitch', 'Vimeo'],
+    points: 3
   }
 ];
 
