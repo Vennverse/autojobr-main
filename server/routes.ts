@@ -632,6 +632,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Save/Bookmark a job
+  app.post('/api/jobs/:id/save', isAuthenticated, async (req: any, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const userId = req.user.id;
+
+      // Check if already saved
+      const existing = await db
+        .select()
+        .from(schema.userSavedJobs)
+        .where(
+          and(
+            eq(schema.userSavedJobs.userId, userId),
+            eq(schema.userSavedJobs.jobPostingId, jobId)
+          )
+        )
+        .then(rows => rows[0]);
+
+      if (existing) {
+        return res.status(400).json({ message: 'Job already saved' });
+      }
+
+      // Save the job
+      await db.insert(schema.userSavedJobs).values({
+        userId,
+        jobPostingId: jobId,
+        savedAt: new Date()
+      });
+
+      res.json({ success: true, message: 'Job saved successfully' });
+    } catch (error) {
+      console.error('[SAVE JOB ERROR]:', error);
+      handleError(res, error, "Failed to save job");
+    }
+  });
+
   // Scraped jobs endpoint with pagination and improved search
   app.get('/api/scraped-jobs', async (req: any, res) => {
     try {

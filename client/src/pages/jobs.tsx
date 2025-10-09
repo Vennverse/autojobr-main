@@ -2030,17 +2030,26 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                           </div>
                         )}
 
-                        {interviewPrepData.questions && interviewPrepData.questions.length > 0 && (
+                        {interviewPrepData.questions && (
                           <div className="mb-4">
                             <h5 className="font-medium text-sm text-blue-800 dark:text-blue-200 mb-2">Practice Questions</h5>
-                            <ul className="space-y-2">
-                              {interviewPrepData.questions.slice(0, 5).map((q: string, i: number) => (
-                                <li key={i} className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2">
-                                  <span className="text-blue-600 dark:text-blue-400 font-medium">{i + 1}.</span>
-                                  <span>{q}</span>
-                                </li>
+                            <div className="space-y-3">
+                              {Object.entries(interviewPrepData.questions).map(([category, questionsList]: [string, any]) => (
+                                Array.isArray(questionsList) && questionsList.length > 0 && (
+                                  <div key={category} className="space-y-1">
+                                    <h6 className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase">{category}</h6>
+                                    <ul className="space-y-1">
+                                      {questionsList.slice(0, 3).map((q: string, idx: number) => (
+                                        <li key={idx} className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                                          <span className="text-blue-500">•</span>
+                                          <span>{q}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )
                               ))}
-                            </ul>
+                            </div>
                           </div>
                         )}
 
