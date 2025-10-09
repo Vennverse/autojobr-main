@@ -721,7 +721,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     if (job.source === 'scraped' || job.applyType === 'external') {
       const externalUrl = job.sourceUrl || job.source_url;
       if (externalUrl) {
-        window.open(externalUrl, '_blank');
+        window.open(externalUrl, '_blank', 'noopener,noreferrer');
         toast({
           title: "Redirected to External Site",
           description: "Complete your application on the company's website."
@@ -729,8 +729,8 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         return;
       } else {
         toast({
-          title: "No External URL",
-          description: "This job doesn't have a valid application URL.",
+          title: "No External URL Available",
+          description: "This job doesn't have an application link. Try contacting the company directly.",
           variant: "destructive"
         });
         return;
@@ -1812,13 +1812,14 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                                 handleApply(job);
                               }}
                               className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-7 px-2"
+                              data-testid={`button-apply-${job.id}`}
                             >
                               {!isAuthenticated ? (
                                 'Sign in'
-                              ) : job.applyType === 'external' ? (
+                              ) : job.source === 'scraped' || job.applyType === 'external' ? (
                                 <><ExternalLink className="w-3 h-3 mr-1" />Apply</>
                               ) : (
-                                'Apply'
+                                'Easy Apply'
                               )}
                             </Button>
                           )}
@@ -1939,9 +1940,10 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         <Button
                           onClick={() => handleApply(selectedJob)}
                           className="bg-blue-600 hover:bg-blue-700 text-white text-sm h-9 px-4 touch-manipulation"
+                          data-testid="button-apply-detail"
                         >
                           {!isAuthenticated ? 'Sign in to Apply' : 
-                           selectedJob.applyType === 'external' ? (
+                           selectedJob.source === 'scraped' || selectedJob.applyType === 'external' ? (
                              <><ExternalLink className="w-4 h-4 mr-1" />Apply</>
                            ) : 'Easy Apply'}
                         </Button>
