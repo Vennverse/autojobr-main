@@ -2535,24 +2535,44 @@ Return only the improved job description text, no additional formatting or expla
       case 'test':
         // Create test assignment from interview link
         const testData = JSON.parse(link.interviewData || '{}');
+        const requestBody = req.body || {};
 
-        // Get test template ID from link data or use default
-        const templateId = testData.testTemplateId || link.testTemplateId;
+        // Determine the domain for the test
+        const testDomain = requestBody.testDomain || testData.domain || link.role || 'general';
+        const testDifficulty = requestBody.testDifficulty || testData.difficulty || link.difficulty || 'medium';
+
+        console.log(`🎯 Creating test for domain: ${testDomain}, difficulty: ${testDifficulty}`);
+
+        // Find matching template by domain and difficulty
+        const [matchingTemplate] = await db.select()
+          .from(schema.testTemplates)
+          .where(
+            and(
+              eq(schema.testTemplates.jobProfile, testDomain),
+              eq(schema.testTemplates.difficultyLevel, testDifficulty)
+            )
+          )
+          .limit(1);
+
+        let templateId = matchingTemplate?.id;
 
         if (!templateId) {
-          // No template specified - get a default template
-          const templates = await storage.getTestTemplates();
-          if (templates.length === 0) {
-            throw new Error('No test templates available');
-          }
-          testData.testTemplateId = templates[0].id;
-        } else {
-          testData.testTemplateId = templateId;
+          // Fallback: Get any template matching the domain
+          const [domainTemplate] = await db.select()
+            .from(schema.testTemplates)
+            .where(eq(schema.testTemplates.jobProfile, testDomain))
+            .limit(1);
+          
+          templateId = domainTemplate?.id;
+        }
+
+        if (!templateId) {
+          throw new Error(`No test template found for domain: ${testDomain}`);
         }
 
         // Create the test assignment
         const testAssignment = await storage.createTestAssignment({
-          testTemplateId: testData.testTemplateId,
+          testTemplateId: templateId,
           recruiterId: link.recruiterId,
           jobSeekerId: user.id,
           jobPostingId: link.jobPostingId || null,
@@ -2560,7 +2580,7 @@ Return only the improved job description text, no additional formatting or expla
           status: 'assigned'
         });
 
-        console.log(`✅ Test assignment created: ${testAssignment.id} for candidate ${user.id}`);
+        console.log(`✅ Test assignment created: ${testAssignment.id} for domain ${testDomain}, template ${templateId}`);
         redirectUrl = `/test-taking/${testAssignment.id}`;
         break;
       case 'video-interview':

@@ -62,16 +62,19 @@ export default function InterviewLink() {
     }
 
     try {
-      setStarting(true);
+      // For test type, ensure we pass the correct domain and difficulty
+      const payload: any = {};
+
+      if (interviewData?.interviewType === 'test') {
+        payload.testDomain = interviewData.role || 'data_scientist';
+        payload.testDifficulty = interviewData.difficulty || 'medium';
+      }
+
       const response = await fetch(`/api/interviews/link/${linkId}/start`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          domain: interviewData?.domain || 'general'
-        })
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
@@ -81,16 +84,13 @@ export default function InterviewLink() {
 
       const data = await response.json();
 
-      toast({
-        title: "Interview Started",
-        description: "Redirecting you to your interview...",
-      });
-
-      setLocation(data.redirectUrl);
-    } catch (err: any) {
+      if (data.redirectUrl) {
+        setLocation(data.redirectUrl);
+      }
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: err.message,
+        description: error.message || "Failed to start interview",
         variant: "destructive"
       });
     } finally {
@@ -231,6 +231,13 @@ export default function InterviewLink() {
             </h4>
             <ul className="space-y-1 text-sm text-blue-800 dark:text-blue-200">
               {getExpectationsList()}
+              {interviewData?.interviewType === 'test' && (
+                <>
+                  <li>• A total of {interviewData.totalQuestions || 90} questions</li>
+                  <li>• {interviewData.durationMinutes || 60} minutes time limit</li>
+                  <li>• Proctoring enabled for integrity</li>
+                </>
+              )}
             </ul>
           </div>
 

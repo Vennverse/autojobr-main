@@ -102,6 +102,7 @@ export default function TestTaking() {
   // Results modal state
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [testResults, setTestResults] = useState<any>(null);
+  const [proctorEnabled, setProctorEnabled] = useState(true); // Added proctorEnabled state
 
   // Enhanced device fingerprinting
   const generateDeviceFingerprint = useCallback(async () => {
@@ -497,137 +498,107 @@ export default function TestTaking() {
     // };
   }, [testStarted, isSubmitting, detectAdvancedViolation]);
 
-  // Developer tools detection
+  // Proctoring: Detect dev tools
   useEffect(() => {
-    if (!testStarted) return;
+    if (!proctorEnabled) return;
 
     const detectDevTools = () => {
       const threshold = 160;
-      if (window.outerHeight - window.innerHeight > threshold || 
-          window.outerWidth - window.innerWidth > threshold) {
-        detectAdvancedViolation('dev_tools', {
-          outerDimensions: { width: window.outerWidth, height: window.outerHeight },
-          innerDimensions: { width: window.innerWidth, height: window.innerHeight }
-        });
-      }
-    };
+      const widthDiff = window.outerWidth - window.innerWidth;
+      const heightDiff = window.outerHeight - window.innerHeight;
 
-    const interval = setInterval(detectDevTools, 1000);
-    return () => clearInterval(interval);
-  }, [testStarted, detectAdvancedViolation]);
-
-  // Anti-cheating measures with automatic test closure
-  useEffect(() => {
-    if (assignment?.status !== 'in_progress') return;
-
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        const newCount = tabSwitchCount + 1;
-        setTabSwitchCount(newCount);
-        setWarningCount(prev => prev + 1);
-
-        // Report violation to backend
-        detectAdvancedViolation('tab_switch', {
-          tabSwitchCount: newCount,
-          timestamp: Date.now()
-        });
-
-        toast({
-          title: "⚠️ Warning: Tab Switch Detected",
-          description: `Total warnings: ${warningCount + 1}/5. Test auto-terminates at 5 warnings.`,
-          variant: "destructive"
-        });
-      }
-    };
-
-    const handleCopy = (e: ClipboardEvent) => {
-      e.preventDefault();
-      const newCount = copyAttempts + 1;
-      setCopyAttempts(newCount);
-      setWarningCount(prev => prev + 1);
-
-      // Report violation to backend
-      detectAdvancedViolation('copy_attempt', {
-        copyAttempts: newCount,
-        timestamp: Date.now(),
-        selectedText: window.getSelection()?.toString().substring(0, 100) || ''
-      });
-
-      toast({
-        title: "⚠️ Warning: Copy Attempt Blocked",
-        description: `Total warnings: ${warningCount + 1}/5. Test auto-terminates at 5 warnings.`,
-        variant: "destructive"
-      });
-    };
-
-    const handlePaste = (e: ClipboardEvent) => {
-      if (isSubmitting || showResultsModal) return;
-      e.preventDefault();
-      toast({
-        title: "Warning: Paste Blocked",
-        description: "Pasting content is not allowed during the test.",
-        variant: "destructive"
-      });
-    };
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (isSubmitting || showResultsModal) return;
-      // Block common cheating key combinations
-      if (
-        (e.ctrlKey || e.metaKey) && 
-        (e.key === 'c' || e.key === 'v' || e.key === 'a' || e.key === 'f' || e.key === 't' || e.key === 'w')
-      ) {
-        e.preventDefault();
-        setWarningCount(prev => prev + 1);
-        toast({
-          title: "Warning: Blocked Action",
-          description: "Keyboard shortcuts are disabled during the test.",
-          variant: "destructive"
-        });
-      }
-    };
-
-    const handleRightClick = (e: MouseEvent) => {
-      if (isSubmitting || showResultsModal) return;
-      e.preventDefault();
-      setWarningCount(prev => prev + 1);
-      toast({
-        title: "Warning: Right-click Blocked",
-        description: "Right-click is disabled during the test.",
-        variant: "destructive"
-      });
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    document.addEventListener('copy', handleCopy);
-    document.addEventListener('paste', handlePaste);
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('contextmenu', handleRightClick);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      document.removeEventListener('copy', handleCopy);
-      document.removeEventListener('paste', handlePaste);
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('contextmenu', handleRightClick);
-    };
-  }, [testStarted, tabSwitchCount, copyAttempts, warningCount, isSubmitting, showResultsModal, detectAdvancedViolation]);
-
-  const handleFullscreenChange = () => {
-      const isCurrentlyFullscreen = !!document.fullscreenElement;
-      setIsFullscreen(isCurrentlyFullscreen);
-
-      if (!isCurrentlyFullscreen && assignment?.status === 'in_progress') {
+      if (widthDiff > threshold || heightDiff > threshold) {
         const newWarningCount = warningCount + 1;
         setWarningCount(newWarningCount);
 
+        console.log(`🚨 Dev tools detected! Warning ${newWarningCount}/5`);
+
+        fetch(`/api/test-assignments/${assignmentId}/violation`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            type: 'dev_tools',
+            severity: 'critical',
+            timestamp: new Date().toISOString()
+          })
+        }).catch(err => console.error('Failed to log violation:', err));
+
         toast({
-          title: "⚠️ Warning: Fullscreen Exited",
-          description: `Total warnings: ${newWarningCount}/5. Test auto-terminates at 5 warnings.`,
-          variant: "destructive"
+          title: "🚫 Critical Violation",
+          description: `Developer tools detected! Warning ${newWarningCount}/5`,
+          variant: "destructive",
+          duration: 5000
         });
+
+        if (newWarningCount >= 5) {
+          setTimeout(() => handleSubmitTest(), 2000);
+        }
       }
     };
+
+    const interval = setInterval(detectDevTools, 2000);
+    return () => clearInterval(interval);
+  }, [assignmentId, warningCount, toast, proctorEnabled]);
+
+  // Proctoring: Detect tab/window changes
+  useEffect(() => {
+    if (!proctorEnabled) return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        const newWarningCount = warningCount + 1;
+        setWarningCount(newWarningCount);
+        setTabSwitchCount(prev => prev + 1);
+
+        console.log(`🚨 Tab switch detected! Warning ${newWarningCount}/5`);
+
+        fetch(`/api/test-assignments/${assignmentId}/violation`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            type: 'tab_switch',
+            severity: newWarningCount >= 3 ? 'high' : 'medium',
+            timestamp: new Date().toISOString()
+          })
+        }).catch(err => console.error('Failed to log violation:', err));
+
+        toast({
+          title: "⚠️ Proctoring Alert",
+          description: `Tab switch detected! Warning ${newWarningCount}/5. Test will auto-submit at 5 warnings.`,
+          variant: "destructive",
+          duration: 5000
+        });
+
+        // Auto-submit if 5 warnings reached
+        if (newWarningCount >= 5) {
+          toast({
+            title: "🚫 Test Terminated",
+            description: "Excessive violations detected. Submitting test automatically.",
+            variant: "destructive",
+            duration: 3000
+          });
+          setTimeout(() => handleSubmitTest(), 2000);
+        }
+      }
+    };
+
+    const handleBlur = () => {
+      if (document.visibilityState === 'visible') {
+        // Window lost focus but tab is still visible
+        console.log('⚠️ Window blur detected');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [assignmentId, warningCount, toast, proctorEnabled]);
 
   // Timer
   useEffect(() => {
@@ -646,21 +617,31 @@ export default function TestTaking() {
     return () => clearInterval(timer);
   }, [testStarted, timeLeft]);
 
+  // Fix time limit to use template timeLimit correctly
+  useEffect(() => {
+    if (assignment?.testTemplate) {
+      // Time limit is already in minutes from template, convert to seconds
+      const timeInSeconds = (assignment.testTemplate.timeLimit || 60) * 60;
+      setTimeLeft(timeInSeconds);
+      console.log(`⏱️ Test time limit set to ${assignment.testTemplate.timeLimit} minutes (${timeInSeconds} seconds)`);
+    }
+  }, [assignment]);
+
   // Auto-submit on excessive violations  
   useEffect(() => {
     if (warningCount >= 5 && !isSubmitting && !showResultsModal && testStarted) {
       console.log('🚨 AUTO-TERMINATING TEST - 5 warnings reached');
-      
+
       toast({
         title: "Test Terminated",
         description: "Maximum violations (5) reached. Test is being submitted automatically.",
         variant: "destructive"
       });
-      
+
       // Stop all monitoring and submit immediately
       setTestStarted(false);
       stopCamera();
-      
+
       // Force submit after brief delay
       setTimeout(() => {
         if (!isSubmitting && !showResultsModal) {
