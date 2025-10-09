@@ -526,6 +526,12 @@ export default function TestTaking() {
         setTabSwitchCount(newCount);
         setWarningCount(prev => prev + 1);
 
+        // Report violation to backend
+        detectAdvancedViolation('tab_switch', {
+          tabSwitchCount: newCount,
+          timestamp: Date.now()
+        });
+
         toast({
           title: "⚠️ Warning: Tab Switch Detected",
           description: `Total warnings: ${warningCount + 1}/5. Test auto-terminates at 5 warnings.`,
@@ -539,6 +545,13 @@ export default function TestTaking() {
       const newCount = copyAttempts + 1;
       setCopyAttempts(newCount);
       setWarningCount(prev => prev + 1);
+
+      // Report violation to backend
+      detectAdvancedViolation('copy_attempt', {
+        copyAttempts: newCount,
+        timestamp: Date.now(),
+        selectedText: window.getSelection()?.toString().substring(0, 100) || ''
+      });
 
       toast({
         title: "⚠️ Warning: Copy Attempt Blocked",
@@ -598,7 +611,7 @@ export default function TestTaking() {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('contextmenu', handleRightClick);
     };
-  }, [testStarted, tabSwitchCount, copyAttempts, warningCount, isSubmitting, showResultsModal]);
+  }, [testStarted, tabSwitchCount, copyAttempts, warningCount, isSubmitting, showResultsModal, detectAdvancedViolation]);
 
   const handleFullscreenChange = () => {
       const isCurrentlyFullscreen = !!document.fullscreenElement;

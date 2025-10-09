@@ -751,6 +751,231 @@ export class TestService {
     ];
   }
 
+  private getAptitudeQuestions(): TestQuestion[] {
+    return [
+      {
+        id: "apt1",
+        type: "multiple_choice",
+        question: "If all Bloops are Razzies and all Razzies are Lazzies, are all Bloops definitely Lazzies?",
+        options: ["Yes", "No", "Cannot be determined", "Sometimes"],
+        correctAnswer: 0,
+        points: 5,
+        explanation: "This is basic logical deduction. If A=B and B=C, then A=C."
+      },
+      {
+        id: "apt2",
+        type: "multiple_choice",
+        question: "What comes next in the sequence: 2, 6, 12, 20, 30, ?",
+        options: ["40", "42", "44", "38"],
+        correctAnswer: 1,
+        points: 5,
+        explanation: "Pattern: differences are 4, 6, 8, 10, 12... Next is 30+12=42"
+      },
+      {
+        id: "apt3",
+        type: "multiple_choice",
+        question: "If 5 workers can complete a job in 12 days, how many days will it take 3 workers to complete the same job?",
+        options: ["15 days", "18 days", "20 days", "24 days"],
+        correctAnswer: 2,
+        points: 5,
+        explanation: "Work = 5 workers × 12 days = 60 worker-days. For 3 workers: 60/3 = 20 days"
+      },
+      {
+        id: "apt4",
+        type: "multiple_choice",
+        question: "A train travels 60 km in 45 minutes. What is its speed in km/h?",
+        options: ["75 km/h", "80 km/h", "90 km/h", "100 km/h"],
+        correctAnswer: 1,
+        points: 5,
+        explanation: "Speed = Distance/Time = 60/(45/60) = 60/(3/4) = 80 km/h"
+      },
+      {
+        id: "apt5",
+        type: "multiple_choice",
+        question: "Which number should replace the question mark: 3, 9, 27, 81, ?",
+        options: ["162", "243", "324", "405"],
+        correctAnswer: 1,
+        points: 5,
+        explanation: "Each number is multiplied by 3: 81 × 3 = 243"
+      },
+      {
+        id: "apt6",
+        type: "multiple_choice",
+        question: "If A = 1, B = 2, C = 3, what is the sum of letters in 'CAB'?",
+        options: ["5", "6", "7", "8"],
+        correctAnswer: 1,
+        points: 5,
+        explanation: "C(3) + A(1) + B(2) = 6"
+      },
+      {
+        id: "apt7",
+        type: "multiple_choice",
+        question: "What is 15% of 200?",
+        options: ["25", "30", "35", "40"],
+        correctAnswer: 1,
+        points: 5,
+        explanation: "15% of 200 = (15/100) × 200 = 30"
+      },
+      {
+        id: "apt8",
+        type: "multiple_choice",
+        question: "If the day before yesterday was Thursday, what will be the day after tomorrow?",
+        options: ["Sunday", "Monday", "Tuesday", "Wednesday"],
+        correctAnswer: 1,
+        points: 5,
+        explanation: "Day before yesterday = Thursday, Yesterday = Friday, Today = Saturday, Tomorrow = Sunday, Day after tomorrow = Monday"
+      }
+    ];
+  }
+
+  private getEnglishQuestions(): TestQuestion[] {
+    return [
+      {
+        id: "eng1",
+        type: "multiple_choice",
+        question: "Choose the correct form: She _____ to the store every day.",
+        options: ["go", "goes", "going", "gone"],
+        correctAnswer: 1,
+        points: 5,
+        explanation: "'Goes' is correct for third person singular (she/he/it) in present tense."
+      },
+      {
+        id: "eng2",
+        type: "multiple_choice",
+        question: "Identify the synonym of 'ABUNDANT':",
+        options: ["Scarce", "Plentiful", "Lacking", "Insufficient"],
+        correctAnswer: 1,
+        points: 5,
+        explanation: "'Plentiful' means existing in large quantities, same as abundant."
+      },
+      {
+        id: "eng3",
+        type: "multiple_choice",
+        question: "Choose the correct sentence:",
+        options: ["He don't like pizza", "He doesn't likes pizza", "He doesn't like pizza", "He not like pizza"],
+        correctAnswer: 2,
+        points: 5,
+        explanation: "Correct form is 'He doesn't like' - third person singular with base verb."
+      },
+      {
+        id: "eng4",
+        type: "multiple_choice",
+        question: "What is the antonym of 'TRANSPARENT'?",
+        options: ["Clear", "Visible", "Opaque", "Bright"],
+        correctAnswer: 2,
+        points: 5,
+        explanation: "'Opaque' means not able to be seen through; opposite of transparent."
+      },
+      {
+        id: "eng5",
+        type: "multiple_choice",
+        question: "Choose the correctly spelled word:",
+        options: ["Accomodate", "Accommodate", "Acomodate", "Acommodate"],
+        correctAnswer: 1,
+        points: 5,
+        explanation: "'Accommodate' has double 'c' and double 'm'."
+      },
+      {
+        id: "eng6",
+        type: "multiple_choice",
+        question: "Fill in the blank: The project was completed _____ time.",
+        options: ["in", "on", "at", "by"],
+        correctAnswer: 1,
+        points: 5,
+        explanation: "'On time' means punctual; 'in time' means before deadline."
+      }
+    ];
+  }
+
+  // Generate questions from question bank based on template configuration
+  async generateQuestionsFromBank(
+    templateId: number,
+    aptitudeCount: number,
+    englishCount: number,
+    domainCount: number,
+    jobProfile?: string,
+    includeExtreme: boolean = false
+  ): Promise<TestQuestion[]> {
+    const questions: TestQuestion[] = [];
+    let questionId = 1;
+
+    // Get aptitude questions (with controlled repetition to meet quota)
+    const allAptitude = this.getAptitudeQuestions().filter(q => q.type === 'multiple_choice');
+    if (allAptitude.length < aptitudeCount) {
+      console.log(`⚠️ Aptitude pool (${allAptitude.length}) < requested (${aptitudeCount}). Using repetition.`);
+    }
+    for (let i = 0; i < aptitudeCount; i++) {
+      const sourceQuestion = allAptitude[i % allAptitude.length];
+      questions.push({ ...sourceQuestion, id: `q${questionId++}` });
+    }
+
+    // Get English questions (with controlled repetition to meet quota)
+    const allEnglish = this.getEnglishQuestions().filter(q => q.type === 'multiple_choice');
+    if (allEnglish.length < englishCount) {
+      console.log(`⚠️ English pool (${allEnglish.length}) < requested (${englishCount}). Using repetition.`);
+    }
+    for (let i = 0; i < englishCount; i++) {
+      const sourceQuestion = allEnglish[i % allEnglish.length];
+      questions.push({ ...sourceQuestion, id: `q${questionId++}` });
+    }
+
+    // Get domain-specific questions based on job profile
+    let domainQuestions: TestQuestion[] = [];
+    switch (jobProfile) {
+      case 'software_engineer':
+      case 'fullstack_developer':
+        domainQuestions = [
+          ...this.getJavaScriptQuestions(),
+          ...this.getReactQuestions(),
+          ...this.getPythonQuestions(),
+          ...this.getSystemDesignQuestions()
+        ].filter(q => q.type === 'multiple_choice');
+        break;
+      case 'devops_engineer':
+        domainQuestions = this.getDevOpsQuestions().filter(q => q.type === 'multiple_choice');
+        if (domainQuestions.length === 0) {
+          domainQuestions = this.getSystemDesignQuestions().filter(q => q.type === 'multiple_choice');
+        }
+        break;
+      case 'data_scientist':
+        domainQuestions = [
+          ...this.getDataScienceQuestions(),
+          ...this.getPythonQuestions()
+        ].filter(q => q.type === 'multiple_choice');
+        break;
+      default:
+        // Generic technical questions
+        domainQuestions = [
+          ...this.getJavaScriptQuestions(),
+          ...this.getSystemDesignQuestions()
+        ].filter(q => q.type === 'multiple_choice');
+    }
+
+    // Add domain questions (with controlled repetition to meet quota)
+    if (domainQuestions.length === 0) {
+      console.log(`⚠️ No domain MCQ questions found for ${jobProfile}. Using generic technical questions.`);
+      domainQuestions = [...this.getJavaScriptQuestions(), ...this.getSystemDesignQuestions()].filter(q => q.type === 'multiple_choice');
+    }
+    
+    if (domainQuestions.length < domainCount) {
+      console.log(`⚠️ Domain pool (${domainQuestions.length}) < requested (${domainCount}). Using repetition.`);
+    }
+    
+    for (let i = 0; i < domainCount && domainQuestions.length > 0; i++) {
+      const sourceQuestion = domainQuestions[i % domainQuestions.length];
+      questions.push({ ...sourceQuestion, id: `q${questionId++}` });
+    }
+
+    // Shuffle questions to randomize order
+    for (let i = questions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [questions[i], questions[j]] = [questions[j], questions[i]];
+    }
+
+    console.log(`Generated ${questions.length} MCQ questions for template ${templateId}`);
+    return questions;
+  }
+
   // Method to complete a test assignment
   async completeTest(assignmentId: number, terminationReason: string = 'Completed'): Promise<void> {
     const assignment = await storage.getTestAssignment(assignmentId);

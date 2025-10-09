@@ -950,7 +950,21 @@ Return only the improved job description text, no additional formatting or expla
       // If no questions in assignment, fetch from template directly
       if (questions.length === 0 && assignment.testTemplateId) {
         const template = await storage.getTestTemplate(assignment.testTemplateId);
-        questions = template?.questions || [];
+        
+        // Check if template uses question bank
+        if (template?.useQuestionBank) {
+          console.log(`[TEST QUESTIONS] Generating questions from bank for template ${template.id}`);
+          questions = await testService.generateQuestionsFromBank(
+            template.id,
+            template.aptitudeQuestions || 0,
+            template.englishQuestions || 0,
+            template.domainQuestions || 0,
+            template.jobProfile || 'software_engineer',
+            template.includeExtremeQuestions || false
+          );
+        } else {
+          questions = template?.questions || [];
+        }
       }
 
       console.log(`[TEST QUESTIONS] Assignment ${assignmentId}: ${questions.length} questions found`);
