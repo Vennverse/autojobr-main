@@ -464,6 +464,13 @@ export default function AuthPage() {
               Join thousands of job seekers who have automated their applications, 
               tracked their progress, and landed their dream jobs with AutoJobr.
             </p>
+            
+            {/* Recruiter Notice */}
+            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                <span className="font-semibold">For Recruiters:</span> Sign up with your corporate email address to unlock immediate access to advanced recruitment tools, candidate screening, and AI-powered interview platforms.
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
