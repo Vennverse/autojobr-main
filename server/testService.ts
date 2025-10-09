@@ -166,9 +166,9 @@ export class TestService {
         passingScore: 80,
         isGlobal: true,
         useQuestionBank: true,
-        aptitudeQuestions: 45,
+        aptitudeQuestions: 38,  // Adjusted to match available questions
         englishQuestions: 23,
-        domainQuestions: 22,
+        domainQuestions: 29,    // Increased to maintain 90 total
         includeExtremeQuestions: true,
         tags: ['data-science', 'ml', 'statistics', 'python', 'analytics'],
         questions: [],
