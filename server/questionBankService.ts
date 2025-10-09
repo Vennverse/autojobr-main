@@ -98,7 +98,7 @@ export class QuestionBankService {
     }
   }
   
-  // Get questions by category with filtering - OPTIMIZED and MCQ-prioritized
+  // Get questions by category with filtering - OPTIMIZED and MCQ-only with extreme difficulty preference
   async getQuestionsByCategory(
     category: string,
     tags: string[] = [],
@@ -114,35 +114,50 @@ export class QuestionBankService {
       
       let questions: any[] = [];
       
-      // First, try to get MCQ questions (prioritize multiple choice)
+      // ONLY get MCQ questions (prioritize extreme difficulty)
       const mcqConditions = [...whereConditions, 
         inArray(questionBank.type, ['multiple_choice', 'mcq'])
       ];
       
-      const mcqQuestions = await db.select()
-        .from(questionBank)
-        .where(and(...mcqConditions))
-        .orderBy(sql`RANDOM()`)
-        .limit(limit);
-      
-      questions.push(...mcqQuestions);
-      
-      // If we need more questions, get other types
-      if (questions.length < limit) {
-        const remaining = limit - questions.length;
-        const otherQuestions = await db.select()
+      // First try extreme difficulty MCQs
+      if (difficulty.includes('extreme')) {
+        const extremeMcqQuestions = await db.select()
           .from(questionBank)
-          .where(and(...whereConditions))
+          .where(and(...mcqConditions, eq(questionBank.difficulty, 'extreme')))
           .orderBy(sql`RANDOM()`)
-          .limit(remaining * 2); // Get more to ensure we have enough after filtering duplicates
+          .limit(limit);
         
-        // Add non-duplicate questions
-        const existingIds = new Set(questions.map(q => q.id));
-        const newQuestions = otherQuestions.filter(q => !existingIds.has(q.id));
-        questions.push(...newQuestions.slice(0, remaining));
+        questions.push(...extremeMcqQuestions);
       }
       
-      console.log(`[DEBUG] Generated ${questions.length} questions for category ${category}, ${questions.filter(q => ['multiple_choice', 'mcq'].includes(q.type)).length} are MCQ`);
+      // If we need more, get hard MCQs
+      if (questions.length < limit && difficulty.includes('hard')) {
+        const hardMcqQuestions = await db.select()
+          .from(questionBank)
+          .where(and(...mcqConditions, eq(questionBank.difficulty, 'hard')))
+          .orderBy(sql`RANDOM()`)
+          .limit(limit - questions.length);
+        
+        const existingIds = new Set(questions.map(q => q.id));
+        const newQuestions = hardMcqQuestions.filter(q => !existingIds.has(q.id));
+        questions.push(...newQuestions);
+      }
+      
+      // If still need more, get any MCQ questions
+      if (questions.length < limit) {
+        const remaining = limit - questions.length;
+        const anyMcqQuestions = await db.select()
+          .from(questionBank)
+          .where(and(...mcqConditions))
+          .orderBy(sql`RANDOM()`)
+          .limit(remaining);
+        
+        const existingIds = new Set(questions.map(q => q.id));
+        const newQuestions = anyMcqQuestions.filter(q => !existingIds.has(q.id));
+        questions.push(...newQuestions);
+      }
+      
+      console.log(`[DEBUG] Generated ${questions.length} MCQ questions for category ${category}, extreme: ${questions.filter(q => q.difficulty === 'extreme').length}, hard: ${questions.filter(q => q.difficulty === 'hard').length}`);
       
       // OPTIMIZATION: Minimal processing, only parse when needed
       return questions.map(q => ({

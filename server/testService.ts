@@ -158,11 +158,11 @@ export class TestService {
       // ADDITIONAL ROLE TEMPLATES
       {
         title: "Data Science & Analytics Assessment",
-        description: "Advanced evaluation for data roles. 220 questions in 110 minutes.",
+        description: "Extreme difficulty evaluation for data science roles. 220 MCQ questions in 60 minutes - 2 questions per minute ratio.",
         category: "technical",
         jobProfile: "data_scientist", 
         difficultyLevel: "expert",
-        timeLimit: 110,
+        timeLimit: 60,
         passingScore: 80,
         isGlobal: true,
         useQuestionBank: true,
@@ -170,7 +170,7 @@ export class TestService {
         englishQuestions: 55,
         domainQuestions: 55,
         includeExtremeQuestions: true,
-        tags: ['data-science', 'ml', 'statistics'],
+        tags: ['data-science', 'ml', 'statistics', 'python', 'analytics'],
         questions: [],
       },
       {

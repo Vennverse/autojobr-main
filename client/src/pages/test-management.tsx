@@ -29,7 +29,8 @@ import {
   Settings,
   CheckSquare,
   Square,
-  BookOpen
+  BookOpen,
+  Trophy // Import Trophy icon
 } from "lucide-react";
 
 const jobProfiles = [
@@ -84,7 +85,7 @@ export default function TestManagement() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedJobProfile, setSelectedJobProfile] = useState<string>("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
@@ -164,7 +165,7 @@ export default function TestManagement() {
     mutationFn: async (data: any) => {
       const response = await apiRequest("/api/test-templates", "POST", data);
       const template = await response.json();
-      
+
       // If using question bank, generate questions automatically
       if (data.useQuestionBank) {
         try {
@@ -183,7 +184,7 @@ export default function TestManagement() {
           return { ...template, questionsGenerated: 0 };
         }
       }
-      
+
       return template;
     },
     onSuccess: (data: any) => {
@@ -222,26 +223,26 @@ export default function TestManagement() {
   const assignTestMutation = useMutation({
     mutationFn: async (data: any) => {
       console.log('assignTestMutation called with:', data);
-      
+
       // Validate required fields
       if (!data.testTemplateId || !data.candidateIds || data.candidateIds.length === 0) {
         throw new Error('Missing required fields for test assignment');
       }
-      
+
       // Submit for each selected candidate
       const assignments = [];
       for (const candidateId of data.candidateIds) {
         console.log('Assigning test to candidate:', candidateId);
-        
+
         const assignmentPayload = {
           testTemplateId: data.testTemplateId,
           jobSeekerId: candidateId,
           jobPostingId: data.jobPostingId,
           dueDate: data.dueDate,
         };
-        
+
         console.log('Assignment payload:', assignmentPayload);
-        
+
         try {
           const assignment = await apiRequest("/api/test-assignments", "POST", assignmentPayload);
           assignments.push(assignment);
@@ -297,14 +298,14 @@ export default function TestManagement() {
                          template.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesJobProfile = selectedJobProfile === "all" || template.jobProfile === selectedJobProfile;
     const matchesDifficulty = selectedDifficulty === "all" || template.difficultyLevel === selectedDifficulty;
-    
+
     return matchesSearch && matchesJobProfile && matchesDifficulty;
   });
 
   const onCreateTest = (data: any) => {
     // Handle question bank vs manual questions
     let questions = [];
-    
+
     if (!data.useQuestionBank) {
       // Use manual questions with at least one sample
       questions = data.questions && data.questions.length > 0 ? data.questions : [
@@ -331,7 +332,7 @@ export default function TestManagement() {
       console.log('onAssignTest called with data:', data);
       console.log('selectedTemplate:', selectedTemplate);
       console.log('selectedCandidates:', selectedCandidates);
-      
+
       // Validate required data
       if (!selectedTemplate?.id) {
         toast({
@@ -341,7 +342,7 @@ export default function TestManagement() {
         });
         return;
       }
-      
+
       if (selectedCandidates.length === 0) {
         toast({
           title: "Error", 
@@ -350,7 +351,7 @@ export default function TestManagement() {
         });
         return;
       }
-      
+
       if (!data.dueDate) {
         toast({
           title: "Error",
@@ -359,19 +360,19 @@ export default function TestManagement() {
         });
         return;
       }
-      
+
       const dueDate = new Date(data.dueDate);
       dueDate.setHours(23, 59, 59); // Set to end of day
-      
+
       const assignmentData = {
         testTemplateId: selectedTemplate.id,
         jobPostingId: data.jobPostingId,
         candidateIds: selectedCandidates,
         dueDate: dueDate.toISOString(),
       };
-      
+
       console.log('Assignment data to submit:', assignmentData);
-      
+
       assignTestMutation.mutate(assignmentData);
     } catch (error) {
       console.error('Error in onAssignTest:', error);
@@ -595,7 +596,7 @@ export default function TestManagement() {
                     <Badge variant="secondary">Platform</Badge>
                   )}
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
                   <div className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
@@ -845,7 +846,7 @@ export default function TestManagement() {
                     <div className="text-sm text-gray-600 mb-3">
                       Configure automatic question distribution (2 questions per minute):
                     </div>
-                    
+
                     <div className="grid grid-cols-3 gap-4">
                       <FormField
                         control={createTestForm.control}
@@ -976,7 +977,7 @@ export default function TestManagement() {
                 variant: "destructive"
               });
             })} className="space-y-4">
-              
+
               {/* Job Posting Selection */}
               <div className="space-y-3">
                 <FormLabel>Select Job Posting (Optional)</FormLabel>
@@ -1087,12 +1088,16 @@ export default function TestManagement() {
 
               {/* Test Details */}
               <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-blue-900 mb-2">Test Details:</h4>
-                <div className="text-sm text-blue-800 space-y-1">
-                  <div>Duration: {selectedTemplate?.timeLimit} minutes</div>
-                  <div>Passing Score: {selectedTemplate?.passingScore}%</div>
-                  <div>Difficulty: {selectedTemplate?.difficultyLevel}</div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Trophy className="w-4 h-4 text-blue-600" />
+                  <span className="font-medium text-blue-900">Test Format</span>
                 </div>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• 60 minutes for 220 MCQ questions (2 per minute)</li>
+                  <li>• 110 Aptitude + 55 English + 55 Domain questions</li>
+                  <li>• All questions are extreme difficulty level</li>
+                  <li>• Only MCQ format for fair automated scoring</li>
+                </ul>
               </div>
 
               {/* Action Buttons */}
