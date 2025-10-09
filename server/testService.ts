@@ -166,9 +166,9 @@ export class TestService {
         passingScore: 80,
         isGlobal: true,
         useQuestionBank: true,
-        aptitudeQuestions: 38,  // Adjusted to match available questions
+        aptitudeQuestions: 45,
         englishQuestions: 23,
-        domainQuestions: 29,    // Increased to maintain 90 total
+        domainQuestions: 22,
         includeExtremeQuestions: true,
         tags: ['data-science', 'ml', 'statistics', 'python', 'analytics'],
         questions: [],
@@ -802,134 +802,6 @@ export class TestService {
           await this.completeTest(assignmentId, 'Terminated due to security violations');
         }
       }
-    }
-  }
-
-  // Placeholder for getQuestionsByCategory - this needs to be implemented based on actual storage logic
-  private async getQuestionsByCategory(
-    category: string,
-    tags: string[],
-    difficultyLevels: string[],
-    count: number
-  ): Promise<TestQuestion[]> {
-    // This is a mock implementation. Replace with actual data fetching.
-    console.log(`Fetching ${count} questions for category: ${category}, difficulties: ${difficultyLevels.join(', ')}, tags: ${tags.join(', ')}`);
-
-    // In a real scenario, you would query your database or question bank here.
-    // For demonstration, we'll return dummy questions or sample questions from existing methods.
-    if (category === 'general_aptitude') {
-      const allAptitude = [
-        ...(this.getJavaScriptQuestions().slice(0, 2)), // Simulating some aptitude questions
-        ...(this.getPythonQuestions().slice(0, 1)),
-      ];
-      // Prioritize hard and extreme questions if available, otherwise take others
-      const hardQuestions = allAptitude.filter(q => q.points > 10).slice(0, count);
-      const remainingCount = count - hardQuestions.length;
-      const otherQuestions = allAptitude.filter(q => q.points <= 10).slice(0, remainingCount);
-      return [...hardQuestions, ...otherQuestions];
-
-    } else if (category === 'situational_judgment') {
-      // These are placeholders; actual SJ questions would need to be defined.
-      // For now, we'll return some dummy questions or reuse other question types as placeholders.
-      const dummySJ = [
-        { id: "sj1", type: "multiple_choice", question: "How would you handle a conflict with a colleague?", options: ["Direct confrontation", "Discuss calmly", "Involve manager", "Ignore it"], correctAnswer: 1, points: 10, explanation: "Open communication is key." },
-        { id: "sj2", type: "multiple_choice", question: "What's your approach to a tight deadline?", options: ["Work overtime", "Prioritize tasks", "Delegate", "Ask for extension"], correctAnswer: 1, points: 10, explanation: "Effective prioritization is crucial." },
-        { id: "sj3", type: "multiple_choice", question: "A customer is unhappy with your product. What do you do?", options: ["Apologize and fix", "Blame the customer", "Offer discount", "Escalate to support"], correctAnswer: 0, points: 15, explanation: "Customer satisfaction is paramount." },
-        { id: "sj4", type: "multiple_choice", question: "You discover a minor bug just before release. Your options:", options: ["Fix it immediately", "Release and fix later", "Inform stakeholders", "Delay release"], correctAnswer: 2, points: 10, explanation: "Transparency and informed decisions are important." },
-        { id: "sj5", type: "multiple_choice", question: "How do you approach learning a new complex system?", options: ["Read documentation", "Experiment and explore", "Ask for training", "All of the above"], correctAnswer: 3, points: 10, explanation: "A multi-faceted approach is often best." },
-      ];
-      // Prioritize hard questions if available
-      const hardQuestions = dummySJ.filter(q => q.points > 10).slice(0, count);
-      const remainingCount = count - hardQuestions.length;
-      const otherQuestions = dummySJ.filter(q => q.points <= 10).slice(0, remainingCount);
-      return [...hardQuestions, ...otherQuestions];
-
-    } else if (category === 'english') {
-      // Placeholder for English questions
-      return [
-        { id: "eng1", type: "multiple_choice", question: "Which word is misspelled?", options: ["Accommodate", "Definitely", "Separate", "Occurrance"], correctAnswer: 3, points: 5, explanation: "'Occurrance' should be 'occurrence'." },
-        { id: "eng2", type: "multiple_choice", question: "Choose the correct sentence:", options: ["Its a beautiful day.", "It's a beautiful day.", "It is a beautiful day.", "Its' a beautiful day."], correctAnswer: 1, points: 5, explanation: "'It's' is a contraction for 'it is'." },
-      ].slice(0, count);
-    } else if (category === 'domain_specific') {
-      // Placeholder for domain-specific questions, could be filtered by tags
-      if (tags.includes('python')) {
-        return this.getPythonQuestions().slice(0, count);
-      } else if (tags.includes('react')) {
-        return this.getReactQuestions().slice(0, count);
-      } else if (tags.includes('javascript')) {
-        return this.getJavaScriptQuestions().slice(0, count);
-      } else if (tags.includes('data-science')) {
-        return this.getDataScienceQuestions().slice(0, count);
-      } else if (tags.includes('marketing')) {
-        return this.getMarketingQuestions().slice(0, count);
-      } else if (tags.includes('system-design')) {
-        return this.getSystemDesignQuestions().slice(0, count);
-      }
-      return []; // Return empty if no matching domain found
-    }
-    return []; // Default empty return
-  }
-
-
-  // This method is likely where the question generation logic is handled.
-  // It needs to be updated to incorporate the new distribution and question types.
-  async generateTestForProfile(
-    jobProfileTags: string[],
-    totalQuestions: number = 30,
-    distribution: {
-      aptitude: number;
-      english: number;
-      domain: number;
-    } = { aptitude: 15, english: 6, domain: 9 },
-    includeExtreme: boolean = true
-  ): Promise<any[]> {
-    try {
-      const questions: any[] = [];
-
-      // Mix aptitude (60%) with situational judgment (40%) for aptitude allocation
-      const pureAptitudeCount = Math.floor(distribution.aptitude * 0.6);
-      const situationalCount = distribution.aptitude - pureAptitudeCount;
-
-      // Get aptitude questions - prioritize HARD questions
-      const aptitudeQuestions = await this.getQuestionsByCategory(
-        'general_aptitude',
-        [],
-        includeExtreme ? ['hard', 'extreme', 'medium'] : ['hard', 'medium'],
-        pureAptitudeCount
-      );
-
-      // Get situational judgment questions - prioritize HARD
-      const situationalQuestions = await this.getQuestionsByCategory(
-        'situational_judgment',
-        [],
-        includeExtreme ? ['hard', 'extreme', 'medium'] : ['hard', 'medium'],
-        situationalCount
-      );
-
-      // Get English questions (25%)
-      const englishQuestions = await this.getQuestionsByCategory(
-        'english',
-        [],
-        includeExtreme ? ['medium', 'hard', 'extreme'] : ['medium', 'hard'],
-        distribution.english
-      );
-
-      // Get domain-specific questions (25%)
-      const domainQuestions = await this.getQuestionsByCategory(
-        'domain_specific',
-        jobProfileTags,
-        includeExtreme ? ['medium', 'hard', 'extreme'] : ['medium', 'hard'],
-        distribution.domain
-      );
-
-      questions.push(...aptitudeQuestions, ...situationalQuestions, ...englishQuestions, ...domainQuestions);
-      
-      // Shuffle questions to randomize order
-      return questions.sort(() => Math.random() - 0.5);
-
-    } catch (error) {
-      console.error("Error generating test for profile:", error);
-      return [];
     }
   }
 }
