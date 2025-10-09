@@ -29,7 +29,7 @@ export class TestService {
 
   private getPredefinedTemplates(): InsertTestTemplate[] {
     // ALL TEMPLATES NOW: 60 MINUTES, 90 MCQ QUESTIONS (50% Aptitude, 25% English, 25% Domain)
-
+    return [
       // TECH PLATFORM TEMPLATES (3) - MCQ only
       {
         title: "Senior Software Engineer Assessment",
