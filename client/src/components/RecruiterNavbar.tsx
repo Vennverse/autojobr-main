@@ -79,7 +79,7 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include', // Important for session-based auth
+        credentials: 'include',
       });
       
       if (!response.ok) {
@@ -91,13 +91,19 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
     onSuccess: () => {
       // Clear all cached data
       queryClient.clear();
+      // Clear session storage
+      sessionStorage.clear();
+      // Clear local storage (except for theme preferences)
+      const theme = localStorage.getItem('theme');
+      localStorage.clear();
+      if (theme) localStorage.setItem('theme', theme);
       // Show success message
       toast({
         title: "Logged out successfully",
         description: "You have been logged out of your account.",
       });
-      // Redirect to auth page
-      setLocation('/auth');
+      // Force redirect to home
+      window.location.href = '/';
     },
     onError: (error: any) => {
       toast({
