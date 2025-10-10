@@ -18,7 +18,7 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   Users, Building2, Phone, Mail, Calendar, Clock, Plus,
   Search, Filter, Tag, TrendingUp, AlertCircle, CheckCircle,
-  MoreVertical, Edit, Trash2, MessageSquare, ArrowRight, Target
+  MoreVertical, Edit, Trash2, MessageSquare, ArrowRight, Target, Zap
 } from "lucide-react";
 import { motion } from "framer-motion";
 
