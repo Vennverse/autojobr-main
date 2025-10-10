@@ -514,29 +514,24 @@ export class TestService {
     });
   }
 
-  // Calculate test score
+  // Calculate test score - Simplified for 1 point per question
   calculateScore(questions: TestQuestion[], answers: Record<string, any>): number {
-    let totalPoints = 0;
-    let earnedPoints = 0;
+    let correctAnswers = 0;
+    const totalQuestions = questions.length;
 
     for (const question of questions) {
-      totalPoints += question.points;
       const userAnswer = answers[question.id];
 
       if (question.type === 'multiple_choice' || question.type === 'true_false') {
         if (userAnswer === question.correctAnswer) {
-          earnedPoints += question.points;
-        }
-      } else if (question.type === 'coding' || question.type === 'essay') {
-        // For coding and essay questions, we'll need manual grading or AI assistance
-        // For now, give partial credit based on answer length and keywords
-        if (userAnswer && typeof userAnswer === 'string' && userAnswer.length > 20) {
-          earnedPoints += Math.floor(question.points * 0.7); // 70% for attempting
+          correctAnswers++;
         }
       }
+      // Note: Only MCQ questions are used, so no need to handle other types
     }
 
-    return Math.round((earnedPoints / totalPoints) * 100);
+    // Return percentage: (correct / total) * 100
+    return totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
   }
 
   // Process retake payment
@@ -916,7 +911,7 @@ export class TestService {
     }
     for (let i = 0; i < aptitudeCount; i++) {
       const sourceQuestion = allAptitude[i % allAptitude.length];
-      questions.push({ ...sourceQuestion, id: `q${questionId++}` });
+      questions.push({ ...sourceQuestion, id: `q${questionId++}`, points: 1 }); // Standardized to 1 point
     }
 
     // Get English questions (with controlled repetition to meet quota)
@@ -926,7 +921,7 @@ export class TestService {
     }
     for (let i = 0; i < englishCount; i++) {
       const sourceQuestion = allEnglish[i % allEnglish.length];
-      questions.push({ ...sourceQuestion, id: `q${questionId++}` });
+      questions.push({ ...sourceQuestion, id: `q${questionId++}`, points: 1 }); // Standardized to 1 point
     }
 
     // Get domain-specific questions based on job profile
@@ -973,7 +968,7 @@ export class TestService {
     
     for (let i = 0; i < domainCount && domainQuestions.length > 0; i++) {
       const sourceQuestion = domainQuestions[i % domainQuestions.length];
-      questions.push({ ...sourceQuestion, id: `q${questionId++}` });
+      questions.push({ ...sourceQuestion, id: `q${questionId++}`, points: 1 }); // Standardized to 1 point
     }
 
     // Shuffle questions to randomize order
@@ -982,7 +977,7 @@ export class TestService {
       [questions[i], questions[j]] = [questions[j], questions[i]];
     }
 
-    console.log(`Generated ${questions.length} MCQ questions for template ${templateId}`);
+    console.log(`Generated ${questions.length} MCQ questions for template ${templateId} - All questions worth 1 point each`);
     return questions;
   }
 

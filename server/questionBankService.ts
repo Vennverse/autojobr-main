@@ -159,9 +159,10 @@ export class QuestionBankService {
       
       console.log(`[DEBUG] Generated ${questions.length} MCQ questions for category ${category}, extreme: ${questions.filter(q => q.difficulty === 'extreme').length}, hard: ${questions.filter(q => q.difficulty === 'hard').length}`);
       
-      // OPTIMIZATION: Minimal processing, only parse when needed
+      // STANDARDIZE: All questions are worth 1 point each for consistent scoring
       return questions.map(q => ({
         ...q,
+        points: 1, // Standardized to 1 point per question
         correctAnswer: this.parseCorrectAnswer(q.correctAnswer),
         options: q.options || [],
         tags: q.tags || [],
