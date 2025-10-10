@@ -691,6 +691,17 @@ export default function TestTaking() {
     }
   };
 
+  const handleFullscreenChange = () => {
+    if (!document.fullscreenElement && testStarted && !isSubmitting) {
+      toast({
+        title: "⚠️ Fullscreen Exited",
+        description: "Please return to fullscreen mode",
+        variant: "destructive"
+      });
+      enterFullscreen();
+    }
+  };
+
   const startTest = async () => {
     if (assignment?.testTemplate?.timeLimit) {
       setTimeLeft(assignment.testTemplate.timeLimit * 60);
@@ -774,19 +785,21 @@ export default function TestTaking() {
     console.log('⚠️ Warnings:', warningCount, 'Tab switches:', tabSwitchCount, 'Copy attempts:', copyAttempts);
     console.log('📋 Number of answers:', Object.keys(answers).length);
 
-    try {
-      submitTestMutation.mutate({
-        answers,
-        timeSpent,
-        warningCount,
-        tabSwitchCount,
-        copyAttempts
-      });
-      console.log('✅ Mutation called successfully');
-    } catch (error) {
-      console.error('❌ Error calling mutation:', error);
-      setIsSubmitting(false);
-    }
+    // Ensure answers are properly formatted
+    const formattedAnswers: Record<string, any> = {};
+    Object.keys(answers).forEach(key => {
+      formattedAnswers[key] = answers[key];
+    });
+
+    console.log('📋 Formatted answers:', formattedAnswers);
+
+    submitTestMutation.mutate({
+      answers: formattedAnswers,
+      timeSpent,
+      warningCount,
+      tabSwitchCount,
+      copyAttempts
+    });
   };
 
   const formatTime = (seconds: number) => {
