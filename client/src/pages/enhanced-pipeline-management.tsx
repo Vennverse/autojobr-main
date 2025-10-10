@@ -770,6 +770,101 @@ Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
     }
   };
 
+  // Handle CSV export
+  const handleExportCSV = () => {
+    if (filteredApplications.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No candidates to export. Please adjust your filters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // CSV Headers
+      const headers = [
+        "Candidate Name",
+        "Email",
+        "Phone",
+        "Position",
+        "Current Stage",
+        "Fit Score",
+        "Experience",
+        "Education",
+        "Skills",
+        "Applied Date",
+        "Notes"
+      ];
+
+      // Convert applications to CSV rows
+      const rows = filteredApplications.map((app: Application) => {
+        const stageName = PIPELINE_STAGES.find(s => s.id === app.status)?.name || app.status;
+        const skills = app.matchedSkills?.join("; ") || "";
+        const appliedDate = new Date(app.appliedAt).toLocaleDateString();
+        const experience = app.seniorityLevel 
+          ? `${app.seniorityLevel} (${app.totalExperience || 0} years)`
+          : `${app.totalExperience || 0} years`;
+        
+        return [
+          app.candidate.name || "",
+          app.candidate.email || "",
+          app.candidate.phone || "",
+          app.job.title || "",
+          stageName,
+          app.fitScore?.toString() || "",
+          experience,
+          app.highestDegree || "",
+          skills,
+          appliedDate,
+          app.recruiterNotes || ""
+        ];
+      });
+
+      // Escape CSV values (handle commas, quotes, newlines)
+      const escapeCSV = (value: string) => {
+        if (!value) return '""';
+        const stringValue = value.toString();
+        if (stringValue.includes('"') || stringValue.includes(',') || stringValue.includes('\n')) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return `"${stringValue}"`;
+      };
+
+      // Build CSV content
+      const csvContent = [
+        headers.map(escapeCSV).join(','),
+        ...rows.map((row: string[]) => row.map(escapeCSV).join(','))
+      ].join('\n');
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      const date = new Date().toISOString().split('T')[0];
+      const filename = `candidates-export-${date}.csv`;
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Export Successful",
+        description: `Exported ${filteredApplications.length} candidates to ${filename}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Failed to export CSV. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (applicationsLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800">
@@ -836,6 +931,14 @@ Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
+            </Button>
+            <Button 
+              onClick={handleExportCSV}
+              variant="outline"
+              data-testid="button-export-csv"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Download CSV
             </Button>
           </div>
         </motion.div>
