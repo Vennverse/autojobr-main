@@ -1070,8 +1070,8 @@ Return only the improved job description text, no additional formatting or expla
       }
 
       console.log(`🧮 [TEST SUBMIT] Calculating score with ${questions.length} questions and ${Object.keys(answers || {}).length} answers`);
-      const scoreResult = await testService.calculateScore(questions, answers);
-      console.log(`✅ [TEST SUBMIT] Score calculated - ${scoreResult.percentageScore}%`);
+      const scoreResult = testService.calculateScore(questions, answers);
+      console.log(`✅ [TEST SUBMIT] Score calculated - ${scoreResult}%`);
 
       // Determine termination reason
       let terminationReason = 'Completed';
@@ -1085,7 +1085,7 @@ Return only the improved job description text, no additional formatting or expla
       const updatedAssignment = await storage.updateTestAssignment(assignmentId, {
         status: warningCount >= 5 ? 'terminated' : 'completed',
         completionTime: new Date(),
-        score: scoreResult.percentageScore,
+        score: scoreResult,
         answers: answers,
         timeSpent: timeSpent,
         warningCount: warningCount,
@@ -1095,11 +1095,11 @@ Return only the improved job description text, no additional formatting or expla
         retakeAllowed: false // CRITICAL: Block retake until payment is made
       });
 
-      console.log(`✅ [TEST SUBMIT SUCCESS] Test ${assignmentId} submitted - Status: ${updatedAssignment.status}, Score: ${scoreResult.percentageScore}%, Retake: ${updatedAssignment.retakeAllowed}`);
+      console.log(`✅ [TEST SUBMIT SUCCESS] Test ${assignmentId} submitted - Status: ${updatedAssignment.status}, Score: ${scoreResult}%, Retake: ${updatedAssignment.retakeAllowed}`);
 
       res.json({
         success: true,
-        score: scoreResult.percentageScore,
+        score: scoreResult,
         assignment: updatedAssignment,
         terminated: warningCount >= 5,
         warningCount: warningCount
