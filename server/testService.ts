@@ -566,11 +566,11 @@ export class TestService {
           paymentStatus: 'completed',
         });
 
-        // CRITICAL: Enable retake and reset status to in_progress so user can take it again
+        // CRITICAL: Enable retake and reset status to assigned so user can take it again
         await storage.updateTestAssignment(assignmentId, {
           retakeAllowed: true,
           retakePaymentId: paymentIntentId,
-          status: 'in_progress', // Reset to in_progress after payment
+          status: 'assigned', // Reset to assigned after payment (ready to start)
           score: null, // Clear previous score
           answers: [], // Clear previous answers
           completionTime: null, // Clear completion time
