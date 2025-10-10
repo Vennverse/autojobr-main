@@ -1,9 +1,11 @@
-
 import Groq from "groq-sdk";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
+
+// Use Llama 3.1 8B for cost-effective, low-token AI insights
+const AI_MODEL = "llama-3.1-8b-instant";
 
 export class CrmAIService {
   // Low-token contact insights (50-100 tokens)
@@ -12,7 +14,7 @@ export class CrmAIService {
 
     const completion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
-      model: "llama-3.3-70b-versatile",
+      model: AI_MODEL,
       temperature: 0.3,
       max_tokens: 50,
     });
@@ -27,7 +29,7 @@ export class CrmAIService {
 
     const completion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
-      model: "llama-3.3-70b-versatile",
+      model: AI_MODEL,
       temperature: 0.4,
       max_tokens: 60,
     });
@@ -41,7 +43,7 @@ export class CrmAIService {
 
     const completion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
-      model: "llama-3.3-70b-versatile",
+      model: AI_MODEL,
       temperature: 0.5,
       max_tokens: 30,
     });
@@ -59,7 +61,7 @@ export class CrmAIService {
 
     const completion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
-      model: "llama-3.3-70b-versatile",
+      model: AI_MODEL,
       temperature: 0.2,
       max_tokens: 40,
     });
@@ -81,7 +83,7 @@ export class CrmAIService {
 
     const completion = await groq.chat.completions.create({
       messages: [{ role: "user", content: templates[messageType] }],
-      model: "llama-3.3-70b-versatile",
+      model: AI_MODEL,
       temperature: 0.6,
       max_tokens: 80,
     });
