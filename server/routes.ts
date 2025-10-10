@@ -474,6 +474,9 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Create HTTP server first
+  const server = createServer(app);
+
   // Setup authentication middleware FIRST - this includes session setup
   await setupAuth(app);
 
