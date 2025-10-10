@@ -102,14 +102,14 @@ export class ResumeService {
       const storedFile = await fileStorage.storeResume(file, userId);
       
       // Store metadata in database with FileStorageService ID
-      const resumeData: InsertUserResume = {
+      const resumeData = {
         userId,
-        name: name || file.originalname,
+        name: name || file.originalname.replace(/\.[^/.]+$/, ""),
         fileName: file.originalname,
         fileSize: file.size,
         mimeType: file.mimetype,
-        storedFileId: storedFile.id, // Secure filesystem storage ID
-        storageMethod: 'filesystem',
+        storedFileId: storedFile.id,
+        storageMethod: 'filesystem' as const,
         resumeText,
         isDefault: makeDefault,
         isActive: makeActive,

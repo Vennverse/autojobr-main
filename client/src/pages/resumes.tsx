@@ -65,10 +65,15 @@ export default function ResumesPage() {
   const [showEnhancedModal, setShowEnhancedModal] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
 
-  const { data: resumes, isLoading: resumesLoading } = useQuery({
+  const { data: resumes, isLoading: resumesLoading, error: resumesError } = useQuery({
     queryKey: ["/api/resumes"],
     retry: false,
   });
+
+  // Debug logging
+  console.log("Resumes data:", resumes);
+  console.log("Resumes loading:", resumesLoading);
+  console.log("Resumes error:", resumesError);
 
   // Resume upload handler
   const handleResumeUpload = async (file: File) => {
@@ -339,7 +344,19 @@ export default function ResumesPage() {
             >
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Your Resumes</h2>
               
-              {!resumes || (resumes as any).length === 0 ? (
+              {resumesError ? (
+                <Card className="border-0 shadow-lg bg-red-50 dark:bg-red-900/20 backdrop-blur-sm">
+                  <CardContent className="p-8 text-center">
+                    <AlertCircle className="h-12 w-12 mx-auto text-red-500 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                      Error loading resumes
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 mb-4">
+                      {(resumesError as any)?.message || "Failed to load resumes"}
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : !resumes || (resumes as any).length === 0 ? (
                 <Card className="border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
                   <CardContent className="p-8 text-center">
                     <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />

@@ -2832,6 +2832,108 @@ Return only the cover letter text, no additional formatting or explanations.`;
     }
   });
 
+  // Get user's resumes
+  app.get('/api/resumes', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      console.log(`[DEBUG] Fetching resumes for user: ${userId}`);
+      
+      const resumes = await db.select()
+        .from(userResumes)
+        .where(eq(userResumes.userId, userId))
+        .orderBy(desc(userResumes.createdAt));
+
+      console.log(`[DEBUG] Found ${resumes.length} resumes for user ${userId}`);
+
+      // Format response with proper structure
+      const formattedResumes = resumes.map(resume => ({
+        id: resume.id,
+        name: resume.name,
+        fileName: resume.fileName,
+        fileSize: resume.fileSize,
+        mimeType: resume.mimeType,
+        isActive: resume.isActive,
+        isDefault: resume.isDefault,
+        atsScore: resume.atsScore,
+        analysis: resume.analysisData,
+        uploadedAt: resume.createdAt,
+        timesUsed: resume.timesUsed,
+        lastUsed: resume.lastUsed
+      }));
+
+      console.log(`[DEBUG] Returning ${formattedResumes.length} formatted resumes for user ${userId}`);
+      res.json(formattedResumes);
+    } catch (error) {
+      console.error('Error fetching resumes:', error);
+      handleError(res, error, "Failed to fetch resumes");
+    }
+  });
+
+  // Set active resume
+  app.post('/api/resumes/:id/set-active', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const resumeId = parseInt(req.params.id);
+
+      // Deactivate all other resumes
+      await db.update(userResumes)
+        .set({ isActive: false })
+        .where(eq(userResumes.userId, userId));
+
+      // Activate the selected resume
+      await db.update(userResumes)
+        .set({ isActive: true })
+        .where(and(
+          eq(userResumes.id, resumeId),
+          eq(userResumes.userId, userId)
+        ));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error setting active resume:', error);
+      handleError(res, error, "Failed to set active resume");
+    }
+  });
+
+  // Download resume
+  app.get('/api/resumes/:id/download', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const resumeId = parseInt(req.params.id);
+
+      const [resume] = await db.select()
+        .from(userResumes)
+        .where(and(
+          eq(userResumes.id, resumeId),
+          eq(userResumes.userId, userId)
+        ))
+        .limit(1);
+
+      if (!resume) {
+        return res.status(404).json({ message: 'Resume not found' });
+      }
+
+      // Get resume file from storage
+      let fileBuffer: Buffer | null = null;
+
+      if (resume.storedFileId) {
+        fileBuffer = await fileStorage.retrieveResume(resume.storedFileId, userId);
+      }
+
+      if (!fileBuffer) {
+        return res.status(404).json({ message: 'Resume file not found' });
+      }
+
+      res.setHeader('Content-Type', resume.mimeType || 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${resume.fileName}"`);
+      res.send(fileBuffer);
+    } catch (error) {
+      console.error('Error downloading resume:', error);
+      handleError(res, error, "Failed to download resume");
+    }
+  });
+
   // Get all career analyses for user (history)
   app.get('/api/career-ai/analyses', isAuthenticated, async (req: any, res) => {
     try {

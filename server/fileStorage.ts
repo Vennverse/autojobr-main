@@ -100,6 +100,8 @@ export class FileStorageService {
 
   async retrieveResume(fileId: string, userId: string): Promise<Buffer | null> {
     try {
+      console.log(`[FILE_STORAGE] Retrieving resume: ${fileId} for user: ${userId}`);
+      
       // SECURITY: Validate fileId matches userId to prevent unauthorized access
       if (!fileId.startsWith(`resume_${userId}_`)) {
         console.error(`[SECURITY] FileId ${fileId} does not belong to user ${userId}`);
@@ -109,13 +111,16 @@ export class FileStorageService {
       // For security, ensure the file belongs to the user
       const fileInfo = await this.getFileInfo(fileId, userId);
       if (!fileInfo) {
+        console.error(`[FILE_STORAGE] File info not found for ${fileId}`);
         return null;
       }
 
+      console.log(`[FILE_STORAGE] Reading file from: ${fileInfo.path}`);
       const fileBuffer = await readFile(fileInfo.path);
       
       // Decompress if necessary
       if (fileInfo.compressed) {
+        console.log(`[FILE_STORAGE] Decompressing file ${fileId}`);
         return await gunzip(fileBuffer);
       }
       
