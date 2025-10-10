@@ -2585,7 +2585,7 @@ Return only the improved job description text, no additional formatting or expla
           status: 'assigned'
         });
 
-        console.log(`✅ Test assignment created: ${testAssignment.id} for domain ${testDomain}, template ${templateId}`);
+        console.log(`✅ Test assignment created: ${testAssignment.id} using template ${templateId}`);
         redirectUrl = `/test-taking/${testAssignment.id}`;
         break;
       case 'video-interview':
