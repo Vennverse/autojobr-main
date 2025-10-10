@@ -2837,35 +2837,55 @@ Return only the cover letter text, no additional formatting or explanations.`;
     try {
       const userId = req.user.id;
       
-      console.log(`[DEBUG] Fetching resumes for user: ${userId}`);
+      console.log(`[RESUME_FETCH] Fetching resumes for user: ${userId}`);
       
+      // Fetch resumes from database
       const resumes = await db.select()
         .from(userResumes)
         .where(eq(userResumes.userId, userId))
         .orderBy(desc(userResumes.createdAt));
 
-      console.log(`[DEBUG] Found ${resumes.length} resumes for user ${userId}`);
+      console.log(`[RESUME_FETCH] Database returned ${resumes.length} resumes`);
 
-      // Format response with proper structure
-      const formattedResumes = resumes.map(resume => ({
-        id: resume.id,
-        name: resume.name,
-        fileName: resume.fileName,
-        fileSize: resume.fileSize,
-        mimeType: resume.mimeType,
-        isActive: resume.isActive,
-        isDefault: resume.isDefault,
-        atsScore: resume.atsScore,
-        analysis: resume.analysisData,
-        uploadedAt: resume.createdAt,
-        timesUsed: resume.timesUsed,
-        lastUsed: resume.lastUsed
-      }));
+      if (resumes.length === 0) {
+        console.log(`[RESUME_FETCH] No resumes found in database for user ${userId}`);
+        return res.json([]);
+      }
 
-      console.log(`[DEBUG] Returning ${formattedResumes.length} formatted resumes for user ${userId}`);
+      // Format response with all necessary fields
+      const formattedResumes = resumes.map(resume => {
+        // Parse analysisData if it's a string
+        let analysis = resume.analysisData;
+        if (typeof analysis === 'string') {
+          try {
+            analysis = JSON.parse(analysis);
+          } catch (e) {
+            console.warn(`[RESUME_FETCH] Failed to parse analysisData for resume ${resume.id}`);
+            analysis = null;
+          }
+        }
+
+        return {
+          id: resume.id,
+          name: resume.name,
+          fileName: resume.fileName,
+          fileSize: resume.fileSize,
+          mimeType: resume.mimeType,
+          isActive: resume.isActive,
+          isDefault: resume.isDefault,
+          atsScore: resume.atsScore || 0,
+          analysis: analysis,
+          uploadedAt: resume.createdAt,
+          timesUsed: resume.timesUsed || 0,
+          lastUsed: resume.lastUsed,
+          resumeText: resume.resumeText ? resume.resumeText.substring(0, 500) + '...' : ''
+        };
+      });
+
+      console.log(`[RESUME_FETCH] Returning ${formattedResumes.length} formatted resumes`);
       res.json(formattedResumes);
     } catch (error) {
-      console.error('Error fetching resumes:', error);
+      console.error('[RESUME_FETCH] Error fetching resumes:', error);
       handleError(res, error, "Failed to fetch resumes");
     }
   });

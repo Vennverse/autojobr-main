@@ -68,12 +68,22 @@ export default function ResumesPage() {
   const { data: resumes, isLoading: resumesLoading, error: resumesError } = useQuery({
     queryKey: ["/api/resumes"],
     retry: false,
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Always fetch fresh data
   });
 
   // Debug logging
   console.log("Resumes data:", resumes);
   console.log("Resumes loading:", resumesLoading);
   console.log("Resumes error:", resumesError);
+  
+  // Additional debugging
+  if (resumesError) {
+    console.error("Resume fetch error details:", resumesError);
+  }
+  if (resumes) {
+    console.log("Number of resumes:", Array.isArray(resumes) ? resumes.length : 'Not an array');
+  }
 
   // Resume upload handler
   const handleResumeUpload = async (file: File) => {
