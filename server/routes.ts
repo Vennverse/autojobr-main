@@ -4624,7 +4624,7 @@ Return ONLY the JSON object, no additional text.`;
       // Validate company email (no Gmail, Yahoo, student .edu, etc.)
       const emailDomain = email.split('@')[1].toLowerCase();
       const localPart = email.split('@')[0].toLowerCase();
-      const blockedDomains = ['gmail.com', 'yahoo.com', 'hotmail.com, 'outlook.com', 'aol.com'];
+      const blockedDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com'];
 
       if (blockedDomains.includes(emailDomain)) {
         return res.status(400).json({ 
