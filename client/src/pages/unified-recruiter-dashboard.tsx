@@ -127,6 +127,14 @@ export default function RecruiterDashboard() {
     queryKey: ["/api/chat/conversations"],
   });
 
+  // Fetch applicant details when selected - MUST be before conditional returns
+  const { data: applicantDetails, isLoading: applicantLoading } = useQuery<ApplicantDetails>({
+    queryKey: [`/api/recruiter/applicant/${selectedApplicantId}`],
+    enabled: !!selectedApplicantId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+  });
+
   // Safe array access with proper fallbacks
   const safeJobPostings = Array.isArray(jobPostings) ? jobPostings : [];
   const safeApplications = Array.isArray(applications) ? applications : [];
@@ -155,14 +163,6 @@ export default function RecruiterDashboard() {
 
   // Type assertion for user to handle null properties
   const typedUser = user as User;
-
-  // Fetch applicant details when selected
-  const { data: applicantDetails, isLoading: applicantLoading } = useQuery<ApplicantDetails>({
-    queryKey: [`/api/recruiter/applicant/${selectedApplicantId}`],
-    enabled: !!selectedApplicantId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false,
-  });
 
   // Get job compatibility analysis
   const getJobCompatibility = async (applicantId: string, jobId: number) => {

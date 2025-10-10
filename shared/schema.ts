@@ -1588,6 +1588,16 @@ export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTo
   createdAt: true,
 });
 
+// Recruiter functionality types
+export type JobPosting = typeof jobPostings.$inferSelect;
+export type InsertJobPosting = z.infer<typeof insertJobPostingSchema>;
+export type JobPostingApplication = typeof jobPostingApplications.$inferSelect;
+export type InsertJobPostingApplication = z.infer<typeof insertJobPostingApplicationSchema>;
+export type Conversation = typeof conversations.$inferSelect;
+export type InsertConversation = z.infer<typeof insertConversationSchema>;
+export type Message = typeof messages.$inferSelect;
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
+
 // Test system insert schemas
 export const insertTestTemplateSchema = createInsertSchema(testTemplates).omit({
   id: true,
