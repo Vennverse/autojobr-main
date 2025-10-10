@@ -2627,27 +2627,44 @@ Return only the improved job description text, no additional formatting or expla
           }
         }
 
-        // CHECK: Does user already have a test assignment from this link/template combo?
+        // CHECK: Does user already have a test assignment from this SPECIFIC recruiter/company, position, and template combo?
+        // CRITICAL FIX: Check BOTH recruiter AND job posting to prevent cross-position test reuse
+        // Same company but different position = different test assignment
+        const whereConditions = [
+          eq(schema.testAssignments.testTemplateId, templateId),
+          eq(schema.testAssignments.jobSeekerId, user.id),
+          eq(schema.testAssignments.recruiterId, link.recruiterId),
+          // Additional safety: ensure recruiterId is not null
+          sql`${schema.testAssignments.recruiterId} IS NOT NULL`
+        ];
+
+        // CRITICAL: Also match by job posting if available to separate tests for different positions
+        if (link.jobPostingId) {
+          whereConditions.push(eq(schema.testAssignments.jobPostingId, link.jobPostingId));
+        }
+
         const existingTestAssignment = await db.select()
           .from(schema.testAssignments)
-          .where(
-            and(
-              eq(schema.testAssignments.testTemplateId, templateId),
-              eq(schema.testAssignments.jobSeekerId, user.id),
-              eq(schema.testAssignments.recruiterId, link.recruiterId)
-            )
-          )
+          .where(and(...whereConditions))
           .orderBy(desc(schema.testAssignments.createdAt))
           .limit(1)
           .then(rows => rows[0]);
+        
+        console.log(`🔍 Checking existing test: User ${user.id}, Template ${templateId}, Recruiter ${link.recruiterId}, JobPosting ${link.jobPostingId || 'none'}, Found: ${existingTestAssignment ? existingTestAssignment.id : 'none'}`);
 
-        // CRITICAL: If user has a completed/terminated test WITHOUT payment, BLOCK access
+        // CRITICAL FIX: Verify recruiterId exists before checking for existing tests
+        if (!link.recruiterId) {
+          console.error(`❌ ERROR: Interview link ${link.id} has no recruiterId - cannot create test assignment`);
+          return res.status(400).json({ message: 'Invalid interview link: missing recruiter information' });
+        }
+
+        // CRITICAL: If user has a completed/terminated test from THIS SAME RECRUITER WITHOUT payment, show retake option
         if (existingTestAssignment && 
             (existingTestAssignment.status === 'completed' || existingTestAssignment.status === 'terminated')) {
 
           // Check if retake was paid for
           if (!existingTestAssignment.retakeAllowed) {
-            console.log(`🚫 BLOCKED: User ${user.email} trying to retake test ${existingTestAssignment.id} without payment`);
+            console.log(`🚫 BLOCKED: User ${user.email} trying to retake test ${existingTestAssignment.id} from recruiter ${link.recruiterId} without payment`);
             redirectUrl = `/test/${existingTestAssignment.id}/retake-payment`;
             break;
           }
@@ -2670,14 +2687,15 @@ Return only the improved job description text, no additional formatting or expla
           break;
         }
 
-        // If user has an in-progress test, redirect to it
+        // If user has an in-progress test from THIS SAME RECRUITER, redirect to it
         if (existingTestAssignment && existingTestAssignment.status === 'assigned') {
-          console.log(`⚠️ User ${user.email} already has in-progress test ${existingTestAssignment.id} - redirecting`);
+          console.log(`⚠️ User ${user.email} already has in-progress test ${existingTestAssignment.id} from recruiter ${link.recruiterId} - redirecting`);
           redirectUrl = `/test-taking/${existingTestAssignment.id}`;
           break;
         }
 
-        // Create NEW test assignment only if no valid existing one
+        // Create NEW test assignment for this specific recruiter/company + position combination
+        // Each unique combination of (recruiter + position + template) gets its own test assignment
         const testAssignment = await storage.createTestAssignment({
           testTemplateId: templateId,
           recruiterId: link.recruiterId,
@@ -2687,7 +2705,7 @@ Return only the improved job description text, no additional formatting or expla
           status: 'assigned'
         });
 
-        console.log(`✅ Test assignment created: ${testAssignment.id} using template ${templateId}`);
+        console.log(`✅ NEW test assignment created: ${testAssignment.id} for recruiter ${link.recruiterId}, position ${link.jobPostingId || 'none'}, template ${templateId}`);
         redirectUrl = `/test-taking/${testAssignment.id}`;
         break;
       case 'video-interview':
