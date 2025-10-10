@@ -107,7 +107,7 @@ export default function TestRetakePayment() {
 
   // Calculate passing score and gap
   const passingScore = assignment?.testTemplate?.passingScore || 70;
-  const userScore = (assignment as any)?.score ?? 0;
+  const userScore = assignment?.score ?? 0; // Use direct assignment.score, not cast
   const scoreGap = Math.max(0, passingScore - userScore);
   const canRetake = assignment?.status === 'completed' && userScore < passingScore && !assignment?.retakeAllowed;
   
@@ -116,8 +116,9 @@ export default function TestRetakePayment() {
     userScore,
     passingScore,
     scoreGap,
-    rawScore: (assignment as any)?.score,
-    status: assignment?.status
+    assignmentScore: assignment?.score,
+    status: assignment?.status,
+    fullAssignment: assignment
   });
 
   if (isLoading) {
@@ -175,7 +176,7 @@ export default function TestRetakePayment() {
   }
 
   // Only show retake payment if user failed the test
-  if ((assignment as any)?.score >= passingScore) {
+  if (assignment?.score >= passingScore) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Card>
@@ -183,7 +184,7 @@ export default function TestRetakePayment() {
             <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">You've Already Passed!</h3>
             <p className="text-gray-600 mb-4">
-              Your score of {(assignment as any)?.score}% meets the passing requirement of {passingScore}%.
+              Your score of {assignment?.score}% meets the passing requirement of {passingScore}%.
             </p>
             <Button onClick={() => setLocation('/tests')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -229,10 +230,10 @@ export default function TestRetakePayment() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-blue-600" />
-                {(assignment as any)?.testTemplate?.title || 'Skills Assessment'}
+                {assignment?.testTemplate?.title || 'Skills Assessment'}
               </CardTitle>
               <CardDescription>
-                {(assignment as any)?.recruiter?.companyName || 'Test'} • {(assignment as any)?.recruiter?.firstName} {(assignment as any)?.recruiter?.lastName}
+                {assignment?.recruiter?.companyName || 'Test'} • {assignment?.recruiter?.firstName} {assignment?.recruiter?.lastName}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -391,7 +392,7 @@ export default function TestRetakePayment() {
                 <PayPalHostedButton
                   purpose="test_retake"
                   amount={5}
-                  itemName={`${(assignment as any)?.testTemplate?.title || 'Skills Assessment'} - Retake`}
+                  itemName={`${assignment?.testTemplate?.title || 'Skills Assessment'} - Retake`}
                   onPaymentSuccess={(data) => {
                     toast({
                       title: "Payment Successful!",
