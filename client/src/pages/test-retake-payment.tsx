@@ -107,9 +107,18 @@ export default function TestRetakePayment() {
 
   // Calculate passing score and gap
   const passingScore = assignment?.testTemplate?.passingScore || 70;
-  const userScore = assignment?.score || 0;
-  const scoreGap = passingScore - userScore;
+  const userScore = (assignment as any)?.score ?? 0;
+  const scoreGap = Math.max(0, passingScore - userScore);
   const canRetake = assignment?.status === 'completed' && userScore < passingScore && !assignment?.retakeAllowed;
+  
+  // Debug: Log score values
+  console.log('📊 [RETAKE PAYMENT] Score calculation:', {
+    userScore,
+    passingScore,
+    scoreGap,
+    rawScore: (assignment as any)?.score,
+    status: assignment?.status
+  });
 
   if (isLoading) {
     return (

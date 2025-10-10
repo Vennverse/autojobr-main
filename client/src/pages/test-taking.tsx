@@ -783,7 +783,23 @@ export default function TestTaking() {
     console.log('📤 Submitting test with answers:', answers);
     console.log('⏱️ Time spent:', timeSpent);
     console.log('⚠️ Warnings:', warningCount, 'Tab switches:', tabSwitchCount, 'Copy attempts:', copyAttempts);
+    console.log('📋 Total questions:', questions.length);
     console.log('📋 Number of answers:', Object.keys(answers).length);
+
+    // Calculate expected score locally for verification
+    let correctCount = 0;
+    questions.forEach(q => {
+      const userAnswer = answers[q.id];
+      if (q.type === 'multiple_choice' && userAnswer === q.correctAnswer) {
+        correctCount++;
+      }
+    });
+    const expectedScore = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
+    console.log('🎯 CLIENT-SIDE SCORE CALCULATION:', {
+      correctAnswers: correctCount,
+      totalQuestions: questions.length,
+      expectedScore: expectedScore + '%'
+    });
 
     // Ensure answers are properly formatted
     const formattedAnswers: Record<string, any> = {};
