@@ -2566,7 +2566,7 @@ Return only the improved job description text, no additional formatting or expla
         redirectUrl = `/mock-interview?sessionId=${mockInterview.sessionId}`;
         break;
       case 'test':
-        // Create test assignment from interview link
+        // CRITICAL FIX: Check if user already has a test assignment from this link
         const testData = JSON.parse(link.interviewConfig || '{}');
         const requestBody = req.body || {};
 
@@ -2608,7 +2608,37 @@ Return only the improved job description text, no additional formatting or expla
           }
         }
 
-        // Create the test assignment
+        // CHECK: Does user already have a test from this link/template combo?
+        const existingTestAssignment = await db.select()
+          .from(schema.testAssignments)
+          .where(
+            and(
+              eq(schema.testAssignments.testTemplateId, templateId),
+              eq(schema.testAssignments.jobSeekerId, user.id),
+              eq(schema.testAssignments.recruiterId, link.recruiterId)
+            )
+          )
+          .orderBy(desc(schema.testAssignments.createdAt))
+          .limit(1)
+          .then(rows => rows[0]);
+
+        // If user already has a completed/terminated test and retake is NOT allowed, redirect to existing
+        if (existingTestAssignment && 
+            (existingTestAssignment.status === 'completed' || existingTestAssignment.status === 'terminated') &&
+            !existingTestAssignment.retakeAllowed) {
+          console.log(`⚠️ User ${user.email} already completed test ${existingTestAssignment.id} from this link - redirecting to existing`);
+          redirectUrl = `/test-taking/${existingTestAssignment.id}`;
+          break;
+        }
+
+        // If user has an in-progress test, redirect to it
+        if (existingTestAssignment && existingTestAssignment.status === 'assigned') {
+          console.log(`⚠️ User ${user.email} already has in-progress test ${existingTestAssignment.id} - redirecting`);
+          redirectUrl = `/test-taking/${existingTestAssignment.id}`;
+          break;
+        }
+
+        // Create NEW test assignment only if no valid existing one
         const testAssignment = await storage.createTestAssignment({
           testTemplateId: templateId,
           recruiterId: link.recruiterId,
