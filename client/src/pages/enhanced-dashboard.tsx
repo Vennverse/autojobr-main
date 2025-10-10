@@ -1813,6 +1813,40 @@ export default function EnhancedDashboard() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+              {/* TouchBase CRM Card */}
+              <motion.div
+                variants={cardHoverVariants}
+                initial="rest"
+                whileHover="hover"
+                className="cursor-pointer"
+                onClick={() => setLocation('/unified-crm-dashboard')}
+              >
+                <Card className="h-full border-2 border-transparent hover:border-primary/20 transition-all duration-200 shadow-md hover:shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950">
+                  <CardContent className="p-6 text-center">
+                    <motion.div
+                      variants={pulseVariants}
+                      initial="rest"
+                      whileHover="pulse"
+                      className="w-14 h-14 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg"
+                    >
+                      <Users className="w-7 h-7 text-white" />
+                    </motion.div>
+                    <h3 className="font-semibold mb-2">TouchBase CRM</h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Manage contacts & track interactions
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full group hover:bg-primary hover:text-primary-foreground"
+                    >
+                      Open CRM
+                      <ArrowRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+              
               {quickActions.map((action, index) => (
                 <motion.div
                   key={action.title}

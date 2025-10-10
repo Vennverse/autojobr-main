@@ -412,6 +412,25 @@ export default function UnifiedCrmDashboard() {
                           <Button
                             size="sm"
                             variant="outline"
+                            onClick={async () => {
+                              try {
+                                const response = await apiRequest('/api/crm/ai/contact-insight', 'POST', { contact });
+                                toast({
+                                  title: "💡 AI Insight",
+                                  description: response.insight,
+                                });
+                              } catch (error) {
+                                console.error('AI insight error:', error);
+                              }
+                            }}
+                            className="bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
+                          >
+                            <Zap className="h-4 w-4 mr-1" />
+                            AI Insight
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
                             onClick={() => {
                               setSelectedContact(contact);
                               setShowInteractionDialog(true);

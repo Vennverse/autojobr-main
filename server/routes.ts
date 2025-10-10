@@ -3326,7 +3326,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
 
       if (!razorpayService.isAvailable()) {
         return res.status(503).json({ 
-          error: 'Razorpay payment is not available. Please use PayPal or contact support.' 
+          error: 'Razorpay payment is not available. Please use PayPal or Razorpay for monthly subscriptions.' 
         });
       }
 
@@ -4624,7 +4624,7 @@ Return ONLY the JSON object, no additional text.`;
       // Validate company email (no Gmail, Yahoo, student .edu, etc.)
       const emailDomain = email.split('@')[1].toLowerCase();
       const localPart = email.split('@')[0].toLowerCase();
-      const blockedDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com'];
+      const blockedDomains = ['gmail.com', 'yahoo.com', 'hotmail.com, 'outlook.com', 'aol.com'];
 
       if (blockedDomains.includes(emailDomain)) {
         return res.status(400).json({ 
@@ -4989,13 +4989,20 @@ Return ONLY the JSON object, no additional text.`;
         return res.status(400).json({ message: 'You have already used this invitation' });
       }
 
-      // Check if invitation has reached max uses
-      if (invitation.maxUses !== null && invitation.usageCount !== null && invitation.usageCount >= invitation.maxUses) {
-        return res.status(410).json({ message: 'This invitation has reached its maximum number of uses' });
-      }
+      // Increment usage count
+      await db.update(schema.interviewInvitations)
+        .set({ usageCount: sql`${schema.interviewInvitations.usageCount} + 1` })
+        .where(eq(schema.interviewInvitations.id, invitation.id));
 
-      // Get user info for tracking
-      const user = await storage.getUser(userId);
+      // Record the invitation use
+      const user = await storage.getUser(userId); // Get user info for tracking
+      await db.insert(schema.invitationUses).values({
+        invitationId: invitation.id,
+        candidateId: userId,
+        candidateEmail: user?.email || null,
+        candidateName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : null,
+        usedAt: new Date()
+      });
 
       // Parse interview config
       const config = typeof invitation.interviewConfig === 'string' 
@@ -5056,20 +5063,6 @@ Return ONLY the JSON object, no additional text.`;
 
         interviewUrl = `/mock-interview/session/${sessionId}`;
       }
-
-      // Record the invitation use
-      await db.insert(schema.invitationUses).values({
-        invitationId: invitation.id,
-        candidateId: userId,
-        candidateEmail: user?.email || null,
-        candidateName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : null,
-        usedAt: new Date()
-      });
-
-      // Increment usage count
-      await db.update(schema.interviewInvitations)
-        .set({ usageCount: sql`${schema.interviewInvitations.usageCount} + 1` })
-        .where(eq(schema.interviewInvitations.id, invitation.id));
 
       // Create job application if jobPostingId exists
       if (invitation.jobPostingId) {
@@ -5870,4 +5863,252 @@ Additional Information:
         .where(eq(schema.resumes.userId, userId));
 
       // Set the selected resume to active
-      const result = await db.update(schema.(?:json)?\s*(\{[\s\S]*\})\s*
+      const result = await db.update(schema.resumes)
+        .set({ isActive: true })
+        .where(and(
+          eq(schema.resumes.userId, userId),
+          eq(schema.resumes.id, resumeId)
+        ));
+
+      if (result.count === 0) {
+        return res.status(404).json({ message: 'Resume not found or not owned by user' });
+      }
+
+      // Invalidate user cache
+      invalidateUserCache(userId);
+
+      res.json({ success: true, message: 'Resume set as active successfully' });
+    } catch (error) {
+      console.error("Error setting active resume:", error);
+      res.status(500).json({ message: "Failed to set active resume" });
+    }
+  });
+
+  // Resume upload without parsing (for ATS integration or direct upload)
+  app.post('/api/resumes/upload-raw', isAuthenticated, upload.single('resume'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const file = req.file;
+      const { name, resumeText, analysis, isActive } = req.body; // Assuming these might be sent from ATS
+
+      if (!file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const resumeData = {
+        name: name || file.originalname.replace(/\.[^/.]+$/, "") || "New Resume",
+        fileName: file.originalname,
+        mimeType: file.mimetype,
+        fileSize: file.size,
+        resumeText: resumeText || '', // Use provided text or empty
+        analysis: analysis ? JSON.parse(analysis) : { atsScore: 0}, // Use provided analysis or default
+        atsScore: analysis ? JSON.parse(analysis).atsScore : 0,
+        isActive: isActive === 'true', // Convert string 'true' to boolean
+        filePath: null // No physical file storage for raw uploads
+      };
+
+      const newResume = await storage.storeResume(userId, resumeData);
+      res.json({ success: true, resume: newResume, message: "Resume uploaded successfully" });
+    } catch (error) {
+      console.error("Error uploading raw resume:", error);
+      res.status(500).json({ message: "Failed to upload raw resume" });
+    }
+  });
+
+
+  // Resume Text Analysis Endpoint (using NLP and GROQ)
+  app.post('/api/resumes/analyze-text', isAuthenticated, async (req: any, res) => {
+    try {
+      const { resumeText, mimeType, fileName, fileSize } = req.body; // Receive text directly
+      const userId = req.user.id;
+
+      if (!resumeText) {
+        return res.status(400).json({ message: "Resume text is required" });
+      }
+
+      // Get user profile for better analysis
+      let userProfile;
+      try {
+        userProfile = await storage.getUserProfile(userId);
+      } catch (error) {
+        console.error('Could not fetch user profile for resume analysis:', error);
+      }
+
+      // Get user for AI tier assessment
+      const user = await storage.getUser(userId);
+
+      // Analyze resume text with GROQ AI
+      const analysis = await groqService.analyzeResume(resumeText, userProfile, user);
+
+      res.json({ success: true, analysis });
+    } catch (error) {
+      console.error("Error analyzing resume text:", error);
+      res.status(500).json({ message: "Failed to analyze resume text" });
+    }
+  });
+
+  // Resume Parser Endpoint (using the local ResumeParser service)
+  app.post('/api/resumes/parse-text', isAuthenticated, async (req: any, res) => {
+    try {
+      const { resumeText, mimeType, fileName, fileSize } = req.body;
+      const userId = req.user.id;
+
+      if (!resumeText) {
+        return res.status(400).json({ message: "Resume text is required" });
+      }
+
+      // Use the local parser for structured data extraction
+      const parsedData = await resumeParser.parseResumeString(resumeText, mimeType);
+
+      res.json({ success: true, parsedData });
+    } catch (error) {
+      console.error("Error parsing resume text:", error);
+      res.status(500).json({ message: "Failed to parse resume text" });
+    }
+  });
+
+
+  // ============= CRM MANAGEMENT =============
+
+  // Contact management
+  app.post('/api/crm/contacts', CrmService.createContact);
+  app.get('/api/crm/contacts', CrmService.getContacts);
+  app.put('/api/crm/contacts/:contactId', CrmService.updateContact);
+
+  // Interaction logging
+  app.post('/api/crm/contacts/:contactId/interactions', CrmService.logInteraction);
+  app.get('/api/crm/contacts/:contactId/interactions', CrmService.getContactInteractions);
+
+  // Pipeline management
+  app.get('/api/crm/pipeline/stages', CrmService.getPipelineStages);
+  app.get('/api/crm/pipeline/items', CrmService.getPipelineItems);
+  app.put('/api/crm/pipeline/items/:itemId/move', CrmService.movePipelineItem);
+
+  // Dashboard stats
+  app.get('/api/crm/dashboard-stats', CrmService.getDashboardStats);
+
+  // AI-powered CRM insights (low-token, high-impact)
+  app.post('/api/crm/ai/contact-insight', async (req, res) => {
+    try {
+      const { CrmAIService } = await import('./crmAIService');
+      const insight = await CrmAIService.getContactInsight(req.body.contact);
+      res.json({ success: true, insight });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to generate insight' });
+    }
+  });
+
+  app.post('/api/crm/ai/follow-up-suggestion', async (req, res) => {
+    try {
+      const { CrmAIService } = await import('./crmAIService');
+      const suggestion = await CrmAIService.suggestFollowUp(req.body.contact, req.body.interactions);
+      res.json({ success: true, suggestion });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to generate suggestion' });
+    }
+  });
+
+  app.post('/api/crm/ai/email-subject', async (req, res) => {
+    try {
+      const { CrmAIService } = await import('./crmAIService');
+      const subject = await CrmAIService.generateEmailSubject(req.body.contact, req.body.purpose);
+      res.json({ success: true, subject });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to generate subject' });
+    }
+  });
+
+  app.post('/api/crm/ai/prioritize', async (req, res) => {
+    try {
+      const { CrmAIService } = await import('./crmAIService');
+      const priority = await CrmAIService.prioritizeContact(req.body.contact);
+      res.json({ success: true, ...priority });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to prioritize contact' });
+    }
+  });
+
+  app.post('/api/crm/ai/quick-message', async (req, res) => {
+    try {
+      const { CrmAIService } = await import('./crmAIService');
+      const message = await CrmAIService.generateQuickMessage(req.body.contact, req.body.messageType);
+      res.json({ success: true, message });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to generate message' });
+    }
+  });
+
+  // Apply ensureRoleConsistency middleware after auth setup and before any sensitive routes
+  app.use(ensureRoleConsistency);
+
+  // Apply rate limiting and other optimized middlewares
+  app.use('/api', rateLimitMiddleware(100, 60 * 60)); // 100 requests per hour per IP
+
+  // Mount other routers
+  app.use('/api/virtual-interviews', virtualInterviewRoutes);
+  app.use('/api/chat-interviews', chatInterviewRoutes);
+  app.use('/api/mock-interviews', mockInterviewRoutes); // Use mockInterviewRoutes
+  app.use('/api/proctoring', proctoring);
+  app.use('/api/seo', seo); // Mount SEO routes
+
+  // Initialize WebSocket server
+  const wss = new WebSocketServer({ server });
+  console.log('🚀 WebSocket server initialized');
+
+  wss.on('connection', (ws: WebSocket, req: any) => {
+    const userId = req.session?.user?.id;
+
+    if (!userId) {
+      console.log('WS Connection rejected: User not authenticated');
+      ws.close(1008, 'User not authenticated');
+      return;
+    }
+
+    // Track user connection
+    if (!wsConnections.has(userId)) {
+      wsConnections.set(userId, new Set<WebSocket>());
+    }
+    wsConnections.get(userId)?.add(ws);
+    console.log(`WS Connected for user: ${userId}. Total WS connections for user: ${wsConnections.get(userId)?.size}`);
+
+    // Handle incoming messages (e.g., for real-time chat)
+    ws.on('message', (message: string) => {
+      try {
+        const parsedMessage = JSON.parse(message);
+        console.log(`WS Message from ${userId}:`, parsedMessage);
+
+        // Example: Echo message back to sender
+        // ws.send(JSON.stringify({ type: 'echo', payload: parsedMessage }));
+
+        // Handle chat messages - route to simpleWebSocketService
+        simpleWebSocketService.handleMessage(userId, parsedMessage, wsConnections);
+
+      } catch (error) {
+        console.error('Error processing WS message:', error);
+        ws.send(JSON.stringify({ type: 'error', payload: 'Invalid message format' }));
+      }
+    });
+
+    ws.on('close', () => {
+      console.log(`WS Disconnected for user: ${userId}`);
+      wsConnections.get(userId)?.delete(ws);
+      if (wsConnections.get(userId)?.size === 0) {
+        wsConnections.delete(userId);
+      }
+      console.log(`User ${userId} disconnected. Remaining connections: ${wsConnections.get(userId)?.size ?? 0}`);
+    });
+
+    ws.on('error', (error) => {
+      console.error(`WS Error for user ${userId}:`, error);
+    });
+  });
+
+  // Catch-all route for undefined API routes
+  app.all('/api/*', (req, res) => {
+    res.status(404).json({ message: 'API route not found' });
+  });
+
+  console.log('✅ All routes registered successfully!');
+
+  return server;
+}

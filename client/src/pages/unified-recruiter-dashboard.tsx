@@ -518,6 +518,17 @@ export default function RecruiterDashboard() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Button
+                onClick={() => setLocation("/unified-crm-dashboard")}
+                className="h-20 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
+                size="lg"
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <Users className="w-6 h-6" />
+                  <span className="text-sm">TouchBase CRM</span>
+                </div>
+              </Button>
+
+              <Button
                 onClick={() => setLocation("/recruiter/post-job")}
                 className="h-20 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
                 size="lg"
