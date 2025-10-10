@@ -27,7 +27,7 @@ export default function TestRetakePayment() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'amazon_pay'>('paypal');
 
@@ -37,13 +37,22 @@ export default function TestRetakePayment() {
     enabled: !!params.id,
   });
 
+  // Debug: Log assignment data
+  console.log('🔍 [RETAKE PAYMENT] Assignment data:', {
+    id: assignment?.id,
+    status: assignment?.status,
+    score: assignment?.score,
+    passingScore: assignment?.testTemplate?.passingScore,
+    retakeAllowed: assignment?.retakeAllowed
+  });
+
   // Process retake payment mutation
   const processPaymentMutation = useMutation({
     mutationFn: async (paymentData: any) => {
       // In a real implementation, this would integrate with PayPal/Amazon Pay
       // For demo purposes, we'll simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
-      
+
       return await apiRequest(`/api/test-assignments/${params?.id}/retake/payment`, "POST", {
         paymentProvider: paymentMethod,
         paymentIntentId: `${paymentMethod}_${Date.now()}`, // Mock payment ID
@@ -55,11 +64,11 @@ export default function TestRetakePayment() {
         title: "Payment Successful!",
         description: "Your retake is now available. You can start the test again.",
       });
-      
+
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/jobseeker/test-assignments"] });
       queryClient.invalidateQueries({ queryKey: [`/api/test-assignments/${params?.id}`] });
-      
+
       // Redirect to test page
       setTimeout(() => {
         setLocation(`/test/${params?.id}`);
@@ -78,9 +87,9 @@ export default function TestRetakePayment() {
 
   const handlePayment = async () => {
     if (!assignment) return;
-    
+
     setIsProcessing(true);
-    
+
     try {
       // Simulate payment processing based on selected method
       const paymentData = {
@@ -97,9 +106,10 @@ export default function TestRetakePayment() {
   };
 
   // Calculate passing score and gap
-  const passingScore = (assignment as any)?.testTemplate?.passingScore || 75;
-  const currentScore = (assignment as any)?.score || 0;
-  const scoreGap = Math.max(0, passingScore - currentScore);
+  const passingScore = assignment?.testTemplate?.passingScore || 70;
+  const userScore = assignment?.score || 0;
+  const scoreGap = passingScore - userScore;
+  const canRetake = assignment?.status === 'completed' && userScore < passingScore && !assignment?.retakeAllowed;
 
   if (isLoading) {
     return (
@@ -188,7 +198,7 @@ export default function TestRetakePayment() {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Tests
         </Button>
-        
+
         <div className="text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
             <RefreshCw className="w-8 h-8 text-blue-600" />
@@ -219,7 +229,7 @@ export default function TestRetakePayment() {
             <CardContent>
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div className="p-3 bg-red-50 rounded-lg">
-                  <div className="text-2xl font-bold text-red-600">{currentScore}%</div>
+                  <div className="text-2xl font-bold text-red-600">{userScore}%</div>
                   <div className="text-sm text-gray-600">Your Score</div>
                 </div>
                 <div className="p-3 bg-green-50 rounded-lg">
@@ -244,10 +254,9 @@ export default function TestRetakePayment() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-blue-800">
-                You were only <strong>{scoreGap} points away</strong> from passing! 
-                Many successful candidates improve their scores significantly on retakes.
+                You scored <strong>{userScore}%</strong> and need <strong>{scoreGap} more points</strong> to pass! Many successful candidates improve their scores significantly on retakes.
               </p>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-start gap-3">
                   <Brain className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
@@ -256,7 +265,7 @@ export default function TestRetakePayment() {
                     <p className="text-xs text-blue-700">New questions test the same skills with different scenarios</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-3">
                   <Target className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
                   <div>
@@ -264,7 +273,7 @@ export default function TestRetakePayment() {
                     <p className="text-xs text-blue-700">Show recruiters your commitment to excellence</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-3">
                   <Star className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
                   <div>
@@ -272,7 +281,7 @@ export default function TestRetakePayment() {
                     <p className="text-xs text-blue-700">Few candidates take the initiative to improve</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-3">
                   <Users className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
                   <div>
@@ -281,7 +290,7 @@ export default function TestRetakePayment() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-white/60 p-3 rounded-lg">
                 <p className="text-sm text-blue-800 font-medium">
                   💡 <strong>Success Story:</strong> "I scored 65% on my first attempt and 89% on retake. 
@@ -304,7 +313,7 @@ export default function TestRetakePayment() {
                 <div className="text-4xl font-bold text-blue-600 mb-2">$5</div>
                 <div className="text-sm text-gray-600">One-time payment</div>
               </div>
-              
+
               <div className="space-y-3 mb-6">
                 <div className="flex items-center gap-2 text-sm">
                   <CheckCircle className="w-4 h-4 text-green-600" />
@@ -323,13 +332,13 @@ export default function TestRetakePayment() {
                   <span>Best score counts</span>
                 </div>
               </div>
-              
+
               <Separator className="my-6" />
-              
+
               {/* Payment Method Selection */}
               <div className="space-y-4">
                 <div className="text-sm font-medium">Payment Method</div>
-                
+
                 <div className="space-y-2">
                   <div 
                     className={`p-3 border rounded-lg cursor-pointer transition-colors ${
@@ -348,7 +357,7 @@ export default function TestRetakePayment() {
                       )}
                     </div>
                   </div>
-                  
+
                   <div 
                     className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                       paymentMethod === 'amazon_pay' ? 'border-orange-500 bg-orange-50' : 'border-gray-200'
@@ -368,7 +377,7 @@ export default function TestRetakePayment() {
                   </div>
                 </div>
               </div>
-              
+
               {paymentMethod === 'paypal' ? (
                 <PayPalHostedButton
                   purpose="test_retake"
@@ -379,11 +388,11 @@ export default function TestRetakePayment() {
                       title: "Payment Successful!",
                       description: "Your retake is now available. You can start the test again.",
                     });
-                    
+
                     // Invalidate queries to refresh data
                     queryClient.invalidateQueries({ queryKey: ["/api/jobseeker/test-assignments"] });
                     queryClient.invalidateQueries({ queryKey: [`/api/test-assignments/${params?.id}`] });
-                    
+
                     // Redirect to test page
                     setTimeout(() => {
                       setLocation(`/test/${params?.id}`);
@@ -419,7 +428,7 @@ export default function TestRetakePayment() {
                   )}
                 </Button>
               )}
-              
+
               <p className="text-xs text-gray-500 text-center mt-3">
                 Secure payment processing. Money-back guarantee if technical issues occur.
               </p>
