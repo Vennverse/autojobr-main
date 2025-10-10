@@ -449,12 +449,13 @@ export default function EnhancedPipelineManagement() {
   // Move application to different stage
   const moveApplicationMutation = useMutation({
     mutationFn: async ({ applicationId, newStage, notes }: { applicationId: number; newStage: string; notes?: string }) => {
-      return apiRequest(`/api/recruiter/applications/${applicationId}/stage`, "PUT", {
-        stage: newStage, notes
+      return apiRequest(`/api/recruiter/applications/${applicationId}/status`, "PATCH", {
+        status: newStage,
+        notes
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/recruiter/applications/enhanced"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/recruiter/applications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/recruiter/pipeline-analytics"] });
       toast({
         title: "Application Updated",
@@ -697,16 +698,23 @@ Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
 
   // Enhanced drag and drop with proper functionality
   const handleStageMove = (applicationId: number, newStage: string) => {
+    // Find the application being moved
+    const app = applications.find(a => a.id === applicationId);
+    if (!app) return;
+    
     // Optimistic update
-    const updatedApplications = applications.map(app => 
-      app.id === applicationId ? { ...app, status: newStage } : app
+    queryClient.setQueryData(["/api/recruiter/applications"], 
+      (oldData: any) => {
+        if (!Array.isArray(oldData)) return oldData;
+        return oldData.map((application: any) => 
+          application.id === applicationId 
+            ? { ...application, status: newStage } 
+            : application
+        );
+      }
     );
     
-    // Update local state immediately for smooth UX
-    queryClient.setQueryData(["/api/recruiter/applications/enhanced"], 
-      (oldData: any) => oldData ? updatedApplications : []
-    );
-    
+    // Execute mutation
     moveApplicationMutation.mutate({ 
       applicationId, 
       newStage,
@@ -718,15 +726,29 @@ Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
   const handleDragStart = (e: React.DragEvent, applicationId: number) => {
     e.dataTransfer.setData("applicationId", applicationId.toString());
     e.dataTransfer.effectAllowed = "move";
+    // Add visual feedback
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = "0.5";
+    }
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    // Reset visual feedback
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = "1";
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer.dropEffect = "move";
   };
 
   const handleDrop = (e: React.DragEvent, targetStage: string) => {
     e.preventDefault();
+    e.stopPropagation();
+    
     const applicationId = parseInt(e.dataTransfer.getData("applicationId"));
     if (applicationId && targetStage) {
       handleStageMove(applicationId, targetStage);
@@ -1186,6 +1208,7 @@ Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
                           onClick={() => setSelectedApplication(application)}
                           draggable
                           onDragStart={(e) => handleDragStart(e, application.id)}
+                          onDragEnd={handleDragEnd}
                           data-testid={`card-application-${application.id}`}
                         >
                           <div className="flex items-start justify-between mb-2">
