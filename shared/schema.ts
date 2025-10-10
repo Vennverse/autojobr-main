@@ -2392,6 +2392,137 @@ export const educations = education;
 export const virtualInterviewSessions = virtualInterviews;
 export const mockInterviewSessions = mockInterviews;
 
+// CRM CONTACT MANAGEMENT SYSTEM
+
+// Contacts - Universal contact database for both job seekers and recruiters
+export const crmContacts = pgTable("crm_contacts", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Basic contact info
+  name: varchar("name").notNull(),
+  email: varchar("email"),
+  phone: varchar("phone"),
+  company: varchar("company"),
+  jobTitle: varchar("job_title"),
+  linkedinUrl: varchar("linkedin_url"),
+  
+  // Contact type and categorization
+  contactType: varchar("contact_type").notNull(), // recruiter, hiring_manager, referral, colleague, company
+  tags: text("tags").array(), // work, personal, client, lead, prospect, hot, warm, cold
+  
+  // Relationship tracking
+  relationship: varchar("relationship"), // strong, moderate, weak, new
+  source: varchar("source"), // linkedin, referral, event, job_application, direct
+  
+  // Interaction tracking
+  lastContactDate: timestamp("last_contact_date"),
+  nextTouchDate: timestamp("next_touch_date"),
+  touchFrequency: varchar("touch_frequency").default("monthly"), // weekly, bi-weekly, monthly, quarterly
+  
+  // Notes and context
+  notes: text("notes"),
+  customFields: jsonb("custom_fields"), // Flexible additional data
+  
+  // Status
+  status: varchar("status").default("active"), // active, inactive, archived
+  priority: varchar("priority").default("medium"), // low, medium, high, urgent
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("crm_contacts_user_idx").on(table.userId),
+  index("crm_contacts_type_idx").on(table.contactType),
+  index("crm_contacts_next_touch_idx").on(table.nextTouchDate),
+  index("crm_contacts_company_idx").on(table.company),
+]);
+
+// Contact Interactions - Log all interactions with contacts
+export const contactInteractions = pgTable("contact_interactions", {
+  id: serial("id").primaryKey(),
+  contactId: integer("contact_id").references(() => crmContacts.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Interaction details
+  interactionType: varchar("interaction_type").notNull(), // email, call, meeting, message, application, interview
+  subject: varchar("subject"),
+  description: text("description"),
+  outcome: varchar("outcome"), // positive, neutral, negative, follow_up_needed
+  
+  // Scheduling
+  interactionDate: timestamp("interaction_date").defaultNow(),
+  duration: integer("duration"), // in minutes
+  
+  // Follow-up
+  followUpRequired: boolean("follow_up_required").default(false),
+  followUpDate: timestamp("follow_up_date"),
+  
+  // Links
+  relatedTaskId: integer("related_task_id"),
+  relatedJobId: integer("related_job_id"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("contact_interactions_contact_idx").on(table.contactId),
+  index("contact_interactions_user_idx").on(table.userId),
+  index("contact_interactions_date_idx").on(table.interactionDate),
+  index("contact_interactions_followup_idx").on(table.followUpDate),
+]);
+
+// Pipeline Stages - Universal pipeline for tracking progress
+export const pipelineStages = pgTable("pipeline_stages", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Pipeline configuration
+  pipelineType: varchar("pipeline_type").notNull(), // job_search, recruitment, sales
+  stageName: varchar("stage_name").notNull(),
+  stageOrder: integer("stage_order").notNull(),
+  stageColor: varchar("stage_color").default("#3B82F6"),
+  
+  // Stage settings
+  isActive: boolean("is_active").default(true),
+  autoMoveAfterDays: integer("auto_move_after_days"), // Auto-progress after X days
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("pipeline_stages_user_idx").on(table.userId),
+  index("pipeline_stages_type_idx").on(table.pipelineType),
+  index("pipeline_stages_order_idx").on(table.stageOrder),
+]);
+
+// Pipeline Items - Items in the pipeline (jobs, candidates, deals)
+export const pipelineItems = pgTable("pipeline_items", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  stageId: integer("stage_id").references(() => pipelineStages.id).notNull(),
+  
+  // Item details
+  itemType: varchar("item_type").notNull(), // job_application, candidate, contact
+  itemTitle: varchar("item_title").notNull(),
+  itemValue: integer("item_value"), // Expected salary or deal value
+  
+  // Related entities
+  contactId: integer("contact_id").references(() => crmContacts.id),
+  relatedJobId: integer("related_job_id"),
+  relatedApplicationId: integer("related_application_id"),
+  
+  // Tracking
+  enteredStageAt: timestamp("entered_stage_at").defaultNow(),
+  probability: integer("probability").default(50), // Success probability 0-100
+  
+  // Notes
+  notes: text("notes"),
+  customData: jsonb("custom_data"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("pipeline_items_user_idx").on(table.userId),
+  index("pipeline_items_stage_idx").on(table.stageId),
+  index("pipeline_items_contact_idx").on(table.contactId),
+]);
+
 // Task management insert schemas
 export const insertTaskSchema = createInsertSchema(tasks).omit({
   id: true,
@@ -2410,6 +2541,29 @@ export const insertTaskReminderSchema = createInsertSchema(taskReminders).omit({
   createdAt: true,
 });
 
+// CRM insert schemas
+export const insertCrmContactSchema = createInsertSchema(crmContacts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertContactInteractionSchema = createInsertSchema(contactInteractions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPipelineStageSchema = createInsertSchema(pipelineStages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPipelineItemSchema = createInsertSchema(pipelineItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Task management types
 export type Task = typeof tasks.$inferSelect;
 export type InsertTask = z.infer<typeof insertTaskSchema>;
@@ -2417,6 +2571,16 @@ export type UserResume = typeof userResumes.$inferSelect;
 export type InsertUserResume = z.infer<typeof insertUserResumeSchema>;
 export type TaskReminder = typeof taskReminders.$inferSelect;
 export type InsertTaskReminder = z.infer<typeof insertTaskReminderSchema>;
+
+// CRM types
+export type CrmContact = typeof crmContacts.$inferSelect;
+export type InsertCrmContact = z.infer<typeof insertCrmContactSchema>;
+export type ContactInteraction = typeof contactInteractions.$inferSelect;
+export type InsertContactInteraction = z.infer<typeof insertContactInteractionSchema>;
+export type PipelineStage = typeof pipelineStages.$inferSelect;
+export type InsertPipelineStage = z.infer<typeof insertPipelineStageSchema>;
+export type PipelineItem = typeof pipelineItems.$inferSelect;
+export type InsertPipelineItem = z.infer<typeof insertPipelineItemSchema>;
 
 // REFERRAL MARKETPLACE SYSTEM
 

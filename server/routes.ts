@@ -71,6 +71,7 @@ import { interviewPrepService, interviewPrepSchema } from './interviewPrepServic
 import { salaryInsightsService, salaryInsightsSchema } from './salaryInsightsService';
 import { questionBankService } from "./questionBankService";
 import seo from './routes/seo';
+import { CrmService } from './crmService';
 
 // Import services
 import { db } from "./db";
@@ -276,16 +277,15 @@ const processResumeUpload = async (file: any, userId: string, resumeText: string
   const resumeData = {
     name: file.originalname.replace(/\.[^/.]+$/, "") || "New Resume",
     fileName: file.originalname,
-    isActive: existingResumes.length === 0,
-    atsScore: analysis.atsScore,
-    analysis: analysis,
-    resumeText: resumeText,
-    fileSize: file.size,
     mimeType: file.mimetype,
-    fileData: file.buffer.toString('base64')
+    fileSize: file.size,
+    resumeText: resumeText,
+    analysis: analysis,
+    atsScore: analysis.atsScore,
+    isActive: existingResumes.length === 0,
   };
 
-  // TODO: Implement storeResume method in storage
+  // TODO: Implement storeResume method in storage with file storage service integration
   throw new Error('Resume storage not implemented yet');
 };
 
@@ -506,19 +506,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Enhanced logout endpoint with cache clearing
   app.post('/api/auth/logout', (req: any, res) => {
     const userId = req.session?.user?.id;
-    
+
     req.session.destroy((err: any) => {
       if (err) {
         console.error('Logout session destroy error:', err);
         return res.status(500).json({ message: "Logout failed" });
       }
-      
+
       // Clear user-specific cache
       if (userId) {
         invalidateUserCache(userId);
         console.log(`✅ Logout successful - cleared cache for user: ${userId}`);
       }
-      
+
       res.clearCookie('autojobr.session');
       res.json({ 
         message: "Logged out successfully",
@@ -577,11 +577,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const jobId = parseInt(req.params.id);
       const job = await storage.getJobPosting(jobId);
-      
+
       if (!job) {
         return res.status(404).json({ message: 'Job posting not found' });
       }
-      
+
       res.json(job);
     } catch (error) {
       console.error('[JOB POSTING ERROR]:', error);
@@ -646,7 +646,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/applications', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      
+
       const applications = await db
         .select()
         .from(schema.jobPostingApplications)
@@ -700,7 +700,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/scraped-jobs', async (req: any, res) => {
     try {
       console.log('[SCRAPED JOBS] Request received with params:', req.query);
-      
+
       const search = req.query.q as string || req.query.search as string;
       const category = req.query.category as string;
       const location = req.query.location as string;
@@ -712,12 +712,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const page = parseInt(req.query.page as string) || 1;
       const pageSize = parseInt(req.query.size as string) || 25;
       const offset = (page - 1) * pageSize;
-      
+
       console.log('[SCRAPED JOBS] Parsed filters:', { search, category, location, country, city, workMode, jobType, experienceLevel, page, pageSize });
-      
+
       // Build base query - simplified to avoid SQL errors
       const conditions: any[] = [eq(scrapedJobs.isActive, true)];
-      
+
       // Apply search filter
       if (search && search.trim().length > 0) {
         const searchTerm = search.toLowerCase().trim();
@@ -729,52 +729,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
           )!
         );
       }
-      
+
       // Apply location filters
       if (location && location.trim().length > 0) {
         conditions.push(sql`LOWER(COALESCE(${scrapedJobs.location}, '')) LIKE ${`%${location.toLowerCase()}%`}`);
       }
-      
+
       if (country && country.trim().length > 0) {
         conditions.push(sql`LOWER(COALESCE(${scrapedJobs.countryCode}, '')) LIKE ${`%${country.toLowerCase()}%`}`);
       }
-      
+
       if (city && city.trim().length > 0) {
         conditions.push(sql`LOWER(COALESCE(${scrapedJobs.city}, '')) LIKE ${`%${city.toLowerCase()}%`}`);
       }
-      
+
       // Apply category filter
       if (category && category.trim().length > 0) {
         conditions.push(sql`LOWER(COALESCE(${scrapedJobs.category}, '')) LIKE ${`%${category.toLowerCase()}%`}`);
       }
-      
+
       // Apply work mode filter
       if (workMode && workMode.trim().length > 0) {
         conditions.push(sql`LOWER(COALESCE(${scrapedJobs.workMode}, '')) LIKE ${`%${workMode.toLowerCase()}%`}`);
       }
-      
+
       // Apply job type filter
       if (jobType && jobType.trim().length > 0) {
         conditions.push(sql`LOWER(COALESCE(${scrapedJobs.jobType}, '')) LIKE ${`%${jobType.toLowerCase()}%`}`);
       }
-      
+
       // Apply experience level filter
       if (experienceLevel && experienceLevel.trim().length > 0) {
         conditions.push(sql`LOWER(COALESCE(${scrapedJobs.experienceLevel}, '')) LIKE ${`%${experienceLevel.toLowerCase()}%`}`);
       }
-      
+
       console.log('[SCRAPED JOBS] Conditions count:', conditions.length);
-      
+
       // Get total count
       const totalResult = await db
         .select({ count: count() })
         .from(scrapedJobs)
         .where(conditions.length > 0 ? and(...conditions) : undefined);
-      
+
       const total = Number(totalResult[0]?.count || 0);
-      
+
       console.log('[SCRAPED JOBS] Total jobs found:', total);
-      
+
       // Fetch paginated jobs
       const jobs = await db
         .select()
@@ -783,9 +783,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .orderBy(desc(scrapedJobs.createdAt))
         .limit(pageSize)
         .offset(offset);
-      
+
       console.log('[SCRAPED JOBS] Returning', jobs.length, 'jobs for page', page);
-      
+
       res.json({
         jobs,
         pagination: {
@@ -798,7 +798,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('[SCRAPED JOBS ERROR]:', error);
       res.status(500).json({ 
-        message: 'Failed to fetch scraped jobs', 
+        message: 'Failed to fetch scraped jobs',
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined
       });
@@ -902,7 +902,7 @@ Return only the improved job description text, no additional formatting or expla
 
       const newJob = await storage.createJobPosting(jobData);
       console.log(`[JOB CREATED] Recruiter ${userId} created job: ${newJob.id}`);
-      
+
       res.json({
         success: true,
         message: "Job posted successfully",
@@ -981,10 +981,10 @@ Return only the improved job description text, no additional formatting or expla
 
       // Fetch template to check question bank setting
       let questions: any[] = [];
-      
+
       if (assignment.testTemplateId) {
         const template = await storage.getTestTemplate(assignment.testTemplateId);
-        
+
         // Check if template uses question bank (priority over stored questions)
         if (template?.useQuestionBank) {
           console.log(`[TEST QUESTIONS] Generating questions from bank for template ${template.id}`);
@@ -1034,10 +1034,10 @@ Return only the improved job description text, no additional formatting or expla
 
       // Get questions for scoring (same logic as questions endpoint)
       let questions: any[] = [];
-      
+
       if (assignment.testTemplateId) {
         const template = await storage.getTestTemplate(assignment.testTemplateId);
-        
+
         if (template?.useQuestionBank) {
           questions = await testService.generateQuestionsFromBank(
             template.id,
@@ -1053,7 +1053,7 @@ Return only the improved job description text, no additional formatting or expla
       } else {
         questions = assignment.testTemplate?.questions || [];
       }
-      
+
       const scoreResult = await testService.calculateScore(questions, answers);
 
       // Determine termination reason
@@ -1271,21 +1271,21 @@ Return only the improved job description text, no additional formatting or expla
   });
 
   // ===== VIDEO PRACTICE API ROUTES =====
-  
+
   // Start video practice session
   app.post('/api/video-practice/start', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const { role, interviewType, difficulty } = req.body;
-      
+
       // Generate session ID
       const sessionId = `vp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       // Generate questions using video practice service
       const { videoPracticeService } = await import('./videoPracticeService.js');
       const { company } = req.body;
       const questions = await videoPracticeService.generateQuestions(role, interviewType, difficulty, company);
-      
+
       // Create session in database
       const session = await storage.createVideoPracticeSession({
         userId,
@@ -1298,7 +1298,7 @@ Return only the improved job description text, no additional formatting or expla
         paymentStatus: 'pending',
         paymentAmount: 500 // $5 in cents
       });
-      
+
       res.json({
         sessionId,
         questions,
@@ -1310,18 +1310,18 @@ Return only the improved job description text, no additional formatting or expla
       handleError(res, error, 'Failed to start video practice session');
     }
   });
-  
+
   // Submit response for a question
   app.post('/api/video-practice/:sessionId/response', isAuthenticated, async (req: any, res) => {
     try {
       const { sessionId } = req.params;
       const { questionId, transcript, duration, videoAnalysis, audioAnalysis } = req.body;
-      
+
       const session = await storage.getVideoPracticeSessionBySessionId(sessionId);
       if (!session || session.userId !== req.user.id) {
         return res.status(404).json({ message: 'Session not found' });
       }
-      
+
       const responses = session.responses ? JSON.parse(session.responses) : [];
       responses.push({ 
         questionId, 
@@ -1331,35 +1331,35 @@ Return only the improved job description text, no additional formatting or expla
         audioAnalysis: audioAnalysis || null,
         timestamp: new Date() 
       });
-      
+
       const questions = JSON.parse(session.questions);
       const isComplete = responses.length >= questions.length;
-      
+
       await storage.updateVideoPracticeSession(session.id, {
         responses: JSON.stringify(responses),
         status: isComplete ? 'completed' : 'in_progress'
       });
-      
+
       res.json({ success: true, isComplete });
     } catch (error) {
       handleError(res, error, 'Failed to submit response');
     }
   });
-  
+
   // Complete session and get feedback
   app.post('/api/video-practice/:sessionId/complete', isAuthenticated, async (req: any, res) => {
     try {
       const { sessionId } = req.params;
-      
+
       const session = await storage.getVideoPracticeSessionBySessionId(sessionId);
       if (!session || session.userId !== req.user.id) {
         return res.status(404).json({ message: 'Session not found' });
       }
-      
+
       const { videoPracticeService } = await import('./videoPracticeService.js');
       const responses = JSON.parse(session.responses || '[]');
       const questions = JSON.parse(session.questions);
-      
+
       // Analyze each response with video and audio data
       const analyses = [];
       for (let i = 0; i < responses.length; i++) {
@@ -1373,16 +1373,16 @@ Return only the improved job description text, no additional formatting or expla
         );
         analyses.push(analysis);
       }
-      
+
       // Generate final comprehensive feedback
       const feedback = await videoPracticeService.generateFinalFeedback(session.role, analyses);
-      
+
       await storage.updateVideoPracticeSession(session.id, {
         analysis: JSON.stringify(feedback),
         overallScore: feedback.overallScore,
         completedAt: new Date()
       });
-      
+
       res.json({ feedback });
     } catch (error) {
       handleError(res, error, 'Failed to generate feedback');
@@ -2566,7 +2566,7 @@ Return only the improved job description text, no additional formatting or expla
         redirectUrl = `/mock-interview?sessionId=${mockInterview.sessionId}`;
         break;
       case 'test':
-        // CRITICAL FIX: Check if user already has a test assignment from this link
+        // Create test assignment
         const testData = JSON.parse(link.interviewConfig || '{}');
         const requestBody = req.body || {};
 
@@ -2599,7 +2599,7 @@ Return only the improved job description text, no additional formatting or expla
               .from(schema.testTemplates)
               .where(eq(schema.testTemplates.jobProfile, testDomain))
               .limit(1);
-            
+
             templateId = domainTemplate?.id;
           }
 
@@ -2608,7 +2608,7 @@ Return only the improved job description text, no additional formatting or expla
           }
         }
 
-        // CHECK: Does user already have a test from this link/template combo?
+        // CHECK: Does user already have a test assignment from this link/template combo?
         const existingTestAssignment = await db.select()
           .from(schema.testAssignments)
           .where(
@@ -2625,14 +2625,14 @@ Return only the improved job description text, no additional formatting or expla
         // CRITICAL: If user has a completed/terminated test WITHOUT payment, BLOCK access
         if (existingTestAssignment && 
             (existingTestAssignment.status === 'completed' || existingTestAssignment.status === 'terminated')) {
-          
+
           // Check if retake was paid for
           if (!existingTestAssignment.retakeAllowed) {
             console.log(`🚫 BLOCKED: User ${user.email} trying to retake test ${existingTestAssignment.id} without payment`);
             redirectUrl = `/test-retake-payment/${existingTestAssignment.id}`;
             break;
           }
-          
+
           // If retake is allowed (paid), reset the test for new attempt
           await storage.updateTestAssignment(existingTestAssignment.id, {
             status: 'assigned',
@@ -2645,7 +2645,7 @@ Return only the improved job description text, no additional formatting or expla
             terminationReason: null,
             retakeAllowed: false // Reset after use
           });
-          
+
           console.log(`✅ Retake paid - reset test ${existingTestAssignment.id} for new attempt`);
           redirectUrl = `/test-taking/${existingTestAssignment.id}`;
           break;
@@ -5870,356 +5870,4 @@ Additional Information:
         .where(eq(schema.resumes.userId, userId));
 
       // Set the selected resume to active
-      const result = await db.update(schema.resumes)
-        .set({ isActive: true })
-        .where(and(
-          eq(schema.resumes.id, resumeId),
-          eq(schema.resumes.userId, userId)
-        ))
-        .returning();
-
-      if (result.length === 0) {
-        return res.status(404).json({ message: "Resume not found" });
-      }
-
-      // Clear cache
-      const cacheKey = `resumes_${userId}`;
-      cache.delete(cacheKey);
-
-      res.json({ message: "Active resume updated successfully" });
-    } catch (error) {
-      console.error("Error setting active resume:", error);
-      res.status(500).json({ message: "Failed to set active resume" });
-    }
-  });
-
-  app.get('/api/resumes', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const cacheKey = `resumes_${userId}`;
-
-      // Check cache first (user-scoped)
-      const cachedResumes = getCached(cacheKey, userId);
-      if (cachedResumes) {
-        return res.json(cachedResumes);
-      }
-
-      // Fetching resumes for user
-
-      // Use the database storage service to get resumes
-      const resumes = await storage.getUserResumes(userId);
-
-      // Cache resumes for 1 minute (user-scoped)
-      setCache(cacheKey, resumes, 60000, userId);
-
-      // Returning resumes for user
-      res.json(resumes);
-    } catch (error) {
-      console.error("Error fetching resumes:", error);
-      res.status(500).json({ message: "Failed to fetch resumes" });
-    }
-  });
-
-  // Download resume file - FIXED: Using resumes table with proper security
-  app.get('/api/resumes/:id/download', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const resumeId = parseInt(req.params.id);
-
-      // Get resume record from resumes table with ownership verification
-      const [resume] = await db.select().from(resumes).where(
-        and(eq(resumes.id, resumeId), eq(resumes.userId, userId))
-      );
-
-      if (!resume) {
-        return res.status(404).json({ message: "Resume not found" });
-      }
-
-      let fileBuffer: Buffer;
-
-      // Handle both database and filesystem storage
-      if (resume.fileData) {
-        // Database storage: decode base64
-        fileBuffer = Buffer.from(resume.fileData, 'base64');
-      } else if (resume.filePath) {
-        // Filesystem storage: SECURE - use exact path from ownership-validated record
-        try {
-          const fs = await import('fs/promises');
-          const path = await import('path');
-          const zlib = await import('zlib');
-
-          // Use the exact filePath from the ownership-validated resumes record
-          const fullPath = path.resolve(resume.filePath);
-
-          // Security check: ensure path is within expected uploads directory
-          const uploadsDir = path.resolve('./uploads');
-          if (!fullPath.startsWith(uploadsDir)) {
-            console.error(`Security violation: attempted access to ${fullPath} outside uploads directory`);
-            return res.status(403).json({ message: "Access denied" });
-          }
-
-          // Read file directly from validated path
-          const rawBuffer = await fs.readFile(fullPath);
-
-          // Handle compressed files (if path ends with .gz)
-          if (fullPath.endsWith('.gz')) {
-            fileBuffer = await new Promise((resolve, reject) => {
-              zlib.gunzip(rawBuffer, (err, decompressed) => {
-                if (err) reject(err);
-                else resolve(decompressed);
-              });
-            });
-          } else {
-            fileBuffer = rawBuffer;
-          }
-
-          console.log(`✅ Secure file access: userId=${userId}, file=${resume.fileName}, size=${fileBuffer.length} bytes`);
-        } catch (error) {
-          console.error(`File access error for userId=${userId}, path=${resume.filePath}:`, error);
-          return res.status(404).json({ message: "Resume file not found in storage" });
-        }
-      } else {
-        return res.status(404).json({ message: "Resume file data not available" });
-      }
-
-      // Set appropriate headers
-      res.setHeader('Content-Type', resume.mimeType || 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="${resume.fileName}"`);
-      res.setHeader('Content-Length', fileBuffer.length);
-
-      res.send(fileBuffer);
-    } catch (error) {
-      console.error("Error downloading resume:", error);
-      res.status(500).json({ message: "Failed to download resume" });
-    }
-  });
-
-  // Resume download route for recruiters (from job applications)
-  app.get('/api/recruiter/resume/download/:applicationId', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const applicationId = parseInt(req.params.applicationId);
-      const user = await storage.getUser(userId);
-
-      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
-        return res.status(403).json({ message: "Access denied. Recruiter account required." });
-      }
-
-      // Get application  
-      const application = await storage.getJobPostingApplication(applicationId);
-      if (!application) {
-        return res.status(404).json({ message: "Application not found" });
-      }
-
-      // Get job posting to verify recruiter owns it
-      const jobPosting = await storage.getJobPosting(application.jobPostingId);
-      if (!jobPosting || jobPosting.recruiterId !== userId) {
-        return res.status(403).json({ message: "Access denied. You can only download resumes from your job postings." });
-      }
-
-      // Get applicant's active resume using the modern file storage system
-      const applicantId = application.applicantId;
-
-      let resume;
-      try {
-        // Get applicant's resumes from database
-        const applicantResumes = await storage.getUserResumes(applicantId);
-        const activeResume = applicantResumes.find((r: any) => r.isActive) || applicantResumes[0];
-
-        if (!activeResume) {
-          return res.status(404).json({ message: "No resume found for this applicant" });
-        }
-
-        // Retrieve the file from file storage using the stored file ID
-        const fileBuffer = await fileStorage.retrieveResume(activeResume.filePath, applicantId);
-
-        if (!fileBuffer) {
-          return res.status(404).json({ message: "Resume file not found in storage" });
-        }
-
-        resume = {
-          fileBuffer: fileBuffer,
-          fileName: activeResume.fileName || 'resume.pdf',
-          mimeType: activeResume.mimeType || 'application/pdf'
-        };
-
-      } catch (error) {
-        console.error("Error fetching applicant resume:", error);
-        return res.status(500).json({ message: "Error retrieving resume" });
-      }
-
-      if (!resume || !resume.fileBuffer) {
-        return res.status(404).json({ message: "Resume not found or not available for download" });
-      }
-
-  // Set appropriate headers and send file
-  res.setHeader('Content-Type', resume.mimeType || 'application/octet-stream');
-  res.setHeader('Content-Disposition', `attachment; filename="${resume.fileName}"`);
-  res.setHeader('Content-Length', String(resume.fileBuffer.length));
-
-      res.send(resume.fileBuffer);
-    } catch (error) {
-      console.error("Error downloading resume:", error);
-      res.status(500).json({ message: "Failed to download resume" });
-    }
-  });
-
-  // AI Resume Improvement endpoint
-  app.post('/api/ai/resume-improvements', isAuthenticated, async (req: any, res) => {
-    try {
-      const { resumeText, jobDescription } = req.body;
-
-      if (!resumeText || resumeText.trim().length === 0) {
-        return res.status(400).json({ message: "Resume text is required" });
-      }
-
-      const prompt = `You are an expert resume writer and career advisor. Analyze the following resume and provide specific, actionable improvements.
-
-RESUME CONTENT:
-${resumeText}
-
-${jobDescription ? `TARGET JOB DESCRIPTION:\n${jobDescription}\n\n` : ''}
-
-Provide improvements in the following JSON format:
-{
-  "summary": "Brief overall assessment of the resume (2-3 sentences)",
-  "strengths": ["strength 1", "strength 2", "strength 3"],
-  "improvements": [
-    {
-      "section": "Section name (e.g., 'Professional Summary', 'Work Experience', 'Skills')",
-      "issue": "What's wrong with the current content",
-      "suggestion": "Specific improvement suggestion",
-      "example": "Improved version of the text"
-    }
-  ],
-  "keywordSuggestions": ["keyword1", "keyword2", "keyword3"],
-  "atsScore": 75,
-  "impactMetrics": {
-    "beforeImpact": "Current impact level (Low/Medium/High)",
-    "afterImpact": "Potential impact level after improvements (Low/Medium/High)",
-    "quantificationScore": 65
-  }
-}
-
-Focus on:
-1. Adding quantifiable achievements and metrics
-2. Using strong action verbs
-3. Tailoring content to the job description (if provided)
-4. Improving ATS compatibility
-5. Making accomplishments more impactful
-
-Return ONLY the JSON object, no additional text.`;
-
-      console.log('🤖 Generating AI resume improvements...');
-
-      const aiResponse = await aiService.createChatCompletion([
-        { role: 'system', content: 'You are an expert resume writer. Always respond with valid JSON only.' },
-        { role: 'user', content: prompt }
-      ], {
-        temperature: 0.7,
-        max_tokens: 3000,
-        user: req.user
-      });
-
-      // Parse AI response
-      let improvements;
-      try {
-        const content = aiResponse.choices[0]?.message?.content || '{}';
-        const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) || content.match(/(\{[\s\S]*\})/);
-        const jsonStr = jsonMatch ? jsonMatch[1] : content;
-        improvements = JSON.parse(jsonStr);
-        console.log('✅ AI resume improvements generated successfully');
-      } catch (parseError) {
-        console.error('Failed to parse AI response:', parseError);
-        throw new Error('AI response parsing failed');
-      }
-
-      res.json(improvements);
-    } catch (error: any) {
-      console.error("Error generating resume improvements:", error);
-      res.status(500).json({ 
-        message: "Failed to generate improvements",
-        error: error.message 
-      });
-    }
-  });
-
-  // ===== TASK MANAGEMENT API ROUTES =====
-  // Create new task
-  app.post('/api/tasks', isAuthenticated, TaskService.createTask);
-
-  // Get user's tasks (with filtering)
-  app.get('/api/tasks', isAuthenticated, TaskService.getUserTasks);
-
-  // Update task status
-  app.patch('/api/tasks/:taskId/status', isAuthenticated, TaskService.updateTaskStatus);
-
-  // Delete task
-  app.delete('/api/tasks/:taskId', isAuthenticated, TaskService.deleteTask);
-
-  // Get task statistics/analytics
-  app.get('/api/tasks/stats', isAuthenticated, TaskService.getTaskStats);
-
-  // ===== REMINDER SYSTEM API ROUTES (for Chrome Extension) =====
-  // Get pending reminders for extension popup
-  app.get('/api/reminders/pending', isAuthenticated, TaskService.getPendingReminders);
-
-  // Snooze a reminder
-  app.patch('/api/reminders/:reminderId/snooze', isAuthenticated, TaskService.snoozeReminder);
-
-  // Dismiss a reminder
-  app.patch('/api/reminders/:reminderId/dismiss', isAuthenticated, TaskService.dismissReminder);
-
-  // ===== REFERRAL MARKETPLACE API ROUTES =====
-  // Public referral marketplace endpoints (must come BEFORE protected routes)
-  app.get('/api/referral-marketplace/services', async (req, res) => {
-    try {
-      const { referralMarketplaceService } = await import('./referralMarketplaceService.js');
-      const filters = {
-        serviceType: req.query.serviceType as string,
-        minPrice: req.query.minPrice ? Number(req.query.minPrice) : undefined,
-        maxPrice: req.query.maxPrice ? Number(req.query.maxPrice) : undefined,
-        companyName: req.query.companyName as string,
-        includesReferral: req.query.includesReferral === 'true' ? true : 
-                         req.query.includesReferral === 'false' ? false : undefined,
-      };
-
-      const services = await referralMarketplaceService.getServiceListings(filters);
-      res.json({ success: true, services });
-    } catch (error) {
-      console.error('Error getting services:', error);
-      res.status(500).json({ 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to get services' 
-      });
-    }
-  });
-
-  // Protected referral marketplace endpoints  
-  app.use('/api/referral-marketplace', isAuthenticated, referralMarketplaceRoutes);
-
-  // Virtual Interview Routes
-  app.use('/api/virtual-interview', virtualInterviewRoutes);
-
-  // Chat Interview Routes  
-  app.use('/api/chat-interview', chatInterviewRoutes);
-
-  // Bidder system routes (auth is handled per-route within bidderRoutes)
-  const bidderRoutes = await import('./bidderRoutes.js');
-  app.use('/api', bidderRoutes.default);
-
-  // SEO Routes
-  app.use('/api', seo);
-
-  // Proctoring & Anti-Cheating Routes
-  app.use('/api', proctoring);
-
-  // ===== HEALTH CHECK =====
-
-  console.log('🎉 [ROUTES] All routes registered successfully!');
-  console.log('🎉 [ROUTES] Total app._router.stack length:', app._router?.stack?.length || 'unknown');
-
-  // Create HTTP server for WebSocket integration
-  const httpServer = createServer(app);
-  return httpServer;
-}
+      const result = await db.update(schema.(?:json)?\s*(\{[\s\S]*\})\s*
