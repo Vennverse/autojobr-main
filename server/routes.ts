@@ -972,14 +972,13 @@ Return only the improved job description text, no additional formatting or expla
         return res.status(403).json({ message: 'Access denied' });
       }
 
-      // Get questions from the test template
-      let questions = assignment.testTemplate?.questions || [];
-
-      // If no questions in assignment, fetch from template directly
-      if (questions.length === 0 && assignment.testTemplateId) {
+      // Fetch template to check question bank setting
+      let questions: any[] = [];
+      
+      if (assignment.testTemplateId) {
         const template = await storage.getTestTemplate(assignment.testTemplateId);
         
-        // Check if template uses question bank
+        // Check if template uses question bank (priority over stored questions)
         if (template?.useQuestionBank) {
           console.log(`[TEST QUESTIONS] Generating questions from bank for template ${template.id}`);
           questions = await testService.generateQuestionsFromBank(
@@ -991,8 +990,12 @@ Return only the improved job description text, no additional formatting or expla
             template.includeExtremeQuestions || false
           );
         } else {
-          questions = template?.questions || [];
+          // Use stored questions from template only if not using question bank
+          questions = template?.questions || assignment.testTemplate?.questions || [];
         }
+      } else {
+        // Fallback to assignment's embedded template questions
+        questions = assignment.testTemplate?.questions || [];
       }
 
       console.log(`[TEST QUESTIONS] Assignment ${assignmentId}: ${questions.length} questions found`);
@@ -1022,8 +1025,28 @@ Return only the improved job description text, no additional formatting or expla
         return res.status(403).json({ message: 'Access denied' });
       }
 
-      // Calculate score
-      const questions = assignment.testTemplate?.questions || [];
+      // Get questions for scoring (same logic as questions endpoint)
+      let questions: any[] = [];
+      
+      if (assignment.testTemplateId) {
+        const template = await storage.getTestTemplate(assignment.testTemplateId);
+        
+        if (template?.useQuestionBank) {
+          questions = await testService.generateQuestionsFromBank(
+            template.id,
+            template.aptitudeQuestions || 0,
+            template.englishQuestions || 0,
+            template.domainQuestions || 0,
+            template.jobProfile || 'software_engineer',
+            template.includeExtremeQuestions || false
+          );
+        } else {
+          questions = template?.questions || assignment.testTemplate?.questions || [];
+        }
+      } else {
+        questions = assignment.testTemplate?.questions || [];
+      }
+      
       const scoreResult = await testService.calculateScore(questions, answers);
 
       // Determine termination reason

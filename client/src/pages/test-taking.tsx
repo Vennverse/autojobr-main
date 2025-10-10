@@ -903,20 +903,21 @@ export default function TestTaking() {
     );
   }
 
-  // Check if test is already completed - prevent retaking unless retake is allowed after payment
-  if (assignment?.status === 'completed' && !assignment.retakeAllowed) {
+  // Check if test is already completed or terminated - prevent retaking unless retake is allowed after payment
+  if ((assignment?.status === 'completed' || assignment?.status === 'terminated') && !assignment.retakeAllowed) {
+    const isTerminated = assignment?.status === 'terminated';
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-            <CheckCircle className="w-8 h-8 text-green-600" />
+          <div className={`w-16 h-16 ${isTerminated ? 'bg-red-100' : 'bg-green-100'} rounded-full flex items-center justify-center mx-auto`}>
+            <CheckCircle className={`w-8 h-8 ${isTerminated ? 'text-red-600' : 'text-green-600'}`} />
           </div>
-          <h1 className="text-2xl font-bold">Test Already Completed</h1>
+          <h1 className="text-2xl font-bold">{isTerminated ? 'Test Terminated' : 'Test Already Completed'}</h1>
           <p className="text-gray-600 max-w-md">
-            You have already completed this test and scored {assignment.score}%. 
-            {assignment.score >= (assignment.testTemplate?.passingScore || 70) 
-              ? ' Congratulations on passing! You can retake to achieve an even higher score.' 
-              : ' You can purchase a retake to improve your score.'}
+            {isTerminated 
+              ? 'This test was terminated due to excessive violations. You can purchase a retake to try again.' 
+              : `You have already completed this test and scored ${assignment.score}%. ${assignment.score >= (assignment.testTemplate?.passingScore || 70) ? ' Congratulations on passing! You can retake to achieve an even higher score.' : ' You can purchase a retake to improve your score.'}`
+            }
           </p>
           <div className="flex gap-4 justify-center">
             <Button onClick={() => setLocation("/job-seeker/tests")}>
@@ -926,7 +927,7 @@ export default function TestTaking() {
               onClick={() => setLocation(`/test/${assignmentId}/retake-payment`)}
               className="bg-blue-600 hover:bg-blue-700"
             >
-              {assignment.score >= (assignment.testTemplate?.passingScore || 70) 
+              {!isTerminated && assignment.score >= (assignment.testTemplate?.passingScore || 70) 
                 ? 'Improve Score - $5' 
                 : 'Purchase Retake - $5'}
             </Button>
