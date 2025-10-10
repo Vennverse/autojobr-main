@@ -2622,11 +2622,31 @@ Return only the improved job description text, no additional formatting or expla
           .limit(1)
           .then(rows => rows[0]);
 
-        // If user already has a completed/terminated test and retake is NOT allowed, redirect to existing
+        // CRITICAL: If user has a completed/terminated test WITHOUT payment, BLOCK access
         if (existingTestAssignment && 
-            (existingTestAssignment.status === 'completed' || existingTestAssignment.status === 'terminated') &&
-            !existingTestAssignment.retakeAllowed) {
-          console.log(`⚠️ User ${user.email} already completed test ${existingTestAssignment.id} from this link - redirecting to existing`);
+            (existingTestAssignment.status === 'completed' || existingTestAssignment.status === 'terminated')) {
+          
+          // Check if retake was paid for
+          if (!existingTestAssignment.retakeAllowed) {
+            console.log(`🚫 BLOCKED: User ${user.email} trying to retake test ${existingTestAssignment.id} without payment`);
+            redirectUrl = `/test-retake-payment/${existingTestAssignment.id}`;
+            break;
+          }
+          
+          // If retake is allowed (paid), reset the test for new attempt
+          await storage.updateTestAssignment(existingTestAssignment.id, {
+            status: 'assigned',
+            score: null,
+            answers: [],
+            completionTime: null,
+            warningCount: 0,
+            tabSwitchCount: 0,
+            copyAttempts: 0,
+            terminationReason: null,
+            retakeAllowed: false // Reset after use
+          });
+          
+          console.log(`✅ Retake paid - reset test ${existingTestAssignment.id} for new attempt`);
           redirectUrl = `/test-taking/${existingTestAssignment.id}`;
           break;
         }
