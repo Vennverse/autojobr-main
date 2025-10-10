@@ -20,6 +20,7 @@ import Onboarding from "@/pages/onboarding";
 import Landing from "@/pages/landing";
 import UserTypeSelection from "@/pages/user-type-selection";
 import UnifiedRecruiterDashboard from "@/pages/unified-recruiter-dashboard";
+import UnifiedCrmDashboard from "@/pages/unified-crm-dashboard";
 import RecruiterAutoLogin from "@/pages/recruiter-auto-login";
 import PostJob from "@/pages/post-job";
 import VerifyEmail from "@/pages/verify-email";
@@ -308,6 +309,9 @@ function Router() {
                 <>
                   {/* Main dashboard routes for completed job seekers */}
                   <Route path="/" component={EnhancedDashboard} />
+                  <Route path="/dashboard" component={EnhancedDashboard} />
+                  <Route path="/enhanced-dashboard" component={EnhancedDashboard} />
+                  <Route path="/unified-crm-dashboard" component={UnifiedCrmDashboard} />
                   <Route path="/onboarding" component={Onboarding} />
                   <Route path="/profile" component={Profile} />
                   <Route path="/resumes" component={ResumesPage} />
@@ -357,6 +361,9 @@ function Router() {
             <>
               {/* Default routes for users without explicit type (treat as job seekers) */}
               <Route path="/" component={EnhancedDashboard} />
+              <Route path="/dashboard" component={EnhancedDashboard} />
+              <Route path="/enhanced-dashboard" component={EnhancedDashboard} />
+              <Route path="/unified-crm-dashboard" component={UnifiedCrmDashboard} />
               <Route path="/onboarding" component={Onboarding} />
               <Route path="/profile" component={Profile} />
               <Route path="/applications" component={Applications} />
