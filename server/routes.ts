@@ -2498,7 +2498,7 @@ Return only the improved job description text, no additional formatting or expla
           redirectUrl = link.interviewUrl;
         } else {
           // Create virtual interview assignment
-          const interviewData = JSON.parse(link.interviewData || '{}');
+          const interviewData = JSON.parse(link.interviewConfig || '{}');
           const virtualInterview = await interviewAssignmentService.assignVirtualInterview({
             recruiterId: link.recruiterId,
             candidateId: user.id,
@@ -2517,7 +2517,7 @@ Return only the improved job description text, no additional formatting or expla
         break;
       case 'mock':
         // Create mock interview assignment
-        const mockData = JSON.parse(link.interviewData || '{}');
+        const mockData = JSON.parse(link.interviewConfig || '{}');
         const mockInterview = await interviewAssignmentService.assignMockInterview({
           recruiterId: link.recruiterId,
           candidateId: user.id,
@@ -2534,40 +2534,45 @@ Return only the improved job description text, no additional formatting or expla
         break;
       case 'test':
         // Create test assignment from interview link
-        const testData = JSON.parse(link.interviewData || '{}');
+        const testData = JSON.parse(link.interviewConfig || '{}');
         const requestBody = req.body || {};
 
-        // Determine the domain for the test
-        const testDomain = requestBody.testDomain || testData.domain || link.role || 'general';
-        const testDifficulty = requestBody.testDifficulty || testData.difficulty || link.difficulty || 'medium';
-
-        console.log(`🎯 Creating test for domain: ${testDomain}, difficulty: ${testDifficulty}`);
-
-        // Find matching template by domain and difficulty
-        const [matchingTemplate] = await db.select()
-          .from(schema.testTemplates)
-          .where(
-            and(
-              eq(schema.testTemplates.jobProfile, testDomain),
-              eq(schema.testTemplates.difficultyLevel, testDifficulty)
-            )
-          )
-          .limit(1);
-
-        let templateId = matchingTemplate?.id;
+        // Priority: Use testTemplateId if provided in config, otherwise try to match by domain
+        let templateId = requestBody.testTemplateId || testData.testTemplateId;
 
         if (!templateId) {
-          // Fallback: Get any template matching the domain
-          const [domainTemplate] = await db.select()
+          // Fallback: Try to match by domain and difficulty
+          const testDomain = requestBody.testDomain || testData.domain || link.role || 'general';
+          const testDifficulty = requestBody.testDifficulty || testData.difficulty || link.difficulty || 'medium';
+
+          console.log(`🎯 Creating test for domain: ${testDomain}, difficulty: ${testDifficulty}`);
+
+          // Find matching template by domain and difficulty
+          const [matchingTemplate] = await db.select()
             .from(schema.testTemplates)
-            .where(eq(schema.testTemplates.jobProfile, testDomain))
+            .where(
+              and(
+                eq(schema.testTemplates.jobProfile, testDomain),
+                eq(schema.testTemplates.difficultyLevel, testDifficulty)
+              )
+            )
             .limit(1);
-          
-          templateId = domainTemplate?.id;
-        }
 
-        if (!templateId) {
-          throw new Error(`No test template found for domain: ${testDomain}`);
+          templateId = matchingTemplate?.id;
+
+          if (!templateId) {
+            // Fallback: Get any template matching the domain
+            const [domainTemplate] = await db.select()
+              .from(schema.testTemplates)
+              .where(eq(schema.testTemplates.jobProfile, testDomain))
+              .limit(1);
+            
+            templateId = domainTemplate?.id;
+          }
+
+          if (!templateId) {
+            throw new Error(`No test template found for domain: ${testDomain}`);
+          }
         }
 
         // Create the test assignment
