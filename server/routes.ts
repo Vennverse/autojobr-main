@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 import { db } from "./db";
 import { eq, desc, and, or, like, isNotNull, count, asc, isNull, sql, inArray } from "drizzle-orm";
 import * as schema from "@shared/schema";
-import { resumes, userResumes, insertInternshipApplicationSchema, companyEmailVerifications, virtualInterviews, users, mockInterviews, jobPostingApplications, invitationUses, insertUserProfileSchema, insertUserSkillSchema, scrapedJobs } from "@shared/schema";
+import { resumes, userResumes, insertInternshipApplicationSchema, companyEmailVerifications, virtualInterviews, users, mockInterviews, jobPostingApplications, invitationUses, insertUserProfileSchema, insertUserSkillSchema, scrapedJobs, crmContacts, crmInteractions, crmPipelineStages } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated, isAuthenticatedExtension } from "./auth";
 import { storage } from "./storage";
@@ -4301,7 +4301,7 @@ Return ONLY the JSON object, no additional text.`;
   }));
 
   // 6. Premium Usage Stats Endpoint
-  app.get('/api/premium/usage', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+  app.get('/api/premium/usage', isAuthenticated, asyncHandler(async (req: any, res) => {
     try {
       const userId = req.user.id;
       const stats = await premiumFeaturesService.getUsageStats(userId);
@@ -4313,7 +4313,7 @@ Return ONLY the JSON object, no additional text.`;
   }));
 
   // 7. Premium Features Overview Endpoint
-  app.get('/api/premium/features', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+  app.get('/api/premium/features', isAuthenticated, asyncHandler(async (req: any, res) => {
     try {
       const userId = req.user.id;
       const [usage, access, value, user] = await Promise.all([
@@ -4337,7 +4337,7 @@ Return ONLY the JSON object, no additional text.`;
   }));
 
   // 8. Check Specific Feature Limit Endpoint
-  app.get('/api/premium/check-limit/:feature', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+  app.get('/api/premium/check-limit/:feature', isAuthenticated, asyncHandler(async (req: any, res) => {
     try {
       const userId = req.user.id;
       const { feature } = req.params;
@@ -4351,7 +4351,7 @@ Return ONLY the JSON object, no additional text.`;
   }));
 
   // 9. Validate Feature Usage Endpoint
-  app.post('/api/premium/validate-usage', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+  app.post('/api/premium/validate-usage', isAuthenticated, asyncHandler(async (req: any, res) => {
     try {
       const userId = req.user.id;
       const { feature } = req.body;
@@ -4489,7 +4489,8 @@ Return ONLY the JSON object, no additional text.`;
     try {
       const { q, category, domain, difficulty } = req.query;
 
-      let query = db.select().from(schema.questionBank)
+      let query = db.select()
+        .from(schema.questionBank)
         .where(eq(schema.questionBank.isActive, true));
 
       // Apply filters
@@ -5904,7 +5905,7 @@ Additional Information:
         mimeType: file.mimetype,
         fileSize: file.size,
         resumeText: resumeText || '', // Use provided text or empty
-        analysis: analysis ? JSON.parse(analysis) : { atsScore: 0}, // Use provided analysis or default
+        analysis: analysis ? JSON.parse(analysis) : {atsScore: 0}, // Use provided analysis or default
         atsScore: analysis ? JSON.parse(analysis).atsScore : 0,
         isActive: isActive === 'true', // Convert string 'true' to boolean
         filePath: null // No physical file storage for raw uploads
@@ -5922,7 +5923,7 @@ Additional Information:
   // Resume Text Analysis Endpoint (using NLP and GROQ)
   app.post('/api/resumes/analyze-text', isAuthenticated, async (req: any, res) => {
     try {
-      const { resumeText, mimeType, fileName, fileSize } = req.body; // Receive text directly
+      const {resumeText, mimeType, fileName, fileSize } = req.body; // Receive text directly
       const userId = req.user.id;
 
       if (!resumeText) {
