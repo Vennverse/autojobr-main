@@ -382,18 +382,20 @@ export default function TestTaking() {
 
   const submitTestMutation = useMutation({
     mutationFn: async (data: any) => {
-      console.log('Starting test submission with data:', data);
+      console.log('🚀 MUTATION FUNCTION STARTED - Submission data:', data);
+      console.log('📍 API endpoint:', `/api/test-assignments/${assignmentId}/submit`);
       try {
         const result = await apiRequest(`/api/test-assignments/${assignmentId}/submit`, "POST", data);
-        console.log('Test submission successful:', result);
+        console.log('✅ API REQUEST SUCCESSFUL - Result:', result);
         return result;
       } catch (error) {
-        console.error('Test submission failed:', error);
+        console.error('❌ API REQUEST FAILED - Error:', error);
+        console.error('❌ Error details:', JSON.stringify(error, null, 2));
         throw error;
       }
     },
     onSuccess: (response: any) => {
-      console.log('onSuccess called with response:', response);
+      console.log('🎉 ONSUCCESS CALLED - Response:', response);
       exitFullscreen();
       setIsSubmitting(false);
 
@@ -750,8 +752,15 @@ export default function TestTaking() {
   };
 
   const handleSubmitTest = async () => {
-    if (isSubmitting || showResultsModal) return;
+    console.log('🔵 handleSubmitTest called');
+    console.log('🔵 isSubmitting:', isSubmitting, 'showResultsModal:', showResultsModal);
+    
+    if (isSubmitting || showResultsModal) {
+      console.log('⚠️ Submit blocked - isSubmitting:', isSubmitting, 'showResultsModal:', showResultsModal);
+      return;
+    }
 
+    console.log('✅ Proceeding with submission');
     setIsSubmitting(true);
     setTestStarted(false); // Stop anti-cheating monitoring
     stopCamera(); // Stop camera monitoring
@@ -760,16 +769,24 @@ export default function TestTaking() {
     const timeSpent = startTimeRef.current ? Math.round((new Date().getTime() - startTimeRef.current.getTime()) / 1000) : 0;
 
     // Skip proctoring summary for now to ensure submission works
-    console.log('Submitting test with answers:', answers);
-    console.log('Time spent:', timeSpent);
+    console.log('📤 Submitting test with answers:', answers);
+    console.log('⏱️ Time spent:', timeSpent);
+    console.log('⚠️ Warnings:', warningCount, 'Tab switches:', tabSwitchCount, 'Copy attempts:', copyAttempts);
+    console.log('📋 Number of answers:', Object.keys(answers).length);
 
-    submitTestMutation.mutate({
-      answers,
-      timeSpent,
-      warningCount,
-      tabSwitchCount,
-      copyAttempts
-    });
+    try {
+      submitTestMutation.mutate({
+        answers,
+        timeSpent,
+        warningCount,
+        tabSwitchCount,
+        copyAttempts
+      });
+      console.log('✅ Mutation called successfully');
+    } catch (error) {
+      console.error('❌ Error calling mutation:', error);
+      setIsSubmitting(false);
+    }
   };
 
   const formatTime = (seconds: number) => {

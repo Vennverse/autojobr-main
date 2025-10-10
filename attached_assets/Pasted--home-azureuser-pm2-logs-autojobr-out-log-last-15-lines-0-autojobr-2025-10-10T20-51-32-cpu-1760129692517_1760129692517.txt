@@ -1,0 +1,132 @@
+
+/home/azureuser/.pm2/logs/autojobr-out.log last 15 lines:
+0|autojobr | 2025-10-10T20:51:32:   cpuUsage: 0,
+0|autojobr | 2025-10-10T20:51:32:   memoryUsage: 0,
+0|autojobr | 2025-10-10T20:51:32:   activeApplications: []
+0|autojobr | 2025-10-10T20:51:32: }
+0|autojobr | 2025-10-10T20:51:32: 🛡️ Browser security: {
+0|autojobr | 2025-10-10T20:51:32:   hasAdBlock: false,
+0|autojobr | 2025-10-10T20:51:32:   hasExtensions: false,
+0|autojobr | 2025-10-10T20:51:32:   extensionCount: 0,
+0|autojobr | 2025-10-10T20:51:32:   devToolsOpen: false,
+0|autojobr | 2025-10-10T20:51:32:   isIncognito: false,
+0|autojobr | 2025-10-10T20:51:32:   hasVPN: false,
+0|autojobr | 2025-10-10T20:51:32:   ipAddress: '',
+0|autojobr | 2025-10-10T20:51:32:   geolocation: null
+0|autojobr | 2025-10-10T20:51:32: }
+0|autojobr | 2025-10-10T20:51:32: 8:51:32 PM [express] POST /api/proctoring/test-assignments/12/device-fingerprint 200 in 12ms :: {"su…
+
+0|autojobr  | 2025-10-10T20:52:17: 8:52:17 PM [express] GET /api/health 200 in 19ms :: {"status":"ok","timestamp":"2025-10-10T20:52:17.…
+0|autojobr  | 2025-10-10T20:52:20: 🔍 Deserializing user: user-1757962564698-pz56vtr0w
+0|autojobr  | 2025-10-10T20:52:20: ✅ User deserialized successfully: shubhamdubeyskd2001@gmail.com
+0|autojobr  | 2025-10-10T20:52:20: [AUTH DEBUG] POST /test-assignments/12/violation: {
+0|autojobr  | 2025-10-10T20:52:20:   hasSession: true,
+0|autojobr  | 2025-10-10T20:52:20:   sessionUser: true,
+0|autojobr  | 2025-10-10T20:52:20:   passportUser: true,
+0|autojobr  | 2025-10-10T20:52:20:   sessionId: 'ZNBw9B73PRDKe9BhnzLA4TnnjnhJRbDe',
+0|autojobr  | 2025-10-10T20:52:20:   cookies: 'present'
+0|autojobr  | 2025-10-10T20:52:20: }
+0|autojobr  | 2025-10-10T20:52:20: 🚨 Violation reported: tab_switch for assignment 12
+0|autojobr  | 2025-10-10T20:52:20: 🚨 Violation detected: tab_switch (medium) for user user-1757962564698-pz56vtr0w
+0|autojobr  | 2025-10-10T20:52:20: 8:52:20 PM [express] POST /api/proctoring/test-assignments/12/violation 200 in 9ms :: {"success":tru…
+0|autojobr  | 2025-10-10T20:53:07: 🔍 Deserializing user: user-1757962564698-pz56vtr0w
+0|autojobr  | 2025-10-10T20:53:07: ✅ User deserialized successfully: shubhamdubeyskd2001@gmail.com
+0|autojobr  | 2025-10-10T20:53:12: 🔍 Deserializing user: user-1757962564698-pz56vtr0w
+0|autojobr  | 2025-10-10T20:53:12: ✅ User deserialized successfully: shubhamdubeyskd2001@gmail.com
+0|autojobr  | 2025-10-10T20:53:15: 🔍 Deserializing user: user-1757962564698-pz56vtr0w
+0|autojobr  | 2025-10-10T20:53:15: ✅ User deserialized successfully: shubhamdubeyskd2001@gmail.com
+0|autojobr  | 2025-10-10T20:53:18: 🔍 Deserializing user: user-1757962564698-pz56vtr0w
+0|autojobr  | 2025-10-10T20:53:18: ✅ User deserialized successfully: shubhamdubeyskd2001@gmail.com
+0|autojobr  | 2025-10-10T20:53:18: [AUTH DEBUG] POST /api/interviews/link/link_1760126489158_dycbq26fa/start: {
+0|autojobr  | 2025-10-10T20:53:18:   hasSession: true,
+0|autojobr  | 2025-10-10T20:53:18:   sessionUser: true,
+0|autojobr  | 2025-10-10T20:53:18:   passportUser: true,
+0|autojobr  | 2025-10-10T20:53:18:   sessionId: 'ZNBw9B73PRDKe9BhnzLA4TnnjnhJRbDe',
+0|autojobr  | 2025-10-10T20:53:18:   cookies: 'present'
+0|autojobr  | 2025-10-10T20:53:18: }
+0|autojobr  | 2025-10-10T20:53:18: ⚠️ User shubhamdubeyskd2001@gmail.com already has in-progress test 12 - redirecting
+0|autojobr  | 2025-10-10T20:53:18: 8:53:18 PM [express] POST /api/interviews/link/link_1760126489158_dycbq26fa/start 200 in 16ms :: {"r…
+0|autojobr  | 2025-10-10T20:53:18: 🔍 Deserializing user: user-1757962564698-pz56vtr0w
+0|autojobr  | 2025-10-10T20:53:18: ✅ User deserialized successfully: shubhamdubeyskd2001@gmail.com
+0|autojobr  | 2025-10-10T20:53:20: 🔍 Deserializing user: user-1757962564698-pz56vtr0w
+0|autojobr  | 2025-10-10T20:53:20: ✅ User deserialized successfully: shubhamdubeyskd2001@gmail.com
+0|autojobr  | 2025-10-10T20:53:20: [AUTH DEBUG] POST /test-assignments/12/device-fingerprint: {
+0|autojobr  | 2025-10-10T20:53:20:   hasSession: true,
+0|autojobr  | 2025-10-10T20:53:20:   sessionUser: true,
+0|autojobr  | 2025-10-10T20:53:20:   passportUser: true,
+0|autojobr  | 2025-10-10T20:53:20:   sessionId: 'ZNBw9B73PRDKe9BhnzLA4TnnjnhJRbDe',
+0|autojobr  | 2025-10-10T20:53:20:   cookies: 'present'
+0|autojobr  | 2025-10-10T20:53:20: }
+0|autojobr  | 2025-10-10T20:53:20: 📱 Received device fingerprint for assignment: 12
+0|autojobr  | 2025-10-10T20:53:20: 🔍 Environment validation: {
+0|autojobr  | 2025-10-10T20:53:20:   isVirtualMachine: false,
+0|autojobr  | 2025-10-10T20:53:20:   hasRemoteDesktop: false,
+0|autojobr  | 2025-10-10T20:53:20:   hasScreenSharing: false,
+0|autojobr  | 2025-10-10T20:53:20:   hasMultipleMonitors: false,
+0|autojobr  | 2025-10-10T20:53:20:   suspiciousProcesses: [],
+0|autojobr  | 2025-10-10T20:53:20:   networkLatency: 0,
+0|autojobr  | 2025-10-10T20:53:20:   cpuUsage: 0,
+0|autojobr  | 2025-10-10T20:53:20:   memoryUsage: 0,
+0|autojobr  | 2025-10-10T20:53:20:   activeApplications: []
+0|autojobr  | 2025-10-10T20:53:20: }
+0|autojobr  | 2025-10-10T20:53:20: 🛡️ Browser security: {
+0|autojobr  | 2025-10-10T20:53:20:   hasAdBlock: false,
+0|autojobr  | 2025-10-10T20:53:20:   hasExtensions: false,
+0|autojobr  | 2025-10-10T20:53:20:   extensionCount: 0,
+0|autojobr  | 2025-10-10T20:53:20:   devToolsOpen: false,
+0|autojobr  | 2025-10-10T20:53:20:   isIncognito: false,
+0|autojobr  | 2025-10-10T20:53:20:   hasVPN: false,
+0|autojobr  | 2025-10-10T20:53:20:   ipAddress: '',
+0|autojobr  | 2025-10-10T20:53:20:   geolocation: null
+0|autojobr  | 2025-10-10T20:53:20: }
+0|autojobr  | 2025-10-10T20:53:20: 8:53:20 PM [express] POST /api/proctoring/test-assignments/12/device-fingerprint 200 in 9ms :: {"suc…
+0|autojobr  | 2025-10-10T20:53:45: 🔍 Deserializing user: user-1757962564698-pz56vtr0w
+0|autojobr  | 2025-10-10T20:53:45: ✅ User deserialized successfully: shubhamdubeyskd2001@gmail.com
+0|autojobr  | 2025-10-10T20:53:45: 🔍 Deserializing user: user-1757962564698-pz56vtr0w
+0|autojobr  | 2025-10-10T20:53:45: ✅ User deserialized successfully: shubhamdubeyskd2001@gmail.com
+0|autojobr  | 2025-10-10T20:53:46: 🔍 Deserializing user: user-1757962564698-pz56vtr0w
+0|autojobr  | 2025-10-10T20:53:46: ✅ User deserialized successfully: shubhamdubeyskd2001@gmail.com
+0|autojobr  | 2025-10-10T20:53:46: 🔍 Deserializing user: user-1757962564698-pz56vtr0w
+0|autojobr  | 2025-10-10T20:53:46: ✅ User deserialized successfully: shubhamdubeyskd2001@gmail.com
+0|autojobr  | 2025-10-10T20:53:46: 🔍 Deserializing user: user-1757962564698-pz56vtr0w
+0|autojobr  | 2025-10-10T20:53:46: ✅ User deserialized successfully: shubhamdubeyskd2001@gmail.com
+0|autojobr  | 2025-10-10T20:53:46: 🔍 [AUTH DEBUG] GET /api/user: hasSession=true, sessionUser=true, passportUser=true
+0|autojobr  | 2025-10-10T20:53:46: ✅ [AUTH DEBUG] Session user found: shubhamdubeyskd2001@gmail.com (job_seeker)
+0|autojobr  | 2025-10-10T20:53:46: 💾 [AUTH DEBUG] Session saved successfully
+0|autojobr  | 2025-10-10T20:53:46: 8:53:46 PM [express] GET /api/user 304 in 23ms :: {"id":"user-1757962564698-pz56vtr0w","email":"shub…
+0|autojobr  | 2025-10-10T20:53:46: 🔍 Deserializing user: user-1757962564698-pz56vtr0w
+0|autojobr  | 2025-10-10T20:53:46: ✅ User deserialized successfully: shubhamdubeyskd2001@gmail.com
+0|autojobr  | 2025-10-10T20:53:47: 🔍 Deserializing user: user-1757962564698-pz56vtr0w
+0|autojobr  | 2025-10-10T20:53:47: ✅ User deserialized successfully: shubhamdubeyskd2001@gmail.com
+0|autojobr  | 2025-10-10T20:53:48: 🔍 Deserializing user: user-1757962564698-pz56vtr0w
+0|autojobr  | 2025-10-10T20:53:48: ✅ User deserialized successfully: shubhamdubeyskd2001@gmail.com
+0|autojobr  | 2025-10-10T20:53:48: [AUTH DEBUG] POST /test-assignments/12/device-fingerprint: {
+0|autojobr  | 2025-10-10T20:53:48:   hasSession: true,
+0|autojobr  | 2025-10-10T20:53:48:   sessionUser: true,
+0|autojobr  | 2025-10-10T20:53:48:   passportUser: true,
+0|autojobr  | 2025-10-10T20:53:48:   sessionId: 'ZNBw9B73PRDKe9BhnzLA4TnnjnhJRbDe',
+0|autojobr  | 2025-10-10T20:53:48:   cookies: 'present'
+0|autojobr  | 2025-10-10T20:53:48: }
+0|autojobr  | 2025-10-10T20:53:48: 📱 Received device fingerprint for assignment: 12
+0|autojobr  | 2025-10-10T20:53:48: 🔍 Environment validation: {
+0|autojobr  | 2025-10-10T20:53:48:   isVirtualMachine: false,
+0|autojobr  | 2025-10-10T20:53:48:   hasRemoteDesktop: false,
+0|autojobr  | 2025-10-10T20:53:48:   hasScreenSharing: false,
+0|autojobr  | 2025-10-10T20:53:48:   hasMultipleMonitors: false,
+0|autojobr  | 2025-10-10T20:53:48:   suspiciousProcesses: [],
+0|autojobr  | 2025-10-10T20:53:48:   networkLatency: 0,
+0|autojobr  | 2025-10-10T20:53:48:   cpuUsage: 0,
+0|autojobr  | 2025-10-10T20:53:48:   memoryUsage: 0,
+0|autojobr  | 2025-10-10T20:53:48:   activeApplications: []
+0|autojobr  | 2025-10-10T20:53:48: }
+0|autojobr  | 2025-10-10T20:53:48: 🛡️ Browser security: {
+0|autojobr  | 2025-10-10T20:53:48:   hasAdBlock: false,
+0|autojobr  | 2025-10-10T20:53:48:   hasExtensions: false,
+0|autojobr  | 2025-10-10T20:53:48:   extensionCount: 0,
+0|autojobr  | 2025-10-10T20:53:48:   devToolsOpen: false,
+0|autojobr  | 2025-10-10T20:53:48:   isIncognito: false,
+0|autojobr  | 2025-10-10T20:53:48:   hasVPN: false,
+0|autojobr  | 2025-10-10T20:53:48:   ipAddress: '',
+0|autojobr  | 2025-10-10T20:53:48:   geolocation: null
+0|autojobr  | 2025-10-10T20:53:48: }
+0|autojobr  | 2025-10-10T20:53:48: 8:53:48 PM [express] POST /api/proctoring/test-assignments/12/device-fingerprint 200 in 10ms :: {"su…

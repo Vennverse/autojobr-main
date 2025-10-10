@@ -1022,16 +1022,20 @@ Return only the improved job description text, no additional formatting or expla
       const userId = req.user.id;
       const { answers, timeSpent, warningCount = 0, tabSwitchCount = 0, copyAttempts = 0 } = req.body;
 
-      console.log(`[TEST SUBMIT] Assignment ${assignmentId} - Warnings: ${warningCount}, TabSwitches: ${tabSwitchCount}, CopyAttempts: ${copyAttempts}`);
+      console.log(`🔵 [TEST SUBMIT START] Assignment ${assignmentId} - User: ${userId}`);
+      console.log(`📊 [TEST SUBMIT] Submission data - Answers: ${Object.keys(answers || {}).length}, Time: ${timeSpent}s, Warnings: ${warningCount}, TabSwitches: ${tabSwitchCount}, CopyAttempts: ${copyAttempts}`);
 
       const assignment = await storage.getTestAssignment(assignmentId);
+      console.log(`📋 [TEST SUBMIT] Assignment fetched - Status: ${assignment?.status}, JobSeeker: ${assignment?.jobSeekerId}`);
 
       if (!assignment) {
+        console.log(`❌ [TEST SUBMIT] Assignment ${assignmentId} not found`);
         return res.status(404).json({ message: 'Test assignment not found' });
       }
 
       // Verify the assignment belongs to this user
       if (assignment.jobSeekerId !== userId) {
+        console.log(`❌ [TEST SUBMIT] Access denied - Assignment belongs to ${assignment.jobSeekerId}, user is ${userId}`);
         return res.status(403).json({ message: 'Access denied' });
       }
 
@@ -1040,6 +1044,7 @@ Return only the improved job description text, no additional formatting or expla
 
       if (assignment.testTemplateId) {
         const template = await storage.getTestTemplate(assignment.testTemplateId);
+        console.log(`📝 [TEST SUBMIT] Template fetched - ID: ${template?.id}, UseQuestionBank: ${template?.useQuestionBank}`);
 
         if (template?.useQuestionBank) {
           questions = await testService.generateQuestionsFromBank(
@@ -1050,14 +1055,23 @@ Return only the improved job description text, no additional formatting or expla
             template.jobProfile || 'software_engineer',
             template.includeExtremeQuestions || false
           );
+          console.log(`🎲 [TEST SUBMIT] Generated ${questions.length} questions from bank`);
         } else {
           questions = template?.questions || assignment.testTemplate?.questions || [];
+          console.log(`📚 [TEST SUBMIT] Using template questions - Count: ${questions.length}`);
         }
       } else {
         questions = assignment.testTemplate?.questions || [];
+        console.log(`📚 [TEST SUBMIT] Using embedded template questions - Count: ${questions.length}`);
       }
 
+      if (questions.length === 0) {
+        console.log(`⚠️ [TEST SUBMIT] WARNING: No questions found for scoring!`);
+      }
+
+      console.log(`🧮 [TEST SUBMIT] Calculating score with ${questions.length} questions and ${Object.keys(answers || {}).length} answers`);
       const scoreResult = await testService.calculateScore(questions, answers);
+      console.log(`✅ [TEST SUBMIT] Score calculated - ${scoreResult.percentageScore}%`);
 
       // Determine termination reason
       let terminationReason = 'Completed';
@@ -1067,6 +1081,7 @@ Return only the improved job description text, no additional formatting or expla
       }
 
       // Update assignment with results and violation tracking
+      console.log(`💾 [TEST SUBMIT] Updating assignment ${assignmentId} in database...`);
       const updatedAssignment = await storage.updateTestAssignment(assignmentId, {
         status: warningCount >= 5 ? 'terminated' : 'completed',
         completionTime: new Date(),
@@ -1080,7 +1095,7 @@ Return only the improved job description text, no additional formatting or expla
         retakeAllowed: false // CRITICAL: Block retake until payment is made
       });
 
-      console.log(`✅ Test ${assignmentId} submitted - Status: ${updatedAssignment.status}, Score: ${scoreResult.percentageScore}%, Retake: ${updatedAssignment.retakeAllowed}`);
+      console.log(`✅ [TEST SUBMIT SUCCESS] Test ${assignmentId} submitted - Status: ${updatedAssignment.status}, Score: ${scoreResult.percentageScore}%, Retake: ${updatedAssignment.retakeAllowed}`);
 
       res.json({
         success: true,
@@ -1090,7 +1105,8 @@ Return only the improved job description text, no additional formatting or expla
         warningCount: warningCount
       });
     } catch (error) {
-      console.error('Error submitting test:', error);
+      console.error('❌ [TEST SUBMIT ERROR] Error submitting test:', error);
+      console.error('❌ [TEST SUBMIT ERROR] Stack trace:', error instanceof Error ? error.stack : 'No stack');
       handleError(res, error, "Failed to submit test");
     }
   });
