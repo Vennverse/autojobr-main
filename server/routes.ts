@@ -2839,21 +2839,21 @@ Return only the cover letter text, no additional formatting or explanations.`;
       
       console.log(`[RESUME_FETCH] Fetching resumes for user: ${userId}`);
       
-      // Fetch resumes from database
-      const resumes = await db.select()
-        .from(userResumes)
-        .where(eq(userResumes.userId, userId))
-        .orderBy(desc(userResumes.createdAt));
+      // Fetch resumes from database - using resumes table (not userResumes)
+      const resumeList = await db.select()
+        .from(resumes)
+        .where(eq(resumes.userId, userId))
+        .orderBy(desc(resumes.createdAt));
 
-      console.log(`[RESUME_FETCH] Database returned ${resumes.length} resumes`);
+      console.log(`[RESUME_FETCH] Database returned ${resumeList.length} resumes`);
 
-      if (resumes.length === 0) {
+      if (resumeList.length === 0) {
         console.log(`[RESUME_FETCH] No resumes found in database for user ${userId}`);
         return res.json([]);
       }
 
       // Format response with all necessary fields
-      const formattedResumes = resumes.map(resume => {
+      const formattedResumes = resumeList.map(resume => {
         // Parse analysisData if it's a string
         let analysis = resume.analysisData;
         if (typeof analysis === 'string') {
@@ -2872,12 +2872,9 @@ Return only the cover letter text, no additional formatting or explanations.`;
           fileSize: resume.fileSize,
           mimeType: resume.mimeType,
           isActive: resume.isActive,
-          isDefault: resume.isDefault,
           atsScore: resume.atsScore || 0,
           analysis: analysis,
           uploadedAt: resume.createdAt,
-          timesUsed: resume.timesUsed || 0,
-          lastUsed: resume.lastUsed,
           resumeText: resume.resumeText ? resume.resumeText.substring(0, 500) + '...' : ''
         };
       });
@@ -2897,16 +2894,16 @@ Return only the cover letter text, no additional formatting or explanations.`;
       const resumeId = parseInt(req.params.id);
 
       // Deactivate all other resumes
-      await db.update(userResumes)
+      await db.update(resumes)
         .set({ isActive: false })
-        .where(eq(userResumes.userId, userId));
+        .where(eq(resumes.userId, userId));
 
       // Activate the selected resume
-      await db.update(userResumes)
+      await db.update(resumes)
         .set({ isActive: true })
         .where(and(
-          eq(userResumes.id, resumeId),
-          eq(userResumes.userId, userId)
+          eq(resumes.id, resumeId),
+          eq(resumes.userId, userId)
         ));
 
       res.json({ success: true });
@@ -2923,10 +2920,10 @@ Return only the cover letter text, no additional formatting or explanations.`;
       const resumeId = parseInt(req.params.id);
 
       const [resume] = await db.select()
-        .from(userResumes)
+        .from(resumes)
         .where(and(
-          eq(userResumes.id, resumeId),
-          eq(userResumes.userId, userId)
+          eq(resumes.id, resumeId),
+          eq(resumes.userId, userId)
         ))
         .limit(1);
 
@@ -2937,8 +2934,8 @@ Return only the cover letter text, no additional formatting or explanations.`;
       // Get resume file from storage
       let fileBuffer: Buffer | null = null;
 
-      if (resume.storedFileId) {
-        fileBuffer = await fileStorage.retrieveResume(resume.storedFileId, userId);
+      if (resume.filePath) {
+        fileBuffer = await fileStorage.retrieveResume(resume.filePath, userId);
       }
 
       if (!fileBuffer) {
