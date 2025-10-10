@@ -2632,7 +2632,7 @@ Return only the improved job description text, no additional formatting or expla
           // Check if retake was paid for
           if (!existingTestAssignment.retakeAllowed) {
             console.log(`🚫 BLOCKED: User ${user.email} trying to retake test ${existingTestAssignment.id} without payment`);
-            redirectUrl = `/test-retake-payment/${existingTestAssignment.id}`;
+            redirectUrl = `/test/${existingTestAssignment.id}/retake-payment`;
             break;
           }
 
