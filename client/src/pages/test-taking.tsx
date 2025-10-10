@@ -137,7 +137,7 @@ export default function TestTaking() {
 
     // Send to backend for analysis
     try {
-      await apiRequest(`/api/test-assignments/${assignmentId}/device-fingerprint`, 'POST', fingerprint);
+      await apiRequest(`/api/proctoring/test-assignments/${assignmentId}/device-fingerprint`, 'POST', fingerprint);
     } catch (error) {
       console.error('Failed to send device fingerprint:', error);
     }
@@ -248,7 +248,7 @@ export default function TestTaking() {
 
     // Send to backend for processing
     try {
-      await apiRequest(`/api/test-assignments/${assignmentId}/violation`, 'POST', violation);
+      await apiRequest(`/api/proctoring/test-assignments/${assignmentId}/violation`, 'POST', violation);
     } catch (error) {
       console.error('Failed to report violation:', error);
     }
@@ -523,7 +523,7 @@ export default function TestTaking() {
 
         console.log(`🚨 Dev tools detected! Warning ${newWarningCount}/5`);
 
-        fetch(`/api/test-assignments/${assignmentId}/violation`, {
+        fetch(`/api/proctoring/test-assignments/${assignmentId}/violation`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -563,7 +563,7 @@ export default function TestTaking() {
 
         console.log(`🚨 Tab switch detected! Warning ${newWarningCount}/5`);
 
-        fetch(`/api/test-assignments/${assignmentId}/violation`, {
+        fetch(`/api/proctoring/test-assignments/${assignmentId}/violation`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',

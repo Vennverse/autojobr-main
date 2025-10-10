@@ -4,8 +4,12 @@ import { proctorService } from '../proctorService';
 import { behavioralAnalyzer } from '../behavioralAnalyzer';
 import { cameraProctorService } from '../cameraProctorService';
 import { aiDetectionService } from '../aiDetectionService';
+import { storage } from '../storage';
 
 const router = Router();
+
+// Track violations per assignment in memory (in production, use database)
+const violationCounts = new Map<string, number>();
 
 // Device fingerprinting endpoint
 router.post('/test-assignments/:id/device-fingerprint', requireAuth, async (req, res) => {
@@ -62,7 +66,39 @@ router.post('/test-assignments/:id/violation', requireAuth, async (req, res) => 
       sessionId: assignmentId
     });
     
-    res.json({ success: true });
+    // Track violation count
+    const currentCount = violationCounts.get(assignmentId) || 0;
+    const newCount = currentCount + 1;
+    violationCounts.set(assignmentId, newCount);
+    
+    // CRITICAL: Automatically terminate test if violations exceed limit (5)
+    const VIOLATION_LIMIT = 5;
+    if (newCount >= VIOLATION_LIMIT) {
+      console.log(`🚫 TERMINATING test ${assignmentId} - violations exceeded limit (${newCount}/${VIOLATION_LIMIT})`);
+      
+      // Fetch current assignment to get its data
+      const assignment = await storage.getTestAssignment(parseInt(assignmentId));
+      
+      if (assignment && assignment.status !== 'terminated' && assignment.status !== 'completed') {
+        // Terminate the test
+        await storage.updateTestAssignment(parseInt(assignmentId), {
+          status: 'terminated',
+          terminationReason: `Exceeded violation limit (${newCount} violations)`,
+          completedAt: new Date()
+        });
+        
+        console.log(`✅ Test ${assignmentId} terminated due to excessive violations`);
+        
+        return res.json({ 
+          success: true, 
+          terminated: true,
+          reason: 'Exceeded violation limit',
+          violationCount: newCount 
+        });
+      }
+    }
+    
+    res.json({ success: true, violationCount: newCount });
   } catch (error) {
     console.error('Error recording violation:', error);
     res.status(500).json({ error: 'Failed to record violation' });
