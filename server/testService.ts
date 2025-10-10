@@ -571,15 +571,25 @@ export class TestService {
           paymentStatus: 'completed',
         });
 
-        // Enable retake
+        // CRITICAL: Enable retake and reset status to in_progress so user can take it again
         await storage.updateTestAssignment(assignmentId, {
           retakeAllowed: true,
           retakePaymentId: paymentIntentId,
+          status: 'in_progress', // Reset to in_progress after payment
+          score: null, // Clear previous score
+          answers: [], // Clear previous answers
+          completionTime: null, // Clear completion time
+          warningCount: 0, // Reset warnings
+          tabSwitchCount: 0,
+          copyAttempts: 0,
+          terminationReason: null
         });
 
+        console.log(`✅ Retake payment verified for assignment ${assignmentId} - Test reset for new attempt`);
         return true;
       }
 
+      console.log(`❌ Retake payment verification failed for assignment ${assignmentId}`);
       return false;
     } catch (error) {
       console.error('Error processing retake payment:', error);

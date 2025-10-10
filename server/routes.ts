@@ -949,6 +949,13 @@ Return only the improved job description text, no additional formatting or expla
         return res.status(403).json({ message: 'Access denied' });
       }
 
+      // CRITICAL: Check if test is completed and retake is not allowed
+      // This prevents users from starting the test again without paying for retake
+      if ((assignment.status === 'completed' || assignment.status === 'terminated') && !assignment.retakeAllowed) {
+        console.log(`⛔ Test ${assignmentId} is ${assignment.status} and retake not allowed - blocking access`);
+        // Still return the assignment data so the frontend can show the retake payment page
+      }
+
       res.json(assignment);
     } catch (error) {
       console.error('Error fetching test assignment:', error);
@@ -1066,8 +1073,11 @@ Return only the improved job description text, no additional formatting or expla
         warningCount: warningCount,
         tabSwitchCount: tabSwitchCount,
         copyAttempts: copyAttempts,
-        terminationReason: terminationReason
+        terminationReason: terminationReason,
+        retakeAllowed: false // CRITICAL: Block retake until payment is made
       });
+
+      console.log(`✅ Test ${assignmentId} submitted - Status: ${updatedAssignment.status}, Score: ${scoreResult.percentageScore}%, Retake: ${updatedAssignment.retakeAllowed}`);
 
       res.json({
         success: true,

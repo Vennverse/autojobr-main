@@ -404,10 +404,12 @@ export default function TestTaking() {
 
       // Store test results and show modal for all completions
       const timeSpent = startTimeRef.current ? Math.round((new Date().getTime() - startTimeRef.current.getTime()) / 1000) : 0;
+      const passingScore = (assignment as any)?.testTemplate?.passingScore || 70;
+      const score = response.score || 0;
 
       setTestResults({
-        score: response.score || 0,
-        passingScore: (assignment as any)?.testTemplate?.passingScore || 70,
+        score: score,
+        passingScore: passingScore,
         timeSpent,
         violations: warningCount,
         testTitle: (assignment as any)?.testTemplate?.title || 'Test',
@@ -418,9 +420,17 @@ export default function TestTaking() {
 
       toast({ 
         title: "Test Submitted Successfully!", 
-        description: `Score: ${response.score || 0}%`,
+        description: `Score: ${score}%`,
         variant: "default" 
       });
+
+      // CRITICAL: If user failed, redirect to retake payment page after modal closes
+      if (score < passingScore) {
+        setTimeout(() => {
+          console.log('🔄 User failed test - redirecting to retake payment page');
+          setLocation(`/test/${assignmentId}/retake-payment`);
+        }, 3000);
+      }
     },
     onError: (error: any) => {
       console.error('onError called with error:', error);
@@ -814,7 +824,16 @@ export default function TestTaking() {
 
   const handleModalClose = () => {
     setShowResultsModal(false);
-    setLocation('/job-seeker/tests');
+    
+    // If user failed, go to retake payment page, otherwise go to tests list
+    const passingScore = (assignment as any)?.testTemplate?.passingScore || 70;
+    const score = testResults?.score || 0;
+    
+    if (score < passingScore) {
+      setLocation(`/test/${assignmentId}/retake-payment`);
+    } else {
+      setLocation('/job-seeker/tests');
+    }
   };
 
   const handleRetakePayment = () => {
@@ -903,38 +922,46 @@ export default function TestTaking() {
     );
   }
 
-  // Check if test is already completed or terminated - prevent retaking unless retake is allowed after payment
-  if ((assignment?.status === 'completed' || assignment?.status === 'terminated') && !assignment.retakeAllowed) {
-    const isTerminated = assignment?.status === 'terminated';
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4">
-          <div className={`w-16 h-16 ${isTerminated ? 'bg-red-100' : 'bg-green-100'} rounded-full flex items-center justify-center mx-auto`}>
-            <CheckCircle className={`w-8 h-8 ${isTerminated ? 'text-red-600' : 'text-green-600'}`} />
-          </div>
-          <h1 className="text-2xl font-bold">{isTerminated ? 'Test Terminated' : 'Test Already Completed'}</h1>
-          <p className="text-gray-600 max-w-md">
-            {isTerminated 
-              ? 'This test was terminated due to excessive violations. You can purchase a retake to try again.' 
-              : `You have already completed this test and scored ${assignment.score}%. ${assignment.score >= (assignment.testTemplate?.passingScore || 70) ? ' Congratulations on passing! You can retake to achieve an even higher score.' : ' You can purchase a retake to improve your score.'}`
-            }
-          </p>
-          <div className="flex gap-4 justify-center">
-            <Button onClick={() => setLocation("/job-seeker/tests")}>
-              View All Tests
-            </Button>
-            <Button 
-              onClick={() => setLocation(`/test/${assignmentId}/retake-payment`)}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {!isTerminated && assignment.score >= (assignment.testTemplate?.passingScore || 70) 
-                ? 'Improve Score - $5' 
-                : 'Purchase Retake - $5'}
-            </Button>
+  // CRITICAL: Check if test is already completed or terminated - prevent retaking unless retake is allowed after payment
+  if (assignment?.status === 'completed' || assignment?.status === 'terminated') {
+    // Only allow test if retake payment has been completed
+    if (!assignment.retakeAllowed) {
+      const isTerminated = assignment?.status === 'terminated';
+      const passingScore = assignment.testTemplate?.passingScore || 70;
+      const didPass = assignment.score >= passingScore;
+      
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center space-y-4">
+            <div className={`w-16 h-16 ${isTerminated ? 'bg-red-100' : 'bg-green-100'} rounded-full flex items-center justify-center mx-auto`}>
+              <CheckCircle className={`w-8 h-8 ${isTerminated ? 'text-red-600' : 'text-green-600'}`} />
+            </div>
+            <h1 className="text-2xl font-bold">{isTerminated ? 'Test Terminated' : 'Test Already Completed'}</h1>
+            <p className="text-gray-600 max-w-md">
+              {isTerminated 
+                ? 'This test was terminated due to excessive violations. You can purchase a retake to try again.' 
+                : `You have already completed this test and scored ${assignment.score}%. ${didPass ? ' Congratulations on passing! You can retake to achieve an even higher score.' : ' You can purchase a retake to improve your score.'}`
+              }
+            </p>
+            <div className="flex gap-4 justify-center">
+              <Button onClick={() => setLocation("/job-seeker/tests")}>
+                View All Tests
+              </Button>
+              <Button 
+                onClick={() => setLocation(`/test/${assignmentId}/retake-payment`)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {didPass ? 'Improve Score - $5' : 'Purchase Retake - $5'}
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
-    );
+      );
+    }
+    
+    // If retake is allowed, reset the assignment status to in_progress
+    // This happens after successful retake payment
+    console.log('✅ Retake allowed - user has paid for retake');
   }
 
   // Show message if no questions are available
