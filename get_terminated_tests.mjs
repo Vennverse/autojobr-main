@@ -1,14 +1,13 @@
 
 import { db } from './server/db.js';
 import { testAssignments, users } from './shared/schema.js';
-import { eq, or, like } from 'drizzle-orm';
+import { eq, or, like, isNotNull } from 'drizzle-orm';
 
 async function getTerminatedTests() {
   try {
     console.log('🔍 Fetching all tests terminated due to violations...\n');
 
     // Query for tests that were terminated or have violation-related termination reasons
-    // Join with users table to get username/email
     const terminatedTests = await db
       .select({
         id: testAssignments.id,
@@ -30,13 +29,13 @@ async function getTerminatedTests() {
       .where(
         or(
           eq(testAssignments.status, 'terminated'),
-          like(testAssignments.terminationReason, '%violation%'),
-          like(testAssignments.terminationReason, '%exceeded%')
+          isNotNull(testAssignments.terminationReason)
         )
       );
 
     if (terminatedTests.length === 0) {
       console.log('✅ No tests found that were terminated due to violations.');
+      process.exit(0);
       return;
     }
 
@@ -94,6 +93,7 @@ async function getTerminatedTests() {
     process.exit(0);
   } catch (error) {
     console.error('❌ Error fetching terminated tests:', error);
+    console.error('Error details:', error.message);
     process.exit(1);
   }
 }
