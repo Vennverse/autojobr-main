@@ -116,8 +116,9 @@ export class PaymentVerificationService {
             .set({ 
               retakeAllowed: true,
               status: 'assigned', // Reset to assigned so user can start test again
-              score: null, // Clear previous score
+              score: null, // Clear previous score (will show as "Not taken" in frontend)
               answers: [], // Clear previous answers
+              questions: [], // CRITICAL FIX: Clear previous questions to generate new ones
               completionTime: null,
               warningCount: 0,
               tabSwitchCount: 0,
@@ -286,8 +287,9 @@ export class PaymentVerificationService {
           retakeAllowed: true,
           status: 'assigned', // Reset to assigned so user can retake
           retakePaymentId: orderId,
-          score: null, // Clear previous score
+          score: null, // Clear previous score (will show as "Not taken" in frontend)
           answers: [], // Clear previous answers
+          questions: [], // CRITICAL FIX: Clear previous questions to generate new ones
           completionTime: null,
           warningCount: 0,
           tabSwitchCount: 0,

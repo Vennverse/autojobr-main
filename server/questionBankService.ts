@@ -99,11 +99,13 @@ export class QuestionBankService {
   }
   
   // Get questions by category with filtering - OPTIMIZED and MCQ-only with extreme difficulty preference
+  // CRITICAL FIX: Added excludeQuestionIds to prevent duplicates across multiple calls
   async getQuestionsByCategory(
     category: string,
     tags: string[] = [],
     difficulty: string[] = ['easy', 'medium', 'hard', 'extreme'],
-    limit: number = 10
+    limit: number = 10,
+    excludeQuestionIds: number[] = [] // NEW: Exclude already used question IDs
   ): Promise<any[]> {
     try {
       let whereConditions: any[] = [
@@ -112,6 +114,11 @@ export class QuestionBankService {
         inArray(questionBank.difficulty, difficulty)
       ];
       
+      // CRITICAL FIX: Exclude already used question IDs to prevent duplicates
+      if (excludeQuestionIds.length > 0) {
+        whereConditions.push(sql`${questionBank.id} NOT IN (${sql.join(excludeQuestionIds.map(id => sql`${id}`), sql`, `)})`);
+      }
+      
       let questions: any[] = [];
       
       // ONLY get MCQ questions (prioritize extreme difficulty)
@@ -119,13 +126,16 @@ export class QuestionBankService {
         inArray(questionBank.type, ['multiple_choice', 'mcq'])
       ];
       
+      // Fetch more questions than needed to account for filtering and get exactly what we need
+      const fetchLimit = Math.min(limit * 3, 500); // Get 3x more for better randomization, max 500
+      
       // First try extreme difficulty MCQs
       if (difficulty.includes('extreme')) {
         const extremeMcqQuestions = await db.select()
           .from(questionBank)
           .where(and(...mcqConditions, eq(questionBank.difficulty, 'extreme')))
           .orderBy(sql`RANDOM()`)
-          .limit(limit);
+          .limit(fetchLimit);
         
         questions.push(...extremeMcqQuestions);
       }
@@ -136,7 +146,7 @@ export class QuestionBankService {
           .from(questionBank)
           .where(and(...mcqConditions, eq(questionBank.difficulty, 'hard')))
           .orderBy(sql`RANDOM()`)
-          .limit(limit - questions.length);
+          .limit(fetchLimit);
         
         const existingIds = new Set(questions.map(q => q.id));
         const newQuestions = hardMcqQuestions.filter(q => !existingIds.has(q.id));
@@ -145,19 +155,21 @@ export class QuestionBankService {
       
       // If still need more, get any MCQ questions
       if (questions.length < limit) {
-        const remaining = limit - questions.length;
         const anyMcqQuestions = await db.select()
           .from(questionBank)
           .where(and(...mcqConditions))
           .orderBy(sql`RANDOM()`)
-          .limit(remaining);
+          .limit(fetchLimit);
         
         const existingIds = new Set(questions.map(q => q.id));
         const newQuestions = anyMcqQuestions.filter(q => !existingIds.has(q.id));
         questions.push(...newQuestions);
       }
       
-      console.log(`[DEBUG] Generated ${questions.length} MCQ questions for category ${category}, extreme: ${questions.filter(q => q.difficulty === 'extreme').length}, hard: ${questions.filter(q => q.difficulty === 'hard').length}`);
+      // CRITICAL FIX: Take exactly the number requested to avoid over-fetching
+      questions = questions.slice(0, limit);
+      
+      console.log(`[DEBUG] Generated ${questions.length} UNIQUE MCQ questions for category ${category} (excluded ${excludeQuestionIds.length} already used), extreme: ${questions.filter(q => q.difficulty === 'extreme').length}, hard: ${questions.filter(q => q.difficulty === 'hard').length}`);
       
       // STANDARDIZE: All questions are worth 1 point each for consistent scoring
       return questions.map(q => ({

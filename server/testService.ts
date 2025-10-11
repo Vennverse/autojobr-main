@@ -515,23 +515,85 @@ export class TestService {
   }
 
   // Calculate test score - Simplified for 1 point per question
+  // CRITICAL FIX: Handle type mismatch and normalization for answer comparison
   calculateScore(questions: TestQuestion[], answers: Record<string, any>): number {
     let correctAnswers = 0;
     const totalQuestions = questions.length;
+    const incorrectAnswers: string[] = [];
 
     for (const question of questions) {
       const userAnswer = answers[question.id];
 
       if (question.type === 'multiple_choice' || question.type === 'true_false') {
-        if (userAnswer === question.correctAnswer) {
+        // CRITICAL FIX: Normalize both values for comparison
+        // Handle cases where correctAnswer might be string "1" and userAnswer is number 1
+        const normalizedUserAnswer = this.normalizeAnswer(userAnswer);
+        const normalizedCorrectAnswer = this.normalizeAnswer(question.correctAnswer);
+        
+        const isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
+        
+        if (isCorrect) {
           correctAnswers++;
+        } else {
+          // Log incorrect answers for debugging
+          incorrectAnswers.push(
+            `Q${question.id}: Expected=${JSON.stringify(question.correctAnswer)} (normalized: ${normalizedCorrectAnswer}), ` +
+            `Got=${JSON.stringify(userAnswer)} (normalized: ${normalizedUserAnswer})`
+          );
         }
       }
       // Note: Only MCQ questions are used, so no need to handle other types
     }
 
+    // Log scoring details for debugging
+    const percentage = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+    console.log(`📊 [SCORE CALCULATION] Correct: ${correctAnswers}/${totalQuestions} = ${percentage}%`);
+    
+    if (incorrectAnswers.length > 0 && incorrectAnswers.length <= 10) {
+      console.log(`❌ [INCORRECT ANSWERS] First ${Math.min(incorrectAnswers.length, 10)} incorrect:`, incorrectAnswers.slice(0, 10));
+    } else if (incorrectAnswers.length > 10) {
+      console.log(`❌ [INCORRECT ANSWERS] ${incorrectAnswers.length} total incorrect (showing first 10):`, incorrectAnswers.slice(0, 10));
+    }
+
     // Return percentage: (correct / total) * 100
-    return totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+    return percentage;
+  }
+
+  // CRITICAL FIX: Normalize answers for accurate comparison
+  // Handles type conversion and case-insensitive matching ONLY
+  // NOTE: Does NOT use synonyms - "array" and "list" are treated as different answers
+  private normalizeAnswer(answer: any): any {
+    if (answer === null || answer === undefined) {
+      return null;
+    }
+    
+    // If it's a number or can be parsed as a number, return the number
+    if (typeof answer === 'number') {
+      return answer;
+    }
+    
+    if (typeof answer === 'string') {
+      const trimmed = answer.trim();
+      
+      // Try to parse as number first (for "1", "2" etc)
+      // This handles cases where correctAnswer is stored as "1" but user submits 1
+      const numValue = Number(trimmed);
+      if (!isNaN(numValue) && trimmed !== '') {
+        return numValue;
+      }
+      
+      // ONLY normalize case and whitespace - DO NOT use synonyms
+      // "array" and "list" must remain different answers
+      return trimmed.toLowerCase();
+    }
+    
+    // For boolean values
+    if (typeof answer === 'boolean') {
+      return answer;
+    }
+    
+    // For objects/arrays, return as-is (shouldn't happen for MCQ)
+    return answer;
   }
 
   // Process retake payment
@@ -893,6 +955,7 @@ export class TestService {
   }
 
   // Generate questions from question bank based on template configuration
+  // CRITICAL FIX: Track used question IDs to prevent duplicates across categories
   async generateQuestionsFromBank(
     templateId: number,
     aptitudeCount: number,
@@ -903,6 +966,7 @@ export class TestService {
   ): Promise<TestQuestion[]> {
     const { questionBankService } = await import('./questionBankService.js');
     const questions: TestQuestion[] = [];
+    const usedQuestionIds: number[] = []; // Track all used question DB IDs
     let questionId = 1;
 
     console.log(`🎯 Generating questions from DATABASE: Aptitude=${aptitudeCount}, English=${englishCount}, Domain=${domainCount}, Profile=${jobProfile}, Extreme=${includeExtreme}`);
@@ -913,10 +977,12 @@ export class TestService {
         'general_aptitude',
         [],
         includeExtreme ? ['easy', 'medium', 'hard', 'extreme'] : ['easy', 'medium', 'hard'],
-        aptitudeCount
+        aptitudeCount,
+        usedQuestionIds // Pass empty array for first call
       );
       console.log(`✅ Fetched ${aptitudeQuestions.length} aptitude questions from database`);
       aptitudeQuestions.forEach(q => {
+        usedQuestionIds.push(q.id); // Track this question ID
         questions.push({ 
           id: `q${questionId++}`, 
           type: 'multiple_choice' as const,
@@ -929,14 +995,17 @@ export class TestService {
       });
 
       // Get English questions from DATABASE (no duplicates!)
+      // Pass usedQuestionIds to exclude aptitude questions
       const englishQuestions = await questionBankService.getQuestionsByCategory(
         'english',
         [],
         includeExtreme ? ['easy', 'medium', 'hard', 'extreme'] : ['easy', 'medium', 'hard'],
-        englishCount
+        englishCount,
+        usedQuestionIds // CRITICAL: Exclude aptitude questions
       );
       console.log(`✅ Fetched ${englishQuestions.length} English questions from database`);
       englishQuestions.forEach(q => {
+        usedQuestionIds.push(q.id); // Track this question ID
         questions.push({ 
           id: `q${questionId++}`, 
           type: 'multiple_choice' as const,
@@ -949,15 +1018,18 @@ export class TestService {
       });
 
       // Get domain-specific questions from DATABASE based on job profile
+      // Pass usedQuestionIds to exclude aptitude and english questions
       const domainTags = this.getDomainTagsForProfile(jobProfile || 'software_engineer');
       const domainQuestions = await questionBankService.getQuestionsByCategory(
         'domain_specific',
         domainTags,
         includeExtreme ? ['medium', 'hard', 'extreme'] : ['medium', 'hard'],
-        domainCount
+        domainCount,
+        usedQuestionIds // CRITICAL: Exclude aptitude and english questions
       );
       console.log(`✅ Fetched ${domainQuestions.length} domain questions from database for ${jobProfile}`);
       domainQuestions.forEach(q => {
+        usedQuestionIds.push(q.id); // Track this question ID
         questions.push({ 
           id: `q${questionId++}`, 
           type: 'multiple_choice' as const,
@@ -973,6 +1045,22 @@ export class TestService {
       for (let i = questions.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [questions[i], questions[j]] = [questions[j], questions[i]];
+      }
+
+      // CRITICAL VALIDATION: Check for duplicates in final question set
+      const questionTexts = new Set();
+      const duplicates: string[] = [];
+      questions.forEach((q, idx) => {
+        if (questionTexts.has(q.question)) {
+          duplicates.push(`Question ${idx + 1}: "${q.question.substring(0, 50)}..."`);
+        }
+        questionTexts.add(q.question);
+      });
+
+      if (duplicates.length > 0) {
+        console.error(`❌ DUPLICATE QUESTIONS DETECTED (${duplicates.length}):`, duplicates);
+      } else {
+        console.log(`✅ VERIFIED: All ${questions.length} questions are UNIQUE (no duplicates)`);
       }
 
       console.log(`✅ Generated ${questions.length} UNIQUE MCQ questions from DATABASE for template ${templateId}`);
