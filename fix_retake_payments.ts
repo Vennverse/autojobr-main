@@ -1,6 +1,6 @@
 
-import { db } from './server/db.js';
-import { oneTimePayments, testAssignments } from './shared/schema.js';
+import { db } from './server/db';
+import { oneTimePayments, testAssignments } from './shared/schema';
 import { eq, and, sql } from 'drizzle-orm';
 
 async function fixRetakePayments() {
