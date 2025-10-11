@@ -1,0 +1,49 @@
+Session saved successfully for user: user-1758023269899-edltdmjgu
+🐌 SLOW REQUEST: POST /api/auth/email/login 200 in 680ms :: {"message":"Login successful","user"…
+9:33:52 AM [express] POST /api/auth/email/login 200 in 680ms :: {"message":"Login successful","user"…
+✅ Connected to Replit PostgreSQL database
+✅ Connected to Replit PostgreSQL database
+✅ Connected to Replit PostgreSQL database
+[AUTH DEBUG] GET /api/user: {
+  hasSession: true,
+  sessionUser: true,
+  passportUser: false,
+  sessionId: 'VVvtzQXd-90foiYeGZsMB4yR5mxkq2L9',
+  cookies: 'present'
+}
+9:34:08 AM [express] GET /api/user 304 in 286ms
+[AUTH DEBUG] GET /api/simple-chat/conversations: {
+  hasSession: true,
+  sessionUser: true,
+  passportUser: false,
+  sessionId: 'VVvtzQXd-90foiYeGZsMB4yR5mxkq2L9',
+  cookies: 'present'
+}
+[AUTH DEBUG] GET /api/recruiter/applications: {
+  hasSession: true,
+  sessionUser: true,
+  passportUser: false,
+  sessionId: 'VVvtzQXd-90foiYeGZsMB4yR5mxkq2L9',
+  cookies: 'present'
+}
+[AUTH DEBUG] GET /api/recruiter/jobs: {
+  hasSession: true,
+  sessionUser: true,
+  passportUser: false,
+  sessionId: 'VVvtzQXd-90foiYeGZsMB4yR5mxkq2L9',
+  cookies: 'present'
+}
+[STORAGE] Fetching job postings for recruiter: user-1758023269899-edltdmjgu
+9:34:09 AM [express] GET /api/simple-chat/conversations 304 in 220ms
+9:34:09 AM [express] GET /api/chat/conversations 404 in 215ms :: {"message":"API route not found"}
+[RECRUITER APPLICATIONS] Recruiter user-1758023269899-edltdmjgu has 21 applications
+9:34:09 AM [express] GET /api/recruiter/applications 304 in 296ms
+[STORAGE] Found 122 active job postings for recruiter user-1758023269899-edltdmjgu
+[RECRUITER JOBS] Recruiter user-1758023269899-edltdmjgu has 122 jobs
+9:34:09 AM [express] GET /api/recruiter/jobs 304 in 497ms
+🚪 [LOGOUT] User user-1758023269899-edltdmjgu logging out, session: VVvtzQXd-90foiYeGZsMB4yR5mxkq2L9
+✅ [LOGOUT] Session VVvtzQXd-90foiYeGZsMB4yR5mxkq2L9 destroyed
+✅ [LOGOUT] All cookies cleared for session: VVvtzQXd-90foiYeGZsMB4yR5mxkq2L9
+9:34:18 AM [express] POST /api/auth/signout 200 in 149ms :: {"message":"Logged out successfully","lo…
+🗑️ Invalidated 0 cache entries for user user-1758023269899-edltdmjgu
+✅ [LOGOUT] Cache cleared for user: user-1758023269899-edltdmjgu
