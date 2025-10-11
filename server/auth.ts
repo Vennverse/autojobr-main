@@ -1661,6 +1661,48 @@ export async function setupAuth(app: Express) {
     `);
   });
 
+  // API endpoint for extension to get JWT token (for existing users)
+  app.get('/api/auth/extension/token', (req: any, res) => {
+    // Check if user is authenticated via session
+    if (!req.session?.user) {
+      return res.status(401).json({ 
+        message: "Not authenticated",
+        loginRequired: true,
+        loginUrl: '/auth/extension-login'
+      });
+    }
+
+    try {
+      const user = req.session.user;
+      const token = jwt.sign(
+        {
+          id: user.id,
+          email: user.email,
+          userType: user.userType || 'job_seeker'
+        },
+        authConfig.session.secret,
+        {
+          expiresIn: '30d', // Extension tokens last longer
+          issuer: 'autojobr',
+          audience: 'extension'
+        }
+      );
+
+      console.log(`✅ Extension JWT token generated for user: ${user.email}`);
+      
+      res.json({
+        token: token,
+        userId: user.id,
+        email: user.email,
+        userType: user.userType,
+        expiresIn: '30d'
+      });
+    } catch (error) {
+      console.error('Extension token generation error:', error);
+      res.status(500).json({ message: 'Failed to generate token' });
+    }
+  });
+
   app.get('/auth/extension-success', (req: any, res) => {
     // Check if user is authenticated
     if (!req.session?.user) {
@@ -2019,16 +2061,10 @@ export const requireAuthForInterview: RequestHandler = async (req: any, res, nex
 };
 
 // Extension-compatible authentication middleware for JWT + session support
+// IMPORTANT: This middleware is MORE LENIENT than isAuthenticated to support Chrome extension
 export const isAuthenticatedExtension: RequestHandler = async (req: any, res, next) => {
   try {
-    // Try session authentication first (webapp)
-    const sessionUser = req.session?.user;
-    if (sessionUser) {
-      req.user = sessionUser;
-      return next();
-    }
-
-    // Try JWT authentication (extension)
+    // Try JWT authentication FIRST (preferred for extension)
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
@@ -2044,15 +2080,32 @@ export const isAuthenticatedExtension: RequestHandler = async (req: any, res, ne
           email: decoded.email,
           userType: decoded.userType
         };
+        console.log(`✅ Extension JWT auth successful for user: ${decoded.email}`);
         return next();
       } catch (jwtError) {
-        console.log('JWT verification failed:', jwtError);
+        console.log('⚠️ Extension JWT verification failed:', jwtError);
+        // Continue to try session auth as fallback
       }
     }
 
-    return res.status(401).json({ message: "Not authenticated" });
+    // Fallback: Try session authentication (for webapp/extension combo)
+    // EXEMPT from fingerprint validation for extension compatibility
+    const sessionUser = req.session?.user;
+    if (sessionUser) {
+      console.log(`✅ Extension session auth successful for user: ${sessionUser.email}`);
+      req.user = sessionUser;
+      return next();
+    }
+
+    // No valid authentication found
+    console.log('❌ Extension auth failed: No JWT or session found');
+    return res.status(401).json({ 
+      message: "Not authenticated",
+      loginRequired: true,
+      extensionAuth: true 
+    });
   } catch (error) {
-    console.error("Extension authentication error:", error);
+    console.error("❌ Extension authentication error:", error);
     res.status(401).json({ message: "Authentication failed" });
   }
 };
