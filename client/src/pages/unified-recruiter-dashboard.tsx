@@ -106,81 +106,39 @@ export default function RecruiterDashboard() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importSource, setImportSource] = useState("manual_upload");
 
-  // Fetch recruiter's job postings
-  const { data: jobPostings, isLoading: jobsLoading, error: jobsError } = useQuery<JobPosting[]>({
-    queryKey: ["/api/recruiter/jobs"],
-  });
-
-  // Fetch applications for recruiter's jobs
-  const { data: applications, isLoading: applicationsLoading, error: applicationsError } = useQuery<JobPostingApplication[]>({
-    queryKey: ["/api/recruiter/applications"],
-  });
-
-  // Fetch current user
+  // CRITICAL FIX: Fetch current user FIRST - this must be before any conditional returns
   const { data: user, isLoading: userLoading, error: userError } = useQuery<User>({
     queryKey: ["/api/user"],
     retry: false,
   });
 
+  // Fetch recruiter's job postings
+  const { data: jobPostings, isLoading: jobsLoading, error: jobsError } = useQuery<JobPosting[]>({
+    queryKey: ["/api/recruiter/jobs"],
+    enabled: !!user, // Only fetch if user is loaded
+  });
+
+  // Fetch applications for recruiter's jobs
+  const { data: applications, isLoading: applicationsLoading, error: applicationsError } = useQuery<JobPostingApplication[]>({
+    queryKey: ["/api/recruiter/applications"],
+    enabled: !!user, // Only fetch if user is loaded
+  });
+
   // Fetch chat conversations
   const { data: conversations, isLoading: conversationsLoading, error: conversationsError } = useQuery<ConversationWithUnread[]>({
     queryKey: ["/api/chat/conversations"],
+    enabled: !!user, // Only fetch if user is loaded
   });
 
-  // Fetch applicant details when selected - MUST be before conditional returns
+  // Fetch applicant details when selected
   const { data: applicantDetails, isLoading: applicantLoading } = useQuery<ApplicantDetails>({
     queryKey: [`/api/recruiter/applicant/${selectedApplicantId}`],
-    enabled: !!selectedApplicantId,
+    enabled: !!selectedApplicantId && !!user,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
   });
 
-  // Safe array access with proper fallbacks
-  const safeJobPostings = Array.isArray(jobPostings) ? jobPostings : [];
-  const safeApplications = Array.isArray(applications) ? applications : [];
-  const safeConversations = Array.isArray(conversations) ? conversations : [] as ConversationWithUnread[];
-
-  // Show loading state while user data is being fetched
-  if (userLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  // Show error state if user fetch failed
-  if (userError || !user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-lg font-semibold text-red-600">Authentication Error</p>
-          <p className="text-sm text-gray-600 mt-2">Please log in to access the recruiter dashboard.</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Type assertion for user to handle null properties
-  const typedUser = user as User;
-
-  // Get job compatibility analysis
-  const getJobCompatibility = async (applicantId: string, jobId: number) => {
-    try {
-      const response = await fetch(
-        `/api/recruiter/job-compatibility/${applicantId}/${jobId}`,
-        {
-          credentials: "include",
-        },
-      );
-      return response.json();
-    } catch (error) {
-      console.error("Failed to get job compatibility:", error);
-      return null;
-    }
-  };
-
-  // Mutation for updating application status
+  // MUTATIONS - These must be after all useQuery hooks
   const updateApplicationMutation = useMutation({
     mutationFn: async ({
       applicationId,
@@ -220,7 +178,6 @@ export default function RecruiterDashboard() {
     },
   });
 
-  // Import applicants mutation
   const importApplicantsMutation = useMutation({
     mutationFn: async (formData: FormData) => {
       const response = await fetch("/api/recruiter/import-applicants", {
@@ -253,27 +210,6 @@ export default function RecruiterDashboard() {
     },
   });
 
-  const handleImportSubmit = () => {
-    if (!importFile || !selectedJobForImport) {
-      toast({
-        title: "Missing Information",
-        description: "Please select a job and upload a CSV file",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", importFile);
-    formData.append("jobPostingId", selectedJobForImport.toString());
-    formData.append("source", importSource);
-
-    importApplicantsMutation.mutate(formData);
-  };
-
-
-
-  // Mutation for generating shareable links
   const shareJobMutation = useMutation({
     mutationFn: async (jobId: number) => {
       return await apiRequest(`/api/recruiter/jobs/${jobId}/share`, "POST");
@@ -294,7 +230,6 @@ export default function RecruiterDashboard() {
     },
   });
 
-  // Mutation for promoting jobs
   const promoteJobMutation = useMutation({
     mutationFn: async (jobId: number) => {
       return await apiRequest(`/api/recruiter/jobs/${jobId}/promote`, "POST");
@@ -304,7 +239,6 @@ export default function RecruiterDashboard() {
         title: "Job Promotion Ready",
         description: "Complete payment to promote your job posting.",
       });
-      // Handle Stripe payment flow here
     },
     onError: (error: any) => {
       toast({
@@ -314,6 +248,63 @@ export default function RecruiterDashboard() {
       });
     },
   });
+
+  // Safe array access with proper fallbacks
+  const safeJobPostings = Array.isArray(jobPostings) ? jobPostings : [];
+  const safeApplications = Array.isArray(applications) ? applications : [];
+  const safeConversations = Array.isArray(conversations) ? conversations : [] as ConversationWithUnread[];
+
+  // NOW check authentication status - AFTER all hooks
+  if (userLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (userError || !user) {
+    // CRITICAL: Redirect to auth page if not authenticated
+    window.location.replace('/auth');
+    return null;
+  }
+
+  // Type assertion for user to handle null properties
+  const typedUser = user as User;
+
+  // Get job compatibility analysis
+  const getJobCompatibility = async (applicantId: string, jobId: number) => {
+    try {
+      const response = await fetch(
+        `/api/recruiter/job-compatibility/${applicantId}/${jobId}`,
+        {
+          credentials: "include",
+        },
+      );
+      return response.json();
+    } catch (error) {
+      console.error("Failed to get job compatibility:", error);
+      return null;
+    }
+  };
+
+  const handleImportSubmit = () => {
+    if (!importFile || !selectedJobForImport) {
+      toast({
+        title: "Missing Information",
+        description: "Please select a job and upload a CSV file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", importFile);
+    formData.append("jobPostingId", selectedJobForImport.toString());
+    formData.append("source", importSource);
+
+    importApplicantsMutation.mutate(formData);
+  };
 
   const handleUpdateApplication = (status: string) => {
     if (selectedApplication) {
