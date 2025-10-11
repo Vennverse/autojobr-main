@@ -66,11 +66,13 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { RecruiterNavbar } from "@/components/RecruiterNavbar";
+import { useAuth } from "@/hooks/use-auth"; // Import useAuth
 
-export default function RecruiterDashboard() {
+function RecruiterDashboard() {
+  const { user } = useAuth() as { user: any };
+  const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [applicationStatus, setApplicationStatus] = useState("");
   const [recruiterNotes, setRecruiterNotes] = useState("");
@@ -106,34 +108,35 @@ export default function RecruiterDashboard() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importSource, setImportSource] = useState("manual_upload");
 
-  // CRITICAL FIX: Fetch current user FIRST - this must be before any conditional returns
-  const { data: user, isLoading: userLoading, error: userError } = useQuery<User>({
+  // Fetch all data with hooks BEFORE any conditional returns
+  const { data: userFromAuth, isLoading: userLoading, error: userError } = useQuery<User>({
     queryKey: ["/api/user"],
     retry: false,
   });
 
+
   // Fetch recruiter's job postings
   const { data: jobPostings, isLoading: jobsLoading, error: jobsError } = useQuery<JobPosting[]>({
     queryKey: ["/api/recruiter/jobs"],
-    enabled: !!user, // Only fetch if user is loaded
+    enabled: !!userFromAuth, // Only fetch if user is loaded
   });
 
   // Fetch applications for recruiter's jobs
-  const { data: applications, isLoading: applicationsLoading, error: applicationsError } = useQuery<JobPostingApplication[]>({
+  const { data: applications, isLoading: applicationsLoading, error: applicationsError, refetch: refetchApplications } = useQuery<JobPostingApplication[]>({
     queryKey: ["/api/recruiter/applications"],
-    enabled: !!user, // Only fetch if user is loaded
+    enabled: !!userFromAuth, // Only fetch if user is loaded
   });
 
   // Fetch chat conversations
   const { data: conversations, isLoading: conversationsLoading, error: conversationsError } = useQuery<ConversationWithUnread[]>({
     queryKey: ["/api/chat/conversations"],
-    enabled: !!user, // Only fetch if user is loaded
+    enabled: !!userFromAuth, // Only fetch if user is loaded
   });
 
   // Fetch applicant details when selected
   const { data: applicantDetails, isLoading: applicantLoading } = useQuery<ApplicantDetails>({
     queryKey: [`/api/recruiter/applicant/${selectedApplicantId}`],
-    enabled: !!selectedApplicantId && !!user,
+    enabled: !!selectedApplicantId && !!userFromAuth,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
   });
@@ -263,14 +266,14 @@ export default function RecruiterDashboard() {
     );
   }
 
-  if (userError || !user) {
+  if (userError || !userFromAuth) {
     // CRITICAL: Redirect to auth page if not authenticated
     window.location.replace('/auth');
     return null;
   }
 
   // Type assertion for user to handle null properties
-  const typedUser = user as User;
+  const typedUser = userFromAuth as User;
 
   // Get job compatibility analysis
   const getJobCompatibility = async (applicantId: string, jobId: number) => {
@@ -324,7 +327,7 @@ export default function RecruiterDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <RecruiterNavbar user={user} />
+      <RecruiterNavbar user={userFromAuth} />
 
       {/* Dashboard Content */}
       <div className="container mx-auto px-4 py-8">
@@ -967,7 +970,7 @@ export default function RecruiterDashboard() {
                 Upload a CSV file to bulk import applicants for a specific job posting
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-6">
               {/* Job Selection */}
               <div>
