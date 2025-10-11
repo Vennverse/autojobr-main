@@ -1,7 +1,18 @@
 
-import { db } from './server/db.ts';
-import { testAssignments, users } from './shared/schema.ts';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import pkg from 'pg';
+import { testAssignments, users } from './shared/schema.js';
 import { eq, or, isNotNull } from 'drizzle-orm';
+
+const { Pool } = pkg;
+
+// Connect to database
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: false
+});
+
+const db = drizzle(pool);
 
 async function getTerminatedTests() {
   try {
@@ -95,6 +106,8 @@ async function getTerminatedTests() {
     console.error('❌ Error fetching terminated tests:', error);
     console.error('Error details:', error.message);
     process.exit(1);
+  } finally {
+    await pool.end();
   }
 }
 
