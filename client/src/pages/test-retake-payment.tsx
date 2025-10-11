@@ -154,8 +154,9 @@ export default function TestRetakePayment() {
     );
   }
 
-  // If user has already paid and retake is allowed, redirect them to test
+  // CRITICAL: If user has already paid and retake is allowed, show button to start test
   if ((assignment as any)?.retakeAllowed) {
+    console.log('✅ [RETAKE] User already paid - retakeAllowed is true, showing start button');
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Card>
@@ -163,9 +164,16 @@ export default function TestRetakePayment() {
             <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">Retake Already Available!</h3>
             <p className="text-gray-600 mb-4">
-              You've already paid for a retake. You can start the test again now.
+              You've already paid for a retake. Click below to start the test again with fresh questions.
             </p>
-            <Button onClick={() => setLocation(`/test/${params?.id}`)}>
+            <Button 
+              onClick={() => {
+                console.log('🚀 [RETAKE] User clicked Start Test Retake - redirecting to /test/' + params?.id);
+                setLocation(`/test/${params?.id}`);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+              data-testid="button-start-retake"
+            >
               <RefreshCw className="w-4 h-4 mr-2" />
               Start Test Retake
             </Button>
@@ -426,44 +434,54 @@ export default function TestRetakePayment() {
                               // Success - retake enabled
                               toast({
                                 title: "Retake Enabled! 🎉",
-                                description: "Your test retake is now available. Starting test...",
+                                description: "Your test retake is now available. Redirecting to test...",
                                 duration: 3000,
                               });
 
-                              // Invalidate queries to refresh data
+                              // CRITICAL: Invalidate queries to fetch fresh data with retakeAllowed=true
                               queryClient.invalidateQueries({ queryKey: ["/api/jobseeker/test-assignments"] });
                               queryClient.invalidateQueries({ queryKey: [`/api/test-assignments/${params?.id}`] });
 
-                              // Redirect to test page immediately
+                              // CRITICAL: Redirect to correct test route
                               setTimeout(() => {
-                                console.log('🚀 [RETAKE] Redirecting to test...');
-                                setLocation(`/test-taking/${params?.id}`);
+                                console.log('🚀 [RETAKE] Redirecting to test page...');
+                                setLocation(`/test/${params?.id}`);
                               }, 1500);
                             } else {
                               // Payment recorded but access not granted - this shouldn't happen
-                              console.error('⚠️ [RETAKE] Access not granted:', verifyData);
+                              console.error('❌ [RETAKE] Access not granted:', verifyData);
+                              console.error('❌ [RETAKE] Order ID:', data.orderID);
+                              console.error('❌ [RETAKE] Full response:', verifyData);
+                              
                               toast({
                                 title: "Payment Issue",
-                                description: verifyData.message || "Payment received but retake access failed. Contact support with order ID: " + data.orderID,
+                                description: verifyData.message || "Payment received but retake access failed. Please contact support with order ID: " + data.orderID,
                                 variant: "destructive",
-                                duration: 10000,
+                                duration: 15000,
                               });
 
+                              // Redirect to tests list after showing error
                               setTimeout(() => {
-                                setLocation(`/tests`);
+                                console.log('🔄 [RETAKE] Redirecting to tests page after error');
+                                setLocation(`/job-seeker/tests`);
                               }, 3000);
                             }
                           } catch (error: any) {
                             console.error('❌ [RETAKE] Payment verification error:', error);
+                            console.error('❌ [RETAKE] Error details:', error.message, error.stack);
+                            console.error('❌ [RETAKE] Order ID:', data.orderID);
+                            
                             toast({
                               title: "Verification Error",
-                              description: "Payment confirmed but verification failed. Contact support with order ID: " + data.orderID,
+                              description: "Payment confirmed but verification failed. Please contact support with order ID: " + data.orderID,
                               variant: "destructive",
-                              duration: 10000,
+                              duration: 15000,
                             });
 
+                            // Redirect to tests list after showing error
                             setTimeout(() => {
-                              setLocation(`/tests`);
+                              console.log('🔄 [RETAKE] Redirecting to tests page after error');
+                              setLocation(`/job-seeker/tests`);
                             }, 3000);
                           }
                         }}

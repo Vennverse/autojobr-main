@@ -976,6 +976,8 @@ export default function TestTaking() {
       const passingScore = assignment.testTemplate?.passingScore || 70;
       const didPass = assignment.score >= passingScore;
       
+      console.log('⛔ [TEST ACCESS] Test is completed/terminated and retake NOT allowed - blocking access');
+      
       return (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center space-y-4">
@@ -990,12 +992,13 @@ export default function TestTaking() {
               }
             </p>
             <div className="flex gap-4 justify-center">
-              <Button onClick={() => setLocation("/job-seeker/tests")}>
+              <Button onClick={() => setLocation("/job-seeker/tests")} data-testid="button-view-tests">
                 View All Tests
               </Button>
               <Button 
                 onClick={() => setLocation(`/test/${assignmentId}/retake-payment`)}
                 className="bg-blue-600 hover:bg-blue-700"
+                data-testid="button-purchase-retake"
               >
                 {didPass ? 'Improve Score - $5' : 'Purchase Retake - $5'}
               </Button>
@@ -1005,9 +1008,14 @@ export default function TestTaking() {
       );
     }
     
-    // If retake is allowed, reset the assignment status to in_progress
-    // This happens after successful retake payment
-    console.log('✅ Retake allowed - user has paid for retake');
+    // CRITICAL: If retake is allowed, let user proceed to test
+    // Questions will be regenerated when they start (old questions were cleared after payment)
+    console.log('✅ [TEST ACCESS] Retake allowed - user has paid, proceeding to test with fresh questions');
+    console.log('📋 [TEST ACCESS] Assignment state:', {
+      status: assignment.status,
+      retakeAllowed: assignment.retakeAllowed,
+      questionsStored: assignment.questions?.length || 0
+    });
   }
 
   // Show message if no questions are available
