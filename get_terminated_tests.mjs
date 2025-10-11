@@ -1,6 +1,6 @@
 
 import { db } from './server/db.js';
-import { testAssignments } from './shared/schema.js';
+import { testAssignments, users } from './shared/schema.js';
 import { eq, or, like } from 'drizzle-orm';
 
 async function getTerminatedTests() {
@@ -8,9 +8,25 @@ async function getTerminatedTests() {
     console.log('🔍 Fetching all tests terminated due to violations...\n');
 
     // Query for tests that were terminated or have violation-related termination reasons
+    // Join with users table to get username/email
     const terminatedTests = await db
-      .select()
+      .select({
+        id: testAssignments.id,
+        jobSeekerId: testAssignments.jobSeekerId,
+        testTemplateId: testAssignments.testTemplateId,
+        status: testAssignments.status,
+        terminationReason: testAssignments.terminationReason,
+        score: testAssignments.score,
+        startedAt: testAssignments.startedAt,
+        completedAt: testAssignments.completedAt,
+        assignedAt: testAssignments.assignedAt,
+        dueDate: testAssignments.dueDate,
+        username: users.username,
+        email: users.email,
+        fullName: users.fullName
+      })
       .from(testAssignments)
+      .leftJoin(users, eq(testAssignments.jobSeekerId, users.id))
       .where(
         or(
           eq(testAssignments.status, 'terminated'),
@@ -29,7 +45,9 @@ async function getTerminatedTests() {
 
     terminatedTests.forEach((test, index) => {
       console.log(`${index + 1}. TEST ID: ${test.id}`);
-      console.log(`   Assignment ID: ${test.id}`);
+      console.log(`   Username: ${test.username || 'N/A'}`);
+      console.log(`   Email: ${test.email || 'N/A'}`);
+      console.log(`   Full Name: ${test.fullName || 'N/A'}`);
       console.log(`   Job Seeker ID: ${test.jobSeekerId}`);
       console.log(`   Test Template ID: ${test.testTemplateId}`);
       console.log(`   Status: ${test.status}`);
@@ -68,7 +86,8 @@ async function getTerminatedTests() {
     Object.entries(reasonGroups).forEach(([reason, tests]) => {
       console.log(`\n   ${reason}: ${tests.length} test(s)`);
       tests.forEach(test => {
-        console.log(`      - Test ID ${test.id} (Job Seeker: ${test.jobSeekerId})`);
+        const userInfo = test.username || test.email || test.jobSeekerId;
+        console.log(`      - Test ID ${test.id} (User: ${userInfo})`);
       });
     });
 
