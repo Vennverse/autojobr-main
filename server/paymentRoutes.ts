@@ -34,9 +34,9 @@ router.post('/verify-paypal', isAuthenticated, async (req: any, res) => {
 
     // CRITICAL: Require serviceId for test retakes
     if (serviceType === 'test_retake' && !serviceId) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'Test assignment ID required for retake payment' 
+        message: 'Test assignment ID required for retake payment'
       });
     }
 
@@ -72,22 +72,22 @@ router.post('/verify-paypal', isAuthenticated, async (req: any, res) => {
 
     if (!accessGranted) {
       console.error(`❌ Failed to grant ${serviceType} access for user ${userId}, serviceId: ${serviceId}`);
-      
+
       // Mark payment as failed or refund required
       await db.update(oneTimePayments)
-        .set({ 
+        .set({
           status: 'failed',
           transactionData: sql`
-            CASE 
-              WHEN transaction_data IS NULL THEN 
+            CASE
+              WHEN transaction_data IS NULL THEN
                 jsonb_build_object('error', 'Failed to grant service access', 'timestamp', NOW())
-              ELSE 
+              ELSE
                 transaction_data || jsonb_build_object('error', 'Failed to grant service access', 'timestamp', NOW())
             END
           `
         })
         .where(eq(oneTimePayments.id, recordedPayment.id));
-      
+
       return res.status(422).json({
         success: false,
         message: 'Payment received but failed to enable service access. Our team has been notified and will resolve this shortly. Please contact support with this payment ID.',
@@ -128,8 +128,8 @@ router.get('/check-access/:serviceType', isAuthenticated, async (req: any, res) 
     const { withinMinutes = 30 } = req.query;
 
     const hasAccess = await paymentVerificationService.hasValidPayment(
-      userId, 
-      serviceType, 
+      userId,
+      serviceType,
       parseInt(withinMinutes.toString())
     );
 
@@ -158,7 +158,7 @@ router.get('/history', isAuthenticated, async (req: any, res) => {
     const { serviceType } = req.query;
 
     const payments = await paymentVerificationService.getPaymentHistory(
-      userId, 
+      userId,
       serviceType?.toString()
     );
 
@@ -179,12 +179,12 @@ router.get('/history', isAuthenticated, async (req: any, res) => {
 router.post('/webhook/paypal', async (req, res) => {
   try {
     const webhookData = req.body;
-    
+
     // In production, verify webhook signature here
     console.log('PayPal webhook received:', webhookData.event_type);
-    
+
     const success = await paymentVerificationService.handlePayPalWebhook(webhookData);
-    
+
     if (success) {
       res.status(200).json({ success: true });
     } else {
