@@ -111,12 +111,14 @@ export class PaymentVerificationService {
             return false;
           }
 
-          // CRITICAL: Update the test assignment to allow retake AND reset status
+          // CRITICAL: Update the test assignment to allow retake
+          // Keep status as 'completed' but set retakeAllowed=true so frontend knows retake is paid
+          // DO NOT change status to 'assigned' - that would break the UI flow
           const result = await db.update(testAssignments)
             .set({ 
               retakeAllowed: true,
-              status: 'assigned', // Reset to assigned so user can start test again
-              score: null, // Clear previous score (will show as "Not taken" in frontend)
+              // Keep status as 'completed' - frontend checks retakeAllowed to enable retake
+              // Keep score - user should see their previous score before retaking
               answers: [], // Clear previous answers
               questions: [], // CRITICAL FIX: Clear previous questions to generate new ones
               completionTime: null,
@@ -285,9 +287,9 @@ export class PaymentVerificationService {
         .update(testAssignments)
         .set({
           retakeAllowed: true,
-          status: 'assigned', // Reset to assigned so user can retake
+          // Keep status as 'completed' - frontend checks retakeAllowed to enable retake
+          // Keep score - user should see their previous score before retaking
           retakePaymentId: orderId,
-          score: null, // Clear previous score (will show as "Not taken" in frontend)
           answers: [], // Clear previous answers
           questions: [], // CRITICAL FIX: Clear previous questions to generate new ones
           completionTime: null,
