@@ -1,13 +1,12 @@
 
-import { db } from './server/db.js';
-import { testAssignments, users } from './shared/schema.js';
-import { eq, or, like, isNotNull } from 'drizzle-orm';
+import { db } from './server/db';
+import { testAssignments, users } from './shared/schema';
+import { eq, or, isNotNull } from 'drizzle-orm';
 
 async function getTerminatedTests() {
   try {
     console.log('🔍 Fetching all tests terminated due to violations...\n');
 
-    // Query for tests that were terminated or have violation-related termination reasons
     const terminatedTests = await db
       .select({
         id: testAssignments.id,
@@ -59,7 +58,6 @@ async function getTerminatedTests() {
       console.log('   ───────────────────────────────────────────────────────────\n');
     });
 
-    // Summary statistics
     const totalTerminated = terminatedTests.length;
     const withReasons = terminatedTests.filter(t => t.terminationReason).length;
     const withScores = terminatedTests.filter(t => t.score !== null).length;
@@ -71,7 +69,6 @@ async function getTerminatedTests() {
     console.log(`   With scores recorded: ${withScores}`);
     console.log('═══════════════════════════════════════════════════════════════\n');
 
-    // Group by termination reason
     const reasonGroups = {};
     terminatedTests.forEach(test => {
       const reason = test.terminationReason || 'Unknown';
