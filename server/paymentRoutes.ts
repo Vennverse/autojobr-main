@@ -20,9 +20,9 @@ router.post('/verify-paypal', isAuthenticated, async (req: any, res) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    const { serviceType, serviceId, amount, paymentData, itemName } = req.body;
+    const { orderId, serviceType, serviceId, amount } = req.body;
 
-    if (!serviceType || !amount) {
+    if (!serviceType || !amount || !orderId) {
       return res.status(400).json({ message: 'Missing required payment information' });
     }
 
@@ -40,40 +40,68 @@ router.post('/verify-paypal', isAuthenticated, async (req: any, res) => {
       });
     }
 
-    // Record the payment with serviceId
-    const paymentRecorded = await paymentVerificationService.recordPayPalPayment({
-      userId,
-      serviceType,
-      amount: parseFloat(amount.toString()),
-      paypalOrderId: paymentData?.orderID || paymentData?.id,
-      transactionId: paymentData?.transactionID || paymentData?.id,
-      serviceId
-    });
+    console.log(`🔍 [PAYMENT] Verifying PayPal order ${orderId} for ${serviceType}, user ${userId}`);
 
-    if (!paymentRecorded) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to record payment'
-      });
-    }
+    // CRITICAL: Verify payment with PayPal API
+    const { paymentService } = await import('./paymentService.js');
+    const isValidPayment = await paymentService.verifyPayPalOrder(orderId);
 
-    // CRITICAL: Validate serviceId is present for services that require it
-    if ((serviceType === 'test_retake' || serviceType === 'virtual_interview') && !serviceId) {
-      console.error(`❌ Missing serviceId for ${serviceType} payment from user ${userId}`);
+    if (!isValidPayment) {
+      console.error(`❌ [PAYMENT] Invalid PayPal order ${orderId}`);
       return res.status(400).json({
         success: false,
-        message: `Service ID is required for ${serviceType} payments`,
-        error: 'MISSING_SERVICE_ID'
+        message: 'Payment verification failed - invalid PayPal order'
       });
     }
 
-    // CRITICAL: Grant service access and check if it succeeded
+    console.log(`✅ [PAYMENT] PayPal order verified: ${orderId}`);
+
+    // Check if payment already processed
+    const { db } = await import('./db.js');
+    const { oneTimePayments, sql } = await import('../shared/schema.js');
+    const { eq } = await import('drizzle-orm');
+
+    const existingPayment = await db.select()
+      .from(oneTimePayments)
+      .where(eq(oneTimePayments.paymentId, orderId))
+      .limit(1);
+
+    let recordedPayment;
+
+    if (existingPayment.length > 0) {
+      console.log(`⚠️ [PAYMENT] Payment already recorded for order ${orderId}`);
+      recordedPayment = existingPayment[0];
+    } else {
+      // Record the payment
+      const [newPayment] = await db.insert(oneTimePayments).values({
+        userId,
+        serviceType,
+        serviceId: serviceId || null,
+        amount: amount.toString(),
+        currency: 'USD',
+        paymentProvider: 'paypal',
+        paymentId: orderId,
+        status: 'completed',
+        description: `${serviceType.replace('_', ' ')} - $${amount}`,
+        completedAt: new Date(),
+        transactionData: {
+          paypalOrderId: orderId,
+          timestamp: new Date().toISOString(),
+          method: 'paypal_hosted_button'
+        }
+      }).returning();
+
+      recordedPayment = newPayment;
+      console.log(`💾 [PAYMENT] Payment recorded: ${recordedPayment.id}`);
+    }
+
+    // CRITICAL: Grant service access
     const accessGranted = await paymentVerificationService.grantServiceAccess(userId, serviceType, serviceId);
 
     if (!accessGranted) {
       console.error(`❌ Failed to grant ${serviceType} access for user ${userId}, serviceId: ${serviceId}`);
 
-      // Mark payment as failed or refund required
+      // Mark payment as failed
       await db.update(oneTimePayments)
         .set({
           status: 'failed',
@@ -90,10 +118,10 @@ router.post('/verify-paypal', isAuthenticated, async (req: any, res) => {
 
       return res.status(422).json({
         success: false,
-        message: 'Payment received but failed to enable service access. Our team has been notified and will resolve this shortly. Please contact support with this payment ID.',
+        message: 'Payment received but failed to enable service access. Please contact support with order ID: ' + orderId,
         paymentRecorded: true,
         accessGranted: false,
-        paymentId: recordedPayment.id,
+        orderId: orderId,
         error: 'SERVICE_ACCESS_FAILED'
       });
     }

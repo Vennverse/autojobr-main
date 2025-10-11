@@ -414,7 +414,7 @@ export default function TestRetakePayment() {
                                 orderId: data.orderID,
                                 serviceType: 'test_retake',
                                 serviceId: params?.id,
-                                amount: 500 // $5
+                                amount: 5 // $5 in dollars
                               }),
                               credentials: 'include'
                             });
@@ -444,7 +444,7 @@ export default function TestRetakePayment() {
                               console.error('⚠️ [RETAKE] Access not granted:', verifyData);
                               toast({
                                 title: "Payment Issue",
-                                description: verifyData.message || "Payment received but retake access failed. Contact support immediately.",
+                                description: verifyData.message || "Payment received but retake access failed. Contact support with order ID: " + data.orderID,
                                 variant: "destructive",
                                 duration: 10000,
                               });
