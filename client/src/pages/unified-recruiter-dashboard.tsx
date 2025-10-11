@@ -327,7 +327,7 @@ function RecruiterDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <RecruiterNavbar user={userFromAuth} />
+      <RecruiterNavbar user={userFromAuth as any} />
 
       {/* Dashboard Content */}
       <div className="container mx-auto px-4 py-8">
@@ -2666,3 +2666,5 @@ Jane Smith,jane@example.com,555-5678,Resume text,applied,indeed,2025-01-14,linke
     </div>
   );
 }
+
+export default RecruiterDashboard;
