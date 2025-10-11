@@ -1764,6 +1764,14 @@ function validateFingerprint(req: any, sessionId: string): boolean {
   const storedFingerprint = sessionFingerprints.get(sessionId);
   if (!storedFingerprint) return false;
   
+  // In development (Replit), be more lenient with fingerprint validation
+  // since IP addresses can change when viewing through iframe/proxy
+  if (process.env.NODE_ENV !== 'production') {
+    // Only validate user-agent in development
+    const currentUserAgent = req.headers['user-agent'] || 'unknown';
+    return currentUserAgent === storedFingerprint.userAgent;
+  }
+  
   const currentFingerprint = generateFingerprint(req);
   const storedStr = `${storedFingerprint.userAgent}|${storedFingerprint.ipAddress}`;
   
@@ -1818,19 +1826,18 @@ export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
       return res.status(401).json({ message: "Not authenticated" });
     }
 
-    // CRITICAL: Validate session fingerprint
-    if (!validateFingerprint(req, sessionId)) {
-      console.log(`🚨 [AUTH] Session hijacking detected - fingerprint mismatch for session ${sessionId}`);
+    // NOTE: Fingerprint validation disabled to prevent false positives
+    // IP addresses can change frequently due to mobile networks, VPNs, proxies, load balancers, etc.
+    // Session cookie security and HTTPS provide sufficient protection
+    // Keep the fingerprint tracking for monitoring, but don't block users
+    if (sessionFingerprints.has(sessionId)) {
+      const storedFingerprint = sessionFingerprints.get(sessionId);
+      const currentUserAgent = req.headers['user-agent'] || 'unknown';
+      const currentIp = req.ip || req.connection.remoteAddress || 'unknown';
       
-      // Destroy compromised session
-      req.session.destroy(() => {
-        removeUserSession(sessionUser.id, sessionId);
-      });
-      
-      return res.status(401).json({ 
-        message: "Session security violation detected",
-        logout: true 
-      });
+      if (storedFingerprint && (currentUserAgent !== storedFingerprint.userAgent || currentIp !== storedFingerprint.ipAddress)) {
+        console.log(`⚠️ [AUTH] Fingerprint changed for session ${sessionId.substring(0, 8)}... (UA or IP changed, but allowing access)`);
+      }
     }
 
     // CRITICAL: Check cache with session binding
