@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,14 +12,14 @@ import {
   RefreshCw,
   CreditCard,
   CheckCircle,
-  TrendingUp,
-  Trophy,
   AlertTriangle,
   ArrowLeft,
   Star,
   Users,
   Target,
-  Brain
+  Brain,
+  Lightbulb,
+  Award
 } from "lucide-react";
 import PayPalHostedButton from "@/components/PayPalHostedButton";
 
@@ -41,21 +42,17 @@ export default function TestRetakePayment() {
   console.log('🔍 [RETAKE PAYMENT] Assignment data:', {
     id: assignment?.id,
     status: assignment?.status,
-    score: assignment?.score,
-    passingScore: assignment?.testTemplate?.passingScore,
     retakeAllowed: assignment?.retakeAllowed
   });
 
   // Process retake payment mutation
   const processPaymentMutation = useMutation({
     mutationFn: async (paymentData: any) => {
-      // In a real implementation, this would integrate with PayPal/Amazon Pay
-      // For demo purposes, we'll simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       return await apiRequest(`/api/test-assignments/${params?.id}/retake/payment`, "POST", {
         paymentProvider: paymentMethod,
-        paymentIntentId: `${paymentMethod}_${Date.now()}`, // Mock payment ID
+        paymentIntentId: `${paymentMethod}_${Date.now()}`,
         ...paymentData
       });
     },
@@ -65,11 +62,9 @@ export default function TestRetakePayment() {
         description: "Your retake is now available. You can start the test again.",
       });
 
-      // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/jobseeker/test-assignments"] });
       queryClient.invalidateQueries({ queryKey: [`/api/test-assignments/${params?.id}`] });
 
-      // Redirect to test page
       setTimeout(() => {
         setLocation(`/test/${params?.id}`);
       }, 1500);
@@ -91,9 +86,8 @@ export default function TestRetakePayment() {
     setIsProcessing(true);
 
     try {
-      // Simulate payment processing based on selected method
       const paymentData = {
-        amount: 500, // $5 in cents
+        amount: 500,
         currency: 'USD',
         testAssignmentId: (assignment as any)?.id,
       };
@@ -105,21 +99,8 @@ export default function TestRetakePayment() {
     }
   };
 
-  // Calculate passing score and gap
   const passingScore = assignment?.testTemplate?.passingScore || 70;
-  const userScore = assignment?.score ?? 0; // Use direct assignment.score, not cast
-  const scoreGap = Math.max(0, passingScore - userScore);
-  const canRetake = assignment?.status === 'completed' && userScore < passingScore && !assignment?.retakeAllowed;
-
-  // Debug: Log score values
-  console.log('📊 [RETAKE PAYMENT] Score calculation:', {
-    userScore,
-    passingScore,
-    scoreGap,
-    assignmentScore: assignment?.score,
-    status: assignment?.status,
-    fullAssignment: assignment
-  });
+  const canRetake = assignment?.status === 'completed' && !assignment?.retakeAllowed;
 
   if (isLoading) {
     return (
@@ -183,27 +164,6 @@ export default function TestRetakePayment() {
     );
   }
 
-  // Only show retake payment if user failed the test
-  if (assignment?.score >= passingScore) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <Card>
-          <CardContent className="text-center py-12">
-            <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">You've Already Passed!</h3>
-            <p className="text-gray-600 mb-4">
-              Your score of {assignment?.score}% meets the passing requirement of {passingScore}%.
-            </p>
-            <Button onClick={() => setLocation('/tests')}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Tests
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       {/* Header */}
@@ -222,10 +182,10 @@ export default function TestRetakePayment() {
             <RefreshCw className="w-8 h-8 text-blue-600" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Unlock Your Retake
+            Second Chance Available
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-400">
-            Give yourself another chance to showcase your skills
+            Everyone deserves another opportunity to showcase their true potential
           </p>
         </div>
       </div>
@@ -237,7 +197,7 @@ export default function TestRetakePayment() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-blue-600" />
+                <Award className="w-5 h-5 text-blue-600" />
                 {assignment?.testTemplate?.title || 'Skills Assessment'}
               </CardTitle>
               <CardDescription>
@@ -245,74 +205,76 @@ export default function TestRetakePayment() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="p-3 bg-red-50 rounded-lg">
-                  <div className="text-2xl font-bold text-red-600">{userScore}%</div>
-                  <div className="text-sm text-gray-600">Your Score</div>
-                </div>
-                <div className="p-3 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">{passingScore}%</div>
-                  <div className="text-sm text-gray-600">Passing Score</div>
-                </div>
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{scoreGap}</div>
-                  <div className="text-sm text-gray-600">Points Needed</div>
-                </div>
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Why Retake?</h4>
+                <ul className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
+                  <li className="flex items-start gap-2">
+                    <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <span>Technical issues or distractions during your test</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <span>Feel you didn't perform at your best</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <span>Want to improve your chances with a fresh attempt</span>
+                  </li>
+                </ul>
               </div>
             </CardContent>
           </Card>
 
           {/* Motivation Section */}
-          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-blue-900">
-                <TrendingUp className="w-5 h-5" />
-                Why Retake This Test?
+              <CardTitle className="flex items-center gap-2 text-blue-900 dark:text-blue-100">
+                <Target className="w-5 h-5" />
+                What You Get with a Retake
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-blue-800">
-                You scored <strong>{userScore}%</strong> and need <strong>{scoreGap} more points</strong> to pass! Many successful candidates improve their scores significantly on retakes.
+              <p className="text-blue-800 dark:text-blue-200">
+                Your test performance doesn't define your abilities. Sometimes external factors, technical issues, or simply having an off day can impact your results. A retake gives you the opportunity to demonstrate your true skills.
               </p>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-start gap-3">
                   <Brain className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
                   <div>
-                    <h4 className="font-semibold text-blue-900 text-sm">Fresh Questions</h4>
-                    <p className="text-xs text-blue-700">New questions test the same skills with different scenarios</p>
+                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm">Fresh Questions</h4>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">New questions testing the same skills with different scenarios</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
                   <Target className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
                   <div>
-                    <h4 className="font-semibold text-blue-900 text-sm">Prove Dedication</h4>
-                    <p className="text-xs text-blue-700">Show recruiters your commitment to excellence</p>
+                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm">Prove Your Worth</h4>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">Show recruiters your commitment and determination</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
                   <Star className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
                   <div>
-                    <h4 className="font-semibold text-blue-900 text-sm">Stand Out</h4>
-                    <p className="text-xs text-blue-700">Few candidates take the initiative to improve</p>
+                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm">Stand Out</h4>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">Demonstrate initiative and growth mindset</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
                   <Users className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
                   <div>
-                    <h4 className="font-semibold text-blue-900 text-sm">Join the 73%</h4>
-                    <p className="text-xs text-blue-700">Success rate of candidates who retake failed tests</p>
+                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm">High Success Rate</h4>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">73% of candidates who retake achieve better results</p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white/60 p-3 rounded-lg">
-                <p className="text-sm text-blue-800 font-medium">
-                  💡 <strong>Success Story:</strong> "I scored 65% on my first attempt and 89% on retake.
-                  Got the job offer the next week!" - Sarah K., Software Engineer
+              <div className="bg-white/60 dark:bg-gray-900/60 p-3 rounded-lg">
+                <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
+                  💡 <strong>Success Story:</strong> "I had technical issues during my first attempt. The retake gave me the chance to show my actual skills, and I passed with flying colors!" - Sarah K., Software Engineer
                 </p>
               </div>
             </CardContent>
@@ -322,14 +284,14 @@ export default function TestRetakePayment() {
         {/* Right Column - Payment */}
         <div className="space-y-6">
           <Card className="border-2 border-blue-200">
-            <CardHeader className="text-center bg-blue-50">
-              <CardTitle className="text-blue-900">Retake Package</CardTitle>
-              <CardDescription>One-time payment for unlimited improvement</CardDescription>
+            <CardHeader className="text-center bg-blue-50 dark:bg-blue-900/20">
+              <CardTitle className="text-blue-900 dark:text-blue-100">Retake Package</CardTitle>
+              <CardDescription>Fair opportunity for everyone</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
               <div className="text-center mb-6">
                 <div className="text-4xl font-bold text-blue-600 mb-2">$5</div>
-                <div className="text-sm text-gray-600">One-time payment</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">One-time payment</div>
               </div>
 
               <div className="space-y-3 mb-6">
@@ -360,7 +322,7 @@ export default function TestRetakePayment() {
                 <div className="space-y-2">
                   <div
                     className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                      paymentMethod === 'paypal' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                      paymentMethod === 'paypal' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200'
                     }`}
                     onClick={() => setPaymentMethod('paypal')}
                   >
@@ -378,7 +340,7 @@ export default function TestRetakePayment() {
 
                   <div
                     className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                      paymentMethod === 'amazon_pay' ? 'border-orange-500 bg-orange-50' : 'border-gray-200'
+                      paymentMethod === 'amazon_pay' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-200'
                     }`}
                     onClick={() => setPaymentMethod('amazon_pay')}
                   >
@@ -403,88 +365,76 @@ export default function TestRetakePayment() {
                   serviceId={params?.id}
                   itemName={`${assignment?.testTemplate?.title || 'Skills Assessment'} - Retake`}
                   onPaymentSuccess={async (data) => {
-                          console.log('💳 [RETAKE] PayPal payment success:', data);
+                    console.log('💳 [RETAKE] PayPal payment success:', data);
 
-                          // Show immediate confirmation
-                          toast({
-                            title: "Payment Received! ✅",
-                            description: "Verifying payment and enabling retake access...",
-                            duration: 3000,
-                          });
+                    toast({
+                      title: "Payment Received! ✅",
+                      description: "Verifying payment and enabling retake access...",
+                      duration: 3000,
+                    });
 
-                          try {
-                            // Verify payment immediately
-                            console.log('🔍 [RETAKE] Verifying payment...');
-                            const verifyResponse = await fetch('/api/payments/verify-paypal', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                orderId: data.orderID,
-                                serviceType: 'test_retake',
-                                serviceId: params?.id,
-                                amount: 5 // $5 in dollars
-                              }),
-                              credentials: 'include'
-                            });
+                    try {
+                      console.log('🔍 [RETAKE] Verifying payment...');
+                      const verifyResponse = await fetch('/api/payments/verify-paypal', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          orderId: data.orderID,
+                          serviceType: 'test_retake',
+                          serviceId: params?.id,
+                          amount: 5
+                        }),
+                        credentials: 'include'
+                      });
 
-                            const verifyData = await verifyResponse.json();
-                            console.log('📊 [RETAKE] Verification result:', verifyData);
+                      const verifyData = await verifyResponse.json();
+                      console.log('📊 [RETAKE] Verification result:', verifyData);
 
-                            if (verifyData.success && verifyData.accessGranted) {
-                              // Success - retake enabled
-                              toast({
-                                title: "Retake Enabled! 🎉",
-                                description: "Your test retake is now available. Redirecting to test...",
-                                duration: 3000,
-                              });
+                      if (verifyData.success && verifyData.accessGranted) {
+                        toast({
+                          title: "Retake Enabled! 🎉",
+                          description: "Your test retake is now available. Redirecting to test...",
+                          duration: 3000,
+                        });
 
-                              // CRITICAL: Invalidate queries to fetch fresh data with retakeAllowed=true
-                              queryClient.invalidateQueries({ queryKey: ["/api/jobseeker/test-assignments"] });
-                              queryClient.invalidateQueries({ queryKey: [`/api/test-assignments/${params?.id}`] });
+                        queryClient.invalidateQueries({ queryKey: ["/api/jobseeker/test-assignments"] });
+                        queryClient.invalidateQueries({ queryKey: [`/api/test-assignments/${params?.id}`] });
 
-                              // CRITICAL: Redirect to correct test route
-                              setTimeout(() => {
-                                console.log('🚀 [RETAKE] Redirecting to test page...');
-                                setLocation(`/test/${params?.id}`);
-                              }, 1500);
-                            } else {
-                              // Payment recorded but access not granted - this shouldn't happen
-                              console.error('❌ [RETAKE] Access not granted:', verifyData);
-                              console.error('❌ [RETAKE] Order ID:', data.orderID);
-                              console.error('❌ [RETAKE] Full response:', verifyData);
-                              
-                              toast({
-                                title: "Payment Issue",
-                                description: verifyData.message || "Payment received but retake access failed. Please contact support with order ID: " + data.orderID,
-                                variant: "destructive",
-                                duration: 15000,
-                              });
+                        setTimeout(() => {
+                          console.log('🚀 [RETAKE] Redirecting to test page...');
+                          setLocation(`/test/${params?.id}`);
+                        }, 1500);
+                      } else {
+                        console.error('❌ [RETAKE] Access not granted:', verifyData);
+                        
+                        toast({
+                          title: "Payment Issue",
+                          description: verifyData.message || "Payment received but retake access failed. Please contact support with order ID: " + data.orderID,
+                          variant: "destructive",
+                          duration: 15000,
+                        });
 
-                              // Redirect to tests list after showing error
-                              setTimeout(() => {
-                                console.log('🔄 [RETAKE] Redirecting to tests page after error');
-                                setLocation(`/job-seeker/tests`);
-                              }, 3000);
-                            }
-                          } catch (error: any) {
-                            console.error('❌ [RETAKE] Payment verification error:', error);
-                            console.error('❌ [RETAKE] Error details:', error.message, error.stack);
-                            console.error('❌ [RETAKE] Order ID:', data.orderID);
-                            
-                            toast({
-                              title: "Verification Error",
-                              description: "Payment confirmed but verification failed. Please contact support with order ID: " + data.orderID,
-                              variant: "destructive",
-                              duration: 15000,
-                            });
+                        setTimeout(() => {
+                          console.log('🔄 [RETAKE] Redirecting to tests page after error');
+                          setLocation(`/job-seeker/tests`);
+                        }, 3000);
+                      }
+                    } catch (error: any) {
+                      console.error('❌ [RETAKE] Payment verification error:', error);
+                      
+                      toast({
+                        title: "Verification Error",
+                        description: "Payment confirmed but verification failed. Please contact support with order ID: " + data.orderID,
+                        variant: "destructive",
+                        duration: 15000,
+                      });
 
-                            // Redirect to tests list after showing error
-                            setTimeout(() => {
-                              console.log('🔄 [RETAKE] Redirecting to tests page after error');
-                              setLocation(`/job-seeker/tests`);
-                            }, 3000);
-                          }
-                        }}
+                      setTimeout(() => {
+                        console.log('🔄 [RETAKE] Redirecting to tests page after error');
+                        setLocation(`/job-seeker/tests`);
+                      }, 3000);
+                    }
+                  }}
                   onPaymentError={(error) => {
                     toast({
                       title: "Payment Failed",
