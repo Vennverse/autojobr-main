@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -288,10 +289,23 @@ const competitorComparison = [
 ];
 
 export default function RecruiterFeaturesPage() {
-  const [isVisible, setIsVisible] = useState(false);
+  const [, setLocation] = useLocation();
+  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
-    setIsVisible(true);
+    // Ensure page is visible
+    const timer = setTimeout(() => setIsVisible(true), 10);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Add error boundary
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error('Page error:', event.error);
+      event.preventDefault();
+    };
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
   }, []);
 
   return (
