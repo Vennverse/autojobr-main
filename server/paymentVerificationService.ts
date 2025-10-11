@@ -95,17 +95,49 @@ export class PaymentVerificationService {
           const { testAssignments } = await import('../shared/schema.js');
           const { eq, and } = await import('drizzle-orm');
           
-          // Update the test assignment to allow retake
-          const result = await db.update(testAssignments)
-            .set({ retakeAllowed: true })
+          // CRITICAL: First verify the assignment exists and belongs to this user
+          const assignment = await db.select()
+            .from(testAssignments)
             .where(
               and(
                 eq(testAssignments.id, parseInt(serviceId)),
                 eq(testAssignments.jobSeekerId, userId)
               )
-            );
+            )
+            .then(rows => rows[0]);
           
-          console.log(`✅ Test retake enabled for assignment ${serviceId}, user ${userId}`);
+          if (!assignment) {
+            console.error(`❌ Test assignment ${serviceId} not found or doesn't belong to user ${userId}`);
+            return false;
+          }
+          
+          // CRITICAL: Update the test assignment to allow retake AND reset status
+          const result = await db.update(testAssignments)
+            .set({ 
+              retakeAllowed: true,
+              status: 'assigned', // Reset to assigned so user can start test again
+              score: null, // Clear previous score
+              answers: [], // Clear previous answers
+              completionTime: null,
+              warningCount: 0,
+              tabSwitchCount: 0,
+              copyAttempts: 0,
+              terminationReason: null
+            })
+            .where(
+              and(
+                eq(testAssignments.id, parseInt(serviceId)),
+                eq(testAssignments.jobSeekerId, userId)
+              )
+            )
+            .returning();
+          
+          if (!result || result.length === 0) {
+            console.error(`❌ Failed to update test assignment ${serviceId} for user ${userId}`);
+            return false;
+          }
+          
+          console.log(`✅ Test retake enabled and reset for assignment ${serviceId}, user ${userId}`);
           return true;
         
         case 'virtual_interview':

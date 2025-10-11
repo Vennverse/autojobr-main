@@ -57,21 +57,52 @@ router.post('/verify-paypal', isAuthenticated, async (req: any, res) => {
       });
     }
 
+    // CRITICAL: Validate serviceId is present for services that require it
+    if ((serviceType === 'test_retake' || serviceType === 'virtual_interview') && !serviceId) {
+      console.error(`❌ Missing serviceId for ${serviceType} payment from user ${userId}`);
+      return res.status(400).json({
+        success: false,
+        message: `Service ID is required for ${serviceType} payments`,
+        error: 'MISSING_SERVICE_ID'
+      });
+    }
+
     // CRITICAL: Grant service access and check if it succeeded
     const accessGranted = await paymentVerificationService.grantServiceAccess(userId, serviceType, serviceId);
 
     if (!accessGranted) {
+      console.error(`❌ Failed to grant ${serviceType} access for user ${userId}, serviceId: ${serviceId}`);
+      
+      // Mark payment as failed or refund required
+      await db.update(oneTimePayments)
+        .set({ 
+          status: 'failed',
+          transactionData: sql`
+            CASE 
+              WHEN transaction_data IS NULL THEN 
+                jsonb_build_object('error', 'Failed to grant service access', 'timestamp', NOW())
+              ELSE 
+                transaction_data || jsonb_build_object('error', 'Failed to grant service access', 'timestamp', NOW())
+            END
+          `
+        })
+        .where(eq(oneTimePayments.id, recordedPayment.id));
+      
       return res.status(422).json({
         success: false,
-        message: 'Payment recorded but failed to enable service access. Please contact support.',
+        message: 'Payment received but failed to enable service access. Our team has been notified and will resolve this shortly. Please contact support with this payment ID.',
         paymentRecorded: true,
-        accessGranted: false
+        accessGranted: false,
+        paymentId: recordedPayment.id,
+        error: 'SERVICE_ACCESS_FAILED'
       });
     }
 
+    console.log(`✅ Successfully granted ${serviceType} access for user ${userId}`);
+
     res.json({
       success: true,
-      message: `Payment verified for ${serviceType}`,
+      message: `Payment verified and ${serviceType} access granted`,
       serviceType,
       amount,
       accessGranted: true

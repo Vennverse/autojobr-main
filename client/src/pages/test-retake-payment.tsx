@@ -394,22 +394,74 @@ export default function TestRetakePayment() {
                   amount={5}
                   serviceId={params?.id}
                   itemName={`${assignment?.testTemplate?.title || 'Skills Assessment'} - Retake`}
-                  onPaymentSuccess={(data) => {
-                    toast({
-                      title: "Payment Successful!",
-                      description: "Payment confirmation is processing. Please check back in 1-2 hours to start your test retake.",
-                      duration: 8000,
-                    });
+                  onPaymentSuccess={async (data) => {
+                          console.log('💳 PayPal payment success:', data);
 
-                    // Invalidate queries to refresh data
-                    queryClient.invalidateQueries({ queryKey: ["/api/jobseeker/test-assignments"] });
-                    queryClient.invalidateQueries({ queryKey: [`/api/test-assignments/${params?.id}`] });
+                          // Show immediate confirmation
+                          toast({
+                            title: "Payment Received!",
+                            description: "Verifying payment and enabling retake access...",
+                            duration: 3000,
+                          });
 
-                    // Redirect to tests page instead of test page
-                    setTimeout(() => {
-                      setLocation(`/tests`);
-                    }, 3000);
-                  }}
+                          try {
+                            // Verify payment immediately
+                            const verifyResponse = await fetch('/api/payments/verify-paypal', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                orderId: data.orderID,
+                                serviceType: 'test_retake',
+                                serviceId: params?.id,
+                                amount: 500 // $5
+                              }),
+                              credentials: 'include'
+                            });
+
+                            const verifyData = await verifyResponse.json();
+
+                            if (verifyData.success && verifyData.accessGranted) {
+                              // Success - retake enabled
+                              toast({
+                                title: "Retake Enabled! ✅",
+                                description: "Your test retake is now available. Redirecting...",
+                                duration: 5000,
+                              });
+
+                              // Invalidate queries to refresh data
+                              queryClient.invalidateQueries({ queryKey: ["/api/jobseeker/test-assignments"] });
+                              queryClient.invalidateQueries({ queryKey: [`/api/test-assignments/${params?.id}`] });
+
+                              // Redirect to test page
+                              setTimeout(() => {
+                                setLocation(`/test-taking/${params?.id}`);
+                              }, 2000);
+                            } else {
+                              // Payment recorded but access not granted
+                              toast({
+                                title: "Payment Processing",
+                                description: "Payment received but retake access is being configured. Please check back in 1-2 hours or contact support.",
+                                variant: "default",
+                                duration: 10000,
+                              });
+
+                              setTimeout(() => {
+                                setLocation(`/tests`);
+                              }, 3000);
+                            }
+                          } catch (error: any) {
+                            console.error('Payment verification error:', error);
+                            toast({
+                              title: "Payment Received",
+                              description: "Payment confirmed but verification in progress. Please check back in 1-2 hours.",
+                              duration: 8000,
+                            });
+
+                            setTimeout(() => {
+                              setLocation(`/tests`);
+                            }, 3000);
+                          }
+                        }}
                   onPaymentError={(error) => {
                     toast({
                       title: "Payment Failed",
