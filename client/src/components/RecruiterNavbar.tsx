@@ -97,13 +97,8 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
       const theme = localStorage.getItem('theme');
       localStorage.clear();
       if (theme) localStorage.setItem('theme', theme);
-      // Show success message
-      toast({
-        title: "Logged out successfully",
-        description: "You have been logged out of your account.",
-      });
-      // Force redirect to home
-      window.location.href = '/';
+      // Force immediate page reload to auth page
+      window.location.replace('/auth');
     },
     onError: (error: any) => {
       toast({

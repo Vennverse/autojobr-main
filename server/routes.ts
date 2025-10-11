@@ -159,13 +159,15 @@ function hasSkillVariations(skill: string, text: string): boolean {
 
 // SECURITY FIX: Ensure all cache keys are properly scoped by user ID
 const ensureUserScopedKey = (key: string, userId?: string): string => {
+  // CRITICAL SECURITY: userId is REQUIRED for all cache operations
+  // We NEVER trust key patterns alone - attacker could provide malicious keys
   if (!userId) {
-    console.warn(`[CACHE_SECURITY] Cache key "${key}" used without user ID scoping`);
-    return key;
+    // ALWAYS throw when userId is missing - no exceptions
+    throw new Error(`[CACHE_SECURITY] CRITICAL: userId is REQUIRED for cache operations. Key: "${key}"`);
   }
 
-  // If key already contains user ID, return as is
-  if (key.includes(`_${userId}_`) || key.startsWith(`${userId}_`) || key.endsWith(`_${userId}`)) {
+  // If key already contains the EXACT user ID, return as is
+  if (key.includes(`_${userId}_`) || key.startsWith(`${userId}_`) || key.endsWith(`_${userId}`) || key.startsWith(`user_${userId}`)) {
     return key;
   }
 
@@ -536,7 +538,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('[PLATFORM JOBS] Request received');
 
     try {
+      // Get pagination parameters from pagination middleware
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const page = Math.floor(offset / limit) + 1;
+
       let jobPostings;
+      let totalCount = 0;
 
       // Check if user is authenticated
       const isAuth = req.isAuthenticated && req.isAuthenticated();
@@ -545,29 +553,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Recruiters get their own job postings, everyone else gets all active platform jobs
       if (user && (user.userType === 'recruiter' || user.currentRole === 'recruiter')) {
-        jobPostings = await storage.getRecruiterJobPostings(userId);
-        console.log(`[PLATFORM JOBS] Recruiter ${userId} has ${jobPostings.length} jobs`);
+        const allJobs = await storage.getRecruiterJobPostings(userId);
+        totalCount = allJobs.length;
+        jobPostings = allJobs.slice(offset, offset + limit);
+        console.log(`[PLATFORM JOBS] Recruiter ${userId} - page ${page}, ${jobPostings.length}/${totalCount} jobs`);
       } else {
         // Get all active job postings for everyone (logged in or not)
         const search = req.query.search as string;
         const category = req.query.category as string;
 
-        console.log(`[PLATFORM JOBS] Fetching - search: "${search}", category: "${category}"`);
+        console.log(`[PLATFORM JOBS] Fetching - search: "${search}", category: "${category}", page: ${page}, limit: ${limit}`);
 
         if (search || category) {
-          jobPostings = await storage.getJobPostings(1, 100, {
+          jobPostings = await storage.getJobPostings(page, limit, {
             search,
             category
           });
+          totalCount = jobPostings.length;
         } else {
-          jobPostings = await storage.getAllJobPostings();
+          const allJobs = await storage.getAllJobPostings();
+          totalCount = allJobs.length;
+          jobPostings = allJobs.slice(offset, offset + limit);
         }
         const userInfo = userId ? `authenticated ${userId}` : 'anonymous';
-        console.log(`[PLATFORM JOBS] ${userInfo} - Returning ${jobPostings.length} jobs`);
+        console.log(`[PLATFORM JOBS] ${userInfo} - page ${page}, ${jobPostings.length}/${totalCount} jobs`);
       }
 
-      console.log(`[PLATFORM JOBS] Sending ${jobPostings.length} jobs`);
+      console.log(`[PLATFORM JOBS] Sending ${jobPostings.length} jobs (page ${page} of ${Math.ceil(totalCount / limit)})`);
       res.setHeader('X-Job-Source', 'platform');
+      res.setHeader('X-Total-Count', totalCount.toString());
+      res.setHeader('X-Page', page.toString());
+      res.setHeader('X-Page-Size', limit.toString());
+      res.setHeader('X-Total-Pages', Math.ceil(totalCount / limit).toString());
+      res.setHeader('X-Has-More', (offset + limit < totalCount).toString());
+      // Keep the original API contract - return array directly
       res.json(jobPostings);
     } catch (error) {
       console.error('[PLATFORM JOBS ERROR]:', error);
@@ -4032,9 +4051,9 @@ Return only the cover letter text, no additional formatting or explanations.`;
   app.get('/api/profile', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const cacheKey = `profile_${userId}`;
+      const cacheKey = 'profile';
 
-      const cached = getCached(cacheKey);
+      const cached = getCached(cacheKey, userId);
       if (cached) {
         return res.json(cached);
       }
@@ -4061,8 +4080,8 @@ Return only the cover letter text, no additional formatting or explanations.`;
       const profileData = insertUserProfileSchema.parse(bodyData);
       const profile = await storage.upsertUserProfile(profileData);
 
-      cache.delete(`profile_${userId}`);
-      cache.delete(`recommendations_${userId}`);
+      // Invalidate user-specific cache properly
+      invalidateUserCache(userId);
 
       res.json(profile);
     } catch (error) {
@@ -4101,8 +4120,8 @@ Return only the cover letter text, no additional formatting or explanations.`;
         .set({ profileImageUrl: imageUrl })
         .where(eq(schema.users.id, userId));
 
-      // Clear cache
-      cache.delete(`profile_${userId}`);
+      // Clear cache properly
+      invalidateUserCache(userId);
 
       res.json({ 
         success: true, 

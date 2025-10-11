@@ -94,8 +94,8 @@ export function Navbar() {
       const theme = localStorage.getItem('theme');
       localStorage.clear();
       if (theme) localStorage.setItem('theme', theme);
-      // Force redirect to home
-      window.location.href = '/';
+      // Force immediate page reload to auth page
+      window.location.replace('/auth');
     },
     onError: (error: Error) => {
       toast({
