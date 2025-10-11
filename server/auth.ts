@@ -288,51 +288,62 @@ export async function setupAuth(app: Express) {
           return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        // CRITICAL: Generate and store session fingerprint
-        const userAgent = req.headers['user-agent'] || 'unknown';
-        const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
-        const sessionId = req.sessionID;
-
-        sessionFingerprints.set(sessionId, {
-          userAgent,
-          ipAddress,
-          createdAt: Date.now()
-        });
-
-        // Set session with complete user data
-        (req as any).session.user = {
-          id: user.id,
-          email: user.email,
-          name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-          firstName: user.firstName,
-          lastName: user.lastName,
-          userType: user.userType,
-          currentRole: user.currentRole || user.userType
-        };
-
-        // Track user session
-        trackUserSession(user.id, sessionId);
-
-        // Save session before responding with enhanced logging
-        (req as any).session.save((err: any) => {
-          if (err) {
-            console.error('❌ Session save error during login:', err);
-            sessionFingerprints.delete(sessionId);
-            removeUserSession(user.id, sessionId);
+        // CRITICAL: Regenerate session to prevent session reuse
+        const oldSessionId = req.sessionID;
+        (req as any).session.regenerate((regenerateErr: any) => {
+          if (regenerateErr) {
+            console.error('❌ Session regeneration failed:', regenerateErr);
             return res.status(500).json({ message: 'Login failed - session error' });
           }
 
-          console.log(`✅ Secure session created for user: ${user.email} (${user.userType}) - Session: ${sessionId.substring(0, 8)}...`);
+          const newSessionId = req.sessionID;
+          console.log(`🔄 [LOGIN] Session regenerated: ${oldSessionId.substring(0, 8)}... → ${newSessionId.substring(0, 8)}...`);
 
-          res.json({ 
-            message: "Login successful", 
-            user: {
-              id: user.id,
-              email: user.email,
-              name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-              userType: user.userType,
-              currentRole: user.currentRole || user.userType
+          // CRITICAL: Generate and store session fingerprint with NEW session ID
+          const userAgent = req.headers['user-agent'] || 'unknown';
+          const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+
+          sessionFingerprints.set(newSessionId, {
+            userAgent,
+            ipAddress,
+            createdAt: Date.now()
+          });
+
+          // Set session with complete user data
+          (req as any).session.user = {
+            id: user.id,
+            email: user.email,
+            name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+            firstName: user.firstName,
+            lastName: user.lastName,
+            userType: user.userType,
+            currentRole: user.currentRole || user.userType
+          };
+
+          // Track user session with NEW session ID
+          trackUserSession(user.id, newSessionId);
+
+          // Save session before responding with enhanced logging
+          (req as any).session.save((err: any) => {
+            if (err) {
+              console.error('❌ Session save error during login:', err);
+              sessionFingerprints.delete(newSessionId);
+              removeUserSession(user.id, newSessionId);
+              return res.status(500).json({ message: 'Login failed - session error' });
             }
+
+            console.log(`✅ Secure session created for user: ${user.email} (${user.userType}) - Session: ${newSessionId.substring(0, 8)}...`);
+
+            res.json({ 
+              message: "Login successful", 
+              user: {
+                id: user.id,
+                email: user.email,
+                name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+                userType: user.userType,
+                currentRole: user.currentRole || user.userType
+              }
+            });
           });
         });
       } catch (error) {
@@ -408,14 +419,25 @@ export async function setupAuth(app: Express) {
     }
   });
 
-  // Logout - ENTERPRISE-GRADE SECURITY
-  app.post('/api/auth/signout', (req: any, res) => {
+  // Logout - ENTERPRISE-GRADE SECURITY WITH COMPLETE CLEANUP
+  app.post('/api/auth/signout', async (req: any, res) => {
     const userId = req.session?.user?.id;
     const sessionId = req.sessionID;
 
     console.log(`🚪 [LOGOUT] User ${userId} logging out, session: ${sessionId}`);
 
-    // CRITICAL: Remove from session tracking FIRST
+    // CRITICAL: Clear route cache FIRST (synchronously)
+    if (userId) {
+      try {
+        const { invalidateUserCache } = await import('./routes.js');
+        invalidateUserCache(userId);
+        console.log(`✅ [LOGOUT] Route cache cleared for user: ${userId}`);
+      } catch (cacheError) {
+        console.error('❌ [LOGOUT] Route cache clear error:', cacheError);
+      }
+    }
+
+    // CRITICAL: Remove from session tracking and clear ALL caches
     if (userId && sessionId) {
       removeUserSession(userId, sessionId);
       
@@ -424,32 +446,24 @@ export async function setupAuth(app: Express) {
       allCacheKeys.forEach(key => {
         if (key.startsWith(`${userId}:`)) {
           userSessionCache.delete(key);
+          console.log(`🗑️ [LOGOUT] Deleted cache key: ${key}`);
         }
       });
+
+      // DEFENSIVE: Explicitly clear session fingerprint again
+      sessionFingerprints.delete(sessionId);
+      console.log(`✅ [LOGOUT] Session fingerprint cleared: ${sessionId}`);
     }
 
-    // CRITICAL: Destroy session
+    // CRITICAL: Destroy session and wait for completion
     req.session.destroy((err: any) => {
       if (err) {
         console.error('❌ [LOGOUT] Session destroy failed:', err);
-        // Still proceed with cleanup even if destroy fails
+        // Force manual cleanup even if destroy fails
+        delete (req as any).session;
       }
 
-      console.log(`✅ [LOGOUT] Session ${sessionId} destroyed and cleaned up`);
-
-      // Clear user-specific route cache
-      if (userId) {
-        try {
-          import('./routes.js').then(({ invalidateUserCache }) => {
-            invalidateUserCache(userId);
-            console.log(`✅ [LOGOUT] Route cache cleared for user: ${userId}`);
-          }).catch(cacheError => {
-            console.error('❌ [LOGOUT] Route cache clear error:', cacheError);
-          });
-        } catch (cacheError) {
-          console.error('❌ [LOGOUT] Route cache error:', cacheError);
-        }
-      }
+      console.log(`✅ [LOGOUT] Session ${sessionId} destroyed`);
 
       // CRITICAL: Clear ALL session cookies with multiple strategies
       const cookieNames = [
@@ -461,12 +475,13 @@ export async function setupAuth(app: Express) {
       const cookieSettings = [
         { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const },
         { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' as const },
-        { path: '/', httpOnly: true, secure: false, sameSite: 'lax' as const }
+        { path: '/', httpOnly: true, secure: false, sameSite: 'lax' as const },
+        { path: '/' }
       ];
 
       cookieNames.forEach(name => {
         cookieSettings.forEach(settings => {
-          res.clearCookie(name, { ...settings, maxAge: 0 });
+          res.clearCookie(name, settings);
         });
       });
 
@@ -478,7 +493,7 @@ export async function setupAuth(app: Express) {
         'Clear-Site-Data': '"cache", "cookies", "storage"'
       });
 
-      console.log(`✅ [LOGOUT] Complete session cleanup for: ${sessionId}`);
+      console.log(`✅ [LOGOUT] Complete cleanup for user: ${userId}, session: ${sessionId}`);
 
       res.json({ 
         message: "Logged out successfully",
@@ -486,7 +501,7 @@ export async function setupAuth(app: Express) {
         redirectTo: "/auth",
         clearCache: true,
         forceReload: true,
-        timestamp: Date.now() // Force unique response
+        timestamp: Date.now()
       });
     });
   });
@@ -504,7 +519,6 @@ export async function setupAuth(app: Express) {
     (req: any, res) => {
       console.log(`✅ Google OAuth successful for user: ${req.user?.email}`);
 
-      // CRITICAL FIX: Set session user BEFORE regeneration to prevent data loss
       const userData = {
         id: req.user.id,
         email: req.user.email,
@@ -515,26 +529,53 @@ export async function setupAuth(app: Express) {
         currentRole: req.user.currentRole || req.user.userType
       };
 
-      // Set session user data immediately
-      req.session.user = userData;
-
-      // Save session FIRST, then redirect
-      req.session.save((saveErr: any) => {
-        if (saveErr) {
-          console.error('❌ Session save error after Google OAuth:', saveErr);
-          return res.redirect('/auth?error=session_save_failed');
+      // CRITICAL: Regenerate session to prevent session reuse
+      const oldSessionId = req.sessionID;
+      req.session.regenerate((regenerateErr: any) => {
+        if (regenerateErr) {
+          console.error('❌ Session regeneration failed after Google OAuth:', regenerateErr);
+          return res.redirect('/auth?error=session_error');
         }
 
-        console.log(`✅ Google OAuth session saved successfully for user: ${req.user.email}`);
-        console.log(`📝 Session data:`, {
-          sessionId: req.sessionID,
-          userId: userData.id,
-          email: userData.email,
-          userType: userData.userType
+        const newSessionId = req.sessionID;
+        console.log(`🔄 [GOOGLE_OAUTH] Session regenerated: ${oldSessionId.substring(0, 8)}... → ${newSessionId.substring(0, 8)}...`);
+
+        // Generate and store session fingerprint with NEW session ID
+        const userAgent = req.headers['user-agent'] || 'unknown';
+        const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+
+        sessionFingerprints.set(newSessionId, {
+          userAgent,
+          ipAddress,
+          createdAt: Date.now()
         });
 
-        // Redirect to home page after successful login
-        res.redirect('/?auth=google_success');
+        // Set session user data with regenerated session
+        req.session.user = userData;
+
+        // Track user session with NEW session ID
+        trackUserSession(userData.id, newSessionId);
+
+        // Save session FIRST, then redirect
+        req.session.save((saveErr: any) => {
+          if (saveErr) {
+            console.error('❌ Session save error after Google OAuth:', saveErr);
+            sessionFingerprints.delete(newSessionId);
+            removeUserSession(userData.id, newSessionId);
+            return res.redirect('/auth?error=session_save_failed');
+          }
+
+          console.log(`✅ Google OAuth session saved successfully for user: ${req.user.email}`);
+          console.log(`📝 Session data:`, {
+            sessionId: newSessionId,
+            userId: userData.id,
+            email: userData.email,
+            userType: userData.userType
+          });
+
+          // Redirect to home page after successful login
+          res.redirect('/?auth=google_success');
+        });
       });
     }
   );
