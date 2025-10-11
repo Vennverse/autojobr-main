@@ -411,9 +411,13 @@ export async function setupAuth(app: Express) {
       // Clear user-specific cache
       if (userId) {
         try {
-          const { invalidateUserCache } = require('./routes');
-          invalidateUserCache(userId);
-          console.log(`✅ [LOGOUT] Cache cleared for user: ${userId}`);
+          // Dynamic import for cache invalidation
+          import('./routes.js').then(({ invalidateUserCache }) => {
+            invalidateUserCache(userId);
+            console.log(`✅ [LOGOUT] Cache cleared for user: ${userId}`);
+          }).catch(cacheError => {
+            console.error('❌ [LOGOUT] Cache clear error:', cacheError);
+          });
         } catch (cacheError) {
           console.error('❌ [LOGOUT] Cache clear error:', cacheError);
         }
