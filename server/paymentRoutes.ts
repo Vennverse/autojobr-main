@@ -32,8 +32,16 @@ router.post('/verify-paypal', isAuthenticated, async (req: any, res) => {
       return res.status(400).json({ message: 'Invalid service type' });
     }
 
+    // CRITICAL: Require serviceId for test retakes
+    if (serviceType === 'test_retake' && !serviceId) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Test assignment ID required for retake payment' 
+      });
+    }
+
     // Record the payment with serviceId
-    const success = await paymentVerificationService.recordPayPalPayment({
+    const paymentRecorded = await paymentVerificationService.recordPayPalPayment({
       userId,
       serviceType,
       amount: parseFloat(amount.toString()),
@@ -42,23 +50,32 @@ router.post('/verify-paypal', isAuthenticated, async (req: any, res) => {
       serviceId
     });
 
-    if (success) {
-      // Grant service access with serviceId (critical for test retakes)
-      await paymentVerificationService.grantServiceAccess(userId, serviceType, serviceId);
-
-      res.json({
-        success: true,
-        message: `Payment verified for ${serviceType}`,
-        serviceType,
-        amount,
-        accessGranted: true
-      });
-    } else {
-      res.status(500).json({
+    if (!paymentRecorded) {
+      return res.status(500).json({
         success: false,
         message: 'Failed to record payment'
       });
     }
+
+    // CRITICAL: Grant service access and check if it succeeded
+    const accessGranted = await paymentVerificationService.grantServiceAccess(userId, serviceType, serviceId);
+
+    if (!accessGranted) {
+      return res.status(422).json({
+        success: false,
+        message: 'Payment recorded but failed to enable service access. Please contact support.',
+        paymentRecorded: true,
+        accessGranted: false
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Payment verified for ${serviceType}`,
+      serviceType,
+      amount,
+      accessGranted: true
+    });
   } catch (error) {
     console.error('PayPal verification error:', error);
     res.status(500).json({
