@@ -901,30 +901,120 @@ export class TestService {
     jobProfile?: string,
     includeExtreme: boolean = false
   ): Promise<TestQuestion[]> {
+    const { questionBankService } = await import('./questionBankService.js');
     const questions: TestQuestion[] = [];
     let questionId = 1;
 
+    console.log(`🎯 Generating questions from DATABASE: Aptitude=${aptitudeCount}, English=${englishCount}, Domain=${domainCount}, Profile=${jobProfile}, Extreme=${includeExtreme}`);
+
+    try {
+      // Get aptitude questions from DATABASE (no duplicates!)
+      const aptitudeQuestions = await questionBankService.getQuestionsByCategory(
+        'general_aptitude',
+        [],
+        includeExtreme ? ['easy', 'medium', 'hard', 'extreme'] : ['easy', 'medium', 'hard'],
+        aptitudeCount
+      );
+      console.log(`✅ Fetched ${aptitudeQuestions.length} aptitude questions from database`);
+      aptitudeQuestions.forEach(q => {
+        questions.push({ 
+          id: `q${questionId++}`, 
+          type: 'multiple_choice' as const,
+          question: q.question,
+          options: q.options || [],
+          correctAnswer: q.correctAnswer,
+          points: 1,
+          explanation: q.explanation
+        });
+      });
+
+      // Get English questions from DATABASE (no duplicates!)
+      const englishQuestions = await questionBankService.getQuestionsByCategory(
+        'english',
+        [],
+        includeExtreme ? ['easy', 'medium', 'hard', 'extreme'] : ['easy', 'medium', 'hard'],
+        englishCount
+      );
+      console.log(`✅ Fetched ${englishQuestions.length} English questions from database`);
+      englishQuestions.forEach(q => {
+        questions.push({ 
+          id: `q${questionId++}`, 
+          type: 'multiple_choice' as const,
+          question: q.question,
+          options: q.options || [],
+          correctAnswer: q.correctAnswer,
+          points: 1,
+          explanation: q.explanation
+        });
+      });
+
+      // Get domain-specific questions from DATABASE based on job profile
+      const domainTags = this.getDomainTagsForProfile(jobProfile || 'software_engineer');
+      const domainQuestions = await questionBankService.getQuestionsByCategory(
+        'domain_specific',
+        domainTags,
+        includeExtreme ? ['medium', 'hard', 'extreme'] : ['medium', 'hard'],
+        domainCount
+      );
+      console.log(`✅ Fetched ${domainQuestions.length} domain questions from database for ${jobProfile}`);
+      domainQuestions.forEach(q => {
+        questions.push({ 
+          id: `q${questionId++}`, 
+          type: 'multiple_choice' as const,
+          question: q.question,
+          options: q.options || [],
+          correctAnswer: q.correctAnswer,
+          points: 1,
+          explanation: q.explanation
+        });
+      });
+
+      // Shuffle questions to randomize order
+      for (let i = questions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [questions[i], questions[j]] = [questions[j], questions[i]];
+      }
+
+      console.log(`✅ Generated ${questions.length} UNIQUE MCQ questions from DATABASE for template ${templateId}`);
+      return questions;
+    } catch (error) {
+      console.error('❌ Error generating questions from database:', error);
+      console.log('⚠️ Falling back to hardcoded questions...');
+      
+      // Fallback to hardcoded questions if database fails
+      return this.generateQuestionsFromBankFallback(templateId, aptitudeCount, englishCount, domainCount, jobProfile, includeExtreme);
+    }
+  }
+
+  // Fallback method using hardcoded questions (only if database fails)
+  private generateQuestionsFromBankFallback(
+    templateId: number,
+    aptitudeCount: number,
+    englishCount: number,
+    domainCount: number,
+    jobProfile?: string,
+    includeExtreme: boolean = false
+  ): TestQuestion[] {
+    const questions: TestQuestion[] = [];
+    let questionId = 1;
+
+    console.warn('⚠️ Using FALLBACK hardcoded questions - this may cause duplicates');
+
     // Get aptitude questions (with controlled repetition to meet quota)
     const allAptitude = this.getAptitudeQuestions().filter(q => q.type === 'multiple_choice');
-    if (allAptitude.length < aptitudeCount) {
-      console.log(`⚠️ Aptitude pool (${allAptitude.length}) < requested (${aptitudeCount}). Using repetition.`);
-    }
     for (let i = 0; i < aptitudeCount; i++) {
       const sourceQuestion = allAptitude[i % allAptitude.length];
-      questions.push({ ...sourceQuestion, id: `q${questionId++}`, points: 1 }); // Standardized to 1 point
+      questions.push({ ...sourceQuestion, id: `q${questionId++}`, points: 1 });
     }
 
     // Get English questions (with controlled repetition to meet quota)
     const allEnglish = this.getEnglishQuestions().filter(q => q.type === 'multiple_choice');
-    if (allEnglish.length < englishCount) {
-      console.log(`⚠️ English pool (${allEnglish.length}) < requested (${englishCount}). Using repetition.`);
-    }
     for (let i = 0; i < englishCount; i++) {
       const sourceQuestion = allEnglish[i % allEnglish.length];
-      questions.push({ ...sourceQuestion, id: `q${questionId++}`, points: 1 }); // Standardized to 1 point
+      questions.push({ ...sourceQuestion, id: `q${questionId++}`, points: 1 });
     }
 
-    // Get domain-specific questions based on job profile
+    // Get domain questions
     let domainQuestions: TestQuestion[] = [];
     switch (jobProfile) {
       case 'software_engineer':
@@ -932,15 +1022,8 @@ export class TestService {
         domainQuestions = [
           ...this.getJavaScriptQuestions(),
           ...this.getReactQuestions(),
-          ...this.getPythonQuestions(),
-          ...this.getSystemDesignQuestions()
+          ...this.getPythonQuestions()
         ].filter(q => q.type === 'multiple_choice');
-        break;
-      case 'devops_engineer':
-        domainQuestions = this.getDevOpsQuestions().filter(q => q.type === 'multiple_choice');
-        if (domainQuestions.length === 0) {
-          domainQuestions = this.getSystemDesignQuestions().filter(q => q.type === 'multiple_choice');
-        }
         break;
       case 'data_scientist':
         domainQuestions = [
@@ -949,36 +1032,36 @@ export class TestService {
         ].filter(q => q.type === 'multiple_choice');
         break;
       default:
-        // Generic technical questions
-        domainQuestions = [
-          ...this.getJavaScriptQuestions(),
-          ...this.getSystemDesignQuestions()
-        ].filter(q => q.type === 'multiple_choice');
+        domainQuestions = this.getJavaScriptQuestions().filter(q => q.type === 'multiple_choice');
     }
 
-    // Add domain questions (with controlled repetition to meet quota)
-    if (domainQuestions.length === 0) {
-      console.log(`⚠️ No domain MCQ questions found for ${jobProfile}. Using generic technical questions.`);
-      domainQuestions = [...this.getJavaScriptQuestions(), ...this.getSystemDesignQuestions()].filter(q => q.type === 'multiple_choice');
-    }
-    
-    if (domainQuestions.length < domainCount) {
-      console.log(`⚠️ Domain pool (${domainQuestions.length}) < requested (${domainCount}). Using repetition.`);
-    }
-    
     for (let i = 0; i < domainCount && domainQuestions.length > 0; i++) {
       const sourceQuestion = domainQuestions[i % domainQuestions.length];
-      questions.push({ ...sourceQuestion, id: `q${questionId++}`, points: 1 }); // Standardized to 1 point
+      questions.push({ ...sourceQuestion, id: `q${questionId++}`, points: 1 });
     }
 
-    // Shuffle questions to randomize order
+    // Shuffle
     for (let i = questions.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [questions[i], questions[j]] = [questions[j], questions[i]];
     }
 
-    console.log(`Generated ${questions.length} MCQ questions for template ${templateId} - All questions worth 1 point each`);
     return questions;
+  }
+
+  // Helper to get domain tags for job profile
+  private getDomainTagsForProfile(jobProfile: string): string[] {
+    const tagMap: Record<string, string[]> = {
+      'software_engineer': ['javascript', 'python', 'algorithms', 'data-structures', 'system-design'],
+      'fullstack_developer': ['javascript', 'react', 'node', 'sql', 'api-design'],
+      'data_scientist': ['python', 'machine-learning', 'statistics', 'data-analysis'],
+      'devops_engineer': ['docker', 'kubernetes', 'ci-cd', 'cloud', 'infrastructure'],
+      'finance': ['finance', 'accounting', 'valuation', 'investment-banking'],
+      'marketing': ['digital-marketing', 'seo', 'analytics', 'social-media'],
+      'sales': ['sales', 'b2b', 'negotiation', 'crm']
+    };
+    
+    return tagMap[jobProfile] || tagMap['software_engineer'];
   }
 
   // Method to complete a test assignment

@@ -1354,6 +1354,7 @@ export const testAssignments = pgTable("test_assignments", {
   completedAt: timestamp("completed_at"),
   score: integer("score"), // percentage (0-100)
   answers: jsonb("answers"), // user's answers
+  questions: jsonb("questions"), // CRITICAL: Store questions to prevent regeneration and ensure correct scoring
   timeSpent: integer("time_spent"), // in seconds
 
   // Retake system

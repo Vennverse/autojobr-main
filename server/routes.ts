@@ -982,6 +982,13 @@ Return only the improved job description text, no additional formatting or expla
         return res.status(403).json({ message: 'Access denied' });
       }
 
+      // CRITICAL FIX: Check if questions are already stored in assignment
+      // This prevents regenerating questions (which would create duplicates and wrong scoring)
+      if (assignment.questions && Array.isArray(assignment.questions) && assignment.questions.length > 0) {
+        console.log(`[TEST QUESTIONS] Using stored questions for assignment ${assignmentId}: ${assignment.questions.length} questions`);
+        return res.json(assignment.questions);
+      }
+
       // Fetch template to check question bank setting
       let questions: any[] = [];
 
@@ -999,6 +1006,12 @@ Return only the improved job description text, no additional formatting or expla
             template.jobProfile || 'software_engineer',
             template.includeExtremeQuestions || false
           );
+          
+          // CRITICAL FIX: Store generated questions in assignment to prevent regeneration
+          await storage.updateTestAssignment(assignmentId, {
+            questions: questions
+          });
+          console.log(`[TEST QUESTIONS] Stored ${questions.length} questions in assignment ${assignmentId}`);
         } else {
           // Use stored questions from template only if not using question bank
           questions = template?.questions || assignment.testTemplate?.questions || [];
@@ -1039,14 +1052,20 @@ Return only the improved job description text, no additional formatting or expla
         return res.status(403).json({ message: 'Access denied' });
       }
 
-      // Get questions for scoring (same logic as questions endpoint)
+      // CRITICAL FIX: Get questions for scoring from assignment (same questions user saw)
+      // NEVER regenerate questions during submit - this causes wrong scoring!
       let questions: any[] = [];
 
-      if (assignment.testTemplateId) {
+      if (assignment.questions && Array.isArray(assignment.questions) && assignment.questions.length > 0) {
+        questions = assignment.questions;
+        console.log(`📚 [TEST SUBMIT] Using STORED questions from assignment - Count: ${questions.length}`);
+      } else if (assignment.testTemplateId) {
         const template = await storage.getTestTemplate(assignment.testTemplateId);
         console.log(`📝 [TEST SUBMIT] Template fetched - ID: ${template?.id}, UseQuestionBank: ${template?.useQuestionBank}`);
 
         if (template?.useQuestionBank) {
+          console.error(`❌ [TEST SUBMIT] ERROR: Questions should have been stored in assignment but weren't found!`);
+          // Emergency fallback - but this shouldn't happen
           questions = await testService.generateQuestionsFromBank(
             template.id,
             template.aptitudeQuestions || 0,
@@ -1055,7 +1074,7 @@ Return only the improved job description text, no additional formatting or expla
             template.jobProfile || 'software_engineer',
             template.includeExtremeQuestions || false
           );
-          console.log(`🎲 [TEST SUBMIT] Generated ${questions.length} questions from bank`);
+          console.log(`⚠️ [TEST SUBMIT] Emergency regenerated ${questions.length} questions from bank`);
         } else {
           questions = template?.questions || assignment.testTemplate?.questions || [];
           console.log(`📚 [TEST SUBMIT] Using template questions - Count: ${questions.length}`);
