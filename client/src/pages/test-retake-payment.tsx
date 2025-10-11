@@ -206,19 +206,19 @@ export default function TestRetakePayment() {
             </CardHeader>
             <CardContent>
               <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Why Retake?</h4>
+                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Why Consider a Retake?</h4>
                 <ul className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
                   <li className="flex items-start gap-2">
                     <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <span>Technical issues or distractions during your test</span>
+                    <span>Experienced technical issues or distractions during your test?</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <span>Feel you didn't perform at your best</span>
+                    <span>Feel your performance didn't reflect your true abilities?</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <span>Want to improve your chances with a fresh attempt</span>
+                    <span>Want another chance to showcase your skills?</span>
                   </li>
                 </ul>
               </div>
@@ -235,7 +235,7 @@ export default function TestRetakePayment() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-blue-800 dark:text-blue-200">
-                Your test performance doesn't define your abilities. Sometimes external factors, technical issues, or simply having an off day can impact your results. A retake gives you the opportunity to demonstrate your true skills.
+                Sometimes external factors, technical issues, or an off day can impact test performance. A retake gives you a fresh opportunity to demonstrate your true capabilities and shine.
               </p>
 
               <div className="grid grid-cols-2 gap-4">
@@ -243,15 +243,15 @@ export default function TestRetakePayment() {
                   <Brain className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
                   <div>
                     <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm">Fresh Questions</h4>
-                    <p className="text-xs text-blue-700 dark:text-blue-300">New questions testing the same skills with different scenarios</p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">Completely new questions testing the same skills</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
                   <Target className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
                   <div>
-                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm">Prove Your Worth</h4>
-                    <p className="text-xs text-blue-700 dark:text-blue-300">Show recruiters your commitment and determination</p>
+                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm">Second Chance</h4>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">Show your true potential without previous constraints</p>
                   </div>
                 </div>
 
@@ -259,22 +259,22 @@ export default function TestRetakePayment() {
                   <Star className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
                   <div>
                     <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm">Stand Out</h4>
-                    <p className="text-xs text-blue-700 dark:text-blue-300">Demonstrate initiative and growth mindset</p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">Demonstrate resilience and commitment to excellence</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
                   <Users className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
                   <div>
-                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm">High Success Rate</h4>
-                    <p className="text-xs text-blue-700 dark:text-blue-300">73% of candidates who retake achieve better results</p>
+                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm">Fair Opportunity</h4>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">Everyone deserves a chance to perform at their best</p>
                   </div>
                 </div>
               </div>
 
               <div className="bg-white/60 dark:bg-gray-900/60 p-3 rounded-lg">
                 <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
-                  💡 <strong>Success Story:</strong> "I had technical issues during my first attempt. The retake gave me the chance to show my actual skills, and I passed with flying colors!" - Sarah K., Software Engineer
+                  💡 <strong>Success Story:</strong> "My internet crashed during the first attempt. The retake option was a lifesaver - I could finally show what I'm capable of!" - Sarah K., Software Engineer
                 </p>
               </div>
             </CardContent>
