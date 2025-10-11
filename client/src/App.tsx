@@ -125,19 +125,19 @@ function Router() {
       // Clear all cached data if user is not authenticated
       const protectedRoutes = ['/dashboard', '/profile', '/applications', '/jobs', '/resumes', '/recruiter'];
       const isProtectedRoute = protectedRoutes.some(route => location.startsWith(route));
-      
+
       if (isProtectedRoute) {
         console.log('🚨 [SECURITY] Unauthenticated access detected - full cleanup initiated');
-        
+
         // CRITICAL: Clear ALL browser state
         queryClient.clear();
         sessionStorage.clear();
-        
+
         // Clear localStorage but preserve theme
         const theme = localStorage.getItem('theme');
         localStorage.clear();
         if (theme) localStorage.setItem('theme', theme);
-        
+
         // Force hard redirect to clear any lingering state
         window.location.href = '/auth?reason=session_expired&t=' + Date.now();
       }
@@ -147,7 +147,7 @@ function Router() {
     if (isAuthenticated && user) {
       const currentUserId = user.id;
       const cachedUserId = sessionStorage.getItem('current_user_id');
-      
+
       // Check for session mismatch (potential security issue)
       if (cachedUserId && cachedUserId !== currentUserId) {
         console.error('🚨 [SECURITY] User ID mismatch detected - forcing logout');
@@ -157,7 +157,7 @@ function Router() {
         window.location.href = '/auth?reason=security_violation&t=' + Date.now();
         return;
       }
-      
+
       // Store current user ID for validation
       sessionStorage.setItem('current_user_id', currentUserId);
     }
