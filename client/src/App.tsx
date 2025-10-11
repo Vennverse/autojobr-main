@@ -115,6 +115,24 @@ import { lazy } from "react";
 
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const [location] = useLocation();
+  const queryClient = useQueryClient();
+
+  // SECURITY: Check authentication state and redirect if needed
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      // Clear all cached data if user is not authenticated
+      const protectedRoutes = ['/dashboard', '/profile', '/applications', '/jobs', '/resumes', '/recruiter'];
+      const isProtectedRoute = protectedRoutes.some(route => location.startsWith(route));
+      
+      if (isProtectedRoute) {
+        console.log('🚨 [ROUTER] Unauthenticated access to protected route - clearing state and redirecting');
+        queryClient.clear();
+        sessionStorage.clear();
+        window.location.replace('/auth');
+      }
+    }
+  }, [isAuthenticated, isLoading, location, queryClient]);
 
   if (isLoading) {
     return (

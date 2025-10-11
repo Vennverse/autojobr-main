@@ -70,7 +70,7 @@ export function Navbar() {
   // Logout mutation - CRITICAL SECURITY FIX
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      console.log('🚪 [CLIENT] Starting logout...');
+      console.log('🚪 [NAVBAR] Starting logout...');
 
       const response = await fetch('/api/auth/signout', {
         method: 'POST',
@@ -87,7 +87,7 @@ export function Navbar() {
       return await response.json();
     },
     onSuccess: (data) => {
-      console.log('✅ [CLIENT] Logout successful, clearing all state...');
+      console.log('✅ [NAVBAR] Logout successful, clearing all state...');
 
       // CRITICAL: Clear ALL cached data immediately
       queryClient.clear();
@@ -100,19 +100,21 @@ export function Navbar() {
       localStorage.clear();
       if (theme) localStorage.setItem('theme', theme);
 
-      console.log('✅ [CLIENT] All state cleared');
+      console.log('✅ [NAVBAR] All state cleared');
 
-      // CRITICAL: Force immediate page reload to auth page
-      // This prevents any stale UI from showing
+      // CRITICAL: Force immediate page reload to auth page (prevents any cached UI from showing)
       window.location.replace('/auth');
     },
     onError: (error: any) => {
-      console.error('❌ [CLIENT] Logout error:', error);
+      console.error('❌ [NAVBAR] Logout error:', error);
 
       // Even on error, clear everything for security
       queryClient.clear();
       sessionStorage.clear();
+
+      const theme = localStorage.getItem('theme');
       localStorage.clear();
+      if (theme) localStorage.setItem('theme', theme);
 
       toast({
         title: "Logout failed",
@@ -122,7 +124,7 @@ export function Navbar() {
 
       // Force redirect anyway
       window.location.replace('/auth');
-    }
+    },
   });
 
   const getPlanBadge = (planType: string) => {

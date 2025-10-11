@@ -423,27 +423,32 @@ export async function setupAuth(app: Express) {
         }
       }
       
-      // CRITICAL: Clear all session cookies with all possible attributes
-      const cookieOptions = {
-        path: '/',
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax' as const,
-        maxAge: 0 // Expire immediately
-      };
+      // CRITICAL: Clear ALL possible session cookies
+      const cookieOptions = [
+        { name: 'autojobr.session', options: { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const, maxAge: 0 }},
+        { name: 'autojobr.sid', options: { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const, maxAge: 0 }},
+        { name: 'connect.sid', options: { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const, maxAge: 0 }},
+        { name: 'connect.sid', options: { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' as const, maxAge: 0 }},
+      ];
       
-      res.clearCookie('autojobr.session', cookieOptions);
-      res.clearCookie('autojobr.sid', cookieOptions);
-      res.clearCookie('connect.sid', cookieOptions);
+      cookieOptions.forEach(({ name, options }) => {
+        res.clearCookie(name, options);
+      });
+      
+      // Set headers to prevent caching
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       
       console.log(`✅ [LOGOUT] All cookies cleared for session: ${sessionId}`);
       
-      // CRITICAL: Tell client to clear all state
+      // CRITICAL: Tell client to clear all state and force immediate redirect
       res.json({ 
         message: "Logged out successfully",
+        logout: true,
         redirectTo: "/auth",
-        clearCache: true, // Signal client to clear everything
-        forceReload: true // Signal client to force reload
+        clearCache: true,
+        forceReload: true
       });
     });
   });
