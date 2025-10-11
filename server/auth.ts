@@ -13,6 +13,7 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import pg from "pg";
 import jwt from "jsonwebtoken";
+import { randomBytes } from "crypto";
 // UserRoleService removed - role detection is now inline
 // Simple auth configuration
 const authConfig = {
@@ -82,10 +83,14 @@ export async function setupAuth(app: Express) {
       httpOnly: true,
       maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year for persistent auth
       sameSite: isProduction ? 'strict' : 'lax', // Stricter in production
-      domain: isProduction ? undefined : undefined, // Let browser handle domain
+      domain: undefined, // CRITICAL: Never set domain - let browser handle it
     },
     name: 'autojobr.session', // Consistent session name
-    proxy: true // Trust proxy for production deployments
+    proxy: true, // Trust proxy for production deployments
+    genid: (req) => {
+      // Generate cryptographically secure session IDs to prevent collisions
+      return randomBytes(32).toString('hex');
+    }
   }));
   console.log('✅ Session middleware configured successfully with PostgreSQL store for multi-instance support');
 
@@ -1861,6 +1866,16 @@ export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
       });
     }
 
+    // CRITICAL: Verify session data integrity - check if session user ID matches
+    // This prevents session fixation attacks where an attacker sets a victim's session ID
+    if (!sessionUser.id || typeof sessionUser.id !== 'string') {
+      console.log(`🚨 [AUTH] Invalid session user ID format - destroying session ${sessionId.substring(0, 8)}...`);
+      req.session.destroy(() => {
+        sessionFingerprints.delete(sessionId);
+      });
+      return res.status(401).json({ message: "Invalid session data" });
+    }
+
     // CRITICAL: Check cache with session binding
     const cacheKey = `${sessionUser.id}:${sessionId}`;
     const cached = userSessionCache.get(cacheKey);
@@ -1868,8 +1883,15 @@ export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
 
     if (cached && (now - cached.lastCheck) < USER_CACHE_TTL && cached.sessionId === sessionId) {
       // Cached data is valid and bound to current session
-      req.user = cached.user;
-      return next();
+      // DOUBLE CHECK: Verify cached user matches session user
+      if (cached.user.id !== sessionUser.id) {
+        console.log(`🚨 [AUTH] CRITICAL: Cache user mismatch! Session: ${sessionUser.id}, Cached: ${cached.user.id}`);
+        userSessionCache.delete(cacheKey);
+        // Continue to fetch from DB instead of using corrupted cache
+      } else {
+        req.user = cached.user;
+        return next();
+      }
     }
 
     // Fetch fresh data from database
@@ -1881,6 +1903,15 @@ export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
         removeUserSession(sessionUser.id, sessionId);
       });
       return res.status(401).json({ message: "User not found" });
+    }
+
+    // TRIPLE CHECK: Ensure DB user matches session user
+    if (currentUser.id !== sessionUser.id) {
+      console.log(`🚨 [AUTH] CRITICAL: DB user mismatch! Session: ${sessionUser.id}, DB: ${currentUser.id}`);
+      req.session.destroy(() => {
+        removeUserSession(sessionUser.id, sessionId);
+      });
+      return res.status(401).json({ message: "Session data corruption detected" });
     }
 
     // Build ISOLATED user object
