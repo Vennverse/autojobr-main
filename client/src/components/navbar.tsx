@@ -102,8 +102,9 @@ export function Navbar() {
 
       console.log('✅ [NAVBAR] All state cleared');
 
-      // CRITICAL: Force immediate page reload to auth page (prevents any cached UI from showing)
-      window.location.replace('/auth');
+      // CRITICAL: Force hard refresh to clear browser cache
+      // Using href instead of replace to trigger full page reload
+      window.location.href = '/auth?t=' + Date.now();
     },
     onError: (error: any) => {
       console.error('❌ [NAVBAR] Logout error:', error);

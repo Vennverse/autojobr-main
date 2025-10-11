@@ -51,13 +51,21 @@ export const strictRateLimiter = rateLimit({
 
 // Response optimization middleware - FIXED for security and performance
 export const responseOptimizationMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  // Set security headers only
+  // Set security headers
   res.set({
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'X-XSS-Protection': '1; mode=block',
-    // No forced Cache-Control - let each endpoint control its caching
   });
+
+  // CRITICAL: Prevent caching of authenticated endpoints
+  if ((req as any).user || req.path.startsWith('/api/recruiter') || req.path.startsWith('/api/user')) {
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+  }
 
   // Only add metadata to non-sensitive endpoints
   if (req.path.startsWith('/api/public/')) {

@@ -75,7 +75,7 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
   const logoutMutation = useMutation({
     mutationFn: async () => {
       console.log('🚪 [RECRUITER] Starting logout...');
-      
+
       const response = await fetch('/api/auth/signout', {
         method: 'POST',
         headers: {
@@ -83,48 +83,49 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
         },
         credentials: 'include',
       });
-      
+
       if (!response.ok) {
         throw new Error('Logout failed');
       }
-      
+
       return await response.json();
     },
     onSuccess: (data) => {
       console.log('✅ [RECRUITER] Logout successful, clearing all state...');
-      
-      // CRITICAL: Clear ALL cached data immediately
+
+      // CRITICAL: Clear ALL cached data
       queryClient.clear();
-      
+
       // CRITICAL: Clear all browser storage
       sessionStorage.clear();
-      
+
       // Clear local storage but preserve theme
       const theme = localStorage.getItem('theme');
       localStorage.clear();
       if (theme) localStorage.setItem('theme', theme);
-      
+
       console.log('✅ [RECRUITER] All state cleared');
-      
-      // CRITICAL: Force immediate page reload to auth page
-      window.location.replace('/auth');
+
+      // CRITICAL: Force hard refresh to clear browser cache
+      // Using href instead of replace to trigger full page reload
+      window.location.href = '/auth?t=' + Date.now();
     },
     onError: (error: any) => {
       console.error('❌ [RECRUITER] Logout error:', error);
-      
+
       // Even on error, clear everything for security
       queryClient.clear();
       sessionStorage.clear();
       localStorage.clear();
-      
+
       toast({
         title: "Logout failed",
         description: error.message || "Failed to logout properly",
         variant: "destructive",
       });
-      
+
       // Force redirect anyway
-      window.location.replace('/auth');
+      window.location.href = '/auth?t=' + Date.now();
     }
   });
 
@@ -206,7 +207,7 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
                 {navigationItems.map((item) => {
                   const Icon = item.icon;
                   const canAccess = canAccessFeature(item.premium || false);
-                  
+
                   return (
                     <Link
                       key={item.name}
@@ -237,7 +238,7 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
 
             {/* Right side */}
             <div className="hidden md:ml-6 md:flex md:items-center md:space-x-3">
-              
+
               {/* Upgrade Button for Free Users */}
               {user?.planType === 'free' && (
                 <Link href="/recruiter/premium">
@@ -247,7 +248,7 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
                   </Button>
                 </Link>
               )}
-              
+
               {/* User Profile Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -348,7 +349,7 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
               {navigationItems.map((item) => {
                 const Icon = item.icon;
                 const canAccess = canAccessFeature(item.premium || false);
-                
+
                 return (
                   <Link
                     key={item.name}
@@ -375,7 +376,7 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
                   </Link>
                 );
               })}
-              
+
               {/* Mobile User Info */}
               <div className="mt-6 px-3 py-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-center space-x-3 mb-3">
