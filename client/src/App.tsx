@@ -119,7 +119,7 @@ function Router() {
   const [location] = useLocation();
   const queryClient = useQueryClient();
 
-  // SECURITY: Check authentication state and redirect if needed
+  // ENTERPRISE-GRADE: Client-side security and session validation
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       // Clear all cached data if user is not authenticated
@@ -127,13 +127,41 @@ function Router() {
       const isProtectedRoute = protectedRoutes.some(route => location.startsWith(route));
       
       if (isProtectedRoute) {
-        console.log('🚨 [ROUTER] Unauthenticated access to protected route - clearing state and redirecting');
+        console.log('🚨 [SECURITY] Unauthenticated access detected - full cleanup initiated');
+        
+        // CRITICAL: Clear ALL browser state
         queryClient.clear();
         sessionStorage.clear();
-        window.location.replace('/auth');
+        
+        // Clear localStorage but preserve theme
+        const theme = localStorage.getItem('theme');
+        localStorage.clear();
+        if (theme) localStorage.setItem('theme', theme);
+        
+        // Force hard redirect to clear any lingering state
+        window.location.href = '/auth?reason=session_expired&t=' + Date.now();
       }
     }
-  }, [isAuthenticated, isLoading, location, queryClient]);
+
+    // CRITICAL: Validate user data integrity on every auth state change
+    if (isAuthenticated && user) {
+      const currentUserId = user.id;
+      const cachedUserId = sessionStorage.getItem('current_user_id');
+      
+      // Check for session mismatch (potential security issue)
+      if (cachedUserId && cachedUserId !== currentUserId) {
+        console.error('🚨 [SECURITY] User ID mismatch detected - forcing logout');
+        queryClient.clear();
+        sessionStorage.clear();
+        localStorage.clear();
+        window.location.href = '/auth?reason=security_violation&t=' + Date.now();
+        return;
+      }
+      
+      // Store current user ID for validation
+      sessionStorage.setItem('current_user_id', currentUserId);
+    }
+  }, [isAuthenticated, isLoading, location, queryClient, user]);
 
   if (isLoading) {
     return (

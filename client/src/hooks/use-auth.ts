@@ -26,12 +26,29 @@ export function useAuth() {
   } = useQuery<User | undefined, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    staleTime: 0, // Always fetch fresh for security
+    refetchOnWindowFocus: true, // Revalidate on focus
+    refetchOnMount: true, // Always revalidate on mount
   });
+
+  // CRITICAL: Validate session integrity
+  const isAuthenticated = !!user;
+  
+  if (isAuthenticated && user) {
+    const storedUserId = sessionStorage.getItem('current_user_id');
+    
+    // Session mismatch detection
+    if (storedUserId && storedUserId !== user.id) {
+      console.error('🚨 [AUTH] Session ID mismatch - potential security issue');
+      sessionStorage.clear();
+      window.location.href = '/auth?reason=session_invalid';
+    }
+  }
 
   return {
     user: user ?? null,
     isLoading,
     error,
-    isAuthenticated: !!user,
+    isAuthenticated,
   };
 }

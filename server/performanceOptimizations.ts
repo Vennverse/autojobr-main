@@ -49,37 +49,43 @@ export const strictRateLimiter = rateLimit({
   validate: false, // Skip validation warnings
 });
 
-// Response optimization middleware - FIXED for security and performance
+// Response optimization middleware - ENTERPRISE-GRADE SECURITY
 export const responseOptimizationMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  // Set security headers
+  // CRITICAL: Security headers for all responses
   res.set({
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'X-XSS-Protection': '1; mode=block',
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+    'X-Permitted-Cross-Domain-Policies': 'none',
+    'Referrer-Policy': 'strict-origin-when-cross-origin'
   });
 
-  // CRITICAL: Prevent caching of authenticated endpoints
-  if ((req as any).user || req.path.startsWith('/api/recruiter') || req.path.startsWith('/api/user')) {
+  // CRITICAL: Prevent caching of ALL authenticated endpoints
+  const isAuthRequired = (req as any).user || 
+    req.path.startsWith('/api/recruiter') || 
+    req.path.startsWith('/api/user') ||
+    req.path.startsWith('/api/applications') ||
+    req.path.startsWith('/api/resumes') ||
+    req.path.startsWith('/api/profile') ||
+    req.path.startsWith('/api/chat') ||
+    req.path.startsWith('/api/job-posting') ||
+    req.path.includes('/dashboard');
+
+  if (isAuthRequired) {
     res.set({
-      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private, max-age=0',
       'Pragma': 'no-cache',
-      'Expires': '0'
+      'Expires': '0',
+      'Vary': 'Cookie, Authorization' // Prevent shared cache
     });
   }
 
-  // Only add metadata to non-sensitive endpoints
-  if (req.path.startsWith('/api/public/')) {
-    const originalJson = res.json;
-    res.json = function(obj) {
-      if (obj && typeof obj === 'object' && !obj.metadata) {
-        obj.metadata = {
-          timestamp: Date.now(),
-          cached: false,
-          version: '1.0'
-        };
-      }
-      return originalJson.call(this, obj);
-    };
+  // Add session isolation header
+  if ((req as any).sessionID) {
+    res.set({
+      'X-Session-ID': (req as any).sessionID.substring(0, 8) // Partial for debugging
+    });
   }
 
   next();

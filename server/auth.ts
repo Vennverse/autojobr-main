@@ -288,6 +288,17 @@ export async function setupAuth(app: Express) {
           return res.status(401).json({ message: "Invalid credentials" });
         }
 
+        // CRITICAL: Generate and store session fingerprint
+        const userAgent = req.headers['user-agent'] || 'unknown';
+        const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+        const sessionId = req.sessionID;
+
+        sessionFingerprints.set(sessionId, {
+          userAgent,
+          ipAddress,
+          createdAt: Date.now()
+        });
+
         // Set session with complete user data
         (req as any).session.user = {
           id: user.id,
@@ -299,14 +310,19 @@ export async function setupAuth(app: Express) {
           currentRole: user.currentRole || user.userType
         };
 
+        // Track user session
+        trackUserSession(user.id, sessionId);
+
         // Save session before responding with enhanced logging
         (req as any).session.save((err: any) => {
           if (err) {
             console.error('❌ Session save error during login:', err);
+            sessionFingerprints.delete(sessionId);
+            removeUserSession(user.id, sessionId);
             return res.status(500).json({ message: 'Login failed - session error' });
           }
 
-          console.log(`✅ Session saved successfully for user: ${user.email} (${user.userType})`);
+          console.log(`✅ Secure session created for user: ${user.email} (${user.userType}) - Session: ${sessionId.substring(0, 8)}...`);
 
           res.json({ 
             message: "Login successful", 
@@ -392,65 +408,85 @@ export async function setupAuth(app: Express) {
     }
   });
 
-  // Logout - CRITICAL SECURITY FIX
+  // Logout - ENTERPRISE-GRADE SECURITY
   app.post('/api/auth/signout', (req: any, res) => {
     const userId = req.session?.user?.id;
     const sessionId = req.sessionID;
 
     console.log(`🚪 [LOGOUT] User ${userId} logging out, session: ${sessionId}`);
 
-    // CRITICAL: Destroy session first
+    // CRITICAL: Remove from session tracking FIRST
+    if (userId && sessionId) {
+      removeUserSession(userId, sessionId);
+      
+      // Clear ALL cache entries for this user across ALL sessions
+      const allCacheKeys = Array.from(userSessionCache.keys());
+      allCacheKeys.forEach(key => {
+        if (key.startsWith(`${userId}:`)) {
+          userSessionCache.delete(key);
+        }
+      });
+    }
+
+    // CRITICAL: Destroy session
     req.session.destroy((err: any) => {
       if (err) {
         console.error('❌ [LOGOUT] Session destroy failed:', err);
-        return res.status(500).json({ message: "Logout failed" });
+        // Still proceed with cleanup even if destroy fails
       }
 
-      console.log(`✅ [LOGOUT] Session ${sessionId} destroyed`);
+      console.log(`✅ [LOGOUT] Session ${sessionId} destroyed and cleaned up`);
 
-      // Clear user-specific cache
+      // Clear user-specific route cache
       if (userId) {
         try {
-          // Dynamic import for cache invalidation
           import('./routes.js').then(({ invalidateUserCache }) => {
             invalidateUserCache(userId);
-            console.log(`✅ [LOGOUT] Cache cleared for user: ${userId}`);
+            console.log(`✅ [LOGOUT] Route cache cleared for user: ${userId}`);
           }).catch(cacheError => {
-            console.error('❌ [LOGOUT] Cache clear error:', cacheError);
+            console.error('❌ [LOGOUT] Route cache clear error:', cacheError);
           });
         } catch (cacheError) {
-          console.error('❌ [LOGOUT] Cache clear error:', cacheError);
+          console.error('❌ [LOGOUT] Route cache error:', cacheError);
         }
       }
 
-      // CRITICAL: Clear ALL possible session cookies
-      const cookieOptions = [
-        { name: 'autojobr.session', options: { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const, maxAge: 0 }},
-        { name: 'autojobr.sid', options: { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const, maxAge: 0 }},
-        { name: 'connect.sid', options: { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const, maxAge: 0 }},
-        { name: 'connect.sid', options: { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' as const, maxAge: 0 }},
+      // CRITICAL: Clear ALL session cookies with multiple strategies
+      const cookieNames = [
+        'autojobr.session',
+        'autojobr.sid', 
+        'connect.sid'
       ];
 
-      cookieOptions.forEach(({ name, options }) => {
-        res.clearCookie(name, options);
+      const cookieSettings = [
+        { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const },
+        { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' as const },
+        { path: '/', httpOnly: true, secure: false, sameSite: 'lax' as const }
+      ];
+
+      cookieNames.forEach(name => {
+        cookieSettings.forEach(settings => {
+          res.clearCookie(name, { ...settings, maxAge: 0 });
+        });
       });
 
-      // CRITICAL: Prevent any caching of this response
+      // CRITICAL: Strict anti-cache headers
       res.set({
-        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, private, max-age=0',
         'Pragma': 'no-cache',
-        'Expires': '0'
+        'Expires': '0',
+        'Clear-Site-Data': '"cache", "cookies", "storage"'
       });
 
-      console.log(`✅ [LOGOUT] All cookies cleared for session: ${sessionId}`);
+      console.log(`✅ [LOGOUT] Complete session cleanup for: ${sessionId}`);
 
-      // CRITICAL: Tell client to clear all state and force immediate redirect
       res.json({ 
         message: "Logged out successfully",
         logout: true,
         redirectTo: "/auth",
         clearCache: true,
-        forceReload: true
+        forceReload: true,
+        timestamp: Date.now() // Force unique response
       });
     });
   });
@@ -1664,92 +1700,146 @@ export async function setupAuth(app: Express) {
 
 }
 
-// User session cache to reduce database calls
-const userSessionCache = new Map<string, { user: any; lastCheck: number; }>();
-const USER_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+// ENTERPRISE-GRADE SESSION MANAGEMENT
+interface SessionFingerprint {
+  userAgent: string;
+  ipAddress: string;
+  createdAt: number;
+}
 
-// Middleware to check authentication - OPTIMIZED
+const sessionFingerprints = new Map<string, SessionFingerprint>();
+const activeUserSessions = new Map<string, Set<string>>(); // userId -> Set of sessionIds
+const USER_CACHE_TTL = 2 * 60 * 1000; // Reduced to 2 minutes for security
+
+// Generate session fingerprint
+function generateFingerprint(req: any): string {
+  const userAgent = req.headers['user-agent'] || 'unknown';
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  return `${userAgent}|${ip}`;
+}
+
+// Validate session fingerprint
+function validateFingerprint(req: any, sessionId: string): boolean {
+  const storedFingerprint = sessionFingerprints.get(sessionId);
+  if (!storedFingerprint) return false;
+  
+  const currentFingerprint = generateFingerprint(req);
+  const storedStr = `${storedFingerprint.userAgent}|${storedFingerprint.ipAddress}`;
+  
+  return currentFingerprint === storedStr;
+}
+
+// Track user session
+function trackUserSession(userId: string, sessionId: string): void {
+  if (!activeUserSessions.has(userId)) {
+    activeUserSessions.set(userId, new Set());
+  }
+  activeUserSessions.get(userId)!.add(sessionId);
+}
+
+// Remove user session
+function removeUserSession(userId: string, sessionId: string): void {
+  const sessions = activeUserSessions.get(userId);
+  if (sessions) {
+    sessions.delete(sessionId);
+    if (sessions.size === 0) {
+      activeUserSessions.delete(userId);
+    }
+  }
+  sessionFingerprints.delete(sessionId);
+}
+
+// Clear all user sessions (for security - logout all devices)
+function clearAllUserSessions(userId: string): void {
+  const sessions = activeUserSessions.get(userId);
+  if (sessions) {
+    sessions.forEach(sid => sessionFingerprints.delete(sid));
+    activeUserSessions.delete(userId);
+  }
+}
+
+// STRICT session cache with isolation
+const userSessionCache = new Map<string, { 
+  user: any; 
+  lastCheck: number;
+  sessionId: string; // Bind cache to specific session
+}>();
+
+// Middleware to check authentication - ENTERPRISE-GRADE
 export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
-  // Debug session state for troubleshooting
-  console.log(`[AUTH DEBUG] ${req.method} ${req.path}:`, {
-    hasSession: !!req.session,
-    sessionUser: !!req.session?.user,
-    passportUser: !!req.user,
-    sessionId: req.sessionID,
-    cookies: req.headers.cookie ? 'present' : 'missing'
-  });
   try {
-    // Check both passport user and session user for compatibility
+    const sessionId = req.sessionID;
     const sessionUser = req.session?.user || req.user;
 
-    if (!sessionUser) {
+    // CRITICAL: No session or session user
+    if (!sessionUser || !sessionId) {
+      console.log(`🚫 [AUTH] No session/user - ${req.method} ${req.path}`);
       return res.status(401).json({ message: "Not authenticated" });
     }
 
-    // OPTIMIZATION: Use cached user data to reduce database calls
-    const cached = userSessionCache.get(sessionUser.id);
+    // CRITICAL: Validate session fingerprint
+    if (!validateFingerprint(req, sessionId)) {
+      console.log(`🚨 [AUTH] Session hijacking detected - fingerprint mismatch for session ${sessionId}`);
+      
+      // Destroy compromised session
+      req.session.destroy(() => {
+        removeUserSession(sessionUser.id, sessionId);
+      });
+      
+      return res.status(401).json({ 
+        message: "Session security violation detected",
+        logout: true 
+      });
+    }
+
+    // CRITICAL: Check cache with session binding
+    const cacheKey = `${sessionUser.id}:${sessionId}`;
+    const cached = userSessionCache.get(cacheKey);
     const now = Date.now();
 
-    if (cached && (now - cached.lastCheck) < USER_CACHE_TTL) {
-      // Use cached user data
+    if (cached && (now - cached.lastCheck) < USER_CACHE_TTL && cached.sessionId === sessionId) {
+      // Cached data is valid and bound to current session
       req.user = cached.user;
       return next();
     }
 
-    // Only check database if cache is stale or missing
-    try {
-      const currentUser = await storage.getUser(sessionUser.id);
+    // Fetch fresh data from database
+    const currentUser = await storage.getUser(sessionUser.id);
 
-      // Build user object
-      const userObj = {
-        id: sessionUser.id,
-        email: sessionUser.email,
-        name: sessionUser.name || `${sessionUser.firstName || ''} ${sessionUser.lastName || ''}`.trim(),
-        firstName: sessionUser.firstName || 'User',
-        lastName: sessionUser.lastName || 'Name',
-        userType: sessionUser.userType || 'job_seeker'
-      };
-
-      // Cache the user data
-      userSessionCache.set(sessionUser.id, {
-        user: userObj,
-        lastCheck: now
+    if (!currentUser) {
+      console.log(`🚫 [AUTH] User ${sessionUser.id} not found in DB`);
+      req.session.destroy(() => {
+        removeUserSession(sessionUser.id, sessionId);
       });
-
-      // Optional role consistency check (only if mismatch detected)
-      if (currentUser && currentUser.userType && currentUser.currentRole !== currentUser.userType) {
-        console.log(`🔧 ROLE MISMATCH: User ${currentUser.id} - fixing in background`);
-
-        // Fix asynchronously to not block request
-        setImmediate(async () => {
-          try {
-            await storage.upsertUser({
-              ...currentUser,
-              currentRole: currentUser.userType
-            });
-          } catch (err) {
-            console.error('Background role fix failed:', err);
-          }
-        });
-      }
-
-      req.user = userObj;
-    } catch (roleCheckError) {
-      console.error('User lookup failed (non-blocking):', roleCheckError);
-      // Use session data as fallback
-      req.user = {
-        id: sessionUser.id,
-        email: sessionUser.email,
-        name: sessionUser.name || `${sessionUser.firstName || ''} ${sessionUser.lastName || ''}`.trim(),
-        firstName: sessionUser.firstName || 'User',
-        lastName: sessionUser.lastName || 'Name',
-        userType: sessionUser.userType || 'job_seeker'
-      };
+      return res.status(401).json({ message: "User not found" });
     }
 
+    // Build ISOLATED user object
+    const userObj = {
+      id: currentUser.id,
+      email: currentUser.email,
+      name: `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim(),
+      firstName: currentUser.firstName || 'User',
+      lastName: currentUser.lastName || 'Name',
+      userType: currentUser.userType || 'job_seeker',
+      currentRole: currentUser.currentRole || currentUser.userType || 'job_seeker',
+      sessionId: sessionId // Bind to session
+    };
+
+    // Cache with SESSION BINDING
+    userSessionCache.set(cacheKey, {
+      user: userObj,
+      lastCheck: now,
+      sessionId: sessionId
+    });
+
+    // Track active session
+    trackUserSession(currentUser.id, sessionId);
+
+    req.user = userObj;
     next();
   } catch (error) {
-    console.error("Authentication error:", error);
+    console.error("🚨 [AUTH] Critical authentication error:", error);
     res.status(401).json({ message: "Authentication failed" });
   }
 };
@@ -1867,13 +1957,43 @@ export const isAuthenticatedExtension: RequestHandler = async (req: any, res, ne
   }
 };
 
-// Clean up stale cache entries periodically
+// ENTERPRISE-GRADE: Automatic session cleanup and security monitoring
 setInterval(() => {
   const now = Date.now();
-  const entries = Array.from(userSessionCache.entries());
-  for (const [userId, cached] of entries) {
+  
+  // Clean up stale cache entries
+  const cacheEntries = Array.from(userSessionCache.entries());
+  for (const [key, cached] of cacheEntries) {
     if ((now - cached.lastCheck) > USER_CACHE_TTL * 2) {
-      userSessionCache.delete(userId);
+      userSessionCache.delete(key);
     }
   }
+  
+  // Clean up expired session fingerprints (older than 24 hours)
+  const fingerprintEntries = Array.from(sessionFingerprints.entries());
+  for (const [sessionId, fingerprint] of fingerprintEntries) {
+    if ((now - fingerprint.createdAt) > 24 * 60 * 60 * 1000) {
+      sessionFingerprints.delete(sessionId);
+      console.log(`🧹 [CLEANUP] Removed expired fingerprint for session: ${sessionId.substring(0, 8)}...`);
+    }
+  }
+  
+  // Monitor for suspicious activity (multiple sessions from same user)
+  const userSessionCounts = new Map<string, number>();
+  activeUserSessions.forEach((sessions, userId) => {
+    userSessionCounts.set(userId, sessions.size);
+    if (sessions.size > 5) {
+      console.warn(`⚠️ [SECURITY] User ${userId} has ${sessions.size} active sessions - possible account sharing`);
+    }
+  });
+  
+  console.log(`🔍 [SESSION MONITOR] Active: ${activeUserSessions.size} users, ${cacheEntries.length} cache entries, ${fingerprintEntries.length} fingerprints`);
 }, USER_CACHE_TTL);
+
+// Export session management functions for admin use
+export const sessionManagement = {
+  getActiveSessionCount: () => activeUserSessions.size,
+  getUserSessionCount: (userId: string) => activeUserSessions.get(userId)?.size || 0,
+  forceLogoutUser: (userId: string) => clearAllUserSessions(userId),
+  getSessionFingerprint: (sessionId: string) => sessionFingerprints.get(sessionId)
+};
