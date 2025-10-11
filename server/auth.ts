@@ -1826,18 +1826,39 @@ export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
       return res.status(401).json({ message: "Not authenticated" });
     }
 
-    // NOTE: Fingerprint validation disabled to prevent false positives
-    // IP addresses can change frequently due to mobile networks, VPNs, proxies, load balancers, etc.
-    // Session cookie security and HTTPS provide sufficient protection
-    // Keep the fingerprint tracking for monitoring, but don't block users
-    if (sessionFingerprints.has(sessionId)) {
-      const storedFingerprint = sessionFingerprints.get(sessionId);
+    // CRITICAL: Validate session fingerprint to prevent session hijacking and data leakage
+    // Only validate user-agent (more stable than IP) to prevent false positives
+    const storedFingerprint = sessionFingerprints.get(sessionId);
+    if (storedFingerprint) {
       const currentUserAgent = req.headers['user-agent'] || 'unknown';
-      const currentIp = req.ip || req.connection.remoteAddress || 'unknown';
       
-      if (storedFingerprint && (currentUserAgent !== storedFingerprint.userAgent || currentIp !== storedFingerprint.ipAddress)) {
-        console.log(`⚠️ [AUTH] Fingerprint changed for session ${sessionId.substring(0, 8)}... (UA or IP changed, but allowing access)`);
+      // Only check user-agent (IP can change legitimately)
+      if (currentUserAgent !== storedFingerprint.userAgent) {
+        console.log(`🚨 [AUTH] Session hijacking detected - user-agent mismatch for session ${sessionId.substring(0, 8)}...`);
+        console.log(`   Expected: ${storedFingerprint.userAgent.substring(0, 50)}...`);
+        console.log(`   Got: ${currentUserAgent.substring(0, 50)}...`);
+        
+        // Destroy compromised session
+        req.session.destroy(() => {
+          removeUserSession(sessionUser.id, sessionId);
+        });
+        
+        return res.status(401).json({ 
+          message: "Session security violation detected",
+          logout: true 
+        });
       }
+    } else if (sessionUser) {
+      // Session exists but no fingerprint - create one now (recovery mode)
+      console.log(`⚠️ [AUTH] Creating missing fingerprint for session ${sessionId.substring(0, 8)}...`);
+      const userAgent = req.headers['user-agent'] || 'unknown';
+      const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+      
+      sessionFingerprints.set(sessionId, {
+        userAgent,
+        ipAddress,
+        createdAt: Date.now()
+      });
     }
 
     // CRITICAL: Check cache with session binding
