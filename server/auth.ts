@@ -392,30 +392,54 @@ export async function setupAuth(app: Express) {
     }
   });
 
-  // Logout
+  // Logout - CRITICAL SECURITY FIX
   app.post('/api/auth/signout', (req: any, res) => {
     const userId = req.session?.user?.id;
+    const sessionId = req.sessionID;
     
+    console.log(`🚪 [LOGOUT] User ${userId} logging out, session: ${sessionId}`);
+    
+    // CRITICAL: Destroy session first
     req.session.destroy((err: any) => {
       if (err) {
+        console.error('❌ [LOGOUT] Session destroy failed:', err);
         return res.status(500).json({ message: "Logout failed" });
       }
       
-      // Clear user-specific cache on logout to prevent data leakage
+      console.log(`✅ [LOGOUT] Session ${sessionId} destroyed`);
+      
+      // Clear user-specific cache
       if (userId) {
         try {
           const { invalidateUserCache } = require('./routes');
           invalidateUserCache(userId);
-          console.log(`✅ Cleared cache for logged out user: ${userId}`);
+          console.log(`✅ [LOGOUT] Cache cleared for user: ${userId}`);
         } catch (cacheError) {
-          console.error('Error clearing user cache on logout:', cacheError);
+          console.error('❌ [LOGOUT] Cache clear error:', cacheError);
         }
       }
       
-      res.clearCookie('autojobr.session');
+      // CRITICAL: Clear all session cookies with all possible attributes
+      const cookieOptions = {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax' as const,
+        maxAge: 0 // Expire immediately
+      };
+      
+      res.clearCookie('autojobr.session', cookieOptions);
+      res.clearCookie('autojobr.sid', cookieOptions);
+      res.clearCookie('connect.sid', cookieOptions);
+      
+      console.log(`✅ [LOGOUT] All cookies cleared for session: ${sessionId}`);
+      
+      // CRITICAL: Tell client to clear all state
       res.json({ 
         message: "Logged out successfully",
-        redirectTo: "/" 
+        redirectTo: "/auth",
+        clearCache: true, // Signal client to clear everything
+        forceReload: true // Signal client to force reload
       });
     });
   });

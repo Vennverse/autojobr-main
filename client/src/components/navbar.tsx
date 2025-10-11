@@ -67,43 +67,62 @@ export function Navbar() {
   const totalUnreadCount = conversations.reduce((total: number, conv: any) => 
     total + (conv.unreadCount || 0), 0);
 
-  // Logout mutation
+  // Logout mutation - CRITICAL SECURITY FIX
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/auth/logout', {
+      console.log('🚪 [CLIENT] Starting logout...');
+
+      const response = await fetch('/api/auth/signout', {
         method: 'POST',
-        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Logout failed');
+        throw new Error('Logout failed');
       }
 
-      return response.json();
+      return await response.json();
     },
-    onSuccess: () => {
-      // Clear all client-side cache
+    onSuccess: (data) => {
+      console.log('✅ [CLIENT] Logout successful, clearing all state...');
+
+      // CRITICAL: Clear ALL cached data immediately
       queryClient.clear();
-      // Clear session storage
+
+      // CRITICAL: Clear all browser storage
       sessionStorage.clear();
-      // Clear local storage (except for theme preferences)
+
+      // Clear local storage but preserve theme
       const theme = localStorage.getItem('theme');
       localStorage.clear();
       if (theme) localStorage.setItem('theme', theme);
-      // Force immediate page reload to auth page
+
+      console.log('✅ [CLIENT] All state cleared');
+
+      // CRITICAL: Force immediate page reload to auth page
+      // This prevents any stale UI from showing
       window.location.replace('/auth');
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
+      console.error('❌ [CLIENT] Logout error:', error);
+
+      // Even on error, clear everything for security
+      queryClient.clear();
+      sessionStorage.clear();
+      localStorage.clear();
+
       toast({
-        title: 'Logout Failed',
-        description: error.message,
-        variant: 'destructive',
+        title: "Logout failed",
+        description: error.message || "Failed to logout properly",
+        variant: "destructive",
       });
-    },
+
+      // Force redirect anyway
+      window.location.replace('/auth');
+    }
   });
 
   const getPlanBadge = (planType: string) => {

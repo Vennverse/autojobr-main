@@ -71,10 +71,12 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
     return total + (conv.unreadCount || 0);
   }, 0);
 
-  // Logout mutation
+  // Logout mutation - CRITICAL SECURITY FIX
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/auth/logout', {
+      console.log('🚪 [RECRUITER] Starting logout...');
+      
+      const response = await fetch('/api/auth/signout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -88,24 +90,41 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
       
       return await response.json();
     },
-    onSuccess: () => {
-      // Clear all cached data
+    onSuccess: (data) => {
+      console.log('✅ [RECRUITER] Logout successful, clearing all state...');
+      
+      // CRITICAL: Clear ALL cached data immediately
       queryClient.clear();
-      // Clear session storage
+      
+      // CRITICAL: Clear all browser storage
       sessionStorage.clear();
-      // Clear local storage (except for theme preferences)
+      
+      // Clear local storage but preserve theme
       const theme = localStorage.getItem('theme');
       localStorage.clear();
       if (theme) localStorage.setItem('theme', theme);
-      // Force immediate page reload to auth page
+      
+      console.log('✅ [RECRUITER] All state cleared');
+      
+      // CRITICAL: Force immediate page reload to auth page
       window.location.replace('/auth');
     },
     onError: (error: any) => {
+      console.error('❌ [RECRUITER] Logout error:', error);
+      
+      // Even on error, clear everything for security
+      queryClient.clear();
+      sessionStorage.clear();
+      localStorage.clear();
+      
       toast({
         title: "Logout failed",
         description: error.message || "Failed to logout properly",
         variant: "destructive",
       });
+      
+      // Force redirect anyway
+      window.location.replace('/auth');
     }
   });
 

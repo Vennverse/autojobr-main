@@ -1,4 +1,4 @@
-import express, { type Express, Request, Response } from "express";
+import express, { type Express, Request, Response, RequestHandler } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import path from "path";
@@ -74,7 +74,7 @@ import seo from './routes/seo';
 import { CrmService } from './crmService';
 
 // Import services
-import { db } from "./db";
+import { db as dbImport } from "./db"; // Aliased to avoid conflict with global db
 
 // Placeholder for User type if not globally available
 type User = schema.users.$inferSelect;
@@ -97,8 +97,8 @@ const broadcastToUser = (userId: string, message: any) => {
 };
 
 const resumeParser = new ResumeParser();
-const premiumFeaturesService = new PremiumFeaturesService();
-const subscriptionService = new SubscriptionService();
+const premiumFeaturesServiceInstance = new PremiumFeaturesService(); // Renamed to avoid conflict
+const subscriptionServiceInstance = new SubscriptionService(); // Renamed to avoid conflict
 
 // Advanced Assessment Services
 import { VideoInterviewService } from "./videoInterviewService";
@@ -509,10 +509,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Enhanced logout endpoint with cache clearing
-  app.post('/api/auth/logout', (req: any, res) => {
+  app.post('/api/auth/logout', asyncHandler(async (req: any, res: any) => {
     const userId = req.session?.user?.id;
 
-    req.session.destroy((err: any) => {
+    req.session.destroy(async (err: any) => {
       if (err) {
         console.error('Logout session destroy error:', err);
         return res.status(500).json({ message: "Logout failed" });
@@ -524,13 +524,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`✅ Logout successful - cleared cache for user: ${userId}`);
       }
 
-      res.clearCookie('autojobr.session');
+      // Clear the session cookie
+      res.clearCookie('connect.sid', {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      });
+
       res.json({ 
         message: "Logged out successfully",
         redirectTo: "/" 
       });
     });
-  });
+  }));
 
   // PLATFORM JOBS ENDPOINT - Public access for browsing, no auth required
   // This MUST be defined early before any catch-all /api middleware
@@ -1025,7 +1032,7 @@ Return only the improved job description text, no additional formatting or expla
             template.jobProfile || 'software_engineer',
             template.includeExtremeQuestions || false
           );
-          
+
           // CRITICAL FIX: Store generated questions in assignment to prevent regeneration
           await storage.updateTestAssignment(assignmentId, {
             questions: questions
@@ -2687,7 +2694,7 @@ Return only the improved job description text, no additional formatting or expla
           .orderBy(desc(schema.testAssignments.createdAt))
           .limit(1)
           .then(rows => rows[0]);
-        
+
         console.log(`🔍 Checking existing test: User ${user.id}, Template ${templateId}, Recruiter ${link.recruiterId}, JobPosting ${link.jobPostingId || 'none'}, Found: ${existingTestAssignment ? existingTestAssignment.id : 'none'}`);
 
         // CRITICAL FIX: Verify recruiterId exists before checking for existing tests
@@ -2763,8 +2770,8 @@ Return only the improved job description text, no additional formatting or expla
     }
   });
 
-  // Interview Prep API - Generate interview preparation insights
-  app.post('/api/interview-prep', isAuthenticated, rateLimitMiddleware(10, 60), async (req: any, res) => {
+  // Interview Prep AI Route
+  app.post('/api/ai/interview-prep', isAuthenticated, rateLimitMiddleware(10, 60), async (req: any, res) => {
     try {
       const validationResult = interviewPrepSchema.safeParse(req.body);
 
@@ -2790,8 +2797,8 @@ Return only the improved job description text, no additional formatting or expla
     }
   });
 
-  // Salary Insights API - Get salary range and compensation insights
-  app.post('/api/salary-insights', isAuthenticated, rateLimitMiddleware(10, 60), async (req: any, res) => {
+  // Salary Insights AI Route
+  app.post('/api/ai/salary-insights', isAuthenticated, rateLimitMiddleware(10, 60), async (req: any, res) => {
     try {
       const validationResult = salaryInsightsSchema.safeParse(req.body);
 
@@ -2908,9 +2915,9 @@ Return only the cover letter text, no additional formatting or explanations.`;
   app.get('/api/resumes', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      
+
       console.log(`[RESUME_FETCH] Fetching resumes for user: ${userId}`);
-      
+
       // Fetch resumes from database - using resumes table (not userResumes)
       const resumeList = await db.select()
         .from(resumes)
@@ -3571,7 +3578,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
           if (user) {
             await storage.upsertUser({
               ...user,
-              subscriptionStatus: 'premium'
+              subscriptionStatus: 'active' // Ensure user status is updated
             });
           }
         }
@@ -3634,7 +3641,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
         nextBillingDate: endDate,
         createdAt: new Date()
       }).onConflictDoUpdate({
-        target: schema.subscriptions.userId,
+        target: schema.subscriptions.userId, // Assuming userId is unique, or use paypalSubscriptionId as target
         set: {
           tier: planType,
           tierId: planId,
@@ -3936,7 +3943,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
     res.json(report);
   }));
 
-  app.post("/api/usage/check", isAuthenticated, asyncHandler(async (req: any, res: any) => {
+  app.post("/api/usage/check", isAuthenticated, asyncHandler(async (req: any, res) => {
     const userId = req.user.id;
     const { feature } = req.body;
 
@@ -3948,7 +3955,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
     res.json(check);
   }));
 
-  app.post("/api/usage/enforce", isAuthenticated, asyncHandler(async (req: any, res: any) => {
+  app.post("/api/usage/enforce", isAuthenticated, asyncHandler(async (req: any, res) => {
     const userId = req.user.id;
     const { feature } = req.body;
 
@@ -4429,7 +4436,7 @@ Return ONLY the JSON object, no additional text.`;
   app.get('/api/subscription/current', isAuthenticated, asyncHandler(async (req: any, res: any) => {
     try {
       const userId = req.user.id;
-      const subscription = await subscriptionService.getUserSubscription(userId);
+      const subscription = await subscriptionServiceInstance.getUserSubscription(userId); // Use renamed instance
       res.json(subscription);
     } catch (error) {
       console.error('Error fetching subscription:', error);
@@ -4483,7 +4490,7 @@ Return ONLY the JSON object, no additional text.`;
       const userId = req.user.id;
       const { feature } = req.params;
 
-      const access = await premiumFeaturesService.checkFeatureAccess(userId, feature);
+      const access = await premiumFeaturesServiceInstance.checkFeatureAccess(userId, feature); // Use renamed instance
       res.json(access);
     } catch (error) {
       console.error('Error checking premium access:', error);
@@ -4495,7 +4502,7 @@ Return ONLY the JSON object, no additional text.`;
   app.get('/api/premium/usage', isAuthenticated, asyncHandler(async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const stats = await premiumFeaturesService.getUsageStats(userId);
+      const stats = await premiumFeaturesServiceInstance.getUsageStats(userId); // Use renamed instance
       res.json(stats);
     } catch (error) {
       console.error('Error fetching premium usage stats:', error);
@@ -4508,9 +4515,9 @@ Return ONLY the JSON object, no additional text.`;
     try {
       const userId = req.user.id;
       const [usage, access, value, user] = await Promise.all([
-        premiumFeaturesService.getUserUsageStats(userId),
-        premiumFeaturesService.getPremiumFeatureAccess(userId),
-        premiumFeaturesService.getPremiumValue(userId),
+        premiumFeaturesServiceInstance.getUserUsageStats(userId), // Use renamed instance
+        premiumFeaturesServiceInstance.getPremiumFeatureAccess(userId), // Use renamed instance
+        premiumFeaturesServiceInstance.getPremiumValue(userId), // Use renamed instance
         storage.getUser(userId)
       ]);
 
@@ -4533,7 +4540,7 @@ Return ONLY the JSON object, no additional text.`;
       const userId = req.user.id;
       const { feature } = req.params;
 
-      const result = await premiumFeaturesService.checkFeatureLimit(userId, feature as any);
+      const result = await premiumFeaturesServiceInstance.checkFeatureLimit(userId, feature as any); // Use renamed instance
       res.json(result);
     } catch (error) {
       console.error('Error checking feature limit:', error);
@@ -4547,7 +4554,7 @@ Return ONLY the JSON object, no additional text.`;
       const userId = req.user.id;
       const { feature } = req.body;
 
-      const result = await premiumFeaturesService.validateFeatureUsage(userId, feature);
+      const result = await premiumFeaturesServiceInstance.validateFeatureUsage(userId, feature); // Use renamed instance
       res.json(result);
     } catch (error) {
       console.error('Error validating feature usage:', error);
@@ -5518,8 +5525,7 @@ Return ONLY the JSON object, no additional text.`;
 
       res.json({ fileName, success: true });
     } catch (error) {
-      handleError(res, error, "Failed to upload video response");
-    }
+      handleError(res, error, "Failed to upload video response");    }
   });
 
   app.post('/api/video-interviews/responses/:id/analyze', isAuthenticated, async (req, res) => {
@@ -6053,16 +6059,16 @@ Additional Information:
       // Setting active resume
 
       // Set all user resumes to inactive in database
-      await db.update(schema.resumes)
+      await db.update(resumes)
         .set({ isActive: false })
-        .where(eq(schema.resumes.userId, userId));
+        .where(eq(resumes.userId, userId));
 
       // Set the selected resume to active
-      const result = await db.update(schema.resumes)
+      const result = await db.update(resumes)
         .set({ isActive: true })
         .where(and(
-          eq(schema.resumes.userId, userId),
-          eq(schema.resumes.id, resumeId)
+          eq(resumes.userId, userId),
+          eq(resumes.id, resumeId)
         ));
 
       if (result.count === 0) {
