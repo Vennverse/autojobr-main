@@ -7,11 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { 
-  RefreshCw, 
-  CreditCard, 
-  CheckCircle, 
-  TrendingUp, 
+import {
+  RefreshCw,
+  CreditCard,
+  CheckCircle,
+  TrendingUp,
   Trophy,
   AlertTriangle,
   ArrowLeft,
@@ -110,7 +110,7 @@ export default function TestRetakePayment() {
   const userScore = assignment?.score ?? 0; // Use direct assignment.score, not cast
   const scoreGap = Math.max(0, passingScore - userScore);
   const canRetake = assignment?.status === 'completed' && userScore < passingScore && !assignment?.retakeAllowed;
-  
+
   // Debug: Log score values
   console.log('📊 [RETAKE PAYMENT] Score calculation:', {
     userScore,
@@ -200,9 +200,9 @@ export default function TestRetakePayment() {
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       {/* Header */}
       <div className="text-center mb-12">
-        <Button 
-          variant="ghost" 
-          onClick={() => setLocation('/tests')} 
+        <Button
+          variant="ghost"
+          onClick={() => setLocation('/tests')}
           className="mb-6 hover:bg-gray-100"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -303,7 +303,7 @@ export default function TestRetakePayment() {
 
               <div className="bg-white/60 p-3 rounded-lg">
                 <p className="text-sm text-blue-800 font-medium">
-                  💡 <strong>Success Story:</strong> "I scored 65% on my first attempt and 89% on retake. 
+                  💡 <strong>Success Story:</strong> "I scored 65% on my first attempt and 89% on retake.
                   Got the job offer the next week!" - Sarah K., Software Engineer
                 </p>
               </div>
@@ -350,7 +350,7 @@ export default function TestRetakePayment() {
                 <div className="text-sm font-medium">Payment Method</div>
 
                 <div className="space-y-2">
-                  <div 
+                  <div
                     className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                       paymentMethod === 'paypal' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
                     }`}
@@ -368,7 +368,7 @@ export default function TestRetakePayment() {
                     </div>
                   </div>
 
-                  <div 
+                  <div
                     className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                       paymentMethod === 'amazon_pay' ? 'border-orange-500 bg-orange-50' : 'border-gray-200'
                     }`}
@@ -397,17 +397,18 @@ export default function TestRetakePayment() {
                   onPaymentSuccess={(data) => {
                     toast({
                       title: "Payment Successful!",
-                      description: "Your retake is now available. You can start the test again.",
+                      description: "Payment confirmation is processing. Please check back in 1-2 hours to start your test retake.",
+                      duration: 8000,
                     });
 
                     // Invalidate queries to refresh data
                     queryClient.invalidateQueries({ queryKey: ["/api/jobseeker/test-assignments"] });
                     queryClient.invalidateQueries({ queryKey: [`/api/test-assignments/${params?.id}`] });
 
-                    // Redirect to test page
+                    // Redirect to tests page instead of test page
                     setTimeout(() => {
-                      setLocation(`/test/${params?.id}`);
-                    }, 1500);
+                      setLocation(`/tests`);
+                    }, 3000);
                   }}
                   onPaymentError={(error) => {
                     toast({
@@ -420,7 +421,7 @@ export default function TestRetakePayment() {
                   disabled={isProcessing}
                 />
               ) : (
-                <Button 
+                <Button
                   onClick={handlePayment}
                   disabled={isProcessing}
                   className="w-full mt-6 bg-orange-600 hover:bg-orange-700"
