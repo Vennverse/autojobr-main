@@ -1790,7 +1790,7 @@ Return only the improved job description text, no additional formatting or expla
 
   // ===== MOUNT PAYMENT ROUTES =====
   const { paymentRoutes } = await import('./paymentRoutes.js');
-  app.use('/api/payment', paymentRoutes);
+  app.use('/api/payments', paymentRoutes);
 
   // Import applicants from external sources (CSV, JSON, or ATS export)
   app.post('/api/recruiter/import-applicants', isAuthenticated, upload.single('file'), async (req: any, res) => {

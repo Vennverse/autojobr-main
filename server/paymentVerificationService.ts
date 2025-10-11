@@ -8,6 +8,7 @@ export interface PaymentVerificationRequest {
   amount: number;
   transactionId?: string;
   paypalOrderId?: string;
+  serviceId?: string; // CRITICAL: For test_retake, this is the assignment ID
 }
 
 export class PaymentVerificationService {
@@ -25,7 +26,7 @@ export class PaymentVerificationService {
       await db.insert(oneTimePayments).values({
         userId: request.userId,
         serviceType: request.serviceType,
-        serviceId: null, // For one-time payments
+        serviceId: request.serviceId || null, // CRITICAL: Store assignment ID for test retakes
         amount: request.amount.toString(),
         currency: 'USD',
         paymentProvider: 'paypal',
@@ -81,11 +82,33 @@ export class PaymentVerificationService {
    * Grant access based on payment verification
    * Updates user's service access (like interview eligibility)
    */
-  async grantServiceAccess(userId: string, serviceType: string): Promise<boolean> {
+  async grantServiceAccess(userId: string, serviceType: string, serviceId?: string): Promise<boolean> {
     try {
       switch (serviceType) {
-        case 'virtual_interview':
         case 'test_retake':
+          // CRITICAL FIX: Enable test retake for the specific assignment
+          if (!serviceId) {
+            console.error('❌ Test retake payment missing assignment ID');
+            return false;
+          }
+          
+          const { testAssignments } = await import('../shared/schema.js');
+          const { eq, and } = await import('drizzle-orm');
+          
+          // Update the test assignment to allow retake
+          const result = await db.update(testAssignments)
+            .set({ retakeAllowed: true })
+            .where(
+              and(
+                eq(testAssignments.id, parseInt(serviceId)),
+                eq(testAssignments.jobSeekerId, userId)
+              )
+            );
+          
+          console.log(`✅ Test retake enabled for assignment ${serviceId}, user ${userId}`);
+          return true;
+        
+        case 'virtual_interview':
           // For interview retakes, we'll handle this in the interview service
           // The payment verification is sufficient - no need to update separate counters
           return true;

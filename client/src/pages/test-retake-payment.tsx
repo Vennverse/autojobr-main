@@ -392,6 +392,7 @@ export default function TestRetakePayment() {
                 <PayPalHostedButton
                   purpose="test_retake"
                   amount={5}
+                  serviceId={params?.id}
                   itemName={`${assignment?.testTemplate?.title || 'Skills Assessment'} - Retake`}
                   onPaymentSuccess={(data) => {
                     toast({

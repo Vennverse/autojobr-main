@@ -7,6 +7,7 @@ interface PayPalHostedButtonProps {
   purpose: 'mock_interview' | 'virtual_interview' | 'ranking_test' | 'test_retake';
   amount: number;
   itemName: string;
+  serviceId?: string; // CRITICAL: For test_retake, this is the assignment ID
   onPaymentSuccess?: (data: any) => void;
   onPaymentError?: (error: any) => void;
   description?: string;
@@ -18,6 +19,7 @@ export default function PayPalHostedButton({
   purpose,
   amount,
   itemName,
+  serviceId,
   onPaymentSuccess,
   onPaymentError,
   description,
@@ -124,6 +126,7 @@ export default function PayPalHostedButton({
         credentials: 'include',
         body: JSON.stringify({
           serviceType: purpose,
+          serviceId: serviceId, // CRITICAL: Pass assignment ID for test retakes
           amount: amount,
           paymentData: paymentData,
           itemName: itemName

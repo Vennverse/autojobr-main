@@ -20,7 +20,7 @@ router.post('/verify-paypal', isAuthenticated, async (req: any, res) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    const { serviceType, amount, paymentData, itemName } = req.body;
+    const { serviceType, serviceId, amount, paymentData, itemName } = req.body;
 
     if (!serviceType || !amount) {
       return res.status(400).json({ message: 'Missing required payment information' });
@@ -32,18 +32,19 @@ router.post('/verify-paypal', isAuthenticated, async (req: any, res) => {
       return res.status(400).json({ message: 'Invalid service type' });
     }
 
-    // Record the payment
+    // Record the payment with serviceId
     const success = await paymentVerificationService.recordPayPalPayment({
       userId,
       serviceType,
       amount: parseFloat(amount.toString()),
       paypalOrderId: paymentData?.orderID || paymentData?.id,
-      transactionId: paymentData?.transactionID || paymentData?.id
+      transactionId: paymentData?.transactionID || paymentData?.id,
+      serviceId
     });
 
     if (success) {
-      // Grant service access
-      await paymentVerificationService.grantServiceAccess(userId, serviceType);
+      // Grant service access with serviceId (critical for test retakes)
+      await paymentVerificationService.grantServiceAccess(userId, serviceType, serviceId);
 
       res.json({
         success: true,
