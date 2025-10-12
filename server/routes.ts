@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 import { db } from "./db";
 import { eq, desc, and, or, like, isNotNull, count, asc, isNull, sql, inArray } from "drizzle-orm";
 import * as schema from "@shared/schema";
-import { resumes, userResumes, insertInternshipApplicationSchema, companyEmailVerifications, virtualInterviews, users, mockInterviews, jobPostingApplications, invitationUses, insertUserProfileSchema, insertUserSkillSchema, scrapedJobs, crmContacts, crmInteractions, crmPipelineStages } from "@shared/schema";
+import { resumes, userResumes, insertInternshipApplicationSchema, companyEmailVerifications, virtualInterviews, mockInterviews, jobPostingApplications, invitationUses, insertUserProfileSchema, insertUserSkillSchema, scrapedJobs, crmContacts, contactInteractions, pipelineStages } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated, isAuthenticatedExtension } from "./auth";
 import { storage } from "./storage";
@@ -2908,6 +2908,347 @@ Return only the cover letter text, no additional formatting or explanations.`;
         message: "Failed to generate cover letter",
         error: error.message 
       });
+    }
+  });
+
+  // Extension-compatible endpoint for interview prep (forwards to AI endpoint)
+  app.post('/api/interview-prep', isAuthenticated, async (req: any, res) => {
+    try {
+      const validationResult = interviewPrepSchema.safeParse(req.body);
+
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: 'Invalid request data', 
+          errors: validationResult.error.errors 
+        });
+      }
+
+      const preparation = await interviewPrepService.generatePreparation(validationResult.data);
+
+      res.json({
+        success: true,
+        ...preparation
+      });
+    } catch (error) {
+      console.error('Interview prep error:', error);
+      res.status(500).json({ 
+        message: 'Failed to generate interview preparation',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Extension-compatible endpoint for salary insights (forwards to AI endpoint)
+  app.post('/api/salary-insights', isAuthenticated, async (req: any, res) => {
+    try {
+      const validationResult = salaryInsightsSchema.safeParse(req.body);
+
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: 'Invalid request data', 
+          errors: validationResult.error.errors 
+        });
+      }
+
+      const insights = await salaryInsightsService.generateInsights(validationResult.data);
+
+      res.json({
+        success: true,
+        ...insights
+      });
+    } catch (error) {
+      console.error('Salary insights error:', error);
+      res.status(500).json({ 
+        message: 'Failed to generate salary insights',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Job Match Analysis API for extension
+  app.post('/api/analyze-job-match', isAuthenticated, async (req: any, res) => {
+    try {
+      const { jobData, userProfile } = req.body;
+      const userId = req.user.id;
+
+      if (!jobData) {
+        return res.status(400).json({ message: 'Job data is required' });
+      }
+
+      // Get user profile if not provided
+      let profile = userProfile;
+      if (!profile) {
+        const [dbProfile] = await db.select()
+          .from(schema.userProfiles)
+          .where(eq(schema.userProfiles.userId, userId))
+          .limit(1);
+        
+        if (dbProfile) {
+          const skills = await db.select()
+            .from(schema.userSkills)
+            .where(eq(schema.userSkills.userId, userId));
+          
+          profile = {
+            ...dbProfile,
+            skills: skills.map(s => s.skillName)
+          };
+        }
+      }
+
+      // Calculate match score
+      let matchScore = 0;
+      const matchingSkills: string[] = [];
+      const missingSkills: string[] = [];
+
+      if (profile && profile.skills) {
+        const userSkills = profile.skills.map((s: string) => s.toLowerCase());
+        const jobSkills = jobData.requiredSkills || [];
+        
+        jobSkills.forEach((skill: string) => {
+          if (userSkills.includes(skill.toLowerCase())) {
+            matchingSkills.push(skill);
+            matchScore += 10;
+          } else {
+            missingSkills.push(skill);
+          }
+        });
+      }
+
+      // Title matching
+      if (profile?.professionalTitle && jobData.title) {
+        const titleSimilarity = calculateTitleSimilarity(
+          profile.professionalTitle.toLowerCase(),
+          jobData.title.toLowerCase()
+        );
+        matchScore += titleSimilarity;
+      }
+
+      matchScore = Math.min(matchScore, 100);
+
+      res.json({
+        matchScore,
+        matchingSkills,
+        missingSkills,
+        recommendation: matchScore >= 70 ? 'strong_match' : matchScore >= 50 ? 'good_match' : 'review_required'
+      });
+    } catch (error) {
+      console.error('Job match analysis error:', error);
+      res.status(500).json({ 
+        message: 'Failed to analyze job match',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Saved Jobs API for extension
+  app.get('/api/saved-jobs', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      const savedJobs = await db.select()
+        .from(schema.savedJobs)
+        .where(eq(schema.savedJobs.userId, userId))
+        .orderBy(desc(schema.savedJobs.savedAt))
+        .limit(50);
+
+      res.json(savedJobs);
+    } catch (error) {
+      console.error('Get saved jobs error:', error);
+      res.status(500).json({ message: 'Failed to fetch saved jobs' });
+    }
+  });
+
+  app.post('/api/saved-jobs', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { jobData } = req.body;
+
+      const [savedJob] = await db.insert(schema.savedJobs)
+        .values({
+          userId,
+          jobTitle: jobData.title,
+          company: jobData.company,
+          jobUrl: jobData.url,
+          location: jobData.location,
+          salaryRange: jobData.salary,
+          jobDescription: jobData.description,
+        })
+        .returning();
+
+      res.json({ success: true, job: savedJob });
+    } catch (error) {
+      console.error('Save job error:', error);
+      res.status(500).json({ message: 'Failed to save job' });
+    }
+  });
+
+  // Tasks API for extension
+  app.get('/api/tasks', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const status = req.query.status as string;
+
+      let query = db.select()
+        .from(schema.tasks)
+        .where(eq(schema.tasks.userId, userId))
+        .orderBy(desc(schema.tasks.createdAt))
+        .limit(limit);
+
+      if (status) {
+        query = db.select()
+          .from(schema.tasks)
+          .where(and(
+            eq(schema.tasks.userId, userId),
+            eq(schema.tasks.status, status)
+          ))
+          .orderBy(desc(schema.tasks.createdAt))
+          .limit(limit);
+      }
+
+      const tasks = await query;
+      res.json(tasks);
+    } catch (error) {
+      console.error('Get tasks error:', error);
+      res.status(500).json({ message: 'Failed to fetch tasks' });
+    }
+  });
+
+  app.post('/api/tasks', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { title, description, dueDate, priority } = req.body;
+
+      const [task] = await db.insert(schema.tasks)
+        .values({
+          userId,
+          title,
+          description,
+          dueDate: dueDate ? new Date(dueDate) : null,
+          priority: priority || 'medium',
+          status: 'pending'
+        })
+        .returning();
+
+      res.json({ success: true, task });
+    } catch (error) {
+      console.error('Create task error:', error);
+      res.status(500).json({ message: 'Failed to create task' });
+    }
+  });
+
+  app.patch('/api/tasks/:taskId/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const taskId = parseInt(req.params.taskId);
+      const { status } = req.body;
+
+      const [task] = await db.update(schema.tasks)
+        .set({ status, updatedAt: new Date() })
+        .where(and(
+          eq(schema.tasks.id, taskId),
+          eq(schema.tasks.userId, userId)
+        ))
+        .returning();
+
+      res.json({ success: true, task });
+    } catch (error) {
+      console.error('Update task status error:', error);
+      res.status(500).json({ message: 'Failed to update task status' });
+    }
+  });
+
+  // Active Resume API for extension
+  app.get('/api/resumes/active', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+
+      const [activeResume] = await db.select()
+        .from(resumes)
+        .where(and(
+          eq(resumes.userId, userId),
+          eq(resumes.isActive, true)
+        ))
+        .limit(1);
+
+      if (!activeResume) {
+        return res.status(404).json({ message: 'No active resume found' });
+      }
+
+      res.json(activeResume);
+    } catch (error) {
+      console.error('Get active resume error:', error);
+      res.status(500).json({ message: 'Failed to fetch active resume' });
+    }
+  });
+
+  // Pending Reminders API for extension
+  app.get('/api/reminders/pending', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+
+      const reminders = await db.select()
+        .from(schema.taskReminders)
+        .where(and(
+          eq(schema.taskReminders.userId, userId),
+          eq(schema.taskReminders.status, 'pending'),
+          sql`${schema.taskReminders.reminderTime} <= NOW()`
+        ))
+        .orderBy(asc(schema.taskReminders.reminderTime))
+        .limit(10);
+
+      res.json(reminders);
+    } catch (error) {
+      console.error('Get pending reminders error:', error);
+      res.status(500).json({ message: 'Failed to fetch reminders' });
+    }
+  });
+
+  app.post('/api/reminders/:reminderId/snooze', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const reminderId = parseInt(req.params.reminderId);
+      const { snoozeMinutes } = req.body;
+
+      const newTime = new Date(Date.now() + (snoozeMinutes || 15) * 60 * 1000);
+
+      const [reminder] = await db.update(schema.taskReminders)
+        .set({ reminderTime: newTime })
+        .where(and(
+          eq(schema.taskReminders.id, reminderId),
+          eq(schema.taskReminders.userId, userId)
+        ))
+        .returning();
+
+      res.json({ success: true, reminder });
+    } catch (error) {
+      console.error('Snooze reminder error:', error);
+      res.status(500).json({ message: 'Failed to snooze reminder' });
+    }
+  });
+
+  // Extension Applications Tracking
+  app.post('/api/extension/applications', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { jobUrl, applicationData } = req.body;
+
+      const [application] = await db.insert(schema.jobApplications)
+        .values({
+          userId,
+          jobTitle: applicationData.title,
+          company: applicationData.company,
+          jobUrl: jobUrl,
+          location: applicationData.location,
+          status: 'applied',
+          source: 'extension'
+        })
+        .returning();
+
+      res.json({ success: true, application });
+    } catch (error) {
+      console.error('Track application error:', error);
+      res.status(500).json({ message: 'Failed to track application' });
     }
   });
 
