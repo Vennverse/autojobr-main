@@ -190,6 +190,8 @@ function Router() {
       <Route path="/contact" component={Contact} />
       <Route path="/privacy" component={PrivacyPolicy} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />
+      <Route path="/cancellation-refund" component={lazy(() => import("./pages/cancellation-refund"))} />
+      <Route path="/terms-conditions" component={lazy(() => import("./pages/terms-conditions"))} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/beat-ats-systems-2025-guide" component={BeatATSGuide} />
       <Route path="/blog/linkedin-automation-guide" component={LinkedInAutomationGuide} />
