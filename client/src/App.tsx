@@ -192,6 +192,7 @@ function Router() {
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/cancellation-refund" component={lazy(() => import("./pages/cancellation-refund"))} />
       <Route path="/terms-conditions" component={lazy(() => import("./pages/terms-conditions"))} />
+      <Route path="/shipping-policy" component={lazy(() => import("./pages/shipping-policy"))} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/beat-ats-systems-2025-guide" component={BeatATSGuide} />
       <Route path="/blog/linkedin-automation-guide" component={LinkedInAutomationGuide} />
