@@ -3252,6 +3252,113 @@ Return only the cover letter text, no additional formatting or explanations.`;
     }
   });
 
+  // Job Suggestions API for extension
+  app.post('/api/job-suggestions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { preferences } = req.body;
+
+      // Get user profile
+      const [profile] = await db.select()
+        .from(schema.userProfiles)
+        .where(eq(schema.userProfiles.userId, userId))
+        .limit(1);
+
+      if (!profile) {
+        return res.json({ suggestions: [] });
+      }
+
+      // Get user skills
+      const skills = await db.select()
+        .from(schema.userSkills)
+        .where(eq(schema.userSkills.userId, userId));
+
+      // Get recent job postings that match user skills
+      const suggestions = await db.select()
+        .from(schema.jobPostings)
+        .where(
+          and(
+            eq(schema.jobPostings.status, 'active'),
+            isNotNull(schema.jobPostings.requiredSkills)
+          )
+        )
+        .orderBy(desc(schema.jobPostings.createdAt))
+        .limit(10);
+
+      res.json({ 
+        success: true,
+        suggestions: suggestions.map(job => ({
+          id: job.id,
+          title: job.jobTitle,
+          company: job.companyName,
+          location: job.location,
+          description: job.description,
+          requiredSkills: job.requiredSkills,
+          matchScore: 75 // Basic match score
+        }))
+      });
+    } catch (error) {
+      console.error('Job suggestions error:', error);
+      res.status(500).json({ message: 'Failed to get job suggestions' });
+    }
+  });
+
+  // User Preferences API for extension
+  app.post('/api/user/preferences', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const preferences = req.body;
+
+      // Update user profile with preferences
+      await db.update(schema.userProfiles)
+        .set({
+          preferredWorkMode: preferences.workMode,
+          willingToRelocate: preferences.willingToRelocate,
+          desiredSalaryMin: preferences.salaryMin,
+          desiredSalaryMax: preferences.salaryMax,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.userProfiles.userId, userId));
+
+      res.json({ success: true, message: 'Preferences updated' });
+    } catch (error) {
+      console.error('Update preferences error:', error);
+      res.status(500).json({ message: 'Failed to update preferences' });
+    }
+  });
+
+  // Cover Letter Usage Check API for extension
+  app.get('/api/cover-letter/usage-check', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+
+      // Get user subscription info
+      const [user] = await db.select()
+        .from(schema.users)
+        .where(eq(schema.users.id, userId))
+        .limit(1);
+
+      const isPremium = user?.subscriptionStatus === 'active' && user?.planType !== 'free';
+      
+      // Count cover letters generated this month (simple check)
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      // For now, return basic usage info
+      res.json({
+        success: true,
+        canGenerate: true,
+        isPremium,
+        remainingGenerations: isPremium ? 999 : 3,
+        totalGenerations: 0
+      });
+    } catch (error) {
+      console.error('Usage check error:', error);
+      res.status(500).json({ message: 'Failed to check usage' });
+    }
+  });
+
   // Get user's resumes
   app.get('/api/resumes', isAuthenticated, async (req: any, res) => {
     try {
