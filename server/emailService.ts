@@ -6,6 +6,7 @@ interface EmailParams {
   to: string;
   subject: string;
   html: string;
+  cc?: string | string[];
 }
 
 interface EmailConfig {
@@ -59,6 +60,7 @@ async function sendEmailWithNodemailer(params: EmailParams): Promise<boolean> {
     const result = await transporter.sendMail({
       from: EMAIL_CONFIG.from,
       to: params.to,
+      cc: params.cc,
       subject: params.subject,
       html: params.html
     });
@@ -79,6 +81,7 @@ async function sendEmailWithResend(params: EmailParams): Promise<boolean> {
     if (status.resend.totalKeys === 0) {
       console.log('=== EMAIL SIMULATION (No Resend API Keys) ===');
       console.log('To:', params.to);
+      if (params.cc) console.log('CC:', params.cc);
       console.log('Subject:', params.subject);
       console.log('HTML Content (truncated):', params.html.substring(0, 200) + '...');
       console.log('=== END EMAIL SIMULATION ===');
@@ -90,6 +93,7 @@ async function sendEmailWithResend(params: EmailParams): Promise<boolean> {
       const { data, error } = await resend.emails.send({
         from: EMAIL_CONFIG.from,
         to: params.to,
+        cc: params.cc,
         subject: params.subject,
         html: params.html,
       });
