@@ -2855,8 +2855,8 @@ Return only the improved job description text, no additional formatting or expla
 
       // Get user profile for personalization
       const [userProfile] = await db.select()
-        .from(users)
-        .where(eq(users.id, userId))
+        .from(schema.users)
+        .where(eq(schema.users.id, userId))
         .limit(1);
 
       // Generate cover letter using AI
@@ -2914,7 +2914,15 @@ Return only the cover letter text, no additional formatting or explanations.`;
   // Extension-compatible endpoint for interview prep (forwards to AI endpoint)
   app.post('/api/interview-prep', isAuthenticated, async (req: any, res) => {
     try {
-      const validationResult = interviewPrepSchema.safeParse(req.body);
+      // Handle both direct fields and jobData object from extension
+      const requestData = req.body.jobData ? {
+        jobTitle: req.body.jobData.title,
+        company: req.body.jobData.company,
+        jobDescription: req.body.jobData.jobDescription || req.body.jobData.description,
+        location: req.body.jobData.location,
+      } : req.body;
+
+      const validationResult = interviewPrepSchema.safeParse(requestData);
 
       if (!validationResult.success) {
         return res.status(400).json({ 
@@ -3046,9 +3054,9 @@ Return only the cover letter text, no additional formatting or explanations.`;
       const userId = req.user.id;
       
       const savedJobs = await db.select()
-        .from(schema.savedJobs)
-        .where(eq(schema.savedJobs.userId, userId))
-        .orderBy(desc(schema.savedJobs.savedAt))
+        .from(schema.userSavedJobs)
+        .where(eq(schema.userSavedJobs.userId, userId))
+        .orderBy(desc(schema.userSavedJobs.savedAt))
         .limit(50);
 
       res.json(savedJobs);
@@ -3063,19 +3071,30 @@ Return only the cover letter text, no additional formatting or explanations.`;
       const userId = req.user.id;
       const { jobData } = req.body;
 
-      const [savedJob] = await db.insert(schema.savedJobs)
+      // Create scraped job first
+      const [scrapedJob] = await db.insert(schema.scrapedJobs)
         .values({
-          userId,
-          jobTitle: jobData.title,
+          title: jobData.title,
           company: jobData.company,
-          jobUrl: jobData.url,
-          location: jobData.location,
-          salaryRange: jobData.salary,
-          jobDescription: jobData.description,
+          description: jobData.description || '',
+          location: jobData.location || '',
+          jobType: 'full-time',
+          experienceLevel: 'mid',
+          source: 'extension',
+          sourceUrl: jobData.url || 'https://extension-saved-job.com',
+          sourcePlatform: 'extension'
         })
         .returning();
 
-      res.json({ success: true, job: savedJob });
+      // Save to user saved jobs
+      const [savedJob] = await db.insert(schema.userSavedJobs)
+        .values({
+          userId,
+          scrapedJobId: scrapedJob.id,
+        })
+        .returning();
+
+      res.json({ success: true, job: { ...savedJob, scrapedJob } });
     } catch (error) {
       console.error('Save job error:', error);
       res.status(500).json({ message: 'Failed to save job' });
@@ -3117,7 +3136,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
   app.post('/api/tasks', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { title, description, dueDate, priority } = req.body;
+      const { title, description, dueDate, priority, taskType } = req.body;
 
       const [task] = await db.insert(schema.tasks)
         .values({
@@ -3126,7 +3145,9 @@ Return only the cover letter text, no additional formatting or explanations.`;
           description,
           dueDate: dueDate ? new Date(dueDate) : null,
           priority: priority || 'medium',
-          status: 'pending'
+          status: 'pending',
+          taskType: taskType || 'general', // Required field
+          category: 'general'
         })
         .returning();
 
@@ -3191,10 +3212,10 @@ Return only the cover letter text, no additional formatting or explanations.`;
         .from(schema.taskReminders)
         .where(and(
           eq(schema.taskReminders.userId, userId),
-          eq(schema.taskReminders.status, 'pending'),
-          sql`${schema.taskReminders.reminderTime} <= NOW()`
+          eq(schema.taskReminders.isTriggered, false),
+          sql`${schema.taskReminders.triggerDateTime} <= NOW()`
         ))
-        .orderBy(asc(schema.taskReminders.reminderTime))
+        .orderBy(asc(schema.taskReminders.triggerDateTime))
         .limit(10);
 
       res.json(reminders);
@@ -3213,7 +3234,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
       const newTime = new Date(Date.now() + (snoozeMinutes || 15) * 60 * 1000);
 
       const [reminder] = await db.update(schema.taskReminders)
-        .set({ reminderTime: newTime })
+        .set({ snoozeUntil: newTime })
         .where(and(
           eq(schema.taskReminders.id, reminderId),
           eq(schema.taskReminders.userId, userId)
@@ -3278,8 +3299,8 @@ Return only the cover letter text, no additional formatting or explanations.`;
         .from(schema.jobPostings)
         .where(
           and(
-            eq(schema.jobPostings.status, 'active'),
-            isNotNull(schema.jobPostings.requiredSkills)
+            eq(schema.jobPostings.isActive, true),
+            isNotNull(schema.jobPostings.skills)
           )
         )
         .orderBy(desc(schema.jobPostings.createdAt))
@@ -3289,11 +3310,11 @@ Return only the cover letter text, no additional formatting or explanations.`;
         success: true,
         suggestions: suggestions.map(job => ({
           id: job.id,
-          title: job.jobTitle,
+          title: job.title,
           company: job.companyName,
           location: job.location,
           description: job.description,
-          requiredSkills: job.requiredSkills,
+          requiredSkills: job.skills,
           matchScore: 75 // Basic match score
         }))
       });
