@@ -3453,6 +3453,250 @@ Return only the cover letter text, no additional formatting or explanations.`;
 
   // ============ END RETAKE PAYMENT ROUTES ============
 
+  // Admin route to send retake warning emails for terminated tests
+  app.post('/api/admin/send-retake-warnings/:testTemplateId', async (req: any, res) => {
+    try {
+      const testTemplateId = parseInt(req.params.testTemplateId);
+      
+      // Get all users with terminated tests for this template
+      const terminatedTests = await db
+        .select({
+          testId: schema.testAssignments.id,
+          userId: schema.testAssignments.jobSeekerId,
+          email: schema.users.email,
+          firstName: schema.users.firstName,
+          lastName: schema.users.lastName
+        })
+        .from(schema.testAssignments)
+        .innerJoin(schema.users, eq(schema.testAssignments.jobSeekerId, schema.users.id))
+        .where(and(
+          eq(schema.testAssignments.testTemplateId, testTemplateId),
+          eq(schema.testAssignments.status, 'terminated')
+        ));
+
+      if (terminatedTests.length === 0) {
+        return res.json({ message: 'No terminated tests found', count: 0 });
+      }
+
+      // Send warning emails to all users
+      const emailPromises = terminatedTests.map(async (test) => {
+        const userName = `${test.firstName} ${test.lastName}`;
+        const emailHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Final Retake Opportunity - AutoJobr</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 40px; text-align: center; border-radius: 10px 10px 0 0;">
+              <h1 style="color: white; margin: 0; font-size: 28px;">⚠️ Final Retake Opportunity</h1>
+              <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">Important Test Integrity Notice</p>
+            </div>
+            
+            <div style="background: white; padding: 40px; border: 1px solid #e1e5e9; border-top: none; border-radius: 0 0 10px 10px;">
+              <h2 style="color: #333; margin-top: 0;">Dear ${userName},</h2>
+              
+              <p style="color: #666; line-height: 1.6;">
+                We have reviewed your test assignment and noticed that it was terminated due to suspicious activity. 
+                After careful consideration, we are granting you <strong>ONE FINAL RETAKE OPPORTUNITY</strong>.
+              </p>
+              
+              <div style="background: #fee2e2; border-left: 4px solid #dc2626; padding: 20px; margin: 20px 0; border-radius: 5px;">
+                <h3 style="color: #991b1b; margin-top: 0; font-size: 18px;">🚨 CRITICAL WARNINGS</h3>
+                <ul style="color: #7f1d1d; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+                  <li><strong>NO Developer Tools:</strong> Do not open browser developer tools or inspect elements</li>
+                  <li><strong>NO Copy/Paste:</strong> Do not copy questions or paste answers</li>
+                  <li><strong>NO Tab Switching:</strong> Stay on the test tab at all times</li>
+                  <li><strong>NO External Help:</strong> This is an individual assessment</li>
+                  <li><strong>Use Private Browser:</strong> Take the test in incognito/private browsing mode</li>
+                </ul>
+              </div>
+
+              <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px 0; border-radius: 5px;">
+                <h3 style="color: #92400e; margin-top: 0; font-size: 16px;">📋 Proctoring System</h3>
+                <p style="color: #78350f; margin: 10px 0;">
+                  Our advanced proctoring system monitors all test activity. You will receive <strong>5 warnings</strong> 
+                  for any suspicious behavior before automatic submission. Any violation will result in:
+                </p>
+                <ul style="color: #78350f; margin: 10px 0; padding-left: 20px;">
+                  <li>Immediate test termination</li>
+                  <li>Permanent disqualification</li>
+                  <li>No further retake opportunities</li>
+                </ul>
+              </div>
+
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="https://autojobr.com/interview-link/link_1760040400971_3d9hswhtz" 
+                   style="background: linear-gradient(135deg, #059669 0%, #047857 100%); 
+                          color: white; 
+                          padding: 15px 30px; 
+                          text-decoration: none; 
+                          border-radius: 5px; 
+                          font-weight: bold;
+                          display: inline-block;">
+                  Retake Test Now
+                </a>
+              </div>
+              
+              <p style="color: #666; line-height: 1.6; font-size: 14px; text-align: center;">
+                Or copy and paste this link into your private browser:<br>
+                <a href="https://autojobr.com/interview-link/link_1760040400971_3d9hswhtz" 
+                   style="color: #667eea; word-break: break-all;">https://autojobr.com/interview-link/link_1760040400971_3d9hswhtz</a>
+              </p>
+              
+              <div style="background: #fef2f2; border: 2px solid #dc2626; padding: 20px; margin: 20px 0; border-radius: 8px; text-align: center;">
+                <p style="color: #991b1b; margin: 0; font-size: 16px; font-weight: bold;">
+                  ⚠️ THIS IS YOUR LAST CHANCE ⚠️
+                </p>
+                <p style="color: #7f1d1d; margin: 10px 0 0 0;">
+                  Any further violations will result in permanent account suspension
+                </p>
+              </div>
+              
+              <hr style="border: none; border-top: 1px solid #e1e5e9; margin: 30px 0;">
+              
+              <p style="color: #999; font-size: 12px; text-align: center;">
+                Please read all instructions carefully before starting the test.<br>
+                Good luck and test with integrity!
+              </p>
+            </div>
+          </body>
+          </html>
+        `;
+
+        try {
+          await sendEmail({
+            to: test.email,
+            subject: '⚠️ FINAL RETAKE OPPORTUNITY - Test Integrity Warning',
+            html: emailHtml
+          });
+          return { email: test.email, success: true };
+        } catch (error) {
+          console.error(`Failed to send email to ${test.email}:`, error);
+          return { email: test.email, success: false, error };
+        }
+      });
+
+      const results = await Promise.all(emailPromises);
+      const successCount = results.filter(r => r.success).length;
+      
+      res.json({ 
+        message: `Sent warning emails to ${successCount} out of ${terminatedTests.length} users`,
+        count: successCount,
+        total: terminatedTests.length,
+        results 
+      });
+    } catch (error) {
+      console.error('Send retake warning emails error:', error);
+      res.status(500).json({ message: 'Failed to send warning emails' });
+    }
+  });
+
+  // Simple endpoint to send custom retake warning email
+  app.post('/api/send-custom-email', async (req: any, res) => {
+    try {
+      const { to, name, link } = req.body;
+      
+      const emailHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Final Retake Opportunity - AutoJobr</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 40px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">⚠️ Final Retake Opportunity</h1>
+            <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">Important Test Integrity Notice</p>
+          </div>
+          
+          <div style="background: white; padding: 40px; border: 1px solid #e1e5e9; border-top: none; border-radius: 0 0 10px 10px;">
+            <h2 style="color: #333; margin-top: 0;">Dear ${name},</h2>
+            
+            <p style="color: #666; line-height: 1.6;">
+              We have reviewed your test assignment and noticed that it was terminated due to suspicious activity. 
+              After careful consideration, we are granting you <strong>ONE FINAL RETAKE OPPORTUNITY</strong>.
+            </p>
+            
+            <div style="background: #fee2e2; border-left: 4px solid #dc2626; padding: 20px; margin: 20px 0; border-radius: 5px;">
+              <h3 style="color: #991b1b; margin-top: 0; font-size: 18px;">🚨 CRITICAL WARNINGS</h3>
+              <ul style="color: #7f1d1d; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
+                <li><strong>NO Developer Tools:</strong> Do not open browser developer tools or inspect elements</li>
+                <li><strong>NO Copy/Paste:</strong> Do not copy questions or paste answers</li>
+                <li><strong>NO Tab Switching:</strong> Stay on the test tab at all times</li>
+                <li><strong>NO External Help:</strong> This is an individual assessment</li>
+                <li><strong>Use Private Browser:</strong> Take the test in incognito/private browsing mode</li>
+              </ul>
+            </div>
+
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px 0; border-radius: 5px;">
+              <h3 style="color: #92400e; margin-top: 0; font-size: 16px;">📋 Proctoring System</h3>
+              <p style="color: #78350f; margin: 10px 0;">
+                Our advanced proctoring system monitors all test activity. You will receive <strong>5 warnings</strong> 
+                for any suspicious behavior before automatic submission. Any violation will result in:
+              </p>
+              <ul style="color: #78350f; margin: 10px 0; padding-left: 20px;">
+                <li>Immediate test termination</li>
+                <li>Permanent disqualification</li>
+                <li>No further retake opportunities</li>
+              </ul>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${link}" 
+                 style="background: linear-gradient(135deg, #059669 0%, #047857 100%); 
+                        color: white; 
+                        padding: 15px 30px; 
+                        text-decoration: none; 
+                        border-radius: 5px; 
+                        font-weight: bold;
+                        display: inline-block;">
+                Retake Test Now
+              </a>
+            </div>
+            
+            <p style="color: #666; line-height: 1.6; font-size: 14px; text-align: center;">
+              Or copy and paste this link into your private browser:<br>
+              <a href="${link}" 
+                 style="color: #667eea; word-break: break-all;">${link}</a>
+            </p>
+            
+            <div style="background: #fef2f2; border: 2px solid #dc2626; padding: 20px; margin: 20px 0; border-radius: 8px; text-align: center;">
+              <p style="color: #991b1b; margin: 0; font-size: 16px; font-weight: bold;">
+                ⚠️ THIS IS YOUR LAST CHANCE ⚠️
+              </p>
+              <p style="color: #7f1d1d; margin: 10px 0 0 0;">
+                Any further violations will result in permanent account suspension
+              </p>
+            </div>
+            
+            <hr style="border: none; border-top: 1px solid #e1e5e9; margin: 30px 0;">
+            
+            <p style="color: #999; font-size: 12px; text-align: center;">
+              Please read all instructions carefully before starting the test.<br>
+              Good luck and test with integrity!
+            </p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      await sendEmail({
+        to,
+        subject: '⚠️ FINAL RETAKE OPPORTUNITY - Test Integrity Warning',
+        html: emailHtml
+      });
+
+      res.json({ success: true, message: `Email sent to ${to}` });
+    } catch (error) {
+      console.error('Send custom email error:', error);
+      res.status(500).json({ success: false, message: 'Failed to send email' });
+    }
+  });
+
+  // ============ END RETAKE PAYMENT ROUTES ============
+
   // Subscription Payment Routes - Consolidated
   app.get("/api/subscription/tiers", asyncHandler(async (req: any, res: any) => {
     const { userType } = req.query;
