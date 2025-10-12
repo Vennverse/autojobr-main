@@ -6885,24 +6885,24 @@ Additional Information:
   // ============= CRM MANAGEMENT =============
 
   // Contact management
-  app.post('/api/crm/contacts', CrmService.createContact);
-  app.get('/api/crm/contacts', CrmService.getContacts);
-  app.put('/api/crm/contacts/:contactId', CrmService.updateContact);
+  app.post('/api/crm/contacts', isAuthenticated, CrmService.createContact);
+  app.get('/api/crm/contacts', isAuthenticated, CrmService.getContacts);
+  app.put('/api/crm/contacts/:contactId', isAuthenticated, CrmService.updateContact);
 
   // Interaction logging
-  app.post('/api/crm/contacts/:contactId/interactions', CrmService.logInteraction);
-  app.get('/api/crm/contacts/:contactId/interactions', CrmService.getContactInteractions);
+  app.post('/api/crm/contacts/:contactId/interactions', isAuthenticated, CrmService.logInteraction);
+  app.get('/api/crm/contacts/:contactId/interactions', isAuthenticated, CrmService.getContactInteractions);
 
   // Pipeline management
-  app.get('/api/crm/pipeline/stages', CrmService.getPipelineStages);
-  app.get('/api/crm/pipeline/items', CrmService.getPipelineItems);
-  app.put('/api/crm/pipeline/items/:itemId/move', CrmService.movePipelineItem);
+  app.get('/api/crm/pipeline/stages', isAuthenticated, CrmService.getPipelineStages);
+  app.get('/api/crm/pipeline/items', isAuthenticated, CrmService.getPipelineItems);
+  app.put('/api/crm/pipeline/items/:itemId/move', isAuthenticated, CrmService.movePipelineItem);
 
   // Dashboard stats
-  app.get('/api/crm/dashboard-stats', CrmService.getDashboardStats);
+  app.get('/api/crm/dashboard-stats', isAuthenticated, CrmService.getDashboardStats);
 
   // AI-powered CRM insights (low-token, high-impact)
-  app.post('/api/crm/ai/contact-insight', async (req, res) => {
+  app.post('/api/crm/ai/contact-insight', isAuthenticated, async (req, res) => {
     try {
       const { CrmAIService } = await import('./crmAIService');
       const insight = await CrmAIService.getContactInsight(req.body.contact);
@@ -6912,7 +6912,7 @@ Additional Information:
     }
   });
 
-  app.post('/api/crm/ai/follow-up-suggestion', async (req, res) => {
+  app.post('/api/crm/ai/follow-up-suggestion', isAuthenticated, async (req, res) => {
     try {
       const { CrmAIService } = await import('./crmAIService');
       const suggestion = await CrmAIService.suggestFollowUp(req.body.contact, req.body.interactions);
@@ -6922,7 +6922,7 @@ Additional Information:
     }
   });
 
-  app.post('/api/crm/ai/email-subject', async (req, res) => {
+  app.post('/api/crm/ai/email-subject', isAuthenticated, async (req, res) => {
     try {
       const { CrmAIService } = await import('./crmAIService');
       const subject = await CrmAIService.generateEmailSubject(req.body.contact, req.body.purpose);
@@ -6932,7 +6932,7 @@ Additional Information:
     }
   });
 
-  app.post('/api/crm/ai/prioritize', async (req, res) => {
+  app.post('/api/crm/ai/prioritize', isAuthenticated, async (req, res) => {
     try {
       const { CrmAIService } = await import('./crmAIService');
       const priority = await CrmAIService.prioritizeContact(req.body.contact);
@@ -6942,7 +6942,7 @@ Additional Information:
     }
   });
 
-  app.post('/api/crm/ai/quick-message', async (req, res) => {
+  app.post('/api/crm/ai/quick-message', isAuthenticated, async (req, res) => {
     try {
       const { CrmAIService } = await import('./crmAIService');
       const message = await CrmAIService.generateQuickMessage(req.body.contact, req.body.messageType);
@@ -6951,6 +6951,15 @@ Additional Information:
       res.status(500).json({ error: 'Failed to generate message' });
     }
   });
+
+  // ============= ENHANCED CRM FEATURES (HubSpot-level) =============
+  const { EnhancedCrmService } = await import('./enhancedCrmService');
+  
+  app.get('/api/crm/analytics', isAuthenticated, EnhancedCrmService.getAnalytics);
+  app.get('/api/crm/contacts/:contactId/score', isAuthenticated, EnhancedCrmService.scoreContact);
+  app.post('/api/crm/tasks/auto-create', isAuthenticated, EnhancedCrmService.autoCreateTasks);
+  app.post('/api/crm/email/generate', isAuthenticated, EnhancedCrmService.generateEmailTemplate);
+  app.get('/api/crm/actions/next-best', isAuthenticated, EnhancedCrmService.getNextBestActions);
 
   // Apply ensureRoleConsistency middleware after auth setup and before any sensitive routes
   app.use(ensureRoleConsistency);
