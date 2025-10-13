@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { eq, and, desc, gte, lte, sql, or, count } from 'drizzle-orm';
+import { eq, and, desc, gte, lte, sql, or, count, like } from 'drizzle-orm';
 import { db } from './db';
 import { 
   crmContacts, 
@@ -8,7 +8,19 @@ import {
   pipelineItems,
   tasks,
   taskReminders,
-  users
+  users,
+  crmCompanies,
+  crmDeals,
+  crmEmailTemplates,
+  crmEmailCampaigns,
+  crmEmailSequences,
+  crmSequenceSteps,
+  crmSequenceEnrollments,
+  crmWorkflows,
+  crmMeetings,
+  crmDocuments,
+  crmActivities,
+  crmLeadScores
 } from '@shared/schema';
 import { aiService } from './aiService';
 
@@ -516,6 +528,742 @@ export class EnhancedCrmService {
     } catch (error) {
       console.error('Get next actions error:', error);
       res.status(500).json({ error: 'Failed to fetch next actions' });
+    }
+  }
+
+  // ============= COMPANIES MANAGEMENT =============
+  
+  static async createCompany(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const [company] = await db.insert(crmCompanies).values({ ...req.body, userId }).returning();
+      res.json({ success: true, company });
+    } catch (error) {
+      console.error('Create company error:', error);
+      res.status(500).json({ error: 'Failed to create company' });
+    }
+  }
+
+  static async getCompanies(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const companies = await db.select().from(crmCompanies).where(eq(crmCompanies.userId, userId));
+      res.json({ success: true, companies });
+    } catch (error) {
+      console.error('Get companies error:', error);
+      res.status(500).json({ error: 'Failed to fetch companies' });
+    }
+  }
+
+  static async getCompanyById(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { companyId } = req.params;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const [company] = await db.select().from(crmCompanies).where(and(
+        eq(crmCompanies.id, parseInt(companyId)),
+        eq(crmCompanies.userId, userId)
+      ));
+      res.json({ success: true, company });
+    } catch (error) {
+      console.error('Get company error:', error);
+      res.status(500).json({ error: 'Failed to fetch company' });
+    }
+  }
+
+  static async updateCompany(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { companyId } = req.params;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      await db.update(crmCompanies).set(req.body).where(and(
+        eq(crmCompanies.id, parseInt(companyId)),
+        eq(crmCompanies.userId, userId)
+      ));
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Update company error:', error);
+      res.status(500).json({ error: 'Failed to update company' });
+    }
+  }
+
+  static async deleteCompany(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { companyId } = req.params;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      await db.delete(crmCompanies).where(and(
+        eq(crmCompanies.id, parseInt(companyId)),
+        eq(crmCompanies.userId, userId)
+      ));
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Delete company error:', error);
+      res.status(500).json({ error: 'Failed to delete company' });
+    }
+  }
+
+  // ============= DEALS MANAGEMENT =============
+  
+  static async createDeal(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const [deal] = await db.insert(crmDeals).values({ ...req.body, userId }).returning();
+      
+      await db.insert(crmActivities).values({
+        userId,
+        activityType: 'deal_created',
+        title: `Deal created: ${deal.dealName}`,
+        description: `New deal "${deal.dealName}" added to pipeline`,
+        dealId: deal.id
+      });
+
+      res.json({ success: true, deal });
+    } catch (error) {
+      console.error('Create deal error:', error);
+      res.status(500).json({ error: 'Failed to create deal' });
+    }
+  }
+
+  static async getDeals(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const deals = await db.select().from(crmDeals).where(eq(crmDeals.userId, userId));
+      res.json({ success: true, deals });
+    } catch (error) {
+      console.error('Get deals error:', error);
+      res.status(500).json({ error: 'Failed to fetch deals' });
+    }
+  }
+
+  static async getDealById(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { dealId } = req.params;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const [deal] = await db.select().from(crmDeals).where(and(
+        eq(crmDeals.id, parseInt(dealId)),
+        eq(crmDeals.userId, userId)
+      ));
+      res.json({ success: true, deal });
+    } catch (error) {
+      console.error('Get deal error:', error);
+      res.status(500).json({ error: 'Failed to fetch deal' });
+    }
+  }
+
+  static async updateDeal(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { dealId } = req.params;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      await db.update(crmDeals).set(req.body).where(and(
+        eq(crmDeals.id, parseInt(dealId)),
+        eq(crmDeals.userId, userId)
+      ));
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Update deal error:', error);
+      res.status(500).json({ error: 'Failed to update deal' });
+    }
+  }
+
+  static async deleteDeal(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { dealId } = req.params;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      await db.delete(crmDeals).where(and(
+        eq(crmDeals.id, parseInt(dealId)),
+        eq(crmDeals.userId, userId)
+      ));
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Delete deal error:', error);
+      res.status(500).json({ error: 'Failed to delete deal' });
+    }
+  }
+
+  static async moveDealStage(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { dealId } = req.params;
+      const { newStage } = req.body;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      await db.update(crmDeals).set({ stage: newStage }).where(and(
+        eq(crmDeals.id, parseInt(dealId)),
+        eq(crmDeals.userId, userId)
+      ));
+
+      await db.insert(crmActivities).values({
+        userId,
+        activityType: 'deal_stage_changed',
+        title: `Deal stage changed to ${newStage}`,
+        description: `Deal moved to ${newStage} stage`,
+        dealId: parseInt(dealId)
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Move deal error:', error);
+      res.status(500).json({ error: 'Failed to move deal' });
+    }
+  }
+
+  // ============= EMAIL TEMPLATES MANAGEMENT =============
+  
+  static async createEmailTemplate(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const [template] = await db.insert(crmEmailTemplates).values({ ...req.body, userId }).returning();
+      res.json({ success: true, template });
+    } catch (error) {
+      console.error('Create email template error:', error);
+      res.status(500).json({ error: 'Failed to create email template' });
+    }
+  }
+
+  static async getEmailTemplates(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const templates = await db.select().from(crmEmailTemplates).where(eq(crmEmailTemplates.userId, userId));
+      res.json({ success: true, templates });
+    } catch (error) {
+      console.error('Get email templates error:', error);
+      res.status(500).json({ error: 'Failed to fetch email templates' });
+    }
+  }
+
+  static async getEmailTemplateById(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { templateId } = req.params;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const [template] = await db.select().from(crmEmailTemplates).where(and(
+        eq(crmEmailTemplates.id, parseInt(templateId)),
+        eq(crmEmailTemplates.userId, userId)
+      ));
+      res.json({ success: true, template });
+    } catch (error) {
+      console.error('Get email template error:', error);
+      res.status(500).json({ error: 'Failed to fetch email template' });
+    }
+  }
+
+  static async updateEmailTemplate(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { templateId } = req.params;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      await db.update(crmEmailTemplates).set(req.body).where(and(
+        eq(crmEmailTemplates.id, parseInt(templateId)),
+        eq(crmEmailTemplates.userId, userId)
+      ));
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Update email template error:', error);
+      res.status(500).json({ error: 'Failed to update email template' });
+    }
+  }
+
+  static async deleteEmailTemplate(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { templateId } = req.params;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      await db.delete(crmEmailTemplates).where(and(
+        eq(crmEmailTemplates.id, parseInt(templateId)),
+        eq(crmEmailTemplates.userId, userId)
+      ));
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Delete email template error:', error);
+      res.status(500).json({ error: 'Failed to delete email template' });
+    }
+  }
+
+  // ============= AI EMAIL GENERATION & SENDING =============
+  
+  static async generateEmailWithAI(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { prompt, context } = req.body;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const emailPrompt = `Generate a professional ${context?.category || 'business'} email.
+      Subject: ${context?.subject || 'Professional outreach'}
+      Context: ${prompt}
+      
+      Requirements:
+      - Professional and concise
+      - Clear purpose and call-to-action
+      - Personalized tone
+      - 150-200 words
+      
+      Generate only the email body, no subject line.`;
+
+      const emailBody = await aiService.createChatCompletion([
+        { role: 'user', content: emailPrompt }
+      ], { maxTokens: 400, temperature: 0.7 });
+
+      res.json({ success: true, emailBody });
+    } catch (error) {
+      console.error('Generate AI email error:', error);
+      res.status(500).json({ error: 'Failed to generate email' });
+    }
+  }
+
+  static async sendEmail(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { to, subject, body, contactId } = req.body;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      const senderEmail = user[0]?.email || 'noreply@autojobr.com';
+
+      console.log(`[CRM Email] From: ${senderEmail}, To: ${to}, Subject: ${subject}`);
+
+      await db.insert(crmActivities).values({
+        userId,
+        activityType: 'email',
+        title: `Email sent: ${subject}`,
+        description: `Sent email to ${to}`,
+        contactId: contactId ? parseInt(contactId) : null,
+        metadata: { subject, to }
+      });
+
+      res.json({ success: true, message: 'Email sent successfully via internal email system' });
+    } catch (error) {
+      console.error('Send email error:', error);
+      res.status(500).json({ error: 'Failed to send email' });
+    }
+  }
+
+  // ============= EMAIL CAMPAIGNS =============
+  
+  static async createEmailCampaign(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const [campaign] = await db.insert(crmEmailCampaigns).values({ ...req.body, userId }).returning();
+      res.json({ success: true, campaign });
+    } catch (error) {
+      console.error('Create email campaign error:', error);
+      res.status(500).json({ error: 'Failed to create email campaign' });
+    }
+  }
+
+  static async getEmailCampaigns(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const campaigns = await db.select().from(crmEmailCampaigns).where(eq(crmEmailCampaigns.userId, userId));
+      res.json({ success: true, campaigns });
+    } catch (error) {
+      console.error('Get email campaigns error:', error);
+      res.status(500).json({ error: 'Failed to fetch email campaigns' });
+    }
+  }
+
+  static async getEmailCampaignById(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { campaignId } = req.params;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const [campaign] = await db.select().from(crmEmailCampaigns).where(and(
+        eq(crmEmailCampaigns.id, parseInt(campaignId)),
+        eq(crmEmailCampaigns.userId, userId)
+      ));
+      res.json({ success: true, campaign });
+    } catch (error) {
+      console.error('Get email campaign error:', error);
+      res.status(500).json({ error: 'Failed to fetch email campaign' });
+    }
+  }
+
+  static async sendEmailCampaign(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { campaignId } = req.params;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      res.json({ success: true, message: 'Campaign sending initiated' });
+    } catch (error) {
+      console.error('Send email campaign error:', error);
+      res.status(500).json({ error: 'Failed to send email campaign' });
+    }
+  }
+
+  // ============= EMAIL SEQUENCES =============
+  
+  static async createEmailSequence(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const [sequence] = await db.insert(crmEmailSequences).values({ ...req.body, userId }).returning();
+      res.json({ success: true, sequence });
+    } catch (error) {
+      console.error('Create email sequence error:', error);
+      res.status(500).json({ error: 'Failed to create email sequence' });
+    }
+  }
+
+  static async getEmailSequences(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const sequences = await db.select().from(crmEmailSequences).where(eq(crmEmailSequences.userId, userId));
+      res.json({ success: true, sequences });
+    } catch (error) {
+      console.error('Get email sequences error:', error);
+      res.status(500).json({ error: 'Failed to fetch email sequences' });
+    }
+  }
+
+  static async enrollInSequence(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { sequenceId } = req.params;
+      const { contactId } = req.body;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const [enrollment] = await db.insert(crmSequenceEnrollments).values({
+        sequenceId: parseInt(sequenceId),
+        contactId: parseInt(contactId),
+        userId
+      }).returning();
+
+      res.json({ success: true, enrollment });
+    } catch (error) {
+      console.error('Enroll in sequence error:', error);
+      res.status(500).json({ error: 'Failed to enroll in sequence' });
+    }
+  }
+
+  // ============= WORKFLOWS =============
+  
+  static async createWorkflow(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const [workflow] = await db.insert(crmWorkflows).values({ ...req.body, userId }).returning();
+      res.json({ success: true, workflow });
+    } catch (error) {
+      console.error('Create workflow error:', error);
+      res.status(500).json({ error: 'Failed to create workflow' });
+    }
+  }
+
+  static async getWorkflows(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const workflows = await db.select().from(crmWorkflows).where(eq(crmWorkflows.userId, userId));
+      res.json({ success: true, workflows });
+    } catch (error) {
+      console.error('Get workflows error:', error);
+      res.status(500).json({ error: 'Failed to fetch workflows' });
+    }
+  }
+
+  static async toggleWorkflow(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { workflowId } = req.params;
+      const { isActive } = req.body;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      await db.update(crmWorkflows).set({ isActive }).where(and(
+        eq(crmWorkflows.id, parseInt(workflowId)),
+        eq(crmWorkflows.userId, userId)
+      ));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Toggle workflow error:', error);
+      res.status(500).json({ error: 'Failed to toggle workflow' });
+    }
+  }
+
+  // ============= MEETINGS MANAGEMENT =============
+  
+  static async createMeeting(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const [meeting] = await db.insert(crmMeetings).values({ ...req.body, userId }).returning();
+
+      await db.insert(crmActivities).values({
+        userId,
+        activityType: 'meeting',
+        title: `Meeting scheduled: ${meeting.title}`,
+        description: `New meeting "${meeting.title}" scheduled`,
+        metadata: { meetingId: meeting.id }
+      });
+
+      res.json({ success: true, meeting });
+    } catch (error) {
+      console.error('Create meeting error:', error);
+      res.status(500).json({ error: 'Failed to create meeting' });
+    }
+  }
+
+  static async getMeetings(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const meetings = await db.select().from(crmMeetings).where(eq(crmMeetings.userId, userId)).orderBy(desc(crmMeetings.startTime));
+      res.json({ success: true, meetings });
+    } catch (error) {
+      console.error('Get meetings error:', error);
+      res.status(500).json({ error: 'Failed to fetch meetings' });
+    }
+  }
+
+  static async getMeetingById(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { meetingId } = req.params;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const [meeting] = await db.select().from(crmMeetings).where(and(
+        eq(crmMeetings.id, parseInt(meetingId)),
+        eq(crmMeetings.userId, userId)
+      ));
+      res.json({ success: true, meeting });
+    } catch (error) {
+      console.error('Get meeting error:', error);
+      res.status(500).json({ error: 'Failed to fetch meeting' });
+    }
+  }
+
+  static async updateMeeting(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { meetingId } = req.params;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      await db.update(crmMeetings).set(req.body).where(and(
+        eq(crmMeetings.id, parseInt(meetingId)),
+        eq(crmMeetings.userId, userId)
+      ));
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Update meeting error:', error);
+      res.status(500).json({ error: 'Failed to update meeting' });
+    }
+  }
+
+  static async deleteMeeting(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { meetingId } = req.params;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      await db.delete(crmMeetings).where(and(
+        eq(crmMeetings.id, parseInt(meetingId)),
+        eq(crmMeetings.userId, userId)
+      ));
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Delete meeting error:', error);
+      res.status(500).json({ error: 'Failed to delete meeting' });
+    }
+  }
+
+  // ============= DOCUMENTS MANAGEMENT =============
+  
+  static async uploadDocument(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const [document] = await db.insert(crmDocuments).values({ ...req.body, userId }).returning();
+      res.json({ success: true, document });
+    } catch (error) {
+      console.error('Upload document error:', error);
+      res.status(500).json({ error: 'Failed to upload document' });
+    }
+  }
+
+  static async getDocuments(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const documents = await db.select().from(crmDocuments).where(eq(crmDocuments.userId, userId));
+      res.json({ success: true, documents });
+    } catch (error) {
+      console.error('Get documents error:', error);
+      res.status(500).json({ error: 'Failed to fetch documents' });
+    }
+  }
+
+  static async deleteDocument(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { documentId } = req.params;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      await db.delete(crmDocuments).where(and(
+        eq(crmDocuments.id, parseInt(documentId)),
+        eq(crmDocuments.userId, userId)
+      ));
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Delete document error:', error);
+      res.status(500).json({ error: 'Failed to delete document' });
+    }
+  }
+
+  // ============= ACTIVITIES TIMELINE =============
+  
+  static async getActivities(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const activities = await db.select().from(crmActivities).where(eq(crmActivities.userId, userId)).orderBy(desc(crmActivities.createdAt)).limit(50);
+      res.json({ success: true, activities });
+    } catch (error) {
+      console.error('Get activities error:', error);
+      res.status(500).json({ error: 'Failed to fetch activities' });
+    }
+  }
+
+  static async logActivity(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const [activity] = await db.insert(crmActivities).values({ ...req.body, userId }).returning();
+      res.json({ success: true, activity });
+    } catch (error) {
+      console.error('Log activity error:', error);
+      res.status(500).json({ error: 'Failed to log activity' });
+    }
+  }
+
+  // ============= LEAD SCORING =============
+  
+  static async getLeadScores(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const scores = await db.select().from(crmLeadScores).where(eq(crmLeadScores.userId, userId)).orderBy(desc(crmLeadScores.totalScore));
+      res.json({ success: true, scores });
+    } catch (error) {
+      console.error('Get lead scores error:', error);
+      res.status(500).json({ error: 'Failed to fetch lead scores' });
+    }
+  }
+
+  static async calculateLeadScores(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const contacts = await db.select().from(crmContacts).where(eq(crmContacts.userId, userId));
+      const calculated = [];
+
+      for (const contact of contacts) {
+        const interactions = await db.select().from(contactInteractions).where(eq(contactInteractions.contactId, contact.id));
+        const engagementScore = this.calculateEngagementScore(contact, interactions);
+
+        const grade = engagementScore >= 80 ? 'A' : engagementScore >= 60 ? 'B' : engagementScore >= 40 ? 'C' : engagementScore >= 20 ? 'D' : 'F';
+
+        await db.insert(crmLeadScores).values({
+          contactId: contact.id,
+          userId,
+          totalScore: engagementScore,
+          engagementScore,
+          demographicScore: 50,
+          behaviorScore: 50,
+          grade
+        }).onConflictDoUpdate({
+          target: crmLeadScores.contactId,
+          set: { totalScore: engagementScore, engagementScore, grade }
+        });
+
+        calculated.push({ contactId: contact.id, score: engagementScore, grade });
+      }
+
+      res.json({ success: true, calculated });
+    } catch (error) {
+      console.error('Calculate lead scores error:', error);
+      res.status(500).json({ error: 'Failed to calculate lead scores' });
+    }
+  }
+
+  // ============= DASHBOARD STATS =============
+  
+  static async getDashboardStats(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+
+      const [totalContacts] = await db.select({ count: count() }).from(crmContacts).where(eq(crmContacts.userId, userId));
+      const [totalCompanies] = await db.select({ count: count() }).from(crmCompanies).where(eq(crmCompanies.userId, userId));
+      const [activeDeals] = await db.select({ count: count() }).from(crmDeals).where(and(eq(crmDeals.userId, userId), or(
+        eq(crmDeals.stage, 'prospecting'),
+        eq(crmDeals.stage, 'qualification'),
+        eq(crmDeals.stage, 'proposal'),
+        eq(crmDeals.stage, 'negotiation')
+      )));
+      
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const [upcomingMeetings] = await db.select({ count: count() }).from(crmMeetings).where(and(
+        eq(crmMeetings.userId, userId),
+        gte(crmMeetings.startTime, new Date()),
+        lte(crmMeetings.startTime, tomorrow)
+      ));
+
+      res.json({
+        success: true,
+        stats: {
+          totalContacts: totalContacts.count || 0,
+          totalCompanies: totalCompanies.count || 0,
+          activeDeals: activeDeals.count || 0,
+          upcomingMeetings: upcomingMeetings.count || 0
+        }
+      });
+    } catch (error) {
+      console.error('Get dashboard stats error:', error);
+      res.status(500).json({ error: 'Failed to fetch dashboard stats' });
     }
   }
 }

@@ -6961,6 +6961,68 @@ Additional Information:
   app.post('/api/crm/email/generate', isAuthenticated, EnhancedCrmService.generateEmailTemplate);
   app.get('/api/crm/actions/next-best', isAuthenticated, EnhancedCrmService.getNextBestActions);
 
+  // Companies Management
+  app.post('/api/crm/companies', isAuthenticated, EnhancedCrmService.createCompany);
+  app.get('/api/crm/companies', isAuthenticated, EnhancedCrmService.getCompanies);
+  app.get('/api/crm/companies/:companyId', isAuthenticated, EnhancedCrmService.getCompanyById);
+  app.put('/api/crm/companies/:companyId', isAuthenticated, EnhancedCrmService.updateCompany);
+  app.delete('/api/crm/companies/:companyId', isAuthenticated, EnhancedCrmService.deleteCompany);
+
+  // Deals Management
+  app.post('/api/crm/deals', isAuthenticated, EnhancedCrmService.createDeal);
+  app.get('/api/crm/deals', isAuthenticated, EnhancedCrmService.getDeals);
+  app.get('/api/crm/deals/:dealId', isAuthenticated, EnhancedCrmService.getDealById);
+  app.put('/api/crm/deals/:dealId', isAuthenticated, EnhancedCrmService.updateDeal);
+  app.delete('/api/crm/deals/:dealId', isAuthenticated, EnhancedCrmService.deleteDeal);
+  app.post('/api/crm/deals/:dealId/stage', isAuthenticated, EnhancedCrmService.moveDealStage);
+
+  // Email Templates Management
+  app.post('/api/crm/email-templates', isAuthenticated, EnhancedCrmService.createEmailTemplate);
+  app.get('/api/crm/email-templates', isAuthenticated, EnhancedCrmService.getEmailTemplates);
+  app.get('/api/crm/email-templates/:templateId', isAuthenticated, EnhancedCrmService.getEmailTemplateById);
+  app.put('/api/crm/email-templates/:templateId', isAuthenticated, EnhancedCrmService.updateEmailTemplate);
+  app.delete('/api/crm/email-templates/:templateId', isAuthenticated, EnhancedCrmService.deleteEmailTemplate);
+
+  // AI Email Generation (uses existing email system)
+  app.post('/api/crm/email/generate-ai', isAuthenticated, EnhancedCrmService.generateEmailWithAI);
+  app.post('/api/crm/email/send', isAuthenticated, EnhancedCrmService.sendEmail);
+
+  // Email Campaigns
+  app.post('/api/crm/email-campaigns', isAuthenticated, EnhancedCrmService.createEmailCampaign);
+  app.get('/api/crm/email-campaigns', isAuthenticated, EnhancedCrmService.getEmailCampaigns);
+  app.get('/api/crm/email-campaigns/:campaignId', isAuthenticated, EnhancedCrmService.getEmailCampaignById);
+  app.post('/api/crm/email-campaigns/:campaignId/send', isAuthenticated, EnhancedCrmService.sendEmailCampaign);
+
+  // Email Sequences
+  app.post('/api/crm/email-sequences', isAuthenticated, EnhancedCrmService.createEmailSequence);
+  app.get('/api/crm/email-sequences', isAuthenticated, EnhancedCrmService.getEmailSequences);
+  app.post('/api/crm/email-sequences/:sequenceId/enroll', isAuthenticated, EnhancedCrmService.enrollInSequence);
+
+  // Workflows/Automation
+  app.post('/api/crm/workflows', isAuthenticated, EnhancedCrmService.createWorkflow);
+  app.get('/api/crm/workflows', isAuthenticated, EnhancedCrmService.getWorkflows);
+  app.put('/api/crm/workflows/:workflowId/toggle', isAuthenticated, EnhancedCrmService.toggleWorkflow);
+
+  // Meetings Management
+  app.post('/api/crm/meetings', isAuthenticated, EnhancedCrmService.createMeeting);
+  app.get('/api/crm/meetings', isAuthenticated, EnhancedCrmService.getMeetings);
+  app.get('/api/crm/meetings/:meetingId', isAuthenticated, EnhancedCrmService.getMeetingById);
+  app.put('/api/crm/meetings/:meetingId', isAuthenticated, EnhancedCrmService.updateMeeting);
+  app.delete('/api/crm/meetings/:meetingId', isAuthenticated, EnhancedCrmService.deleteMeeting);
+
+  // Documents Management
+  app.post('/api/crm/documents', isAuthenticated, EnhancedCrmService.uploadDocument);
+  app.get('/api/crm/documents', isAuthenticated, EnhancedCrmService.getDocuments);
+  app.delete('/api/crm/documents/:documentId', isAuthenticated, EnhancedCrmService.deleteDocument);
+
+  // Activities Timeline
+  app.get('/api/crm/activities', isAuthenticated, EnhancedCrmService.getActivities);
+  app.post('/api/crm/activities', isAuthenticated, EnhancedCrmService.logActivity);
+
+  // Lead Scoring
+  app.get('/api/crm/lead-scores', isAuthenticated, EnhancedCrmService.getLeadScores);
+  app.post('/api/crm/lead-scores/calculate', isAuthenticated, EnhancedCrmService.calculateLeadScores);
+
   // Apply ensureRoleConsistency middleware after auth setup and before any sensitive routes
   app.use(ensureRoleConsistency);
 
