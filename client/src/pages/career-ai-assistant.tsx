@@ -1038,16 +1038,44 @@ Examples:
 
               {/* Career Path Tab */}
               <TabsContent value="path" className="space-y-6">
-                {/* Career Path Chart */}
+                {/* AI-Powered Career Intelligence Banner */}
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="h-6 w-6 text-blue-600" />
+                    <div>
+                      <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+                        AI-Powered Career Roadmap
+                      </h3>
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        Personalized insights based on market data, salary trends, and industry demand
+                        {upgradeMessage && (
+                          <span className="block mt-1 text-xs">
+                            <button 
+                              className="text-purple-600 dark:text-purple-400 hover:underline font-medium"
+                              onClick={() => window.location.href = '/premium'}
+                            >
+                              Subscribe to Premium for advanced AI insights and unlimited career analysis
+                            </button>
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Career Progression Visualization */}
                 {careerPath && careerPath.steps && careerPath.steps.length > 0 && (
-                  <div className="bg-gray-50 rounded-lg p-4 border">
-                    <h4 className="font-semibold text-black mb-3 flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-green-600" />
-                      Career Progression Path
+                  <div className="bg-white dark:bg-gray-900 rounded-lg p-6 border shadow-sm">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-green-600" />
+                      Career Progression Timeline
+                      <Badge className="ml-auto" variant="outline">
+                        {careerPath.steps.length} Career Milestones
+                      </Badge>
                     </h4>
-                    <div className="h-48">
+                    <div className="h-64">
                       <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={careerPath.steps.slice(0, 4).map((step, index) => {
+                        <LineChart data={careerPath.steps.slice(0, 5).map((step, index) => {
                           // Enhanced salary parsing to handle various formats
                           let salary = 50 + (index * 20); // default fallback
 
@@ -1077,7 +1105,8 @@ Examples:
                             salary: salary,
                             timeline: step.timeline || 'N/A',
                             demand: demandScore,
-                            marketDemand: step.marketDemand || 'N/A'
+                            marketDemand: step.marketDemand || 'N/A',
+                            skills: step.requiredSkills?.length || 0
                           }
                         })}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -1085,31 +1114,46 @@ Examples:
                             dataKey="step" 
                             angle={-45} 
                             textAnchor="end" 
-                            height={80}
-                            tick={{ fontSize: 10 }}
+                            height={90}
+                            tick={{ fontSize: 11 }}
                           />
                           <YAxis 
                             yAxisId="salary"
                             orientation="left"
-                            tick={{ fontSize: 10 }}
-                            label={{ value: 'Salary (k)', angle: -90, position: 'insideLeft' }}
+                            tick={{ fontSize: 11 }}
+                            label={{ value: 'Salary (k)', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
                           />
                           <YAxis 
                             yAxisId="demand"
                             orientation="right"
-                            tick={{ fontSize: 10 }}
-                            label={{ value: 'Market Demand', angle: 90, position: 'insideRight' }}
+                            tick={{ fontSize: 11 }}
+                            label={{ value: 'Market Demand %', angle: 90, position: 'insideRight', style: { fontSize: 12 } }}
                           />
                           <Tooltip 
                             content={({ active, payload }) => {
                               if (active && payload && payload.length) {
                                 const data = payload[0].payload;
                                 return (
-                                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border">
-                                    <p className="font-medium">{data.fullPosition}</p>
-                                    <p className="text-sm text-blue-600">Timeline: {data.timeline}</p>
-                                    <p className="text-sm text-green-600">Salary: ${data.salary}k</p>
-                                    <p className="text-sm text-purple-600">Market Demand: {data.marketDemand}</p>
+                                  <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-xl border-2 border-blue-200 dark:border-blue-700">
+                                    <p className="font-bold text-lg mb-2">{data.fullPosition}</p>
+                                    <div className="space-y-1 text-sm">
+                                      <p className="flex items-center gap-2">
+                                        <Clock className="h-3 w-3 text-blue-600" />
+                                        <span className="text-blue-600 font-medium">Timeline: {data.timeline}</span>
+                                      </p>
+                                      <p className="flex items-center gap-2">
+                                        <DollarSign className="h-3 w-3 text-green-600" />
+                                        <span className="text-green-600 font-medium">Salary: ${data.salary}k</span>
+                                      </p>
+                                      <p className="flex items-center gap-2">
+                                        <Activity className="h-3 w-3 text-purple-600" />
+                                        <span className="text-purple-600 font-medium">Market Demand: {data.marketDemand}</span>
+                                      </p>
+                                      <p className="flex items-center gap-2">
+                                        <BookOpen className="h-3 w-3 text-orange-600" />
+                                        <span className="text-orange-600 font-medium">{data.skills} Skills Required</span>
+                                      </p>
+                                    </div>
                                   </div>
                                 );
                               }
@@ -1124,7 +1168,8 @@ Examples:
                             stroke="#10b981" 
                             strokeWidth={3}
                             dot={{ fill: '#10b981', strokeWidth: 2, r: 6 }}
-                            name="Salary (k)"
+                            name="Expected Salary"
+                            activeDot={{ r: 8 }}
                           />
                           <Line 
                             yAxisId="demand"
@@ -1132,12 +1177,16 @@ Examples:
                             dataKey="demand" 
                             stroke="#8b5cf6"
                             strokeWidth={2}
-                            dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }}
+                            dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 5 }}
                             name="Market Demand"
+                            activeDot={{ r: 7 }}
                           />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
+                      💡 Hover over each milestone to see detailed insights about salary, timeline, and required skills
+                    </p>
                   </div>
                 )}
 
@@ -1213,70 +1262,138 @@ Examples:
                 </div>
 
                 {/* Detailed Career Path Steps */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Trophy className="h-5 w-5" />
-                      Detailed Career Path
+                <Card className="shadow-md border-2">
+                  <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20">
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                      <Trophy className="h-6 w-6 text-purple-600" />
+                      Your Personalized Career Roadmap
                     </CardTitle>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>Success Probability: {careerPath?.successProbability ?? 0}%</span>
-                      <span>Total Timeframe: {careerPath?.totalTimeframe ?? 'N/A'}</span>
+                    <div className="flex flex-wrap items-center gap-4 text-sm mt-2">
+                      <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-1 rounded-full">
+                        <Target className="h-4 w-4 text-green-600" />
+                        <span className="font-medium">Success Rate: {careerPath?.successProbability ?? 0}%</span>
+                      </div>
+                      <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-1 rounded-full">
+                        <Clock className="h-4 w-4 text-blue-600" />
+                        <span className="font-medium">Timeline: {careerPath?.totalTimeframe ?? 'N/A'}</span>
+                      </div>
+                      {careerPath?.location && (
+                        <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-1 rounded-full">
+                          <Map className="h-4 w-4 text-purple-600" />
+                          <span className="font-medium">{careerPath.location}</span>
+                        </div>
+                      )}
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
+                  <CardContent className="pt-6">
+                    <div className="space-y-8">
                       {careerPath?.steps && careerPath.steps.length > 0 ? (
-                        careerPath.steps.map((step, index) => (
-                          <div key={index} className="relative">
-                            {index < careerPath.steps.length - 1 && (
-                              <div className="absolute left-6 top-12 w-0.5 h-16 bg-border" />
-                            )}
-                            <div className="flex gap-4">
-                              <div className="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                                <span className="text-primary font-bold">{index + 1}</span>
-                              </div>
-                              <div className="flex-1 space-y-3">
-                                <div>
-                                  <h3 className="font-semibold text-lg">{step.position}</h3>
-                                  <p className="text-muted-foreground">{step.timeline}</p>
+                        careerPath.steps.map((step, index) => {
+                          const isCurrentLevel = step.isCurrentLevel || index === 0;
+                          return (
+                            <div key={index} className="relative">
+                              {index < careerPath.steps.length - 1 && (
+                                <div className="absolute left-7 top-16 w-1 h-20 bg-gradient-to-b from-purple-400 to-blue-400 dark:from-purple-600 dark:to-blue-600" />
+                              )}
+                              <div className="flex gap-5">
+                                <div className={`flex-shrink-0 w-14 h-14 rounded-full flex items-center justify-center ${
+                                  isCurrentLevel 
+                                    ? 'bg-gradient-to-br from-green-500 to-emerald-500 ring-4 ring-green-200 dark:ring-green-800' 
+                                    : 'bg-gradient-to-br from-purple-500 to-blue-500 ring-2 ring-purple-200 dark:ring-purple-800'
+                                }`}>
+                                  <span className="text-white font-bold text-lg">{index + 1}</span>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                <div className="flex-1 space-y-4">
                                   <div>
-                                    <p className="font-medium mb-1">Required Skills</p>
-                                    <div className="flex flex-wrap gap-1">
-                                      {step.requiredSkills && step.requiredSkills.length > 0 ? (
-                                        step.requiredSkills.slice(0, 3).map((skill, i) => (
-                                          <Badge key={i} variant="secondary" className="text-xs">
-                                            {skill}
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <h3 className="font-bold text-lg text-gray-900 dark:text-white">{step.position}</h3>
+                                      {isCurrentLevel && (
+                                        <Badge className="bg-green-500 text-white">Current</Badge>
+                                      )}
+                                    </div>
+                                    <p className="text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      {step.timeline}
+                                    </p>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="bg-purple-50 dark:bg-purple-950/20 p-3 rounded-lg border border-purple-200 dark:border-purple-800">
+                                      <p className="font-semibold mb-2 flex items-center gap-1 text-purple-900 dark:text-purple-100">
+                                        <BookOpen className="h-4 w-4" />
+                                        Required Skills
+                                      </p>
+                                      <div className="flex flex-wrap gap-1">
+                                        {step.requiredSkills && step.requiredSkills.length > 0 ? (
+                                          step.requiredSkills.slice(0, 4).map((skill, i) => (
+                                            <Badge key={i} variant="secondary" className="text-xs">
+                                              {skill}
+                                            </Badge>
+                                          ))
+                                        ) : (
+                                          <span className="text-xs text-muted-foreground">Building foundational skills</span>
+                                        )}
+                                        {step.requiredSkills && step.requiredSkills.length > 4 && (
+                                          <Badge variant="outline" className="text-xs">
+                                            +{step.requiredSkills.length - 4} more
                                           </Badge>
-                                        ))
-                                      ) : (
-                                        <span className="text-xs text-muted-foreground">No skills specified</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
+                                      <p className="font-semibold mb-2 flex items-center gap-1 text-green-900 dark:text-green-100">
+                                        <DollarSign className="h-4 w-4" />
+                                        Salary Range
+                                      </p>
+                                      <p className="text-green-600 dark:text-green-400 font-bold text-lg">
+                                        {step.averageSalary || 'Market rate'}
+                                      </p>
+                                      {step.salaryUSD && (
+                                        <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                                          {step.salaryUSD}
+                                        </p>
+                                      )}
+                                    </div>
+                                    
+                                    <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                                      <p className="font-semibold mb-2 flex items-center gap-1 text-blue-900 dark:text-blue-100">
+                                        <Activity className="h-4 w-4" />
+                                        Market Outlook
+                                      </p>
+                                      <Badge variant={
+                                        step.marketDemand?.toLowerCase().includes('high') ? 'default' : 
+                                        step.marketDemand?.toLowerCase().includes('medium') ? 'secondary' : 
+                                        'outline'
+                                      } className="text-sm">
+                                        {step.marketDemand || 'Stable'}
+                                      </Badge>
+                                      {step.companiesHiring && step.companiesHiring.length > 0 && (
+                                        <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+                                          {step.companiesHiring[0]}
+                                        </p>
                                       )}
                                     </div>
                                   </div>
-                                  <div>
-                                    <p className="font-medium mb-1">Average Salary</p>
-                                    <p className="text-green-600 font-semibold">{step.averageSalary || 'N/A'}</p>
-                                  </div>
-                                  <div>
-                                    <p className="font-medium mb-1">Market Demand</p>
-                                    <Badge variant={step.marketDemand === 'High' ? 'default' : 'secondary'}>
-                                      {step.marketDemand || 'N/A'}
-                                    </Badge>
-                                  </div>
+
+                                  {!isCurrentLevel && (
+                                    <div className="bg-yellow-50 dark:bg-yellow-950/20 p-3 rounded-lg border-l-4 border-yellow-500">
+                                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                                        <span className="font-semibold">💡 Pro Tip:</span> Start building these skills now to accelerate your progression to this role
+                                      </p>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        ))
+                          );
+                        })
                       ) : (
-                        <div className="text-center py-8 bg-gray-100 dark:bg-gray-800 rounded-lg border border-dashed">
-                          <Map className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                          <p className="text-lg font-medium text-gray-700 dark:text-gray-300">No Career Path Steps Available</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                            Your career analysis is processing. Career path steps will appear once AI completes the detailed analysis with your specific career goal and location.
+                        <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-blue-950/20 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700">
+                          <Map className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                          <p className="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">Building Your Career Path</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                            Our AI is analyzing market trends, salary data, and skill requirements to create your personalized career roadmap. This will be ready in moments!
                           </p>
                         </div>
                       )}
