@@ -148,6 +148,12 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
       current: location === "/recruiter/dashboard" || location === "/recruiter/analytics"
     },
     {
+      name: "CRM",
+      href: "/enhanced-crm",
+      icon: Users,
+      current: location === "/enhanced-crm" || location.startsWith("/enhanced-crm") || location === "/crm"
+    },
+    {
       name: "Applicants",
       href: "/recruiter/applicants",
       icon: Users,

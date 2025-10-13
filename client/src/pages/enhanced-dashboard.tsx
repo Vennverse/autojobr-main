@@ -1819,7 +1819,7 @@ export default function EnhancedDashboard() {
                 initial="rest"
                 whileHover="hover"
                 className="cursor-pointer"
-                onClick={() => setLocation('/unified-crm-dashboard')}
+                onClick={() => setLocation('/enhanced-crm')}
               >
                 <Card className="h-full border-2 border-transparent hover:border-primary/20 transition-all duration-200 shadow-md hover:shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950">
                   <CardContent className="p-6 text-center">

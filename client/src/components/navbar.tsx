@@ -183,6 +183,12 @@ export function Navbar() {
           current: location === "/internships" || location.startsWith("/internships")
         },
         {
+          name: "CRM",
+          href: "/enhanced-crm",
+          icon: Users,
+          current: location === "/enhanced-crm" || location.startsWith("/enhanced-crm") || location === "/crm"
+        },
+        {
           name: "Premium",
           href: "/job-seeker-premium",
           icon: Crown,
@@ -203,13 +209,6 @@ export function Navbar() {
           current: location === "/virtual-interview/new" || location.startsWith("/virtual-interview") || location.startsWith("/mock-interview"),
           badge: "New"
         },
-        {
-          name: "Get Referred",
-          href: "/referral-marketplace",
-          icon: Handshake,
-          current: location === "/referral-marketplace" || location === "/become-referrer" || location === "/my-bookings",
-          badge: "New"
-        }
       ];
     }
   };

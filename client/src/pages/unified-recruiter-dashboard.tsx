@@ -512,7 +512,7 @@ function RecruiterDashboard() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Button
-                onClick={() => setLocation("/unified-crm-dashboard")}
+                onClick={() => setLocation("/enhanced-crm")}
                 className="h-20 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
                 size="lg"
               >

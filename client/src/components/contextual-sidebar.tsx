@@ -506,6 +506,7 @@ export function ContextualSidebar() {
           {
             label: "Candidate Management",
             items: [
+              { name: "TouchBase CRM", href: "/enhanced-crm", icon: Users, current: location === "/enhanced-crm" || location.startsWith("/enhanced-crm") },
               { name: "Applicant Pipeline", href: "/pipeline-management", icon: Users, current: location === "/pipeline-management" },
               { name: "Enhanced Pipeline", href: "/enhanced-pipeline-management", icon: Layers, current: location === "/enhanced-pipeline-management" },
               { name: "Test Management", href: "/test-management", icon: Code, current: location === "/test-management" },
