@@ -3815,3 +3815,527 @@ export const insertSuccessPredictionSchema = createInsertSchema(successPredictio
 export const insertViralUserStatsSchema = createInsertSchema(viralUserStats);
 export const insertExtensionApplicationSchema = createInsertSchema(extensionApplications);
 export const insertJobApplicationStatsSchema = createInsertSchema(jobApplicationStats);
+
+// ======================================================================
+// HUBSPOT-LEVEL CRM FEATURES
+// ======================================================================
+
+// CRM Companies - Separate company records (like HubSpot)
+export const crmCompanies = pgTable("crm_companies", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Basic company info
+  name: varchar("name").notNull(),
+  domain: varchar("domain"),
+  industry: varchar("industry"),
+  size: varchar("size"), // 1-10, 11-50, 51-200, 201-500, 501-1000, 1000+
+  revenue: varchar("revenue"),
+  
+  // Contact details
+  phone: varchar("phone"),
+  address: text("address"),
+  city: varchar("city"),
+  state: varchar("state"),
+  country: varchar("country"),
+  zipCode: varchar("zip_code"),
+  
+  // Social media
+  linkedinUrl: varchar("linkedin_url"),
+  twitterUrl: varchar("twitter_url"),
+  facebookUrl: varchar("facebook_url"),
+  
+  // Business details
+  description: text("description"),
+  founded: varchar("founded"),
+  employeeCount: integer("employee_count"),
+  
+  // Tracking
+  status: varchar("status").default("active"), // active, inactive, archived, prospect, customer
+  companyType: varchar("company_type"), // prospect, partner, reseller, vendor, customer
+  tags: text("tags").array(),
+  customFields: jsonb("custom_fields"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("crm_companies_user_idx").on(table.userId),
+  index("crm_companies_status_idx").on(table.status),
+  index("crm_companies_domain_idx").on(table.domain),
+]);
+
+// CRM Deals - Sales pipeline deals (like HubSpot)
+export const crmDeals = pgTable("crm_deals", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Deal basics
+  dealName: varchar("deal_name").notNull(),
+  dealValue: numeric("deal_value", { precision: 10, scale: 2 }),
+  currency: varchar("currency").default("USD"),
+  
+  // Related entities
+  companyId: integer("company_id").references(() => crmCompanies.id),
+  contactId: integer("contact_id").references(() => crmContacts.id),
+  
+  // Pipeline & Stage
+  pipelineType: varchar("pipeline_type").default("sales"), // sales, recruitment, custom
+  stage: varchar("stage").notNull(), // prospecting, qualification, proposal, negotiation, closed-won, closed-lost
+  probability: integer("probability").default(50), // 0-100
+  
+  // Dates
+  expectedCloseDate: timestamp("expected_close_date"),
+  actualCloseDate: timestamp("actual_close_date"),
+  
+  // Details
+  dealType: varchar("deal_type"), // new_business, renewal, upsell, cross-sell
+  dealSource: varchar("deal_source"), // inbound, outbound, referral, partner
+  lostReason: varchar("lost_reason"),
+  
+  // Assignment
+  ownerId: varchar("owner_id"),
+  
+  // Tracking
+  notes: text("notes"),
+  customFields: jsonb("custom_fields"),
+  tags: text("tags").array(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("crm_deals_user_idx").on(table.userId),
+  index("crm_deals_stage_idx").on(table.stage),
+  index("crm_deals_company_idx").on(table.companyId),
+  index("crm_deals_contact_idx").on(table.contactId),
+  index("crm_deals_close_date_idx").on(table.expectedCloseDate),
+]);
+
+// CRM Email Templates
+export const crmEmailTemplates = pgTable("crm_email_templates", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Template details
+  name: varchar("name").notNull(),
+  subject: varchar("subject").notNull(),
+  body: text("body").notNull(),
+  
+  // Template metadata
+  category: varchar("category"), // follow-up, introduction, proposal, thank-you, reminder
+  language: varchar("language").default("en"),
+  
+  // Personalization
+  hasPersonalization: boolean("has_personalization").default(false),
+  variables: text("variables").array(), // {{firstName}}, {{company}}, etc.
+  
+  // Usage
+  useCount: integer("use_count").default(0),
+  lastUsedAt: timestamp("last_used_at"),
+  
+  // Status
+  isActive: boolean("is_active").default(true),
+  isShared: boolean("is_shared").default(false),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("crm_email_templates_user_idx").on(table.userId),
+  index("crm_email_templates_category_idx").on(table.category),
+]);
+
+// CRM Email Campaigns
+export const crmEmailCampaigns = pgTable("crm_email_campaigns", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Campaign details
+  name: varchar("name").notNull(),
+  subject: varchar("subject").notNull(),
+  body: text("body").notNull(),
+  
+  // Targeting
+  recipientType: varchar("recipient_type").notNull(), // all_contacts, segment, custom_list
+  recipientIds: text("recipient_ids").array(),
+  segmentCriteria: jsonb("segment_criteria"),
+  
+  // Schedule
+  scheduledFor: timestamp("scheduled_for"),
+  sentAt: timestamp("sent_at"),
+  
+  // Status
+  status: varchar("status").default("draft"), // draft, scheduled, sending, sent, paused, cancelled
+  
+  // Analytics
+  totalRecipients: integer("total_recipients").default(0),
+  totalSent: integer("total_sent").default(0),
+  totalDelivered: integer("total_delivered").default(0),
+  totalOpened: integer("total_opened").default(0),
+  totalClicked: integer("total_clicked").default(0),
+  totalBounced: integer("total_bounced").default(0),
+  totalUnsubscribed: integer("total_unsubscribed").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("crm_email_campaigns_user_idx").on(table.userId),
+  index("crm_email_campaigns_status_idx").on(table.status),
+  index("crm_email_campaigns_scheduled_idx").on(table.scheduledFor),
+]);
+
+// CRM Email Sequences (drip campaigns)
+export const crmEmailSequences = pgTable("crm_email_sequences", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Sequence details
+  name: varchar("name").notNull(),
+  description: text("description"),
+  
+  // Status
+  isActive: boolean("is_active").default(true),
+  
+  // Enrollment
+  totalEnrolled: integer("total_enrolled").default(0),
+  totalCompleted: integer("total_completed").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("crm_email_sequences_user_idx").on(table.userId),
+  index("crm_email_sequences_active_idx").on(table.isActive),
+]);
+
+// CRM Sequence Steps
+export const crmSequenceSteps = pgTable("crm_sequence_steps", {
+  id: serial("id").primaryKey(),
+  sequenceId: integer("sequence_id").references(() => crmEmailSequences.id).notNull(),
+  
+  // Step details
+  stepNumber: integer("step_number").notNull(),
+  stepType: varchar("step_type").default("email"), // email, task, wait
+  
+  // For email steps
+  subject: varchar("subject"),
+  body: text("body"),
+  
+  // For task steps
+  taskTitle: varchar("task_title"),
+  taskDescription: text("task_description"),
+  
+  // Timing
+  delayDays: integer("delay_days").default(0),
+  delayHours: integer("delay_hours").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("crm_sequence_steps_sequence_idx").on(table.sequenceId),
+  index("crm_sequence_steps_number_idx").on(table.stepNumber),
+]);
+
+// CRM Sequence Enrollments
+export const crmSequenceEnrollments = pgTable("crm_sequence_enrollments", {
+  id: serial("id").primaryKey(),
+  sequenceId: integer("sequence_id").references(() => crmEmailSequences.id).notNull(),
+  contactId: integer("contact_id").references(() => crmContacts.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Progress
+  currentStep: integer("current_step").default(1),
+  status: varchar("status").default("active"), // active, paused, completed, cancelled
+  
+  // Timing
+  enrolledAt: timestamp("enrolled_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+  nextActionAt: timestamp("next_action_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("crm_sequence_enrollments_sequence_idx").on(table.sequenceId),
+  index("crm_sequence_enrollments_contact_idx").on(table.contactId),
+  index("crm_sequence_enrollments_status_idx").on(table.status),
+  index("crm_sequence_enrollments_next_action_idx").on(table.nextActionAt),
+]);
+
+// CRM Workflows (automation)
+export const crmWorkflows = pgTable("crm_workflows", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Workflow details
+  name: varchar("name").notNull(),
+  description: text("description"),
+  
+  // Trigger
+  triggerType: varchar("trigger_type").notNull(), // contact_created, deal_stage_changed, email_opened, etc.
+  triggerConditions: jsonb("trigger_conditions"),
+  
+  // Actions
+  actions: jsonb("actions"), // Array of actions to perform
+  
+  // Status
+  isActive: boolean("is_active").default(false),
+  
+  // Stats
+  totalTriggers: integer("total_triggers").default(0),
+  totalActions: integer("total_actions").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("crm_workflows_user_idx").on(table.userId),
+  index("crm_workflows_active_idx").on(table.isActive),
+  index("crm_workflows_trigger_idx").on(table.triggerType),
+]);
+
+// CRM Documents
+export const crmDocuments = pgTable("crm_documents", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Document details
+  name: varchar("name").notNull(),
+  description: text("description"),
+  fileUrl: varchar("file_url").notNull(),
+  fileType: varchar("file_type"), // pdf, docx, xlsx, pptx, txt, etc.
+  fileSize: integer("file_size"), // in bytes
+  
+  // Related entities
+  relatedType: varchar("related_type"), // contact, company, deal
+  relatedId: integer("related_id"),
+  
+  // Tracking
+  uploadedBy: varchar("uploaded_by"),
+  tags: text("tags").array(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("crm_documents_user_idx").on(table.userId),
+  index("crm_documents_related_idx").on(table.relatedType, table.relatedId),
+]);
+
+// CRM Meetings
+export const crmMeetings = pgTable("crm_meetings", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Meeting details
+  title: varchar("title").notNull(),
+  description: text("description"),
+  meetingType: varchar("meeting_type"), // call, video, in-person
+  location: varchar("location"),
+  meetingLink: varchar("meeting_link"),
+  
+  // Timing
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  duration: integer("duration"), // in minutes
+  
+  // Participants
+  attendeeIds: text("attendee_ids").array(),
+  contactId: integer("contact_id").references(() => crmContacts.id),
+  companyId: integer("company_id").references(() => crmCompanies.id),
+  dealId: integer("deal_id").references(() => crmDeals.id),
+  
+  // Status
+  status: varchar("status").default("scheduled"), // scheduled, completed, cancelled, no-show
+  
+  // Notes
+  notes: text("notes"),
+  outcome: varchar("outcome"), // positive, neutral, negative
+  recordingUrl: varchar("recording_url"),
+  
+  // Reminders
+  reminderSent: boolean("reminder_sent").default(false),
+  reminderMinutesBefore: integer("reminder_minutes_before").default(30),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("crm_meetings_user_idx").on(table.userId),
+  index("crm_meetings_contact_idx").on(table.contactId),
+  index("crm_meetings_company_idx").on(table.companyId),
+  index("crm_meetings_deal_idx").on(table.dealId),
+  index("crm_meetings_start_time_idx").on(table.startTime),
+  index("crm_meetings_status_idx").on(table.status),
+]);
+
+// CRM Activities (comprehensive activity log)
+export const crmActivities = pgTable("crm_activities", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Activity details
+  activityType: varchar("activity_type").notNull(), // email, call, meeting, note, task, deal_stage_change, etc.
+  title: varchar("title").notNull(),
+  description: text("description"),
+  
+  // Related entities
+  contactId: integer("contact_id").references(() => crmContacts.id),
+  companyId: integer("company_id").references(() => crmCompanies.id),
+  dealId: integer("deal_id").references(() => crmDeals.id),
+  
+  // Activity data
+  metadata: jsonb("metadata"), // flexible field for activity-specific data
+  
+  // Status
+  status: varchar("status").default("completed"), // completed, pending, scheduled
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("crm_activities_user_idx").on(table.userId),
+  index("crm_activities_type_idx").on(table.activityType),
+  index("crm_activities_contact_idx").on(table.contactId),
+  index("crm_activities_company_idx").on(table.companyId),
+  index("crm_activities_deal_idx").on(table.dealId),
+  index("crm_activities_created_idx").on(table.createdAt),
+]);
+
+// CRM Lead Scoring
+export const crmLeadScores = pgTable("crm_lead_scores", {
+  id: serial("id").primaryKey(),
+  contactId: integer("contact_id").references(() => crmContacts.id).notNull().unique(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Scores
+  totalScore: integer("total_score").default(0),
+  engagementScore: integer("engagement_score").default(0),
+  demographicScore: integer("demographic_score").default(0),
+  behaviorScore: integer("behavior_score").default(0),
+  
+  // Grade
+  grade: varchar("grade"), // A, B, C, D, F
+  
+  // Factors
+  scoringFactors: jsonb("scoring_factors"),
+  
+  // Last activity
+  lastActivityDate: timestamp("last_activity_date"),
+  lastEmailOpen: timestamp("last_email_open"),
+  lastEmailClick: timestamp("last_email_click"),
+  lastMeeting: timestamp("last_meeting"),
+  
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("crm_lead_scores_contact_idx").on(table.contactId),
+  index("crm_lead_scores_user_idx").on(table.userId),
+  index("crm_lead_scores_total_idx").on(table.totalScore),
+  index("crm_lead_scores_grade_idx").on(table.grade),
+]);
+
+// Insert schemas for new CRM tables
+export const insertCrmCompanySchema = createInsertSchema(crmCompanies).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCrmDealSchema = createInsertSchema(crmDeals).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCrmEmailTemplateSchema = createInsertSchema(crmEmailTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  useCount: true,
+  lastUsedAt: true,
+});
+
+export const insertCrmEmailCampaignSchema = createInsertSchema(crmEmailCampaigns).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  totalSent: true,
+  totalDelivered: true,
+  totalOpened: true,
+  totalClicked: true,
+  totalBounced: true,
+  totalUnsubscribed: true,
+});
+
+export const insertCrmEmailSequenceSchema = createInsertSchema(crmEmailSequences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  totalEnrolled: true,
+  totalCompleted: true,
+});
+
+export const insertCrmSequenceStepSchema = createInsertSchema(crmSequenceSteps).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCrmSequenceEnrollmentSchema = createInsertSchema(crmSequenceEnrollments).omit({
+  id: true,
+  createdAt: true,
+  enrolledAt: true,
+});
+
+export const insertCrmWorkflowSchema = createInsertSchema(crmWorkflows).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  totalTriggers: true,
+  totalActions: true,
+});
+
+export const insertCrmDocumentSchema = createInsertSchema(crmDocuments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCrmMeetingSchema = createInsertSchema(crmMeetings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCrmActivitySchema = createInsertSchema(crmActivities).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCrmLeadScoreSchema = createInsertSchema(crmLeadScores).omit({
+  id: true,
+  updatedAt: true,
+});
+
+// Types for new CRM tables
+export type CrmCompany = typeof crmCompanies.$inferSelect;
+export type InsertCrmCompany = z.infer<typeof insertCrmCompanySchema>;
+
+export type CrmDeal = typeof crmDeals.$inferSelect;
+export type InsertCrmDeal = z.infer<typeof insertCrmDealSchema>;
+
+export type CrmEmailTemplate = typeof crmEmailTemplates.$inferSelect;
+export type InsertCrmEmailTemplate = z.infer<typeof insertCrmEmailTemplateSchema>;
+
+export type CrmEmailCampaign = typeof crmEmailCampaigns.$inferSelect;
+export type InsertCrmEmailCampaign = z.infer<typeof insertCrmEmailCampaignSchema>;
+
+export type CrmEmailSequence = typeof crmEmailSequences.$inferSelect;
+export type InsertCrmEmailSequence = z.infer<typeof insertCrmEmailSequenceSchema>;
+
+export type CrmSequenceStep = typeof crmSequenceSteps.$inferSelect;
+export type InsertCrmSequenceStep = z.infer<typeof insertCrmSequenceStepSchema>;
+
+export type CrmSequenceEnrollment = typeof crmSequenceEnrollments.$inferSelect;
+export type InsertCrmSequenceEnrollment = z.infer<typeof insertCrmSequenceEnrollmentSchema>;
+
+export type CrmWorkflow = typeof crmWorkflows.$inferSelect;
+export type InsertCrmWorkflow = z.infer<typeof insertCrmWorkflowSchema>;
+
+export type CrmDocument = typeof crmDocuments.$inferSelect;
+export type InsertCrmDocument = z.infer<typeof insertCrmDocumentSchema>;
+
+export type CrmMeeting = typeof crmMeetings.$inferSelect;
+export type InsertCrmMeeting = z.infer<typeof insertCrmMeetingSchema>;
+
+export type CrmActivity = typeof crmActivities.$inferSelect;
+export type InsertCrmActivity = z.infer<typeof insertCrmActivitySchema>;
+
+export type CrmLeadScore = typeof crmLeadScores.$inferSelect;
+export type InsertCrmLeadScore = z.infer<typeof insertCrmLeadScoreSchema>;
