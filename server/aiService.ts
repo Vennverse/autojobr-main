@@ -65,7 +65,7 @@ interface JobMatchAnalysis {
 // AI Service that uses both Groq and OpenRouter with rotation
 class AIService {
   private developmentMode: boolean;
-  
+
   // AI Model configuration
   private readonly models = {
     groq: {
@@ -82,13 +82,13 @@ class AIService {
     const status = apiKeyRotationService.getStatus();
     const hasGroq = status.groq.totalKeys > 0;
     const hasOpenRouter = status.openrouter.totalKeys > 0;
-    
+
     if (!hasGroq && !hasOpenRouter) {
       console.warn("No AI API keys configured - AI analysis will be simulated in development mode");
       this.developmentMode = true;
       return;
     }
-    
+
     this.developmentMode = false;
     console.log(`AI Service initialized with:`);
     console.log(`   - Groq: ${status.groq.totalKeys} keys (${status.groq.availableKeys} available)`);
@@ -103,31 +103,31 @@ class AIService {
     const status = apiKeyRotationService.getStatus();
     const hasGroq = status.groq.availableKeys > 0;
     const hasOpenRouter = status.openrouter.availableKeys > 0;
-    
+
     // Randomly choose between available services for load balancing
     const availableServices: ('groq' | 'openrouter')[] = [];
     if (hasGroq) availableServices.push('groq');
     if (hasOpenRouter) availableServices.push('openrouter');
-    
+
     if (availableServices.length === 0) {
       throw new Error('No AI services available');
     }
-    
+
     // Try services in random order for better load distribution
     const shuffledServices = availableServices.sort(() => Math.random() - 0.5);
-    
+
     let lastError: any;
-    
+
     for (const serviceName of shuffledServices) {
       try {
         const model = this.getModel(serviceName, user);
         console.log(`🎯 Attempting AI operation with ${serviceName} using model: ${model}`);
-        
+
         return await operation(serviceName, model);
       } catch (error) {
         lastError = error;
         console.warn(`AI operation failed with ${serviceName}:`, error);
-        
+
         // Try next service if available
         if (shuffledServices.indexOf(serviceName) < shuffledServices.length - 1) {
           console.log(`Retrying with next available AI service...`);
@@ -135,7 +135,7 @@ class AIService {
         }
       }
     }
-    
+
     throw lastError || new Error('All AI services failed');
   }
 
@@ -207,10 +207,10 @@ class AIService {
     console.log(`Feedback stored for analysis ${analysisId}:`, feedback);
     // TODO: Implement feedback storage in database for model improvement
   }
-  
+
   async analyzeResume(resumeText: string, userProfile?: any, user?: any): Promise<ResumeAnalysis & { aiTier?: string, upgradeMessage?: string, analysisId?: string }> {
     const analysisId = Math.random().toString(36).substring(7);
-    
+
     const prompt = `Analyze resume comprehensively for ATS optimization. Return detailed JSON:
 ${resumeText}
 
@@ -258,7 +258,7 @@ ${resumeText}
 
     try {
       const accessInfo = this.hasAIAccess(user);
-      
+
       if (this.developmentMode) {
         console.log("Running in development mode - using fallback resume analysis");
         return this.generateFallbackResumeAnalysis(accessInfo);
@@ -292,9 +292,9 @@ ${resumeText}
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         const jsonContent = jsonMatch ? jsonMatch[0] : content;
         analysis = JSON.parse(jsonContent);
-        
+
         console.log("Parsed analysis - ATS Score:", analysis.atsScore);
-        
+
         if (analysis.atsScore && analysis.atsScore >= 20 && analysis.atsScore <= 95) {
           // AI provided a reasonable score, use it with minor adjustments
           const variance = Math.random() * 6 - 3;
@@ -303,7 +303,7 @@ ${resumeText}
           // Calculate dynamic score based on content quality
           analysis.atsScore = this.calculateDynamicScore(resumeText, analysis);
         }
-        
+
         return {
           ...analysis,
           aiTier: accessInfo.tier,
@@ -324,18 +324,18 @@ ${resumeText}
   private calculateDynamicScore(resumeText: string, analysis: any): number {
     const baseScore = 55;
     let score = baseScore;
-    
+
     // Content length analysis
     const wordCount = resumeText.split(/\s+/).length;
     if (wordCount > 200) score += 10;
     if (wordCount > 400) score += 5;
     if (wordCount < 100) score -= 10; // Penalize very short resumes
-    
+
     // Quantification analysis (metrics and numbers)
     const numberMatches = resumeText.match(/\d+[%$kK]?/g);
     const quantificationScore = numberMatches ? Math.min(numberMatches.length * 2, 15) : 0;
     score += quantificationScore;
-    
+
     // Action verbs (strong resume indicators)
     const actionVerbs = [
       'achieved', 'developed', 'implemented', 'led', 'managed', 'created',
@@ -345,7 +345,7 @@ ${resumeText}
       new RegExp(`\\b${verb}`, 'i').test(resumeText)
     ).length;
     score += verbCount * 2;
-    
+
     // Technical depth (industry-specific terms)
     const technicalTerms = [
       'API', 'database', 'framework', 'programming', 'development', 'engineering',
@@ -355,14 +355,14 @@ ${resumeText}
       resumeText.toLowerCase().includes(term.toLowerCase())
     ).length;
     score += foundTerms * 2;
-    
+
     // Education and certifications
     const hasEducation = /education|degree|university|college/i.test(resumeText);
     if (hasEducation) score += 5;
-    
+
     const hasCertifications = /certified|certification|license/i.test(resumeText);
     if (hasCertifications) score += 5;
-    
+
     // Professional keywords
     const professionalKeywords = [
       'professional', 'experience', 'responsibility', 'achievement',
@@ -372,18 +372,18 @@ ${resumeText}
       resumeText.toLowerCase().includes(kw)
     ).length;
     score += profKeywordCount * 1.5;
-    
+
     // Penalize generic fluff
     const fluffWords = ['passionate', 'dedicated', 'hard-working', 'team player'];
     const fluffCount = fluffWords.filter(fw =>
       resumeText.toLowerCase().includes(fw)
     ).length;
     score -= fluffCount * 2;
-    
+
     // Small controlled variance for natural distribution
     const randomVariance = (Math.random() - 0.5) * 6;
     score += randomVariance;
-    
+
     return Math.max(25, Math.min(95, Math.round(score)));
   }
 
@@ -475,7 +475,7 @@ Skills: ${userProfile.skills?.map((s: any) => s.skillName).join(', ') || 'None l
 
     try {
       const accessInfo = this.hasAIAccess(user);
-      
+
       if (this.developmentMode) {
         console.log("Running in development mode - using fallback job analysis");
         return this.generateFallbackJobAnalysis(accessInfo);
@@ -495,7 +495,7 @@ Skills: ${userProfile.skills?.map((s: any) => s.skillName).join(', ') || 'None l
         max_tokens: 800,
         user
       });
-      
+
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error("No response from AI service");
@@ -504,11 +504,11 @@ Skills: ${userProfile.skills?.map((s: any) => s.skillName).join(', ') || 'None l
       let cleanContent = content.trim();
       const jsonStart = cleanContent.indexOf('{');
       const jsonEnd = cleanContent.lastIndexOf('}') + 1;
-      
+
       if (jsonStart !== -1 && jsonEnd > jsonStart) {
         cleanContent = cleanContent.substring(jsonStart, jsonEnd);
       }
-      
+
       try {
         const analysis = JSON.parse(cleanContent);
         return {
@@ -564,13 +564,13 @@ Skills: ${userProfile.skills?.map((s: any) => s.skillName).join(', ') || 'None l
   }, user?: any): Promise<any> {
     const accessInfo = this.hasAIAccess(user);
     const isPremium = accessInfo.tier === 'premium';
-    
+
     // Optimized prompt with reduced tokens for free users
     const exp = data.userProfile?.yearsExperience || 0;
     const skillsToInclude = isPremium ? 12 : 5; // Premium gets more context
     const skills = data.userSkills?.slice(0, skillsToInclude).map((s: any) => s.skillName).join(',') || 'None';
     const loc = data.location || 'Not specified';
-    
+
     // Premium users get detailed analysis, free users get essential analysis
     const prompt = isPremium 
       ? `Career analysis for ${data.careerGoal} in ${loc}. ${exp}yr exp. Skills: ${skills}. Timeframe: ${data.timeframe}.
@@ -584,13 +584,7 @@ Return detailed JSON with:
     {"type":"location","title":"${loc} Market","content":"Detailed market analysis with salary data","priority":"high","timeframe":"current","actionItems":["3-4 location strategies"]}
   ],
   "careerPath": {
-    "currentRole":"${data.userProfile?.professionalTitle || 'Current'}",
-    "targetRole":"${data.careerGoal}",
-    "totalTimeframe":"${data.timeframe}",
-    "location":"${loc}",
-    "currency":"local symbol",
-    "successProbability":number,
-    "steps":[{"position":"detailed role","timeline":"precise months","isCurrentLevel":bool,"requiredSkills":["specific skills"],"averageSalary":"LOCAL range with currency","salaryUSD":"USD equivalent","marketDemand":"High/Med/Low with reasoning","companiesHiring":["actual company names"]}]
+    "currentRole":"${data.userProfile?.professionalTitle || 'Current'}","targetRole":"${data.careerGoal}","totalTimeframe":"${data.timeframe}","location":"${loc}","currency":"local symbol","successProbability":number,"steps":[{"position":"detailed role","timeline":"precise months","isCurrentLevel":bool,"requiredSkills":["specific skills"],"averageSalary":"LOCAL range with currency","salaryUSD":"USD equivalent","marketDemand":"High/Med/Low with reasoning","companiesHiring":["actual company names"]}]
   },
   "skillGaps":[{"skill":"specific name","currentLevel":0-10,"targetLevel":0-10,"importance":0-10,"learningResources":["detailed resources with links"],"timeToAcquire":"precise timeframe"}],
   "locationContext":{"country":"","city":"","currency":"","currencyCode":"","costOfLivingVsUS":"percentage","topCompanies":["actual companies"],"averageTaxRate":"rate","benefits":["specific benefits"],"remoteOpportunities":"detailed info","marketMaturity":"analysis","visaNotes":"if applicable"},
@@ -606,13 +600,7 @@ Return concise JSON:
     {"type":"skill","title":"Skills","content":"Priority skills","priority":"high","timeframe":"months","actionItems":["2 actions"]}
   ],
   "careerPath":{
-    "currentRole":"${data.userProfile?.professionalTitle || 'Current'}",
-    "targetRole":"${data.careerGoal}",
-    "totalTimeframe":"${data.timeframe}",
-    "location":"${loc}",
-    "currency":"USD",
-    "successProbability":number,
-    "steps":[{"position":"role","timeline":"months","isCurrentLevel":bool,"requiredSkills":["skills"],"averageSalary":"range","marketDemand":"High/Med/Low"}]
+    "currentRole":"${data.userProfile?.professionalTitle || 'Current'}","targetRole":"${data.careerGoal}","totalTimeframe":"${data.timeframe}","location":"${loc}","currency":"USD","successProbability":number,"steps":[{"position":"role","timeline":"months","isCurrentLevel":bool,"requiredSkills":["skills"],"averageSalary":"range","marketDemand":"High/Med/Low"}]
   },
   "skillGaps":[{"skill":"name","currentLevel":0-10,"targetLevel":0-10,"importance":0-10,"learningResources":["resources"],"timeToAcquire":"months"}]
 }`;
@@ -672,6 +660,28 @@ Return ONLY valid JSON. Be concise but helpful.`;
         const jsonContent = jsonMatch ? jsonMatch[0] : content;
         const analysis = JSON.parse(jsonContent);
 
+        // Add proximity analysis for premium users
+        if (isPremium) {
+          const exp = data.userProfile?.yearsExperience || 0;
+          const totalSteps = analysis.careerPath?.steps?.length || 1;
+          const stepsRemaining = Math.max(1, totalSteps - (analysis.careerPath?.steps?.findIndex((s: any) => s.isCurrentLevel) || 0));
+          
+          const proximityScore = this.calculateGoalProximity(exp, stepsRemaining);
+          const readinessLevel = this.determineReadinessLevel(proximityScore);
+          const proximityContent = this.generateProximityContent(proximityScore, readinessLevel, data.careerGoal);
+          const proximityActionItems = this.getProximityActionItems(readinessLevel, stepsRemaining);
+          const proximityAnalysis = this.generateProximityAnalysis(proximityScore, exp, stepsRemaining);
+
+          analysis.proximityAnalysis = {
+            score: proximityScore,
+            level: readinessLevel,
+            content: proximityContent,
+            actionItems: proximityActionItems,
+            detailedMessage: proximityAnalysis,
+            estimatedTimeToGoal: this.estimateTimeToGoal(stepsRemaining, exp)
+          };
+        }
+
         return {
           ...analysis,
           aiTier: accessInfo.tier,
@@ -695,9 +705,31 @@ Return ONLY valid JSON. Be concise but helpful.`;
     const role = data.careerGoal || "Professional";
     const currentExp = data.userProfile?.yearsExperience || 0;
     const location = data.location || 'United States';
-    
+
     // Calculate realistic progression steps based on experience
     const steps = this.calculateCareerSteps(role, currentExp, data.timeframe, location);
+
+    // Add proximity analysis for premium users
+    let proximityAnalysis = {};
+    if (accessInfo.tier === 'premium') {
+      const totalSteps = steps.length;
+      const stepsRemaining = Math.max(1, totalSteps - (steps.findIndex((s: any) => s.isCurrentLevel) || 0));
+      
+      const proximityScore = this.calculateGoalProximity(currentExp, stepsRemaining);
+      const readinessLevel = this.determineReadinessLevel(proximityScore);
+      const proximityContent = this.generateProximityContent(proximityScore, readinessLevel, role);
+      const proximityActionItems = this.getProximityActionItems(readinessLevel, stepsRemaining);
+      const detailedProximityMessage = this.generateProximityAnalysis(proximityScore, currentExp, stepsRemaining);
+
+      proximityAnalysis = {
+        score: proximityScore,
+        level: readinessLevel,
+        content: proximityContent,
+        actionItems: proximityActionItems,
+        detailedMessage: detailedProximityMessage,
+        estimatedTimeToGoal: this.estimateTimeToGoal(stepsRemaining, currentExp)
+      };
+    }
 
     return {
       insights: [
@@ -789,6 +821,7 @@ Return ONLY valid JSON. Be concise but helpful.`;
         trendingSkills: ['AI/ML', 'Cloud', 'Full-stack development'],
         recommendation: 'Start applying and networking now'
       },
+      proximityAnalysis,
       aiTier: accessInfo.tier,
       upgradeMessage: accessInfo.message
     };
@@ -806,7 +839,7 @@ Return ONLY valid JSON. Be concise but helpful.`;
                            timeframe === '3-years' ? 36 : 60;
 
     const steps: any[] = [];
-    
+
     // Determine starting point based on experience
     let startLevel: 'junior' | 'mid' | 'senior' | 'lead';
     if (currentExp < 2) startLevel = 'junior';
@@ -823,11 +856,11 @@ Return ONLY valid JSON. Be concise but helpful.`;
     const stepsNeeded = Math.min(targetLevels.length, Math.ceil(timeframeMonths / 6));
 
     let cumulativeMonths = 0;
-    
+
     for (let i = 0; i < stepsNeeded; i++) {
       const level = targetLevels[i];
       const isCurrentLevel = i === 0;
-      
+
       // Calculate realistic timeline for this step
       let stepDuration: number;
       if (isCurrentLevel) {
@@ -856,7 +889,7 @@ Return ONLY valid JSON. Be concise but helpful.`;
       });
 
       cumulativeMonths = stepEnd;
-      
+
       // Don't exceed timeframe
       if (cumulativeMonths >= timeframeMonths) break;
     }
@@ -893,6 +926,103 @@ Return ONLY valid JSON. Be concise but helpful.`;
     base += Math.min(currentExp * 3, 20); // Up to +20 for experience
     base -= (stepsNeeded - 1) * 5; // -5 for each additional step
     return Math.max(50, Math.min(90, base));
+  }
+
+  // Calculate how close user is to their goal (0-100 score)
+  private calculateGoalProximity(currentExp: number, stepsRemaining: number): number {
+    let score = 0;
+
+    // Experience contributes up to 40 points
+    if (currentExp >= 8) score += 40;
+    else if (currentExp >= 5) score += 30;
+    else if (currentExp >= 3) score += 20;
+    else if (currentExp >= 1) score += 10;
+
+    // Fewer steps remaining = closer to goal (up to 40 points)
+    if (stepsRemaining === 1) score += 40;
+    else if (stepsRemaining === 2) score += 30;
+    else if (stepsRemaining === 3) score += 20;
+    else if (stepsRemaining === 4) score += 10;
+
+    // Add 20 points for being on track
+    score += 20;
+
+    return Math.min(100, Math.max(0, score));
+  }
+
+  // Determine readiness level based on proximity score
+  private determineReadinessLevel(proximityScore: number): string {
+    if (proximityScore >= 80) return 'ready';
+    if (proximityScore >= 60) return 'advanced';
+    if (proximityScore >= 40) return 'intermediate';
+    return 'beginner';
+  }
+
+  // Generate proximity content message
+  private generateProximityContent(score: number, level: string, role: string): string {
+    if (score >= 80) {
+      return `You're very close to becoming a ${role}! You have the right experience and are just a step away.`;
+    } else if (score >= 60) {
+      return `You're making great progress toward ${role}. With focused effort, you're on the right track.`;
+    } else if (score >= 40) {
+      return `You're halfway to your goal of ${role}. Keep building your skills and experience.`;
+    } else {
+      return `You're at the beginning of your journey to ${role}. Stay committed and follow the roadmap.`;
+    }
+  }
+
+  // Get action items based on readiness
+  private getProximityActionItems(level: string, stepsRemaining: number): string[] {
+    if (level === 'ready') {
+      return [
+        'Start applying to target roles',
+        'Polish your portfolio and resume',
+        'Network with hiring managers'
+      ];
+    } else if (level === 'advanced') {
+      return [
+        'Complete final skill certifications',
+        'Build advanced portfolio projects',
+        'Practice interview scenarios'
+      ];
+    } else if (level === 'intermediate') {
+      return [
+        'Focus on critical skill gaps',
+        'Gain hands-on project experience',
+        'Build your professional network'
+      ];
+    } else {
+      return [
+        'Master foundational skills',
+        'Complete beginner certifications',
+        'Start building basic projects'
+      ];
+    }
+  }
+
+  // Generate detailed proximity analysis
+  private generateProximityAnalysis(score: number, exp: number, steps: number): string {
+    const percentage = Math.round(score);
+    const stepsText = steps === 1 ? '1 career step' : `${steps} career steps`;
+
+    return `You are ${percentage}% of the way to your career goal. With ${exp} years of experience, you have ${stepsText} remaining. ${
+      score >= 80 ? 'You are ready to make your move!' :
+      score >= 60 ? 'You are well-positioned and making strong progress.' :
+      score >= 40 ? 'You are building momentum in the right direction.' :
+      'You are at the start of an exciting journey.'
+    }`;
+  }
+
+  // Estimate time to goal
+  private estimateTimeToGoal(steps: number, exp: number): string {
+    const monthsPerStep = exp < 2 ? 12 : exp < 5 ? 9 : 6;
+    const totalMonths = (steps - 1) * monthsPerStep;
+
+    if (totalMonths < 6) return 'Within 6 months';
+    if (totalMonths < 12) return '6-12 months';
+    if (totalMonths < 24) return '1-2 years';
+    if (totalMonths < 36) return '2-3 years';
+    return '3+ years';
   }
 
   // Get AI access information for user

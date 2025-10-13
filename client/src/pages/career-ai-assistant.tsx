@@ -990,6 +990,70 @@ Examples:
 
               {/* Overview Tab */}
               <TabsContent value="overview" className="space-y-6">
+                {/* Goal Proximity Widget - Featured at top */}
+                {careerPath?.goalProximityScore !== undefined && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-xl">
+                          <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-full">
+                            <Target className="h-6 w-6 text-purple-600" />
+                          </div>
+                          Goal Proximity: {careerPath.targetRole}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {/* Progress Bar */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="font-medium text-purple-900 dark:text-purple-100">
+                              {careerPath.readinessLevel?.charAt(0).toUpperCase() + careerPath.readinessLevel?.slice(1)} Level
+                            </span>
+                            <span className="font-bold text-purple-600">
+                              {careerPath.goalProximityScore}% Ready
+                            </span>
+                          </div>
+                          <Progress 
+                            value={careerPath.goalProximityScore} 
+                            className="h-4 bg-purple-100 dark:bg-purple-900/50"
+                          />
+                        </div>
+
+                        {/* Proximity Analysis */}
+                        <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border">
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            {careerPath.proximityAnalysis}
+                          </p>
+                        </div>
+
+                        {/* Key Metrics */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border text-center">
+                            <div className="text-2xl font-bold text-purple-600">{careerPath.stepsRemaining || 0}</div>
+                            <div className="text-xs text-muted-foreground">Steps Remaining</div>
+                          </div>
+                          <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border text-center">
+                            <div className="text-2xl font-bold text-blue-600">{careerPath.estimatedTimeToGoal}</div>
+                            <div className="text-xs text-muted-foreground">Time to Goal</div>
+                          </div>
+                          <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border text-center">
+                            <div className="text-2xl font-bold text-green-600">{Math.round(careerPath.successProbability ?? 70)}%</div>
+                            <div className="text-xs text-muted-foreground">Success Rate</div>
+                          </div>
+                          <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border text-center">
+                            <div className="text-2xl font-bold text-orange-600">{skillGaps.length}</div>
+                            <div className="text-xs text-muted-foreground">Skill Gaps</div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+
+                {/* Insights Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {insights.map((insight, index) => (
                     <motion.div
