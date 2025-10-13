@@ -10,6 +10,7 @@
     "build:frontend": "vite build",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc --noEmit",
+    "db:push": "drizzle-kit push",
     "test:video-interview": "node test_video_interview_complete.mjs",
     "verify:video-apis": "node verify_video_interview_apis.mjs"
   },
