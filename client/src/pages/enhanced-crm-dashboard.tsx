@@ -1447,7 +1447,7 @@ export default function EnhancedCrmDashboard() {
                         />
                       </FormControl>
                       <FormMessage />
-                      <p className="text-xs text-gray-500">Use {{'{'}firstName{'}'}}, {{'{'}company{'}'}}, etc. for personalization</p>
+                      <p className="text-xs text-gray-500">Use {'{firstName}'}, {'{company}'}, etc. for personalization</p>
                     </FormItem>
                   )}
                 />
