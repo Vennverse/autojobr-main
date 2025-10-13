@@ -28,6 +28,8 @@ export class CrmService {
         userId,
         ...req.body,
         lastContactDate: new Date(),
+        // Convert string dates to Date objects
+        nextTouchDate: req.body.nextTouchDate ? new Date(req.body.nextTouchDate) : undefined,
       };
 
       const [newContact] = await db.insert(crmContacts)
@@ -125,11 +127,21 @@ export class CrmService {
       const userId = (req.user as any)?.id;
       const { contactId } = req.params;
 
+      const updateData: any = {
+        ...req.body,
+        updatedAt: new Date()
+      };
+
+      // Convert string dates to Date objects
+      if (req.body.nextTouchDate) {
+        updateData.nextTouchDate = new Date(req.body.nextTouchDate);
+      }
+      if (req.body.lastContactDate) {
+        updateData.lastContactDate = new Date(req.body.lastContactDate);
+      }
+
       const [updatedContact] = await db.update(crmContacts)
-        .set({ 
-          ...req.body,
-          updatedAt: new Date()
-        })
+        .set(updateData)
         .where(and(
           eq(crmContacts.userId, userId),
           eq(crmContacts.id, parseInt(contactId))
