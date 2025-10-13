@@ -10,11 +10,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Navbar } from "@/components/navbar";
 import { RecruiterNavbar } from "@/components/RecruiterNavbar";
 import { useAuth } from "@/hooks/use-auth";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { insertCrmContactSchema } from "@shared/schema";
 import {
   Users, Building2, Phone, Mail, Calendar, Clock, Plus,
   Search, Filter, Tag, TrendingUp, AlertCircle, CheckCircle,
@@ -34,17 +38,30 @@ export default function UnifiedCrmDashboard() {
   const [showInteractionDialog, setShowInteractionDialog] = useState(false);
   const [selectedContact, setSelectedContact] = useState<any>(null);
 
-  const [contactForm, setContactForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    company: "",
-    jobTitle: "",
-    linkedinUrl: "",
-    contactType: "recruiter",
-    tags: [] as string[],
-    notes: "",
-    nextTouchDate: "",
+  const contactForm = useForm({
+    resolver: zodResolver(insertCrmContactSchema.extend({
+      name: insertCrmContactSchema.shape.name,
+      email: insertCrmContactSchema.shape.email.optional(),
+      phone: insertCrmContactSchema.shape.phone.optional(),
+      company: insertCrmContactSchema.shape.company.optional(),
+      jobTitle: insertCrmContactSchema.shape.jobTitle.optional(),
+      linkedinUrl: insertCrmContactSchema.shape.linkedinUrl.optional(),
+      contactType: insertCrmContactSchema.shape.contactType,
+      notes: insertCrmContactSchema.shape.notes.optional(),
+      nextTouchDate: insertCrmContactSchema.shape.nextTouchDate.optional(),
+    })),
+    mode: "onChange",
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      company: "",
+      jobTitle: "",
+      linkedinUrl: "",
+      contactType: "recruiter",
+      notes: "",
+      nextTouchDate: "",
+    },
   });
 
   const [interactionForm, setInteractionForm] = useState({
@@ -80,8 +97,15 @@ export default function UnifiedCrmDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/dashboard-stats"] });
       setShowContactDialog(false);
-      resetContactForm();
+      contactForm.reset();
       toast({ title: "✅ Contact Created", description: "Contact added successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "❌ Error Creating Contact", 
+        description: error.message || "Failed to create contact. Please try again.",
+        variant: "destructive"
+      });
     },
   });
 
@@ -97,21 +121,6 @@ export default function UnifiedCrmDashboard() {
     },
   });
 
-  const resetContactForm = () => {
-    setContactForm({
-      name: "",
-      email: "",
-      phone: "",
-      company: "",
-      jobTitle: "",
-      linkedinUrl: "",
-      contactType: "recruiter",
-      tags: [],
-      notes: "",
-      nextTouchDate: "",
-    });
-  };
-
   const resetInteractionForm = () => {
     setInteractionForm({
       interactionType: "email",
@@ -123,9 +132,9 @@ export default function UnifiedCrmDashboard() {
     });
   };
 
-  const handleCreateContact = () => {
-    createContactMutation.mutate(contactForm);
-  };
+  const handleCreateContact = contactForm.handleSubmit((data) => {
+    createContactMutation.mutate(data);
+  });
 
   const handleLogInteraction = () => {
     if (!selectedContact) return;
@@ -167,7 +176,7 @@ export default function UnifiedCrmDashboard() {
           </div>
           <Dialog open={showContactDialog} onOpenChange={setShowContactDialog}>
             <DialogTrigger asChild>
-              <Button>
+              <Button data-testid="button-add-contact">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Contact
               </Button>
@@ -176,100 +185,191 @@ export default function UnifiedCrmDashboard() {
               <DialogHeader>
                 <DialogTitle>Add New Contact</DialogTitle>
               </DialogHeader>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Name *</Label>
-                  <Input
-                    value={contactForm.name}
-                    onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
-                    placeholder="John Doe"
-                  />
-                </div>
-                <div>
-                  <Label>Email</Label>
-                  <Input
-                    type="email"
-                    value={contactForm.email}
-                    onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
-                    placeholder="john@company.com"
-                  />
-                </div>
-                <div>
-                  <Label>Phone</Label>
-                  <Input
-                    value={contactForm.phone}
-                    onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
-                    placeholder="+1 (555) 123-4567"
-                  />
-                </div>
-                <div>
-                  <Label>Company</Label>
-                  <Input
-                    value={contactForm.company}
-                    onChange={(e) => setContactForm({ ...contactForm, company: e.target.value })}
-                    placeholder="Tech Corp"
-                  />
-                </div>
-                <div>
-                  <Label>Job Title</Label>
-                  <Input
-                    value={contactForm.jobTitle}
-                    onChange={(e) => setContactForm({ ...contactForm, jobTitle: e.target.value })}
-                    placeholder="Senior Recruiter"
-                  />
-                </div>
-                <div>
-                  <Label>Contact Type</Label>
-                  <Select
-                    value={contactForm.contactType}
-                    onValueChange={(value) => setContactForm({ ...contactForm, contactType: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="recruiter">Recruiter</SelectItem>
-                      <SelectItem value="hiring_manager">Hiring Manager</SelectItem>
-                      <SelectItem value="referral">Referral Contact</SelectItem>
-                      <SelectItem value="colleague">Colleague</SelectItem>
-                      <SelectItem value="company">Company Contact</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-2">
-                  <Label>LinkedIn URL</Label>
-                  <Input
-                    value={contactForm.linkedinUrl}
-                    onChange={(e) => setContactForm({ ...contactForm, linkedinUrl: e.target.value })}
-                    placeholder="https://linkedin.com/in/johndoe"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <Label>Next Follow-up Date</Label>
-                  <Input
-                    type="datetime-local"
-                    value={contactForm.nextTouchDate}
-                    onChange={(e) => setContactForm({ ...contactForm, nextTouchDate: e.target.value })}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <Label>Notes</Label>
-                  <Textarea
-                    value={contactForm.notes}
-                    onChange={(e) => setContactForm({ ...contactForm, notes: e.target.value })}
-                    placeholder="Additional context about this contact..."
-                    rows={3}
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 mt-4">
-                <Button variant="outline" onClick={() => setShowContactDialog(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreateContact}>
-                  Create Contact
-                </Button>
-              </div>
+              <Form {...contactForm}>
+                <form onSubmit={handleCreateContact} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={contactForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Name *</FormLabel>
+                          <FormControl>
+                            <Input
+                              data-testid="input-contact-name"
+                              placeholder="John Doe"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contactForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input
+                              data-testid="input-contact-email"
+                              type="email"
+                              placeholder="john@company.com"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contactForm.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone</FormLabel>
+                          <FormControl>
+                            <Input
+                              data-testid="input-contact-phone"
+                              placeholder="+1 (555) 123-4567"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contactForm.control}
+                      name="company"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Company</FormLabel>
+                          <FormControl>
+                            <Input
+                              data-testid="input-contact-company"
+                              placeholder="Tech Corp"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contactForm.control}
+                      name="jobTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Job Title</FormLabel>
+                          <FormControl>
+                            <Input
+                              data-testid="input-contact-job-title"
+                              placeholder="Senior Recruiter"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contactForm.control}
+                      name="contactType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Contact Type</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-contact-type">
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="recruiter">Recruiter</SelectItem>
+                              <SelectItem value="hiring_manager">Hiring Manager</SelectItem>
+                              <SelectItem value="referral">Referral Contact</SelectItem>
+                              <SelectItem value="colleague">Colleague</SelectItem>
+                              <SelectItem value="company">Company Contact</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contactForm.control}
+                      name="linkedinUrl"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2">
+                          <FormLabel>LinkedIn URL</FormLabel>
+                          <FormControl>
+                            <Input
+                              data-testid="input-contact-linkedin"
+                              placeholder="https://linkedin.com/in/johndoe"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contactForm.control}
+                      name="nextTouchDate"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2">
+                          <FormLabel>Next Follow-up Date</FormLabel>
+                          <FormControl>
+                            <Input
+                              data-testid="input-contact-followup-date"
+                              type="datetime-local"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contactForm.control}
+                      name="notes"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2">
+                          <FormLabel>Notes</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              data-testid="textarea-contact-notes"
+                              placeholder="Additional context about this contact..."
+                              rows={3}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 mt-4">
+                    <Button 
+                      data-testid="button-cancel-contact" 
+                      type="button"
+                      variant="outline" 
+                      onClick={() => setShowContactDialog(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      data-testid="button-create-contact" 
+                      type="submit"
+                      disabled={createContactMutation.isPending || !contactForm.formState.isValid}
+                    >
+                      {createContactMutation.isPending ? "Creating..." : "Create Contact"}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
             </DialogContent>
           </Dialog>
         </div>
@@ -343,6 +443,7 @@ export default function UnifiedCrmDashboard() {
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input
+                        data-testid="input-search-contacts"
                         placeholder="Search contacts..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -410,6 +511,7 @@ export default function UnifiedCrmDashboard() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Button
+                            data-testid={`button-ai-insight-${contact.id}`}
                             size="sm"
                             variant="outline"
                             onClick={async () => {
@@ -429,6 +531,7 @@ export default function UnifiedCrmDashboard() {
                             AI Insight
                           </Button>
                           <Button
+                            data-testid={`button-log-interaction-${contact.id}`}
                             size="sm"
                             variant="outline"
                             onClick={() => {
@@ -439,7 +542,7 @@ export default function UnifiedCrmDashboard() {
                             <MessageSquare className="h-4 w-4 mr-1" />
                             Log Interaction
                           </Button>
-                          <Button size="sm" variant="ghost">
+                          <Button data-testid={`button-contact-menu-${contact.id}`} size="sm" variant="ghost">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </div>
@@ -516,7 +619,7 @@ export default function UnifiedCrmDashboard() {
                   value={interactionForm.interactionType}
                   onValueChange={(value) => setInteractionForm({ ...interactionForm, interactionType: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="select-interaction-type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -532,6 +635,7 @@ export default function UnifiedCrmDashboard() {
               <div>
                 <Label>Subject</Label>
                 <Input
+                  data-testid="input-interaction-subject"
                   value={interactionForm.subject}
                   onChange={(e) => setInteractionForm({ ...interactionForm, subject: e.target.value })}
                   placeholder="Brief subject line"
@@ -540,6 +644,7 @@ export default function UnifiedCrmDashboard() {
               <div>
                 <Label>Description</Label>
                 <Textarea
+                  data-testid="textarea-interaction-description"
                   value={interactionForm.description}
                   onChange={(e) => setInteractionForm({ ...interactionForm, description: e.target.value })}
                   placeholder="What happened in this interaction?"
@@ -552,7 +657,7 @@ export default function UnifiedCrmDashboard() {
                   value={interactionForm.outcome}
                   onValueChange={(value) => setInteractionForm({ ...interactionForm, outcome: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="select-interaction-outcome">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -565,6 +670,7 @@ export default function UnifiedCrmDashboard() {
               </div>
               <div className="flex items-center gap-2">
                 <input
+                  data-testid="checkbox-interaction-followup-required"
                   type="checkbox"
                   checked={interactionForm.followUpRequired}
                   onChange={(e) => setInteractionForm({ ...interactionForm, followUpRequired: e.target.checked })}
@@ -576,6 +682,7 @@ export default function UnifiedCrmDashboard() {
                 <div>
                   <Label>Follow-up Date</Label>
                   <Input
+                    data-testid="input-interaction-followup-date"
                     type="datetime-local"
                     value={interactionForm.followUpDate}
                     onChange={(e) => setInteractionForm({ ...interactionForm, followUpDate: e.target.value })}
@@ -584,10 +691,10 @@ export default function UnifiedCrmDashboard() {
               )}
             </div>
             <div className="flex justify-end gap-2 mt-4">
-              <Button variant="outline" onClick={() => setShowInteractionDialog(false)}>
+              <Button data-testid="button-cancel-interaction" variant="outline" onClick={() => setShowInteractionDialog(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleLogInteraction}>
+              <Button data-testid="button-submit-interaction" onClick={handleLogInteraction}>
                 Log Interaction
               </Button>
             </div>
