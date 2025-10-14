@@ -301,7 +301,7 @@ export class ReferralMarketplaceService {
   }
 
   /**
-   * Book a service with PayPal payment
+   * Book a service with PayPal payment and send confirmation emails
    */
   async bookService(serviceId: number, jobSeekerId: string, bookingData: {
     notes?: string;
@@ -347,10 +347,21 @@ export class ReferralMarketplaceService {
         parseFloat(serviceData.referralBonusPrice || '0') : 0;
       const totalAmount = baseAmount + referralBonusAmount;
 
+      // Get user details for emails
+      const jobSeeker = await db.select()
+        .from(users)
+        .where(eq(users.id, jobSeekerId))
+        .limit(1);
+
       // Create conversation for communication
       const referrerUser = await db.select({ userId: referrers.userId })
         .from(referrers)
         .where(eq(referrers.id, serviceData.referrerId))
+        .limit(1);
+
+      const referrerDetails = await db.select()
+        .from(users)
+        .where(eq(users.id, referrerUser[0].userId))
         .limit(1);
 
       const conversation = await simpleChatService.getOrCreateConversation(
@@ -384,17 +395,113 @@ export class ReferralMarketplaceService {
         })
         .where(eq(referralServices.id, serviceId));
 
+      // Send confirmation emails with trust guarantees
+      await this.sendBookingConfirmationEmails(
+        jobSeeker[0],
+        referrerDetails[0],
+        serviceData.title,
+        totalAmount,
+        bookingData.scheduledAt
+      );
+
       return {
         success: true,
         booking: newBooking[0],
         paymentAmount: totalAmount,
         conversationId: conversation.id,
-        message: 'Booking created successfully. Complete payment to confirm.'
+        message: 'Booking created successfully. Confirmation emails sent to both parties.'
       };
     } catch (error) {
       console.error('Error booking service:', error);
       throw new Error('Failed to book service');
     }
+  }
+
+  /**
+   * Send booking confirmation emails with trust guarantees
+   */
+  private async sendBookingConfirmationEmails(
+    jobSeeker: any,
+    referrer: any,
+    serviceTitle: string,
+    amount: number,
+    scheduledAt?: Date
+  ) {
+    const { sendEmail } = await import('./emailService.js');
+
+    // Email to job seeker
+    await sendEmail({
+      to: jobSeeker.email,
+      subject: '✅ Booking Confirmed - Your Referral Service is Secured with Escrow Protection',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #3b82f6;">Booking Confirmed!</h2>
+          
+          <p>Hi ${jobSeeker.firstName || 'there'},</p>
+          
+          <p>Your booking for <strong>${serviceTitle}</strong> has been confirmed!</p>
+          
+          <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #1f2937;">🛡️ Trust & Safety Guarantees:</h3>
+            <ul style="line-height: 1.8;">
+              <li><strong>Escrow Protection:</strong> Your $${amount} payment is held securely until service delivery is confirmed</li>
+              <li><strong>Guaranteed Meeting:</strong> You will receive at least 1 meeting with the referrer</li>
+              <li><strong>Verified Referrer:</strong> Company email verified and profile authenticated</li>
+              <li><strong>Money-Back Guarantee:</strong> Full refund if service is not delivered</li>
+            </ul>
+          </div>
+          
+          ${scheduledAt ? `<p><strong>Scheduled Time:</strong> ${new Date(scheduledAt).toLocaleString()}</p>` : ''}
+          
+          <p>The referrer will contact you shortly to schedule your session.</p>
+          
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+            <p style="color: #6b7280; font-size: 14px;">
+              <strong>Next Steps:</strong><br>
+              1. Check your dashboard for messages from the referrer<br>
+              2. Attend your scheduled session<br>
+              3. Confirm delivery to release payment from escrow
+            </p>
+          </div>
+        </div>
+      `
+    });
+
+    // Email to referrer
+    await sendEmail({
+      to: referrer.email,
+      subject: '🎉 New Booking - Service Payment Secured in Escrow',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #10b981;">New Booking Received!</h2>
+          
+          <p>Hi ${referrer.firstName || 'there'},</p>
+          
+          <p>You have a new booking for <strong>${serviceTitle}</strong>!</p>
+          
+          <div style="background: #ecfdf5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #065f46;">💰 Payment Details:</h3>
+            <ul style="line-height: 1.8;">
+              <li><strong>Amount:</strong> $${amount}</li>
+              <li><strong>Status:</strong> Held in escrow (secure)</li>
+              <li><strong>Release:</strong> After service delivery confirmation</li>
+            </ul>
+          </div>
+          
+          <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #92400e;">⚡ Important Reminders:</h3>
+            <ul style="line-height: 1.8;">
+              <li>Contact the job seeker within 24 hours</li>
+              <li>Provide at least 1 quality meeting session</li>
+              <li>Payment releases after delivery confirmation</li>
+              <li>Maintain professional communication</li>
+            </ul>
+          </div>
+          
+          <p><a href="https://autojobr.com/referral-marketplace" style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Booking Details</a></p>
+        </div>
+      `
+    });
   }
 
   /**

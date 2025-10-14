@@ -1,3 +1,165 @@
+
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Shield, CheckCircle, AlertCircle, Clock, MessageCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import SEOHead from '@/components/seo-head';
+
+export default function MyBookings() {
+  const { toast } = useToast();
+  
+  const { data: bookings, isLoading } = useQuery({
+    queryKey: ['/api/referral-marketplace/my-bookings'],
+    queryFn: async () => {
+      const res = await apiRequest('/api/referral-marketplace/my-bookings?role=job_seeker');
+      return res.json();
+    }
+  });
+
+  const confirmDeliveryMutation = useMutation({
+    mutationFn: async (bookingId: number) => {
+      const res = await apiRequest(`/api/referral-marketplace/escrow/confirm-delivery/${bookingId}`, 'POST');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/referral-marketplace/my-bookings'] });
+      toast({
+        title: "Payment Released",
+        description: "Escrow payment has been released to the referrer. Thank you!"
+      });
+    }
+  });
+
+  const openDisputeMutation = useMutation({
+    mutationFn: async ({ bookingId, reason, description }: any) => {
+      const res = await apiRequest(`/api/referral-marketplace/escrow/open-dispute/${bookingId}`, 'POST', {
+        reason,
+        description
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/referral-marketplace/my-bookings'] });
+      toast({
+        title: "Dispute Opened",
+        description: "Our team will review your dispute within 24-48 hours."
+      });
+    }
+  });
+
+  const getEscrowStatusBadge = (status: string) => {
+    switch (status) {
+      case 'authorized':
+        return <Badge className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />Authorized</Badge>;
+      case 'held':
+        return <Badge className="bg-blue-100 text-blue-800"><Shield className="w-3 h-3 mr-1" />Held in Escrow</Badge>;
+      case 'released':
+        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Released</Badge>;
+      case 'disputed':
+        return <Badge className="bg-red-100 text-red-800"><AlertCircle className="w-3 h-3 mr-1" />Disputed</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  if (isLoading) {
+    return <div className="container mx-auto p-6">Loading...</div>;
+  }
+
+  return (
+    <div className="container mx-auto p-6">
+      <SEOHead 
+        title="My Bookings - Referral Marketplace | AutoJobR"
+        description="View and manage your referral marketplace bookings with escrow-protected payments"
+      />
+      
+      <h1 className="text-3xl font-bold mb-6">My Bookings</h1>
+
+      <div className="space-y-4">
+        {bookings?.bookings?.map((booking: any) => (
+          <Card key={booking.id}>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>{booking.serviceTitle}</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    With {booking.referrerName} at {booking.companyName}
+                  </p>
+                </div>
+                {getEscrowStatusBadge(booking.escrowStatus)}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Payment Amount</p>
+                    <p className="text-2xl font-bold">${booking.totalAmount}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <Badge variant={booking.status === 'completed' ? 'default' : 'secondary'}>
+                      {booking.status}
+                    </Badge>
+                  </div>
+                </div>
+
+                {booking.escrowStatus === 'held' && (
+                  <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg">
+                    <div className="flex items-start gap-3 mb-3">
+                      <Shield className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-blue-900 dark:text-blue-100">
+                          🛡️ Escrow Protection Active
+                        </p>
+                        <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                          Your payment is held securely. Release it once you've received the service.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        onClick={() => confirmDeliveryMutation.mutate(booking.id)}
+                        disabled={confirmDeliveryMutation.isPending}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Confirm Service Delivered
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const reason = prompt("Dispute reason:");
+                          const description = prompt("Describe the issue:");
+                          if (reason && description) {
+                            openDisputeMutation.mutate({ bookingId: booking.id, reason, description });
+                          }
+                        }}
+                      >
+                        <AlertCircle className="w-4 h-4 mr-2" />
+                        Open Dispute
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <Button variant="outline" className="w-full">
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Message Referrer
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

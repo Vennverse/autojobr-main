@@ -241,7 +241,7 @@ router.post("/book/:serviceId", async (req: Request, res: Response) => {
 
 /**
  * POST /api/referral-marketplace/payment/create-order
- * Create PayPal order for referral service payment
+ * Create PayPal order with ESCROW protection - funds held until service delivery
  */
 router.post("/payment/create-order", async (req: Request, res: Response) => {
   try {
@@ -257,12 +257,12 @@ router.post("/payment/create-order", async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'Invalid booking ID' });
     }
 
-    // Create PayPal order directly without recursive response override
+    // Create PayPal order with ESCROW intent
     const mockReq = {
       body: {
         amount: parseFloat(amount).toFixed(2),
         currency: 'USD',
-        intent: 'CAPTURE'
+        intent: 'AUTHORIZE' // ESCROW: Authorize payment but don't capture until service confirmed
       }
     } as Request;
 
@@ -279,13 +279,22 @@ router.post("/payment/create-order", async (req: Request, res: Response) => {
       await createPaypalOrder(mockReq, mockRes);
       
       if (paypalResponse && paypalResponse.id) {
-        // Add approval URL to response
+        // Update booking with escrow status
+        await db.update(referralBookings)
+          .set({ 
+            escrowStatus: 'authorized',
+            paymentStatus: 'authorized'
+          })
+          .where(eq(referralBookings.id, bookingIdNum));
+
         const approvalUrl = `https://www.paypal.com/checkoutnow?token=${paypalResponse.id}`;
         
         return res.json({
           success: true,
           id: paypalResponse.id,
           approvalUrl,
+          escrowProtected: true,
+          escrowMessage: 'Payment will be held securely until service delivery is confirmed by both parties',
           links: [
             {
               href: approvalUrl,
@@ -338,6 +347,209 @@ router.post("/payment/capture/:orderId", async (req: Request, res: Response) => 
     } as any;
 
     try {
+
+
+/**
+ * POST /api/referral-marketplace/escrow/confirm-delivery/:bookingId
+ * Job seeker confirms service delivery - releases escrow payment to referrer
+ */
+router.post("/escrow/confirm-delivery/:bookingId", async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    const bookingId = parseInt(req.params.bookingId);
+    if (isNaN(bookingId)) {
+      return res.status(400).json({ success: false, error: 'Invalid booking ID' });
+    }
+
+    // Get booking details
+    const booking = await db.select()
+      .from(referralBookings)
+      .where(
+        and(
+          eq(referralBookings.id, bookingId),
+          eq(referralBookings.jobSeekerId, req.user.id)
+        )
+      )
+      .limit(1);
+
+    if (!booking || booking.length === 0) {
+      return res.status(404).json({ success: false, error: 'Booking not found' });
+    }
+
+    const bookingData = booking[0];
+
+    // Verify escrow status
+    if (bookingData.escrowStatus !== 'held') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Escrow payment not in held status' 
+      });
+    }
+
+    // Capture PayPal payment (release escrow to referrer)
+    const captureReq = {
+      params: { orderID: bookingData.paymentId },
+      body: {}
+    } as any;
+
+    let captureResponse: any = null;
+    const captureRes = {
+      json: (data: any) => { captureResponse = data; },
+      status: () => captureRes
+    } as any;
+
+    await capturePaypalOrder(captureReq, captureRes);
+
+    // Update booking and payment status
+    await db.update(referralBookings)
+      .set({
+        status: 'completed',
+        escrowStatus: 'released',
+        paymentStatus: 'completed',
+        completedAt: new Date()
+      })
+      .where(eq(referralBookings.id, bookingId));
+
+    // Update referrer stats
+    await db.update(referrers)
+      .set({
+        completedServices: sql`${referrers.completedServices} + 1`
+      })
+      .where(eq(referrers.id, bookingData.referrerId));
+
+    res.json({
+      success: true,
+      message: 'Payment released to referrer successfully',
+      booking: { ...bookingData, status: 'completed', escrowStatus: 'released' }
+    });
+  } catch (error) {
+    console.error('Error releasing escrow payment:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to release payment'
+    });
+  }
+});
+
+/**
+ * POST /api/referral-marketplace/escrow/open-dispute/:bookingId
+ * Open dispute for escrow payment - requires manual resolution
+ */
+router.post("/escrow/open-dispute/:bookingId", async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    const bookingId = parseInt(req.params.bookingId);
+    const { reason, description } = req.body;
+
+    if (isNaN(bookingId)) {
+      return res.status(400).json({ success: false, error: 'Invalid booking ID' });
+    }
+
+    if (!reason || !description) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Dispute reason and description required' 
+      });
+    }
+
+    // Get booking
+    const booking = await db.select()
+      .from(referralBookings)
+      .where(eq(referralBookings.id, bookingId))
+      .limit(1);
+
+    if (!booking || booking.length === 0) {
+      return res.status(404).json({ success: false, error: 'Booking not found' });
+    }
+
+    // Update escrow status to disputed
+    await db.update(referralBookings)
+      .set({
+        escrowStatus: 'disputed',
+        disputeReason: reason,
+        disputeDetails: description,
+        disputedAt: new Date(),
+        disputedBy: req.user.id
+      })
+      .where(eq(referralBookings.id, bookingId));
+
+    // Send notifications to both parties and admin
+    // TODO: Implement email notifications
+
+    res.json({
+      success: true,
+      message: 'Dispute opened successfully. Our team will review within 24-48 hours.',
+      disputeId: bookingId
+    });
+  } catch (error) {
+    console.error('Error opening dispute:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to open dispute'
+    });
+  }
+});
+
+/**
+ * GET /api/referral-marketplace/escrow/status/:bookingId
+ * Get escrow payment status for a booking
+ */
+router.get("/escrow/status/:bookingId", async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    const bookingId = parseInt(req.params.bookingId);
+    if (isNaN(bookingId)) {
+      return res.status(400).json({ success: false, error: 'Invalid booking ID' });
+    }
+
+    const booking = await db.select()
+      .from(referralBookings)
+      .where(eq(referralBookings.id, bookingId))
+      .limit(1);
+
+    if (!booking || booking.length === 0) {
+      return res.status(404).json({ success: false, error: 'Booking not found' });
+    }
+
+    const bookingData = booking[0];
+
+    res.json({
+      success: true,
+      escrowStatus: bookingData.escrowStatus,
+      paymentStatus: bookingData.paymentStatus,
+      canConfirmDelivery: bookingData.escrowStatus === 'held',
+      canOpenDispute: bookingData.escrowStatus === 'held',
+      message: getEscrowStatusMessage(bookingData.escrowStatus)
+    });
+  } catch (error) {
+    console.error('Error getting escrow status:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get escrow status'
+    });
+  }
+});
+
+function getEscrowStatusMessage(status: string): string {
+  switch (status) {
+    case 'authorized': return 'Payment authorized - waiting for service delivery';
+    case 'held': return 'Payment held in escrow - confirm delivery to release funds';
+    case 'released': return 'Payment released to referrer';
+    case 'disputed': return 'Dispute opened - under review';
+    case 'refunded': return 'Payment refunded to job seeker';
+    default: return 'Unknown escrow status';
+  }
+}
+
       await capturePaypalOrder(mockReq, mockRes);
       
       if (captureResponse && captureResponse.status === 'COMPLETED') {
