@@ -965,27 +965,21 @@ export default function EnhancedDashboard() {
         >
           {/* Daily Streak Banner - Prominent Position */}
           <motion.div variants={itemVariants}>
-            <Card className="border-0 bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white shadow-xl">
+            <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
               <CardContent className="p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <motion.div
-                      animate={{ scale: [1, 1.2, 1] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="text-4xl"
-                    >
-                      🔥
-                    </motion.div>
+                    <div className="text-3xl">🔥</div>
                     <div>
-                      <h3 className="text-2xl font-bold">{dailyStreak} Day Streak!</h3>
-                      <p className="text-sm text-white/90">
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white">{dailyStreak} Day Streak!</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
                         {dailyStreak >= 7 ? "You're a job search champion!" : `${7 - dailyStreak} more days to unlock bonus features`}
                       </p>
                     </div>
                   </div>
                   <div className="text-right hidden sm:block">
-                    <div className="text-3xl font-bold">{totalPoints} XP</div>
-                    <p className="text-xs text-white/90">Total Points</p>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{totalPoints} XP</div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Total Points</p>
                   </div>
                 </div>
               </CardContent>
@@ -1051,10 +1045,10 @@ export default function EnhancedDashboard() {
 
           {/* Quick Action Buttons - 30-Second Tasks */}
           <motion.div variants={itemVariants}>
-            <Card className="border border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950">
+            <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-yellow-500" />
+                  <Zap className="w-5 h-5 text-blue-600" />
                   Quick Wins (30 seconds each)
                 </CardTitle>
               </CardHeader>
@@ -1521,57 +1515,6 @@ export default function EnhancedDashboard() {
             </motion.div>
           )}
 
-          {/* ACE Features - Predictive Success Intelligence */}
-          <motion.div variants={itemVariants}>
-            <Card className="border-2 border-blue-300 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 shadow-lg">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
-                  <Target className="h-6 w-6" />
-                  🎯 ACE Features - Industry First!
-                </CardTitle>
-                <p className="text-sm text-blue-700 dark:text-blue-300">
-                  Revolutionary AI-powered features that give you unbeatable competitive advantages
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Sample Predictive Success Widget - you can make this dynamic with real job data */}
-                <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border">
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    <Brain className="h-4 w-4 text-purple-600" />
-                    Predictive Application Success Intelligence
-                  </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                    AI predicts your interview likelihood BEFORE you apply - the first system of its kind in the industry!
-                  </p>
-                  <div className="flex items-center gap-2 text-xs">
-                    <Badge className="bg-green-100 text-green-800">✓ Active</Badge>
-                    <span className="text-gray-500">Click on any job to see predictions</span>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border">
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    <Network className="h-4 w-4 text-blue-600" />
-                    Viral Extension Network Effects
-                  </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                    Browser-based application tool with viral growth mechanics - earn rewards by sharing job intelligence!
-                  </p>
-                  <div className="flex items-center gap-2 text-xs">
-                    <Badge className="bg-blue-100 text-blue-800">✓ Active</Badge>
-                    <span className="text-gray-500">Install Chrome extension to access</span>
-                  </div>
-                </div>
-
-                <div className="text-center p-3 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950 rounded-lg border border-yellow-200">
-                  <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                    🚀 <strong>AutoJobr ACE Technology</strong> - No competitor has these features!
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
           {/* Smart Recommendations */}
           {smartRecommendations.length > 0 && (
             <motion.div variants={itemVariants}>
@@ -2034,58 +1977,58 @@ export default function EnhancedDashboard() {
             variants={itemVariants}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
           >
-            <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0">
+            <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-blue-100 text-sm font-medium">
+                    <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">
                       Total Applications
                     </p>
-                    <p className="text-3xl font-bold">{totalApplications}</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{totalApplications}</p>
                   </div>
-                  <Briefcase className="w-8 h-8 text-blue-200" />
+                  <Briefcase className="w-8 h-8 text-blue-600" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0">
+            <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-green-100 text-sm font-medium">
+                    <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">
                       Profile Score
                     </p>
-                    <p className="text-3xl font-bold">{profileCompletion}%</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{profileCompletion}%</p>
                   </div>
-                  <Target className="w-8 h-8 text-green-200" />
+                  <Target className="w-8 h-8 text-green-600" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0">
+            <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-purple-100 text-sm font-medium">
+                    <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">
                       ATS Score
                     </p>
-                    <p className="text-3xl font-bold">{resumeScore}%</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{resumeScore}%</p>
                   </div>
-                  <Brain className="w-8 h-8 text-purple-200" />
+                  <Brain className="w-8 h-8 text-purple-600" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0">
+            <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-orange-100 text-sm font-medium">
+                    <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">
                       Pending Tests
                     </p>
-                    <p className="text-3xl font-bold">{pendingTests}</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{pendingTests}</p>
                   </div>
-                  <Code className="w-8 h-8 text-orange-200" />
+                  <Code className="w-8 h-8 text-orange-600" />
                 </div>
               </CardContent>
             </Card>
