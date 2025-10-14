@@ -262,6 +262,21 @@ export default function EnhancedDashboard() {
     prioritySupport: { free: false, premium: true },
   };
 
+  // Safe data access with proper fallbacks - MUST be before useEffect that uses them
+  const profileCompletion = (profile as any)?.profileCompletion || 0;
+  const resumeScore = Array.isArray(resumes) && resumes.length > 0 ? resumes[0]?.atsScore || 0 : 0;
+  const totalApplications = Array.isArray(applications) ? applications.length : 0;
+  const pendingTests = Array.isArray(testAssignments) ? testAssignments.length : 0;
+  const interviewsPending = (mockInterviewStats as any)?.totalSessions || 0;
+
+  // Calculate user progress and achievements
+  const hasUploadedResume = Array.isArray(resumes) ? resumes.length > 0 : false;
+  const hasAppliedToJobs = totalApplications > 0;
+  const hasCompletedInterview = interviewsPending > 0;
+  const hasCompletedTests = Array.isArray(rankingTestHistory) ? rankingTestHistory.length > 0 : false;
+  const hasGoodResumeScore = resumeScore >= 70;
+  const hasCompleteProfile = profileCompletion >= 80;
+
   // All useEffect hooks must be called after other hooks but before conditional returns
   // Redirect to auth if not authenticated
   useEffect(() => {
@@ -370,21 +385,6 @@ export default function EnhancedDashboard() {
       </div>
     );
   }
-
-  // Safe data access with proper fallbacks
-  const profileCompletion = (profile as any)?.profileCompletion || 0;
-  const resumeScore = Array.isArray(resumes) && resumes.length > 0 ? resumes[0]?.atsScore || 0 : 0;
-  const totalApplications = Array.isArray(applications) ? applications.length : 0;
-  const pendingTests = Array.isArray(testAssignments) ? testAssignments.length : 0;
-  const interviewsPending = (mockInterviewStats as any)?.totalSessions || 0;
-
-  // Calculate user progress and achievements
-  const hasUploadedResume = Array.isArray(resumes) ? resumes.length > 0 : false;
-  const hasAppliedToJobs = totalApplications > 0;
-  const hasCompletedInterview = interviewsPending > 0;
-  const hasCompletedTests = Array.isArray(rankingTestHistory) ? rankingTestHistory.length > 0 : false;
-  const hasGoodResumeScore = resumeScore >= 70;
-  const hasCompleteProfile = profileCompletion >= 80;
 
   // Calculate overall progress
   const progressTasks = [
