@@ -44,9 +44,18 @@ interface ReferralService {
 }
 
 const ReferralMarketplace: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [services, setServices] = useState<ReferralService[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Debug authentication state
+  useEffect(() => {
+    console.log('🔍 [Referral Marketplace] Auth State:', {
+      user: user ? { id: user.id, email: user.email } : null,
+      isAuthenticated,
+      authLoading
+    });
+  }, [user, isAuthenticated, authLoading]);
   const [expandedServices, setExpandedServices] = useState<Record<number, boolean>>({});
   const [filter, setFilter] = useState({
     serviceType: '',
@@ -81,10 +90,15 @@ const ReferralMarketplace: React.FC = () => {
   };
 
   const handleBookService = async (serviceId: number, servicePrice: number) => {
-    if (!user) {
-      window.location.href = '/auth-page';
+    // Check authentication status first
+    if (!user || !user.id) {
+      console.log('❌ User not authenticated, redirecting to auth page');
+      const currentUrl = encodeURIComponent(window.location.pathname + window.location.search);
+      window.location.href = `/auth-page?redirect=${currentUrl}`;
       return;
     }
+
+    console.log('✅ User authenticated:', user.email);
 
     try {
       // First create the booking
@@ -174,10 +188,12 @@ const ReferralMarketplace: React.FC = () => {
     );
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="container mx-auto p-6">
-        <div className="text-center">Loading services...</div>
+        <div className="text-center">
+          {authLoading ? 'Checking authentication...' : 'Loading services...'}
+        </div>
       </div>
     );
   }
@@ -275,6 +291,14 @@ const ReferralMarketplace: React.FC = () => {
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white py-12 mb-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Authentication Status Debug Banner - Remove after fixing */}
+          {!authLoading && (
+            <div className={`text-center py-2 mb-4 rounded-lg ${isAuthenticated ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+              <p className="text-sm">
+                {isAuthenticated ? `✅ Logged in as ${user?.email}` : '❌ Not logged in - Please sign in to book services'}
+              </p>
+            </div>
+          )}
           <div className="text-center mb-6">
             <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-100">
               Referral Marketplace
