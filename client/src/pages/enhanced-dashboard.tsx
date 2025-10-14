@@ -651,16 +651,10 @@ export default function EnhancedDashboard() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          jobData: {
-            company: companyName,
-            title: jobTitle,
-            description: jobDescription,
-          },
-          userProfile: null, // Will be fetched server-side
-          extractedData: {
-            company: companyName,
-            role: jobTitle,
-          },
+          jobDescription,
+          companyName,
+          jobTitle,
+          resumeId: Array.isArray(resumes) && resumes.length > 0 ? resumes[0].id : undefined,
         }),
         credentials: "include",
       });
@@ -898,7 +892,196 @@ export default function EnhancedDashboard() {
           animate="visible"
           className="space-y-4 sm:space-y-6 lg:space-y-8"
         >
-          {/* Daily Streak Banner - Prominent Position */}
+          {/* Enhanced Welcome Header with Progress - MOVED TO TOP */}
+          <motion.div variants={itemVariants} className="space-y-6">
+            {/* Main Welcome */}
+            <div className="text-center space-y-3">
+              <div className="flex items-center justify-center gap-2 sm:gap-3">
+                <motion.h1
+                  variants={slideInVariants}
+                  className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white"
+                >
+                  Welcome back, {userName}!
+                </motion.h1>
+                {isPremium && (
+                  <motion.div
+                    variants={bounceVariants}
+                    initial="rest"
+                    animate="bounce"
+                  >
+                    <Crown className="w-8 h-8 text-yellow-500" />
+                  </motion.div>
+                )}
+              </div>
+
+              {/* User Level & Progress */}
+              <div className="flex items-center justify-center gap-2 sm:gap-4 flex-wrap">
+                <Badge className="bg-blue-600 text-white px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-semibold">
+                  <Star className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                  Level {userLevel}
+                </Badge>
+                <Badge variant="outline" className="px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm">
+                  <Trophy className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-yellow-500" />
+                  {totalPoints} XP
+                </Badge>
+                <Badge variant="outline" className="px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm">
+                  <Flame className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-orange-500" />
+                  {unlockedAchievements.length} Achievements
+                </Badge>
+              </div>
+
+              <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
+                Your AI-powered career journey • {totalProgress}% Complete
+              </p>
+              <motion.p
+                variants={pulseVariants}
+                initial="rest"
+                animate="pulse"
+                className="text-sm font-medium text-blue-600 dark:text-blue-400"
+              >
+                {dailyStreak > 0
+                  ? `💪 ${dailyStreak} days of consistent progress!`
+                  : "🚀 Start your journey today!"}
+              </motion.p>
+            </div>
+
+            {/* Progress Overview Card */}
+            <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <CardContent className="p-3 sm:p-6 relative">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-xl bg-blue-600">
+                      <Gauge className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold">Career Progress</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Complete tasks to unlock features and earn XP
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAchievements(!showAchievements)}
+                    className="gap-2"
+                  >
+                    <Award className="w-4 h-4" />
+                    Achievements
+                  </Button>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">Overall Progress</span>
+                    <span className="text-muted-foreground">
+                      {completedTasksCount}/{progressTasks.length} tasks
+                    </span>
+                  </div>
+                  <Progress value={totalProgress} className="h-3" />
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Getting Started</span>
+                    <span>Career Ready</span>
+                  </div>
+                </div>
+
+                {/* Quick Progress Tasks */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 pr-2">
+                  {progressTasks.map((task, index) => (
+                    <motion.div
+                      key={task.id}
+                      variants={slideInVariants}
+                      initial="hidden"
+                      animate="visible"
+                      transition={{ delay: index * 0.1 }}
+                      className={`p-2 sm:p-3 rounded-lg border transition-all duration-200 ${
+                        task.completed
+                          ? "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800"
+                          : "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-primary/30"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`p-2 rounded-full ${
+                            task.completed
+                              ? "bg-green-500 text-white"
+                              : "bg-gray-200 dark:bg-gray-700 text-gray-500"
+                          }`}
+                        >
+                          {task.completed ? (
+                            <CheckCircle2 className="w-4 h-4" />
+                          ) : (
+                            <Timer className="w-4 h-4" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{task.label}</p>
+                          <p className="text-xs text-muted-foreground">
+                            +{task.points} XP
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Next Level Progress */}
+                {pointsToNextLevel > 0 && (
+                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-2 text-sm">
+                      <TrendUp className="w-4 h-4 text-blue-500" />
+                      <span className="font-medium">Next Level:</span>
+                      <span className="text-blue-600 dark:text-blue-400">
+                        {pointsToNextLevel} XP to Level {userLevel + 1}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Premium CTA for non-premium users */}
+            {!isPremium &&
+              (dailyUsage.aiCoachQuestions >= freemiumLimits.aiCoachQuestions.free ||
+                dailyUsage.jobApplications >= freemiumLimits.jobApplications.free) && (
+                <motion.div
+                  variants={pulseVariants}
+                  initial="rest"
+                  animate="pulse"
+                  className="mx-auto max-w-2xl"
+                >
+                  <Card className="border-2 border-blue-300 bg-blue-50 dark:bg-blue-950 shadow-lg">
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-blue-600 rounded-full">
+                          <Rocket className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
+                            🚀 Unlock Premium Features
+                          </h3>
+                          <p className="text-sm text-blue-700 dark:text-blue-300">
+                            Get unlimited applications, AI interviews, priority
+                            support & exclusive features
+                          </p>
+                        </div>
+                        <Button
+                          size="lg"
+                          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg"
+                          onClick={() => setLocation("/job-seeker-premium")}
+                        >
+                          Upgrade Now
+                          <Sparkles className="w-4 h-4 ml-2" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+          </motion.div>
+
+          {/* Daily Streak Banner */}
           <motion.div variants={itemVariants}>
             <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
               <CardContent className="p-4 sm:p-6">
@@ -1024,195 +1207,6 @@ export default function EnhancedDashboard() {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
-
-          {/* Enhanced Welcome Header with Progress */}
-          <motion.div variants={itemVariants} className="space-y-6">
-            {/* Main Welcome */}
-            <div className="text-center space-y-3">
-              <div className="flex items-center justify-center gap-2 sm:gap-3">
-                <motion.h1
-                  variants={slideInVariants}
-                  className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white"
-                >
-                  Welcome back, {userName}!
-                </motion.h1>
-                {isPremium && (
-                  <motion.div
-                    variants={bounceVariants}
-                    initial="rest"
-                    animate="bounce"
-                  >
-                    <Crown className="w-8 h-8 text-yellow-500" />
-                  </motion.div>
-                )}
-              </div>
-
-              {/* User Level & Progress */}
-              <div className="flex items-center justify-center gap-2 sm:gap-4 flex-wrap">
-                <Badge className="bg-blue-600 text-white px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-semibold">
-                  <Star className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                  Level {userLevel}
-                </Badge>
-                <Badge variant="outline" className="px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm">
-                  <Trophy className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-yellow-500" />
-                  {totalPoints} XP
-                </Badge>
-                <Badge variant="outline" className="px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm">
-                  <Flame className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-orange-500" />
-                  {unlockedAchievements.length} Achievements
-                </Badge>
-              </div>
-
-              <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
-                Your AI-powered career journey • {totalProgress}% Complete
-              </p>
-              <motion.p
-                variants={pulseVariants}
-                initial="rest"
-                animate="pulse"
-                className="text-sm font-medium text-blue-600 dark:text-blue-400"
-              >
-                {dailyStreak > 0
-                  ? `💪 ${dailyStreak} days of consistent progress!`
-                  : "🚀 Start your journey today!"}
-              </motion.p>
-            </div>
-
-            {/* Progress Overview Card */}
-            <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-              <CardContent className="p-3 sm:p-6 relative">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-xl bg-blue-600">
-                      <Gauge className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold">Career Progress</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Complete tasks to unlock features and earn XP
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowAchievements(!showAchievements)}
-                    className="gap-2"
-                  >
-                    <Award className="w-4 h-4" />
-                    Achievements
-                  </Button>
-                </div>
-
-                {/* Progress Bar */}
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">Overall Progress</span>
-                    <span className="text-muted-foreground">
-                      {completedTasksCount}/{progressTasks.length} tasks
-                    </span>
-                  </div>
-                  <Progress value={totalProgress} className="h-3" />
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Getting Started</span>
-                    <span>Career Ready</span>
-                  </div>
-                </div>
-
-                {/* Quick Progress Tasks */}
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 pr-2">
-                  {progressTasks.map((task, index) => (
-                    <motion.div
-                      key={task.id}
-                      variants={slideInVariants}
-                      initial="hidden"
-                      animate="visible"
-                      transition={{ delay: index * 0.1 }}
-                      className={`p-2 sm:p-3 rounded-lg border transition-all duration-200 ${
-                        task.completed
-                          ? "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800"
-                          : "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-primary/30"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`p-2 rounded-full ${
-                            task.completed
-                              ? "bg-green-500 text-white"
-                              : "bg-gray-200 dark:bg-gray-700 text-gray-500"
-                          }`}
-                        >
-                          {task.completed ? (
-                            <CheckCircle2 className="w-4 h-4" />
-                          ) : (
-                            <Timer className="w-4 h-4" />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{task.label}</p>
-                          <p className="text-xs text-muted-foreground">
-                            +{task.points} XP
-                          </p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-
-                {/* Next Level Progress */}
-                {pointsToNextLevel > 0 && (
-                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <div className="flex items-center gap-2 text-sm">
-                      <TrendUp className="w-4 h-4 text-blue-500" />
-                      <span className="font-medium">Next Level:</span>
-                      <span className="text-blue-600 dark:text-blue-400">
-                        {pointsToNextLevel} XP to Level {userLevel + 1}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Premium CTA for non-premium users */}
-            {!isPremium &&
-              (dailyUsage.aiCoachQuestions >= freemiumLimits.aiCoachQuestions.free ||
-                dailyUsage.jobApplications >= freemiumLimits.jobApplications.free) && (
-                <motion.div
-                  variants={pulseVariants}
-                  initial="rest"
-                  animate="pulse"
-                  className="mx-auto max-w-2xl"
-                >
-                  <Card className="border-2 border-blue-300 bg-blue-50 dark:bg-blue-950 shadow-lg">
-                    <CardContent className="p-6">
-                      <div className="flex items-center gap-4">
-                        <div className="p-3 bg-blue-600 rounded-full">
-                          <Rocket className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
-                            🚀 Unlock Premium Features
-                          </h3>
-                          <p className="text-sm text-blue-700 dark:text-blue-300">
-                            Get unlimited applications, AI interviews, priority
-                            support & exclusive features
-                          </p>
-                        </div>
-                        <Button
-                          size="lg"
-                          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg"
-                          onClick={() => setLocation("/job-seeker-premium")}
-                        >
-                          Upgrade Now
-                          <Sparkles className="w-4 h-4 ml-2" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
           </motion.div>
 
           {/* Clean Usage Tracker */}
