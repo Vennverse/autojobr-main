@@ -2990,10 +2990,17 @@ Return only the cover letter text, no additional formatting or explanations.`;
         companyName
       });
     } catch (error: any) {
-      console.error("Error generating cover letter:", error);
+      console.error("❌ Error generating cover letter:", error);
+      console.error("Error details:", {
+        message: error.message,
+        stack: error.stack,
+        jobTitle,
+        companyName
+      });
       res.status(500).json({ 
-        message: "Failed to generate cover letter",
-        error: error.message 
+        success: false,
+        message: "Failed to generate cover letter. Please try again.",
+        error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred'
       });
     }
   });
