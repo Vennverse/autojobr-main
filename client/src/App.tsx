@@ -301,6 +301,11 @@ function Router() {
       {/* Public internship pages - accessible to everyone for discovery */}
       <Route path="/internships" component={Internships} />
 
+      {/* Referral Marketplace - Public pages accessible to everyone */}
+      <Route path="/referral-marketplace" component={ReferralMarketplace} />
+      <Route path="/become-referrer" component={BecomeReferrer} />
+      <Route path="/my-bookings" component={MyBookings} />
+
       {isAuthenticated ? (
         <>
           {/* Handle different user types */}
