@@ -124,7 +124,7 @@ export class VirtualInterviewService {
     const prompt = this.buildQuestionPrompt(interviewType, difficulty, role, questionNumber, previousResponses, userContext);
     
     try {
-      const response = await groqService.chat([
+      const response = await aiService.createChatCompletion([
         {
           role: "system",
           content: "You are an expert interviewer. Generate a single, specific interview question with metadata. Respond with valid JSON only."
@@ -190,7 +190,7 @@ Response: "${userResponse}"
 Return JSON only: {"responseQuality": 1-10, "technicalAccuracy": 0-100, "clarityScore": 0-100, "depthScore": 0-100, "keywordsMatched": ["matched", "keywords"], "sentiment": "positive/neutral/negative", "confidence": 1-100}`;
 
     try {
-      const response = await groqService.chat([
+      const response = await aiService.createChatCompletion([
         {
           role: "system",
           content: "You are an expert interview evaluator. Analyze responses thoroughly and fairly."
@@ -265,15 +265,6 @@ Return JSON only: {"responseQuality": 1-10, "technicalAccuracy": 0-100, "clarity
   ): Promise<string> {
     const personalityConfig = this.personalities[personality] || this.personalities.professional;
     
-    if (!this.groq) {
-      // Fallback follow-up based on response quality
-      if (analysis.responseQuality >= 7) {
-        return personalityConfig.encouragements[0] + " Can you elaborate on that further?";
-      } else {
-        return "That's interesting. Can you tell me more about your approach to this?";
-      }
-    }
-    
     const prompt = `
 As an interviewer with a ${personalityConfig.style} style, generate a follow-up response to:
 
@@ -291,26 +282,26 @@ Generate a natural follow-up that:
 Keep it conversational and under 100 words.`;
 
     try {
-      const response = await this.groq.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: `You are a ${personality} interviewer conducting a practice interview. Be helpful and encouraging while maintaining your interviewing style.`
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        model: DEFAULT_MODEL_STR,
-        temperature: 0.8,
-        max_tokens: 200,
-      });
+      const response = await aiService.createChatCompletion([
+        {
+          role: "system",
+          content: `You are a ${personality} interviewer conducting a practice interview. Be helpful and encouraging while maintaining your interviewing style.`
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ]);
 
       return response.choices[0]?.message?.content || "That's interesting. Can you tell me more about your approach?";
     } catch (error) {
       console.error('Error generating follow-up:', error);
-      return "That's a good response. Can you elaborate on that further?";
+      // Fallback follow-up based on response quality
+      if (analysis.responseQuality >= 7) {
+        return personalityConfig.encouragements[0] + " Can you elaborate on that further?";
+      } else {
+        return "That's interesting. Can you tell me more about your approach to this?";
+      }
     }
   }
 
@@ -328,11 +319,6 @@ Keep it conversational and under 100 words.`;
     recommendedResources: any[];
     nextSteps: string[];
   }> {
-    if (!this.groq) {
-      console.error('GROQ client not initialized - check API key');
-      return this.getFallbackFeedback();
-    }
-
     const candidateResponses = messages
       .filter(m => m.sender === 'candidate')
       .map(m => m.content)
@@ -365,23 +351,18 @@ Return valid JSON only with these exact fields:
 Be constructive and encouraging.`;
 
     try {
-      console.log('Generating GROQ feedback for interview:', interviewData.id);
+      console.log('Generating AI feedback for interview:', interviewData.id);
       
-      const response = await this.groq.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert interview coach. Return only valid JSON feedback."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        model: DEFAULT_MODEL_STR,
-        temperature: 0.3,
-        max_tokens: 1000,
-      });
+      const response = await aiService.createChatCompletion([
+        {
+          role: "system",
+          content: "You are an expert interview coach. Return only valid JSON feedback."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ]);
 
       const content = response.choices[0]?.message?.content;
       if (!content) {
@@ -444,6 +425,10 @@ Be constructive and encouraging.`;
         questionFocus = 'Ask a comprehensive question building on previous answers';
     }
 
+    // Detect if role is technical
+    const technicalRoles = ['developer', 'engineer', 'programmer', 'software', 'full stack', 'frontend', 'backend', 'devops', 'data scientist', 'ml engineer'];
+    const isTechnical = technicalRoles.some(tech => role.toLowerCase().includes(tech));
+
     return `
 Generate interview question ${questionNumber} for a ${role} candidate.
 Interview Type: ${interviewType}
@@ -457,6 +442,16 @@ CRITICAL REQUIREMENTS:
 - Generate ONLY ONE unique question completely different from previous ones
 - Question should be specific to ${interviewType} interviews  
 - Follow ${questionFocus} for this question number
+${isTechnical ? `
+- FOR TECHNICAL ROLES: You can ask CODING QUESTIONS! 
+  * Ask to write code for algorithms (sorting, searching, dynamic programming)
+  * Ask to solve data structure problems (arrays, linked lists, trees, graphs)
+  * Ask to implement functions or classes
+  * Ask to debug code snippets
+  * Ask system design questions
+  * Ask about time/space complexity analysis
+  * Examples: "Write a function to reverse a linked list", "Implement a binary search", "Design a cache system"
+` : ''}
 - For technical: Include specific technologies, algorithms, or coding concepts
 - For behavioral: Use STAR method scenarios
 - Make it realistic and engaging
@@ -579,9 +574,8 @@ Return valid JSON only:
       await proctorService.initializeSession(sessionId, userId, {
         sessionType: 'virtual_interview',
         securityLevel: 'high',
-        enableDeviceFingerprinting: true,
-        enableEnvironmentValidation: true,
-        enableBrowserSecurity: true
+        enableScreenRecording: true,
+        enableActivityTracking: true
       });
       
       await cameraProctorService.initializeSession(sessionId, {
@@ -798,7 +792,7 @@ Return valid JSON only:
       unusualSpeed: false,
       consistentTiming: false,
       humanLikeVariation: true,
-      suspiciousPatterns: []
+      suspiciousPatterns: [] as string[]
     };
     
     if (behavioralData?.responseTime) {
@@ -825,7 +819,7 @@ Return valid JSON only:
       responseLength: response.length,
       complexity: this.calculateResponseComplexity(response),
       interviewAppropriate: true,
-      concerns: []
+      concerns: [] as string[]
     };
     
     // Check for overly perfect responses

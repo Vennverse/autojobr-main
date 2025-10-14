@@ -530,13 +530,26 @@ router.post('/:sessionId/complete', isAuthenticated, async (req: any, res) => {
 
     const responses = messages.filter(msg => msg.sender === 'candidate');
 
-    // Generate basic scores (in production, this would use AI analysis)
-    const overallScore = Math.floor(Math.random() * 30) + 70; // 70-100 range
-    const technicalScore = Math.floor(Math.random() * 30) + 70;
-    const communicationScore = Math.floor(Math.random() * 30) + 70;
-    const confidenceScore = Math.floor(Math.random() * 30) + 70;
+    console.log(`🎯 Generating AI feedback for interview ${sessionId} with ${responses.length} responses`);
 
-    // Update interview completion
+    // Generate AI-powered detailed feedback
+    const aiFeedback = await virtualInterviewService.generateFinalFeedback(
+      currentInterview,
+      messages.map(m => ({
+        sender: m.sender,
+        content: m.content,
+        timestamp: m.createdAt
+      }))
+    );
+
+    const overallScore = aiFeedback.overallScore;
+    const technicalScore = aiFeedback.technicalScore;
+    const communicationScore = aiFeedback.communicationScore;
+    const confidenceScore = aiFeedback.confidenceScore;
+
+    console.log(`✅ AI Feedback generated - Overall: ${overallScore}%, Technical: ${technicalScore}%, Communication: ${communicationScore}%`);
+
+    // Update interview completion with AI-generated data
     await db.update(virtualInterviews)
       .set({
         status: 'completed',
@@ -545,26 +558,26 @@ router.post('/:sessionId/complete', isAuthenticated, async (req: any, res) => {
         technicalScore,
         communicationScore,
         confidenceScore,
-        strengths: ['Clear communication', 'Good problem-solving approach', 'Relevant experience'],
-        weaknesses: ['Could provide more specific examples', 'Consider elaborating on technical details'],
-        recommendations: ['Practice more behavioral questions', 'Prepare detailed project examples']
+        strengths: aiFeedback.keyStrengths,
+        weaknesses: aiFeedback.areasForImprovement,
+        recommendations: aiFeedback.nextSteps
       })
       .where(eq(virtualInterviews.id, currentInterview.id));
 
-    // Create detailed feedback
+    // Create detailed feedback with AI analysis
     await db.insert(virtualInterviewFeedback).values({
       interviewId: currentInterview.id,
-      performanceSummary: `Strong performance with ${overallScore}% overall score. Good technical knowledge and communication skills.`,
-      keyStrengths: ['Clear communication', 'Good problem-solving approach', 'Relevant experience'],
-      areasForImprovement: ['Could provide more specific examples', 'Consider elaborating on technical details'],
+      performanceSummary: aiFeedback.performanceSummary,
+      keyStrengths: aiFeedback.keyStrengths,
+      areasForImprovement: aiFeedback.areasForImprovement,
       technicalSkillsScore: technicalScore,
-      problemSolvingScore: Math.floor(Math.random() * 30) + 70,
+      problemSolvingScore: Math.round((technicalScore + overallScore) / 2), // Derive from technical
       communicationScore,
-      responseConsistency: Math.floor(Math.random() * 30) + 70,
-      adaptabilityScore: Math.floor(Math.random() * 30) + 70,
-      stressHandling: Math.floor(Math.random() * 30) + 70,
+      responseConsistency: Math.round((overallScore + communicationScore) / 2), // Derive from overall
+      adaptabilityScore: Math.round((overallScore + technicalScore) / 2), // Derive from performance
+      stressHandling: confidenceScore, // Use confidence as stress handling indicator
       roleReadiness: overallScore >= 85 ? 'ready' : overallScore >= 70 ? 'needs_practice' : 'significant_gaps',
-      aiConfidenceScore: 85
+      aiConfidenceScore: 90
     });
 
     // Update user stats
@@ -900,7 +913,7 @@ router.post('/:sessionId/message', isAuthenticated, async (req: any, res) => {
         previousQuestion,
         message.trim(),
         simpleAnalysis,
-        currentInterview.personality || 'professional'
+        currentInterview.interviewerPersonality || 'professional'
       );
     } else {
       // First message - generate initial question

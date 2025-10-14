@@ -143,13 +143,32 @@ export default function VirtualInterviewStart() {
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Virtual AI Interview
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mb-4">
+              <Brain className="w-10 h-10 text-white" />
+            </div>
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+              AI-Powered Virtual Interview
             </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              Practice your interview skills with our AI-powered virtual interviewer. 
-              Get personalized feedback and improve your performance.
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
+              Practice with our advanced AI interviewer that adapts to your role. 
+              Get detailed feedback, performance analysis, and <span className="font-semibold text-purple-600 dark:text-purple-400">discover your hiring chances</span>!
             </p>
+            
+            {/* Key Features Pills */}
+            <div className="flex flex-wrap justify-center gap-3 mt-6">
+              <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 px-4 py-2">
+                <MessageCircle className="w-4 h-4 mr-1.5" />
+                Real-time AI Conversations
+              </Badge>
+              <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200 px-4 py-2">
+                <TrendingUp className="w-4 h-4 mr-1.5" />
+                Detailed Analytics
+              </Badge>
+              <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200 px-4 py-2">
+                <Award className="w-4 h-4 mr-1.5" />
+                Hiring Probability Score
+              </Badge>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -444,31 +463,58 @@ export default function VirtualInterviewStart() {
               )}
 
               {/* Features */}
-              <Card>
+              <Card className="border-2 border-blue-200 dark:border-blue-800">
                 <CardHeader>
-                  <CardTitle className="text-lg">What You'll Get</CardTitle>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Award className="w-5 h-5 text-blue-600" />
+                    What You'll Get
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-3 text-sm">
-                    <li className="flex items-start space-x-2">
-                      <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span>AI-powered interviewer with realistic conversation</span>
+                  <ul className="space-y-4 text-sm">
+                    <li className="flex items-start space-x-3">
+                      <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-semibold text-gray-900 dark:text-white">AI-Powered Adaptive Interviewer</div>
+                        <div className="text-gray-600 dark:text-gray-400">Natural conversation that adjusts to your responses</div>
+                      </div>
                     </li>
-                    <li className="flex items-start space-x-2">
-                      <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span>Personalized feedback and performance analysis</span>
+                    <li className="flex items-start space-x-3">
+                      <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-semibold text-gray-900 dark:text-white">Coding Questions for Technical Roles</div>
+                        <div className="text-gray-600 dark:text-gray-400">
+                          <span className="text-purple-600 dark:text-purple-400 font-medium">NEW!</span> Get actual coding problems, algorithms, and system design questions for developer roles
+                        </div>
+                      </div>
                     </li>
-                    <li className="flex items-start space-x-2">
-                      <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span>Role-specific questions tailored to your field</span>
+                    <li className="flex items-start space-x-3">
+                      <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-semibold text-gray-900 dark:text-white">Comprehensive Performance Analysis</div>
+                        <div className="text-gray-600 dark:text-gray-400">Detailed breakdown of technical, communication, and problem-solving skills</div>
+                      </div>
                     </li>
-                    <li className="flex items-start space-x-2">
-                      <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span>Detailed scoring across multiple criteria</span>
+                    <li className="flex items-start space-x-3">
+                      <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-semibold text-gray-900 dark:text-white">Hiring Probability Score</div>
+                        <div className="text-gray-600 dark:text-gray-400">Know your chances of getting hired based on your performance</div>
+                      </div>
                     </li>
-                    <li className="flex items-start space-x-2">
-                      <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span>Practice in a safe, pressure-free environment</span>
+                    <li className="flex items-start space-x-3">
+                      <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-semibold text-gray-900 dark:text-white">Personalized Improvement Plan</div>
+                        <div className="text-gray-600 dark:text-gray-400">Actionable recommendations to enhance your interview skills</div>
+                      </div>
+                    </li>
+                    <li className="flex items-start space-x-3">
+                      <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-semibold text-gray-900 dark:text-white">Safe Practice Environment</div>
+                        <div className="text-gray-600 dark:text-gray-400">Build confidence without the pressure of real interviews</div>
+                      </div>
                     </li>
                   </ul>
                 </CardContent>

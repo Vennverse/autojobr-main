@@ -177,8 +177,15 @@ class GroqService {
     },
     user?: any
   ): Promise<JobMatchAnalysis & { aiTier?: string, upgradeMessage?: string }> {
+    // Convert requirements string to array format expected by aiService
+    const formattedJobData = {
+      title: jobData.title,
+      company: jobData.company,
+      description: jobData.description,
+      requirements: jobData.requirements ? jobData.requirements.split('\n').filter(r => r.trim()) : undefined
+    };
     // Delegate to the unified AI service which handles rotation between Groq and OpenRouter
-    return await aiService.analyzeJobMatch(jobData, userProfile, user);
+    return await aiService.analyzeJobMatch(formattedJobData, userProfile, user);
   }
 
   async extractJobDetails(jobDescription: string): Promise<{
