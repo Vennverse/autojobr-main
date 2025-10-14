@@ -786,4 +786,178 @@ router.post('/:sessionId/device-fingerprint', isAuthenticated, async (req: any, 
   }
 });
 
+// Report violation in chat interview
+router.post('/:sessionId/violation', isAuthenticated, async (req: any, res) => {
+  try {
+    const { sessionId } = req.params;
+    const userId = req.user?.id || req.session?.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const violation = req.body;
+    console.log(`⚠️ Violation reported for session ${sessionId}:`, violation.type);
+
+    // Get the interview
+    const [currentInterview] = await db.select().from(virtualInterviews)
+      .where(and(
+        eq(virtualInterviews.sessionId, sessionId),
+        eq(virtualInterviews.userId, userId)
+      ))
+      .limit(1);
+
+    if (!currentInterview) {
+      return res.status(404).json({ message: 'Interview not found' });
+    }
+
+    // Process the violation using the service
+    await virtualInterviewService.processViolation(sessionId, violation);
+
+    res.json({ 
+      success: true, 
+      message: 'Violation recorded' 
+    });
+
+  } catch (error) {
+    console.error('Error processing violation:', error);
+    res.status(500).json({ message: 'Failed to process violation' });
+  }
+});
+
+// Send message in chat interview
+router.post('/:sessionId/message', isAuthenticated, async (req: any, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { message } = req.body;
+    const userId = req.user?.id || req.session?.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    if (!message || !message.trim()) {
+      return res.status(400).json({ message: 'Message is required' });
+    }
+
+    console.log(`💬 Processing chat message for session ${sessionId}`);
+
+    // Get the interview
+    const [currentInterview] = await db.select().from(virtualInterviews)
+      .where(and(
+        eq(virtualInterviews.sessionId, sessionId),
+        eq(virtualInterviews.userId, userId)
+      ))
+      .limit(1);
+
+    if (!currentInterview) {
+      return res.status(404).json({ message: 'Interview not found' });
+    }
+
+    if (currentInterview.status === 'completed') {
+      return res.status(400).json({ message: 'Interview is already completed' });
+    }
+
+    // Get current message count
+    const existingMessages = await db.select().from(virtualInterviewMessages)
+      .where(eq(virtualInterviewMessages.interviewId, currentInterview.id));
+
+    const nextMessageIndex = existingMessages.length;
+
+    // Save user message
+    await db.insert(virtualInterviewMessages).values({
+      interviewId: currentInterview.id,
+      sender: 'candidate',
+      content: message.trim(),
+      timestamp: new Date(),
+      messageIndex: nextMessageIndex
+    });
+
+    // Generate AI response using follow-up or new question
+    let aiResponseText: string;
+    
+    if (existingMessages.length > 1) {
+      // Get the last question from the interviewer
+      const lastInterviewerMsg = existingMessages
+        .filter(m => m.sender === 'interviewer')
+        .pop();
+      
+      const previousQuestion = lastInterviewerMsg?.content || 'Tell me about yourself';
+      
+      // Create a simple analysis for the follow-up
+      const simpleAnalysis = {
+        responseQuality: 7,
+        technicalAccuracy: 70,
+        clarityScore: 70,
+        depthScore: 70,
+        keywordsMatched: [],
+        sentiment: 'neutral' as const,
+        confidence: 70
+      };
+      
+      // Generate a follow-up question based on the conversation
+      aiResponseText = await virtualInterviewService.generateFollowUp(
+        previousQuestion,
+        message.trim(),
+        simpleAnalysis,
+        currentInterview.personality || 'professional'
+      );
+    } else {
+      // First message - generate initial question
+      const question = await virtualInterviewService.generateQuestion(
+        currentInterview.interviewType || 'general',
+        currentInterview.difficulty || 'medium',
+        currentInterview.role || 'Software Engineer',
+        1,
+        [],
+        ''
+      );
+      aiResponseText = question.question;
+    }
+
+    // Save AI message
+    await db.insert(virtualInterviewMessages).values({
+      interviewId: currentInterview.id,
+      sender: 'interviewer',
+      content: aiResponseText,
+      timestamp: new Date(),
+      messageIndex: nextMessageIndex + 1
+    });
+
+    // Update interview progress
+    const questionsAsked = (currentInterview.questionsAsked || 0) + 1;
+    const totalQuestions = currentInterview.totalQuestions || 5;
+
+    // Calculate time remaining
+    const startTime = currentInterview.startTime ? new Date(currentInterview.startTime).getTime() : Date.now();
+    const durationMs = (currentInterview.duration || 30) * 60 * 1000;
+    const elapsed = Date.now() - startTime;
+    const timeRemaining = Math.max(0, Math.floor((durationMs - elapsed) / 1000));
+
+    // Check if interview should end
+    const shouldEndInterview = questionsAsked >= totalQuestions || timeRemaining <= 0;
+
+    // Update interview
+    await db.update(virtualInterviews)
+      .set({
+        questionsAsked,
+        status: shouldEndInterview ? 'completed' : 'in_progress'
+      })
+      .where(eq(virtualInterviews.id, currentInterview.id));
+
+    res.json({
+      response: aiResponseText,
+      currentQuestionCount: questionsAsked,
+      totalQuestions,
+      timeRemaining,
+      shouldEndInterview,
+      isComplete: shouldEndInterview
+    });
+
+  } catch (error) {
+    console.error('Error processing chat message:', error);
+    res.status(500).json({ message: 'Failed to process message' });
+  }
+});
+
 export default router;

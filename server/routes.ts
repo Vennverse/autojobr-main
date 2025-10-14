@@ -696,6 +696,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get applications stats
+  app.get('/api/applications/stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+
+      const applications = await db
+        .select()
+        .from(schema.jobPostingApplications)
+        .where(eq(schema.jobPostingApplications.applicantId, userId));
+
+      const stats = {
+        total: applications.length,
+        applied: applications.filter(a => a.status === 'applied').length,
+        reviewing: applications.filter(a => a.status === 'reviewing').length,
+        interview: applications.filter(a => a.status === 'interview').length,
+        offered: applications.filter(a => a.status === 'offered').length,
+        rejected: applications.filter(a => a.status === 'rejected').length,
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error('[APPLICATIONS STATS ERROR]:', error);
+      handleError(res, error, "Failed to fetch application stats");
+    }
+  });
+
   // Save/Bookmark a job
   app.post('/api/jobs/:id/save', isAuthenticated, async (req: any, res) => {
     try {
@@ -965,6 +991,25 @@ Return only the improved job description text, no additional formatting or expla
     } catch (error) {
       console.error('[RECRUITER APPLICATIONS ERROR]:', error);
       handleError(res, error, "Failed to fetch recruiter applications");
+    }
+  });
+
+  // Get job seeker's test assignments
+  app.get('/api/jobseeker/test-assignments', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      // Get all test assignments for the job seeker
+      const assignments = await db
+        .select()
+        .from(schema.testAssignments)
+        .where(eq(schema.testAssignments.jobSeekerId, userId))
+        .orderBy(desc(schema.testAssignments.assignedAt));
+
+      res.json(assignments);
+    } catch (error) {
+      console.error('[JOBSEEKER TEST ASSIGNMENTS ERROR]:', error);
+      handleError(res, error, "Failed to fetch test assignments");
     }
   });
 
@@ -1821,6 +1866,33 @@ Return only the improved job description text, no additional formatting or expla
   // ===== MOUNT CHAT INTERVIEW ROUTES (uses same routes as virtual interview) =====
   app.use('/api/chat-interview', virtualInterviewRoutes);
   console.log('✅ Chat interview routes mounted at /api/chat-interview (using virtualInterviewRoutes)');
+
+  // Get mock interview stats
+  app.get('/api/mock-interview/stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      // Get all virtual interviews for this user (mock interviews are practice interviews)
+      const interviews = await db
+        .select()
+        .from(schema.virtualInterviews)
+        .where(eq(schema.virtualInterviews.userId, userId));
+
+      const stats = {
+        total: interviews.length,
+        completed: interviews.filter(i => i.status === 'completed').length,
+        inProgress: interviews.filter(i => i.status === 'in_progress').length,
+        averageScore: interviews.length > 0 
+          ? interviews.reduce((sum, i) => sum + (i.overallScore || 0), 0) / interviews.length 
+          : 0,
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error('[MOCK INTERVIEW STATS ERROR]:', error);
+      handleError(res, error, "Failed to fetch mock interview stats");
+    }
+  });
 
   // ===== MOUNT REFERRAL MARKETPLACE ROUTES =====
   app.use('/api/referral-marketplace', referralMarketplaceRoutes);
