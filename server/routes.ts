@@ -1807,6 +1807,14 @@ Return only the improved job description text, no additional formatting or expla
       const userId = req.user.id;
 
 
+  // ===== MOUNT VIRTUAL INTERVIEW ROUTES =====
+  app.use('/api/virtual-interview', virtualInterviewRoutes);
+  console.log('✅ Virtual interview routes mounted at /api/virtual-interview');
+
+  // ===== MOUNT CHAT INTERVIEW ROUTES =====
+  app.use('/api/chat-interview', chatInterviewRoutes);
+  console.log('✅ Chat interview routes mounted at /api/chat-interview');
+
   // ===== MOUNT REFERRAL MARKETPLACE ROUTES =====
   app.use('/api/referral-marketplace', referralMarketplaceRoutes);
 

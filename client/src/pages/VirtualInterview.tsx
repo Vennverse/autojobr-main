@@ -42,9 +42,14 @@ export default function VirtualInterview() {
 
   const sessionId = params?.sessionId;
 
-  // Immediately redirect if session is invalid - don't render interview UI
+  // Check session validity and redirect if needed
+  useEffect(() => {
+    if (!sessionId || sessionId === 'new') {
+      setLocation('/virtual-interview-start');
+    }
+  }, [sessionId, setLocation]);
+
   if (!sessionId || sessionId === 'new') {
-    setLocation('/virtual-interview-start');
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="text-center">
