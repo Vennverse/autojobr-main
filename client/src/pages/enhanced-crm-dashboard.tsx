@@ -196,6 +196,10 @@ export default function EnhancedCrmDashboard() {
     queryKey: ["/api/crm/activities"],
   });
 
+  const { data: workflowsData } = useQuery({
+    queryKey: ["/api/crm/workflows"],
+  });
+
   // Mutations
   const createContactMutation = useMutation({
     mutationFn: (data: any) => apiRequest("/api/crm/contacts", "POST", data),
@@ -269,6 +273,15 @@ export default function EnhancedCrmDashboard() {
     },
   });
 
+  const toggleWorkflowMutation = useMutation({
+    mutationFn: ({ workflowId, isActive }: any) => 
+      apiRequest(`/api/crm/workflows/${workflowId}/toggle`, "PUT", { isActive }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/workflows"] });
+      toast({ title: "Workflow updated" });
+    },
+  });
+
   const stats = (statsData as any)?.stats || {};
   const contacts = (contactsData as any)?.contacts || [];
   const companies = (companiesData as any)?.companies || [];
@@ -276,6 +289,7 @@ export default function EnhancedCrmDashboard() {
   const emailTemplates = (emailTemplatesData as any)?.templates || [];
   const meetings = (meetingsData as any)?.meetings || [];
   const activities = (activitiesData as any)?.activities || [];
+  const workflows = (workflowsData as any)?.workflows || [];
 
   const handleContactSubmit = contactForm.handleSubmit((data) => {
     createContactMutation.mutate(data);
@@ -813,16 +827,53 @@ export default function EnhancedCrmDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-12">
-                  <Workflow className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">Automation Coming Soon</h3>
-                  <p className="text-gray-600 mb-6">
-                    Set up automated workflows to save time and never miss a follow-up
-                  </p>
-                  <Button variant="outline">
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Learn More
-                  </Button>
+                <div className="space-y-4">
+                  {workflows.map((workflow: any) => (
+                    <div key={workflow.id} className="flex items-center justify-between p-4 border rounded-lg" data-testid={`workflow-${workflow.id}`}>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <Zap className={`h-5 w-5 ${workflow.isActive ? 'text-green-500' : 'text-gray-400'}`} />
+                          <div>
+                            <h4 className="font-semibold">{workflow.name}</h4>
+                            <p className="text-sm text-gray-600">{workflow.description}</p>
+                            <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                              <span>Trigger: {workflow.triggerType}</span>
+                              <span>•</span>
+                              <span>{workflow.totalTriggers || 0} times triggered</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={workflow.isActive ? "default" : "secondary"}>
+                          {workflow.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => toggleWorkflowMutation.mutate({ 
+                            workflowId: workflow.id, 
+                            isActive: !workflow.isActive 
+                          })}
+                          data-testid={`button-toggle-workflow-${workflow.id}`}
+                        >
+                          {workflow.isActive ? "Pause" : "Activate"}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {workflows.length === 0 && (
+                    <div className="text-center py-12">
+                      <Workflow className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold mb-2">No Workflows Yet</h3>
+                      <p className="text-gray-600 mb-6">
+                        Automate your CRM with triggers and actions to save time
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Create workflows via API to automate tasks like follow-ups, email sequences, and more
+                      </p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -869,23 +920,104 @@ export default function EnhancedCrmDashboard() {
 
           {/* Reports Tab */}
           <TabsContent value="reports" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Analytics & Reports
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <BarChart3 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">Advanced Analytics Coming Soon</h3>
-                  <p className="text-gray-600 mb-6">
-                    Get insights into your CRM performance with detailed reports and analytics
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    CRM Overview
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 border rounded">
+                      <div className="flex items-center gap-3">
+                        <Users className="h-5 w-5 text-blue-500" />
+                        <span className="font-medium">Total Contacts</span>
+                      </div>
+                      <span className="text-2xl font-bold">{stats.totalContacts || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 border rounded">
+                      <div className="flex items-center gap-3">
+                        <Building2 className="h-5 w-5 text-purple-500" />
+                        <span className="font-medium">Companies</span>
+                      </div>
+                      <span className="text-2xl font-bold">{stats.totalCompanies || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 border rounded">
+                      <div className="flex items-center gap-3">
+                        <DollarSign className="h-5 w-5 text-green-500" />
+                        <span className="font-medium">Active Deals</span>
+                      </div>
+                      <span className="text-2xl font-bold">{stats.activeDeals || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 border rounded">
+                      <div className="flex items-center gap-3">
+                        <Calendar className="h-5 w-5 text-orange-500" />
+                        <span className="font-medium">Meetings This Month</span>
+                      </div>
+                      <span className="text-2xl font-bold">{meetings.length}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-5 w-5" />
+                    Activity Breakdown
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 border rounded">
+                      <div className="flex items-center gap-3">
+                        <Mail className="h-5 w-5 text-blue-500" />
+                        <span className="font-medium">Email Templates</span>
+                      </div>
+                      <span className="text-2xl font-bold">{emailTemplates.length}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 border rounded">
+                      <div className="flex items-center gap-3">
+                        <Workflow className="h-5 w-5 text-indigo-500" />
+                        <span className="font-medium">Active Workflows</span>
+                      </div>
+                      <span className="text-2xl font-bold">{workflows.filter((w: any) => w.isActive).length}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 border rounded">
+                      <div className="flex items-center gap-3">
+                        <Activity className="h-5 w-5 text-teal-500" />
+                        <span className="font-medium">Recent Activities</span>
+                      </div>
+                      <span className="text-2xl font-bold">{activities.length}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Contact Distribution
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {['recruiter', 'candidate', 'hiring_manager', 'referral', 'colleague', 'client'].map((type) => {
+                      const count = contacts.filter((c: any) => c.contactType === type).length;
+                      return (
+                        <div key={type} className="p-4 border rounded-lg text-center">
+                          <p className="text-sm text-gray-600 capitalize">{type.replace('_', ' ')}</p>
+                          <p className="text-3xl font-bold mt-2">{count}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
