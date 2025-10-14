@@ -200,7 +200,9 @@ export default function EnhancedCrmDashboard() {
   const createContactMutation = useMutation({
     mutationFn: (data: any) => apiRequest("/api/crm/contacts", "POST", data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
+      queryClient.invalidateQueries({ predicate: (query) => 
+        query.queryKey[0] === "/api/crm/contacts" 
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/dashboard-stats"] });
       setShowContactDialog(false);
       contactForm.reset();
@@ -267,13 +269,13 @@ export default function EnhancedCrmDashboard() {
     },
   });
 
-  const stats = statsData?.stats || {};
-  const contacts = contactsData?.contacts || [];
-  const companies = companiesData?.companies || [];
-  const deals = dealsData?.deals || [];
-  const emailTemplates = emailTemplatesData?.templates || [];
-  const meetings = meetingsData?.meetings || [];
-  const activities = activitiesData?.activities || [];
+  const stats = (statsData as any)?.stats || {};
+  const contacts = (contactsData as any)?.contacts || [];
+  const companies = (companiesData as any)?.companies || [];
+  const deals = (dealsData as any)?.deals || [];
+  const emailTemplates = (emailTemplatesData as any)?.templates || [];
+  const meetings = (meetingsData as any)?.meetings || [];
+  const activities = (activitiesData as any)?.activities || [];
 
   const handleContactSubmit = contactForm.handleSubmit((data) => {
     createContactMutation.mutate(data);
