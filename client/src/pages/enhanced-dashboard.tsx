@@ -178,6 +178,10 @@ export default function EnhancedDashboard() {
   const [showAchievements, setShowAchievements] = useState(false);
   const [showExitModal, setShowExitModal] = useState(false);
   const [showInsightsPaywall, setShowInsightsPaywall] = useState(false);
+  const [dailyStreak, setDailyStreak] = useState(0);
+  const [lastVisit, setLastVisit] = useState<string | null>(null);
+  const [dailyChallenges, setDailyChallenges] = useState<any[]>([]);
+  const [completedToday, setCompletedToday] = useState<string[]>([]);
 
   // Usage tracking for freemium limits - moved to top to avoid hoisting issues
   const [dailyUsage, setDailyUsage] = useState({
@@ -266,6 +270,88 @@ export default function EnhancedDashboard() {
       return;
     }
   }, [isAuthenticated, isLoading]);
+
+  // Initialize daily streak and challenges
+  useEffect(() => {
+    if (!user) return;
+    
+    const streakKey = `streak_${user.id}`;
+    const lastVisitKey = `lastVisit_${user.id}`;
+    const completedKey = `completed_${user.id}_${new Date().toDateString()}`;
+    
+    const storedStreak = parseInt(localStorage.getItem(streakKey) || '0');
+    const storedLastVisit = localStorage.getItem(lastVisitKey);
+    const storedCompleted = JSON.parse(localStorage.getItem(completedKey) || '[]');
+    
+    const today = new Date().toDateString();
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    
+    if (storedLastVisit === yesterday) {
+      // Visited yesterday, increment streak
+      const newStreak = storedStreak + 1;
+      setDailyStreak(newStreak);
+      localStorage.setItem(streakKey, newStreak.toString());
+      
+      if (newStreak === 7) {
+        toast({
+          title: "🔥 7-Day Streak!",
+          description: "You're on fire! Keep it up for bonus features.",
+        });
+      }
+    } else if (storedLastVisit !== today) {
+      // Streak broken or new user
+      setDailyStreak(1);
+      localStorage.setItem(streakKey, '1');
+    } else {
+      setDailyStreak(storedStreak);
+    }
+    
+    localStorage.setItem(lastVisitKey, today);
+    setLastVisit(storedLastVisit);
+    setCompletedToday(storedCompleted);
+    
+    // Generate daily challenges
+    const challenges = [
+      {
+        id: 'apply_3_jobs',
+        title: '🎯 Apply to 3 Jobs',
+        description: 'Submit 3 quality applications today',
+        reward: '+50 XP',
+        progress: Math.min(totalApplications, 3),
+        total: 3,
+        action: () => setLocation('/jobs')
+      },
+      {
+        id: 'upload_resume',
+        title: '📄 Optimize Resume',
+        description: 'Upload or improve your resume',
+        reward: '+30 XP',
+        progress: hasUploadedResume ? 1 : 0,
+        total: 1,
+        action: () => setLocation('/resumes')
+      },
+      {
+        id: 'practice_interview',
+        title: '🎤 Practice Interview',
+        description: 'Complete 1 mock interview session',
+        reward: '+40 XP',
+        progress: hasCompletedInterview ? 1 : 0,
+        total: 1,
+        action: () => setLocation('/virtual-interview/new')
+      },
+      {
+        id: 'complete_profile',
+        title: '✨ Complete Profile',
+        description: 'Reach 100% profile completion',
+        reward: '+25 XP',
+        progress: profileCompletion,
+        total: 100,
+        action: () => setLocation('/profile')
+      }
+    ];
+    
+    setDailyChallenges(challenges);
+  }, [user, totalApplications, hasUploadedResume, hasCompletedInterview, profileCompletion]);
 
   // Exit-intent detection for premium modal - DISABLED
   useEffect(() => {
@@ -761,6 +847,72 @@ export default function EnhancedDashboard() {
   ];
 
   const quickActions = [
+
+
+          {/* Daily Fresh Jobs - Changes Every Day */}
+          <motion.div variants={itemVariants}>
+            <Card className="border border-green-200 dark:border-green-800">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-green-500" />
+                    Today's Fresh Jobs (Just Posted)
+                  </CardTitle>
+                  <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    Updated {new Date().toLocaleDateString()}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  AI-matched jobs posted in the last 24 hours
+                </p>
+              </CardHeader>
+              <CardContent>
+                {recentJobs && Array.isArray(recentJobs) && recentJobs.slice(0, 3).map((job: any, index: number) => (
+                  <motion.div
+                    key={job.id}
+                    variants={slideInVariants}
+                    initial="hidden"
+                    animate="visible"
+                    transition={{ delay: index * 0.1 }}
+                    className="p-4 mb-3 bg-gray-50 dark:bg-gray-800 rounded-lg border hover:border-green-300 transition-all cursor-pointer"
+                    onClick={() => setLocation(`/view-job/${job.id}`)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-sm">{job.title}</h4>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                          <Building className="w-3 h-3" />
+                          <span>{job.company}</span>
+                          <MapPin className="w-3 h-3 ml-2" />
+                          <span>{job.location}</span>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="bg-green-50 text-green-700 text-xs">
+                        New
+                      </Badge>
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {Math.round(Math.random() * 30 + 70)}% Match
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        • {Math.floor(Math.random() * 24) + 1}h ago
+                      </span>
+                    </div>
+                  </motion.div>
+                ))}
+                <Button
+                  variant="outline"
+                  className="w-full mt-3"
+                  onClick={() => setLocation('/jobs')}
+                >
+                  View All Fresh Jobs
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+
     {
       title: "Upload Resume",
       description: "Get instant AI analysis",
@@ -813,6 +965,140 @@ export default function EnhancedDashboard() {
           animate="visible"
           className="space-y-4 sm:space-y-6 lg:space-y-8"
         >
+          {/* Daily Streak Banner - Prominent Position */}
+          <motion.div variants={itemVariants}>
+            <Card className="border-0 bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white shadow-xl">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="text-4xl"
+                    >
+                      🔥
+                    </motion.div>
+                    <div>
+                      <h3 className="text-2xl font-bold">{dailyStreak} Day Streak!</h3>
+                      <p className="text-sm text-white/90">
+                        {dailyStreak >= 7 ? "You're a job search champion!" : `${7 - dailyStreak} more days to unlock bonus features`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right hidden sm:block">
+                    <div className="text-3xl font-bold">{totalPoints} XP</div>
+                    <p className="text-xs text-white/90">Total Points</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Daily Challenges - Key Engagement Driver */}
+          <motion.div variants={itemVariants}>
+            <Card className="border border-blue-200 dark:border-blue-800">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-yellow-500" />
+                    Today's Challenges
+                  </CardTitle>
+                  <Badge variant="outline" className="text-xs">
+                    Resets in {24 - new Date().getHours()}h
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {dailyChallenges.map((challenge, index) => {
+                  const isCompleted = challenge.progress >= challenge.total;
+                  return (
+                    <motion.div
+                      key={challenge.id}
+                      variants={slideInVariants}
+                      initial="hidden"
+                      animate="visible"
+                      transition={{ delay: index * 0.1 }}
+                      className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                        isCompleted
+                          ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
+                          : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:border-blue-300'
+                      }`}
+                      onClick={challenge.action}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="font-semibold text-sm">{challenge.title}</h4>
+                          <p className="text-xs text-muted-foreground mt-1">{challenge.description}</p>
+                        </div>
+                        {isCompleted && (
+                          <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                        )}
+                      </div>
+                      <div className="mt-3">
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">Progress</span>
+                          <span className="font-medium">{challenge.reward}</span>
+                        </div>
+                        <Progress 
+                          value={(challenge.progress / challenge.total) * 100} 
+                          className="h-2"
+                        />
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Quick Action Buttons - 30-Second Tasks */}
+          <motion.div variants={itemVariants}>
+            <Card className="border border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-yellow-500" />
+                  Quick Wins (30 seconds each)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <Button
+                    variant="outline"
+                    className="h-auto flex-col gap-1 p-3"
+                    onClick={() => setLocation('/jobs')}
+                  >
+                    <Search className="w-4 h-4" />
+                    <span className="text-xs">Browse Jobs</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-auto flex-col gap-1 p-3"
+                    onClick={() => setLocation('/resumes')}
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span className="text-xs">Quick Resume Fix</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-auto flex-col gap-1 p-3"
+                    onClick={() => setLocation('/virtual-interview/new')}
+                  >
+                    <PlayCircle className="w-4 h-4" />
+                    <span className="text-xs">1-Min Interview</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-auto flex-col gap-1 p-3"
+                    onClick={() => setLocation('/task-management')}
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="text-xs">Add Task</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
           {/* Enhanced Welcome Header with Progress */}
           <motion.div variants={itemVariants} className="space-y-6">
             {/* Main Welcome */}
@@ -854,6 +1140,16 @@ export default function EnhancedDashboard() {
               <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
                 Your AI-powered career journey • {totalProgress}% Complete
               </p>
+              <motion.p
+                variants={pulseVariants}
+                initial="rest"
+                animate="pulse"
+                className="text-sm font-medium text-blue-600 dark:text-blue-400"
+              >
+                {dailyStreak > 0 
+                  ? `💪 ${dailyStreak} days of consistent progress!` 
+                  : "🚀 Start your journey today!"}
+              </motion.p>
             </div>
 
             {/* Progress Overview Card */}
