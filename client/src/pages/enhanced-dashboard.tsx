@@ -90,6 +90,7 @@ import {
   Bell,
   Network,
   UserCheck,
+  Search,
 } from "lucide-react";
 
 const containerVariants = {
