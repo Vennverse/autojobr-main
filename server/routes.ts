@@ -58,6 +58,7 @@ import chatInterviewRoutes from "./chatInterviewRoutes.js";
 import { ResumeService, resumeUploadMiddleware } from "./resumeService.js";
 import { TaskService } from "./taskService.js";
 import referralMarketplaceRoutes from "./referralMarketplaceRoutes.js";
+console.log('🔍 [IMPORT CHECK] referralMarketplaceRoutes:', referralMarketplaceRoutes ? 'loaded ✅' : 'UNDEFINED ❌');
 import bidderSystemRoutes from "./bidderRoutes.js";
 import { AIResumeGeneratorService } from "./aiResumeGeneratorService.js";
 import { mockInterviewRoutes } from "./mockInterviewRoutes";
@@ -1894,8 +1895,6 @@ Return only the improved job description text, no additional formatting or expla
     }
   });
 
-  // ===== MOUNT REFERRAL MARKETPLACE ROUTES =====
-  app.use('/api/referral-marketplace', referralMarketplaceRoutes);
 
   // ===== MOUNT BIDDER SYSTEM ROUTES =====
   const bidderRoutes = (await import('./bidderRoutes.js')).default;
@@ -3881,6 +3880,15 @@ Return only the cover letter text, no additional formatting or explanations.`;
   // Setup Simple Chat Routes
   setupSimpleChatRoutes(app);
   console.log('✅ Simple Chat routes registered');
+
+  // ===== REFERRAL MARKETPLACE ROUTES =====
+  try {
+    console.log('🔧 Mounting referral marketplace routes...');
+    app.use('/api/referral-marketplace', referralMarketplaceRoutes);
+    console.log('✅ Referral marketplace routes registered at /api/referral-marketplace');
+  } catch (error) {
+    console.error('❌ FAILED to register referral marketplace routes:', error);
+  }
 
   // Initialize WebSocket service for real-time chat
   console.log('🔌 WebSocket service ready for chat connections');
