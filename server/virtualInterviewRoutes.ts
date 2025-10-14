@@ -2,7 +2,7 @@ import express from "express";
 import { VirtualInterviewService } from "./virtualInterviewService.js";
 import { db } from "./db.js";
 import { virtualInterviews, virtualInterviewMessages, virtualInterviewFeedback, virtualInterviewStats } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import crypto from "crypto";
 import { isAuthenticated } from "./auth.js";
 import { storage } from "./storage.js";
