@@ -199,11 +199,18 @@ router.post("/service", async (req: Request, res: Response) => {
  * POST /api/referral-marketplace/book/:serviceId
  * Book a service
  */
-router.post("/book/:serviceId", async (req: Request, res: Response) => {
+router.post("/book/:serviceId", async (req: any, res: Response) => {
   try {
-    if (!req.user?.id) {
+    // Check both req.user and req.session.user for authentication
+    const userId = req.user?.id || req.session?.user?.id;
+
+    if (!userId) {
+      console.log('❌ [BOOKING] Authentication failed - no user found');
       return res.status(401).json({ success: false, error: 'Not authenticated' });
     }
+
+    // Use the userId we found
+    req.user = req.user || { id: userId };
 
     const serviceId = parseInt(req.params.serviceId);
     if (isNaN(serviceId)) {
@@ -277,18 +284,18 @@ router.post("/payment/create-order", async (req: Request, res: Response) => {
 
     try {
       await createPaypalOrder(mockReq, mockRes);
-      
+
       if (paypalResponse && paypalResponse.id) {
         // Update booking with escrow status
         await db.update(referralBookings)
-          .set({ 
+          .set({
             escrowStatus: 'authorized',
             paymentStatus: 'authorized'
           })
           .where(eq(referralBookings.id, bookingIdNum));
 
         const approvalUrl = `https://www.paypal.com/checkoutnow?token=${paypalResponse.id}`;
-        
+
         return res.json({
           success: true,
           id: paypalResponse.id,
@@ -312,9 +319,9 @@ router.post("/payment/create-order", async (req: Request, res: Response) => {
     }
   } catch (error) {
     console.error('Error creating PayPal order:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to create payment order' 
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create payment order'
     });
   }
 });
@@ -383,9 +390,9 @@ router.post("/escrow/confirm-delivery/:bookingId", async (req: Request, res: Res
 
     // Verify escrow status
     if (bookingData.escrowStatus !== 'held') {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Escrow payment not in held status' 
+      return res.status(400).json({
+        success: false,
+        error: 'Escrow payment not in held status'
       });
     }
 
@@ -452,9 +459,9 @@ router.post("/escrow/open-dispute/:bookingId", async (req: Request, res: Respons
     }
 
     if (!reason || !description) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Dispute reason and description required' 
+      return res.status(400).json({
+        success: false,
+        error: 'Dispute reason and description required'
       });
     }
 
@@ -551,7 +558,7 @@ function getEscrowStatusMessage(status: string): string {
 }
 
       await capturePaypalOrder(mockReq, mockRes);
-      
+
       if (captureResponse && captureResponse.status === 'COMPLETED') {
         return res.json({
           success: true,
@@ -566,9 +573,9 @@ function getEscrowStatusMessage(status: string): string {
     }
   } catch (error) {
     console.error('Error capturing PayPal payment:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to capture payment' 
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to capture payment'
     });
   }
 });
