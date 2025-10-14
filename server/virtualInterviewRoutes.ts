@@ -654,4 +654,67 @@ router.get('/history', isAuthenticated, async (req: any, res) => {
   }
 });
 
+// Chat interview specific endpoints (compatibility with old chat interview system)
+router.post('/start-chat', isAuthenticated, async (req: any, res) => {
+  try {
+    const { 
+      role = 'software_engineer', 
+      interviewType = 'technical',
+      difficulty = 'medium',
+      duration = 30,
+      totalQuestions = 5,
+      personality = 'professional',
+      company,
+      jobDescription
+    } = req.body;
+
+    const userId = req.user?.id || req.session?.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    // Generate unique session ID
+    const sessionId = crypto.randomBytes(32).toString('hex');
+
+    // Create interview record
+    const [interview] = await db.insert(virtualInterviews).values({
+      userId,
+      sessionId,
+      role,
+      interviewType,
+      difficulty,
+      duration,
+      totalQuestions,
+      questionsAsked: 0,
+      startTime: new Date(),
+      status: 'active',
+      interviewerPersonality: personality,
+      company: company || '',
+      jobDescription: jobDescription || ''
+    }).returning();
+
+    // Generate greeting
+    const greeting = await virtualInterviewService.generateGreeting(personality, role, company);
+
+    // Store greeting message
+    await db.insert(virtualInterviewMessages).values({
+      interviewId: interview.id,
+      sender: 'interviewer',
+      messageType: 'greeting',
+      content: greeting,
+      messageIndex: 0
+    });
+
+    res.json({
+      sessionId,
+      interviewId: interview.id,
+      greeting,
+      message: greeting
+    });
+  } catch (error) {
+    console.error('Error starting chat interview:', error);
+    res.status(500).json({ message: 'Failed to start chat interview' });
+  }
+});
+
 export default router;

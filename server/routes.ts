@@ -1818,9 +1818,9 @@ Return only the improved job description text, no additional formatting or expla
   app.use('/api/virtual-interview', virtualInterviewRoutes);
   console.log('✅ Virtual interview routes mounted at /api/virtual-interview');
 
-  // ===== MOUNT CHAT INTERVIEW ROUTES =====
-  app.use('/api/chat-interview', chatInterviewRoutes);
-  console.log('✅ Chat interview routes mounted at /api/chat-interview');
+  // ===== MOUNT CHAT INTERVIEW ROUTES (uses same routes as virtual interview) =====
+  app.use('/api/chat-interview', virtualInterviewRoutes);
+  console.log('✅ Chat interview routes mounted at /api/chat-interview (using virtualInterviewRoutes)');
 
   // ===== MOUNT REFERRAL MARKETPLACE ROUTES =====
   app.use('/api/referral-marketplace', referralMarketplaceRoutes);
