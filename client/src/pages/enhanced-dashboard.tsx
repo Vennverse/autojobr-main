@@ -945,18 +945,18 @@ export default function EnhancedDashboard() {
               </motion.p>
             </div>
 
-            {/* Progress Overview Card */}
+            {/* Quick Stats Overview */}
             <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
               <CardContent className="p-3 sm:p-6 relative">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="p-3 rounded-xl bg-blue-600">
-                      <Gauge className="w-6 h-6 text-white" />
+                      <Briefcase className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-semibold">Career Progress</h3>
+                      <h3 className="text-xl font-semibold">Quick Overview</h3>
                       <p className="text-sm text-muted-foreground">
-                        Complete tasks to unlock features and earn XP
+                        Your job search at a glance
                       </p>
                     </div>
                   </div>
