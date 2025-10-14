@@ -75,6 +75,7 @@ import { CrmService } from './crmService';
 
 // Import services
 import { db as dbImport } from "./db"; // Aliased to avoid conflict with global db
+import virtualInterviewRoutes from "./virtualInterviewRoutes.js";
 
 // Placeholder for User type if not globally available
 type User = schema.users.$inferSelect;
@@ -538,6 +539,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     });
   }));
+
+  // Register virtual interview routes
+  app.use('/api/virtual-interview', virtualInterviewRoutes);
 
   // PLATFORM JOBS ENDPOINT - Public access for browsing, no auth required
   // This MUST be defined early before any catch-all /api middleware
