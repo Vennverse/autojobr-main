@@ -54,12 +54,12 @@ router.post('/check-eligibility', isAuthenticated, async (req: any, res) => {
     // For practice interviews, check user's subscription limits
     const user = await storage.getUser(userId);
     const subscriptionTier = user?.planType || 'free';
-    
+
     // Get user's interview stats
     const stats = await db.select().from(virtualInterviewStats)
       .where(eq(virtualInterviewStats.userId, userId))
       .limit(1);
-    
+
     let freeLimit = 1; // Free users get 1 practice interview
     if (subscriptionTier === 'premium' || subscriptionTier === 'ultra_premium') {
       freeLimit = 5; // Premium users get 5 practice interviews
@@ -121,7 +121,7 @@ router.post('/create-payment', isAuthenticated, async (req: any, res) => {
     }
 
     const orderData = await response.json();
-    
+
     res.json({
       success: true,
       orderId: orderData.id,
@@ -138,7 +138,7 @@ router.post('/confirm-payment', isAuthenticated, async (req: any, res) => {
   try {
     const { orderId } = req.body;
     const userId = req.user?.id || req.session?.user?.id;
-    
+
     if (!userId || !orderId) {
       return res.status(400).json({ message: 'Missing required data' });
     }
@@ -190,7 +190,7 @@ router.post('/start', isAuthenticated, async (req: any, res) => {
       duration = 30,
       interviewerPersonality = 'professional'
     } = req.body;
-    
+
     const userId = req.user?.id || req.session?.user?.id;
     if (!userId) {
       return res.status(401).json({ message: 'Authentication required' });
@@ -263,6 +263,86 @@ router.post('/start', isAuthenticated, async (req: any, res) => {
   }
 });
 
+// Start chat interview session
+router.post('/start-chat', isAuthenticated, async (req: any, res) => {
+  try {
+    const { 
+      role = 'software_engineer', 
+      company, 
+      difficulty = 'medium',
+      interviewerPersonality = 'professional'
+    } = req.body;
+
+    const userId = req.user?.id || req.session?.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    // Generate unique session ID
+    const sessionId = crypto.randomBytes(16).toString('hex');
+
+    // Create interview record in database
+    const [interview] = await db.insert(virtualInterviews).values({
+      userId,
+      sessionId,
+      interviewType: 'chat', // Explicitly set to 'chat'
+      role,
+      company,
+      difficulty,
+      duration: 30, // Default duration for chat interviews
+      interviewerPersonality,
+      status: 'active',
+      currentStep: 'introduction',
+      totalQuestions: 5 // Default number of questions for chat interviews
+    }).returning();
+
+    // Initialize user stats if not exists
+    const existingStats = await db.select().from(virtualInterviewStats).where(eq(virtualInterviewStats.userId, userId)).limit(1);
+    if (existingStats.length === 0) {
+      await db.insert(virtualInterviewStats).values({
+        userId,
+        totalInterviews: 1,
+        freeInterviewsUsed: 1
+      });
+    } else {
+      await db.update(virtualInterviewStats)
+        .set({ 
+          totalInterviews: (existingStats[0].totalInterviews || 0) + 1,
+          freeInterviewsUsed: (existingStats[0].freeInterviewsUsed || 0) + 1
+        })
+        .where(eq(virtualInterviewStats.userId, userId));
+    }
+
+    // Generate greeting message
+    const greeting = await virtualInterviewService.generateGreeting(interviewerPersonality, role, company);
+
+    // Store greeting message
+    await db.insert(virtualInterviewMessages).values({
+      interviewId: interview.id,
+      sender: 'interviewer',
+      messageType: 'greeting',
+      content: greeting,
+      messageIndex: 0
+    });
+
+    res.json({
+      interviewId: interview.id,
+      sessionId,
+      status: 'active',
+      greeting,
+      configuration: {
+        role,
+        company,
+        difficulty,
+        interviewerPersonality
+      }
+    });
+  } catch (error) {
+    console.error('Error starting chat interview:', error);
+    res.status(500).json({ message: 'Failed to start chat interview' });
+  }
+});
+
 // Get current question for interview
 router.get('/:sessionId/question', isAuthenticated, async (req: any, res) => {
   try {
@@ -292,7 +372,7 @@ router.get('/:sessionId/question', isAuthenticated, async (req: any, res) => {
     const currentInterview = interview[0];
     const questionsAsked = currentInterview.questionsAsked || 0;
     const questionNumber = questionsAsked + 1;
-    
+
     console.log(`[VIRTUAL_INTERVIEW_DEBUG] Session: ${sessionId}, Questions Asked: ${questionsAsked}, Current Question Number: ${questionNumber}`);
 
     if (questionNumber > (currentInterview.totalQuestions || 5)) {
@@ -407,7 +487,7 @@ router.post('/:sessionId/response', isAuthenticated, async (req: any, res) => {
     // Update interview progress - increment questions asked
     const newQuestionsAsked = (currentInterview.questionsAsked || 0) + 1;
     console.log(`[VIRTUAL_INTERVIEW_DEBUG] Updating interview progress - Old: ${currentInterview.questionsAsked}, New: ${newQuestionsAsked}`);
-    
+
     await db.update(virtualInterviews)
       .set({ 
         questionsAsked: newQuestionsAsked
@@ -449,7 +529,7 @@ router.post('/:sessionId/complete', isAuthenticated, async (req: any, res) => {
       .where(eq(virtualInterviewMessages.interviewId, currentInterview.id));
 
     const responses = messages.filter(msg => msg.sender === 'candidate');
-    
+
     // Generate basic scores (in production, this would use AI analysis)
     const overallScore = Math.floor(Math.random() * 30) + 70; // 70-100 range
     const technicalScore = Math.floor(Math.random() * 30) + 70;
@@ -498,7 +578,7 @@ router.post('/:sessionId/complete', isAuthenticated, async (req: any, res) => {
       const currentAverage = currentStats.averageScore || 0;
       const currentCompleted = currentStats.completedInterviews || 0;
       const newAverage = Math.round(((currentAverage * currentCompleted) + overallScore) / newCompletedCount);
-      
+
       await db.update(virtualInterviewStats)
         .set({
           completedInterviews: newCompletedCount,

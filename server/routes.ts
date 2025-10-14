@@ -542,6 +542,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register virtual interview routes
   app.use('/api/virtual-interview', virtualInterviewRoutes);
+  
+  // CRITICAL: Also mount chat interview routes for backwards compatibility
+  app.use('/api/chat-interview', virtualInterviewRoutes);
 
   // PLATFORM JOBS ENDPOINT - Public access for browsing, no auth required
   // This MUST be defined early before any catch-all /api middleware
