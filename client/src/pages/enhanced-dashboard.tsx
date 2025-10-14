@@ -6,10 +6,10 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Navbar } from "@/components/navbar";
 import { ContextualSidebar } from "@/components/contextual-sidebar";
-import { 
-  SidebarProvider, 
+import {
+  SidebarProvider,
   SidebarInset,
-  SidebarTrigger 
+  SidebarTrigger
 } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,19 +20,19 @@ import { Separator } from "@/components/ui/separator";
 import { motion, AnimatePresence } from "framer-motion";
 import PredictiveSuccessWidget from "@/components/PredictiveSuccessWidget";
 import ViralExtensionWidget from "@/components/ViralExtensionWidget";
-import { 
-  ResponsiveContainer, 
-  RadarChart, 
-  PolarGrid, 
-  PolarAngleAxis, 
-  PolarRadiusAxis, 
-  Radar, 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  ResponsiveContainer,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   Legend
 } from 'recharts';
 import {
@@ -274,24 +274,24 @@ export default function EnhancedDashboard() {
   // Initialize daily streak and challenges
   useEffect(() => {
     if (!user) return;
-    
+
     const streakKey = `streak_${user.id}`;
     const lastVisitKey = `lastVisit_${user.id}`;
     const completedKey = `completed_${user.id}_${new Date().toDateString()}`;
-    
+
     const storedStreak = parseInt(localStorage.getItem(streakKey) || '0');
     const storedLastVisit = localStorage.getItem(lastVisitKey);
     const storedCompleted = JSON.parse(localStorage.getItem(completedKey) || '[]');
-    
+
     const today = new Date().toDateString();
     const yesterday = new Date(Date.now() - 86400000).toDateString();
-    
+
     if (storedLastVisit === yesterday) {
       // Visited yesterday, increment streak
       const newStreak = storedStreak + 1;
       setDailyStreak(newStreak);
       localStorage.setItem(streakKey, newStreak.toString());
-      
+
       if (newStreak === 7) {
         toast({
           title: "🔥 7-Day Streak!",
@@ -305,11 +305,11 @@ export default function EnhancedDashboard() {
     } else {
       setDailyStreak(storedStreak);
     }
-    
+
     localStorage.setItem(lastVisitKey, today);
     setLastVisit(storedLastVisit);
     setCompletedToday(storedCompleted);
-    
+
     // Generate daily challenges
     const challenges = [
       {
@@ -349,7 +349,7 @@ export default function EnhancedDashboard() {
         action: () => setLocation('/profile')
       }
     ];
-    
+
     setDailyChallenges(challenges);
   }, [user, totalApplications, hasUploadedResume, hasCompletedInterview, profileCompletion]);
 
@@ -750,8 +750,6 @@ export default function EnhancedDashboard() {
     },
   ];
 
-  // Duplicate removed - using the one defined above
-
   // Enhanced feature cards with usage tracking
   const featureCards = [
     {
@@ -1039,8 +1037,8 @@ export default function EnhancedDashboard() {
                           <span className="text-muted-foreground">Progress</span>
                           <span className="font-medium">{challenge.reward}</span>
                         </div>
-                        <Progress 
-                          value={(challenge.progress / challenge.total) * 100} 
+                        <Progress
+                          value={(challenge.progress / challenge.total) * 100}
                           className="h-2"
                         />
                       </div>
@@ -1146,8 +1144,8 @@ export default function EnhancedDashboard() {
                 animate="pulse"
                 className="text-sm font-medium text-blue-600 dark:text-blue-400"
               >
-                {dailyStreak > 0 
-                  ? `💪 ${dailyStreak} days of consistent progress!` 
+                {dailyStreak > 0
+                  ? `💪 ${dailyStreak} days of consistent progress!`
                   : "🚀 Start your journey today!"}
               </motion.p>
             </div>
@@ -1359,28 +1357,28 @@ export default function EnhancedDashboard() {
                               target: gap.targetLevel || 0,
                             }))}>
                               <PolarGrid stroke="#e5e7eb" />
-                              <PolarAngleAxis 
-                                dataKey="skill" 
+                              <PolarAngleAxis
+                                dataKey="skill"
                                 tick={{ fontSize: 10, fill: '#374151' }}
                               />
-                              <PolarRadiusAxis 
-                                angle={90} 
-                                domain={[0, 10]} 
+                              <PolarRadiusAxis
+                                angle={90}
+                                domain={[0, 10]}
                                 tick={{ fontSize: 8, fill: '#6b7280' }}
                               />
-                              <Radar 
-                                name="Current" 
-                                dataKey="current" 
-                                stroke="#3b82f6" 
-                                fill="#3b82f6" 
+                              <Radar
+                                name="Current"
+                                dataKey="current"
+                                stroke="#3b82f6"
+                                fill="#3b82f6"
                                 fillOpacity={0.2}
                                 strokeWidth={2}
                               />
-                              <Radar 
-                                name="Target" 
-                                dataKey="target" 
-                                stroke="#10b981" 
-                                fill="#10b981" 
+                              <Radar
+                                name="Target"
+                                dataKey="target"
+                                stroke="#10b981"
+                                fill="#10b981"
                                 fillOpacity={0.1}
                                 strokeWidth={2}
                                 strokeDasharray="5 5"
@@ -1414,26 +1412,26 @@ export default function EnhancedDashboard() {
                               }
                             }) || []}>
                               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                              <XAxis 
-                                dataKey="step" 
+                              <XAxis
+                                dataKey="step"
                                 tick={{ fontSize: 10, fill: '#374151' }}
                                 angle={-45}
                                 textAnchor="end"
                                 height={60}
                               />
                               <YAxis tick={{ fontSize: 10, fill: '#374151' }} />
-                              <Tooltip 
-                                contentStyle={{ 
-                                  backgroundColor: '#ffffff', 
+                              <Tooltip
+                                contentStyle={{
+                                  backgroundColor: '#ffffff',
                                   border: '1px solid #e5e7eb',
                                   borderRadius: '6px',
                                   color: '#374151'
                                 }}
                               />
-                              <Line 
-                                type="monotone" 
-                                dataKey="salary" 
-                                stroke="#10b981" 
+                              <Line
+                                type="monotone"
+                                dataKey="salary"
+                                stroke="#10b981"
                                 strokeWidth={3}
                                 dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
                                 name="Salary (K)"
@@ -1464,8 +1462,8 @@ export default function EnhancedDashboard() {
                       </div>
                     </div>
                   )}
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     className="mt-4 border-blue-200 text-blue-600 hover:bg-blue-50"
                     onClick={() => setLocation("/career-ai-assistant")}
@@ -1509,7 +1507,7 @@ export default function EnhancedDashboard() {
                       <span className="text-black">AI Recommendations</span>
                     </div>
                   </div>
-                  <Button 
+                  <Button
                     size="lg"
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                     onClick={() => setLocation("/career-ai-assistant")}
@@ -1669,130 +1667,135 @@ export default function EnhancedDashboard() {
           <motion.div variants={itemVariants}>
             <Card className="border-0 overflow-hidden relative bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-green-950 dark:via-emerald-950 dark:to-teal-950">
               <div className="absolute inset-0 bg-gradient-to-br from-green-500 via-emerald-500 to-teal-500 opacity-5" />
-              <CardContent className="p-3 sm:p-6 relative">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500">
-                      <Handshake className="w-6 h-6 text-white" />
+              <CardHeader className="relative">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500">
+                      <Handshake className="w-5 h-5 text-white" />
                     </div>
-                    <div>
-                      <h3 className="text-xl font-semibold">
-                        Referral Marketplace
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        Connect with employees for career advice, interview prep & referrals
-                      </p>
-                    </div>
+                    <CardTitle className="text-xl">Referral Marketplace</CardTitle>
                   </div>
                   <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm px-3 py-1">
-                    New!
+                    🆕 12 NEW TODAY
                   </Badge>
                 </div>
+              </CardHeader>
 
-                {/* Feature Overview */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <motion.div
-                    variants={slideInVariants}
-                    initial="hidden"
-                    animate="visible"
-                    className="p-4 bg-white dark:bg-gray-800 rounded-lg border shadow-sm"
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
-                        <MessageCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <h4 className="font-semibold text-sm">Career Advice</h4>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Get insights from real employees about company culture, career paths, and growth opportunities
-                    </p>
-                  </motion.div>
-
-                  <motion.div
-                    variants={slideInVariants}
-                    initial="hidden"
-                    animate="visible"
-                    transition={{ delay: 0.1 }}
-                    className="p-4 bg-white dark:bg-gray-800 rounded-lg border shadow-sm"
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900">
-                        <Brain className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                      </div>
-                      <h4 className="font-semibold text-sm">Interview Prep</h4>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Practice with real employees, get insider tips, and boost your interview success rate
-                    </p>
-                  </motion.div>
-
-                  <motion.div
-                    variants={slideInVariants}
-                    initial="hidden"
-                    animate="visible"
-                    transition={{ delay: 0.2 }}
-                    className="p-4 bg-white dark:bg-gray-800 rounded-lg border shadow-sm"
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900">
-                        <UserCheck className="w-5 h-5 text-green-600 dark:text-green-400" />
-                      </div>
-                      <h4 className="font-semibold text-sm">Referrals</h4>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Get referred by employees and increase your chances of landing your dream job
-                    </p>
-                  </motion.div>
-                </div>
-
-                {/* Quick Stats */}
-                <div className="flex items-center justify-center gap-8 mb-6 text-sm">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">500+</div>
-                    <div className="text-muted-foreground">Verified Employees</div>
+              <CardContent className="p-4 sm:p-6 relative">
+                {/* Key Value Props */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                  <div className="text-center p-3 rounded-xl bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 border border-green-200 dark:border-green-800">
+                    <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">90%</div>
+                    <div className="text-xs text-muted-foreground mt-1">Success Rate</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">85%</div>
-                    <div className="text-muted-foreground">Success Rate</div>
+                  <div className="text-center p-3 rounded-xl bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 border border-blue-200 dark:border-blue-800">
+                    <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">50K+</div>
+                    <div className="text-xs text-muted-foreground mt-1">Verified Employees</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">200+</div>
-                    <div className="text-muted-foreground">Companies</div>
+                  <div className="text-center p-3 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 border border-purple-200 dark:border-purple-800">
+                    <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">$50+</div>
+                    <div className="text-xs text-muted-foreground mt-1">Starting Price</div>
+                  </div>
+                  <div className="text-center p-3 rounded-xl bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30 border border-orange-200 dark:border-orange-800">
+                    <div className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">24h</div>
+                    <div className="text-xs text-muted-foreground mt-1">Fast Response</div>
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button
-                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
-                    onClick={() => setLocation("/referral-marketplace")}
-                  >
-                    <Handshake className="w-4 h-4 mr-2" />
-                    Browse Services
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1 border-green-200 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-950"
-                    onClick={() => setLocation("/become-referrer")}
-                  >
-                    <DollarSign className="w-4 h-4 mr-2" />
-                    Become a Referrer
-                  </Button>
-                </div>
-
-                {/* Success Story */}
-                <div className="mt-6 p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                {/* Daily Engagement Trigger */}
+                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-4">
                   <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-full bg-green-500 text-white">
-                      <Star className="w-4 h-4" />
+                    <div className="p-2 rounded-full bg-yellow-400 animate-pulse">
+                      <span className="text-xl">⚡</span>
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-green-800 dark:text-green-200">
-                        "I got 3 interviews and 1 offer in 2 weeks using the referral marketplace!"
+                      <h4 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-1">
+                        🎯 Today's Hot Opportunities
+                      </h4>
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                        <strong>12 new referrers</strong> from Google, Microsoft, and Amazon joined today.
+                        <span className="font-bold text-yellow-900 dark:text-yellow-100"> Get referred before slots fill up!</span>
                       </p>
-                      <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                        - Sarah M., Software Engineer at Google
-                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* What You Get */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700">
+                    <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                      <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h5 className="font-semibold text-sm mb-1">Internal Referral</h5>
+                      <p className="text-xs text-muted-foreground">Direct employee referral to bypass HR filters</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700">
+                    <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                      <MessageCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h5 className="font-semibold text-sm mb-1">1-on-1 Mentorship</h5>
+                      <p className="text-xs text-muted-foreground">Career advice from company insiders</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700">
+                    <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                      <Target className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h5 className="font-semibold text-sm mb-1">Interview Prep</h5>
+                      <p className="text-xs text-muted-foreground">Company-specific interview strategies</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700">
+                    <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                      <Shield className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h5 className="font-semibold text-sm mb-1">Verified Employees</h5>
+                      <p className="text-xs text-muted-foreground">All referrers are company-verified</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* CTA Buttons */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Button
+                    onClick={() => window.location.href = '/referral-marketplace'}
+                    className="w-full bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 hover:from-green-700 hover:via-emerald-700 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                    size="lg"
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="text-lg">🚀</span>
+                      Browse Marketplace
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </span>
+                  </Button>
+                  <Button
+                    onClick={() => window.location.href = '/become-referrer'}
+                    variant="outline"
+                    className="w-full border-2 border-green-500 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
+                    size="lg"
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="text-lg">💰</span>
+                      Become a Referrer
+                    </span>
+                  </Button>
+                </div>
+
+                {/* Social Proof */}
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <span>3,500+ Successful Referrals</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <span>4.9★ Average Rating</span>
                     </div>
                   </div>
                 </div>
@@ -2142,7 +2145,7 @@ export default function EnhancedDashboard() {
                   </CardContent>
                 </Card>
               </motion.div>
-              
+
               {quickActions.map((action, index) => (
                 <motion.div
                   key={action.title}
@@ -2410,7 +2413,7 @@ export default function EnhancedDashboard() {
               <CardHeader className="relative">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
+                    <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500">
                       <Briefcase className="w-5 h-5 text-white" />
                     </div>
                     <CardTitle className="text-xl">
