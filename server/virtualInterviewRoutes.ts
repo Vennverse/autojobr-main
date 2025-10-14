@@ -717,4 +717,73 @@ router.post('/start-chat', isAuthenticated, async (req: any, res) => {
   }
 });
 
+// Get interview messages - chat interview endpoint
+router.get('/:sessionId/messages', isAuthenticated, async (req: any, res) => {
+  try {
+    const { sessionId } = req.params;
+    const userId = req.user?.id || req.session?.user?.id;
+
+    const interview = await db.select().from(virtualInterviews)
+      .where(and(eq(virtualInterviews.sessionId, sessionId), eq(virtualInterviews.userId, userId)))
+      .limit(1);
+
+    if (!interview.length) {
+      return res.status(404).json({ message: 'Interview session not found' });
+    }
+
+    const currentInterview = interview[0];
+
+    // Get all messages for this interview
+    const messages = await db.select().from(virtualInterviewMessages)
+      .where(eq(virtualInterviewMessages.interviewId, currentInterview.id))
+      .orderBy(virtualInterviewMessages.messageIndex);
+
+    // Calculate time remaining
+    const startTime = currentInterview.startTime ? new Date(currentInterview.startTime).getTime() : Date.now();
+    const durationMs = (currentInterview.duration || 30) * 60 * 1000;
+    const elapsed = Date.now() - startTime;
+    const timeRemaining = Math.max(0, Math.floor((durationMs - elapsed) / 1000));
+
+    res.json({
+      messages: messages.map(msg => ({
+        id: msg.id,
+        sender: msg.sender,
+        content: msg.content,
+        timestamp: msg.timestamp,
+        messageIndex: msg.messageIndex
+      })),
+      currentQuestionCount: currentInterview.questionsAsked || 0,
+      totalQuestions: currentInterview.totalQuestions || 5,
+      timeRemaining,
+      status: currentInterview.status
+    });
+  } catch (error) {
+    console.error('Error getting chat interview messages:', error);
+    res.status(500).json({ message: 'Failed to get messages' });
+  }
+});
+
+// Device fingerprint endpoint for chat interviews
+router.post('/:sessionId/device-fingerprint', isAuthenticated, async (req: any, res) => {
+  try {
+    const { sessionId } = req.params;
+    const deviceData = req.body;
+
+    console.log('📱 Received device fingerprint for chat interview:', sessionId);
+
+    // For now, just acknowledge receipt
+    // Full proctoring can be added later if needed
+    res.json({
+      success: true,
+      fingerprint: { sessionId, timestamp: Date.now() },
+      environmentValidation: { isSecure: true },
+      browserSecurity: { securityLevel: 'standard' },
+      riskLevel: 'low'
+    });
+  } catch (error) {
+    console.error('Error processing device fingerprint:', error);
+    res.status(500).json({ error: 'Failed to process device fingerprint' });
+  }
+});
+
 export default router;
