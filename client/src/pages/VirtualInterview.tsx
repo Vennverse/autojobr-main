@@ -41,15 +41,19 @@ export default function VirtualInterview() {
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
 
   const sessionId = params?.sessionId;
+  const [isRedirecting, setIsRedirecting] = useState(!sessionId || sessionId === 'new');
 
   // Check session validity and redirect if needed
   useEffect(() => {
     if (!sessionId || sessionId === 'new') {
+      setIsRedirecting(true);
       setLocation('/virtual-interview-start');
+    } else {
+      setIsRedirecting(false);
     }
   }, [sessionId, setLocation]);
 
-  if (!sessionId || sessionId === 'new') {
+  if (isRedirecting) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="text-center">
