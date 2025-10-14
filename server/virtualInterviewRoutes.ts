@@ -9,6 +9,7 @@ import { storage } from "./storage.js";
 
 const router = express.Router();
 const virtualInterviewService = new VirtualInterviewService();
+const virtualInterviewService = new VirtualInterviewService();
 
 // Check eligibility for virtual interview  
 router.post('/check-eligibility', isAuthenticated, async (req: any, res) => {
@@ -554,3 +555,26 @@ router.get('/:sessionId/feedback', isAuthenticated, async (req: any, res) => {
 });
 
 export default router;
+
+
+export default router;
+// Get interview history for user
+router.get('/history', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.id || req.session?.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const interviews = await db.select()
+      .from(virtualInterviews)
+      .where(eq(virtualInterviews.userId, userId))
+      .orderBy(desc(virtualInterviews.createdAt))
+      .limit(10);
+
+    res.json(interviews);
+  } catch (error) {
+    console.error('Error fetching interview history:', error);
+    res.status(500).json({ message: 'Failed to fetch interview history' });
+  }
+});
