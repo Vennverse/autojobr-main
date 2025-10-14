@@ -1,165 +1,3 @@
-
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Shield, CheckCircle, AlertCircle, Clock, MessageCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import SEOHead from '@/components/seo-head';
-
-export default function MyBookings() {
-  const { toast } = useToast();
-  
-  const { data: bookings, isLoading } = useQuery({
-    queryKey: ['/api/referral-marketplace/my-bookings'],
-    queryFn: async () => {
-      const res = await apiRequest('/api/referral-marketplace/my-bookings?role=job_seeker');
-      return res.json();
-    }
-  });
-
-  const confirmDeliveryMutation = useMutation({
-    mutationFn: async (bookingId: number) => {
-      const res = await apiRequest(`/api/referral-marketplace/escrow/confirm-delivery/${bookingId}`, 'POST');
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/referral-marketplace/my-bookings'] });
-      toast({
-        title: "Payment Released",
-        description: "Escrow payment has been released to the referrer. Thank you!"
-      });
-    }
-  });
-
-  const openDisputeMutation = useMutation({
-    mutationFn: async ({ bookingId, reason, description }: any) => {
-      const res = await apiRequest(`/api/referral-marketplace/escrow/open-dispute/${bookingId}`, 'POST', {
-        reason,
-        description
-      });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/referral-marketplace/my-bookings'] });
-      toast({
-        title: "Dispute Opened",
-        description: "Our team will review your dispute within 24-48 hours."
-      });
-    }
-  });
-
-  const getEscrowStatusBadge = (status: string) => {
-    switch (status) {
-      case 'authorized':
-        return <Badge className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />Authorized</Badge>;
-      case 'held':
-        return <Badge className="bg-blue-100 text-blue-800"><Shield className="w-3 h-3 mr-1" />Held in Escrow</Badge>;
-      case 'released':
-        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Released</Badge>;
-      case 'disputed':
-        return <Badge className="bg-red-100 text-red-800"><AlertCircle className="w-3 h-3 mr-1" />Disputed</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-
-  if (isLoading) {
-    return <div className="container mx-auto p-6">Loading...</div>;
-  }
-
-  return (
-    <div className="container mx-auto p-6">
-      <SEOHead 
-        title="My Bookings - Referral Marketplace | AutoJobR"
-        description="View and manage your referral marketplace bookings with escrow-protected payments"
-      />
-      
-      <h1 className="text-3xl font-bold mb-6">My Bookings</h1>
-
-      <div className="space-y-4">
-        {bookings?.bookings?.map((booking: any) => (
-          <Card key={booking.id}>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle>{booking.serviceTitle}</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    With {booking.referrerName} at {booking.companyName}
-                  </p>
-                </div>
-                {getEscrowStatusBadge(booking.escrowStatus)}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">Payment Amount</p>
-                    <p className="text-2xl font-bold">${booking.totalAmount}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Status</p>
-                    <Badge variant={booking.status === 'completed' ? 'default' : 'secondary'}>
-                      {booking.status}
-                    </Badge>
-                  </div>
-                </div>
-
-                {booking.escrowStatus === 'held' && (
-                  <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg">
-                    <div className="flex items-start gap-3 mb-3">
-                      <Shield className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-blue-900 dark:text-blue-100">
-                          🛡️ Escrow Protection Active
-                        </p>
-                        <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                          Your payment is held securely. Release it once you've received the service.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-3">
-                      <Button
-                        onClick={() => confirmDeliveryMutation.mutate(booking.id)}
-                        disabled={confirmDeliveryMutation.isPending}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Confirm Service Delivered
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          const reason = prompt("Dispute reason:");
-                          const description = prompt("Describe the issue:");
-                          if (reason && description) {
-                            openDisputeMutation.mutate({ bookingId: booking.id, reason, description });
-                          }
-                        }}
-                      >
-                        <AlertCircle className="w-4 h-4 mr-2" />
-                        Open Dispute
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                <Button variant="outline" className="w-full">
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Message Referrer
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -181,6 +19,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import SEOHead from '@/components/seo-head';
 
 interface Booking {
   id: number;
@@ -220,7 +59,7 @@ const MyBookings: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [referrerProfile, setReferrerProfile] = useState<ReferrerProfile | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  
+
   // Schedule meeting modal state
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [meetingLink, setMeetingLink] = useState('');
@@ -244,7 +83,7 @@ const MyBookings: React.FC = () => {
       setLoading(true);
       const response = await fetch('/api/referral-marketplace/bookings/referrer');
       const data = await response.json();
-      
+
       if (data.success) {
         setBookings(data.bookings);
       }
@@ -259,7 +98,7 @@ const MyBookings: React.FC = () => {
     try {
       const response = await fetch('/api/referral-marketplace/profile');
       const data = await response.json();
-      
+
       if (data.success && data.profile) {
         setReferrerProfile(data.profile);
         setDefaultMeetingLink(data.profile.meetingScheduleLink || '');
@@ -294,7 +133,6 @@ Best regards,
   };
 
   const handleChatWithUser = (conversationId: number) => {
-    // Navigate to chat with the specific conversation
     window.location.href = `/simple-chat?conversation=${conversationId}`;
   };
 
@@ -313,7 +151,7 @@ Best regards,
 
     try {
       setSendingEmail(true);
-      
+
       const emailData = {
         bookingId: selectedBooking.id,
         meetingLink: meetingLink.trim(),
@@ -329,12 +167,11 @@ Best regards,
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         alert('Meeting invitation sent successfully!');
         setShowScheduleModal(false);
         setSelectedBooking(null);
-        // Optionally update booking status
         fetchBookings();
       } else {
         alert('Failed to send email: ' + (result.error || 'Unknown error'));
@@ -361,7 +198,7 @@ Best regards,
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         alert('Settings updated successfully!');
         setShowSettingsModal(false);
@@ -430,6 +267,11 @@ Best regards,
 
   return (
     <div className="container mx-auto p-6">
+      <SEOHead 
+        title="My Bookings - Referral Marketplace | AutoJobR"
+        description="View and manage your referral marketplace bookings with escrow-protected payments"
+      />
+
       <div className="mb-8">
         <div className="flex justify-between items-center">
           <div>
@@ -438,8 +280,7 @@ Best regards,
               Manage your referral service bookings and communicate with job seekers
             </p>
           </div>
-          
-          {/* Settings Button */}
+
           <Dialog open={showSettingsModal} onOpenChange={setShowSettingsModal}>
             <DialogTrigger asChild>
               <Button variant="outline">
@@ -454,7 +295,7 @@ Best regards,
                   Configure your default meeting link and email template
                 </DialogDescription>
               </DialogHeader>
-              
+
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="defaultMeetingLink">Default Meeting Scheduling Link</Label>
@@ -468,7 +309,7 @@ Best regards,
                     Your Calendly, Cal.com, or other scheduling tool link
                   </p>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="defaultEmailTemplate">Default Email Template</Label>
                   <Textarea
@@ -483,7 +324,7 @@ Best regards,
                   </p>
                 </div>
               </div>
-              
+
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowSettingsModal(false)}>
                   Cancel
@@ -495,8 +336,7 @@ Best regards,
             </DialogContent>
           </Dialog>
         </div>
-        
-        {/* Navigation Submenu */}
+
         <div className="flex flex-wrap gap-2 mt-6">
           <Button
             variant="outline" 
@@ -523,7 +363,6 @@ Best regards,
         </div>
       </div>
 
-      {/* Bookings List */}
       <div className="space-y-6">
         {bookings.map((booking) => (
           <Card key={booking.id} className="w-full">
@@ -545,7 +384,6 @@ Best regards,
             </CardHeader>
 
             <CardContent className="space-y-4">
-              {/* Job Seeker Info */}
               <div className="bg-gray-50 p-4 rounded-lg">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -574,7 +412,6 @@ Best regards,
                 </div>
               </div>
 
-              {/* Booking Details */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-gray-500" />
@@ -595,7 +432,6 @@ Best regards,
                 </div>
               </div>
 
-              {/* Notes */}
               {booking.notes && (
                 <div>
                   <h5 className="font-medium mb-2">Job Seeker's Notes:</h5>
@@ -605,7 +441,6 @@ Best regards,
                 </div>
               )}
 
-              {/* Actions */}
               <div className="flex flex-wrap gap-3 pt-4 border-t">
                 <Button
                   variant="outline"
@@ -626,7 +461,7 @@ Best regards,
                   <Calendar className="w-4 h-4" />
                   Schedule Meeting
                 </Button>
-                
+
                 {booking.paymentStatus !== 'paid' && (
                   <p className="text-sm text-gray-500 flex items-center">
                     Meeting scheduling available after payment confirmation
@@ -657,7 +492,6 @@ Best regards,
         </div>
       )}
 
-      {/* Schedule Meeting Modal */}
       <Dialog open={showScheduleModal} onOpenChange={setShowScheduleModal}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -666,7 +500,7 @@ Best regards,
               Send a meeting invitation to {selectedBooking?.jobSeeker.firstName || 'the job seeker'}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div>
               <Label htmlFor="meetingLink">Meeting Scheduling Link *</Label>
@@ -681,7 +515,7 @@ Best regards,
                 Provide your Calendly, Cal.com, or other scheduling tool link
               </p>
             </div>
-            
+
             <div>
               <Label htmlFor="customMessage">Additional Message (Optional)</Label>
               <Textarea
@@ -692,14 +526,14 @@ Best regards,
                 placeholder="Any additional information for the job seeker..."
               />
             </div>
-            
+
             <div className="bg-blue-50 p-3 rounded-lg">
               <p className="text-sm text-blue-800">
                 <strong>Email Preview:</strong> The job seeker will receive a professional email with your meeting link and instructions for scheduling.
               </p>
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowScheduleModal(false)}>
               Cancel
