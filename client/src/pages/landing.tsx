@@ -41,11 +41,112 @@ const metrics = {
   avgTimeToInterview: "7 days"
 };
 
+// Hero slides showcasing different features
+const heroSlides = [
+  {
+    badge: "Most Popular",
+    title: "Get Referred to Your Dream Company",
+    highlight: "Referred",
+    subtitle: "Skip HR. Get direct referrals from 10,000+ employees at 500+ top companies",
+    stat: "300% Higher Interview Rate",
+    cta: "Browse Referral Partners",
+    ctaLink: "/referral-marketplace",
+    icon: Handshake,
+    color: "from-blue-600 to-purple-600"
+  },
+  {
+    badge: "Daily Essential",
+    title: "Generate Perfect Cover Letters",
+    highlight: "AI-Powered",
+    subtitle: "Create personalized, compelling cover letters in seconds using advanced AI",
+    stat: "10x Faster Applications",
+    cta: "Generate Cover Letter",
+    ctaLink: "/cover-letter-generator",
+    icon: Brain,
+    color: "from-purple-600 to-pink-600"
+  },
+  {
+    badge: "Smart Analysis",
+    title: "Optimize Your Resume for ATS",
+    highlight: "70+ Score",
+    subtitle: "Get instant ATS analysis and optimization tips to pass automated screening",
+    stat: "Pass 95% of ATS Systems",
+    cta: "Analyze Resume Free",
+    ctaLink: "/resumes",
+    icon: Target,
+    color: "from-green-600 to-teal-600"
+  },
+  {
+    badge: "Practice Makes Perfect",
+    title: "Ace Your Video Interviews",
+    highlight: "AI Feedback",
+    subtitle: "Practice with AI that analyzes body language, speech, and answers in real-time",
+    stat: "85% Success Rate",
+    cta: "Start Practicing",
+    ctaLink: "/virtual-interview/new",
+    icon: Video,
+    color: "from-orange-600 to-red-600"
+  },
+  {
+    badge: "Time Saver",
+    title: "Apply to Jobs in 1 Click",
+    highlight: "Chrome Extension",
+    subtitle: "Auto-fill applications across 100+ job boards with human-like precision",
+    stat: "Apply 10x Faster",
+    cta: "Install Extension",
+    ctaLink: "/extension",
+    icon: Zap,
+    color: "from-yellow-600 to-orange-600"
+  },
+  {
+    badge: "AI-Powered",
+    title: "Find Your Perfect Job Match",
+    highlight: "Smart Search",
+    subtitle: "AI learns your preferences and shows only relevant opportunities from 100+ boards",
+    stat: "Better Job Matches",
+    cta: "Search Jobs Now",
+    ctaLink: "/jobs",
+    icon: Search,
+    color: "from-indigo-600 to-blue-600"
+  },
+  {
+    badge: "For Recruiters",
+    title: "Hire Top Talent Faster",
+    highlight: "AI Screening",
+    subtitle: "Post jobs, screen candidates with AI, and find perfect matches in minutes",
+    stat: "60% Faster Hiring",
+    cta: "Start Recruiting",
+    ctaLink: "/recruiter-features",
+    icon: Users,
+    color: "from-teal-600 to-cyan-600"
+  },
+  {
+    badge: "Smart Matching",
+    title: "Get Perfect Candidate Matches",
+    highlight: "AI-Powered",
+    subtitle: "Our AI analyzes skills, experience, and culture fit to find your ideal candidates",
+    stat: "95% Match Accuracy",
+    cta: "See How It Works",
+    ctaLink: "/recruiter-features",
+    icon: Target,
+    color: "from-purple-600 to-indigo-600"
+  }
+];
+
 export default function LandingPage() {
   const { user } = useAuth();
   const [companySearch, setCompanySearch] = useState("");
   const [liveApplications, setLiveApplications] = useState(14789);
   const [filteredCompanies, setFilteredCompanies] = useState<string[]>([]);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Auto-rotate hero slides
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 5000); // Change slide every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   // Live application counter
   useEffect(() => {
@@ -68,6 +169,8 @@ export default function LandingPage() {
     }
   }, [companySearch]);
 
+  const currentHeroSlide = heroSlides[currentSlide];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       
@@ -85,6 +188,29 @@ export default function LandingPage() {
                 AutoJobr
               </span>
             </div>
+
+            <nav className="hidden md:flex space-x-6">
+              <Link href="#features" className="relative text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-all duration-300 group text-sm">
+                Features
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 group-hover:w-full transition-all duration-300"></span>
+              </Link>
+              <Link href="/referral-marketplace" className="relative text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-all duration-300 group text-sm">
+                Referral Network
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 group-hover:w-full transition-all duration-300"></span>
+              </Link>
+              <Link href="/employee-referral-services" className="relative text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-all duration-300 group text-sm">
+                Become Referrer
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 group-hover:w-full transition-all duration-300"></span>
+              </Link>
+              <Link href="/recruiter-features" className="relative text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-all duration-300 group text-sm">
+                For Recruiters
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 group-hover:w-full transition-all duration-300"></span>
+              </Link>
+              <Link href="#pricing" className="relative text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-all duration-300 group text-sm">
+                Pricing
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 group-hover:w-full transition-all duration-300"></span>
+              </Link>
+            </nav>
             
             <div className="flex items-center space-x-4">
               <Link href="/auth?mode=login">
@@ -102,8 +228,8 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero Section - Referral Network Focus */}
-      <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
+      {/* Hero Section - Auto-Rotating Slider */}
+      <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             {/* Live Stats Badge */}
@@ -112,80 +238,83 @@ export default function LandingPage() {
               {liveApplications.toLocaleString()} applications submitted today
             </Badge>
             
-            <h1 className="text-5xl md:text-7xl font-bold text-slate-900 dark:text-white mb-6 leading-tight">
-              Get <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Referred</span> to Your
-              <br />Dream Company
-            </h1>
-            
-            <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-8 max-w-4xl mx-auto">
-              Skip HR. Get <strong>direct referrals</strong> from {metrics.referralPartners} employees at {metrics.companies} top companies.
-              <br />
-              <strong className="text-green-600 dark:text-green-400">{metrics.interviewRate} higher interview rate</strong> than regular applications.
-            </p>
-
-            {/* Interactive Company Search */}
-            <div className="max-w-2xl mx-auto mb-8">
-              <Card className="border-2 border-blue-200 dark:border-blue-800 shadow-xl">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Search className="w-5 h-5 text-blue-500" />
-                    <h3 className="font-semibold text-lg">Find Your Referral Partner</h3>
+            {/* Auto-Rotating Hero Content */}
+            <div className="relative min-h-[400px] flex items-center justify-center">
+              {heroSlides.map((slide, index) => (
+                <div
+                  key={index}
+                  className={`absolute inset-0 transition-all duration-700 ${
+                    index === currentSlide
+                      ? 'opacity-100 translate-x-0'
+                      : index < currentSlide
+                      ? 'opacity-0 -translate-x-full'
+                      : 'opacity-0 translate-x-full'
+                  }`}
+                >
+                  <div className="flex flex-col items-center">
+                    <Badge className={`mb-6 bg-gradient-to-r ${slide.color} text-white px-4 py-2`}>
+                      <slide.icon className="w-3 h-3 mr-2" />
+                      {slide.badge}
+                    </Badge>
+                    
+                    <h1 className="text-5xl md:text-7xl font-bold text-slate-900 dark:text-white mb-6 leading-tight">
+                      {slide.title.split(slide.highlight)[0]}
+                      <span className={`bg-gradient-to-r ${slide.color} bg-clip-text text-transparent`}>
+                        {slide.highlight}
+                      </span>
+                      {slide.title.split(slide.highlight)[1]}
+                    </h1>
+                    
+                    <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-6 max-w-4xl mx-auto">
+                      {slide.subtitle}
+                    </p>
+                    
+                    <Badge className="mb-8 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-6 py-3 text-lg">
+                      <Star className="w-4 h-4 mr-2" />
+                      {slide.stat}
+                    </Badge>
+                    
+                    <Link href={slide.ctaLink}>
+                      <Button 
+                        size="lg" 
+                        className={`bg-gradient-to-r ${slide.color} hover:opacity-90 text-white shadow-xl px-8 py-6 text-lg group`}
+                        data-testid={`button-hero-${index}`}
+                      >
+                        <slide.icon className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                        {slide.cta}
+                        <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                      </Button>
+                    </Link>
                   </div>
-                  <Input
-                    placeholder="Search companies (Google, Microsoft, Amazon...)"
-                    value={companySearch}
-                    onChange={(e) => setCompanySearch(e.target.value)}
-                    className="text-lg p-6"
-                    data-testid="input-company-search"
-                  />
-                  {filteredCompanies.length > 0 && (
-                    <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {filteredCompanies.map((company) => (
-                        <Link key={company} href="/referral-marketplace">
-                          <Badge 
-                            className="cursor-pointer hover:scale-105 transition-transform w-full justify-center py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white"
-                            data-testid={`badge-company-${company.toLowerCase()}`}
-                          >
-                            <Building2 className="w-3 h-3 mr-1" />
-                            {company}
-                            <ChevronRight className="w-3 h-3 ml-1" />
-                          </Badge>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                  {companySearch && filteredCompanies.length === 0 && (
-                    <p className="mt-4 text-sm text-slate-500">No matches found. Try: {topCompanies.slice(0, 3).join(", ")}</p>
-                  )}
-                </CardContent>
-              </Card>
+                </div>
+              ))}
             </div>
 
-            {/* Primary CTAs */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
-              <Link href="/referral-marketplace">
-                <Button size="lg" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-xl px-8 py-6 text-lg group" data-testid="button-browse-referrals">
-                  <Handshake className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                  Browse {metrics.referralPartners} Referral Partners
-                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
-              <Link href="/auth">
-                <Button variant="outline" size="lg" className="border-2 px-8 py-6 text-lg hover:bg-slate-50 dark:hover:bg-slate-800 group" data-testid="button-start-free">
-                  Start Free - No Credit Card
-                  <Sparkles className="w-4 h-4 ml-2 group-hover:rotate-12 transition-transform" />
-                </Button>
-              </Link>
+            {/* Slide Indicators */}
+            <div className="flex justify-center gap-2 mt-8">
+              {heroSlides.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentSlide(index)}
+                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                    index === currentSlide
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 scale-125'
+                      : 'bg-slate-300 dark:bg-slate-600 hover:bg-slate-400 dark:hover:bg-slate-500'
+                  }`}
+                  data-testid={`slider-indicator-${index}`}
+                />
+              ))}
             </div>
 
-            <div className="flex justify-center gap-6 text-sm text-slate-500 dark:text-slate-400">
+            {/* Quick Trust Indicators */}
+            <div className="flex justify-center gap-6 text-sm text-slate-500 dark:text-slate-400 mt-8">
               <div className="flex items-center">
                 <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
                 Free forever plan
               </div>
               <div className="flex items-center">
                 <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                {metrics.avgTimeToInterview} to first interview
+                7 days to first interview
               </div>
               <div className="flex items-center">
                 <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
