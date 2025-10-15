@@ -986,45 +986,7 @@ export default function EnhancedDashboard() {
                   </div>
                 </div>
 
-                {/* Quick Progress Tasks */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 pr-2">
-                  {progressTasks.map((task, index) => (
-                    <motion.div
-                      key={task.id}
-                      variants={slideInVariants}
-                      initial="hidden"
-                      animate="visible"
-                      transition={{ delay: index * 0.1 }}
-                      className={`p-2 sm:p-3 rounded-lg border transition-all duration-200 ${
-                        task.completed
-                          ? "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800"
-                          : "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-primary/30"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`p-2 rounded-full ${
-                            task.completed
-                              ? "bg-green-500 text-white"
-                              : "bg-gray-200 dark:bg-gray-700 text-gray-500"
-                          }`}
-                        >
-                          {task.completed ? (
-                            <CheckCircle2 className="w-4 h-4" />
-                          ) : (
-                            <Timer className="w-4 h-4" />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{task.label}</p>
-                          <p className="text-xs text-muted-foreground">
-                            +{task.points} XP
-                          </p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+                
 
                 {/* Next Level Progress */}
                 {pointsToNextLevel > 0 && (
