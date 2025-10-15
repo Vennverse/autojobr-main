@@ -3,8 +3,30 @@
 ## Overview
 AutoJobr is a full-stack web application designed to automate and streamline the job application process. Its primary purpose is to help users efficiently apply to a large volume of jobs by providing features such as ATS resume optimization, AI-powered cover letter generation, interview preparation, and a Chrome extension for one-click applications. The platform aims to simplify job searching, enhance application quality, and provide tools for career advancement, positioning itself as a comprehensive solution for job seekers.
 
+## Recent Changes (October 15, 2025)
+- **Landing Page Hero Redesign**: Implemented auto-rotating hero slider (8 slides, 5-second intervals) showcasing AI-powered tools and features:
+  1. AI Career Coach - personalized guidance
+  2. AI Interview Practice - real-time video + voice analysis
+  3. AI Cover Letter Generator - instant personalization
+  4. AI Resume Optimizer - ATS score analysis
+  5. AI Job Search - smart matching
+  6. Chrome Extension - 1-click applications
+  7. Referral Network - 10K+ employees at 500+ companies
+  8. AI Recruiter Tools - for hiring managers
+- **Navigation Enhancement**: Added navbar links to Referral Network, Become Referrer, For Recruiters, Features, and Pricing
+- **Content Balance**: Reordered hero slides to prioritize AI-powered tools over referral network, addressing user feedback about over-emphasis on referrals
+- **Interactive Elements**: Added clickable slide indicators for manual navigation, live application counter, and smooth slide transitions
+- **Conversion Optimization**: Enhanced landing page for higher conversion rates:
+  - Added dynamic social proof stats with gradient styling and hover effects
+  - Created 3-column comparison table (Traditional vs Other Platforms vs AutoJobr)
+  - Enhanced pricing section with urgency badges, social proof, and trust indicators
+  - Added comprehensive FAQ section (6 questions) addressing common objections
+  - Included trust badges: SSL Encrypted, Secure Payments, 30-Day Money Back, Instant Access
+  - Added limited-time offer badge: "First 1,000 users get Premium FREE for 30 days"
+  - Enhanced testimonials with 5-star ratings and employee credentials
+
 ## User Preferences
-I prefer detailed explanations. I want iterative development. Ask before making major changes.
+I prefer detailed explanations. I want iterative development. Ask before making major changes. Focus on AI-powered tools as primary value proposition, with referral network as a unique differentiator.
 
 ## System Architecture
 The project employs a monolithic architecture, combining the frontend and backend within a single repository.

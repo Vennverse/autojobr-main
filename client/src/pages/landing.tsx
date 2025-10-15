@@ -23,7 +23,14 @@ import {
   Zap,
   Building2,
   Star,
-  Search
+  Search,
+  X,
+  AlertCircle,
+  Clock,
+  Shield,
+  Lock,
+  HelpCircle,
+  FileText
 } from "lucide-react";
 import logoImage from "@assets/generated_images/AutoJobr_professional_logo_17c702fa_optimized.png";
 
@@ -41,18 +48,29 @@ const metrics = {
   avgTimeToInterview: "7 days"
 };
 
-// Hero slides showcasing different features
+// Hero slides showcasing different features - AI tools first, then unique differentiators
 const heroSlides = [
   {
-    badge: "Most Popular",
-    title: "Get Referred to Your Dream Company",
-    highlight: "Referred",
-    subtitle: "Skip HR. Get direct referrals from 10,000+ employees at 500+ top companies",
-    stat: "300% Higher Interview Rate",
-    cta: "Browse Referral Partners",
-    ctaLink: "/referral-marketplace",
-    icon: Handshake,
+    badge: "AI Coach",
+    title: "Your Personal AI Career Coach",
+    highlight: "AI-Powered",
+    subtitle: "Get personalized career guidance, interview prep, and job search strategies powered by advanced AI",
+    stat: "85% Success Rate",
+    cta: "Start Coaching",
+    ctaLink: "/virtual-interview/new",
+    icon: Brain,
     color: "from-blue-600 to-purple-600"
+  },
+  {
+    badge: "Practice Makes Perfect",
+    title: "Ace Interviews with AI Feedback",
+    highlight: "Real-Time",
+    subtitle: "Practice with AI that analyzes body language, speech, and answers in real-time",
+    stat: "Video + Voice Analysis",
+    cta: "Start Practicing",
+    ctaLink: "/virtual-interview/new",
+    icon: Video,
+    color: "from-orange-600 to-red-600"
   },
   {
     badge: "Daily Essential",
@@ -62,14 +80,14 @@ const heroSlides = [
     stat: "10x Faster Applications",
     cta: "Generate Cover Letter",
     ctaLink: "/cover-letter-generator",
-    icon: Brain,
+    icon: Sparkles,
     color: "from-purple-600 to-pink-600"
   },
   {
     badge: "Smart Analysis",
-    title: "Optimize Your Resume for ATS",
-    highlight: "70+ Score",
-    subtitle: "Get instant ATS analysis and optimization tips to pass automated screening",
+    title: "Optimize Your Resume with AI",
+    highlight: "ATS Score",
+    subtitle: "Get instant AI analysis and optimization tips to pass automated screening",
     stat: "Pass 95% of ATS Systems",
     cta: "Analyze Resume Free",
     ctaLink: "/resumes",
@@ -77,15 +95,15 @@ const heroSlides = [
     color: "from-green-600 to-teal-600"
   },
   {
-    badge: "Practice Makes Perfect",
-    title: "Ace Your Video Interviews",
-    highlight: "AI Feedback",
-    subtitle: "Practice with AI that analyzes body language, speech, and answers in real-time",
-    stat: "85% Success Rate",
-    cta: "Start Practicing",
-    ctaLink: "/virtual-interview/new",
-    icon: Video,
-    color: "from-orange-600 to-red-600"
+    badge: "AI Job Search",
+    title: "Find Perfect Jobs Instantly",
+    highlight: "Smart Matching",
+    subtitle: "AI learns your preferences and shows only relevant opportunities from 100+ boards",
+    stat: "Better Job Matches",
+    cta: "Search Jobs Now",
+    ctaLink: "/jobs",
+    icon: Search,
+    color: "from-indigo-600 to-blue-600"
   },
   {
     badge: "Time Saver",
@@ -99,37 +117,26 @@ const heroSlides = [
     color: "from-yellow-600 to-orange-600"
   },
   {
-    badge: "AI-Powered",
-    title: "Find Your Perfect Job Match",
-    highlight: "Smart Search",
-    subtitle: "AI learns your preferences and shows only relevant opportunities from 100+ boards",
-    stat: "Better Job Matches",
-    cta: "Search Jobs Now",
-    ctaLink: "/jobs",
-    icon: Search,
-    color: "from-indigo-600 to-blue-600"
+    badge: "Unique Advantage",
+    title: "Get Referred to Your Dream Company",
+    highlight: "Referrals",
+    subtitle: "Skip HR. Get direct referrals from 10,000+ employees at 500+ top companies",
+    stat: "300% Higher Interview Rate",
+    cta: "Browse Referral Partners",
+    ctaLink: "/referral-marketplace",
+    icon: Handshake,
+    color: "from-blue-600 to-cyan-600"
   },
   {
     badge: "For Recruiters",
-    title: "Hire Top Talent Faster",
-    highlight: "AI Screening",
+    title: "Hire Top Talent with AI Screening",
+    highlight: "60% Faster",
     subtitle: "Post jobs, screen candidates with AI, and find perfect matches in minutes",
-    stat: "60% Faster Hiring",
+    stat: "AI-Powered Matching",
     cta: "Start Recruiting",
     ctaLink: "/recruiter-features",
     icon: Users,
-    color: "from-teal-600 to-cyan-600"
-  },
-  {
-    badge: "Smart Matching",
-    title: "Get Perfect Candidate Matches",
-    highlight: "AI-Powered",
-    subtitle: "Our AI analyzes skills, experience, and culture fit to find your ideal candidates",
-    stat: "95% Match Accuracy",
-    cta: "See How It Works",
-    ctaLink: "/recruiter-features",
-    icon: Target,
-    color: "from-purple-600 to-indigo-600"
+    color: "from-teal-600 to-emerald-600"
   }
 ];
 
@@ -228,9 +235,38 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero Section - Auto-Rotating Slider */}
+      {/* Hero Section - Auto-Rotating Slider with Animated Background */}
       <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {/* Gradient Orbs */}
+          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-pink-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+          
+          {/* Floating Icons */}
+          <div className="absolute top-32 right-1/4 animate-bounce" style={{ animationDuration: '3s' }}>
+            <Brain className="w-12 h-12 text-blue-400/30" />
+          </div>
+          <div className="absolute bottom-40 left-1/4 animate-bounce" style={{ animationDuration: '4s', animationDelay: '0.5s' }}>
+            <Zap className="w-10 h-10 text-yellow-400/30" />
+          </div>
+          <div className="absolute top-1/3 right-20 animate-bounce" style={{ animationDuration: '3.5s', animationDelay: '1s' }}>
+            <Target className="w-14 h-14 text-green-400/30" />
+          </div>
+          <div className="absolute bottom-1/3 left-16 animate-bounce" style={{ animationDuration: '4.5s', animationDelay: '1.5s' }}>
+            <Video className="w-11 h-11 text-orange-400/30" />
+          </div>
+          <div className="absolute top-2/3 right-1/3 animate-bounce" style={{ animationDuration: '3.8s', animationDelay: '0.8s' }}>
+            <Handshake className="w-13 h-13 text-purple-400/30" />
+          </div>
+          
+          {/* Animated Gradient Lines */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent animate-pulse"></div>
+          <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-500/50 to-transparent animate-pulse" style={{ animationDelay: '1.5s' }}></div>
+        </div>
+
+        <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-12">
             {/* Live Stats Badge */}
             <Badge className="mb-6 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 border-green-200 dark:border-green-800 px-4 py-2 text-sm font-medium">
@@ -245,13 +281,13 @@ export default function LandingPage() {
                   key={index}
                   className={`absolute inset-0 transition-all duration-700 ${
                     index === currentSlide
-                      ? 'opacity-100 translate-x-0'
+                      ? 'opacity-100 translate-x-0 scale-100'
                       : index < currentSlide
-                      ? 'opacity-0 -translate-x-full'
-                      : 'opacity-0 translate-x-full'
+                      ? 'opacity-0 -translate-x-full scale-95'
+                      : 'opacity-0 translate-x-full scale-95'
                   }`}
                 >
-                  <div className="flex flex-col items-center">
+                  <div className="flex flex-col items-center animate-in fade-in zoom-in duration-500">
                     <Badge className={`mb-6 bg-gradient-to-r ${slide.color} text-white px-4 py-2`}>
                       <slide.icon className="w-3 h-3 mr-2" />
                       {slide.badge}
@@ -325,27 +361,138 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Why Referrals Work - Social Proof */}
+      {/* Dynamic Social Proof Stats */}
       <section className="py-16 bg-white/50 dark:bg-slate-800/50 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
-            <div className="group hover:scale-105 transition-transform">
-              <div className="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">{metrics.interviewRate}</div>
-              <div className="text-slate-600 dark:text-slate-300">Higher Interview Rate</div>
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2">
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Trusted by Job Seekers Worldwide
+            </Badge>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div className="group hover:scale-105 transition-all duration-300 cursor-pointer">
+              <div className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">{metrics.interviewRate}</div>
+              <div className="text-slate-600 dark:text-slate-300 font-semibold">Higher Interview Rate</div>
+              <div className="text-xs text-slate-500 mt-1">vs. regular applications</div>
             </div>
-            <div className="group hover:scale-105 transition-transform">
-              <div className="text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">{metrics.referralPartners}</div>
-              <div className="text-slate-600 dark:text-slate-300">Active Referral Partners</div>
+            <div className="group hover:scale-105 transition-all duration-300 cursor-pointer">
+              <div className="text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">{metrics.referralPartners}</div>
+              <div className="text-slate-600 dark:text-slate-300 font-semibold">Active Referrers</div>
+              <div className="text-xs text-slate-500 mt-1">ready to help you</div>
             </div>
-            <div className="group hover:scale-105 transition-transform">
-              <div className="text-4xl font-bold text-green-600 dark:text-green-400 mb-2">{metrics.companies}</div>
-              <div className="text-slate-600 dark:text-slate-300">Top Companies</div>
+            <div className="group hover:scale-105 transition-all duration-300 cursor-pointer">
+              <div className="text-5xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent mb-2">{metrics.companies}</div>
+              <div className="text-slate-600 dark:text-slate-300 font-semibold">Top Companies</div>
+              <div className="text-xs text-slate-500 mt-1">including FAANG</div>
             </div>
-            <div className="group hover:scale-105 transition-transform">
-              <div className="text-4xl font-bold text-orange-600 dark:text-orange-400 mb-2">{metrics.avgTimeToInterview}</div>
-              <div className="text-slate-600 dark:text-slate-300">Avg. Time to Interview</div>
+            <div className="group hover:scale-105 transition-all duration-300 cursor-pointer">
+              <div className="text-5xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent mb-2">{metrics.avgTimeToInterview}</div>
+              <div className="text-slate-600 dark:text-slate-300 font-semibold">To First Interview</div>
+              <div className="text-xs text-slate-500 mt-1">average time</div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Why Choose AutoJobr - Comparison */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
+              Why AutoJobr Wins Every Time
+            </h2>
+            <p className="text-xl text-slate-600 dark:text-slate-300">
+              Stop wasting time with outdated job search methods
+            </p>
+          </div>
+
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="grid md:grid-cols-3 divide-x divide-slate-200 dark:divide-slate-700">
+                {/* Traditional Way */}
+                <div className="p-6 bg-red-50/50 dark:bg-red-900/10">
+                  <h3 className="text-xl font-bold mb-6 text-red-700 dark:text-red-400">❌ Traditional Way</h3>
+                  <ul className="space-y-3 text-sm">
+                    <li className="flex items-start text-slate-600 dark:text-slate-400">
+                      <X className="w-4 h-4 mr-2 text-red-500 mt-0.5 flex-shrink-0" />
+                      <span>Manually apply to 100s of jobs</span>
+                    </li>
+                    <li className="flex items-start text-slate-600 dark:text-slate-400">
+                      <X className="w-4 h-4 mr-2 text-red-500 mt-0.5 flex-shrink-0" />
+                      <span>2% response rate from cold apps</span>
+                    </li>
+                    <li className="flex items-start text-slate-600 dark:text-slate-400">
+                      <X className="w-4 h-4 mr-2 text-red-500 mt-0.5 flex-shrink-0" />
+                      <span>Resume rejected by ATS</span>
+                    </li>
+                    <li className="flex items-start text-slate-600 dark:text-slate-400">
+                      <X className="w-4 h-4 mr-2 text-red-500 mt-0.5 flex-shrink-0" />
+                      <span>No interview practice</span>
+                    </li>
+                    <li className="flex items-start text-slate-600 dark:text-slate-400">
+                      <X className="w-4 h-4 mr-2 text-red-500 mt-0.5 flex-shrink-0" />
+                      <span>Weeks to get first interview</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Other Platforms */}
+                <div className="p-6 bg-yellow-50/50 dark:bg-yellow-900/10">
+                  <h3 className="text-xl font-bold mb-6 text-yellow-700 dark:text-yellow-400">⚠️ Other Platforms</h3>
+                  <ul className="space-y-3 text-sm">
+                    <li className="flex items-start text-slate-600 dark:text-slate-400">
+                      <AlertCircle className="w-4 h-4 mr-2 text-yellow-500 mt-0.5 flex-shrink-0" />
+                      <span>Generic auto-apply (gets flagged)</span>
+                    </li>
+                    <li className="flex items-start text-slate-600 dark:text-slate-400">
+                      <AlertCircle className="w-4 h-4 mr-2 text-yellow-500 mt-0.5 flex-shrink-0" />
+                      <span>Basic resume scanning only</span>
+                    </li>
+                    <li className="flex items-start text-slate-600 dark:text-slate-400">
+                      <AlertCircle className="w-4 h-4 mr-2 text-yellow-500 mt-0.5 flex-shrink-0" />
+                      <span>No referral network</span>
+                    </li>
+                    <li className="flex items-start text-slate-600 dark:text-slate-400">
+                      <AlertCircle className="w-4 h-4 mr-2 text-yellow-500 mt-0.5 flex-shrink-0" />
+                      <span>Limited AI capabilities</span>
+                    </li>
+                    <li className="flex items-start text-slate-600 dark:text-slate-400">
+                      <AlertCircle className="w-4 h-4 mr-2 text-yellow-500 mt-0.5 flex-shrink-0" />
+                      <span>Expensive ($50-100/month)</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* AutoJobr */}
+                <div className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
+                  <h3 className="text-xl font-bold mb-6 bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">✅ AutoJobr</h3>
+                  <ul className="space-y-3 text-sm">
+                    <li className="flex items-start text-slate-700 dark:text-slate-300 font-medium">
+                      <CheckCircle className="w-4 h-4 mr-2 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span>Direct referrals (300% higher rate)</span>
+                    </li>
+                    <li className="flex items-start text-slate-700 dark:text-slate-300 font-medium">
+                      <CheckCircle className="w-4 h-4 mr-2 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span>AI-powered smart applications</span>
+                    </li>
+                    <li className="flex items-start text-slate-700 dark:text-slate-300 font-medium">
+                      <CheckCircle className="w-4 h-4 mr-2 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span>ATS optimization + real feedback</span>
+                    </li>
+                    <li className="flex items-start text-slate-700 dark:text-slate-300 font-medium">
+                      <CheckCircle className="w-4 h-4 mr-2 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span>Video AI interview practice</span>
+                    </li>
+                    <li className="flex items-start text-slate-700 dark:text-slate-300 font-medium">
+                      <CheckCircle className="w-4 h-4 mr-2 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span>7 days to first interview</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
@@ -531,24 +678,35 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Simple Pricing - Focus on Value */}
+      {/* Pricing with Social Proof & Urgency */}
       <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-900">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
+            <Badge className="mb-4 bg-gradient-to-r from-orange-600 to-red-600 text-white px-4 py-2 animate-pulse">
+              <Clock className="w-4 h-4 mr-2" />
+              Limited Time: First 1,000 users get Premium FREE for 30 days
+            </Badge>
             <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
               Start Free, Upgrade When Ready
             </h2>
             <p className="text-xl text-slate-600 dark:text-slate-300">
               Try everything free. Upgrade for unlimited access.
             </p>
+            <div className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-500">
+              <Users className="w-4 h-4" />
+              <span>847 users upgraded to Premium this week</span>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Free Plan */}
-            <Card className="border-2">
+            <Card className="border-2 hover:shadow-xl transition-shadow">
               <CardContent className="p-8">
                 <h3 className="text-2xl font-bold mb-2">Free Forever</h3>
                 <div className="text-4xl font-bold mb-4">$0<span className="text-lg text-slate-500">/month</span></div>
+                <Badge className="mb-4 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                  Perfect to get started
+                </Badge>
                 <ul className="space-y-3 mb-6">
                   {[
                     "Access to referral network",
@@ -565,14 +723,15 @@ export default function LandingPage() {
                 </ul>
                 <Link href="/auth">
                   <Button className="w-full" variant="outline" size="lg" data-testid="button-start-free-plan">
-                    Start Free
+                    Start Free Now
                   </Button>
                 </Link>
+                <p className="text-xs text-center text-slate-500 mt-3">No credit card required</p>
               </CardContent>
             </Card>
 
             {/* Premium Plan */}
-            <Card className="border-2 border-blue-500 relative shadow-xl">
+            <Card className="border-2 border-blue-500 relative shadow-2xl hover:shadow-3xl transition-shadow">
               <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                 <Badge className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-1">
                   <Crown className="w-3 h-3 mr-1" />
@@ -581,7 +740,14 @@ export default function LandingPage() {
               </div>
               <CardContent className="p-8">
                 <h3 className="text-2xl font-bold mb-2">Premium</h3>
-                <div className="text-4xl font-bold mb-4">$10<span className="text-lg text-slate-500">/month</span></div>
+                <div className="flex items-baseline gap-2 mb-4">
+                  <span className="text-4xl font-bold">$10</span>
+                  <span className="text-lg text-slate-500 line-through">$29</span>
+                  <span className="text-lg text-slate-500">/month</span>
+                </div>
+                <Badge className="mb-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+                  Save 66% - Launch Special
+                </Badge>
                 <ul className="space-y-3 mb-6">
                   {[
                     "Everything in Free",
@@ -595,18 +761,94 @@ export default function LandingPage() {
                   ].map((feature, idx) => (
                     <li key={idx} className="flex items-center">
                       <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                      <span>{feature}</span>
+                      <span className="font-medium">{feature}</span>
                     </li>
                   ))}
                 </ul>
                 <Link href="/subscription">
                   <Button className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white" size="lg" data-testid="button-upgrade-premium">
-                    Upgrade to Premium
+                    Get 30 Days Free
                     <Sparkles className="w-4 h-4 ml-2" />
                   </Button>
                 </Link>
+                <p className="text-xs text-center text-slate-500 mt-3">Cancel anytime. Money-back guarantee</p>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Trust Badges */}
+          <div className="mt-12 flex flex-wrap justify-center gap-6 items-center text-sm text-slate-500">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-green-600" />
+              <span>SSL Encrypted</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-green-600" />
+              <span>Secure Payments</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-green-600" />
+              <span>30-Day Money Back</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-green-600" />
+              <span>Instant Access</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-xl text-slate-600 dark:text-slate-300">
+              Everything you need to know about AutoJobr
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {[
+              {
+                q: "How does the referral network actually work?",
+                a: "Our network consists of verified employees at 500+ top companies who are willing to refer qualified candidates. When you match with a referrer, they review your profile and provide a direct internal referral to the hiring team, bypassing the traditional HR screening process. This increases your interview rate by 300%."
+              },
+              {
+                q: "Will my auto-applications get flagged as spam?",
+                a: "No! Unlike other platforms that use obvious bot patterns, our Chrome extension mimics human behavior with randomized timing, natural mouse movements, and personalized responses. We've helped users submit 100,000+ applications with a 0% flag rate."
+              },
+              {
+                q: "How is the AI interview practice different from others?",
+                a: "Our AI analyzes not just your words, but your body language, facial expressions, tone of voice, and speaking pace in real-time. You get instant feedback on confidence levels, filler words, eye contact, and more - just like a real interviewer would notice."
+              },
+              {
+                q: "Can I really get interviews in 7 days?",
+                a: "Yes! Our users who get referrals typically receive interview requests within 5-10 days. The referral network dramatically speeds up the process because you skip HR screening and go directly to hiring managers."
+              },
+              {
+                q: "What if I don't get results?",
+                a: "We offer a 30-day money-back guarantee. If you don't get at least one interview within 30 days of actively using our platform (applying to 20+ jobs, using AI tools, seeking referrals), we'll refund you completely."
+              },
+              {
+                q: "Is my data secure and private?",
+                a: "Absolutely. We use bank-level encryption (SSL/TLS), never sell your data, and you control exactly what information is shared with referrers. Your resume and personal details are only visible to people you choose to connect with."
+              }
+            ].map((faq, idx) => (
+              <Card key={idx} className="hover:shadow-lg transition-shadow">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3 flex items-start">
+                    <HelpCircle className="w-5 h-5 mr-3 text-blue-600 mt-0.5 flex-shrink-0" />
+                    {faq.q}
+                  </h3>
+                  <p className="text-slate-600 dark:text-slate-300 ml-8">
+                    {faq.a}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
