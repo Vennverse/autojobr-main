@@ -30,6 +30,7 @@ export default function VideoPractice() {
   const timerRef = useRef<any>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const hasInitializedCamera = useRef(false);
   const recordedChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const audioAnalysisRef = useRef<SimpleAudioAnalysis | null>(null);
@@ -41,6 +42,8 @@ export default function VideoPractice() {
   const analysisIntervalRef = useRef<any>(null);
   const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [cameraRetryTrigger, setCameraRetryTrigger] = useState(0);
+  const [cameraError, setCameraError] = useState<string>('');
 
   const analyzeVideo = async (blob: Blob, questionId: string) => {
     console.log('Analyzing video for question:', questionId);
@@ -237,6 +240,24 @@ export default function VideoPractice() {
     window.speechSynthesis.onvoiceschanged = loadVoices;
   }, []);
 
+  // Initialize camera when session starts and video element is available
+  useEffect(() => {
+    if (session && !showSetup && videoRef.current && !hasInitializedCamera.current) {
+      console.log('📹 Session active and video element ready, initializing camera...');
+      hasInitializedCamera.current = true;
+      setCameraError(''); // Clear any previous errors
+      
+      // Small delay to ensure DOM is fully ready
+      setTimeout(() => {
+        initializeVideoStream().catch((error) => {
+          console.error('Failed to initialize camera:', error);
+          hasInitializedCamera.current = false; // Allow retry
+          setCameraError(error.message || 'Failed to initialize camera');
+        });
+      }, 100);
+    }
+  }, [session, showSetup, cameraRetryTrigger]);
+
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {
@@ -247,6 +268,10 @@ export default function VideoPractice() {
       }
       if (window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
+      }
+      // Clean up media stream
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
   }, []);
@@ -264,9 +289,6 @@ export default function VideoPractice() {
     try {
       setLoading(true);
       
-      // Initialize video stream first
-      await initializeVideoStream();
-      
       const response = await apiRequest('/api/video-practice/start', 'POST', {
         role: setupData.role,
         company: setupData.company || undefined,
@@ -277,6 +299,7 @@ export default function VideoPractice() {
       setSession(response);
       setShowSetup(false);
       
+      // Camera will be initialized in useEffect when video element is rendered
       // Speak the first question after a short delay
       setTimeout(() => {
         if (response.questions && response.questions[0]) {
@@ -744,9 +767,30 @@ export default function VideoPractice() {
               />
               {!isVideoReady && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
-                  <Loader2 className="w-12 h-12 animate-spin text-blue-500 mb-4" />
-                  <p className="text-white text-lg font-medium">Initializing Camera...</p>
-                  <p className="text-gray-400 text-sm mt-2">Please allow camera access</p>
+                  {cameraError ? (
+                    <>
+                      <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+                      <p className="text-white text-lg font-medium mb-2">Camera Initialization Failed</p>
+                      <p className="text-gray-400 text-sm mb-4 text-center max-w-md px-4">{cameraError}</p>
+                      <Button
+                        onClick={() => {
+                          hasInitializedCamera.current = false;
+                          setCameraRetryTrigger(prev => prev + 1);
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700"
+                        data-testid="button-retry-camera"
+                      >
+                        <Camera className="w-4 h-4 mr-2" />
+                        Retry Camera
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Loader2 className="w-12 h-12 animate-spin text-blue-500 mb-4" />
+                      <p className="text-white text-lg font-medium">Initializing Camera...</p>
+                      <p className="text-gray-400 text-sm mt-2">Please allow camera access</p>
+                    </>
+                  )}
                 </div>
               )}
               
