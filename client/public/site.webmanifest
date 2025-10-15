@@ -1,116 +1,77 @@
-
-<old_str></old_str>
-<new_str>{
-  "name": "AutoJobR - AI Job Application Automation",
-  "short_name": "AutoJobR",
-  "description": "AI-powered job application automation platform. Apply to 1000+ jobs daily with auto-fill, ATS optimization, and intelligent matching.",
-  "start_url": "/?utm_source=pwa",
+{
+  "name": "AutoJobr - AI Job Application Platform",
+  "short_name": "AutoJobr",
+  "description": "Free job application automation that applies to 1000+ jobs daily with AI-powered tools",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#3b82f6",
+  "theme_color": "#667eea",
   "orientation": "portrait-primary",
   "scope": "/",
-  "lang": "en-US",
-  "dir": "ltr",
-  "categories": ["business", "productivity", "utilities"],
   "icons": [
     {
       "src": "/favicon-16x16.png",
       "sizes": "16x16",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     },
     {
       "src": "/favicon-32x32.png",
       "sizes": "32x32",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     },
     {
       "src": "/favicon.png",
-      "sizes": "192x192",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
-    },
-    {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
     }
   ],
   "screenshots": [
     {
-      "src": "/screenshot-wide.png",
-      "sizes": "1280x720",
+      "src": "/screenshot-mobile.png",
+      "sizes": "540x720",
       "type": "image/png",
-      "form_factor": "wide",
-      "label": "AutoJobR Dashboard - Job Application Automation"
+      "form_factor": "narrow"
     },
     {
-      "src": "/screenshot-narrow.png", 
-      "sizes": "720x1280",
+      "src": "/screenshot-desktop.png",
+      "sizes": "1280x720",
       "type": "image/png",
-      "form_factor": "narrow",
-      "label": "AutoJobR Mobile - Apply to Jobs on the Go"
+      "form_factor": "wide"
     }
   ],
   "shortcuts": [
     {
-      "name": "Find Jobs",
+      "name": "Search Jobs",
       "short_name": "Jobs",
       "description": "Browse and apply to jobs",
-      "url": "/jobs?utm_source=pwa_shortcut",
-      "icons": [
-        {
-          "src": "/favicon-32x32.png",
-          "sizes": "32x32",
-          "type": "image/png"
-        }
-      ]
+      "url": "/jobs",
+      "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Applications",
+      "short_name": "Applications",
+      "description": "Track your applications",
+      "url": "/applications",
+      "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
     },
     {
       "name": "Dashboard",
-      "short_name": "Dashboard", 
-      "description": "View your applications and analytics",
-      "url": "/dashboard?utm_source=pwa_shortcut",
-      "icons": [
-        {
-          "src": "/favicon-32x32.png",
-          "sizes": "32x32", 
-          "type": "image/png"
-        }
-      ]
-    },
-    {
-      "name": "Chrome Extension",
-      "short_name": "Extension",
-      "description": "Install automation extension", 
-      "url": "/chrome-extension?utm_source=pwa_shortcut",
-      "icons": [
-        {
-          "src": "/favicon-32x32.png",
-          "sizes": "32x32",
-          "type": "image/png"
-        }
-      ]
+      "short_name": "Dashboard",
+      "description": "View your dashboard",
+      "url": "/dashboard",
+      "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
     }
   ],
-  "related_applications": [
-    {
-      "platform": "chrome_web_store",
-      "url": "https://chrome.google.com/webstore/detail/autojobr/extension-id",
-      "id": "autojobr-extension"
+  "categories": ["business", "productivity", "lifestyle"],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
     }
-  ],
-  "prefer_related_applications": false,
-  "edge_side_panel": {
-    "preferred_width": 400
-  },
-  "protocol_handlers": [
-    {
-      "protocol": "web+autojobr",
-      "url": "/jobs?source=%s"
-    }
-  ]
-}</new_str>
+  }
+}
