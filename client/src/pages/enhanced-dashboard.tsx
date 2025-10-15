@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { Navbar } from "@/components/navbar";
 import { ContextualSidebar } from "@/components/contextual-sidebar";
 import {
   SidebarProvider,
@@ -206,15 +207,17 @@ export default function EnhancedDashboard() {
   const completedChallenges = dailyChallenges.filter(c => c.progress >= c.total).length;
 
   return (
-    <SidebarProvider>
-      <ContextualSidebar />
-      <SidebarInset>
-        <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-4 py-3">
-          <div className="flex items-center">
-            <SidebarTrigger className="mr-4" />
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Dashboard</h2>
+    <>
+      <Navbar />
+      <SidebarProvider>
+        <ContextualSidebar />
+        <SidebarInset>
+          <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-4 py-3">
+            <div className="flex items-center">
+              <SidebarTrigger className="mr-4" />
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Dashboard</h2>
+            </div>
           </div>
-        </div>
 
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-6">
           <div className="max-w-7xl mx-auto space-y-6">
@@ -548,5 +551,6 @@ export default function EnhancedDashboard() {
         </div>
       </SidebarInset>
     </SidebarProvider>
+    </>
   );
 }

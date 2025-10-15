@@ -510,6 +510,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // User endpoint with better error handling
+  app.get('/api/user', async (req: any, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const user = await storage.getUser(req.session.user.id);
+      
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      res.json(user);
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      res.status(500).json({ error: 'Failed to fetch user data' });
+    }
+  });
+
   // Enhanced logout endpoint with cache clearing
   app.post('/api/auth/logout', asyncHandler(async (req: any, res: any) => {
     const userId = req.session?.user?.id;
