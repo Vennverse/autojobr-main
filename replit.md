@@ -4,6 +4,13 @@
 AutoJobr is a full-stack web application designed to automate and streamline the job application process. Its primary purpose is to help users efficiently apply to a large volume of jobs by providing features such as ATS resume optimization, AI-powered cover letter generation, interview preparation, and a Chrome extension for one-click applications. The platform aims to simplify job searching, enhance application quality, and provide tools for career advancement, positioning itself as a comprehensive solution for job seekers.
 
 ## Recent Changes (October 15, 2025)
+- **LinkedIn Share Verification for Test Retakes**: Implemented dual-option retake system allowing users to unlock test retakes by either:
+  - **Payment Option**: $5 one-time payment via PayPal or Amazon Pay
+  - **LinkedIn Share Option**: Share test experience on LinkedIn and verify post URL for free retake access
+  - Backend API validates LinkedIn posts using LinkedIn oEmbed API
+  - Database tracking for retake method, LinkedIn share URL, and verification status
+  - User-friendly tabbed interface with clear step-by-step instructions
+  - Real-time verification and instant retake access upon successful validation
 - **Landing Page Hero Redesign**: Implemented auto-rotating hero slider (8 slides, 5-second intervals) showcasing AI-powered tools and features:
   1. AI Career Coach - personalized guidance
   2. AI Interview Practice - real-time video + voice analysis
