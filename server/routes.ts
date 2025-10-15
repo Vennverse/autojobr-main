@@ -43,6 +43,7 @@ import { internshipScrapingService } from "./internshipScrapingService.js";
 import { dailySyncService } from "./dailySyncService.js";
 import { jobSpyService } from "./jobspyService.js";
 import crypto from 'crypto';
+import axios from 'axios';
 import { 
   checkJobPostingLimit,
   checkApplicantLimit,
@@ -4075,6 +4076,90 @@ Return only the cover letter text, no additional formatting or explanations.`;
     } catch (error) {
       console.error('Test retake payment error:', error);
       res.status(500).json({ message: 'Failed to process retake payment' });
+    }
+  });
+
+  // LinkedIn share verification for retake
+  app.post('/api/test-assignments/:id/retake/linkedin-share', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const assignmentId = parseInt(req.params.id);
+      const { linkedinPostUrl } = req.body;
+
+      if (!linkedinPostUrl) {
+        return res.status(400).json({ message: 'LinkedIn post URL is required' });
+      }
+
+      // Validate LinkedIn URL format
+      const linkedinUrlPattern = /^https?:\/\/(www\.)?linkedin\.com\/(posts?|feed\/update)\/.+/i;
+      if (!linkedinUrlPattern.test(linkedinPostUrl)) {
+        return res.status(400).json({ message: 'Invalid LinkedIn post URL format' });
+      }
+
+      // Verify the assignment exists and belongs to the user
+      const [assignment] = await db
+        .select()
+        .from(schema.testAssignments)
+        .where(
+          and(
+            eq(schema.testAssignments.id, assignmentId),
+            eq(schema.testAssignments.jobSeekerId, userId)
+          )
+        );
+
+      if (!assignment) {
+        return res.status(404).json({ message: 'Test assignment not found' });
+      }
+
+      if (assignment.retakeAllowed) {
+        return res.status(400).json({ message: 'Retake already enabled for this assignment' });
+      }
+
+      // Verify LinkedIn post using oEmbed API
+      try {
+        const oembedUrl = `https://www.linkedin.com/oembed?url=${encodeURIComponent(linkedinPostUrl)}&format=json`;
+        const response = await axios.get(oembedUrl);
+
+        if (response.status === 200 && response.data) {
+          // Post exists and is public - grant retake access
+          await db
+            .update(schema.testAssignments)
+            .set({
+              retakeAllowed: true,
+              retakeMethod: 'linkedin_share',
+              linkedinShareUrl: linkedinPostUrl,
+              linkedinShareVerified: true,
+              linkedinShareVerifiedAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(schema.testAssignments.id, assignmentId));
+
+          console.log('✅ [RETAKE] LinkedIn share verified for assignment:', assignmentId);
+
+          res.json({
+            success: true,
+            message: 'LinkedIn post verified! Retake access granted.',
+            postPreview: response.data,
+          });
+        } else {
+          res.status(400).json({ message: 'Could not verify LinkedIn post' });
+        }
+      } catch (verifyError: any) {
+        console.error('LinkedIn oEmbed verification error:', verifyError.response?.data || verifyError.message);
+        
+        if (verifyError.response?.status === 404) {
+          return res.status(404).json({ 
+            message: 'LinkedIn post not found or is not public. Please ensure the post is publicly visible.' 
+          });
+        }
+
+        return res.status(400).json({ 
+          message: 'Failed to verify LinkedIn post. Please check the URL and try again.' 
+        });
+      }
+    } catch (error) {
+      console.error('LinkedIn share verification error:', error);
+      res.status(500).json({ message: 'Failed to process LinkedIn share verification' });
     }
   });
 

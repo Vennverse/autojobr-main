@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
@@ -19,9 +21,12 @@ import {
   Target,
   Brain,
   Lightbulb,
-  Award
+  Award,
+  Share2,
+  ExternalLink
 } from "lucide-react";
 import PayPalHostedButton from "@/components/PayPalHostedButton";
+import { SiLinkedin } from "react-icons/si";
 
 export default function TestRetakePayment() {
   const params = useParams<{ id: string }>();
@@ -31,6 +36,8 @@ export default function TestRetakePayment() {
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'amazon_pay'>('paypal');
+  const [linkedinPostUrl, setLinkedinPostUrl] = useState('');
+  const [activeTab, setActiveTab] = useState<'payment' | 'linkedin'>('linkedin');
 
   // Fetch test assignment details
   const { data: assignment, isLoading } = useQuery({
@@ -97,6 +104,56 @@ export default function TestRetakePayment() {
       console.error('Payment processing error:', error);
       setIsProcessing(false);
     }
+  };
+
+  // LinkedIn share verification mutation
+  const verifyLinkedinShareMutation = useMutation({
+    mutationFn: async (postUrl: string) => {
+      return await apiRequest(`/api/test-assignments/${params?.id}/retake/linkedin-share`, "POST", {
+        linkedinPostUrl: postUrl
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "LinkedIn Post Verified! 🎉",
+        description: "Your retake is now available. You can start the test again.",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/jobseeker/test-assignments"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/test-assignments/${params?.id}`] });
+
+      setTimeout(() => {
+        setLocation(`/test/${params?.id}`);
+      }, 1500);
+    },
+    onError: (error: any) => {
+      console.error('LinkedIn verification error:', error);
+      toast({
+        title: "Verification Failed",
+        description: error.message || "Could not verify LinkedIn post. Please ensure the post is public and the URL is correct.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleLinkedinShare = () => {
+    const testName = assignment?.testTemplate?.title || 'Skills Assessment';
+    const shareText = `I'm taking on new challenges to showcase my skills! Just completed a ${testName} on AutoJobr. Excited to demonstrate what I can do! 🚀 #CareerGrowth #SkillsDevelopment`;
+    const shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://autojobr.com')}&summary=${encodeURIComponent(shareText)}`;
+    window.open(shareUrl, '_blank', 'width=600,height=600');
+  };
+
+  const handleVerifyLinkedinPost = async () => {
+    if (!linkedinPostUrl.trim()) {
+      toast({
+        title: "URL Required",
+        description: "Please enter your LinkedIn post URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    verifyLinkedinShareMutation.mutate(linkedinPostUrl);
   };
 
   const passingScore = assignment?.testTemplate?.passingScore || 70;
@@ -281,14 +338,108 @@ export default function TestRetakePayment() {
           </Card>
         </div>
 
-        {/* Right Column - Payment */}
+        {/* Right Column - Payment or LinkedIn Share */}
         <div className="space-y-6">
           <Card className="border-2 border-blue-200">
             <CardHeader className="text-center bg-blue-50 dark:bg-blue-900/20">
-              <CardTitle className="text-blue-900 dark:text-blue-100">Retake Package</CardTitle>
-              <CardDescription>Fair opportunity for everyone</CardDescription>
+              <CardTitle className="text-blue-900 dark:text-blue-100">Unlock Your Retake</CardTitle>
+              <CardDescription>Choose your preferred option</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
+              <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'payment' | 'linkedin')} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="linkedin" className="flex items-center gap-2" data-testid="tab-linkedin-share">
+                    <Share2 className="w-4 h-4" />
+                    Share on LinkedIn
+                  </TabsTrigger>
+                  <TabsTrigger value="payment" className="flex items-center gap-2" data-testid="tab-payment">
+                    <CreditCard className="w-4 h-4" />
+                    Pay $5
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* LinkedIn Share Tab */}
+                <TabsContent value="linkedin" className="space-y-4">
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 p-4 rounded-lg border border-blue-200">
+                    <div className="flex items-start gap-3 mb-3">
+                      <SiLinkedin className="w-6 h-6 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Free Retake via LinkedIn Share</h3>
+                        <p className="text-sm text-blue-700 dark:text-blue-300">Share your learning journey and unlock your retake for free!</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <span>Share a post about your test on LinkedIn</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <span>Post must be publicly visible</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <span>Paste the post URL to verify</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <span>Instant retake access after verification</span>
+                    </div>
+                  </div>
+
+                  <Separator className="my-4" />
+
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm">Step 1: Share on LinkedIn</h4>
+                    <Button
+                      onClick={handleLinkedinShare}
+                      className="w-full bg-[#0077B5] hover:bg-[#006399] text-white"
+                      data-testid="button-share-linkedin"
+                    >
+                      <SiLinkedin className="w-4 h-4 mr-2" />
+                      Share Post on LinkedIn
+                      <ExternalLink className="w-4 h-4 ml-2" />
+                    </Button>
+                    <p className="text-xs text-gray-500 text-center">Opens LinkedIn in a new window with pre-filled text</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm">Step 2: Paste Post URL</h4>
+                    <Input
+                      type="url"
+                      placeholder="https://www.linkedin.com/posts/..."
+                      value={linkedinPostUrl}
+                      onChange={(e) => setLinkedinPostUrl(e.target.value)}
+                      className="w-full"
+                      data-testid="input-linkedin-url"
+                    />
+                    <p className="text-xs text-gray-500">Copy the URL from your LinkedIn post after sharing</p>
+                  </div>
+
+                  <Button
+                    onClick={handleVerifyLinkedinPost}
+                    disabled={verifyLinkedinShareMutation.isPending || !linkedinPostUrl.trim()}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    data-testid="button-verify-linkedin"
+                  >
+                    {verifyLinkedinShareMutation.isPending ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                        Verifying Post...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4" />
+                        Verify & Unlock Retake
+                      </div>
+                    )}
+                  </Button>
+                </TabsContent>
+
+                {/* Payment Tab */}
+                <TabsContent value="payment" className="space-y-4">
               <div className="text-center mb-6">
                 <div className="text-4xl font-bold text-blue-600 mb-2">$5</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">One-time payment</div>
@@ -469,6 +620,8 @@ export default function TestRetakePayment() {
               <p className="text-xs text-gray-500 text-center mt-3">
                 Secure payment processing. Money-back guarantee if technical issues occur.
               </p>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </div>

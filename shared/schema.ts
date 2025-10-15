@@ -1362,6 +1362,10 @@ export const testAssignments = pgTable("test_assignments", {
   retakePaymentId: varchar("retake_payment_id"), // payment for retake
   retakeCount: integer("retake_count").default(0),
   maxRetakes: integer("max_retakes").default(1),
+  retakeMethod: varchar("retake_method"), // "payment" or "linkedin_share"
+  linkedinShareUrl: varchar("linkedin_share_url"), // LinkedIn post URL for verification
+  linkedinShareVerified: boolean("linkedin_share_verified").default(false),
+  linkedinShareVerifiedAt: timestamp("linkedin_share_verified_at"),
 
   // Notifications
   emailSent: boolean("email_sent").default(false),
