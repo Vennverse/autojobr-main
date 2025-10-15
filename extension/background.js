@@ -4,6 +4,54 @@ console.log('🚀 AutoJobr Autopilot v3.0 loading...');
 // Import helper modules
 importScripts('autopilot-engine.js', 'resume-optimizer.js', 'referral-finder.js');
 
+// Background service worker for AutoJobr Chrome Extension
+
+let isAuthenticated = false;
+let currentUser = null;
+
+// Daily engagement notifications
+chrome.alarms.create('morningReminder', { 
+  when: Date.now() + 1000,
+  periodInMinutes: 1440 // Daily
+});
+
+chrome.alarms.create('eveningReminder', { 
+  when: Date.now() + 1000,
+  periodInMinutes: 1440
+});
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === 'morningReminder') {
+    const hour = new Date().getHours();
+    if (hour === 8) { // 8 AM
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icons/icon128.png',
+        title: '🌅 Good Morning! Time to Job Hunt',
+        message: 'Check your new job matches and today\'s tasks',
+        buttons: [{ title: 'Open Dashboard' }]
+      });
+    }
+  }
+
+  if (alarm.name === 'eveningReminder') {
+    const hour = new Date().getHours();
+    if (hour === 18) { // 6 PM
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icons/icon128.png',
+        title: '📊 Daily Progress Update',
+        message: 'Review today\'s achievements and plan tomorrow',
+        buttons: [{ title: 'View Summary' }]
+      });
+    }
+  }
+});
+
+chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
+  chrome.tabs.create({ url: 'https://autojobr.com/dashboard' });
+});
+
 class AutoJobrBackground {
   constructor() {
     this.apiUrl = 'https://autojobr.com';

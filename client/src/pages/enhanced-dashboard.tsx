@@ -206,6 +206,14 @@ export default function EnhancedDashboard() {
 
   const completedChallenges = dailyChallenges.filter(c => c.progress >= c.total).length;
 
+  // Daily habit tracking
+  const [dailyChecklist, setDailyChecklist] = useState({
+    resumeReviewed: false,
+    threeApplications: false,
+    networked: false,
+    skillLearned: false
+  });
+
   return (
     <>
       <Navbar />
@@ -254,6 +262,55 @@ export default function EnhancedDashboard() {
                   </Button>
                 )}
               </div>
+            </motion.div>
+
+            {/* Daily Career Checklist */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+            >
+              <Card className="border-2 border-purple-100 dark:border-purple-900 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="flex items-center">
+                      <Zap className="w-5 h-5 mr-2 text-purple-500" />
+                      Daily Career Habits
+                    </span>
+                    <Badge variant="outline">
+                      {Object.values(dailyChecklist).filter(Boolean).length}/4 Complete
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {[
+                    { key: 'resumeReviewed', label: 'Review & update resume', icon: FileText },
+                    { key: 'threeApplications', label: 'Apply to 3+ jobs', icon: Send },
+                    { key: 'networked', label: 'Connect with 2 professionals', icon: Users },
+                    { key: 'skillLearned', label: 'Learn something new (15 min)', icon: BookOpen }
+                  ].map(({ key, label, icon: Icon }) => (
+                    <div 
+                      key={key}
+                      className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                      onClick={() => setDailyChecklist(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))}
+                    >
+                      <div className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
+                        dailyChecklist[key as keyof typeof dailyChecklist] 
+                          ? 'bg-purple-500 border-purple-500' 
+                          : 'border-slate-300 dark:border-slate-600'
+                      }`}>
+                        {dailyChecklist[key as keyof typeof dailyChecklist] && (
+                          <CheckCircle className="w-4 h-4 text-white" />
+                        )}
+                      </div>
+                      <Icon className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                      <span className={dailyChecklist[key as keyof typeof dailyChecklist] ? 'line-through text-slate-500' : ''}>
+                        {label}
+                      </span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
             </motion.div>
 
             {/* Daily Challenges */}
