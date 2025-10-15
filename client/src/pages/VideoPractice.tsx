@@ -110,48 +110,22 @@ export default function VideoPractice() {
       });
 
       if (videoRef.current) {
-        // Clear any existing stream first
-        if (videoRef.current.srcObject) {
-          const oldStream = videoRef.current.srcObject as MediaStream;
-          oldStream.getTracks().forEach(track => track.stop());
-        }
-
         videoRef.current.srcObject = stream;
         videoRef.current.muted = true; // Mute local playback to avoid feedback
         
-        // Wait for video to be ready with better error handling
+        // Wait for video to be ready
         await new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => {
             reject(new Error('Video initialization timeout'));
-          }, 10000); // Increased timeout to 10 seconds
+          }, 5000);
 
-          const onLoadedMetadata = () => {
+          videoRef.current!.onloadedmetadata = () => {
             clearTimeout(timeout);
-            videoRef.current!.play()
-              .then(() => {
-                console.log('✅ Video stream started successfully');
-                // Remove event listeners
-                videoRef.current!.removeEventListener('loadedmetadata', onLoadedMetadata);
-                videoRef.current!.removeEventListener('error', onError);
-                resolve();
-              })
-              .catch(reject);
+            videoRef.current!.play().then(() => {
+              console.log('✅ Video stream started successfully');
+              resolve();
+            }).catch(reject);
           };
-
-          const onError = (e: Event) => {
-            clearTimeout(timeout);
-            videoRef.current!.removeEventListener('loadedmetadata', onLoadedMetadata);
-            videoRef.current!.removeEventListener('error', onError);
-            reject(new Error('Video element error: ' + (e as ErrorEvent).message));
-          };
-
-          videoRef.current!.addEventListener('loadedmetadata', onLoadedMetadata);
-          videoRef.current!.addEventListener('error', onError);
-
-          // Force load if metadata already available
-          if (videoRef.current!.readyState >= 1) {
-            onLoadedMetadata();
-          }
         });
         
         streamRef.current = stream;
@@ -161,10 +135,6 @@ export default function VideoPractice() {
           title: "Camera & Microphone Ready",
           description: `✅ Video: ${stream.getVideoTracks().length} track, Audio: ${stream.getAudioTracks().length} track`,
         });
-      } else {
-        // If videoRef is not available, stop the stream
-        stream.getTracks().forEach(track => track.stop());
-        throw new Error('Video element not available');
       }
     } catch (error: any) {
       console.error('❌ Failed to access camera/microphone:', error);
@@ -184,9 +154,6 @@ export default function VideoPractice() {
       } else if (error.message?.includes('timeout')) {
         errorTitle = "Initialization Timeout";
         errorMessage = "Camera took too long to start. Please refresh and try again.";
-      } else if (error.message?.includes('Video element')) {
-        errorTitle = "Video Element Error";
-        errorMessage = "Video display initialization failed. Please refresh the page.";
       }
       
       toast({
@@ -203,35 +170,12 @@ export default function VideoPractice() {
 
   useEffect(() => {
     return () => {
-      // Clean up media stream
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => {
-          track.stop();
-          console.log('🛑 Stopped track:', track.kind);
-        });
-      }
-      
-      // Clean up speech recognition
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
-      
-      // Clean up timer
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
-
-      // Clean up analysis interval
-      if (analysisIntervalRef.current) {
-        clearInterval(analysisIntervalRef.current);
-      }
-
-      // Clean up audio analysis
-      if (audioAnalysisRef.current) {
-        audioAnalysisRef.current.stop();
-      }
-
-      console.log('✅ Video interview cleanup complete');
     };
   }, []);
 
