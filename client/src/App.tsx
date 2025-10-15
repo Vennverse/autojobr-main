@@ -352,6 +352,8 @@ function Router() {
               <Route path="/bidder-dashboard" component={BidderDashboard} />
               <Route path="/bidder-profile" component={BidderProfile} />
               <Route path="/job-seeker-view" component={Dashboard} />
+              {/* Add the enhanced-crm route here */}
+              <Route path="/enhanced-crm" component={EnhancedCrmDashboard} />
             </>
           ) : user?.userType === 'job_seeker' ? (
             <>

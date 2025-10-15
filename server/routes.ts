@@ -1957,6 +1957,153 @@ Return only the improved job description text, no additional formatting or expla
   const bidderRoutes = (await import('./bidderRoutes.js')).default;
   app.use('/api', bidderRoutes);
 
+  // ===== CRM ROUTES =====
+  // Dashboard stats
+  app.get('/api/crm/dashboard-stats', isAuthenticated, async (req: any, res) => {
+    try {
+      await EnhancedCrmService.getDashboardStats(req, res);
+    } catch (error) {
+      console.error('[CRM] Dashboard stats error:', error);
+      handleError(res, error, 'Failed to fetch CRM dashboard stats');
+    }
+  });
+
+  // Contacts
+  app.post('/api/crm/contacts', isAuthenticated, async (req: any, res) => {
+    try {
+      await EnhancedCrmService.createContact(req, res);
+    } catch (error) {
+      handleError(res, error, 'Failed to create contact');
+    }
+  });
+
+  app.get('/api/crm/contacts', isAuthenticated, async (req: any, res) => {
+    try {
+      await CrmService.getContacts(req, res);
+    } catch (error) {
+      handleError(res, error, 'Failed to fetch contacts');
+    }
+  });
+
+  // Companies
+  app.post('/api/crm/companies', isAuthenticated, async (req: any, res) => {
+    try {
+      await EnhancedCrmService.createCompany(req, res);
+    } catch (error) {
+      handleError(res, error, 'Failed to create company');
+    }
+  });
+
+  app.get('/api/crm/companies', isAuthenticated, async (req: any, res) => {
+    try {
+      await EnhancedCrmService.getCompanies(req, res);
+    } catch (error) {
+      handleError(res, error, 'Failed to fetch companies');
+    }
+  });
+
+  // Deals
+  app.post('/api/crm/deals', isAuthenticated, async (req: any, res) => {
+    try {
+      await EnhancedCrmService.createDeal(req, res);
+    } catch (error) {
+      handleError(res, error, 'Failed to create deal');
+    }
+  });
+
+  app.get('/api/crm/deals', isAuthenticated, async (req: any, res) => {
+    try {
+      await EnhancedCrmService.getDeals(req, res);
+    } catch (error) {
+      handleError(res, error, 'Failed to fetch deals');
+    }
+  });
+
+  // Email Templates
+  app.post('/api/crm/email-templates', isAuthenticated, async (req: any, res) => {
+    try {
+      await EnhancedCrmService.createEmailTemplate(req, res);
+    } catch (error) {
+      handleError(res, error, 'Failed to create email template');
+    }
+  });
+
+  app.get('/api/crm/email-templates', isAuthenticated, async (req: any, res) => {
+    try {
+      await EnhancedCrmService.getEmailTemplates(req, res);
+    } catch (error) {
+      handleError(res, error, 'Failed to fetch email templates');
+    }
+  });
+
+  // AI Email Generation
+  app.post('/api/crm/email/generate-ai', isAuthenticated, async (req: any, res) => {
+    try {
+      await EnhancedCrmService.generateEmailWithAI(req, res);
+    } catch (error) {
+      handleError(res, error, 'Failed to generate AI email');
+    }
+  });
+
+  app.post('/api/crm/email/send', isAuthenticated, async (req: any, res) => {
+    try {
+      await EnhancedCrmService.sendEmail(req, res);
+    } catch (error) {
+      handleError(res, error, 'Failed to send email');
+    }
+  });
+
+  // Meetings
+  app.post('/api/crm/meetings', isAuthenticated, async (req: any, res) => {
+    try {
+      await EnhancedCrmService.createMeeting(req, res);
+    } catch (error) {
+      handleError(res, error, 'Failed to create meeting');
+    }
+  });
+
+  app.get('/api/crm/meetings', isAuthenticated, async (req: any, res) => {
+    try {
+      await EnhancedCrmService.getMeetings(req, res);
+    } catch (error) {
+      handleError(res, error, 'Failed to fetch meetings');
+    }
+  });
+
+  // Workflows
+  app.post('/api/crm/workflows', isAuthenticated, async (req: any, res) => {
+    try {
+      await EnhancedCrmService.createWorkflow(req, res);
+    } catch (error) {
+      handleError(res, error, 'Failed to create workflow');
+    }
+  });
+
+  app.get('/api/crm/workflows', isAuthenticated, async (req: any, res) => {
+    try {
+      await EnhancedCrmService.getWorkflows(req, res);
+    } catch (error) {
+      handleError(res, error, 'Failed to fetch workflows');
+    }
+  });
+
+  app.put('/api/crm/workflows/:workflowId/toggle', isAuthenticated, async (req: any, res) => {
+    try {
+      await EnhancedCrmService.toggleWorkflow(req, res);
+    } catch (error) {
+      handleError(res, error, 'Failed to toggle workflow');
+    }
+  });
+
+  // Activities
+  app.get('/api/crm/activities', isAuthenticated, async (req: any, res) => {
+    try {
+      await EnhancedCrmService.getActivities(req, res);
+    } catch (error) {
+      handleError(res, error, 'Failed to fetch activities');
+    }
+  });
+
   // ===== MOUNT PAYMENT ROUTES =====
   const { paymentRoutes } = await import('./paymentRoutes.js');
   app.use('/api/payments', paymentRoutes);
