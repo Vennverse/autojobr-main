@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Video, Mic, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { Video, Mic, CheckCircle, Loader2, AlertCircle, Volume2, VolumeX, Camera, CameraOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { SimpleFaceAnalysis, SimpleAudioAnalysis } from '@/lib/faceAnalysis';
@@ -39,6 +39,8 @@ export default function VideoPractice() {
   const [videoAnalysis, setVideoAnalysis] = useState<any>(null);
   const faceAnalysisRef = useRef<SimpleFaceAnalysis | null>(null);
   const analysisIntervalRef = useRef<any>(null);
+  const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const analyzeVideo = async (blob: Blob, questionId: string) => {
     console.log('Analyzing video for question:', questionId);
@@ -88,6 +90,7 @@ export default function VideoPractice() {
       }
 
       console.log('🎥 Requesting camera and microphone permissions...');
+      setIsVideoReady(false);
 
       // Request permissions with optimal settings - BOTH video AND audio
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -110,30 +113,45 @@ export default function VideoPractice() {
       });
 
       if (videoRef.current) {
+        // Set the stream first
         videoRef.current.srcObject = stream;
         videoRef.current.muted = true; // Mute local playback to avoid feedback
         
-        // Wait for video to be ready
+        // Wait for video to be ready with better error handling
         await new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => {
+            console.error('⏰ Video initialization timeout');
             reject(new Error('Video initialization timeout'));
-          }, 5000);
+          }, 10000); // Increased timeout to 10 seconds
 
-          videoRef.current!.onloadedmetadata = () => {
+          const handleCanPlay = () => {
             clearTimeout(timeout);
-            videoRef.current!.play().then(() => {
-              console.log('✅ Video stream started successfully');
-              resolve();
-            }).catch(reject);
+            videoRef.current!.removeEventListener('canplay', handleCanPlay);
+            
+            videoRef.current!.play()
+              .then(() => {
+                console.log('✅ Video stream playing successfully');
+                streamRef.current = stream;
+                setIsVideoReady(true);
+                resolve();
+              })
+              .catch((playError) => {
+                console.error('❌ Video play error:', playError);
+                reject(playError);
+              });
+          };
+
+          videoRef.current!.addEventListener('canplay', handleCanPlay);
+          
+          // Fallback: also listen for loadedmetadata
+          videoRef.current!.onloadedmetadata = () => {
+            console.log('📹 Video metadata loaded');
           };
         });
         
-        streamRef.current = stream;
-        setIsVideoReady(true);
-        
         toast({
-          title: "Camera & Microphone Ready",
-          description: `✅ Video: ${stream.getVideoTracks().length} track, Audio: ${stream.getAudioTracks().length} track`,
+          title: "✅ Camera & Microphone Ready",
+          description: "Your video and audio are working perfectly",
         });
       }
     } catch (error: any) {
@@ -168,6 +186,57 @@ export default function VideoPractice() {
     }
   };
 
+  // Text-to-Speech function to read out questions
+  const speakQuestion = (text: string) => {
+    // Stop any ongoing speech
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Configure voice settings for clear, deep voice
+    utterance.rate = 0.9; // Slightly slower for clarity
+    utterance.pitch = 0.8; // Lower pitch for deeper voice
+    utterance.volume = 1.0; // Full volume
+    
+    // Try to get a high-quality voice
+    const voices = window.speechSynthesis.getVoices();
+    
+    // Prefer Google US English or Microsoft voices for better quality
+    const preferredVoice = voices.find(voice => 
+      voice.name.includes('Google US English') || 
+      voice.name.includes('Microsoft David') ||
+      voice.name.includes('Alex') ||
+      (voice.lang.includes('en') && voice.name.includes('Natural'))
+    );
+    
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    } else {
+      // Fallback to any English voice
+      const englishVoice = voices.find(voice => voice.lang.startsWith('en'));
+      if (englishVoice) utterance.voice = englishVoice;
+    }
+
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    speechSynthesisRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Load voices on mount
+  useEffect(() => {
+    const loadVoices = () => {
+      window.speechSynthesis.getVoices();
+    };
+    
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }, []);
+
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {
@@ -175,6 +244,9 @@ export default function VideoPractice() {
       }
       if (timerRef.current) {
         clearInterval(timerRef.current);
+      }
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
       }
     };
   }, []);
@@ -204,6 +276,13 @@ export default function VideoPractice() {
       
       setSession(response);
       setShowSetup(false);
+      
+      // Speak the first question after a short delay
+      setTimeout(() => {
+        if (response.questions && response.questions[0]) {
+          speakQuestion(response.questions[0].question);
+        }
+      }, 1000);
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -449,10 +528,18 @@ export default function VideoPractice() {
         await apiRequest(`/api/video-practice/${session.sessionId}/complete`, 'POST');
         setLocation(`/video-practice/feedback/${session.sessionId}`);
       } else {
-        setCurrentQuestion(prev => prev + 1);
+        const nextQuestionIndex = currentQuestion + 1;
+        setCurrentQuestion(nextQuestionIndex);
         setTranscript('');
         setRecordingTime(0);
         toast({ title: "Response Submitted", description: "Great! Moving to next question." });
+        
+        // Speak the next question
+        setTimeout(() => {
+          if (session.questions && session.questions[nextQuestionIndex]) {
+            speakQuestion(session.questions[nextQuestionIndex].question);
+          }
+        }, 1500);
       }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -608,9 +695,25 @@ export default function VideoPractice() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Video className="w-5 h-5" />
-              {question.question}
+            <CardTitle className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 flex-1">
+                <Video className="w-5 h-5 flex-shrink-0" />
+                <span className="flex-1">{question.question}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {isSpeaking && (
+                  <Volume2 className="w-5 h-5 text-blue-600 dark:text-blue-400 animate-pulse" data-testid="icon-speaking" />
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => speakQuestion(question.question)}
+                  className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
+                  data-testid="button-replay-question"
+                >
+                  {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                </Button>
+              </div>
             </CardTitle>
             {question.type === 'technical' && (
               <p className="text-sm text-blue-600 dark:text-blue-400 mt-2 bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
@@ -630,21 +733,41 @@ export default function VideoPractice() {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Video Preview */}
-            <div className="relative w-full aspect-video bg-gray-900 rounded-lg overflow-hidden">
+            <div className="relative w-full aspect-video bg-gray-900 rounded-lg overflow-hidden border-2 border-gray-300 dark:border-gray-700">
               <video
                 ref={videoRef}
                 autoPlay
                 muted
                 playsInline
                 className="w-full h-full object-cover"
+                data-testid="video-preview"
               />
               {!isVideoReady && (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-                  <Loader2 className="w-8 h-8 animate-spin text-white" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+                  <Loader2 className="w-12 h-12 animate-spin text-blue-500 mb-4" />
+                  <p className="text-white text-lg font-medium">Initializing Camera...</p>
+                  <p className="text-gray-400 text-sm mt-2">Please allow camera access</p>
                 </div>
               )}
+              
+              {/* Camera status indicator */}
+              <div className="absolute top-4 left-4 flex items-center gap-2">
+                {isVideoReady ? (
+                  <div className="flex items-center gap-2 bg-green-600/90 text-white px-3 py-1.5 rounded-full backdrop-blur-sm" data-testid="status-camera-ready">
+                    <Camera className="w-4 h-4" />
+                    <span className="text-sm font-medium">Camera Ready</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 bg-red-600/90 text-white px-3 py-1.5 rounded-full backdrop-blur-sm" data-testid="status-camera-not-ready">
+                    <CameraOff className="w-4 h-4" />
+                    <span className="text-sm font-medium">Video Not Ready</span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Recording indicator */}
               {isRecording && (
-                <div className="absolute top-4 right-4 flex items-center gap-2 bg-red-600 text-white px-3 py-1 rounded-full">
+                <div className="absolute top-4 right-4 flex items-center gap-2 bg-red-600/90 text-white px-3 py-1.5 rounded-full backdrop-blur-sm" data-testid="status-recording">
                   <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
                   <span className="text-sm font-medium">REC {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}</span>
                 </div>
