@@ -54,7 +54,8 @@ import {
   Globe,
   Send,
   ExternalLink,
-  Brain
+  Brain,
+  ChevronRight // Import ChevronRight
 } from "lucide-react";
 
 export default function ModernDashboard() {
@@ -433,7 +434,11 @@ export default function ModernDashboard() {
               </motion.div>
 
               {/* Recent Applications */}
-              <motion.div variants={itemVariants}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
                 <Card className="shadow-lg border-0 bg-white dark:bg-gray-800">
                   <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-800">
                     <CardTitle className="flex items-center justify-between">
@@ -448,6 +453,7 @@ export default function ModernDashboard() {
                         className="text-green-600 hover:text-green-700"
                       >
                         View All
+                        <ChevronRight className="w-4 h-4 ml-1" />
                       </Button>
                     </CardTitle>
                   </CardHeader>
@@ -468,32 +474,45 @@ export default function ModernDashboard() {
                       </div>
                     ) : applications && applications.length > 0 ? (
                       <div className="space-y-4">
-                        {applications.slice(0, 5).map((app: any) => (
-                          <div 
-                            key={app.id} 
-                            className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer"
-                            onClick={() => navigate('/applications')}
-                          >
-                            <div className="flex items-center gap-3 flex-1">
-                              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
-                                <Building className="w-5 h-5 text-white" />
+                        {applications.slice(0, 5).map((app: any) => {
+                          // Extract real data from application object
+                          const jobTitle = app.jobTitle || app.job?.title || 'Job Position';
+                          const company = app.companyName || app.company || app.job?.company || 'Company Name';
+                          const appliedDate = app.appliedAt || app.appliedDate || app.createdAt;
+                          const status = app.status || 'applied';
+
+                          return (
+                            <div 
+                              key={app.id} 
+                              className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+                              onClick={() => navigate('/applications')}
+                            >
+                              <div className="flex items-center gap-3 flex-1">
+                                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+                                  <Building className="w-5 h-5 text-white" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-gray-900 dark:text-white truncate">
+                                    {jobTitle}
+                                  </h4>
+                                  <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                                    {company}
+                                  </p>
+                                  {appliedDate && (
+                                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                      Applied {new Date(appliedDate).toLocaleDateString()}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-gray-900 dark:text-white truncate">
-                                  {app.jobTitle || 'Job Position'}
-                                </h4>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                                  {app.company || 'Company Name'}
-                                </p>
+                              <div className="flex items-center gap-2 ml-4">
+                                <Badge className={getStatusColor(status)}>
+                                  {status?.replace('_', ' ')}
+                                </Badge>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2 ml-4">
-                              <Badge className={getStatusColor(app.status)}>
-                                {app.status?.replace('_', ' ') || 'applied'}
-                              </Badge>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="text-center py-8">
