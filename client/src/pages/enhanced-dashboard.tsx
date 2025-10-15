@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
@@ -196,46 +196,66 @@ export default function EnhancedDashboard() {
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/applications/stats"],
     retry: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   const { data: applications, isLoading: applicationsLoading } = useQuery({
     queryKey: ["/api/applications"],
     retry: false,
+    staleTime: 3 * 60 * 1000, // 3 minutes
+    refetchOnWindowFocus: false,
   });
 
   const { data: resumes } = useQuery({
     queryKey: ["/api/resumes"],
     retry: false,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
   });
 
   const { data: profile } = useQuery({
     queryKey: ["/api/profile"],
     retry: false,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
   });
 
   const { data: jobPostings } = useQuery({
     queryKey: ["/api/jobs/postings"],
     retry: false,
+    staleTime: 15 * 60 * 1000, // 15 minutes
+    refetchOnWindowFocus: false,
+    enabled: false, // Lazy load
   });
 
   const { data: testAssignments } = useQuery({
     queryKey: ["/api/jobseeker/test-assignments"],
     retry: false,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: rankingTestHistory } = useQuery({
     queryKey: ["/api/ranking-tests/history"],
     retry: false,
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: mockInterviewStats } = useQuery({
     queryKey: ["/api/mock-interview/stats"],
     retry: false,
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: recentJobs } = useQuery({
     queryKey: ["/api/jobs/postings"],
     retry: false,
+    staleTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    enabled: false, // Lazy load
   });
 
   // Career AI analysis data
@@ -387,8 +407,8 @@ export default function EnhancedDashboard() {
     );
   }
 
-  // Calculate overall progress
-  const progressTasks = [
+  // Calculate overall progress - memoized
+  const progressTasks = useMemo(() => [
     {
       id: "profile",
       completed: hasCompleteProfile,
@@ -425,17 +445,22 @@ export default function EnhancedDashboard() {
       label: "Take Skill Test",
       points: 25,
     },
-  ];
+  ], [hasCompleteProfile, hasUploadedResume, hasGoodResumeScore, hasAppliedToJobs, hasCompletedInterview, hasCompletedTests]);
 
-  const completedTasksCount = progressTasks.filter(
-    (task) => task.completed,
-  ).length;
-  const totalProgress = Math.round(
-    (completedTasksCount / progressTasks.length) * 100,
+  const completedTasksCount = useMemo(() => 
+    progressTasks.filter((task) => task.completed).length,
+    [progressTasks]
   );
-  const totalPoints = progressTasks
-    .filter((task) => task.completed)
-    .reduce((sum, task) => sum + task.points, 0);
+  
+  const totalProgress = useMemo(() => 
+    Math.round((completedTasksCount / progressTasks.length) * 100),
+    [completedTasksCount, progressTasks.length]
+  );
+  
+  const totalPoints = useMemo(() => 
+    progressTasks.filter((task) => task.completed).reduce((sum, task) => sum + task.points, 0),
+    [progressTasks]
+  );
 
   // User level calculation
   const userLevel = Math.floor(totalPoints / 50) + 1;

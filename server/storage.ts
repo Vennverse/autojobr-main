@@ -155,6 +155,7 @@ type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
 type InsertEmailVerificationToken = z.Infer<typeof insertEmailVerificationTokenSchema>;
 type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 type InsertPasswordResetToken = z.Infer<typeof insertPasswordResetTokenSchema>;
+type Application = typeof jobApplications.$inferSelect; // Assuming Application is an alias for JobApplication
 
 // Helper function to handle database errors gracefully
 async function handleDbOperation<T>(operation: () => Promise<T>, fallback?: T): Promise<T> {
@@ -689,6 +690,18 @@ export class DatabaseStorage implements IStorage {
       .where(eq(jobApplications.userId, userId))
       .orderBy(desc(jobApplications.appliedDate));
   }
+
+  // Added pagination to this method
+  async getApplicationsByUser(userId: string, limit: number = 50, offset: number = 0): Promise<Application[]> {
+    const applications = await db.select()
+      .from(jobApplications)
+      .where(eq(jobApplications.userId, userId)) // Changed from applicantId to userId as per original method's logic
+      .orderBy(jobApplications.appliedDate)
+      .limit(limit)
+      .offset(offset);
+    return applications;
+  }
+
 
   async addJobApplication(application: InsertJobApplication): Promise<JobApplication> {
     const [newApplication] = await this.db
