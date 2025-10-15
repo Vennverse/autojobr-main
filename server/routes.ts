@@ -510,22 +510,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // User endpoint with better error handling
+  // User endpoint with better error handling and performance optimization
   app.get('/api/user', async (req: any, res) => {
     try {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
-      const user = await storage.getUser(req.session.user.id);
+      const userId = req.session.user.id;
+      
+      // Try to get from cache first (with proper error handling)
+      let user;
+      try {
+        const cached = getCached(`user_${userId}`, userId);
+        if (cached) {
+          return res.json(cached);
+        }
+      } catch (cacheError) {
+        // Cache error - just continue to fetch from DB
+        console.warn('[USER_API] Cache error, fetching from DB:', cacheError);
+      }
+
+      // Fetch from database
+      user = await storage.getUser(userId);
       
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
 
+      // Cache for future requests (with error handling)
+      try {
+        setCache(`user_${userId}`, user, 300000, userId);
+      } catch (cacheError) {
+        // Cache save failed - not critical, just log
+        console.warn('[USER_API] Failed to cache user data:', cacheError);
+      }
+
       res.json(user);
     } catch (error) {
-      console.error('Error fetching user:', error);
+      console.error('[USER_API] Error fetching user:', error);
       res.status(500).json({ error: 'Failed to fetch user data' });
     }
   });
@@ -699,17 +722,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get user's applications
+  // Get user's applications with job details
   app.get('/api/applications', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
 
       const applications = await db
-        .select()
+        .select({
+          id: schema.jobPostingApplications.id,
+          jobPostingId: schema.jobPostingApplications.jobPostingId,
+          status: schema.jobPostingApplications.status,
+          appliedAt: schema.jobPostingApplications.appliedAt,
+          // Include job details
+          jobTitle: schema.jobPostings.title,
+          companyName: schema.jobPostings.companyName,
+          location: schema.jobPostings.location,
+          jobType: schema.jobPostings.jobType,
+          workMode: schema.jobPostings.workMode,
+        })
         .from(schema.jobPostingApplications)
+        .leftJoin(schema.jobPostings, eq(schema.jobPostingApplications.jobPostingId, schema.jobPostings.id))
         .where(eq(schema.jobPostingApplications.applicantId, userId))
         .orderBy(desc(schema.jobPostingApplications.appliedAt));
 
+      console.log(`[APPLICATIONS] Returning ${applications.length} applications with job details for user ${userId}`);
       res.json(applications);
     } catch (error) {
       console.error('[APPLICATIONS ERROR]:', error);

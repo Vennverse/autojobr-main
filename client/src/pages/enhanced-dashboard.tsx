@@ -352,11 +352,36 @@ export default function EnhancedDashboard() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {recentApplications.map((app: any) => {
-                      // Extract real data from application object
-                      const jobTitle = app.jobTitle || app.jobPostingTitle || app.job?.title || 'Job Position';
-                      const company = app.companyName || app.company || app.jobPostingCompany || app.job?.company || 'Company Name';
-                      const appliedDate = app.appliedAt || app.appliedDate || app.createdAt;
+                      // Extract real data from application object - enhanced extraction
+                      const jobTitle = app.jobTitle || 
+                                      app.jobPostingTitle || 
+                                      app.job?.title || 
+                                      app.title ||
+                                      'Position Not Specified';
+                      
+                      const company = app.companyName || 
+                                     app.company || 
+                                     app.jobPostingCompany || 
+                                     app.job?.company ||
+                                     app.job?.companyName ||
+                                     'Company Not Specified';
+                      
+                      const appliedDate = app.appliedAt || 
+                                         app.appliedDate || 
+                                         app.createdAt ||
+                                         app.dateApplied;
+                      
                       const status = app.status || 'applied';
+                      
+                      // Debug log to see what data we're getting
+                      console.log('[DASHBOARD] Application data:', {
+                        id: app.id,
+                        jobTitle,
+                        company,
+                        appliedDate,
+                        status,
+                        rawApp: app
+                      });
                       
                       return (
                         <div key={app.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer" onClick={() => setLocation('/applications')}>
