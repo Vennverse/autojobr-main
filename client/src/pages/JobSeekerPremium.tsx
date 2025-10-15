@@ -167,7 +167,10 @@ export default function JobSeekerPremium() {
           },
           createSubscription: function(data: any, actions: any) {
             return actions.subscription.create({
-              plan_id: 'P-9SC66893530757807NCRWYCI'
+              plan_id: 'P-9SC66893530757807NCRWYCI',
+              application_context: {
+                shipping_preference: 'NO_SHIPPING' // Digital service only
+              }
             });
           },
           onApprove: function(data: any, actions: any) {
@@ -215,7 +218,10 @@ export default function JobSeekerPremium() {
           },
           createSubscription: function(data: any, actions: any) {
             return actions.subscription.create({
-              plan_id: 'P-5JM23618R75865735NCRXOLY'
+              plan_id: 'P-5JM23618R75865735NCRXOLY',
+              application_context: {
+                shipping_preference: 'NO_SHIPPING' // Digital service only
+              }
             });
           },
           onApprove: function(data: any, actions: any) {

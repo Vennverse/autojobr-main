@@ -203,6 +203,7 @@ export class PayPalSubscriptionService {
             payer_selected: "PAYPAL",
             payee_preferred: "IMMEDIATE_PAYMENT_REQUIRED"
           },
+          shipping_preference: "NO_SHIPPING", // Digital service - no shipping required
           return_url: `https://${process.env.REPL_SLUG}--${process.env.REPL_OWNER}.replit.app/subscription/success?userId=${userId}`,
           cancel_url: `https://${process.env.REPL_SLUG}--${process.env.REPL_OWNER}.replit.app/subscription/cancel`
         }

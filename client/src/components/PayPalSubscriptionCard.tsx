@@ -101,7 +101,10 @@ export default function PayPalSubscriptionCard() {
             },
             createSubscription: function(data: any, actions: any) {
               return actions.subscription.create({
-                plan_id: 'P-9SC66893530757807NCRWYCI'
+                plan_id: 'P-9SC66893530757807NCRWYCI',
+                application_context: {
+                  shipping_preference: 'NO_SHIPPING' // Digital service - no shipping required
+                }
               });
             },
             onApprove: function(data: any, actions: any) {
