@@ -348,25 +348,38 @@ export default function EnhancedDashboard() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {recentApplications.map((app: any) => (
-                      <div key={app.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-slate-900 dark:text-white">{app.jobTitle || 'Job Title'}</h4>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">{app.companyName || 'Company'}</p>
+                    {recentApplications.map((app: any) => {
+                      // Extract real data from application object
+                      const jobTitle = app.jobTitle || app.jobPostingTitle || app.job?.title || 'Job Position';
+                      const company = app.companyName || app.company || app.jobPostingCompany || app.job?.company || 'Company Name';
+                      const appliedDate = app.appliedAt || app.appliedDate || app.createdAt;
+                      const status = app.status || 'applied';
+                      
+                      return (
+                        <div key={app.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer" onClick={() => setLocation('/applications')}>
+                          <div className="flex-1">
+                            <h4 className="font-medium text-slate-900 dark:text-white">{jobTitle}</h4>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">{company}</p>
+                            {appliedDate && (
+                              <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                                Applied {new Date(appliedDate).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                          <Badge 
+                            className={
+                              status === 'applied' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                              status === 'reviewing' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
+                              status === 'interviewing' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' :
+                              status === 'accepted' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                              'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300'
+                            }
+                          >
+                            {status.charAt(0).toUpperCase() + status.slice(1)}
+                          </Badge>
                         </div>
-                        <Badge 
-                          className={
-                            app.status === 'applied' ? 'bg-blue-100 text-blue-700' :
-                            app.status === 'reviewing' ? 'bg-yellow-100 text-yellow-700' :
-                            app.status === 'interviewing' ? 'bg-purple-100 text-purple-700' :
-                            app.status === 'accepted' ? 'bg-green-100 text-green-700' :
-                            'bg-gray-100 text-gray-700'
-                          }
-                        >
-                          {app.status || 'Applied'}
-                        </Badge>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </CardContent>
                 </Card>
               </motion.div>
