@@ -69,7 +69,7 @@ export default function ModernDashboard() {
     enabled: !!user,
   });
 
-  const { data: applications } = useQuery({
+  const { data: applications, isLoading: applicationsLoading } = useQuery({
     queryKey: ["/api/applications"],
     enabled: !!user,
   });
@@ -145,7 +145,7 @@ export default function ModernDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-8">
         <motion.div
           variants={containerVariants}
@@ -436,52 +436,74 @@ export default function ModernDashboard() {
               <motion.div variants={itemVariants}>
                 <Card className="shadow-lg border-0 bg-white dark:bg-gray-800">
                   <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-800">
-                    <CardTitle className="flex items-center gap-2">
-                      <Activity className="w-5 h-5 text-green-600" />
-                      Recent Applications
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Activity className="w-5 h-5 text-green-600" />
+                        Recent Applications ({applications?.length || 0})
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => navigate('/applications')}
+                        className="text-green-600 hover:text-green-700"
+                      >
+                        View All
+                      </Button>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
-                    {applications && applications.length > 0 ? (
+                    {applicationsLoading ? (
                       <div className="space-y-4">
-                        {applications.slice(0, 5).map((app: any) => (
-                          <div key={app.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <Building className="w-5 h-5 text-gray-500" />
-                              <div>
-                                <h4 className="font-semibold text-gray-900 dark:text-white">{app.jobTitle}</h4>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">{app.company}</p>
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg animate-pulse">
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded" />
+                              <div className="flex-1 space-y-2">
+                                <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4" />
+                                <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-1/2" />
                               </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge className={getStatusColor(app.status)}>
-                                {app.status}
-                              </Badge>
-                              <span className="text-sm text-gray-500">{new Date(app.appliedAt).toLocaleDateString()}</span>
                             </div>
                           </div>
                         ))}
-                        <Button 
-                          variant="outline" 
-                          className="w-full" 
-                          onClick={() => navigate('/applications')}
-                        >
-                          View All Applications
-                          <ArrowRight className="w-4 h-4 ml-2" />
-                        </Button>
+                      </div>
+                    ) : applications && applications.length > 0 ? (
+                      <div className="space-y-4">
+                        {applications.slice(0, 5).map((app: any) => (
+                          <div 
+                            key={app.id} 
+                            className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+                            onClick={() => navigate('/applications')}
+                          >
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+                                <Building className="w-5 h-5 text-white" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-gray-900 dark:text-white truncate">
+                                  {app.jobTitle || 'Job Position'}
+                                </h4>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                                  {app.company || 'Company Name'}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 ml-4">
+                              <Badge className={getStatusColor(app.status)}>
+                                {app.status?.replace('_', ' ') || 'applied'}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ) : (
                       <div className="text-center py-8">
-                        <Send className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                          No applications yet
-                        </h3>
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">
-                          Start your job search by exploring available positions
-                        </p>
-                        <Button onClick={() => navigate('/job-search')} className="bg-green-600 hover:bg-green-700">
-                          <Search className="w-4 h-4 mr-2" />
-                          Search Jobs
+                        <Briefcase className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                        <p className="text-gray-500 mb-4">No applications yet</p>
+                        <Button 
+                          onClick={() => navigate('/jobs')}
+                          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                        >
+                          Browse Jobs
                         </Button>
                       </div>
                     )}
