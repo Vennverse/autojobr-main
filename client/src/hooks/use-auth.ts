@@ -29,6 +29,7 @@ export function useAuth() {
     staleTime: 0, // Always fetch fresh for security
     refetchOnWindowFocus: true, // Revalidate on focus
     refetchOnMount: true, // Always revalidate on mount
+    retry: 1, // Retry once on failure
   });
 
   // CRITICAL: Validate session integrity
@@ -42,6 +43,18 @@ export function useAuth() {
       console.error('🚨 [AUTH] Session ID mismatch - potential security issue');
       sessionStorage.clear();
       window.location.href = '/auth?reason=session_invalid';
+    }
+  }
+
+  // Handle authentication errors
+  if (error) {
+    console.error('🚨 [AUTH] Authentication error:', error);
+    // Don't redirect on network errors, only on auth failures
+    if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+      sessionStorage.clear();
+      if (window.location.pathname !== '/auth') {
+        window.location.href = '/auth?reason=session_expired';
+      }
     }
   }
 

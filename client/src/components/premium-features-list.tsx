@@ -2,16 +2,16 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  Check, 
-  X, 
-  Crown, 
-  Star, 
-  Zap, 
-  Target, 
-  BarChart3, 
-  Shield, 
-  Users, 
+import {
+  Check,
+  X,
+  Crown,
+  Star,
+  Zap,
+  Target,
+  BarChart3,
+  Shield,
+  Users,
   FileText,
   Search,
   MessageCircle,
@@ -23,6 +23,9 @@ import {
   Infinity,
   Bell
 } from "lucide-react";
+
+// Ensure Bell is properly imported
+const BellIcon = Bell;
 
 interface PremiumFeature {
   id: string;
@@ -69,7 +72,7 @@ const PREMIUM_FEATURES: PremiumFeature[] = [
     description: 'Smart job recommendations and alerts',
     freeLimit: '5/day',
     premiumLimit: 'Unlimited',
-    icon: Bell,
+    icon: BellIcon, // Use BellIcon here
     category: 'job_seeker'
   },
   {
@@ -99,7 +102,7 @@ const PREMIUM_FEATURES: PremiumFeature[] = [
     icon: MessageCircle,
     category: 'job_seeker'
   },
-  
+
   // Recruiter Features
   {
     id: 'job_postings',
@@ -183,7 +186,7 @@ interface PremiumFeaturesListProps {
 
 export function PremiumFeaturesList({ userType, currentPlan, className }: PremiumFeaturesListProps) {
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'job_seeker' | 'recruiter'>('all');
-  
+
   const filteredFeatures = PREMIUM_FEATURES.filter(feature => {
     if (selectedCategory === 'all') return feature.category === userType || feature.category === 'both';
     return feature.category === selectedCategory || feature.category === 'both';
@@ -207,7 +210,7 @@ export function PremiumFeaturesList({ userType, currentPlan, className }: Premiu
           )}
         </div>
         <p className="text-gray-600 dark:text-gray-300">
-          {isPremium 
+          {isPremium
             ? "You're enjoying all premium benefits! Here's what you have access to:"
             : "Upgrade to premium to unlock powerful features and accelerate your career growth:"
           }
@@ -218,18 +221,18 @@ export function PremiumFeaturesList({ userType, currentPlan, className }: Premiu
         {filteredFeatures.map((feature) => {
           const Icon = feature.icon;
           const hasAccess = isPremium || (typeof feature.freeLimit === 'number' && feature.freeLimit > 0) || feature.freeLimit === 'Basic';
-          
+
           return (
             <Card key={feature.id} className={`border transition-all duration-200 ${
-              hasAccess 
-                ? 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/20' 
+              hasAccess
+                ? 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/20'
                 : 'border-gray-200 dark:border-gray-700'
             }`}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
                     <div className={`p-2 rounded-lg ${
-                      hasAccess 
+                      hasAccess
                         ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
                         : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
                     }`}>
@@ -246,7 +249,7 @@ export function PremiumFeaturesList({ userType, currentPlan, className }: Premiu
                         <div className="text-xs">
                           <span className="text-gray-500 dark:text-gray-400">Free:</span>
                           <span className="ml-1 font-medium">
-                            {typeof feature.freeLimit === 'boolean' 
+                            {typeof feature.freeLimit === 'boolean'
                               ? (feature.freeLimit ? 'Yes' : 'No')
                               : feature.freeLimit
                             }
@@ -255,7 +258,7 @@ export function PremiumFeaturesList({ userType, currentPlan, className }: Premiu
                         <div className="text-xs">
                           <span className="text-gray-500 dark:text-gray-400">Premium:</span>
                           <span className="ml-1 font-medium text-yellow-600 dark:text-yellow-400">
-                            {typeof feature.premiumLimit === 'boolean' 
+                            {typeof feature.premiumLimit === 'boolean'
                               ? (feature.premiumLimit ? 'Yes' : 'No')
                               : feature.premiumLimit
                             }
@@ -294,7 +297,7 @@ export function PremiumFeaturesList({ userType, currentPlan, className }: Premiu
             <p className="text-gray-600 dark:text-gray-300 mb-4">
               Join thousands of professionals who have accelerated their careers with our premium features.
             </p>
-            <Button 
+            <Button
               className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white"
               onClick={() => window.location.href = `/${userType}/premium`}
             >

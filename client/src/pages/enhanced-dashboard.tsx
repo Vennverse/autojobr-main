@@ -72,7 +72,9 @@ export default function EnhancedDashboard() {
   // Redirect if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      window.location.href = "/auth";
+      console.log('🔒 [ENHANCED_DASHBOARD] Not authenticated, redirecting to /auth');
+      sessionStorage.clear(); // Clear any stale session data
+      window.location.href = "/auth?reason=session_required";
     }
   }, [isAuthenticated, isLoading]);
 
