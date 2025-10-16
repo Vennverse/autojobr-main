@@ -210,13 +210,33 @@ export default function EnhancedDashboard() {
 
   const completedChallenges = dailyChallenges.filter(c => c.progress >= c.total).length;
 
-  // Daily habit tracking
-  const [dailyChecklist, setDailyChecklist] = useState({
-    resumeReviewed: false,
-    threeApplications: false,
-    networked: false,
-    skillLearned: false
+  // Daily habit tracking with localStorage persistence
+  const [dailyChecklist, setDailyChecklist] = useState(() => {
+    const today = new Date().toDateString();
+    const saved = localStorage.getItem('dailyChecklist');
+    const savedData = saved ? JSON.parse(saved) : null;
+    
+    // Reset checklist if it's a new day
+    if (savedData && savedData.date === today) {
+      return savedData.checklist;
+    }
+    
+    return {
+      resumeReviewed: false,
+      threeApplications: false,
+      networked: false,
+      skillLearned: false
+    };
   });
+
+  // Save to localStorage whenever checklist changes
+  useEffect(() => {
+    const today = new Date().toDateString();
+    localStorage.setItem('dailyChecklist', JSON.stringify({
+      date: today,
+      checklist: dailyChecklist
+    }));
+  }, [dailyChecklist]);
 
   return (
     <>
