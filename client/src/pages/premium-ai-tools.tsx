@@ -19,7 +19,10 @@ import {
   Crown,
   Loader2,
   Copy,
-  Check
+  Check,
+  Target,
+  Zap,
+  Calendar
 } from "lucide-react";
 
 export default function PremiumAITools() {
@@ -61,6 +64,34 @@ export default function PremiumAITools() {
     targetRole: ""
   });
   const [careerPath, setCareerPath] = useState<any>(null);
+
+  // Resume Bullet Points State
+  const [bulletData, setBulletData] = useState({
+    currentBulletPoints: [""],
+    jobTitle: "",
+    company: "",
+    industry: ""
+  });
+  const [enhancedBullets, setEnhancedBullets] = useState<any>(null);
+
+  // Resume Tailor State
+  const [tailorData, setTailorData] = useState({
+    resumeText: "",
+    jobDescription: "",
+    jobTitle: "",
+    targetCompany: ""
+  });
+  const [tailoredResume, setTailoredResume] = useState<any>(null);
+
+  // Resume Gap State
+  const [gapData, setGapData] = useState({
+    gapPeriod: "",
+    gapReason: "",
+    previousRole: "",
+    nextRole: "",
+    skillsDeveloped: ""
+  });
+  const [gapSolution, setGapSolution] = useState<any>(null);
 
   // Check premium status
   const { data: user } = useQuery({ queryKey: ['/api/user'] });
@@ -161,6 +192,76 @@ export default function PremiumAITools() {
     }
   });
 
+  // Resume Bullet Enhancer Mutation
+  const bulletMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('/api/premium/ai/resume-bullets', 'POST', {
+        currentBulletPoints: bulletData.currentBulletPoints.filter(bp => bp.trim()),
+        jobTitle: bulletData.jobTitle,
+        company: bulletData.company || undefined,
+        industry: bulletData.industry || undefined
+      });
+    },
+    onSuccess: (data) => {
+      setEnhancedBullets(data);
+      toast({ title: "Bullets Enhanced!", description: "Your resume bullet points have been transformed." });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message?.includes('premium') ? "This feature requires a Premium subscription." : "Failed to enhance bullets.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Resume Tailor Mutation
+  const tailorMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('/api/premium/ai/tailor-resume', 'POST', {
+        resumeText: tailorData.resumeText,
+        jobDescription: tailorData.jobDescription,
+        jobTitle: tailorData.jobTitle,
+        targetCompany: tailorData.targetCompany || undefined
+      });
+    },
+    onSuccess: (data) => {
+      setTailoredResume(data);
+      toast({ title: "Resume Optimized!", description: `ATS Score: ${data.atsScore}% - Your resume is now tailored to the job.` });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message?.includes('premium') ? "This feature requires a Premium subscription." : "Failed to tailor resume.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Resume Gap Filler Mutation
+  const gapMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('/api/premium/ai/resume-gaps', 'POST', {
+        gapPeriod: gapData.gapPeriod,
+        gapReason: gapData.gapReason || undefined,
+        previousRole: gapData.previousRole || undefined,
+        nextRole: gapData.nextRole || undefined,
+        skillsDeveloped: gapData.skillsDeveloped ? gapData.skillsDeveloped.split(',').map(s => s.trim()) : undefined
+      });
+    },
+    onSuccess: (data) => {
+      setGapSolution(data);
+      toast({ title: "Gap Strategy Ready!", description: "Professional recommendations for presenting your career gap." });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message?.includes('premium') ? "This feature requires a Premium subscription." : "Failed to create gap strategy.",
+        variant: "destructive"
+      });
+    }
+  });
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -198,6 +299,18 @@ export default function PremiumAITools() {
                   <TrendingUp className="w-5 h-5 text-orange-500" />
                   <span>Personalized Career Path Planner</span>
                 </li>
+                <li className="flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-yellow-500" />
+                  <span>Resume Bullet Point Enhancer</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-pink-500" />
+                  <span>Job-Specific Resume Optimizer</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-indigo-500" />
+                  <span>Career Gap Strategy Builder</span>
+                </li>
               </ul>
               <Button size="lg" className="w-full" asChild data-testid="button-upgrade-premium">
                 <a href="/subscription">Upgrade to Premium - $10/month</a>
@@ -229,22 +342,41 @@ export default function PremiumAITools() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="cover-letter" data-testid="tab-cover-letter">
-              <FileText className="w-4 h-4 mr-2" />
-              Cover Letter
+          <TabsList className="grid w-full grid-cols-7 gap-1">
+            <TabsTrigger value="cover-letter" data-testid="tab-cover-letter" className="text-xs sm:text-sm">
+              <FileText className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Cover Letter</span>
+              <span className="sm:hidden">Cover</span>
             </TabsTrigger>
-            <TabsTrigger value="salary" data-testid="tab-salary">
-              <DollarSign className="w-4 h-4 mr-2" />
-              Salary Coach
+            <TabsTrigger value="salary" data-testid="tab-salary" className="text-xs sm:text-sm">
+              <DollarSign className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Salary Coach</span>
+              <span className="sm:hidden">Salary</span>
             </TabsTrigger>
-            <TabsTrigger value="interview" data-testid="tab-interview">
-              <MessageSquare className="w-4 h-4 mr-2" />
-              Interview Prep
+            <TabsTrigger value="interview" data-testid="tab-interview" className="text-xs sm:text-sm">
+              <MessageSquare className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Interview</span>
+              <span className="sm:hidden">Interview</span>
             </TabsTrigger>
-            <TabsTrigger value="career" data-testid="tab-career">
-              <TrendingUp className="w-4 h-4 mr-2" />
-              Career Path
+            <TabsTrigger value="career" data-testid="tab-career" className="text-xs sm:text-sm">
+              <TrendingUp className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Career Path</span>
+              <span className="sm:hidden">Career</span>
+            </TabsTrigger>
+            <TabsTrigger value="bullets" data-testid="tab-bullets" className="text-xs sm:text-sm">
+              <Zap className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Resume Bullets</span>
+              <span className="sm:hidden">Bullets</span>
+            </TabsTrigger>
+            <TabsTrigger value="tailor" data-testid="tab-tailor" className="text-xs sm:text-sm">
+              <Target className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Tailor Resume</span>
+              <span className="sm:hidden">Tailor</span>
+            </TabsTrigger>
+            <TabsTrigger value="gaps" data-testid="tab-gaps" className="text-xs sm:text-sm">
+              <Calendar className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Fill Gaps</span>
+              <span className="sm:hidden">Gaps</span>
             </TabsTrigger>
           </TabsList>
 
@@ -701,6 +833,312 @@ export default function PremiumAITools() {
                   ) : (
                     <p className="text-gray-500 dark:text-gray-400 text-center py-8">
                       Your career roadmap will appear here
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Resume Bullet Point Enhancer */}
+          <TabsContent value="bullets">
+            <Card>
+              <CardHeader>
+                <CardTitle>AI Resume Bullet Point Enhancer</CardTitle>
+                <CardDescription>Transform weak descriptions into powerful, achievement-oriented statements</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <Label>Job Title</Label>
+                    <Input
+                      placeholder="e.g., Senior Software Engineer"
+                      value={bulletData.jobTitle}
+                      onChange={(e) => setBulletData({...bulletData, jobTitle: e.target.value})}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Company (optional)</Label>
+                      <Input
+                        placeholder="e.g., Google"
+                        value={bulletData.company}
+                        onChange={(e) => setBulletData({...bulletData, company: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label>Industry (optional)</Label>
+                      <Input
+                        placeholder="e.g., Technology"
+                        value={bulletData.industry}
+                        onChange={(e) => setBulletData({...bulletData, industry: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Current Bullet Points</Label>
+                    {bulletData.currentBulletPoints.map((bp, i) => (
+                      <Textarea
+                        key={i}
+                        placeholder={`Bullet point ${i + 1}: e.g., Managed team projects`}
+                        value={bp}
+                        onChange={(e) => {
+                          const newBullets = [...bulletData.currentBulletPoints];
+                          newBullets[i] = e.target.value;
+                          setBulletData({...bulletData, currentBulletPoints: newBullets});
+                        }}
+                        className="mb-2"
+                      />
+                    ))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setBulletData({...bulletData, currentBulletPoints: [...bulletData.currentBulletPoints, ""]})}
+                    >
+                      + Add Bullet Point
+                    </Button>
+                  </div>
+                  <Button
+                    onClick={() => bulletMutation.mutate()}
+                    disabled={bulletMutation.isPending || !bulletData.jobTitle || !bulletData.currentBulletPoints.some(bp => bp.trim())}
+                    className="w-full"
+                  >
+                    {bulletMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Enhance Bullet Points
+                  </Button>
+                </div>
+
+                {enhancedBullets && (
+                  <div className="border-t pt-6 space-y-4">
+                    <h3 className="font-semibold text-lg">Enhanced Resume Bullets</h3>
+                    {enhancedBullets.enhancedBulletPoints?.map((item: any, i: number) => (
+                      <div key={i} className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg space-y-2">
+                        <div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Original:</p>
+                          <p className="text-sm line-through text-gray-600 dark:text-gray-400">{item.original}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-green-600 dark:text-green-400 mb-1">Enhanced:</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{item.enhanced}</p>
+                        </div>
+                        <div className="flex gap-2 flex-wrap">
+                          {item.keywords?.map((kw: string, ki: number) => (
+                            <Badge key={ki} variant="outline" className="text-xs">{kw}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    <div>
+                      <h4 className="font-semibold mb-2">Overall Tips:</h4>
+                      <ul className="list-disc list-inside space-y-1">
+                        {enhancedBullets.overallTips?.map((tip: string, i: number) => (
+                          <li key={i} className="text-sm text-gray-600 dark:text-gray-300">{tip}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Job-Specific Resume Tailor */}
+          <TabsContent value="tailor">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Tailor Resume to Job</CardTitle>
+                  <CardDescription>Optimize your resume for maximum ATS compatibility</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label>Your Resume Text</Label>
+                    <Textarea
+                      placeholder="Paste your current resume text here..."
+                      value={tailorData.resumeText}
+                      onChange={(e) => setTailorData({...tailorData, resumeText: e.target.value})}
+                      rows={6}
+                    />
+                  </div>
+                  <div>
+                    <Label>Job Description</Label>
+                    <Textarea
+                      placeholder="Paste the job description here..."
+                      value={tailorData.jobDescription}
+                      onChange={(e) => setTailorData({...tailorData, jobDescription: e.target.value})}
+                      rows={6}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Job Title</Label>
+                      <Input
+                        placeholder="e.g., Senior Developer"
+                        value={tailorData.jobTitle}
+                        onChange={(e) => setTailorData({...tailorData, jobTitle: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label>Company (optional)</Label>
+                      <Input
+                        placeholder="e.g., Microsoft"
+                        value={tailorData.targetCompany}
+                        onChange={(e) => setTailorData({...tailorData, targetCompany: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => tailorMutation.mutate()}
+                    disabled={tailorMutation.isPending || !tailorData.resumeText || !tailorData.jobDescription || !tailorData.jobTitle}
+                    className="w-full"
+                  >
+                    {tailorMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Optimize Resume
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Optimization Results</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {tailoredResume ? (
+                    <div className="space-y-4">
+                      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                        <h4 className="font-semibold mb-2">ATS Score: {tailoredResume.atsScore}%</h4>
+                        <div className="flex gap-2 mb-3">
+                          <Badge className="bg-green-500">Matched: {tailoredResume.keywordMatches?.matched?.length || 0}</Badge>
+                          <Badge variant="destructive">Missing: {tailoredResume.keywordMatches?.missing?.length || 0}</Badge>
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold mb-2">Priority Changes:</h4>
+                        <ul className="list-disc list-inside space-y-1">
+                          {tailoredResume.priorityChanges?.map((change: string, i: number) => (
+                            <li key={i} className="text-sm text-orange-600 dark:text-orange-400">{change}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold mb-2">Recommendations:</h4>
+                        {tailoredResume.tailoringRecommendations?.map((rec: any, i: number) => (
+                          <div key={i} className="bg-gray-50 dark:bg-gray-800 p-3 rounded mb-2">
+                            <p className="font-medium text-sm">{rec.section}</p>
+                            <p className="text-xs text-green-600 dark:text-green-400 mt-1">{rec.recommended}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{rec.reason}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+                      Your optimization results will appear here
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Resume Gap Filler */}
+          <TabsContent value="gaps">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Career Gap Strategy Builder</CardTitle>
+                  <CardDescription>Present employment gaps positively and strategically</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label>Gap Period</Label>
+                    <Input
+                      placeholder="e.g., Jan 2023 - Dec 2023"
+                      value={gapData.gapPeriod}
+                      onChange={(e) => setGapData({...gapData, gapPeriod: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label>Reason for Gap (optional)</Label>
+                    <Input
+                      placeholder="e.g., Family care, Health, Career transition"
+                      value={gapData.gapReason}
+                      onChange={(e) => setGapData({...gapData, gapReason: e.target.value})}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Previous Role (optional)</Label>
+                      <Input
+                        placeholder="e.g., Product Manager"
+                        value={gapData.previousRole}
+                        onChange={(e) => setGapData({...gapData, previousRole: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label>Target Role (optional)</Label>
+                      <Input
+                        placeholder="e.g., Senior PM"
+                        value={gapData.nextRole}
+                        onChange={(e) => setGapData({...gapData, nextRole: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Skills Developed (comma-separated, optional)</Label>
+                    <Input
+                      placeholder="e.g., Online courses, Certifications, Side projects"
+                      value={gapData.skillsDeveloped}
+                      onChange={(e) => setGapData({...gapData, skillsDeveloped: e.target.value})}
+                    />
+                  </div>
+                  <Button
+                    onClick={() => gapMutation.mutate()}
+                    disabled={gapMutation.isPending || !gapData.gapPeriod}
+                    className="w-full"
+                  >
+                    {gapMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Generate Gap Strategy
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Strategy & Recommendations</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {gapSolution ? (
+                    <div className="space-y-4">
+                      <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+                        <h4 className="font-semibold mb-2">Recommended Approach:</h4>
+                        <p className="text-sm capitalize">{gapSolution.recommendedApproach}</p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold mb-3">Gap Presentation Options:</h4>
+                        {gapSolution.gapExplanations?.map((exp: any, i: number) => (
+                          <div key={i} className="bg-gray-50 dark:bg-gray-800 p-3 rounded mb-3">
+                            <p className="font-medium text-sm mb-1">{exp.approach}</p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">{exp.description}</p>
+                            <div className="bg-white dark:bg-gray-900 p-2 rounded text-xs font-mono whitespace-pre-wrap">
+                              {exp.resumeEntry}
+                            </div>
+                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">When to use: {exp.whenToUse}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <div>
+                        <h4 className="font-semibold mb-2">Interview Tips:</h4>
+                        <ul className="list-disc list-inside space-y-1">
+                          {gapSolution.interviewTips?.map((tip: string, i: number) => (
+                            <li key={i} className="text-sm text-gray-600 dark:text-gray-300">{tip}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+                      Your gap strategy will appear here
                     </p>
                   )}
                 </CardContent>

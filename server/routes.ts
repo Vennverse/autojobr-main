@@ -5804,6 +5804,75 @@ Return ONLY the JSON object, no additional text.`;
     }
   }));
 
+  // PREMIUM ONLY: Resume Bullet Point Enhancer
+  app.post('/api/premium/ai/resume-bullets', isAuthenticated, asyncHandler(async (req: any, res) => {
+    try {
+      const { currentBulletPoints, jobTitle, company, industry } = req.body;
+      
+      if (!currentBulletPoints || !jobTitle) {
+        return res.status(400).json({ message: 'Bullet points and job title are required' });
+      }
+
+      const enhanced = await aiService.enhanceResumeBulletPoints(
+        { currentBulletPoints, jobTitle, company, industry },
+        req.user
+      );
+      res.json(enhanced);
+    } catch (error: any) {
+      console.error('Error enhancing resume bullets:', error);
+      if (error.message?.includes('premium feature')) {
+        return res.status(403).json({ message: error.message });
+      }
+      res.status(500).json({ message: 'Failed to enhance resume bullets' });
+    }
+  }));
+
+  // PREMIUM ONLY: Job-Specific Resume Tailor
+  app.post('/api/premium/ai/tailor-resume', isAuthenticated, asyncHandler(async (req: any, res) => {
+    try {
+      const { resumeText, jobDescription, jobTitle, targetCompany } = req.body;
+      
+      if (!resumeText || !jobDescription || !jobTitle) {
+        return res.status(400).json({ message: 'Resume, job description, and job title are required' });
+      }
+
+      const tailored = await aiService.tailorResumeToJob(
+        { resumeText, jobDescription, jobTitle, targetCompany },
+        req.user
+      );
+      res.json(tailored);
+    } catch (error: any) {
+      console.error('Error tailoring resume:', error);
+      if (error.message?.includes('premium feature')) {
+        return res.status(403).json({ message: error.message });
+      }
+      res.status(500).json({ message: 'Failed to tailor resume' });
+    }
+  }));
+
+  // PREMIUM ONLY: Resume Gap Filler
+  app.post('/api/premium/ai/resume-gaps', isAuthenticated, asyncHandler(async (req: any, res) => {
+    try {
+      const { gapPeriod, gapReason, previousRole, nextRole, skillsDeveloped } = req.body;
+      
+      if (!gapPeriod) {
+        return res.status(400).json({ message: 'Gap period is required' });
+      }
+
+      const gapSolution = await aiService.fillResumeGaps(
+        { gapPeriod, gapReason, previousRole, nextRole, skillsDeveloped },
+        req.user
+      );
+      res.json(gapSolution);
+    } catch (error: any) {
+      console.error('Error filling resume gaps:', error);
+      if (error.message?.includes('premium feature')) {
+        return res.status(403).json({ message: error.message });
+      }
+      res.status(500).json({ message: 'Failed to fill resume gaps' });
+    }
+  }));
+
   // ============ RANKING TEST API ROUTES ============
 
   // Get available test categories and domains

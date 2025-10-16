@@ -196,6 +196,14 @@ export function Navbar() {
           premium: true
         },
         {
+          name: "Premium AI Tools",
+          href: "/premium-ai-tools",
+          icon: Zap,
+          current: location === "/premium-ai-tools",
+          premium: true,
+          badge: "AI"
+        },
+        {
           name: "AI Coach",
           href: "/career-ai-assistant",
           icon: Brain,
