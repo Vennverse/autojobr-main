@@ -86,6 +86,7 @@ import BidderLanding from "@/pages/bidder-landing";
 import BidderProfile from "@/pages/bidder-profile";
 import InterviewLink from "@/pages/InterviewLink";
 import VideoPractice from "@/pages/VideoPractice";
+import PremiumFeatures from "@/pages/premium-features";
 
 // SEO Landing Pages to Beat Competition
 import FreeJobApplicationAutomation from "@/pages/seo/FreeJobApplicationAutomation";
@@ -403,6 +404,7 @@ function Router() {
                   <Route path="/test-taking/:id" component={TestTaking} />
                   <Route path="/subscription" component={Subscription} />
                   <Route path="/job-seeker-premium" component={JobSeekerPremium} />
+                  <Route path="/premium-features" component={PremiumFeatures} />
                   <Route path="/career-ai-assistant" component={CareerAIAssistant} />
                   <Route path="/referral-marketplace" component={ReferralMarketplace} />
                   <Route path="/become-referrer" component={BecomeReferrer} />
@@ -442,8 +444,9 @@ function Router() {
               <Route path="/virtual-interview/:sessionId/feedback" component={VirtualInterviewFeedback} />
               <Route path="/virtual-interview/:sessionId" component={VirtualInterview} />
               <Route path="/chat-interview/:sessionId" component={ChatInterview} />
-              <Route path="/interview-link/:linkId" component={lazy(() => import("./pages/InterviewLink"))} />
+              <Route path="/interview-link/:linkId" component={InterviewLink} />
               <Route path="/subscription" component={Subscription} />
+              <Route path="/premium-features" component={PremiumFeatures} />
               <Route path="/career-ai-assistant" component={CareerAIAssistant} />
               <Route path="/referral-marketplace" component={ReferralMarketplace} />
               <Route path="/become-referrer" component={BecomeReferrer} />
