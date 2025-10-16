@@ -24,9 +24,6 @@ import {
   Bell
 } from "lucide-react";
 
-// Ensure Bell is properly imported
-const BellIcon = Bell;
-
 interface PremiumFeature {
   id: string;
   name: string;
@@ -72,7 +69,7 @@ const PREMIUM_FEATURES: PremiumFeature[] = [
     description: 'Smart job recommendations and alerts',
     freeLimit: '5/day',
     premiumLimit: 'Unlimited',
-    icon: BellIcon, // Use BellIcon here
+    icon: Bell,
     category: 'job_seeker'
   },
   {
