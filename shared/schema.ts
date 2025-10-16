@@ -4343,3 +4343,131 @@ export type InsertCrmActivity = z.infer<typeof insertCrmActivitySchema>;
 
 export type CrmLeadScore = typeof crmLeadScores.$inferSelect;
 export type InsertCrmLeadScore = z.infer<typeof insertCrmLeadScoreSchema>;
+
+// Premium Feature Usage Tracking - Comprehensive analytics for all premium features
+export const premiumFeatureUsage = pgTable("premium_feature_usage", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  featureType: varchar("feature_type").notNull(), // ai_analysis, interview_practice, resume_upload, etc.
+  featureName: varchar("feature_name").notNull(), // specific feature name
+  usageCount: integer("usage_count").default(1),
+  usageDate: varchar("usage_date").notNull(), // YYYY-MM-DD
+  metadata: jsonb("metadata"), // Additional usage details
+  creditsCost: integer("credits_cost").default(0), // Credits consumed
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("premium_usage_user_date_idx").on(table.userId, table.usageDate),
+  index("premium_usage_feature_idx").on(table.featureType),
+]);
+
+// AI Interaction Logging - Track all AI interactions for quality and billing
+export const aiInteractionLog = pgTable("ai_interaction_log", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  interactionType: varchar("interaction_type").notNull(), // resume_analysis, job_analysis, interview, career_coaching
+  aiProvider: varchar("ai_provider"), // groq, openai, anthropic
+  modelUsed: varchar("model_used"), // model name
+  tokensUsed: integer("tokens_used"),
+  responseQuality: varchar("response_quality"), // user feedback
+  wasSuccessful: boolean("was_successful").default(true),
+  errorMessage: text("error_message"),
+  requestData: jsonb("request_data"),
+  responseData: jsonb("response_data"),
+  processingTimeMs: integer("processing_time_ms"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("ai_log_user_idx").on(table.userId),
+  index("ai_log_type_idx").on(table.interactionType),
+  index("ai_log_date_idx").on(table.createdAt),
+]);
+
+// User Engagement Tracking - For daily motivation emails and engagement analytics
+export const userEngagementLog = pgTable("user_engagement_log", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  engagementType: varchar("engagement_type").notNull(), // login, feature_use, email_open, email_click
+  engagementDate: varchar("engagement_date").notNull(), // YYYY-MM-DD
+  details: jsonb("details"), // engagement specifics
+  source: varchar("source"), // web, mobile, email, etc.
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("engagement_user_date_idx").on(table.userId, table.engagementDate),
+  index("engagement_type_idx").on(table.engagementType),
+]);
+
+// Email Campaign Tracking - Track all automated and manual emails
+export const emailCampaignLog = pgTable("email_campaign_log", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  campaignType: varchar("campaign_type").notNull(), // daily_motivation, onboarding, achievement, reminder
+  emailSubject: varchar("email_subject").notNull(),
+  emailTemplate: varchar("email_template"),
+  sentAt: timestamp("sent_at").defaultNow(),
+  openedAt: timestamp("opened_at"),
+  clickedAt: timestamp("clicked_at"),
+  clickedLink: varchar("clicked_link"),
+  wasDelivered: boolean("was_delivered").default(true),
+  deliveryError: text("delivery_error"),
+  metadata: jsonb("metadata"),
+}, (table) => [
+  index("email_log_user_idx").on(table.userId),
+  index("email_log_campaign_idx").on(table.campaignType),
+  index("email_log_sent_idx").on(table.sentAt),
+]);
+
+// Premium Value Metrics - Track value delivered to premium users
+export const premiumValueMetrics = pgTable("premium_value_metrics", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  metricType: varchar("metric_type").notNull(), // time_saved, interviews_landed, applications_sent
+  metricValue: numeric("metric_value").notNull(),
+  calculatedSavings: numeric("calculated_savings"), // dollar value of benefit
+  recordedDate: varchar("recorded_date").notNull(), // YYYY-MM-DD
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("value_metrics_user_idx").on(table.userId),
+  index("value_metrics_date_idx").on(table.recordedDate),
+]);
+
+// Insert schemas for new tables
+export const insertPremiumFeatureUsageSchema = createInsertSchema(premiumFeatureUsage).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAiInteractionLogSchema = createInsertSchema(aiInteractionLog).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserEngagementLogSchema = createInsertSchema(userEngagementLog).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertEmailCampaignLogSchema = createInsertSchema(emailCampaignLog).omit({
+  id: true,
+  sentAt: true,
+});
+
+export const insertPremiumValueMetricsSchema = createInsertSchema(premiumValueMetrics).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Types for new tracking tables
+export type PremiumFeatureUsage = typeof premiumFeatureUsage.$inferSelect;
+export type InsertPremiumFeatureUsage = z.infer<typeof insertPremiumFeatureUsageSchema>;
+
+export type AiInteractionLog = typeof aiInteractionLog.$inferSelect;
+export type InsertAiInteractionLog = z.infer<typeof insertAiInteractionLogSchema>;
+
+export type UserEngagementLog = typeof userEngagementLog.$inferSelect;
+export type InsertUserEngagementLog = z.infer<typeof insertUserEngagementLogSchema>;
+
+export type EmailCampaignLog = typeof emailCampaignLog.$inferSelect;
+export type InsertEmailCampaignLog = z.infer<typeof insertEmailCampaignLogSchema>;
+
+export type PremiumValueMetrics = typeof premiumValueMetrics.$inferSelect;
+export type InsertPremiumValueMetrics = z.infer<typeof insertPremiumValueMetricsSchema>;

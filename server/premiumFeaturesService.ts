@@ -1,6 +1,16 @@
 import { db } from './db';
-import { users, jobPostings, jobApplications, resumes } from '@shared/schema';
-import { eq, count, and, desc, gte } from 'drizzle-orm';
+import { 
+  users, 
+  jobPostings, 
+  jobApplications, 
+  resumes,
+  premiumFeatureUsage,
+  aiInteractionLog,
+  premiumValueMetrics,
+  virtualInterviews,
+  mockInterviewSessions
+} from '@shared/schema';
+import { eq, count, and, desc, gte, sql } from 'drizzle-orm';
 
 export interface PremiumUsageStats {
   resumeUploads: number;
@@ -76,8 +86,6 @@ export class PremiumFeaturesService {
   
   async getUserUsageStats(userId: string): Promise<PremiumUsageStats> {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
     const thisMonth = new Date();
     thisMonth.setDate(1);
     thisMonth.setHours(0, 0, 0, 0);
@@ -101,15 +109,68 @@ export class PremiumFeaturesService {
         .from(jobPostings)
         .where(eq(jobPostings.recruiterId, userId));
 
+      // Get AI analyses count from interaction log
+      const aiAnalysesResult = await db
+        .select({ count: count() })
+        .from(aiInteractionLog)
+        .where(eq(aiInteractionLog.userId, userId));
+
+      // Get interview practice sessions count
+      const interviewsResult = await db
+        .select({ count: count() })
+        .from(virtualInterviews)
+        .where(eq(virtualInterviews.userId, userId));
+
+      const mockInterviewsResult = await db
+        .select({ count: count() })
+        .from(mockInterviewSessions)
+        .where(eq(mockInterviewSessions.userId, userId));
+
+      // Get custom tests from feature usage
+      const customTestsResult = await db
+        .select({ count: sql<number>`SUM(usage_count)` })
+        .from(premiumFeatureUsage)
+        .where(and(
+          eq(premiumFeatureUsage.userId, userId),
+          eq(premiumFeatureUsage.featureType, 'custom_test')
+        ));
+
+      // Get resume downloads from feature usage
+      const resumeDownloadsResult = await db
+        .select({ count: sql<number>`SUM(usage_count)` })
+        .from(premiumFeatureUsage)
+        .where(and(
+          eq(premiumFeatureUsage.userId, userId),
+          eq(premiumFeatureUsage.featureType, 'resume_download')
+        ));
+
+      // Get bulk messages from feature usage
+      const bulkMessagesResult = await db
+        .select({ count: sql<number>`SUM(usage_count)` })
+        .from(premiumFeatureUsage)
+        .where(and(
+          eq(premiumFeatureUsage.userId, userId),
+          eq(premiumFeatureUsage.featureType, 'bulk_message')
+        ));
+
+      // Get candidate searches from feature usage
+      const candidateSearchesResult = await db
+        .select({ count: sql<number>`SUM(usage_count)` })
+        .from(premiumFeatureUsage)
+        .where(and(
+          eq(premiumFeatureUsage.userId, userId),
+          eq(premiumFeatureUsage.featureType, 'candidate_search')
+        ));
+
       return {
         resumeUploads: resumeUploadsResult[0]?.count || 0,
         jobApplications: jobApplicationsResult[0]?.count || 0,
-        aiAnalyses: 0, // TODO: Implement AI analysis tracking
+        aiAnalyses: aiAnalysesResult[0]?.count || 0,
         jobPostings: jobPostingsResult[0]?.count || 0,
-        candidateSearches: 0, // TODO: Implement search tracking
-        customTests: 0, // TODO: Implement custom tests tracking
-        resumeDownloads: 0, // TODO: Implement download tracking
-        bulkMessages: 0 // TODO: Implement messaging tracking
+        candidateSearches: Number(candidateSearchesResult[0]?.count) || 0,
+        customTests: Number(customTestsResult[0]?.count) || 0,
+        resumeDownloads: Number(resumeDownloadsResult[0]?.count) || 0,
+        bulkMessages: Number(bulkMessagesResult[0]?.count) || 0,
       };
     } catch (error) {
       console.error('Error getting usage stats:', error);
