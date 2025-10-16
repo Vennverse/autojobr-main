@@ -256,9 +256,12 @@ export default function RecruiterSubscription() {
                 
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Price</span>
-                  <span className="text-lg font-bold">
-                    {isPremium ? "$49/month" : pendingTargetingJob ? `$${pendingTargetingJob.estimatedCost}` : "$49/month"}
-                  </span>
+                  <div className="text-right">
+                    <span className="text-lg font-bold">
+                      {isPremium ? "$49/month" : pendingTargetingJob ? `$${pendingTargetingJob.estimatedCost}` : "$49/month"}
+                    </span>
+                    <Badge className="ml-2 bg-green-600 text-xs">80% OFF ZipRecruiter</Badge>
+                  </div>
                 </div>
 
                 <Separator />

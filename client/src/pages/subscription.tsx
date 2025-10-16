@@ -346,7 +346,7 @@ export default function Subscription() {
                     <Separator />
                     <div className="space-y-4">
                       <div className="text-center space-y-2">
-                        <div className="text-2xl font-bold">$10<span className="text-sm text-muted-foreground">/month</span></div>
+                        <div className="text-2xl font-bold">$5<span className="text-sm text-muted-foreground">/month</span></div>
                         <p className="text-sm text-muted-foreground">Unlock unlimited features & AI-powered tools</p>
                       </div>
                       

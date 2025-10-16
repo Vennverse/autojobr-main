@@ -741,12 +741,12 @@ export default function LandingPage() {
               <CardContent className="p-8">
                 <h3 className="text-2xl font-bold mb-2">Premium</h3>
                 <div className="flex items-baseline gap-2 mb-4">
-                  <span className="text-4xl font-bold">$10</span>
-                  <span className="text-lg text-slate-500 line-through">$29</span>
+                  <span className="text-4xl font-bold">$5</span>
+                  <span className="text-lg text-slate-500 line-through">$29.99</span>
                   <span className="text-lg text-slate-500">/month</span>
                 </div>
                 <Badge className="mb-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-                  Save 66% - Launch Special
+                  Save 83% vs LinkedIn Premium
                 </Badge>
                 <ul className="space-y-3 mb-6">
                   {[

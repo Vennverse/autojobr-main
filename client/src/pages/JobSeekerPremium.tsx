@@ -385,6 +385,7 @@ export default function JobSeekerPremium() {
                 <CardDescription>
                   <span className="text-3xl font-bold">$5</span>
                   <span className="text-muted-foreground">/month</span>
+                  <Badge className="ml-2 bg-green-600">83% OFF Market Price</Badge>
                 </CardDescription>
               </CardHeader>
               

@@ -53,9 +53,9 @@ class PaymentService {
 
       const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
       
-      // Verify payment is successful and for correct amount ($10)
+      // Verify payment is successful and for correct amount ($5)
       return paymentIntent.status === 'succeeded' && 
-             paymentIntent.amount === 1000 && // $10.00 in cents
+             paymentIntent.amount === 500 && // $5.00 in cents
              paymentIntent.currency === 'usd';
     } catch (error) {
       console.error('Stripe verification error:', error);
@@ -220,9 +220,9 @@ class PaymentService {
 
       const order: PayPalOrderResponse = await response.json();
       
-      // Verify order is completed and for correct amount ($10)
+      // Verify order is completed and for correct amount ($5)
       return order.status === 'COMPLETED' && 
-             order.purchase_units[0]?.amount.value === '10.00' &&
+             order.purchase_units[0]?.amount.value === '5.00' &&
              order.purchase_units[0]?.amount.currency_code === 'USD';
     } catch (error) {
       console.error('PayPal verification error:', error);
@@ -256,7 +256,7 @@ class PaymentService {
     paymentId: string,
     orderId: string,
     signature: string,
-    amount: number = 1000 // ₹10.00 in paise
+    amount: number = 41500 // ₹415.00 in paise (~$5 USD)
   ): boolean {
     try {
       // Handle demo payments for testing
