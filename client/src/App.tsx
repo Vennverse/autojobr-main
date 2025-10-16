@@ -349,6 +349,7 @@ function Router() {
               <Route path="/profile" component={Profile} />
               <Route path="/subscription" component={RecruiterSubscription} />
               <Route path="/recruiter-premium" component={RecruiterPremium} />
+              <Route path="/premium-features" component={PremiumFeatures} />
               <Route path="/chat" component={SimpleChatPage} />
               <Route path="/messaging" component={SimpleChatPage} />
               <Route path="/bidder-dashboard" component={BidderDashboard} />
