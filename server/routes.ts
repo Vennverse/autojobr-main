@@ -7634,9 +7634,9 @@ Additional Information:
   app.use('/api/proctoring', proctoring);
   app.use('/api/seo', seo); // Mount SEO routes
 
-  // Initialize WebSocket server
-  const wss = new WebSocketServer({ server });
-  console.log('🚀 WebSocket server initialized');
+  // Initialize WebSocket server on specific path to avoid conflicts with Vite HMR
+  const wss = new WebSocketServer({ server, path: '/ws/app' });
+  console.log('🚀 WebSocket server initialized on /ws/app');
 
   wss.on('connection', (ws: WebSocket, req: any) => {
     const userId = req.session?.user?.id;
