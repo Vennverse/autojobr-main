@@ -81,6 +81,7 @@ import SubscriptionCancel from "@/pages/subscription/Cancel";
 import RecruiterSettings from "@/pages/recruiter/settings";
 import RecruiterBilling from "@/pages/recruiter/billing";
 import RecruiterProfile from "@/pages/recruiter/profile";
+import RecruiterFeaturesPage from "@/pages/recruiter-features";
 import BidderDashboard from "@/pages/bidder-dashboard";
 import BidderLanding from "@/pages/bidder-landing";
 import BidderProfile from "@/pages/bidder-profile";
@@ -347,7 +348,8 @@ function Router() {
               <Route path="/admin/sso-configuration" component={SSOConfiguration} />
               {/* Admin user management temporarily disabled */}
               <Route path="/jobs/:id" component={ViewJob} />
-              <Route path="/profile" component={Profile} />
+              <Route path="/recruiter-features" component={RecruiterFeaturesPage} />
+              <Route path="/profile" component={Profile} />le} />
               <Route path="/subscription" component={RecruiterSubscription} />
               <Route path="/recruiter-premium" component={RecruiterPremium} />
               <Route path="/premium-features" component={PremiumFeatures} />

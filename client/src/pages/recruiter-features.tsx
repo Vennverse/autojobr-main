@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { 
   Users, 
   Target, 
@@ -290,11 +291,12 @@ const competitorComparison = [
 
 export default function RecruiterFeaturesPage() {
   const [, setLocation] = useLocation();
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
-    // Ensure page is visible
-    const timer = setTimeout(() => setIsVisible(true), 10);
+    // Ensure page is visible with slight delay for animation
+    const timer = setTimeout(() => setIsVisible(true), 50);
     return () => clearTimeout(timer);
   }, []);
 
@@ -302,11 +304,27 @@ export default function RecruiterFeaturesPage() {
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
       console.error('Page error:', event.error);
+      setHasError(true);
       event.preventDefault();
     };
     window.addEventListener('error', handleError);
     return () => window.removeEventListener('error', handleError);
   }, []);
+
+  // Error fallback UI
+  if (hasError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Card className="max-w-md p-6">
+          <CardContent>
+            <h2 className="text-xl font-bold mb-2">Something went wrong</h2>
+            <p className="text-gray-600 mb-4">Please refresh the page to try again.</p>
+            <Button onClick={() => window.location.reload()}>Refresh Page</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
