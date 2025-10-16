@@ -3270,6 +3270,28 @@ Return only the cover letter text, no additional formatting or explanations.`;
     }
   });
 
+  // Career Insights API endpoint - Proactive career recommendations
+  app.get('/api/career-insights', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { careerInsightsService } = await import('./careerInsightsService.js');
+      
+      const insights = await careerInsightsService.generateProactiveInsights(userId);
+      
+      res.json({
+        success: true,
+        insights
+      });
+    } catch (error) {
+      console.error('Career insights error:', error);
+      res.status(500).json({ 
+        success: false,
+        message: 'Failed to generate career insights',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Job Match Analysis API for extension
   app.post('/api/analyze-job-match', isAuthenticated, async (req: any, res) => {
     try {
