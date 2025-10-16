@@ -5665,6 +5665,145 @@ Return ONLY the JSON object, no additional text.`;
     }
   }));
 
+  // 10. Track Feature Usage - For comprehensive analytics
+  app.post('/api/premium/track-usage', isAuthenticated, asyncHandler(async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { featureType, featureName, metadata, creditsCost } = req.body;
+
+      await premiumFeaturesServiceInstance.trackFeatureUsage(userId, featureType, featureName, metadata, creditsCost);
+      res.json({ success: true, message: 'Feature usage tracked successfully' });
+    } catch (error) {
+      console.error('Error tracking feature usage:', error);
+      res.status(500).json({ message: 'Failed to track feature usage' });
+    }
+  }));
+
+  // 11. Track AI Interaction - For AI usage analytics
+  app.post('/api/premium/track-ai', isAuthenticated, asyncHandler(async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { interactionType, provider, model, tokensUsed, requestData, responseData, processingTime, wasSuccessful, errorMessage } = req.body;
+
+      await premiumFeaturesServiceInstance.trackAIInteraction(
+        userId, 
+        interactionType, 
+        provider, 
+        model, 
+        tokensUsed, 
+        requestData, 
+        responseData, 
+        processingTime,
+        wasSuccessful,
+        errorMessage
+      );
+      res.json({ success: true, message: 'AI interaction tracked successfully' });
+    } catch (error) {
+      console.error('Error tracking AI interaction:', error);
+      res.status(500).json({ message: 'Failed to track AI interaction' });
+    }
+  }));
+
+  // 12. Calculate Premium Value & ROI
+  app.get('/api/premium/value-metrics', isAuthenticated, asyncHandler(async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const valueMetrics = await premiumFeaturesServiceInstance.calculatePremiumValue(userId);
+      res.json(valueMetrics);
+    } catch (error) {
+      console.error('Error calculating premium value:', error);
+      res.status(500).json({ message: 'Failed to calculate premium value' });
+    }
+  }));
+
+  // ============ PREMIUM AI SERVICES ROUTES ============
+
+  // PREMIUM ONLY: AI Cover Letter Generator
+  app.post('/api/premium/ai/cover-letter', isAuthenticated, asyncHandler(async (req: any, res) => {
+    try {
+      const { jobDetails, resume } = req.body;
+      
+      if (!jobDetails || !resume) {
+        return res.status(400).json({ message: 'Job details and resume are required' });
+      }
+
+      const coverLetter = await aiService.generateCoverLetter(jobDetails, resume, req.user);
+      res.json(coverLetter);
+    } catch (error: any) {
+      console.error('Error generating cover letter:', error);
+      if (error.message?.includes('premium feature')) {
+        return res.status(403).json({ message: error.message });
+      }
+      res.status(500).json({ message: 'Failed to generate cover letter' });
+    }
+  }));
+
+  // PREMIUM ONLY: Salary Negotiation Coach
+  app.post('/api/premium/ai/salary-negotiation', isAuthenticated, asyncHandler(async (req: any, res) => {
+    try {
+      const { currentOffer, desiredSalary, jobTitle, experience, location, marketData } = req.body;
+      
+      if (!currentOffer || !desiredSalary || !jobTitle) {
+        return res.status(400).json({ message: 'Offer details are required' });
+      }
+
+      const advice = await aiService.getSalaryNegotiationAdvice(
+        { currentOffer, desiredSalary, jobTitle, experience, location, marketData },
+        req.user
+      );
+      res.json(advice);
+    } catch (error: any) {
+      console.error('Error generating salary advice:', error);
+      if (error.message?.includes('premium feature')) {
+        return res.status(403).json({ message: error.message });
+      }
+      res.status(500).json({ message: 'Failed to generate salary negotiation advice' });
+    }
+  }));
+
+  // PREMIUM ONLY: Interview Answer Generator
+  app.post('/api/premium/ai/interview-answer', isAuthenticated, asyncHandler(async (req: any, res) => {
+    try {
+      const { question, resume } = req.body;
+      
+      if (!question || !resume) {
+        return res.status(400).json({ message: 'Question and resume are required' });
+      }
+
+      const answer = await aiService.generateInterviewAnswer(question, resume, req.user);
+      res.json(answer);
+    } catch (error: any) {
+      console.error('Error generating interview answer:', error);
+      if (error.message?.includes('premium feature')) {
+        return res.status(403).json({ message: error.message });
+      }
+      res.status(500).json({ message: 'Failed to generate interview answer' });
+    }
+  }));
+
+  // PREMIUM ONLY: Career Path Planner
+  app.post('/api/premium/ai/career-path', isAuthenticated, asyncHandler(async (req: any, res) => {
+    try {
+      const { currentRole, experience, skills, interests, targetRole } = req.body;
+      
+      if (!currentRole || !skills) {
+        return res.status(400).json({ message: 'Current role and skills are required' });
+      }
+
+      const careerPath = await aiService.generateCareerPath(
+        { currentRole, experience, skills, interests, targetRole },
+        req.user
+      );
+      res.json(careerPath);
+    } catch (error: any) {
+      console.error('Error generating career path:', error);
+      if (error.message?.includes('premium feature')) {
+        return res.status(403).json({ message: error.message });
+      }
+      res.status(500).json({ message: 'Failed to generate career path' });
+    }
+  }));
+
   // ============ RANKING TEST API ROUTES ============
 
   // Get available test categories and domains

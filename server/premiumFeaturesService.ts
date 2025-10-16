@@ -83,6 +83,128 @@ const PLAN_LIMITS: Record<string, PremiumLimits> = {
 };
 
 export class PremiumFeaturesService {
+
+  async trackFeatureUsage(
+    userId: string,
+    featureType: string,
+    featureName: string,
+    metadata?: any,
+    creditsCost: number = 0
+  ): Promise<void> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      await db.insert(premiumFeatureUsage).values({
+        userId,
+        featureType,
+        featureName,
+        usageDate: today,
+        usageCount: 1,
+        metadata: metadata || {},
+        creditsCost
+      });
+
+      await db.insert(userEngagementLog).values({
+        userId,
+        engagementType: 'feature_usage',
+        engagementDate: today,
+        details: { featureType, featureName, metadata },
+        source: 'web_app'
+      });
+
+      console.log(`✅ Tracked ${featureType} usage for user ${userId}`);
+    } catch (error) {
+      console.error('Error tracking feature usage:', error);
+    }
+  }
+
+  async trackAIInteraction(
+    userId: string,
+    interactionType: string,
+    provider: string,
+    model: string,
+    tokensUsed: number,
+    requestData: any,
+    responseData: any,
+    processingTime: number,
+    wasSuccessful: boolean = true,
+    errorMessage?: string
+  ): Promise<void> {
+    try {
+      await db.insert(aiInteractionLog).values({
+        userId,
+        interactionType,
+        aiProvider: provider,
+        modelUsed: model,
+        tokensUsed,
+        requestData,
+        responseData,
+        processingTimeMs: processingTime,
+        wasSuccessful,
+        errorMessage,
+        responseQuality: wasSuccessful ? 'good' : 'failed'
+      });
+
+      console.log(`✅ Tracked AI interaction: ${interactionType} for user ${userId}`);
+    } catch (error) {
+      console.error('Error tracking AI interaction:', error);
+    }
+  }
+
+  async calculatePremiumValue(userId: string): Promise<any> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+
+      const [aiUsage] = await db
+        .select({ count: sql<number>`COUNT(*)`, tokens: sql<number>`SUM(tokens_used)` })
+        .from(aiInteractionLog)
+        .where(and(
+          eq(aiInteractionLog.userId, userId),
+          gte(aiInteractionLog.createdAt, startOfMonth)
+        ));
+
+      const [interviewCount] = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(virtualInterviews)
+        .where(and(
+          eq(virtualInterviews.userId, userId),
+          gte(virtualInterviews.createdAt, startOfMonth)
+        ));
+
+      const aiInteractionCount = Number(aiUsage?.count) || 0;
+      const aiCostSavings = aiInteractionCount * 0.25;
+      const interviewCostSavings = Number(interviewCount?.count) || 0 * 50;
+      const totalValue = aiCostSavings + interviewCostSavings;
+
+      await db.insert(premiumValueMetrics).values({
+        userId,
+        metricType: 'monthly_roi',
+        metricValue: totalValue,
+        calculatedSavings: totalValue - 10,
+        recordedDate: today,
+        description: `Premium ROI calculation for month: ${aiInteractionCount} AI interactions ($${aiCostSavings.toFixed(2)}), ${Number(interviewCount?.count) || 0} interview practices ($${interviewCostSavings})`
+      });
+
+      return {
+        monthlyValue: totalValue,
+        monthlySavings: totalValue - 10,
+        aiInteractions: aiInteractionCount,
+        interviewPractices: Number(interviewCount?.count) || 0,
+        roi: ((totalValue - 10) / 10) * 100
+      };
+    } catch (error) {
+      console.error('Error calculating premium value:', error);
+      return {
+        monthlyValue: 0,
+        monthlySavings: -10,
+        aiInteractions: 0,
+        interviewPractices: 0,
+        roi: -100
+      };
+    }
+  }
   
   async getUserUsageStats(userId: string): Promise<PremiumUsageStats> {
     const today = new Date();

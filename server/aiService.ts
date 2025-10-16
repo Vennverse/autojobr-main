@@ -1030,6 +1030,344 @@ Return ONLY valid JSON. Be concise but helpful.`;
     const accessInfo = this.hasAIAccess(user);
     return accessInfo;
   }
+
+  // PREMIUM-ONLY: AI Cover Letter Generator
+  async generateCoverLetter(jobDetails: {
+    title: string;
+    company: string;
+    description: string;
+    requirements: string;
+  }, resume: string, user: any): Promise<{
+    coverLetter: string;
+    keyHighlights: string[];
+    callToAction: string;
+  }> {
+    const isPremium = user?.planType === 'premium' || user?.planType === 'enterprise';
+    
+    if (!isPremium) {
+      throw new Error('Cover letter generation is a premium feature. Upgrade to access this service.');
+    }
+
+    const prompt = `Generate a compelling, personalized cover letter for:
+
+JOB: ${jobDetails.title} at ${jobDetails.company}
+DESCRIPTION: ${jobDetails.description}
+REQUIREMENTS: ${jobDetails.requirements}
+
+CANDIDATE RESUME: ${resume}
+
+Create a professional cover letter that:
+1. Opens with a strong hook related to the company
+2. Highlights 3-4 specific achievements from the resume that match the job
+3. Shows genuine interest in the role and company
+4. Ends with a clear call to action
+
+Return JSON:
+{
+  "coverLetter": "full cover letter text with proper formatting",
+  "keyHighlights": ["3-4 specific achievements emphasized"],
+  "callToAction": "the closing call to action"
+}`;
+
+    try {
+      const completion = await this.createChatCompletion([
+        {
+          role: "system",
+          content: "You are an expert career coach and professional writer. Generate compelling cover letters that get interviews."
+        },
+        { role: "user", content: prompt }
+      ], { temperature: 0.7, max_tokens: 1500, user });
+
+      const content = completion.choices[0]?.message?.content;
+      const jsonMatch = content?.match(/\{[\s\S]*\}/);
+      return jsonMatch ? JSON.parse(jsonMatch[0]) : this.generateFallbackCoverLetter();
+    } catch (error) {
+      console.error('Error generating cover letter:', error);
+      return this.generateFallbackCoverLetter();
+    }
+  }
+
+  private generateFallbackCoverLetter() {
+    return {
+      coverLetter: "Dear Hiring Manager,\n\nI am writing to express my strong interest in this position...",
+      keyHighlights: ["Relevant experience", "Strong skill match", "Proven track record"],
+      callToAction: "I look forward to discussing how I can contribute to your team."
+    };
+  }
+
+  // PREMIUM-ONLY: Salary Negotiation Coach
+  async getSalaryNegotiationAdvice(data: {
+    currentOffer: number;
+    desiredSalary: number;
+    jobTitle: string;
+    experience: number;
+    location: string;
+    marketData?: any;
+  }, user: any): Promise<{
+    strategy: string;
+    counterOfferSuggestion: number;
+    talkingPoints: string[];
+    responses: Array<{ scenario: string; response: string }>;
+    marketInsights: string;
+  }> {
+    const isPremium = user?.planType === 'premium' || user?.planType === 'enterprise';
+    
+    if (!isPremium) {
+      throw new Error('Salary negotiation coaching is a premium feature. Upgrade to access this service.');
+    }
+
+    const prompt = `You are a senior career coach specializing in salary negotiation. Provide expert advice for:
+
+CURRENT OFFER: $${data.currentOffer}
+DESIRED SALARY: $${data.desiredSalary}
+JOB: ${data.jobTitle}
+EXPERIENCE: ${data.experience} years
+LOCATION: ${data.location}
+
+Provide strategic negotiation advice in JSON:
+{
+  "strategy": "overall negotiation strategy paragraph",
+  "counterOfferSuggestion": number (recommended counter-offer amount),
+  "talkingPoints": ["3-5 specific value points to emphasize"],
+  "responses": [
+    {"scenario": "If they say budget is fixed", "response": "your suggested response"},
+    {"scenario": "If they ask for your bottom line", "response": "your suggested response"},
+    {"scenario": "If they counter lower", "response": "your suggested response"}
+  ],
+  "marketInsights": "market data and justification for your ask"
+}`;
+
+    try {
+      const completion = await this.createChatCompletion([
+        {
+          role: "system",
+          content: "You are an expert salary negotiation coach with 15+ years of experience. Provide confident, strategic advice."
+        },
+        { role: "user", content: prompt }
+      ], { temperature: 0.6, max_tokens: 1200, user });
+
+      const content = completion.choices[0]?.message?.content;
+      const jsonMatch = content?.match(/\{[\s\S]*\}/);
+      return jsonMatch ? JSON.parse(jsonMatch[0]) : this.generateFallbackNegotiation(data);
+    } catch (error) {
+      console.error('Error generating negotiation advice:', error);
+      return this.generateFallbackNegotiation(data);
+    }
+  }
+
+  private generateFallbackNegotiation(data: any) {
+    const counterOffer = Math.round(data.currentOffer * 1.1);
+    return {
+      strategy: "Negotiate confidently by emphasizing your unique value and market research.",
+      counterOfferSuggestion: counterOffer,
+      talkingPoints: [
+        `${data.experience} years of relevant experience`,
+        "Proven track record in similar roles",
+        "Market rate alignment for this position"
+      ],
+      responses: [
+        {
+          scenario: "If they say budget is fixed",
+          response: "I understand budget constraints. Can we explore other forms of compensation like signing bonus or additional benefits?"
+        },
+        {
+          scenario: "If they ask for your bottom line",
+          response: "I'm flexible and open to discussion. What range did you have in mind for someone with my experience?"
+        }
+      ],
+      marketInsights: `Based on market data for ${data.jobTitle} in ${data.location}, salaries typically range from $${data.currentOffer} to $${counterOffer + 20000}.`
+    };
+  }
+
+  // PREMIUM-ONLY: Interview Answer Generator (STAR method)
+  async generateInterviewAnswer(question: string, resume: string, user: any): Promise<{
+    starAnswer: {
+      situation: string;
+      task: string;
+      action: string;
+      result: string;
+    };
+    fullAnswer: string;
+    keyPoints: string[];
+    followUpTips: string[];
+  }> {
+    const isPremium = user?.planType === 'premium' || user?.planType === 'enterprise';
+    
+    if (!isPremium) {
+      throw new Error('Interview answer generation is a premium feature. Upgrade to access this service.');
+    }
+
+    const prompt = `Generate a compelling STAR method interview answer for:
+
+QUESTION: "${question}"
+
+CANDIDATE BACKGROUND: ${resume}
+
+Create a strong answer using the STAR method (Situation, Task, Action, Result).
+Return JSON:
+{
+  "starAnswer": {
+    "situation": "brief context",
+    "task": "your responsibility",
+    "action": "specific steps you took",
+    "result": "quantifiable outcome"
+  },
+  "fullAnswer": "complete 2-minute answer ready to speak",
+  "keyPoints": ["3-4 key points to emphasize"],
+  "followUpTips": ["potential follow-up questions and how to handle them"]
+}`;
+
+    try {
+      const completion = await this.createChatCompletion([
+        {
+          role: "system",
+          content: "You are an interview coaching expert. Generate compelling STAR method answers that showcase achievements."
+        },
+        { role: "user", content: prompt }
+      ], { temperature: 0.7, max_tokens: 1000, user });
+
+      const content = completion.choices[0]?.message?.content;
+      const jsonMatch = content?.match(/\{[\s\S]*\}/);
+      return jsonMatch ? JSON.parse(jsonMatch[0]) : this.generateFallbackInterviewAnswer();
+    } catch (error) {
+      console.error('Error generating interview answer:', error);
+      return this.generateFallbackInterviewAnswer();
+    }
+  }
+
+  private generateFallbackInterviewAnswer() {
+    return {
+      starAnswer: {
+        situation: "In my previous role, we faced a significant challenge...",
+        task: "I was responsible for leading the solution...",
+        action: "I implemented a systematic approach that included...",
+        result: "This resulted in a 30% improvement and positive team feedback."
+      },
+      fullAnswer: "Let me share a relevant example. In my previous role, we faced a significant challenge that required quick thinking and leadership. I was responsible for leading the solution, and I implemented a systematic approach that included thorough analysis and stakeholder engagement. This resulted in a 30% improvement and positive feedback from the team.",
+      keyPoints: [
+        "Demonstrated leadership in challenging situations",
+        "Achieved measurable results",
+        "Received positive stakeholder feedback"
+      ],
+      followUpTips: [
+        "Be ready to elaborate on specific technical details",
+        "Prepare to discuss lessons learned from the experience"
+      ]
+    };
+  }
+
+  // PREMIUM-ONLY: Career Path Planner
+  async generateCareerPath(userProfile: {
+    currentRole: string;
+    experience: number;
+    skills: string[];
+    interests: string[];
+    targetRole?: string;
+  }, user: any): Promise<{
+    careerRoadmap: Array<{
+      role: string;
+      timeframe: string;
+      skillsNeeded: string[];
+      certifications: string[];
+      salaryRange: string;
+      nextSteps: string[];
+    }>;
+    immediateActions: string[];
+    longTermStrategy: string;
+    alternativePaths: string[];
+  }> {
+    const isPremium = user?.planType === 'premium' || user?.planType === 'enterprise';
+    
+    if (!isPremium) {
+      throw new Error('Career path planning is a premium feature. Upgrade to access this service.');
+    }
+
+    const prompt = `Create a detailed career progression plan for:
+
+CURRENT: ${userProfile.currentRole} (${userProfile.experience} years experience)
+SKILLS: ${userProfile.skills.join(', ')}
+INTERESTS: ${userProfile.interests.join(', ')}
+${userProfile.targetRole ? `TARGET ROLE: ${userProfile.targetRole}` : ''}
+
+Provide a 3-5 year career roadmap in JSON:
+{
+  "careerRoadmap": [
+    {
+      "role": "Next career step",
+      "timeframe": "Years 1-2",
+      "skillsNeeded": ["specific skills to develop"],
+      "certifications": ["relevant certifications"],
+      "salaryRange": "$X-Y",
+      "nextSteps": ["actionable steps to get there"]
+    }
+  ],
+  "immediateActions": ["3-5 actions to start this month"],
+  "longTermStrategy": "overall career strategy paragraph",
+  "alternativePaths": ["alternative career paths to consider"]
+}`;
+
+    try {
+      const completion = await this.createChatCompletion([
+        {
+          role: "system",
+          content: "You are a senior career advisor with expertise in tech industry career progression. Provide strategic, realistic career advice."
+        },
+        { role: "user", content: prompt }
+      ], { temperature: 0.6, max_tokens: 1500, user });
+
+      const content = completion.choices[0]?.message?.content;
+      const jsonMatch = content?.match(/\{[\s\S]*\}/);
+      return jsonMatch ? JSON.parse(jsonMatch[0]) : this.generateFallbackCareerPath(userProfile);
+    } catch (error) {
+      console.error('Error generating career path:', error);
+      return this.generateFallbackCareerPath(userProfile);
+    }
+  }
+
+  private generateFallbackCareerPath(userProfile: any) {
+    return {
+      careerRoadmap: [
+        {
+          role: `Senior ${userProfile.currentRole}`,
+          timeframe: "Years 1-2",
+          skillsNeeded: ["Advanced technical skills", "Leadership abilities"],
+          certifications: ["Industry-relevant certification"],
+          salaryRange: "$80,000-$120,000",
+          nextSteps: [
+            "Take on lead project responsibility",
+            "Mentor junior team members",
+            "Build strategic relationships"
+          ]
+        },
+        {
+          role: `Lead ${userProfile.currentRole}`,
+          timeframe: "Years 3-5",
+          skillsNeeded: ["Strategic thinking", "Team management"],
+          certifications: ["Leadership certification"],
+          salaryRange: "$120,000-$160,000",
+          nextSteps: [
+            "Manage cross-functional projects",
+            "Develop business acumen",
+            "Build industry network"
+          ]
+        }
+      ],
+      immediateActions: [
+        "Update your LinkedIn profile with recent achievements",
+        "Identify and start one skill-building course",
+        "Schedule informational interviews with people in target roles",
+        "Document your current projects and impact",
+        "Join relevant professional communities"
+      ],
+      longTermStrategy: "Focus on building both technical expertise and leadership skills. Position yourself as a thought leader through content creation and speaking opportunities. Build a strong professional network and seek opportunities to lead high-impact projects.",
+      alternativePaths: [
+        "Consulting or freelancing in your domain",
+        "Entrepreneurship and startup founding",
+        "Technical management track",
+        "Product management transition"
+      ]
+    };
+  }
 }
 
 // Export singleton instance
