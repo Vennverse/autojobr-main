@@ -1,6 +1,7 @@
 import { apiKeyRotationService } from './apiKeyRotationService';
-import { db, users } from './db'; // Assuming db and users schema are available
-import { eq } from 'drizzle-orm'; // Assuming drizzle-orm for DB queries
+import { db } from './db';
+import { users } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
 // Types from groqService - we'll use the same interface structure
 interface ResumeAnalysis {
