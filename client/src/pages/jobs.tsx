@@ -81,7 +81,7 @@ import {
   Factory,
   Loader2
 } from "lucide-react";
-import JobCard from "@/components/job-card";
+import { JobCard } from "@/components/job-card";
 import PredictiveSuccessWidget from "@/components/PredictiveSuccessWidget";
 import ViralExtensionWidget from "@/components/ViralExtensionWidget";
 import "@/styles/scrollbar.css";
@@ -760,7 +760,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
 
     try {
       // Ensure requirements is an array
-      let requirements = [];
+      let requirements: string[] = [];
       if (Array.isArray(job.requirements)) {
         requirements = job.requirements;
       } else if (typeof job.requirements === 'string' && job.requirements) {
@@ -1254,7 +1254,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
 
   // Active Filter Tags Component
   const FilterTags = () => {
-    const tags = [];
+    const tags: Array<{ key: string; label: string; value: string; isMulti?: boolean }> = [];
 
     if (filters.q) {
       tags.push({ key: 'q', label: `"${filters.q}"`, value: filters.q });
@@ -2276,7 +2276,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                           <div>
                             <p className="text-sm font-medium text-gray-900 dark:text-white">Posted</p>
                             <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {new Date(selectedJob.createdAt).toLocaleDateString()}
+                              {selectedJob.createdAt ? new Date(selectedJob.createdAt).toLocaleDateString() : 'N/A'}
                             </p>
                           </div>
                         </div>

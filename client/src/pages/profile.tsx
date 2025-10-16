@@ -414,7 +414,7 @@ export default function Profile() {
                           email: user?.email || '',
                           firstName: user?.firstName,
                           lastName: user?.lastName,
-                          profileImageUrl: user?.profileImageUrl
+                          profileImageUrl: (user as any)?.profileImageUrl
                         }} 
                         size="xl" 
                         editable={true}
@@ -429,10 +429,10 @@ export default function Profile() {
                       {user?.firstName} {user?.lastName}
                     </h3>
                     <p className="text-muted-foreground mb-2">
-                      {profile?.professionalTitle || "Add your professional title"}
+                      {(profile as any)?.professionalTitle || "Add your professional title"}
                     </p>
                     <p className="text-sm text-muted-foreground mb-4">
-                      {profile?.city && profile?.state ? `${profile.city}, ${profile.state}` : "Add your location"}
+                      {(profile as any)?.city && (profile as any)?.state ? `${(profile as any).city}, ${(profile as any).state}` : "Add your location"}
                     </p>
                     <div className="mt-4">
                       <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground mb-2">
@@ -1235,7 +1235,7 @@ export default function Profile() {
                       <div>
                         <Label className="text-sm font-medium text-foreground mb-2 block">Skills</Label>
                         <div className="flex flex-wrap gap-2 mb-2">
-                          {skills?.map((skill) => (
+                          {Array.isArray(skills) && skills.map((skill: any) => (
                             <Badge key={skill.id} variant="secondary" className="skill-tag">
                               {skill.skillName}
                               <button
