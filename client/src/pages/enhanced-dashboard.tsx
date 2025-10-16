@@ -41,6 +41,7 @@ import {
   BookOpen,
   Send
 } from "lucide-react";
+import CareerInsightsWidget from "@/components/CareerInsightsWidget";
 
 export default function EnhancedDashboard() {
   const { toast } = useToast();
@@ -286,6 +287,15 @@ export default function EnhancedDashboard() {
                   </Button>
                 )}
               </div>
+            </motion.div>
+
+            {/* Career Insights Widget */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <CareerInsightsWidget />
             </motion.div>
 
             {/* Daily Career Checklist */}
