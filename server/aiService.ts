@@ -145,8 +145,17 @@ class AIService {
   }
 
   private hasAIAccess(user: any): { tier: 'premium' | 'basic', message?: string } {
-    // Everyone gets the same efficient model - no tier restrictions
-    return { tier: 'premium' };
+    // Check actual user plan type for premium access
+    const isPremium = user?.planType === 'premium' || user?.planType === 'enterprise';
+    
+    if (isPremium) {
+      return { tier: 'premium' };
+    }
+    
+    return { 
+      tier: 'basic',
+      message: 'Upgrade to Premium for unlimited AI-powered features and priority support'
+    };
   }
 
   // Groq-specific operation wrapper
@@ -1070,6 +1079,11 @@ Return JSON:
 }`;
 
     try {
+      if (this.developmentMode) {
+        console.log("Development mode - using fallback cover letter");
+        return this.generateFallbackCoverLetter();
+      }
+
       const completion = await this.createChatCompletion([
         {
           role: "system",
@@ -1138,6 +1152,11 @@ Provide strategic negotiation advice in JSON:
 }`;
 
     try {
+      if (this.developmentMode) {
+        console.log("Development mode - using fallback salary negotiation");
+        return this.generateFallbackNegotiation(data);
+      }
+
       const completion = await this.createChatCompletion([
         {
           role: "system",
@@ -1218,6 +1237,11 @@ Return JSON:
 }`;
 
     try {
+      if (this.developmentMode) {
+        console.log("Development mode - using fallback interview answer");
+        return this.generateFallbackInterviewAnswer();
+      }
+
       const completion = await this.createChatCompletion([
         {
           role: "system",
@@ -1307,6 +1331,11 @@ Provide a 3-5 year career roadmap in JSON:
 }`;
 
     try {
+      if (this.developmentMode) {
+        console.log("Development mode - using fallback career path");
+        return this.generateFallbackCareerPath(userProfile);
+      }
+
       const completion = await this.createChatCompletion([
         {
           role: "system",

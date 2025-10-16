@@ -87,6 +87,7 @@ import BidderProfile from "@/pages/bidder-profile";
 import InterviewLink from "@/pages/InterviewLink";
 import VideoPractice from "@/pages/VideoPractice";
 import PremiumFeatures from "@/pages/premium-features";
+import PremiumAITools from "@/pages/premium-ai-tools";
 
 // SEO Landing Pages to Beat Competition
 import FreeJobApplicationAutomation from "@/pages/seo/FreeJobApplicationAutomation";
@@ -350,6 +351,7 @@ function Router() {
               <Route path="/subscription" component={RecruiterSubscription} />
               <Route path="/recruiter-premium" component={RecruiterPremium} />
               <Route path="/premium-features" component={PremiumFeatures} />
+              <Route path="/premium-ai-tools" component={PremiumAITools} />
               <Route path="/chat" component={SimpleChatPage} />
               <Route path="/messaging" component={SimpleChatPage} />
               <Route path="/bidder-dashboard" component={BidderDashboard} />
@@ -406,6 +408,7 @@ function Router() {
                   <Route path="/subscription" component={Subscription} />
                   <Route path="/job-seeker-premium" component={JobSeekerPremium} />
                   <Route path="/premium-features" component={PremiumFeatures} />
+                  <Route path="/premium-ai-tools" component={PremiumAITools} />
                   <Route path="/career-ai-assistant" component={CareerAIAssistant} />
                   <Route path="/referral-marketplace" component={ReferralMarketplace} />
                   <Route path="/become-referrer" component={BecomeReferrer} />

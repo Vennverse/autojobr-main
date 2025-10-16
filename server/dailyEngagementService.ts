@@ -47,7 +47,7 @@ export class DailyEngagementService {
           }
         };
 
-    this.transporter = nodemailer.createTransporter(emailConfig);
+    this.transporter = nodemailer.createTransport(emailConfig);
   }
 
   // Morning digest - sent at 8 AM user's timezone

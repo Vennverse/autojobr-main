@@ -8,7 +8,8 @@ import {
   aiInteractionLog,
   premiumValueMetrics,
   virtualInterviews,
-  mockInterviewSessions
+  mockInterviewSessions,
+  userEngagementLog
 } from '@shared/schema';
 import { eq, count, and, desc, gte, sql } from 'drizzle-orm';
 
@@ -175,7 +176,7 @@ export class PremiumFeaturesService {
 
       const aiInteractionCount = Number(aiUsage?.count) || 0;
       const aiCostSavings = aiInteractionCount * 0.25;
-      const interviewCostSavings = Number(interviewCount?.count) || 0 * 50;
+      const interviewCostSavings = (Number(interviewCount?.count) || 0) * 50;
       const totalValue = aiCostSavings + interviewCostSavings;
 
       await db.insert(premiumValueMetrics).values({
