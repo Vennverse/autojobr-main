@@ -38,12 +38,30 @@ const priorityColors = {
 };
 
 export default function CareerInsightsWidget() {
-  const { data: insights, isLoading } = useQuery<{ success: boolean; insights: CareerInsight[] }>({
+  const { data: insights, isLoading, error } = useQuery<{ success: boolean; insights: CareerInsight[] }>({
     queryKey: ['/api/career-insights'],
     refetchInterval: 300000, // Refresh every 5 minutes
   });
 
-  if (isLoading || !insights?.insights?.length) {
+  // Debug logging
+  console.log('CareerInsightsWidget:', { isLoading, insights, error });
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-purple-800 dark:text-purple-200">
+            <Lightbulb className="h-5 w-5 animate-pulse" />
+            💡 Loading Career Insights...
+          </CardTitle>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  // Don't show if no insights
+  if (!insights?.insights?.length) {
     return null;
   }
 

@@ -16,6 +16,7 @@ interface CareerInsight {
 export class CareerInsightsService {
   
   async generateProactiveInsights(userId: string): Promise<CareerInsight[]> {
+    console.log('[CAREER INSIGHTS] Generating insights for user:', userId);
     const insights: CareerInsight[] = [];
     
     // Get user's recent applications
@@ -32,11 +33,15 @@ export class CareerInsightsService {
       .orderBy(desc(jobApplications.createdAt))
       .limit(10);
     
+    console.log('[CAREER INSIGHTS] Found applications:', recentApps.length);
+    
     // Get user's resumes
     const userResumes = await db
       .select()
       .from(resumes)
       .where(eq(resumes.userId, userId));
+    
+    console.log('[CAREER INSIGHTS] Found resumes:', userResumes.length);
     
     // 1. Pattern Detection: Same role category applications
     const categoryCount = this.analyzeApplicationPatterns(recentApps);
@@ -109,6 +114,38 @@ export class CareerInsightsService {
         });
       }
     }
+    
+    // If no insights generated, provide starter recommendations
+    if (insights.length === 0) {
+      insights.push({
+        type: 'resume_optimization',
+        priority: 'high',
+        title: '🚀 Get Started with Your Job Search',
+        message: 'Upload your resume to unlock personalized insights and improve your ATS score by up to 40%.',
+        actionUrl: '/resumes',
+        actionLabel: 'Upload Resume'
+      });
+      
+      insights.push({
+        type: 'application_pattern',
+        priority: 'medium',
+        title: '💼 Start Applying to Jobs',
+        message: 'Browse AI-matched jobs and start applying to get personalized recommendations.',
+        actionUrl: '/jobs',
+        actionLabel: 'Find Jobs'
+      });
+      
+      insights.push({
+        type: 'career_transition',
+        priority: 'medium',
+        title: '🎯 Build Your Career Path',
+        message: 'Use our AI Career Assistant to create a personalized roadmap to your dream role.',
+        actionUrl: '/premium-ai-tools?tab=career',
+        actionLabel: 'Plan Career'
+      });
+    }
+    
+    console.log('[CAREER INSIGHTS] Returning insights:', insights.length);
     
     return insights.sort((a, b) => {
       const priorityOrder = { high: 0, medium: 1, low: 2 };
