@@ -114,6 +114,26 @@ export class DailyEngagementService {
 
     const weekStats = await this.getWeeklyStats(userId);
     const careerTips = await this.generateAICareerTips(user[0]);
+    
+    // Import gamification service dynamically
+    const { gamificationService } = await import('./gamificationService');
+    const achievements = await gamificationService.getUserAchievements(userId);
+    const streak = await gamificationService.getUserStreak(userId);
+    const nextMilestone = await gamificationService.getNextMilestone(userId);
+
+    // Calculate premium value if user is premium
+    let premiumValue = null;
+    if (user[0].planType === 'premium' || user[0].planType === 'ultra_premium') {
+      const { premiumFeaturesService } = await import('./premiumFeaturesService');
+      premiumValue = await premiumFeaturesService.calculatePremiumValue(userId);
+      
+      // Convert monthly to weekly approximation
+      premiumValue.weeklySavings = Math.round(premiumValue.monthlySavings / 4);
+      premiumValue.aiUses = Math.round(premiumValue.aiInteractions / 4);
+      premiumValue.interviews = Math.round(premiumValue.interviewPractices / 4);
+      premiumValue.applications = Math.round(premiumValue.totalApplications / 4);
+      premiumValue.resumeChecks = Math.round(premiumValue.resumeAnalyses / 4);
+    }
 
     await this.transporter.sendMail({
       from: '"AutoJobr Career Coach" <coach@autojobr.com>',
@@ -122,7 +142,12 @@ export class DailyEngagementService {
       html: this.generateWeeklyInsightsHTML({
         userName: user[0].firstName || 'there',
         stats: weekStats,
-        tips: careerTips
+        tips: careerTips,
+        isPremium: user[0].planType === 'premium' || user[0].planType === 'ultra_premium',
+        achievements: achievements.map(a => `${a.icon} ${a.name}`),
+        streak: streak.currentStreak,
+        nextMilestone,
+        premiumValue
       })
     });
 
@@ -130,7 +155,7 @@ export class DailyEngagementService {
       userId,
       campaignType: 'weekly_insights',
       emailSubject: '📈 Your Weekly Career Growth Report - AutoJobr',
-      emailTemplate: 'weekly_insights_v1',
+      emailTemplate: 'weekly_insights_v2',
       wasDelivered: true
     });
   }
@@ -301,29 +326,87 @@ export class DailyEngagementService {
   }
 
   private generateWeeklyInsightsHTML(data: any) {
+    const isPremium = data.isPremium || false;
+    const premiumBadge = isPremium ? '<span style="background: gold; color: #000; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: bold;">⭐ PREMIUM</span>' : '';
+    
     return `
 <!DOCTYPE html>
 <html>
 <head>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; text-align: center; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background: #f5f7fa; }
+    .container { max-width: 650px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px; border-radius: 12px 12px 0 0; text-align: center; }
+    .content { background: white; padding: 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 25px 0; }
+    .stat-card { background: #f8f9fa; padding: 20px; border-radius: 10px; text-align: center; border-left: 4px solid #667eea; }
+    .stat-value { font-size: 32px; font-weight: bold; color: #667eea; margin: 10px 0; }
+    .stat-label { color: #6c757d; font-size: 14px; }
+    .premium-value { background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); padding: 25px; border-radius: 10px; margin: 25px 0; text-align: center; }
+    .tip-box { background: #e7f3ff; padding: 15px; border-left: 4px solid #2196F3; margin: 10px 0; border-radius: 5px; }
+    .achievement-badge { display: inline-block; background: #28a745; color: white; padding: 8px 16px; border-radius: 20px; margin: 5px; font-size: 13px; }
+    .cta-button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 35px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>📈 Weekly Progress Report</h1>
-      <p>for ${data.userName}</p>
+      <h1>📈 Your Weekly Success Report</h1>
+      <p style="margin: 10px 0; opacity: 0.9;">${data.userName} ${premiumBadge}</p>
+      <p style="font-size: 14px; opacity: 0.8;">Keep crushing your career goals! 🚀</p>
     </div>
-    <div style="padding: 30px;">
-      <h2>This Week's Stats</h2>
-      <p><strong>Applications:</strong> ${data.stats.applicationsThisWeek}</p>
-      <p><strong>Interviews:</strong> ${data.stats.interviewsThisWeek}</p>
+    
+    <div class="content">
+      ${isPremium ? `
+      <div class="premium-value">
+        <h3 style="margin: 0 0 15px 0; color: #000;">💰 Premium Value This Week</h3>
+        <div style="font-size: 36px; font-weight: bold; color: #000; margin: 10px 0;">
+          $${data.premiumValue?.weeklySavings || 0} Saved
+        </div>
+        <p style="margin: 5px 0; color: #333;">vs. paying per feature</p>
+        <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; text-align: left;">
+          <div>✨ ${data.premiumValue?.aiUses || 0} AI analyses</div>
+          <div>🎯 ${data.premiumValue?.interviews || 0} mock interviews</div>
+          <div>📝 ${data.premiumValue?.applications || 0} applications</div>
+          <div>📊 ${data.premiumValue?.resumeChecks || 0} resume scans</div>
+        </div>
+      </div>
+      ` : ''}
       
-      <h3>Career Growth Tips</h3>
-      <ul>${data.tips.map((tip: string) => `<li>${tip}</li>`).join('')}</ul>
+      <h2 style="color: #333; margin: 25px 0 20px 0;">This Week's Activity</h2>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-value">${data.stats.applicationsThisWeek || 0}</div>
+          <div class="stat-label">Applications Sent</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${data.stats.interviewsThisWeek || 0}</div>
+          <div class="stat-label">Interview Practices</div>
+        </div>
+      </div>
+
+      ${data.achievements && data.achievements.length > 0 ? `
+      <h3 style="color: #333; margin: 25px 0 15px 0;">🏆 Achievements Unlocked</h3>
+      <div>
+        ${data.achievements.map((achievement: string) => `<span class="achievement-badge">${achievement}</span>`).join('')}
+      </div>
+      ` : ''}
+
+      <h3 style="color: #333; margin: 25px 0 15px 0;">💡 Personalized Action Plan</h3>
+      ${data.tips.map((tip: string) => `<div class="tip-box">${tip}</div>`).join('')}
+
+      ${!isPremium ? `
+      <div style="background: #fff3cd; padding: 20px; border-radius: 10px; margin: 25px 0; border-left: 4px solid #ffc107;">
+        <h4 style="margin: 0 0 10px 0; color: #856404;">🚀 Unlock Premium Features</h4>
+        <p style="margin: 0; color: #856404;">Get unlimited AI features, mock interviews, and save $200+/month vs. competitors</p>
+        <a href="https://autojobr.com/premium" class="cta-button" style="display: inline-block; margin-top: 15px;">Upgrade to Premium - Only $5/mo</a>
+      </div>
+      ` : ''}
+
+      <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+        <p style="color: #6c757d; margin: 10px 0;">Keep up the momentum! 💪</p>
+        <a href="https://autojobr.com/dashboard" style="color: #667eea; text-decoration: none;">View Full Dashboard →</a>
+      </div>
     </div>
   </div>
 </body>

@@ -174,35 +174,76 @@ export class PremiumFeaturesService {
           gte(virtualInterviews.createdAt, startOfMonth)
         ));
 
+      const [applicationsCount] = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(jobApplications)
+        .where(and(
+          eq(jobApplications.userId, userId),
+          gte(jobApplications.createdAt, startOfMonth)
+        ));
+
+      const [resumeAnalysisCount] = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(premiumFeatureUsage)
+        .where(and(
+          eq(premiumFeatureUsage.userId, userId),
+          eq(premiumFeatureUsage.featureType, 'resume_analysis'),
+          gte(premiumFeatureUsage.createdAt, startOfMonth)
+        ));
+
       const aiInteractionCount = Number(aiUsage?.count) || 0;
-      const aiCostSavings = aiInteractionCount * 0.25;
-      const interviewCostSavings = (Number(interviewCount?.count) || 0) * 50;
-      const totalValue = aiCostSavings + interviewCostSavings;
+      const aiCostSavings = aiInteractionCount * 0.50; // $0.50 per AI interaction (market rate)
+      const interviewCostSavings = (Number(interviewCount?.count) || 0) * 75; // $75 per mock interview
+      const applicationsSavings = (Number(applicationsCount?.count) || 0) * 2; // $2 per application saved
+      const resumeAnalysisSavings = (Number(resumeAnalysisCount?.count) || 0) * 10; // $10 per resume analysis
+      
+      const totalValue = aiCostSavings + interviewCostSavings + applicationsSavings + resumeAnalysisSavings;
+      const monthlyCost = 5; // $5/month premium
+      const netSavings = totalValue - monthlyCost;
+      const roi = monthlyCost > 0 ? ((netSavings / monthlyCost) * 100) : 0;
 
       await db.insert(premiumValueMetrics).values({
         userId,
         metricType: 'monthly_roi',
         metricValue: totalValue,
-        calculatedSavings: totalValue - 10,
+        calculatedSavings: netSavings,
         recordedDate: today,
-        description: `Premium ROI calculation for month: ${aiInteractionCount} AI interactions ($${aiCostSavings.toFixed(2)}), ${Number(interviewCount?.count) || 0} interview practices ($${interviewCostSavings})`
+        description: `Premium ROI: ${aiInteractionCount} AI uses ($${aiCostSavings.toFixed(2)}), ${Number(interviewCount?.count) || 0} interviews ($${interviewCostSavings}), ${Number(applicationsCount?.count)} apps ($${applicationsSavings}), ${Number(resumeAnalysisCount?.count)} analyses ($${resumeAnalysisSavings})`
       });
 
       return {
         monthlyValue: totalValue,
-        monthlySavings: totalValue - 10,
+        monthlySavings: netSavings,
+        monthlyCost: monthlyCost,
         aiInteractions: aiInteractionCount,
         interviewPractices: Number(interviewCount?.count) || 0,
-        roi: ((totalValue - 10) / 10) * 100
+        totalApplications: Number(applicationsCount?.count) || 0,
+        resumeAnalyses: Number(resumeAnalysisCount?.count) || 0,
+        roi: Math.round(roi),
+        breakdown: {
+          aiSavings: aiCostSavings,
+          interviewSavings: interviewCostSavings,
+          applicationSavings: applicationsSavings,
+          resumeSavings: resumeAnalysisSavings
+        }
       };
     } catch (error) {
       console.error('Error calculating premium value:', error);
       return {
         monthlyValue: 0,
-        monthlySavings: -10,
+        monthlySavings: -5,
+        monthlyCost: 5,
         aiInteractions: 0,
         interviewPractices: 0,
-        roi: -100
+        totalApplications: 0,
+        resumeAnalyses: 0,
+        roi: -100,
+        breakdown: {
+          aiSavings: 0,
+          interviewSavings: 0,
+          applicationSavings: 0,
+          resumeSavings: 0
+        }
       };
     }
   }

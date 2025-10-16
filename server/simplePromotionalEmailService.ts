@@ -241,6 +241,18 @@ class SimplePromotionalEmailService {
       </ul>
     </div>
 
+    <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin: 25px 0;">
+      <h4 style="color: #374151; margin: 0 0 20px 0; text-align: center;">💬 What Premium Users Say</h4>
+      <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 3px solid #3b82f6;">
+        <p style="color: #374151; margin: 0 0 10px 0; font-style: italic;">"Got 5 interviews in 2 weeks after upgrading! The AI resume tips were game-changing."</p>
+        <p style="color: #6b7280; margin: 0; font-size: 14px;">- Sarah M., Software Engineer</p>
+      </div>
+      <div style="background: white; padding: 15px; border-radius: 8px; border-left: 3px solid #10b981;">
+        <p style="color: #374151; margin: 0 0 10px 0; font-style: italic;">"Landed my dream job 40% faster. Premium is worth every penny!"</p>
+        <p style="color: #6b7280; margin: 0; font-size: 14px;">- James K., Product Manager</p>
+      </div>
+    </div>
+
     <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #f59e0b;">
       <h4 style="color: #92400e; margin: 0 0 10px 0; font-size: 16px;">⚡ Limited Time Offer</h4>
       <p style="color: #92400e; margin: 0; font-size: 14px; line-height: 1.5;">
