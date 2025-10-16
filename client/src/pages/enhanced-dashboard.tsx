@@ -38,8 +38,8 @@ import {
   Trophy,
   Rocket,
   Handshake,
-  Send,
-  BookOpen
+  BookOpen,
+  Send
 } from "lucide-react";
 
 export default function EnhancedDashboard() {
