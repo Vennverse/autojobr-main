@@ -10,11 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/navbar";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Sparkles, 
-  FileText, 
-  DollarSign, 
-  MessageSquare, 
+import {
+  Sparkles,
+  FileText,
+  DollarSign,
+  MessageSquare,
   TrendingUp,
   Crown,
   Loader2,
@@ -22,7 +22,9 @@ import {
   Check,
   Target,
   Zap,
-  Calendar
+  Calendar,
+  CheckCircle,
+  Mail
 } from "lucide-react";
 
 export default function PremiumAITools() {
@@ -39,6 +41,16 @@ export default function PremiumAITools() {
     resume: ""
   });
   const [coverLetter, setCoverLetter] = useState<any>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [jobDescription, setJobDescription] = useState("");
+  const [selectedResume, setSelectedResume] = useState<string>("");
+  const [customPrompt, setCustomPrompt] = useState("");
+  const [showMatchAnalysis, setShowMatchAnalysis] = useState(false);
+  const [matchedPhrases, setMatchedPhrases] = useState<Array<{resume: string, job: string, reason: string}>>([]);
+  const [editMode, setEditMode] = useState(false);
+  const [editPrompt, setEditPrompt] = useState("");
+  const [shortVersion, setShortVersion] = useState("");
+
 
   // Salary Negotiation State
   const [salaryData, setSalaryData] = useState({
@@ -111,12 +123,42 @@ export default function PremiumAITools() {
       });
     },
     onSuccess: (data) => {
-      setCoverLetter(data);
-      toast({ title: "Cover Letter Generated!", description: "Your personalized cover letter is ready." });
+      if (data.coverLetter) {
+        // Typing animation effect
+        setCoverLetter("");
+        const text = data.coverLetter;
+        let index = 0;
+        const typingSpeed = 10; // ms per character
+
+        const typeWriter = () => {
+          if (index < text.length) {
+            setCoverLetter(text.substring(0, index + 1));
+            index++;
+            setTimeout(typeWriter, typingSpeed);
+          }
+        };
+        typeWriter();
+
+        // Set match analysis if provided
+        if (data.matchAnalysis) {
+          setMatchedPhrases(data.matchAnalysis);
+          setShowMatchAnalysis(true);
+        }
+
+        // Generate short version for recruiter summary
+        if (data.shortVersion) {
+          setShortVersion(data.shortVersion);
+        }
+
+        toast({
+          title: "✨ Success!",
+          description: "AI-powered cover letter generated with smart matching",
+        });
+      }
     },
     onError: (error: any) => {
-      toast({ 
-        title: "Error", 
+      toast({
+        title: "Error",
         description: error.message?.includes('premium') ? "This feature requires a Premium subscription." : "Failed to generate cover letter.",
         variant: "destructive"
       });
@@ -139,8 +181,8 @@ export default function PremiumAITools() {
       toast({ title: "Negotiation Strategy Ready!", description: "AI-powered salary advice generated." });
     },
     onError: (error: any) => {
-      toast({ 
-        title: "Error", 
+      toast({
+        title: "Error",
         description: error.message?.includes('premium') ? "This feature requires a Premium subscription." : "Failed to generate advice.",
         variant: "destructive"
       });
@@ -160,8 +202,8 @@ export default function PremiumAITools() {
       toast({ title: "Interview Answer Generated!", description: "Your STAR method answer is ready." });
     },
     onError: (error: any) => {
-      toast({ 
-        title: "Error", 
+      toast({
+        title: "Error",
         description: error.message?.includes('premium') ? "This feature requires a Premium subscription." : "Failed to generate answer.",
         variant: "destructive"
       });
@@ -184,8 +226,8 @@ export default function PremiumAITools() {
       toast({ title: "Career Path Created!", description: "Your personalized career roadmap is ready." });
     },
     onError: (error: any) => {
-      toast({ 
-        title: "Error", 
+      toast({
+        title: "Error",
         description: error.message?.includes('premium') ? "This feature requires a Premium subscription." : "Failed to generate career path.",
         variant: "destructive"
       });
@@ -207,8 +249,8 @@ export default function PremiumAITools() {
       toast({ title: "Bullets Enhanced!", description: "Your resume bullet points have been transformed." });
     },
     onError: (error: any) => {
-      toast({ 
-        title: "Error", 
+      toast({
+        title: "Error",
         description: error.message?.includes('premium') ? "This feature requires a Premium subscription." : "Failed to enhance bullets.",
         variant: "destructive"
       });
@@ -230,8 +272,8 @@ export default function PremiumAITools() {
       toast({ title: "Resume Optimized!", description: `ATS Score: ${data.atsScore}% - Your resume is now tailored to the job.` });
     },
     onError: (error: any) => {
-      toast({ 
-        title: "Error", 
+      toast({
+        title: "Error",
         description: error.message?.includes('premium') ? "This feature requires a Premium subscription." : "Failed to tailor resume.",
         variant: "destructive"
       });
@@ -254,8 +296,8 @@ export default function PremiumAITools() {
       toast({ title: "Gap Strategy Ready!", description: "Professional recommendations for presenting your career gap." });
     },
     onError: (error: any) => {
-      toast({ 
-        title: "Error", 
+      toast({
+        title: "Error",
         description: error.message?.includes('premium') ? "This feature requires a Premium subscription." : "Failed to create gap strategy.",
         variant: "destructive"
       });
@@ -325,7 +367,7 @@ export default function PremiumAITools() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navbar />
-      
+
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
@@ -431,8 +473,8 @@ export default function PremiumAITools() {
                       rows={4}
                     />
                   </div>
-                  <Button 
-                    className="w-full" 
+                  <Button
+                    className="w-full"
                     onClick={() => coverLetterMutation.mutate()}
                     disabled={coverLetterMutation.isPending}
                     data-testid="button-generate-cover-letter"
@@ -465,11 +507,147 @@ export default function PremiumAITools() {
                 <CardContent>
                   {coverLetter ? (
                     <div className="space-y-4">
-                      <div className="prose dark:prose-invert max-w-none">
-                        <pre className="whitespace-pre-wrap text-sm" data-testid="text-cover-letter">
-                          {coverLetter.coverLetter}
-                        </pre>
+                      {/* Match Analysis Section */}
+                      {showMatchAnalysis && matchedPhrases.length > 0 && (
+                        <Card className="border-green-200 bg-green-50 dark:bg-green-950">
+                          <CardHeader>
+                            <CardTitle className="text-sm flex items-center gap-2">
+                              <Sparkles className="h-4 w-4 text-green-600" />
+                              🎯 Smart Context Fusion - How AI Matched Your Profile
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-2">
+                            {matchedPhrases.slice(0, 3).map((match, idx) => (
+                              <div key={idx} className="text-xs p-2 bg-white dark:bg-slate-900 rounded border">
+                                <div className="flex items-start gap-2">
+                                  <CheckCircle className="h-3 w-3 text-green-600 mt-0.5" />
+                                  <div>
+                                    <span className="font-semibold text-blue-600">Resume:</span> "{match.resume}"
+                                    <br />
+                                    <span className="font-semibold text-purple-600">Job:</span> "{match.job}"
+                                    <br />
+                                    <span className="text-slate-600">💡 {match.reason}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* Recruiter Summary Mode */}
+                      {shortVersion && (
+                        <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950">
+                          <CardHeader>
+                            <CardTitle className="text-sm flex items-center gap-2">
+                              <Mail className="h-4 w-4 text-blue-600" />
+                              📧 Recruiter Summary - 3-Line Elevator Pitch
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-sm italic">{shortVersion}</p>
+                            <Button
+                              onClick={() => {
+                                navigator.clipboard.writeText(shortVersion);
+                                toast({ title: "Copied!", description: "Summary copied for email/LinkedIn" });
+                              }}
+                              variant="outline"
+                              size="sm"
+                              className="mt-2"
+                            >
+                              <Copy className="h-3 w-3 mr-2" />
+                              Copy for Email
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      <div className="flex justify-between items-center">
+                        <CardTitle>Generated Cover Letter</CardTitle>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => setEditMode(!editMode)}
+                            variant="outline"
+                            size="sm"
+                          >
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            {editMode ? 'Hide' : 'Interactive Edit'}
+                          </Button>
+                          <Button
+                            onClick={() => copyToClipboard(coverLetter.coverLetter)}
+                            variant="outline"
+                            size="sm"
+                            data-testid="button-copy-cover-letter"
+                          >
+                            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                          </Button>
+                        </div>
                       </div>
+
+                      {/* Interactive Edit Mode */}
+                      {editMode && (
+                        <Card className="border-purple-200 bg-purple-50 dark:bg-purple-950">
+                          <CardHeader>
+                            <CardTitle className="text-sm">🎨 Interactive Edit Mode - Chat to Refine</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                            <div className="flex gap-2">
+                              <Input
+                                placeholder="e.g., 'make it more confident', 'shorter', 'add technical details'"
+                                value={editPrompt}
+                                onChange={(e) => setEditPrompt(e.target.value)}
+                              />
+                              <Button
+                                onClick={async () => {
+                                  if (!editPrompt.trim()) return;
+                                  setIsGenerating(true);
+                                  try {
+                                    const response = await fetch('/api/cover-letter/refine', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        currentLetter: coverLetter.coverLetter, // Use coverLetter.coverLetter
+                                        instruction: editPrompt
+                                      })
+                                    });
+                                    const data = await response.json();
+                                    if (data.refinedLetter) {
+                                      setCoverLetter(data.refinedLetter); // Update state with refined letter
+                                      toast({ title: "✨ Refined!", description: "Cover letter updated" });
+                                      setEditPrompt("");
+                                    }
+                                  } catch (error) {
+                                    toast({ title: "Error", description: "Failed to refine", variant: "destructive" });
+                                  } finally {
+                                    setIsGenerating(false);
+                                  }
+                                }}
+                                disabled={isGenerating}
+                              >
+                                {isGenerating ? "Refining..." : "Apply"}
+                              </Button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {['Make it more confident', 'Shorter', 'More technical', 'Less formal', 'Add metrics'].map((suggestion) => (
+                                <Badge
+                                  key={suggestion}
+                                  variant="outline"
+                                  className="cursor-pointer hover:bg-purple-100"
+                                  onClick={() => setEditPrompt(suggestion)}
+                                >
+                                  {suggestion}
+                                </Badge>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      <Textarea
+                        value={coverLetter.coverLetter} // Use coverLetter.coverLetter
+                        onChange={(e) => setCoverLetter({...coverLetter, coverLetter: e.target.value})} // Update state correctly
+                        className="min-h-[400px]"
+                      />
                       <div>
                         <h4 className="font-semibold mb-2">Key Highlights:</h4>
                         <ul className="list-disc list-inside space-y-1">
@@ -551,8 +729,8 @@ export default function PremiumAITools() {
                       onChange={(e) => setSalaryData({...salaryData, location: e.target.value})}
                     />
                   </div>
-                  <Button 
-                    className="w-full" 
+                  <Button
+                    className="w-full"
                     onClick={() => salaryMutation.mutate()}
                     disabled={salaryMutation.isPending}
                     data-testid="button-get-salary-advice"
@@ -642,8 +820,8 @@ export default function PremiumAITools() {
                       rows={6}
                     />
                   </div>
-                  <Button 
-                    className="w-full" 
+                  <Button
+                    className="w-full"
                     onClick={() => interviewMutation.mutate()}
                     disabled={interviewMutation.isPending}
                     data-testid="button-generate-answer"
@@ -779,8 +957,8 @@ export default function PremiumAITools() {
                       onChange={(e) => setCareerData({...careerData, targetRole: e.target.value})}
                     />
                   </div>
-                  <Button 
-                    className="w-full" 
+                  <Button
+                    className="w-full"
                     onClick={() => careerPathMutation.mutate()}
                     disabled={careerPathMutation.isPending}
                     data-testid="button-generate-career-path"
