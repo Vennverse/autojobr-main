@@ -34,6 +34,7 @@ interface PremiumFeature {
   category: 'job_seeker' | 'recruiter' | 'both';
 }
 
+// All icons are now imported above, so they can be used safely
 const PREMIUM_FEATURES: PremiumFeature[] = [
   // Job Seeker Features
   {
