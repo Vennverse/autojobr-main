@@ -37,7 +37,9 @@ import {
   Star,
   Trophy,
   Rocket,
-  Handshake
+  Handshake,
+  Send,
+  BookOpen
 } from "lucide-react";
 
 export default function EnhancedDashboard() {

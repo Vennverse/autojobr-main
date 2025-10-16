@@ -123,8 +123,8 @@ const PREMIUM_FEATURES: PremiumFeature[] = [
     id: 'premium_targeting',
     name: 'Premium Candidate Targeting',
     description: 'AI-powered candidate matching and targeting',
-    freeLimit: false,
-    premiumLimit: true,
+    freeLimit: 'Not Available',
+    premiumLimit: 'Available',
     icon: Zap,
     category: 'recruiter'
   },
@@ -132,8 +132,8 @@ const PREMIUM_FEATURES: PremiumFeature[] = [
     id: 'analytics',
     name: 'Advanced Analytics',
     description: 'Detailed recruitment analytics and insights',
-    freeLimit: false,
-    premiumLimit: true,
+    freeLimit: 'Not Available',
+    premiumLimit: 'Available',
     icon: BarChart3,
     category: 'recruiter'
   },
@@ -150,8 +150,8 @@ const PREMIUM_FEATURES: PremiumFeature[] = [
     id: 'api_access',
     name: 'API Access',
     description: 'Integration with your existing ATS systems',
-    freeLimit: false,
-    premiumLimit: true,
+    freeLimit: 'Not Available',
+    premiumLimit: 'Available',
     icon: Shield,
     category: 'recruiter'
   },

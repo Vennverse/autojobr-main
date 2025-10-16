@@ -245,56 +245,56 @@ function Router() {
       <Route path="/post-job" component={PostJob} />
 
       {/* Public job pages - accessible to everyone for discovery */}
-      <Route path="/jobs" component={Jobs} />
+      <Route path="/jobs">{() => <Jobs />}</Route>
 
       {/* Clean URL routes for job categories */}
-      <Route path="/jobs/technology" component={() => <Jobs category="technology" />} />
-      <Route path="/jobs/engineering" component={() => <Jobs category="engineering" />} />
-      <Route path="/jobs/marketing" component={() => <Jobs category="marketing" />} />
-      <Route path="/jobs/sales" component={() => <Jobs category="sales" />} />
-      <Route path="/jobs/design" component={() => <Jobs category="design" />} />
-      <Route path="/jobs/data-science" component={() => <Jobs category="data-science" />} />
-      <Route path="/jobs/product-management" component={() => <Jobs category="product-management" />} />
-      <Route path="/jobs/finance" component={() => <Jobs category="finance" />} />
-      <Route path="/jobs/operations" component={() => <Jobs category="operations" />} />
-      <Route path="/jobs/human-resources" component={() => <Jobs category="human-resources" />} />
-      <Route path="/jobs/customer-success" component={() => <Jobs category="customer-success" />} />
-      <Route path="/jobs/remote" component={() => <Jobs workMode="remote" />} />
+      <Route path="/jobs/technology">{() => <Jobs category="technology" />}</Route>
+      <Route path="/jobs/engineering">{() => <Jobs category="engineering" />}</Route>
+      <Route path="/jobs/marketing">{() => <Jobs category="marketing" />}</Route>
+      <Route path="/jobs/sales">{() => <Jobs category="sales" />}</Route>
+      <Route path="/jobs/design">{() => <Jobs category="design" />}</Route>
+      <Route path="/jobs/data-science">{() => <Jobs category="data-science" />}</Route>
+      <Route path="/jobs/product-management">{() => <Jobs category="product-management" />}</Route>
+      <Route path="/jobs/finance">{() => <Jobs category="finance" />}</Route>
+      <Route path="/jobs/operations">{() => <Jobs category="operations" />}</Route>
+      <Route path="/jobs/human-resources">{() => <Jobs category="human-resources" />}</Route>
+      <Route path="/jobs/customer-success">{() => <Jobs category="customer-success" />}</Route>
+      <Route path="/jobs/remote">{() => <Jobs workMode="remote" />}</Route>
 
       {/* Clean URL routes for job locations */}
-      <Route path="/jobs/san-francisco" component={() => <Jobs location="san-francisco" />} />
-      <Route path="/jobs/new-york" component={() => <Jobs location="new-york" />} />
-      <Route path="/jobs/austin" component={() => <Jobs location="austin" />} />
-      <Route path="/jobs/seattle" component={() => <Jobs location="seattle" />} />
-      <Route path="/jobs/los-angeles" component={() => <Jobs location="los-angeles" />} />
-      <Route path="/jobs/chicago" component={() => <Jobs location="chicago" />} />
-      <Route path="/jobs/atlanta" component={() => <Jobs location="atlanta" />} />
-      <Route path="/jobs/boston" component={() => <Jobs location="boston" />} />
-      <Route path="/jobs/denver" component={() => <Jobs location="denver" />} />
-      <Route path="/jobs/dallas" component={() => <Jobs location="dallas" />} />
+      <Route path="/jobs/san-francisco">{() => <Jobs location="san-francisco" />}</Route>
+      <Route path="/jobs/new-york">{() => <Jobs location="new-york" />}</Route>
+      <Route path="/jobs/austin">{() => <Jobs location="austin" />}</Route>
+      <Route path="/jobs/seattle">{() => <Jobs location="seattle" />}</Route>
+      <Route path="/jobs/los-angeles">{() => <Jobs location="los-angeles" />}</Route>
+      <Route path="/jobs/chicago">{() => <Jobs location="chicago" />}</Route>
+      <Route path="/jobs/atlanta">{() => <Jobs location="atlanta" />}</Route>
+      <Route path="/jobs/boston">{() => <Jobs location="boston" />}</Route>
+      <Route path="/jobs/denver">{() => <Jobs location="denver" />}</Route>
+      <Route path="/jobs/dallas">{() => <Jobs location="dallas" />}</Route>
 
       {/* International locations */}
-      <Route path="/jobs/london" component={() => <Jobs location="london" />} />
-      <Route path="/jobs/toronto" component={() => <Jobs location="toronto" />} />
-      <Route path="/jobs/sydney" component={() => <Jobs location="sydney" />} />
-      <Route path="/jobs/berlin" component={() => <Jobs location="berlin" />} />
-      <Route path="/jobs/amsterdam" component={() => <Jobs location="amsterdam" />} />
-      <Route path="/jobs/singapore" component={() => <Jobs location="singapore" />} />
-      <Route path="/jobs/mumbai" component={() => <Jobs location="mumbai" />} />
-      <Route path="/jobs/bangalore" component={() => <Jobs location="bangalore" />} />
-      <Route path="/jobs/dublin" component={() => <Jobs location="dublin" />} />
-      <Route path="/jobs/stockholm" component={() => <Jobs location="stockholm" />} />
+      <Route path="/jobs/london">{() => <Jobs location="london" />}</Route>
+      <Route path="/jobs/toronto">{() => <Jobs location="toronto" />}</Route>
+      <Route path="/jobs/sydney">{() => <Jobs location="sydney" />}</Route>
+      <Route path="/jobs/berlin">{() => <Jobs location="berlin" />}</Route>
+      <Route path="/jobs/amsterdam">{() => <Jobs location="amsterdam" />}</Route>
+      <Route path="/jobs/singapore">{() => <Jobs location="singapore" />}</Route>
+      <Route path="/jobs/mumbai">{() => <Jobs location="mumbai" />}</Route>
+      <Route path="/jobs/bangalore">{() => <Jobs location="bangalore" />}</Route>
+      <Route path="/jobs/dublin">{() => <Jobs location="dublin" />}</Route>
+      <Route path="/jobs/stockholm">{() => <Jobs location="stockholm" />}</Route>
 
       {/* Country-level routes */}
-      <Route path="/jobs/usa" component={() => <Jobs country="usa" />} />
-      <Route path="/jobs/canada" component={() => <Jobs country="canada" />} />
-      <Route path="/jobs/uk" component={() => <Jobs country="uk" />} />
-      <Route path="/jobs/germany" component={() => <Jobs country="germany" />} />
-      <Route path="/jobs/australia" component={() => <Jobs country="australia" />} />
-      <Route path="/jobs/india" component={() => <Jobs country="india" />} />
-      <Route path="/jobs/singapore-country" component={() => <Jobs country="singapore" />} />
-      <Route path="/jobs/netherlands" component={() => <Jobs country="netherlands" />} />
-      <Route path="/jobs/sweden" component={() => <Jobs country="sweden" />} />
+      <Route path="/jobs/usa">{() => <Jobs country="usa" />}</Route>
+      <Route path="/jobs/canada">{() => <Jobs country="canada" />}</Route>
+      <Route path="/jobs/uk">{() => <Jobs country="uk" />}</Route>
+      <Route path="/jobs/germany">{() => <Jobs country="germany" />}</Route>
+      <Route path="/jobs/australia">{() => <Jobs country="australia" />}</Route>
+      <Route path="/jobs/india">{() => <Jobs country="india" />}</Route>
+      <Route path="/jobs/singapore-country">{() => <Jobs country="singapore" />}</Route>
+      <Route path="/jobs/netherlands">{() => <Jobs country="netherlands" />}</Route>
+      <Route path="/jobs/sweden">{() => <Jobs country="sweden" />}</Route>
 
       <Route path="/jobs/:id" component={ViewJob} />
 
@@ -383,7 +383,7 @@ function Router() {
                   <Route path="/profile" component={Profile} />
                   <Route path="/resumes" component={ResumesPage} />
                   <Route path="/applications" component={Applications} />
-                  <Route path="/jobs" component={Jobs} />
+                  <Route path="/jobs">{() => <Jobs />}</Route>
 
                   <Route path="/discover" component={JobDiscoveryPage} />
                   <Route path="/job-seeker-tests" component={JobSeekerTests} />
@@ -438,7 +438,7 @@ function Router() {
               <Route path="/onboarding" component={Onboarding} />
               <Route path="/profile" component={Profile} />
               <Route path="/applications" component={Applications} />
-              <Route path="/jobs" component={Jobs} />
+              <Route path="/jobs">{() => <Jobs />}</Route>
               <Route path="/jobs/:id" component={ViewJob} />
               <Route path="/mock-interview" component={MockInterview} />
               <Route path="/mock-interview/session/:sessionId" component={MockInterviewSession} />

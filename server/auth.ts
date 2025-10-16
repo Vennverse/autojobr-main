@@ -906,6 +906,17 @@ export async function setupAuth(app: Express) {
         });
       }
 
+      // Generate session fingerprint
+      const sessionId = req.sessionID;
+      const userAgent = req.headers['user-agent'] || 'unknown';
+      const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+      
+      sessionFingerprints.set(sessionId, {
+        userAgent,
+        ipAddress,
+        createdAt: Date.now()
+      });
+
       // Store session
       (req as any).session.user = {
         id: user.id,
@@ -916,10 +927,15 @@ export async function setupAuth(app: Express) {
         userType: user.userType
       };
 
+      // Track user session
+      trackUserSession(user.id, sessionId);
+
       // Force session save before responding
       (req as any).session.save((err: any) => {
         if (err) {
           console.error('Session save error:', err);
+          sessionFingerprints.delete(sessionId);
+          removeUserSession(user.id, sessionId);
           return res.status(500).json({ message: 'Login failed - session error' });
         }
 
