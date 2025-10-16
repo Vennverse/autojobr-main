@@ -1,0 +1,407 @@
+chunk-NXESFFTV.js?v=05b09c06:21609 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+content-script.js:2878 Setting up application tracking for form submissions only...
+content-script.js:3140 🎯 Setting up automatic job analysis with debouncing
+content-script.js:40 🚀 AutoJobr extension v2.0 initialized on: generic
+stripe.js:1 Uncaught (in promise) IntegrationError: Please call Stripe() with your publishable key. You used an empty string.
+l @ stripe.js:1
+e @ stripe.js:1
+ev @ stripe.js:1
+initStripe2 @ @stripe_stripe-js.js?v=05b09c06:121
+(anonymous) @ @stripe_stripe-js.js?v=05b09c06:151
+Promise.then
+loadStripe2 @ @stripe_stripe-js.js?v=05b09c06:150
+(anonymous) @ ranking-tests.tsx:17Understand this error
+contentScript.js:2 Content script loaded
+(index):154 ServiceWorker registration successful with scope:  https://219133de-1938-4af1-8e5c-889f3cb4a4c1-00-9sa70d4td1ep.kirk.replit.dev/
+contentScript.js:2 Job data saved to storage.
+enhanced-dashboard.tsx:288 Uncaught ReferenceError: Send is not defined
+    at EnhancedDashboard (enhanced-dashboard.tsx:288:82)
+    at renderWithHooks (chunk-NXESFFTV.js?v=05b09c06:11596:26)
+    at mountIndeterminateComponent (chunk-NXESFFTV.js?v=05b09c06:14974:21)
+    at beginWork (chunk-NXESFFTV.js?v=05b09c06:15962:22)
+    at HTMLUnknownElement.callCallback2 (chunk-NXESFFTV.js?v=05b09c06:3680:22)
+    at Object.invokeGuardedCallbackDev (chunk-NXESFFTV.js?v=05b09c06:3705:24)
+    at invokeGuardedCallback (chunk-NXESFFTV.js?v=05b09c06:3739:39)
+    at beginWork$1 (chunk-NXESFFTV.js?v=05b09c06:19818:15)
+    at performUnitOfWork (chunk-NXESFFTV.js?v=05b09c06:19254:20)
+    at workLoopSync (chunk-NXESFFTV.js?v=05b09c06:19190:13)
+EnhancedDashboard @ enhanced-dashboard.tsx:288
+renderWithHooks @ chunk-NXESFFTV.js?v=05b09c06:11596
+mountIndeterminateComponent @ chunk-NXESFFTV.js?v=05b09c06:14974
+beginWork @ chunk-NXESFFTV.js?v=05b09c06:15962
+callCallback2 @ chunk-NXESFFTV.js?v=05b09c06:3680
+invokeGuardedCallbackDev @ chunk-NXESFFTV.js?v=05b09c06:3705
+invokeGuardedCallback @ chunk-NXESFFTV.js?v=05b09c06:3739
+beginWork$1 @ chunk-NXESFFTV.js?v=05b09c06:19818
+performUnitOfWork @ chunk-NXESFFTV.js?v=05b09c06:19254
+workLoopSync @ chunk-NXESFFTV.js?v=05b09c06:19190
+renderRootSync @ chunk-NXESFFTV.js?v=05b09c06:19169
+performSyncWorkOnRoot @ chunk-NXESFFTV.js?v=05b09c06:18927
+flushSyncCallbacks @ chunk-NXESFFTV.js?v=05b09c06:9166
+(anonymous) @ chunk-NXESFFTV.js?v=05b09c06:18677
+setTimeout
+systemSetTimeoutZero @ @tanstack_react-query.js?v=05b09c06:95
+flush @ @tanstack_react-query.js?v=05b09c06:592
+batch @ @tanstack_react-query.js?v=05b09c06:610
+#dispatch @ @tanstack_react-query.js?v=05b09c06:1222
+setData @ @tanstack_react-query.js?v=05b09c06:900
+fetch @ @tanstack_react-query.js?v=05b09c06:1118
+await in fetch
+#executeFetch @ @tanstack_react-query.js?v=05b09c06:1420
+onSubscribe @ @tanstack_react-query.js?v=05b09c06:1296
+subscribe @ @tanstack_react-query.js?v=05b09c06:19
+(anonymous) @ @tanstack_react-query.js?v=05b09c06:3231
+subscribeToStore @ chunk-NXESFFTV.js?v=05b09c06:12032
+commitHookEffectListMount @ chunk-NXESFFTV.js?v=05b09c06:16963
+commitPassiveMountOnFiber @ chunk-NXESFFTV.js?v=05b09c06:18211
+commitPassiveMountEffects_complete @ chunk-NXESFFTV.js?v=05b09c06:18179
+commitPassiveMountEffects_begin @ chunk-NXESFFTV.js?v=05b09c06:18169
+commitPassiveMountEffects @ chunk-NXESFFTV.js?v=05b09c06:18159
+flushPassiveEffectsImpl @ chunk-NXESFFTV.js?v=05b09c06:19543
+flushPassiveEffects @ chunk-NXESFFTV.js?v=05b09c06:19500
+performSyncWorkOnRoot @ chunk-NXESFFTV.js?v=05b09c06:18921
+flushSyncCallbacks @ chunk-NXESFFTV.js?v=05b09c06:9166
+commitRootImpl @ chunk-NXESFFTV.js?v=05b09c06:19485
+commitRoot @ chunk-NXESFFTV.js?v=05b09c06:19330
+finishConcurrentRender @ chunk-NXESFFTV.js?v=05b09c06:18858
+performConcurrentWorkOnRoot @ chunk-NXESFFTV.js?v=05b09c06:18768
+workLoop @ chunk-NXESFFTV.js?v=05b09c06:197
+flushWork @ chunk-NXESFFTV.js?v=05b09c06:176
+performWorkUntilDeadline @ chunk-NXESFFTV.js?v=05b09c06:384Understand this error
+enhanced-dashboard.tsx:288 Uncaught ReferenceError: Send is not defined
+    at EnhancedDashboard (enhanced-dashboard.tsx:288:82)
+    at renderWithHooks (chunk-NXESFFTV.js?v=05b09c06:11596:26)
+    at mountIndeterminateComponent (chunk-NXESFFTV.js?v=05b09c06:14974:21)
+    at beginWork (chunk-NXESFFTV.js?v=05b09c06:15962:22)
+    at HTMLUnknownElement.callCallback2 (chunk-NXESFFTV.js?v=05b09c06:3680:22)
+    at Object.invokeGuardedCallbackDev (chunk-NXESFFTV.js?v=05b09c06:3705:24)
+    at invokeGuardedCallback (chunk-NXESFFTV.js?v=05b09c06:3739:39)
+    at beginWork$1 (chunk-NXESFFTV.js?v=05b09c06:19818:15)
+    at performUnitOfWork (chunk-NXESFFTV.js?v=05b09c06:19254:20)
+    at workLoopSync (chunk-NXESFFTV.js?v=05b09c06:19190:13)
+EnhancedDashboard @ enhanced-dashboard.tsx:288
+renderWithHooks @ chunk-NXESFFTV.js?v=05b09c06:11596
+mountIndeterminateComponent @ chunk-NXESFFTV.js?v=05b09c06:14974
+beginWork @ chunk-NXESFFTV.js?v=05b09c06:15962
+callCallback2 @ chunk-NXESFFTV.js?v=05b09c06:3680
+invokeGuardedCallbackDev @ chunk-NXESFFTV.js?v=05b09c06:3705
+invokeGuardedCallback @ chunk-NXESFFTV.js?v=05b09c06:3739
+beginWork$1 @ chunk-NXESFFTV.js?v=05b09c06:19818
+performUnitOfWork @ chunk-NXESFFTV.js?v=05b09c06:19254
+workLoopSync @ chunk-NXESFFTV.js?v=05b09c06:19190
+renderRootSync @ chunk-NXESFFTV.js?v=05b09c06:19169
+recoverFromConcurrentError @ chunk-NXESFFTV.js?v=05b09c06:18786
+performSyncWorkOnRoot @ chunk-NXESFFTV.js?v=05b09c06:18932
+flushSyncCallbacks @ chunk-NXESFFTV.js?v=05b09c06:9166
+(anonymous) @ chunk-NXESFFTV.js?v=05b09c06:18677
+setTimeout
+systemSetTimeoutZero @ @tanstack_react-query.js?v=05b09c06:95
+flush @ @tanstack_react-query.js?v=05b09c06:592
+batch @ @tanstack_react-query.js?v=05b09c06:610
+#dispatch @ @tanstack_react-query.js?v=05b09c06:1222
+setData @ @tanstack_react-query.js?v=05b09c06:900
+fetch @ @tanstack_react-query.js?v=05b09c06:1118
+await in fetch
+#executeFetch @ @tanstack_react-query.js?v=05b09c06:1420
+onSubscribe @ @tanstack_react-query.js?v=05b09c06:1296
+subscribe @ @tanstack_react-query.js?v=05b09c06:19
+(anonymous) @ @tanstack_react-query.js?v=05b09c06:3231
+subscribeToStore @ chunk-NXESFFTV.js?v=05b09c06:12032
+commitHookEffectListMount @ chunk-NXESFFTV.js?v=05b09c06:16963
+commitPassiveMountOnFiber @ chunk-NXESFFTV.js?v=05b09c06:18211
+commitPassiveMountEffects_complete @ chunk-NXESFFTV.js?v=05b09c06:18179
+commitPassiveMountEffects_begin @ chunk-NXESFFTV.js?v=05b09c06:18169
+commitPassiveMountEffects @ chunk-NXESFFTV.js?v=05b09c06:18159
+flushPassiveEffectsImpl @ chunk-NXESFFTV.js?v=05b09c06:19543
+flushPassiveEffects @ chunk-NXESFFTV.js?v=05b09c06:19500
+performSyncWorkOnRoot @ chunk-NXESFFTV.js?v=05b09c06:18921
+flushSyncCallbacks @ chunk-NXESFFTV.js?v=05b09c06:9166
+commitRootImpl @ chunk-NXESFFTV.js?v=05b09c06:19485
+commitRoot @ chunk-NXESFFTV.js?v=05b09c06:19330
+finishConcurrentRender @ chunk-NXESFFTV.js?v=05b09c06:18858
+performConcurrentWorkOnRoot @ chunk-NXESFFTV.js?v=05b09c06:18768
+workLoop @ chunk-NXESFFTV.js?v=05b09c06:197
+flushWork @ chunk-NXESFFTV.js?v=05b09c06:176
+performWorkUntilDeadline @ chunk-NXESFFTV.js?v=05b09c06:384Understand this error
+chunk-NXESFFTV.js?v=05b09c06:14080 The above error occurred in the <EnhancedDashboard> component:
+
+    at EnhancedDashboard (https://219133de-1938-4af1-8e5c-889f3cb4a4c1-00-9sa70d4td1ep.kirk.replit.dev/src/pages/enhanced-dashboard.tsx:42:21)
+    at Route (https://219133de-1938-4af1-8e5c-889f3cb4a4c1-00-9sa70d4td1ep.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=05b09c06:205:16)
+    at Switch (https://219133de-1938-4af1-8e5c-889f3cb4a4c1-00-9sa70d4td1ep.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=05b09c06:261:17)
+    at Router (https://219133de-1938-4af1-8e5c-889f3cb4a4c1-00-9sa70d4td1ep.kirk.replit.dev/src/App.tsx:108:48)
+    at Provider (https://219133de-1938-4af1-8e5c-889f3cb4a4c1-00-9sa70d4td1ep.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-C6BJTAFJ.js?v=05b09c06:37:15)
+    at TooltipProvider (https://219133de-1938-4af1-8e5c-889f3cb4a4c1-00-9sa70d4td1ep.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=05b09c06:65:5)
+    at ThemeProvider (https://219133de-1938-4af1-8e5c-889f3cb4a4c1-00-9sa70d4td1ep.kirk.replit.dev/src/components/theme-provider.tsx:9:3)
+    at QueryClientProvider (https://219133de-1938-4af1-8e5c-889f3cb4a4c1-00-9sa70d4td1ep.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=05b09c06:3016:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-NXESFFTV.js?v=05b09c06:14080
+update.callback @ chunk-NXESFFTV.js?v=05b09c06:14100
+callCallback @ chunk-NXESFFTV.js?v=05b09c06:11296
+commitUpdateQueue @ chunk-NXESFFTV.js?v=05b09c06:11313
+commitLayoutEffectOnFiber @ chunk-NXESFFTV.js?v=05b09c06:17141
+commitLayoutMountEffects_complete @ chunk-NXESFFTV.js?v=05b09c06:18030
+commitLayoutEffects_begin @ chunk-NXESFFTV.js?v=05b09c06:18019
+commitLayoutEffects @ chunk-NXESFFTV.js?v=05b09c06:17970
+commitRootImpl @ chunk-NXESFFTV.js?v=05b09c06:19406
+commitRoot @ chunk-NXESFFTV.js?v=05b09c06:19330
+performSyncWorkOnRoot @ chunk-NXESFFTV.js?v=05b09c06:18948
+flushSyncCallbacks @ chunk-NXESFFTV.js?v=05b09c06:9166
+(anonymous) @ chunk-NXESFFTV.js?v=05b09c06:18677
+setTimeout
+systemSetTimeoutZero @ @tanstack_react-query.js?v=05b09c06:95
+flush @ @tanstack_react-query.js?v=05b09c06:592
+batch @ @tanstack_react-query.js?v=05b09c06:610
+#dispatch @ @tanstack_react-query.js?v=05b09c06:1222
+setData @ @tanstack_react-query.js?v=05b09c06:900
+fetch @ @tanstack_react-query.js?v=05b09c06:1118
+await in fetch
+#executeFetch @ @tanstack_react-query.js?v=05b09c06:1420
+onSubscribe @ @tanstack_react-query.js?v=05b09c06:1296
+subscribe @ @tanstack_react-query.js?v=05b09c06:19
+(anonymous) @ @tanstack_react-query.js?v=05b09c06:3231
+subscribeToStore @ chunk-NXESFFTV.js?v=05b09c06:12032
+commitHookEffectListMount @ chunk-NXESFFTV.js?v=05b09c06:16963
+commitPassiveMountOnFiber @ chunk-NXESFFTV.js?v=05b09c06:18211
+commitPassiveMountEffects_complete @ chunk-NXESFFTV.js?v=05b09c06:18179
+commitPassiveMountEffects_begin @ chunk-NXESFFTV.js?v=05b09c06:18169
+commitPassiveMountEffects @ chunk-NXESFFTV.js?v=05b09c06:18159
+flushPassiveEffectsImpl @ chunk-NXESFFTV.js?v=05b09c06:19543
+flushPassiveEffects @ chunk-NXESFFTV.js?v=05b09c06:19500
+performSyncWorkOnRoot @ chunk-NXESFFTV.js?v=05b09c06:18921
+flushSyncCallbacks @ chunk-NXESFFTV.js?v=05b09c06:9166
+commitRootImpl @ chunk-NXESFFTV.js?v=05b09c06:19485
+commitRoot @ chunk-NXESFFTV.js?v=05b09c06:19330
+finishConcurrentRender @ chunk-NXESFFTV.js?v=05b09c06:18858
+performConcurrentWorkOnRoot @ chunk-NXESFFTV.js?v=05b09c06:18768
+workLoop @ chunk-NXESFFTV.js?v=05b09c06:197
+flushWork @ chunk-NXESFFTV.js?v=05b09c06:176
+performWorkUntilDeadline @ chunk-NXESFFTV.js?v=05b09c06:384Understand this error
+chunk-NXESFFTV.js?v=05b09c06:9176 Uncaught ReferenceError: Send is not defined
+    at EnhancedDashboard (enhanced-dashboard.tsx:288:82)
+    at renderWithHooks (chunk-NXESFFTV.js?v=05b09c06:11596:26)
+    at mountIndeterminateComponent (chunk-NXESFFTV.js?v=05b09c06:14974:21)
+    at beginWork (chunk-NXESFFTV.js?v=05b09c06:15962:22)
+    at beginWork$1 (chunk-NXESFFTV.js?v=05b09c06:19806:22)
+    at performUnitOfWork (chunk-NXESFFTV.js?v=05b09c06:19254:20)
+    at workLoopSync (chunk-NXESFFTV.js?v=05b09c06:19190:13)
+    at renderRootSync (chunk-NXESFFTV.js?v=05b09c06:19169:15)
+    at recoverFromConcurrentError (chunk-NXESFFTV.js?v=05b09c06:18786:28)
+    at performSyncWorkOnRoot (chunk-NXESFFTV.js?v=05b09c06:18932:28)
+EnhancedDashboard @ enhanced-dashboard.tsx:288
+renderWithHooks @ chunk-NXESFFTV.js?v=05b09c06:11596
+mountIndeterminateComponent @ chunk-NXESFFTV.js?v=05b09c06:14974
+beginWork @ chunk-NXESFFTV.js?v=05b09c06:15962
+beginWork$1 @ chunk-NXESFFTV.js?v=05b09c06:19806
+performUnitOfWork @ chunk-NXESFFTV.js?v=05b09c06:19254
+workLoopSync @ chunk-NXESFFTV.js?v=05b09c06:19190
+renderRootSync @ chunk-NXESFFTV.js?v=05b09c06:19169
+recoverFromConcurrentError @ chunk-NXESFFTV.js?v=05b09c06:18786
+performSyncWorkOnRoot @ chunk-NXESFFTV.js?v=05b09c06:18932
+flushSyncCallbacks @ chunk-NXESFFTV.js?v=05b09c06:9166
+(anonymous) @ chunk-NXESFFTV.js?v=05b09c06:18677
+setTimeout
+systemSetTimeoutZero @ @tanstack_react-query.js?v=05b09c06:95
+flush @ @tanstack_react-query.js?v=05b09c06:592
+batch @ @tanstack_react-query.js?v=05b09c06:610
+#dispatch @ @tanstack_react-query.js?v=05b09c06:1222
+setData @ @tanstack_react-query.js?v=05b09c06:900
+fetch @ @tanstack_react-query.js?v=05b09c06:1118
+await in fetch
+#executeFetch @ @tanstack_react-query.js?v=05b09c06:1420
+onSubscribe @ @tanstack_react-query.js?v=05b09c06:1296
+subscribe @ @tanstack_react-query.js?v=05b09c06:19
+(anonymous) @ @tanstack_react-query.js?v=05b09c06:3231
+subscribeToStore @ chunk-NXESFFTV.js?v=05b09c06:12032
+commitHookEffectListMount @ chunk-NXESFFTV.js?v=05b09c06:16963
+commitPassiveMountOnFiber @ chunk-NXESFFTV.js?v=05b09c06:18211
+commitPassiveMountEffects_complete @ chunk-NXESFFTV.js?v=05b09c06:18179
+commitPassiveMountEffects_begin @ chunk-NXESFFTV.js?v=05b09c06:18169
+commitPassiveMountEffects @ chunk-NXESFFTV.js?v=05b09c06:18159
+flushPassiveEffectsImpl @ chunk-NXESFFTV.js?v=05b09c06:19543
+flushPassiveEffects @ chunk-NXESFFTV.js?v=05b09c06:19500
+performSyncWorkOnRoot @ chunk-NXESFFTV.js?v=05b09c06:18921
+flushSyncCallbacks @ chunk-NXESFFTV.js?v=05b09c06:9166
+commitRootImpl @ chunk-NXESFFTV.js?v=05b09c06:19485
+commitRoot @ chunk-NXESFFTV.js?v=05b09c06:19330
+finishConcurrentRender @ chunk-NXESFFTV.js?v=05b09c06:18858
+performConcurrentWorkOnRoot @ chunk-NXESFFTV.js?v=05b09c06:18768
+workLoop @ chunk-NXESFFTV.js?v=05b09c06:197
+flushWork @ chunk-NXESFFTV.js?v=05b09c06:176
+performWorkUntilDeadline @ chunk-NXESFFTV.js?v=05b09c06:384Understand this error
+(index):1 Access to fetch at 'https://autojobr.com/api/reminders/pending' from origin 'https://219133de-1938-4af1-8e5c-889f3cb4a4c1-00-9sa70d4td1ep.kirk.replit.dev' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this error
+content-script.js:3749  GET https://autojobr.com/api/reminders/pending net::ERR_FAILED
+loadUserTasks @ content-script.js:3749
+await in loadUserTasks
+injectEnhancedUI @ content-script.js:584
+init @ content-script.js:26
+AutoJobrContentScript @ content-script.js:19
+(anonymous) @ content-script.js:3937Understand this error
+content-script.js:3778 Failed to load tasks: TypeError: Failed to fetch
+    at AutoJobrContentScript.loadUserTasks (content-script.js:3749:30)
+loadUserTasks @ content-script.js:3778
+await in loadUserTasks
+injectEnhancedUI @ content-script.js:584
+init @ content-script.js:26
+AutoJobrContentScript @ content-script.js:19
+(anonymous) @ content-script.js:3937Understand this error
+client:745 WebSocket connection to 'wss://219133de-1938-4af1-8e5c-889f3cb4a4c1-00-9sa70d4td1ep.kirk.replit.dev:24678/?token=M5Ji-vHhBuaz' failed: 
+createConnection @ client:745
+connect @ client:411
+connect @ client:751
+connect @ client:289
+connect @ client:373
+(anonymous) @ client:823Understand this error
+client:772 [vite] failed to connect to websocket (Error: WebSocket closed without opened.). 
+connect @ client:772
+await in connect
+connect @ client:289
+connect @ client:373
+(anonymous) @ client:823Understand this error
+client:809 [vite] Error: WebSocket closed without opened.
+    at WebSocket.<anonymous> (client:423:30)
+error @ client:809
+(anonymous) @ client:158
+Promise.catch
+send @ client:157
+send @ client:119
+sendError @ (index):16
+(anonymous) @ (index):20
+invokeGuardedCallbackDev @ chunk-NXESFFTV.js?v=05b09c06:3705
+invokeGuardedCallback @ chunk-NXESFFTV.js?v=05b09c06:3739
+beginWork$1 @ chunk-NXESFFTV.js?v=05b09c06:19818
+performUnitOfWork @ chunk-NXESFFTV.js?v=05b09c06:19254
+workLoopSync @ chunk-NXESFFTV.js?v=05b09c06:19190
+renderRootSync @ chunk-NXESFFTV.js?v=05b09c06:19169
+performSyncWorkOnRoot @ chunk-NXESFFTV.js?v=05b09c06:18927
+flushSyncCallbacks @ chunk-NXESFFTV.js?v=05b09c06:9166
+(anonymous) @ chunk-NXESFFTV.js?v=05b09c06:18677
+setTimeout
+systemSetTimeoutZero @ @tanstack_react-query.js?v=05b09c06:95
+flush @ @tanstack_react-query.js?v=05b09c06:592
+batch @ @tanstack_react-query.js?v=05b09c06:610
+#dispatch @ @tanstack_react-query.js?v=05b09c06:1222
+setData @ @tanstack_react-query.js?v=05b09c06:900
+fetch @ @tanstack_react-query.js?v=05b09c06:1118
+await in fetch
+#executeFetch @ @tanstack_react-query.js?v=05b09c06:1420
+onSubscribe @ @tanstack_react-query.js?v=05b09c06:1296
+subscribe @ @tanstack_react-query.js?v=05b09c06:19
+(anonymous) @ @tanstack_react-query.js?v=05b09c06:3231
+subscribeToStore @ chunk-NXESFFTV.js?v=05b09c06:12032
+commitHookEffectListMount @ chunk-NXESFFTV.js?v=05b09c06:16963
+commitPassiveMountOnFiber @ chunk-NXESFFTV.js?v=05b09c06:18211
+commitPassiveMountEffects_complete @ chunk-NXESFFTV.js?v=05b09c06:18179
+commitPassiveMountEffects_begin @ chunk-NXESFFTV.js?v=05b09c06:18169
+commitPassiveMountEffects @ chunk-NXESFFTV.js?v=05b09c06:18159
+flushPassiveEffectsImpl @ chunk-NXESFFTV.js?v=05b09c06:19543
+flushPassiveEffects @ chunk-NXESFFTV.js?v=05b09c06:19500
+performSyncWorkOnRoot @ chunk-NXESFFTV.js?v=05b09c06:18921
+flushSyncCallbacks @ chunk-NXESFFTV.js?v=05b09c06:9166
+commitRootImpl @ chunk-NXESFFTV.js?v=05b09c06:19485
+commitRoot @ chunk-NXESFFTV.js?v=05b09c06:19330
+finishConcurrentRender @ chunk-NXESFFTV.js?v=05b09c06:18858
+performConcurrentWorkOnRoot @ chunk-NXESFFTV.js?v=05b09c06:18768
+workLoop @ chunk-NXESFFTV.js?v=05b09c06:197
+flushWork @ chunk-NXESFFTV.js?v=05b09c06:176
+performWorkUntilDeadline @ chunk-NXESFFTV.js?v=05b09c06:384Understand this error
+client:809 [vite] Error: WebSocket closed without opened.
+    at WebSocket.<anonymous> (client:423:30)
+error @ client:809
+(anonymous) @ client:158
+Promise.catch
+send @ client:157
+send @ client:119
+sendError @ (index):16
+(anonymous) @ (index):20
+invokeGuardedCallbackDev @ chunk-NXESFFTV.js?v=05b09c06:3705
+invokeGuardedCallback @ chunk-NXESFFTV.js?v=05b09c06:3739
+beginWork$1 @ chunk-NXESFFTV.js?v=05b09c06:19818
+performUnitOfWork @ chunk-NXESFFTV.js?v=05b09c06:19254
+workLoopSync @ chunk-NXESFFTV.js?v=05b09c06:19190
+renderRootSync @ chunk-NXESFFTV.js?v=05b09c06:19169
+recoverFromConcurrentError @ chunk-NXESFFTV.js?v=05b09c06:18786
+performSyncWorkOnRoot @ chunk-NXESFFTV.js?v=05b09c06:18932
+flushSyncCallbacks @ chunk-NXESFFTV.js?v=05b09c06:9166
+(anonymous) @ chunk-NXESFFTV.js?v=05b09c06:18677
+setTimeout
+systemSetTimeoutZero @ @tanstack_react-query.js?v=05b09c06:95
+flush @ @tanstack_react-query.js?v=05b09c06:592
+batch @ @tanstack_react-query.js?v=05b09c06:610
+#dispatch @ @tanstack_react-query.js?v=05b09c06:1222
+setData @ @tanstack_react-query.js?v=05b09c06:900
+fetch @ @tanstack_react-query.js?v=05b09c06:1118
+await in fetch
+#executeFetch @ @tanstack_react-query.js?v=05b09c06:1420
+onSubscribe @ @tanstack_react-query.js?v=05b09c06:1296
+subscribe @ @tanstack_react-query.js?v=05b09c06:19
+(anonymous) @ @tanstack_react-query.js?v=05b09c06:3231
+subscribeToStore @ chunk-NXESFFTV.js?v=05b09c06:12032
+commitHookEffectListMount @ chunk-NXESFFTV.js?v=05b09c06:16963
+commitPassiveMountOnFiber @ chunk-NXESFFTV.js?v=05b09c06:18211
+commitPassiveMountEffects_complete @ chunk-NXESFFTV.js?v=05b09c06:18179
+commitPassiveMountEffects_begin @ chunk-NXESFFTV.js?v=05b09c06:18169
+commitPassiveMountEffects @ chunk-NXESFFTV.js?v=05b09c06:18159
+flushPassiveEffectsImpl @ chunk-NXESFFTV.js?v=05b09c06:19543
+flushPassiveEffects @ chunk-NXESFFTV.js?v=05b09c06:19500
+performSyncWorkOnRoot @ chunk-NXESFFTV.js?v=05b09c06:18921
+flushSyncCallbacks @ chunk-NXESFFTV.js?v=05b09c06:9166
+commitRootImpl @ chunk-NXESFFTV.js?v=05b09c06:19485
+commitRoot @ chunk-NXESFFTV.js?v=05b09c06:19330
+finishConcurrentRender @ chunk-NXESFFTV.js?v=05b09c06:18858
+performConcurrentWorkOnRoot @ chunk-NXESFFTV.js?v=05b09c06:18768
+workLoop @ chunk-NXESFFTV.js?v=05b09c06:197
+flushWork @ chunk-NXESFFTV.js?v=05b09c06:176
+performWorkUntilDeadline @ chunk-NXESFFTV.js?v=05b09c06:384Understand this error
+client:809 [vite] Error: WebSocket closed without opened.
+    at WebSocket.<anonymous> (client:423:30)
+error @ client:809
+(anonymous) @ client:158
+Promise.catch
+send @ client:157
+send @ client:119
+sendError @ (index):16
+(anonymous) @ (index):20
+setTimeout
+systemSetTimeoutZero @ @tanstack_react-query.js?v=05b09c06:95
+flush @ @tanstack_react-query.js?v=05b09c06:592
+batch @ @tanstack_react-query.js?v=05b09c06:610
+#dispatch @ @tanstack_react-query.js?v=05b09c06:1222
+setData @ @tanstack_react-query.js?v=05b09c06:900
+fetch @ @tanstack_react-query.js?v=05b09c06:1118
+await in fetch
+#executeFetch @ @tanstack_react-query.js?v=05b09c06:1420
+onSubscribe @ @tanstack_react-query.js?v=05b09c06:1296
+subscribe @ @tanstack_react-query.js?v=05b09c06:19
+(anonymous) @ @tanstack_react-query.js?v=05b09c06:3231
+subscribeToStore @ chunk-NXESFFTV.js?v=05b09c06:12032
+commitHookEffectListMount @ chunk-NXESFFTV.js?v=05b09c06:16963
+commitPassiveMountOnFiber @ chunk-NXESFFTV.js?v=05b09c06:18211
+commitPassiveMountEffects_complete @ chunk-NXESFFTV.js?v=05b09c06:18179
+commitPassiveMountEffects_begin @ chunk-NXESFFTV.js?v=05b09c06:18169
+commitPassiveMountEffects @ chunk-NXESFFTV.js?v=05b09c06:18159
+flushPassiveEffectsImpl @ chunk-NXESFFTV.js?v=05b09c06:19543
+flushPassiveEffects @ chunk-NXESFFTV.js?v=05b09c06:19500
+performSyncWorkOnRoot @ chunk-NXESFFTV.js?v=05b09c06:18921
+flushSyncCallbacks @ chunk-NXESFFTV.js?v=05b09c06:9166
+commitRootImpl @ chunk-NXESFFTV.js?v=05b09c06:19485
+commitRoot @ chunk-NXESFFTV.js?v=05b09c06:19330
+finishConcurrentRender @ chunk-NXESFFTV.js?v=05b09c06:18858
+performConcurrentWorkOnRoot @ chunk-NXESFFTV.js?v=05b09c06:18768
+workLoop @ chunk-NXESFFTV.js?v=05b09c06:197
+flushWork @ chunk-NXESFFTV.js?v=05b09c06:176
+performWorkUntilDeadline @ chunk-NXESFFTV.js?v=05b09c06:384Understand this error
+client:809 [vite] Error: WebSocket closed without opened.
+    at WebSocket.<anonymous> (client:423:30)
+error @ client:809
+(anonymous) @ client:158
+Promise.catch
+send @ client:157
+send @ client:119
+sendError @ (index):16
+(anonymous) @ (index):24Understand this error
+client:423 Uncaught (in promise) Error: WebSocket closed without opened.
+    at WebSocket.<anonymous> (client:423:30)
+(anonymous) @ client:423Understand this error
