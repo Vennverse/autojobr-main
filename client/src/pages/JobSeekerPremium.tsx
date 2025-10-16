@@ -294,7 +294,9 @@ export default function JobSeekerPremium() {
   // Filter to ensure only job seeker tiers are displayed
   const tiers: JobSeekerSubscriptionTier[] = (tiersData?.tiers || []).filter((tier: any) => tier.userType === 'jobseeker');
   const subscription = (currentSubscription as any)?.subscription || null;
-  const isFreeTier = !subscription || !subscription?.isActive;
+  
+  // Check subscription status - handle both possible response structures for backwards compatibility
+  const isFreeTier = !subscription || !(subscription?.isActive === true || subscription?.status === 'active');
 
   return (
     <div className="container mx-auto px-4 py-8">

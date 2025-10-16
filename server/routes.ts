@@ -3545,7 +3545,71 @@ Return only the cover letter text, no additional formatting or explanations.`;
     }
   });
 
-  // Extension Applications Tracking
+  // Application Tracking - Main endpoint for extension
+  app.post('/api/applications', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { jobTitle, company, location, jobUrl, status, source, notes } = req.body;
+
+      // Validate required fields
+      if (!jobTitle || !company) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Job title and company are required' 
+        });
+      }
+
+      // Insert application
+      const [application] = await db.insert(schema.jobApplications)
+        .values({
+          userId,
+          jobTitle,
+          company,
+          location: location || null,
+          jobUrl: jobUrl || null,
+          status: status || 'applied',
+          source: source || 'extension',
+          notes: notes || null,
+          appliedDate: new Date(),
+          lastUpdated: new Date()
+        })
+        .returning();
+
+      // Create follow-up task in CRM (3 days from now)
+      try {
+        const followUpDate = new Date();
+        followUpDate.setDate(followUpDate.getDate() + 3);
+
+        await db.insert(schema.tasks).values({
+          userId,
+          title: `Follow up on ${jobTitle} at ${company}`,
+          description: `Check application status and consider reaching out to the hiring manager`,
+          status: 'pending',
+          taskType: 'followup',
+          priority: 'medium',
+          category: 'job_application',
+          dueDateTime: followUpDate,
+          reminderDateTime: followUpDate,
+          relatedEntityType: 'application',
+          relatedEntityId: application.id.toString(),
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+      } catch (taskError) {
+        console.error('Error creating follow-up task:', taskError);
+      }
+
+      res.json({ success: true, application });
+    } catch (error) {
+      console.error('Track application error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to track application' 
+      });
+    }
+  });
+
+  // Extension Applications Tracking (Legacy endpoint)
   app.post('/api/extension/applications', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -4861,17 +4925,6 @@ Return only the cover letter text, no additional formatting or explanations.`;
     res.json({ success: true, message: 'Subscription cancelled successfully' });
   }));
 
-  app.get("/api/subscription/current", isAuthenticated, asyncHandler(async (req: any, res: any) => {
-    const userId = req.user.id;
-
-    const userSubscription = await db.query.subscriptions.findFirst({
-      where: eq(schema.subscriptions.userId, userId),
-      orderBy: [desc(schema.subscriptions.createdAt)]
-    });
-
-    res.json(userSubscription || null);
-  }));
-
   app.get("/api/subscription/status", isAuthenticated, asyncHandler(async (req: any, res: any) => {
     const userId = req.user.id;
     const user = await storage.getUser(userId);
@@ -5537,14 +5590,24 @@ Return ONLY the JSON object, no additional text.`;
 
   // 2. Current Subscription Endpoint
   app.get('/api/subscription/current', isAuthenticated, asyncHandler(async (req: any, res: any) => {
-    try {
-      const userId = req.user.id;
-      const subscription = await subscriptionServiceInstance.getUserSubscription(userId); // Use renamed instance
-      res.json(subscription);
-    } catch (error) {
-      console.error('Error fetching subscription:', error);
-      res.status(500).json({ message: 'Failed to fetch subscription data' });
+    const userId = req.user.id;
+    
+    const userSubscription = await db.query.subscriptions.findFirst({
+      where: eq(schema.subscriptions.userId, userId),
+      orderBy: [desc(schema.subscriptions.createdAt)]
+    });
+
+    if (!userSubscription) {
+      return res.json({ subscription: null });
     }
+
+    // Add isActive field based on status
+    const subscriptionWithActive = {
+      ...userSubscription,
+      isActive: userSubscription.status === 'active'
+    };
+
+    res.json({ subscription: subscriptionWithActive });
   }));
 
   // 3. Ranking Test Usage Endpoint

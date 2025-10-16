@@ -12,6 +12,7 @@ import {
 } from '@shared/schema';
 import { eq, and, lte, gte, sql, desc } from 'drizzle-orm';
 import nodemailer from 'nodemailer';
+import { dailyApplicationEmailService } from './dailyApplicationEmailService';
 
 export class DailyEngagementService {
   private transporter: nodemailer.Transporter;
@@ -105,6 +106,23 @@ export class DailyEngagementService {
       emailTemplate: 'evening_summary_v1',
       wasDelivered: true
     });
+  }
+
+  // Daily application summary - sent at end of day
+  async sendDailyApplicationSummary(userId: string) {
+    try {
+      await dailyApplicationEmailService.sendDailyApplicationSummary(userId);
+      
+      await db.insert(emailCampaignLog).values({
+        userId,
+        campaignType: 'daily_application_summary',
+        emailSubject: 'Your Job Search Activity Summary',
+        emailTemplate: 'daily_application_summary_v1',
+        wasDelivered: true
+      });
+    } catch (error) {
+      console.error('Error sending daily application summary:', error);
+    }
   }
 
   // Weekly career insights - sent Sunday evening

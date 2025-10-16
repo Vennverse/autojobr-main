@@ -22,6 +22,13 @@ class AutoJobrContentScript {
   init() {
     if (this.isInitialized) return;
 
+    // Don't run on AutoJobr platform pages
+    const hostname = window.location.hostname.toLowerCase();
+    if (hostname.includes('autojobr.com') || hostname.includes('localhost') || hostname.includes('replit')) {
+      console.log('AutoJobr extension: Skipping initialization on platform page');
+      return;
+    }
+
     try {
       this.injectEnhancedUI();
       this.setupMessageListener();
@@ -71,7 +78,6 @@ class AutoJobrContentScript {
       'microsoft.com': 'microsoft',
       'apple.com': 'apple',
       'meta.com': 'meta',
-      'autojobr.com': 'autojobr',
       'naukri.com': 'naukri',
       'shine.com': 'shine',
       'timesjobs.com': 'timesjobs',
