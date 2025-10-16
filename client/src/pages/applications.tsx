@@ -156,9 +156,9 @@ export default function Applications() {
     const matchesSearch = !searchTerm || 
       app.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       app.company?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = statusFilter === "all" || app.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   }) : [];
 
@@ -167,7 +167,7 @@ export default function Applications() {
     const matchesSearch = !searchTerm || 
       job.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.company?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     return matchesSearch;
   }) : [];
 
@@ -189,7 +189,7 @@ export default function Applications() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-8">
           {/* Header */}
           <motion.div 
@@ -205,7 +205,7 @@ export default function Applications() {
                 Track applications and manage your saved jobs
               </p>
             </div>
-            
+
             <div className="flex gap-3">
               <Button
                 variant="outline"
@@ -248,7 +248,7 @@ export default function Applications() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="relative overflow-hidden">
               <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-yellow-400/20 to-yellow-600/20 rounded-full -mr-8 -mt-8"></div>
               <CardContent className="p-6">
@@ -266,7 +266,7 @@ export default function Applications() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="relative overflow-hidden">
               <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-purple-400/20 to-purple-600/20 rounded-full -mr-8 -mt-8"></div>
               <CardContent className="p-6">
@@ -284,7 +284,7 @@ export default function Applications() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="relative overflow-hidden">
               <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-green-400/20 to-green-600/20 rounded-full -mr-8 -mt-8"></div>
               <CardContent className="p-6">
@@ -319,7 +319,8 @@ export default function Applications() {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">This Week: {Math.min(filteredApplications.filter(app => {
+                    <span>This Week: {Math.min(filteredApplications.filter((app: any) => {
+                      if (!app.appliedDate) return false;
                       const appDate = new Date(app.appliedDate);
                       const weekAgo = new Date();
                       weekAgo.setDate(weekAgo.getDate() - 7);
@@ -330,7 +331,8 @@ export default function Applications() {
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                     <div 
                       className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min((filteredApplications.filter(app => {
+                      style={{ width: `${Math.min((filteredApplications.filter((app: any) => {
+                        if (!app.appliedDate) return false;
                         const appDate = new Date(app.appliedDate);
                         const weekAgo = new Date();
                         weekAgo.setDate(weekAgo.getDate() - 7);
@@ -340,7 +342,8 @@ export default function Applications() {
                   </div>
                   <div className="flex justify-between text-xs text-gray-500">
                     <span>Keep going!</span>
-                    <span>{5 - Math.min(filteredApplications.filter(app => {
+                    <span>{5 - Math.min(filteredApplications.filter((app: any) => {
+                      if (!app.appliedDate) return false;
                       const appDate = new Date(app.appliedDate);
                       const weekAgo = new Date();
                       weekAgo.setDate(weekAgo.getDate() - 7);
@@ -429,7 +432,7 @@ export default function Applications() {
                       </Button>
                     </div>
                   ))}
-                  
+
                   {(!Array.isArray(tasks) || tasks.length === 0) && (
                     <div className="text-center py-4 text-gray-500">
                       <CheckSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -489,7 +492,8 @@ export default function Applications() {
                       Application Streak
                     </h3>
                     <p className="text-2xl font-bold text-orange-800 dark:text-orange-200">
-                      {Math.min(filteredApplications.filter(app => {
+                      {Math.min(filteredApplications.filter((app: any) => {
+                        if (!app.appliedDate) return false;
                         const appDate = new Date(app.appliedDate);
                         const today = new Date();
                         const diffDays = Math.floor((today.getTime() - appDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -578,6 +582,7 @@ export default function Applications() {
                   <h4 className="font-semibold mb-2">Follow-ups Due</h4>
                   <p className="text-2xl font-bold text-yellow-600">
                     {filteredApplications.filter(app => {
+                      if (!app.appliedDate) return false;
                       const appDate = new Date(app.appliedDate);
                       const daysSince = Math.floor((Date.now() - appDate.getTime()) / (1000 * 60 * 60 * 24));
                       return daysSince >= 7 && daysSince <= 14 && app.status === 'applied';
@@ -643,7 +648,7 @@ export default function Applications() {
                       <SelectItem value="rejected">Rejected</SelectItem>
                     </SelectContent>
                   </Select>
-                  
+
                   <div className="flex gap-2">
                     <Button
                       variant={viewMode === "cards" ? "default" : "outline"}
@@ -700,7 +705,7 @@ export default function Applications() {
               <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
                 Track applications, get AI-powered insights, and land your dream job faster with our smart tools
               </p>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 max-w-2xl mx-auto">
                 <div className="text-center p-4">
                   <div className="bg-blue-100 dark:bg-blue-900 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -766,7 +771,7 @@ export default function Applications() {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
@@ -775,14 +780,14 @@ export default function Applications() {
                             <span className="ml-1 capitalize">{app.status?.replace('_', ' ')}</span>
                           </Badge>
                         </div>
-                        
+
                         {app.location && (
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-600 dark:text-gray-400">Location</span>
                             <span className="text-sm font-medium">{app.location}</span>
                           </div>
                         )}
-                        
+
                         {app.matchScore && (
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-600 dark:text-gray-400">Match</span>
@@ -797,7 +802,7 @@ export default function Applications() {
                             </div>
                           </div>
                         )}
-                        
+
                         <div className="flex items-center justify-between text-xs text-gray-500">
                           <span>Applied {new Date(app.appliedDate).toLocaleDateString()}</span>
                           <div className="flex items-center gap-2">
@@ -810,7 +815,7 @@ export default function Applications() {
                             </span>
                           </div>
                         </div>
-                        
+
                         {/* Action buttons */}
                         <div className="flex gap-2 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button size="sm" variant="outline" className="text-xs h-7">
@@ -932,7 +937,7 @@ export default function Applications() {
                             </div>
                             <Star className="h-5 w-5 text-amber-500 fill-current" />
                           </div>
-                          
+
                           <div className="space-y-3">
                             <div className="flex items-center justify-between">
                               <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
@@ -941,21 +946,21 @@ export default function Applications() {
                                 Saved
                               </Badge>
                             </div>
-                            
+
                             {job.location && (
                               <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-600 dark:text-gray-400">Location</span>
                                 <span className="text-sm font-medium">{job.location}</span>
                               </div>
                             )}
-                            
+
                             <div className="flex items-center justify-between text-xs text-gray-500">
                               <span>Saved {new Date(job.createdAt).toLocaleDateString()}</span>
                               <Badge variant="outline" className="text-xs">
                                 extension
                               </Badge>
                             </div>
-                            
+
                             {/* Action buttons */}
                             <div className="flex gap-2 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button 

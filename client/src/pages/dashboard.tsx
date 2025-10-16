@@ -39,5 +39,9 @@ export default function Dashboard() {
   }
 
   // Show enhanced dashboard for job seekers
-  return <EnhancedDashboard />;
+  if (user?.userType !== 'recruiter') {
+    return <EnhancedDashboard />;
+  }
+  
+  return null;
 }

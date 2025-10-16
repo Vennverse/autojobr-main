@@ -27,29 +27,29 @@ const profileSchema = z.object({
   fullName: z.string().min(1, "Full name is required"),
   phone: z.string().min(1, "Phone number is required"),
   professionalTitle: z.string().min(1, "Professional title is required"),
-  
+
   // Contact & Location (Always asked)
   currentAddress: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
   zipCode: z.string().optional(),
   country: z.string().default("United States"),
-  
+
   // Professional Links (Common fields)
   linkedinUrl: z.string().url().optional().or(z.literal("")),
   githubUrl: z.string().url().optional().or(z.literal("")),
   portfolioUrl: z.string().url().optional().or(z.literal("")),
-  
+
   // Personal Details (Frequently requested)
   dateOfBirth: z.string().optional(),
   gender: z.string().optional(),
   nationality: z.string().optional(),
-  
+
   // Work Authorization (Always required for US jobs)
   workAuthorization: z.string().min(1, "Work authorization status is required"),
   visaStatus: z.string().optional(),
   requiresSponsorship: z.boolean().default(false),
-  
+
   // Work Preferences (Standard questions)
   preferredWorkMode: z.string().optional(),
   desiredSalaryMin: z.number().optional(),
@@ -57,21 +57,21 @@ const profileSchema = z.object({
   salaryCurrency: z.string().default("USD"),
   noticePeriod: z.string().optional(),
   willingToRelocate: z.boolean().default(false),
-  
+
   // Education Summary (Always asked)
   highestDegree: z.string().optional(),
   majorFieldOfStudy: z.string().optional(),
   graduationYear: z.number().optional(),
-  
+
   // Professional Summary
   summary: z.string().optional(),
   yearsExperience: z.number().min(0).optional(),
-  
+
   // Emergency Contact (Sometimes required)
   emergencyContactName: z.string().optional(),
   emergencyContactPhone: z.string().optional(),
   emergencyContactRelation: z.string().optional(),
-  
+
   // Background & Legal (Common compliance questions)
   veteranStatus: z.string().optional(),
   ethnicity: z.string().optional(),
@@ -213,7 +213,7 @@ export default function Profile() {
     },
     onError: (error: any) => {
       console.error("Profile update error:", error);
-      
+
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -225,9 +225,9 @@ export default function Profile() {
         }, 500);
         return;
       }
-      
+
       let errorMessage = "Failed to update profile";
-      
+
       // Try to extract more specific error information
       if (error.message) {
         errorMessage = error.message;
@@ -236,13 +236,13 @@ export default function Profile() {
       } else if (error.response?.data?.details) {
         errorMessage = error.response.data.details;
       }
-      
+
       toast({
         title: "Profile Update Error",
         description: errorMessage,
         variant: "destructive",
       });
-      
+
       // Log validation errors if available
       if (error.response?.data?.validationErrors) {
         console.log("Validation errors:", error.response.data.validationErrors);
@@ -324,7 +324,7 @@ export default function Profile() {
   const calculateCompletion = () => {
     const profileData = profile as any;
     const skillsData = skills as any;
-    
+
     // Essential fields (required for most job applications)
     const essentialFields = [
       profileData?.fullName,
@@ -333,7 +333,7 @@ export default function Profile() {
       profileData?.workAuthorization,
       user?.email,
     ];
-    
+
     // Important fields (commonly requested)
     const importantFields = [
       profileData?.currentAddress,
@@ -347,7 +347,7 @@ export default function Profile() {
       profileData?.highestDegree,
       skillsData?.length > 0,
     ];
-    
+
     // Optional fields (nice to have)
     const optionalFields = [
       profileData?.dateOfBirth,
@@ -359,16 +359,16 @@ export default function Profile() {
       profileData?.majorFieldOfStudy,
       profileData?.emergencyContactName,
     ];
-    
+
     const essentialCompleted = essentialFields.filter(Boolean).length;
     const importantCompleted = importantFields.filter(Boolean).length;
     const optionalCompleted = optionalFields.filter(Boolean).length;
-    
+
     // Weighted calculation: Essential (50%), Important (35%), Optional (15%)
     const essentialPercentage = (essentialCompleted / essentialFields.length) * 50;
     const importantPercentage = (importantCompleted / importantFields.length) * 35;
     const optionalPercentage = (optionalCompleted / optionalFields.length) * 15;
-    
+
     return Math.round(essentialPercentage + importantPercentage + optionalPercentage);
   };
 
@@ -391,7 +391,7 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
+
       <section className="py-16 bg-background">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -400,7 +400,7 @@ export default function Profile() {
               Keep your information up-to-date for accurate auto-filling
             </p>
           </div>
-          
+
           <Card>
             <CardContent className="p-8">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -443,7 +443,7 @@ export default function Profile() {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Comprehensive Profile Form */}
                 <div className="lg:col-span-2">
                   <Form {...form}>
@@ -477,7 +477,7 @@ export default function Profile() {
                           <div className="text-sm text-muted-foreground mb-4">
                             Essential information required by most job applications
                           </div>
-                          
+
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormField
                               control={form.control}
@@ -492,7 +492,7 @@ export default function Profile() {
                                 </FormItem>
                               )}
                             />
-                            
+
                             <FormField
                               control={form.control}
                               name="phone"
@@ -576,7 +576,7 @@ export default function Profile() {
                                 </FormItem>
                               )}
                             />
-                            
+
                             <FormField
                               control={form.control}
                               name="githubUrl"
@@ -897,7 +897,7 @@ export default function Profile() {
                                       type="number" 
                                       placeholder="50000"
                                       {...field}
-                                      onChange={e => field.onChange(parseInt(e.target.value) || undefined)}
+                                      onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -916,7 +916,7 @@ export default function Profile() {
                                       type="number" 
                                       placeholder="150000"
                                       {...field}
-                                      onChange={e => field.onChange(parseInt(e.target.value) || undefined)}
+                                      onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -993,7 +993,7 @@ export default function Profile() {
                                       max="2030"
                                       placeholder="2020"
                                       {...field}
-                                      onChange={e => field.onChange(parseInt(e.target.value) || undefined)}
+                                      onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -1160,7 +1160,7 @@ export default function Profile() {
 
                           <div className="space-y-4 border-t pt-6">
                             <h4 className="text-lg font-medium">Background Check Consents</h4>
-                            
+
                             <FormField
                               control={form.control}
                               name="backgroundCheckConsent"
@@ -1223,7 +1223,7 @@ export default function Profile() {
                   </Form>
                 </div>
               </div>
-              
+
               {/* Skills Section */}
               <div className="mt-8">
                 <Card>
@@ -1256,7 +1256,7 @@ export default function Profile() {
                           className="w-full"
                         />
                       </div>
-                      
+
                       {/* Resume Upload */}
                       <div>
                         <Label className="text-sm font-medium text-foreground mb-2 block">Resume</Label>
@@ -1275,7 +1275,7 @@ export default function Profile() {
                           />
                         </div>
                       </div>
-                      
+
                     </div>
                   </CardContent>
                 </Card>

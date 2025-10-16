@@ -1785,8 +1785,8 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                       </p>
 
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs text-gray-500">
-                          {new Date(job.createdAt).toLocaleDateString()}
+                        <span>
+                          {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'Recently'}
                         </span>
                         <div className="flex items-center gap-1">
                           <Button
