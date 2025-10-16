@@ -349,7 +349,7 @@ function Router() {
               {/* Admin user management temporarily disabled */}
               <Route path="/jobs/:id" component={ViewJob} />
               <Route path="/recruiter-features" component={RecruiterFeaturesPage} />
-              <Route path="/profile" component={Profile} />le} />
+              <Route path="/profile" component={Profile} />
               <Route path="/subscription" component={RecruiterSubscription} />
               <Route path="/recruiter-premium" component={RecruiterPremium} />
               <Route path="/premium-features" component={PremiumFeatures} />

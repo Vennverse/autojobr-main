@@ -20,7 +20,8 @@ import {
   TrendingUp,
   Sparkles,
   Clock,
-  Infinity
+  Infinity,
+  Bell
 } from "lucide-react";
 
 interface PremiumFeature {
@@ -306,10 +307,3 @@ export function PremiumFeaturesList({ userType, currentPlan, className }: Premiu
     </div>
   );
 }
-
-// Bell icon component (since it's not imported from lucide-react)
-const Bell = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5-5V9a5 5 0 00-10 0v3l-5 5h5m0 0a3 3 0 006 0" />
-  </svg>
-);
