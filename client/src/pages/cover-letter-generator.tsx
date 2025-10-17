@@ -1,20 +1,22 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Sparkles, Copy, CheckCircle } from "lucide-react";
+import { Loader2, Sparkles, Copy, CheckCircle, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import SEOHead from "@/components/seo-head";
 
 export default function CoverLetterGenerator() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const [selectedResumeId, setSelectedResumeId] = useState<string>("");
   
   const [formData, setFormData] = useState({
     jobTitle: "",
@@ -24,6 +26,34 @@ export default function CoverLetterGenerator() {
   });
 
   const [generatedLetter, setGeneratedLetter] = useState("");
+
+  // Fetch user's stored resumes
+  const { data: resumes, isLoading: resumesLoading } = useQuery({
+    queryKey: ["/api/resumes"],
+    enabled: !!user,
+  });
+
+  // Auto-select active or default resume
+  useEffect(() => {
+    if (resumes && Array.isArray(resumes) && resumes.length > 0) {
+      const activeResume = resumes.find((r: any) => r.isActive || r.isDefault);
+      const resumeToUse = activeResume || resumes[0];
+      
+      if (resumeToUse && resumeToUse.resumeText) {
+        setSelectedResumeId(resumeToUse.id.toString());
+        setFormData(prev => ({ ...prev, resume: resumeToUse.resumeText }));
+      }
+    }
+  }, [resumes]);
+
+  // Handle resume selection change
+  const handleResumeSelect = (resumeId: string) => {
+    setSelectedResumeId(resumeId);
+    const selectedResume = resumes?.find((r: any) => r.id.toString() === resumeId);
+    if (selectedResume && selectedResume.resumeText) {
+      setFormData(prev => ({ ...prev, resume: selectedResume.resumeText }));
+    }
+  };
 
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -134,13 +164,55 @@ export default function CoverLetterGenerator() {
 
                 <div>
                   <Label htmlFor="resume">Your Resume/Experience *</Label>
-                  <Textarea
-                    id="resume"
-                    placeholder="Paste your resume or key achievements..."
-                    value={formData.resume}
-                    onChange={(e) => setFormData({...formData, resume: e.target.value})}
-                    rows={6}
-                  />
+                  
+                  {resumes && Array.isArray(resumes) && resumes.length > 0 ? (
+                    <div className="space-y-2">
+                      <Select value={selectedResumeId} onValueChange={handleResumeSelect}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a saved resume" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {resumes.map((resume: any) => (
+                            <SelectItem key={resume.id} value={resume.id.toString()}>
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4" />
+                                {resume.name}
+                                {resume.isActive && <span className="text-xs text-blue-600">(Active)</span>}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      
+                      <Textarea
+                        id="resume"
+                        placeholder="Resume content will be loaded automatically..."
+                        value={formData.resume}
+                        onChange={(e) => setFormData({...formData, resume: e.target.value})}
+                        rows={6}
+                        className="text-sm"
+                      />
+                      
+                      <p className="text-xs text-gray-500">
+                        ✓ Using saved resume. You can edit it above or select a different one.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <Textarea
+                        id="resume"
+                        placeholder="Paste your resume or key achievements..."
+                        value={formData.resume}
+                        onChange={(e) => setFormData({...formData, resume: e.target.value})}
+                        rows={6}
+                      />
+                      {!resumesLoading && (
+                        <p className="text-xs text-amber-600 mt-2">
+                          No saved resumes found. Upload a resume in the Resumes page to use it automatically.
+                        </p>
+                      )}
+                    </>
+                  )}
                 </div>
 
                 <Button
