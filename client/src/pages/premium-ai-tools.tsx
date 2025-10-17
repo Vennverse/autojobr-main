@@ -32,6 +32,10 @@ export default function PremiumAITools() {
   const [activeTab, setActiveTab] = useState("cover-letter");
   const [copied, setCopied] = useState(false);
 
+  // Check premium status
+  const { data: user } = useQuery({ queryKey: ['/api/user'] });
+  const isPremium = user?.planType === 'premium' || user?.planType === 'enterprise';
+
   // Fetch user's active resume
   const { data: userResume } = useQuery({
     queryKey: ['/api/resumes/active-text'],
@@ -316,6 +320,18 @@ export default function PremiumAITools() {
     setTimeout(() => setCopied(false), 2000);
     toast({ title: "Copied!", description: "Content copied to clipboard" });
   };
+
+  // Show loading state while checking user data
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Navbar />
+        <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+          <p className="text-gray-600 dark:text-gray-300">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isPremium) {
     return (
