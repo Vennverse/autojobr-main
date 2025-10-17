@@ -3521,6 +3521,36 @@ Return only the cover letter text, no additional formatting or explanations.`;
     }
   });
 
+  // Active Resume Text API for Premium AI Tools
+  app.get('/api/resumes/active-text', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+
+      const [activeResume] = await db.select()
+        .from(resumes)
+        .where(and(
+          eq(resumes.userId, userId),
+          eq(resumes.isActive, true)
+        ))
+        .limit(1);
+
+      if (!activeResume) {
+        return res.status(404).json({ message: 'No active resume found' });
+      }
+
+      // Return only the text content for AI processing
+      res.json({
+        id: activeResume.id,
+        name: activeResume.name,
+        resumeText: activeResume.resumeText || '',
+        isActive: activeResume.isActive
+      });
+    } catch (error) {
+      console.error('Get active resume text error:', error);
+      res.status(500).json({ message: 'Failed to fetch active resume text' });
+    }
+  });
+
   // Pending Reminders API for extension
   app.get('/api/reminders/pending', isAuthenticated, async (req: any, res) => {
     try {
