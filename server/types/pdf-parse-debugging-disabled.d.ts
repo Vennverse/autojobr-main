@@ -10,5 +10,5 @@ declare module 'pdf-parse-debugging-disabled' {
 
   function pdfParse(dataBuffer: Buffer | Uint8Array): Promise<PDFData>;
   
-  export = pdfParse;
+  export default pdfParse;
 }

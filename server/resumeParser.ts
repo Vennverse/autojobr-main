@@ -59,7 +59,8 @@ export class ResumeParser {
             }
           }
         } catch (pdfError) {
-          console.error('❌ PDF parsing error:', pdfError.message);
+          const errorMessage = pdfError instanceof Error ? pdfError.message : String(pdfError);
+          console.error('❌ PDF parsing error:', errorMessage);
           // Try alternative extraction as fallback
           text = this.extractTextAlternative(fileBuffer);
           console.log(`🔄 Using alternative extraction: ${text.length} chars`);
@@ -96,15 +97,15 @@ export class ResumeParser {
       
       for (const match of parenthesesMatches) {
         if (match[1] && match[1].length > 2) {
-          const text = match[1]
+          const extractedText = match[1]
             .replace(/\\[nr]/g, '\n')
             .replace(/\\[t]/g, ' ')
             .replace(/\\\(/g, '(')
             .replace(/\\\)/g, ')')
             .trim();
           
-          if (text.length > 0 && /[a-zA-Z]/.test(text)) {
-            textChunks.push(text);
+          if (extractedText.length > 0 && /[a-zA-Z]/.test(extractedText)) {
+            textChunks.push(extractedText);
           }
         }
       }
@@ -117,7 +118,7 @@ export class ResumeParser {
         if (match[1]) {
           const innerText = match[1].match(/\(([^)]+)\)/g);
           if (innerText) {
-            innerText.forEach(t => {
+            innerText.forEach((t: string) => {
               const clean = t.replace(/[()]/g, '').trim();
               if (clean.length > 1 && /[a-zA-Z]/.test(clean)) {
                 textChunks.push(clean);
@@ -135,7 +136,7 @@ export class ResumeParser {
         if (match[1]) {
           const words = match[1].match(/\b[A-Za-z]{3,}\b/g);
           if (words) {
-            textChunks.push(...words.filter(w => w.length > 2));
+            textChunks.push(...words.filter((w: string) => w.length > 2));
           }
         }
       }
