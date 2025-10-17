@@ -1916,6 +1916,63 @@ Return only the improved job description text, no additional formatting or expla
     try {
       const userId = req.user.id;
 
+      // Validate query parameters
+      const queryValidation = z.object({
+        page: z.string().optional().default("1"),
+        limit: z.string().optional().default("20")
+      }).safeParse(req.query);
+
+      if (!queryValidation.success) {
+        return handleError(res, queryValidation.error, "Invalid query parameters", 400);
+      }
+
+      const page = parseInt(queryValidation.data.page);
+      const limit = parseInt(queryValidation.data.limit);
+      const offset = (page - 1) * limit;
+
+      const savedInternships = await db
+        .select({
+          id: schema.scrapedInternships.id,
+          company: schema.scrapedInternships.company,
+          role: schema.scrapedInternships.role,
+          location: schema.scrapedInternships.location,
+          applicationUrl: schema.scrapedInternships.applicationUrl,
+          category: schema.scrapedInternships.category,
+          season: schema.scrapedInternships.season,
+          datePosted: schema.scrapedInternships.datePosted,
+          savedAt: schema.userSavedInternships.savedAt
+        })
+        .from(schema.userSavedInternships)
+        .leftJoin(
+          schema.scrapedInternships,
+          eq(schema.userSavedInternships.internshipId, schema.scrapedInternships.id)
+        )
+        .where(eq(schema.userSavedInternships.userId, userId))
+        .orderBy(desc(schema.userSavedInternships.savedAt))
+        .limit(limit)
+        .offset(offset);
+
+      // Get total count
+      const totalResult = await db
+        .select({ count: count() })
+        .from(schema.userSavedInternships)
+        .where(eq(schema.userSavedInternships.userId, userId));
+
+      const total = totalResult[0]?.count || 0;
+
+      res.json({
+        savedInternships,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
+      });
+    } catch (error) {
+      return handleError(res, error, "Failed to fetch saved internships");
+    }
+  });
 
   // ===== MOUNT VIRTUAL INTERVIEW ROUTES =====
   app.use('/api/virtual-interview', virtualInterviewRoutes);
