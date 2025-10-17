@@ -40,18 +40,29 @@ export class ResumeParser {
             pdfParse = (await import('pdf-parse')).default;
           }
           const pdfData = await pdfParse(fileBuffer);
-          text = pdfData.text;
+          text = pdfData.text || '';
           
-          // Validate extracted text
-          if (!text || text.trim().length < 50) {
-            console.warn('PDF text extraction resulted in minimal content, trying alternative extraction');
-            // Try alternative extraction methods
-            text = this.extractTextAlternative(fileBuffer);
+          console.log(`📄 PDF parse attempt: ${text.length} characters extracted`);
+          
+          // Validate extracted text quality
+          const hasReadableText = text.length > 100 && /[a-zA-Z]{3,}/.test(text);
+          const notJustGarbage = (text.match(/[a-zA-Z]/g) || []).length > (text.length * 0.3);
+          
+          if (!hasReadableText || !notJustGarbage) {
+            console.warn('📋 PDF text quality poor, trying alternative extraction methods');
+            const alternativeText = this.extractTextAlternative(fileBuffer);
+            
+            // Use alternative if it's better quality
+            if (alternativeText.length > text.length) {
+              text = alternativeText;
+              console.log(`✅ Alternative extraction produced better results: ${text.length} chars`);
+            }
           }
         } catch (pdfError) {
-          console.warn('PDF parsing failed:', pdfError.message);
-          // Try alternative extraction
+          console.error('❌ PDF parsing error:', pdfError.message);
+          // Try alternative extraction as fallback
           text = this.extractTextAlternative(fileBuffer);
+          console.log(`🔄 Using alternative extraction: ${text.length} chars`);
         }
       } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
                  mimeType === 'application/msword') {
@@ -76,36 +87,66 @@ export class ResumeParser {
    */
   private extractTextAlternative(fileBuffer: Buffer): string {
     try {
-      // Try to extract readable text chunks from PDF buffer
       const bufferString = fileBuffer.toString('binary');
       const textChunks: string[] = [];
       
-      // Look for text objects in PDF structure
-      const textRegex = /BT\s*(.*?)\s*ET/gs;
-      const matches = bufferString.matchAll(textRegex);
+      // Method 1: Extract text between parentheses (PDF text objects)
+      const parenthesesRegex = /\(([^)]+)\)/g;
+      const parenthesesMatches = bufferString.matchAll(parenthesesRegex);
       
-      for (const match of matches) {
-        if (match[1]) {
-          // Clean up PDF text encoding
-          const cleaned = match[1]
-            .replace(/\(([^)]+)\)/g, '$1') // Extract text from parentheses
-            .replace(/Tj|TJ|'/g, ' ') // Remove PDF operators
-            .replace(/[^\x20-\x7E\n]/g, '') // Keep only printable ASCII
+      for (const match of parenthesesMatches) {
+        if (match[1] && match[1].length > 2) {
+          const text = match[1]
+            .replace(/\\[nr]/g, '\n')
+            .replace(/\\[t]/g, ' ')
+            .replace(/\\\(/g, '(')
+            .replace(/\\\)/g, ')')
             .trim();
           
-          if (cleaned.length > 0) {
-            textChunks.push(cleaned);
+          if (text.length > 0 && /[a-zA-Z]/.test(text)) {
+            textChunks.push(text);
           }
         }
       }
       
-      const extractedText = textChunks.join('\n');
-      console.log(`🔄 Alternative extraction found ${extractedText.length} characters`);
+      // Method 2: Look for BT/ET text blocks
+      const btEtRegex = /BT\s*(.*?)\s*ET/gs;
+      const btEtMatches = bufferString.matchAll(btEtRegex);
       
-      return extractedText.length > 50 ? extractedText : bufferString.replace(/[^\x20-\x7E\n]/g, '');
+      for (const match of btEtMatches) {
+        if (match[1]) {
+          const innerText = match[1].match(/\(([^)]+)\)/g);
+          if (innerText) {
+            innerText.forEach(t => {
+              const clean = t.replace(/[()]/g, '').trim();
+              if (clean.length > 1 && /[a-zA-Z]/.test(clean)) {
+                textChunks.push(clean);
+              }
+            });
+          }
+        }
+      }
+      
+      // Method 3: Extract words from stream objects
+      const streamRegex = /stream\s*(.*?)\s*endstream/gs;
+      const streamMatches = bufferString.matchAll(streamRegex);
+      
+      for (const match of streamMatches) {
+        if (match[1]) {
+          const words = match[1].match(/\b[A-Za-z]{3,}\b/g);
+          if (words) {
+            textChunks.push(...words.filter(w => w.length > 2));
+          }
+        }
+      }
+      
+      const extractedText = textChunks.join(' ');
+      console.log(`🔄 Alternative extraction found ${extractedText.length} characters from ${textChunks.length} chunks`);
+      
+      return extractedText.length > 50 ? extractedText : '';
     } catch (error) {
       console.warn('Alternative extraction failed:', error);
-      return fileBuffer.toString('utf-8').replace(/[^\x20-\x7E\n]/g, '');
+      return '';
     }
   }
 
@@ -163,22 +204,35 @@ export class ResumeParser {
   }
 
   private extractEmail(text: string): string | undefined {
-    const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+    const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
     const matches = text.match(emailPattern);
-    return matches ? matches[0] : undefined;
+    if (matches && matches.length > 0) {
+      // Return the first valid-looking email
+      return matches.find(email => 
+        email.includes('.') && 
+        !email.startsWith('.') && 
+        !email.endsWith('.')
+      ) || matches[0];
+    }
+    return undefined;
   }
 
   private extractPhone(text: string): string | undefined {
     const phonePatterns = [
-      /\+?1?[-.\s]?\(?(\d{3})\)?[-.\s]?(\d{3})[-.\s]?(\d{4})/,
-      /\(?(\d{3})\)?[-.\s]?(\d{3})[-.\s]?(\d{4})/,
-      /(\d{3})[-.\s](\d{3})[-.\s](\d{4})/
+      /\+?\d{1,3}[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g, // International format
+      /\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g, // US format
+      /\d{10}/g, // Plain 10 digits
+      /\d{3}[-.\s]\d{3}[-.\s]\d{4}/g // Hyphenated
     ];
 
     for (const pattern of phonePatterns) {
-      const match = text.match(pattern);
-      if (match) {
-        return match[0].trim();
+      const matches = text.match(pattern);
+      if (matches && matches.length > 0) {
+        // Clean up and format the first valid phone
+        const phone = matches[0].replace(/[^\d+]/g, '');
+        if (phone.length >= 10) {
+          return matches[0].trim();
+        }
       }
     }
     return undefined;
