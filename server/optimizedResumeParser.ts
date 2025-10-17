@@ -20,6 +20,32 @@ export interface ParsedResumeData {
   summary?: string;
 
 
+  // Skills & Expertise
+  skills?: string[];
+
+  // Education
+  education?: {
+    degree?: string;
+    institution?: string;
+    year?: string;
+    fieldOfStudy?: string;
+  }[];
+
+  // Work Experience
+  workExperience?: {
+    title?: string;
+    company?: string;
+    duration?: string;
+    startDate?: string;
+    endDate?: string;
+    description?: string;
+  }[];
+
+  // Full text for AI analysis
+  fullText?: string;
+}
+
+export class OptimizedResumeParser {
   /**
    * Extract only key resume sections to reduce token usage by 60%
    */
