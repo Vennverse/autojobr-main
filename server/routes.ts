@@ -7251,10 +7251,26 @@ Return ONLY the JSON object, no additional text.`;
         // STEP 1: Use free NLP parser FIRST to extract structured data from resume
         console.log('📝 Attempting NLP-based resume parsing...');
         parsedData = await resumeParser.parseResumeFile(file.buffer, file.mimetype);
-        console.log('✅ NLP parsing successful:', parsedData);
+        console.log('✅ NLP parsing completed');
+        
+        // STEP 1.5: Also extract raw text for comprehensive analysis
+        let rawExtractedText = '';
+        try {
+          if (file.mimetype === 'application/pdf') {
+            const pdfParse = (await import('pdf-parse')).default;
+            const pdfData = await pdfParse(file.buffer);
+            rawExtractedText = pdfData.text || '';
+            console.log(`📄 Raw PDF text extracted: ${rawExtractedText.length} characters`);
+          } else {
+            rawExtractedText = file.buffer.toString('utf-8');
+          }
+        } catch (rawError) {
+          console.warn('⚠️ Raw text extraction had issues:', rawError.message);
+          rawExtractedText = file.buffer.toString('utf-8').replace(/[^\x20-\x7E\n]/g, '');
+        }
 
-        // Create structured resume text for analysis using NLP data
-        resumeText = `
+        // Create structured resume text for analysis using BOTH NLP data AND raw text
+        const structuredInfo = `
 Resume Document: ${file.originalname}
 File Type: ${file.mimetype}
 Size: ${(file.size / 1024).toFixed(1)} KB
@@ -7270,26 +7286,44 @@ ${parsedData.summary ? `Professional Summary:\n${parsedData.summary}` : ''}
 
 ${parsedData.workExperience && parsedData.workExperience.length > 0 ? 
   `Work Experience:\n${parsedData.workExperience.map(exp => 
-    `• ${exp.title || 'Position'} at ${exp.company || 'Company'} ${exp.duration ? `(${exp.duration})` : ''}`
-  ).join('\n')}` : 
-  'Work Experience:\n• Professional experience details from resume'}
+    `• ${exp.title || 'Position'} at ${exp.company || 'Company'} ${exp.duration ? `(${exp.duration})` : ''}\n  ${exp.description || ''}`
+  ).join('\n')}` : ''}
 
 ${parsedData.skills && parsedData.skills.length > 0 ? 
-  `Skills & Technologies:\n${parsedData.skills.map(skill => `• ${skill}`).join('\n')}` : 
-  'Skills & Technologies:\n• Technical and professional skills from resume'}
+  `Skills & Technologies:\n${parsedData.skills.map(skill => `• ${skill}`).join('\n')}` : ''}
 
 ${parsedData.education && parsedData.education.length > 0 ? 
   `Education:\n${parsedData.education.map(edu => 
     `• ${edu.degree || 'Degree'} ${edu.institution ? `from ${edu.institution}` : ''} ${edu.year ? `(${edu.year})` : ''}`
-  ).join('\n')}` : 
-  'Education:\n• Academic qualifications and degrees'}
+  ).join('\n')}` : ''}
 
 ${parsedData.linkedinUrl ? `LinkedIn: ${parsedData.linkedinUrl}` : ''}
         `.trim();
+        
+        // Combine structured info with raw text for comprehensive coverage
+        resumeText = rawExtractedText.length > 200 
+          ? `${structuredInfo}\n\n--- FULL RESUME CONTENT ---\n${rawExtractedText}`
+          : structuredInfo;
+          
+        console.log(`✅ Final resume text: ${resumeText.length} characters`);
+        
       } catch (parseError) {
         console.error('❌ NLP parsing failed:', parseError);
-        console.log('🔄 Falling back to basic text extraction for GROQ analysis...');
-        resumeText = `
+        console.log('🔄 Falling back to raw text extraction...');
+        
+        // Fallback: Extract raw text directly
+        try {
+          if (file.mimetype === 'application/pdf') {
+            const pdfParse = (await import('pdf-parse')).default;
+            const pdfData = await pdfParse(file.buffer);
+            resumeText = pdfData.text || file.buffer.toString('utf-8');
+          } else {
+            resumeText = file.buffer.toString('utf-8');
+          }
+          console.log(`✅ Fallback extraction: ${resumeText.length} characters`);
+        } catch (fallbackError) {
+          console.error('❌ Fallback extraction also failed:', fallbackError);
+          resumeText = `
 Resume Document: ${file.originalname}
 File Type: ${file.mimetype}
 Size: ${(file.size / 1024).toFixed(1)} KB

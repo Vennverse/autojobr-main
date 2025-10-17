@@ -41,20 +41,71 @@ export class ResumeParser {
           }
           const pdfData = await pdfParse(fileBuffer);
           text = pdfData.text;
+          
+          // Validate extracted text
+          if (!text || text.trim().length < 50) {
+            console.warn('PDF text extraction resulted in minimal content, trying alternative extraction');
+            // Try alternative extraction methods
+            text = this.extractTextAlternative(fileBuffer);
+          }
         } catch (pdfError) {
-          console.warn('PDF parsing failed, using basic text extraction:', pdfError.message);
-          // Fallback: Try basic text extraction
-          text = fileBuffer.toString('utf-8');
+          console.warn('PDF parsing failed:', pdfError.message);
+          // Try alternative extraction
+          text = this.extractTextAlternative(fileBuffer);
         }
+      } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+                 mimeType === 'application/msword') {
+        // For DOC/DOCX files, convert buffer to text
+        text = fileBuffer.toString('utf-8');
       } else {
-        // For non-PDF files, convert buffer to text (basic support)
+        // For text files
         text = fileBuffer.toString('utf-8');
       }
+      
+      console.log(`📄 Extracted text length: ${text.length} characters`);
       
       return this.extractDataFromText(text);
     } catch (error) {
       console.error('Error parsing resume:', error);
       return {};
+    }
+  }
+
+  /**
+   * Alternative text extraction method for PDFs that fail standard parsing
+   */
+  private extractTextAlternative(fileBuffer: Buffer): string {
+    try {
+      // Try to extract readable text chunks from PDF buffer
+      const bufferString = fileBuffer.toString('binary');
+      const textChunks: string[] = [];
+      
+      // Look for text objects in PDF structure
+      const textRegex = /BT\s*(.*?)\s*ET/gs;
+      const matches = bufferString.matchAll(textRegex);
+      
+      for (const match of matches) {
+        if (match[1]) {
+          // Clean up PDF text encoding
+          const cleaned = match[1]
+            .replace(/\(([^)]+)\)/g, '$1') // Extract text from parentheses
+            .replace(/Tj|TJ|'/g, ' ') // Remove PDF operators
+            .replace(/[^\x20-\x7E\n]/g, '') // Keep only printable ASCII
+            .trim();
+          
+          if (cleaned.length > 0) {
+            textChunks.push(cleaned);
+          }
+        }
+      }
+      
+      const extractedText = textChunks.join('\n');
+      console.log(`🔄 Alternative extraction found ${extractedText.length} characters`);
+      
+      return extractedText.length > 50 ? extractedText : bufferString.replace(/[^\x20-\x7E\n]/g, '');
+    } catch (error) {
+      console.warn('Alternative extraction failed:', error);
+      return fileBuffer.toString('utf-8').replace(/[^\x20-\x7E\n]/g, '');
     }
   }
 
