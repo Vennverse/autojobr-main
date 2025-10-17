@@ -89,8 +89,6 @@ import InterviewLink from "@/pages/InterviewLink";
 import VideoPractice from "@/pages/VideoPractice";
 import PremiumFeatures from "@/pages/premium-features";
 import PremiumAITools from "@/pages/premium-ai-tools";
-import JobSeekerPremium from "@/pages/JobSeekerPremium";
-import RecruiterPremium from "@/pages/RecruiterPremium";
 import CoverLetterGenerator from "@/pages/cover-letter-generator";
 
 // SEO Landing Pages to Beat Competition
@@ -415,6 +413,7 @@ function Router() {
                   <Route path="/premium-features" component={PremiumFeatures} />
                   <Route path="/premium-ai-tools" component={PremiumAITools} />
                   <Route path="/career-ai-assistant" component={CareerAIAssistant} />
+                  <Route path="/cover-letter-generator" component={CoverLetterGenerator} />
                   <Route path="/referral-marketplace" component={ReferralMarketplace} />
                   <Route path="/become-referrer" component={BecomeReferrer} />
                   <Route path="/my-bookings" component={MyBookings} />
