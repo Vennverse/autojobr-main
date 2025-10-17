@@ -547,28 +547,43 @@ export default function PremiumAITools() {
                     <div className="space-y-4">
                       {/* Match Analysis Section */}
                       {showMatchAnalysis && matchedPhrases.length > 0 && (
-                        <Card className="border-green-200 bg-green-50 dark:bg-green-950">
+                        <Card className="border-2 border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950">
                           <CardHeader>
                             <CardTitle className="text-sm flex items-center gap-2">
-                              <Sparkles className="h-4 w-4 text-green-600" />
-                              🎯 Smart Context Fusion - How AI Matched Your Profile
+                              <Sparkles className="h-5 w-5 text-green-600 animate-pulse" />
+                              🎯 AI-Powered Smart Matching Analysis
                             </CardTitle>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                              How your experience aligns with job requirements
+                            </p>
                           </CardHeader>
-                          <CardContent className="space-y-2">
+                          <CardContent className="space-y-3">
                             {matchedPhrases.slice(0, 3).map((match, idx) => (
-                              <div key={idx} className="text-xs p-2 bg-white dark:bg-slate-900 rounded border">
+                              <div key={idx} className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-green-200 dark:border-green-800 shadow-sm">
                                 <div className="flex items-start gap-2">
-                                  <CheckCircle className="h-3 w-3 text-green-600 mt-0.5" />
-                                  <div>
-                                    <span className="font-semibold text-blue-600">Resume:</span> "{match.resume}"
-                                    <br />
-                                    <span className="font-semibold text-purple-600">Job:</span> "{match.job}"
-                                    <br />
-                                    <span className="text-slate-600">💡 {match.reason}</span>
+                                  <div className="bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 text-xs font-bold">
+                                    {idx + 1}
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="mb-1">
+                                      <span className="font-semibold text-blue-700 dark:text-blue-400 text-xs uppercase">Your Experience:</span>
+                                      <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">"{match.resume}"</p>
+                                    </div>
+                                    <div className="mb-1">
+                                      <span className="font-semibold text-purple-700 dark:text-purple-400 text-xs uppercase">Job Requirement:</span>
+                                      <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">"{match.job}"</p>
+                                    </div>
+                                    <div className="bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded mt-2">
+                                      <span className="font-semibold text-yellow-800 dark:text-yellow-300 text-xs">💡 Why it's a match:</span>
+                                      <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">{match.reason}</p>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
                             ))}
+                            <p className="text-xs text-center text-gray-600 dark:text-gray-400 italic mt-2">
+                              ✨ AI identified {matchedPhrases.length} total matches between your background and this role
+                            </p>
                           </CardContent>
                         </Card>
                       )}
@@ -1268,20 +1283,20 @@ export default function PremiumAITools() {
                 <CardContent className="space-y-4">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <Label>Your Resume Text</Label>
+                      <Label>Your Resume</Label>
                       {userResume?.resumeText && (
                         <Dialog open={showResumePreview} onOpenChange={setShowResumePreview}>
                           <DialogTrigger asChild>
                             <Button variant="outline" size="sm">
                               <Eye className="h-4 w-4 mr-2" />
-                              Preview Stored Resume
+                              Preview Auto-Loaded Resume
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                             <DialogHeader>
-                              <DialogTitle>Your Stored Resume</DialogTitle>
+                              <DialogTitle>Your Stored Resume (Auto-Loaded)</DialogTitle>
                               <DialogDescription>
-                                This is automatically used across all AI tools
+                                This resume is automatically used for ATS optimization
                               </DialogDescription>
                             </DialogHeader>
                             <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
@@ -1291,18 +1306,25 @@ export default function PremiumAITools() {
                         </Dialog>
                       )}
                     </div>
-                    {userResume?.resumeText && (
-                      <div className="mb-2 text-sm text-green-600 flex items-center gap-1">
-                        <CheckCircle className="h-4 w-4" />
-                        Using your stored resume automatically (you can override by typing here)
+                    {userResume?.resumeText ? (
+                      <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                          <span className="font-medium text-green-900 dark:text-green-100">
+                            ✅ Resume Auto-Loaded Successfully
+                          </span>
+                        </div>
+                        <p className="text-sm text-green-700 dark:text-green-300">
+                          Your stored resume ({userResume.resumeText.length} characters) will be automatically optimized for the job description below.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
+                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                          ⚠️ No resume found. Please <a href="/resumes" className="underline font-medium">upload your resume</a> first for automatic optimization.
+                        </p>
                       </div>
                     )}
-                    <Textarea
-                      placeholder={userResume?.resumeText ? "Using your stored resume (you can override by typing here)" : "Paste your current resume text here..."}
-                      value={tailorData.resumeText}
-                      onChange={(e) => setTailorData({...tailorData, resumeText: e.target.value})}
-                      rows={6}
-                    />
                   </div>
                   <div>
                     <Label>Job Description</Label>
@@ -1349,18 +1371,70 @@ export default function PremiumAITools() {
                 <CardContent>
                   {tailoredResume ? (
                     <div className="space-y-4">
-                      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                        <h4 className="font-semibold mb-2">ATS Score: {tailoredResume.atsScore}%</h4>
-                        <div className="flex gap-2 mb-3">
-                          <Badge className="bg-green-500">Matched: {tailoredResume.keywordMatches?.matched?.length || 0}</Badge>
-                          <Badge variant="destructive">Missing: {tailoredResume.keywordMatches?.missing?.length || 0}</Badge>
+                      <div className={`p-6 rounded-lg border-2 ${
+                        tailoredResume.atsScore >= 80 ? 'bg-green-50 dark:bg-green-900/20 border-green-500' :
+                        tailoredResume.atsScore >= 60 ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-500' :
+                        'bg-red-50 dark:bg-red-900/20 border-red-500'
+                      }`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-bold text-lg">ATS Compatibility Score</h4>
+                          <div className={`text-3xl font-bold ${
+                            tailoredResume.atsScore >= 80 ? 'text-green-600' :
+                            tailoredResume.atsScore >= 60 ? 'text-yellow-600' :
+                            'text-red-600'
+                          }`}>
+                            {tailoredResume.atsScore}%
+                          </div>
                         </div>
+                        <Progress value={tailoredResume.atsScore} className="h-3 mb-3" />
+                        <div className="flex gap-2 flex-wrap">
+                          <Badge className="bg-green-600 text-white">
+                            ✓ {tailoredResume.keywordMatches?.matched?.length || 0} Keywords Matched
+                          </Badge>
+                          <Badge variant="destructive">
+                            ✗ {tailoredResume.keywordMatches?.missing?.length || 0} Keywords Missing
+                          </Badge>
+                          <Badge variant="outline">
+                            {tailoredResume.keywordMatches?.recommended?.length || 0} To Add
+                          </Badge>
+                        </div>
+                        <p className="text-sm mt-3 font-medium">
+                          {tailoredResume.atsScore >= 80 ? '🎯 Excellent! Your resume should pass most ATS systems.' :
+                           tailoredResume.atsScore >= 60 ? '⚠️ Good, but needs improvement to maximize ATS pass rate.' :
+                           '🚨 Low score - follow recommendations below to improve significantly.'}
+                        </p>
                       </div>
+                      {tailoredResume.keywordMatches?.missing && tailoredResume.keywordMatches.missing.length > 0 && (
+                        <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+                          <h4 className="font-semibold mb-2 text-red-800 dark:text-red-200">🚨 Critical Missing Keywords</h4>
+                          <p className="text-sm mb-3">Add these keywords to your resume to improve ATS compatibility:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {tailoredResume.keywordMatches.missing.map((keyword: string, i: number) => (
+                              <Badge 
+                                key={i} 
+                                variant="destructive"
+                                className="cursor-pointer hover:bg-red-700"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(keyword);
+                                  toast({ title: "Copied!", description: `"${keyword}" copied to clipboard` });
+                                }}
+                              >
+                                {keyword}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       <div>
-                        <h4 className="font-semibold mb-2">Priority Changes:</h4>
-                        <ul className="list-disc list-inside space-y-1">
+                        <h4 className="font-semibold mb-2">⚡ Priority Changes (Do These First):</h4>
+                        <ul className="space-y-2">
                           {tailoredResume.priorityChanges?.map((change: string, i: number) => (
-                            <li key={i} className="text-sm text-orange-600 dark:text-orange-400">{change}</li>
+                            <li key={i} className="flex items-start gap-2 text-sm">
+                              <span className="bg-orange-500 text-white rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 text-xs font-bold mt-0.5">
+                                {i + 1}
+                              </span>
+                              <span className="text-orange-700 dark:text-orange-300">{change}</span>
+                            </li>
                           ))}
                         </ul>
                       </div>

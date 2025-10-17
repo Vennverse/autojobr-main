@@ -436,7 +436,7 @@ export default function ResumeBuilder() {
           <div className="lg:sticky lg:top-8 h-fit">
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center mb-4">
                   <CardTitle>Preview</CardTitle>
                   <Button
                     onClick={generatePDF}
@@ -446,6 +446,27 @@ export default function ResumeBuilder() {
                     <Download className="w-4 h-4 mr-2" />
                     {isGeneratingPDF ? "Generating..." : "Download PDF"}
                   </Button>
+                </div>
+                {/* ATS Compatibility Score */}
+                <div className={`p-3 rounded-lg border ${
+                  atsScore >= 80 ? 'bg-green-50 dark:bg-green-900/20 border-green-500' :
+                  atsScore >= 60 ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-500' :
+                  'bg-red-50 dark:bg-red-900/20 border-red-500'
+                }`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-semibold">ATS Compatibility</span>
+                    <span className={`text-xl font-bold ${
+                      atsScore >= 80 ? 'text-green-600' :
+                      atsScore >= 60 ? 'text-yellow-600' :
+                      'text-red-600'
+                    }`}>{atsScore}%</span>
+                  </div>
+                  <Progress value={atsScore} className="h-2" />
+                  <p className="text-xs mt-2">
+                    {atsScore >= 80 ? '✅ Excellent! Resume is ATS-friendly' :
+                     atsScore >= 60 ? '⚠️ Good, but can be improved' :
+                     '🚨 Add more details and quantified achievements'}
+                  </p>
                 </div>
                 {/* Template Selector */}
                 <Tabs
@@ -846,6 +867,39 @@ function ClassicTemplate({ data }: { data: ResumeData }) {
             <h1 className="text-2xl font-bold mb-1">{data.personal.name || "Your Name"}</h1>
             <p className="text-primary font-medium">{data.personal.title || "Professional Title"}</p>
           </div>
+
+
+
+  // Calculate ATS compatibility score
+  const calculateATSScore = (): number => {
+    let score = 0;
+    
+    // Check required fields (40 points)
+    if (resumeData.personal.name) score += 10;
+    if (resumeData.personal.email) score += 10;
+    if (resumeData.personal.phone) score += 10;
+    if (resumeData.personal.summary) score += 10;
+    
+    // Check experience (30 points)
+    if (resumeData.experience.length > 0) {
+      score += 15;
+      const hasQuantifiedAchievements = resumeData.experience.some(exp => 
+        exp.achievements.some(ach => /\d+[%$kK]/.test(ach))
+      );
+      if (hasQuantifiedAchievements) score += 15;
+    }
+    
+    // Check education (15 points)
+    if (resumeData.education.length > 0) score += 15;
+    
+    // Check skills (15 points)
+    if (resumeData.skills.technical.length >= 5) score += 10;
+    if (resumeData.skills.soft.length >= 3) score += 5;
+    
+    return Math.min(100, score);
+  };
+
+  const atsScore = calculateATSScore();
 
           {/* Contact */}
           <div>
