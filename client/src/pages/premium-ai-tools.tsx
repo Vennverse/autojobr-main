@@ -189,7 +189,8 @@ export default function PremiumAITools() {
         desiredSalary: parseInt(salaryData.desiredSalary),
         jobTitle: salaryData.jobTitle,
         experience: parseInt(salaryData.experience),
-        location: salaryData.location
+        location: salaryData.location,
+        resume: userResume?.resumeText // Auto-use stored resume
       });
     },
     onSuccess: (data) => {
@@ -258,7 +259,8 @@ export default function PremiumAITools() {
         currentBulletPoints: bulletData.currentBulletPoints.filter(bp => bp.trim()),
         jobTitle: bulletData.jobTitle,
         company: bulletData.company || undefined,
-        industry: bulletData.industry || undefined
+        industry: bulletData.industry || undefined,
+        resume: userResume?.resumeText // Auto-use stored resume for context
       });
     },
     onSuccess: (data) => {
@@ -305,7 +307,8 @@ export default function PremiumAITools() {
         gapReason: gapData.gapReason || undefined,
         previousRole: gapData.previousRole || undefined,
         nextRole: gapData.nextRole || undefined,
-        skillsDeveloped: gapData.skillsDeveloped ? gapData.skillsDeveloped.split(',').map(s => s.trim()) : undefined
+        skillsDeveloped: gapData.skillsDeveloped ? gapData.skillsDeveloped.split(',').map(s => s.trim()) : undefined,
+        resume: userResume?.resumeText // Auto-use stored resume for gap analysis
       });
     },
     onSuccess: (data) => {
@@ -739,7 +742,7 @@ export default function PremiumAITools() {
                   {userResume?.resumeText && (
                     <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm text-green-600 flex items-center gap-2">
                       <CheckCircle className="h-4 w-4" />
-                      AI will use your experience from stored resume for personalized negotiation advice
+                      ✅ Using your stored resume to analyze your experience level and skills
                     </div>
                   )}
                   <div>
