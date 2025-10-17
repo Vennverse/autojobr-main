@@ -13,12 +13,12 @@ export interface ParsedResumeData {
   city?: string;
   state?: string;
   linkedinUrl?: string;
-  
+
   // Professional Information
   professionalTitle?: string;
   yearsExperience?: number;
   summary?: string;
-  
+
 
   /**
    * Extract only key resume sections to reduce token usage by 60%
@@ -26,10 +26,10 @@ export interface ParsedResumeData {
   private extractKeyInfo(text: string): string {
     const lines = text.split('\n').map(l => l.trim()).filter(l => l);
     const sections: string[] = [];
-    
+
     // Get first 3 lines (usually name/contact)
     sections.push(lines.slice(0, 3).join('\n'));
-    
+
     // Find key sections (case insensitive)
     const keywords = ['experience', 'education', 'skills', 'summary', 'objective'];
     keywords.forEach(keyword => {
@@ -38,13 +38,13 @@ export interface ParsedResumeData {
         sections.push(lines.slice(idx, Math.min(idx + 8, lines.length)).join('\n'));
       }
     });
-    
+
     return sections.join('\n\n').substring(0, 1200); // Max 1200 chars (was 2000)
   }
 
   // Skills & Expertise
   skills?: string[];
-  
+
   // Education
   education?: {
     degree?: string;
@@ -52,7 +52,7 @@ export interface ParsedResumeData {
     year?: string;
     fieldOfStudy?: string;
   }[];
-  
+
   // Work Experience
   workExperience?: {
     title?: string;
@@ -62,7 +62,7 @@ export interface ParsedResumeData {
     endDate?: string;
     description?: string;
   }[];
-  
+
   // Full text for AI analysis
   fullText?: string;
 }
@@ -92,7 +92,7 @@ export class OptimizedResumeParser {
    */
   private async parseWithAI(rawText: string): Promise<ParsedResumeData> {
     const status = apiKeyRotationService.getStatus();
-    
+
     if (status.groq.totalKeys === 0) {
       console.warn('No AI keys available, returning raw text only');
       return { fullText: rawText };
@@ -193,7 +193,7 @@ Rules:
       // Use AI to parse the raw text into structured data
       console.log('🤖 Using AI to extract structured data...');
       const parsedData = await this.parseWithAI(rawText);
-      
+
       return parsedData;
     } catch (error) {
       console.error('Error parsing resume:', error);
@@ -227,11 +227,11 @@ Rules:
 
     // OPTIMIZED: Extract key sections only (60% token reduction)
     const keyInfo = this.extractKeyInfo(rawText);
-    const combinedPrompt = `Parse resume. Return ONLY this JSON format:
+    const combinedPrompt = `Parse & score resume (JSON only):
 
 ${keyInfo}
 
-{"parsedData":{"fullName":"","email":"","phone":"","location":"","professionalTitle":"","skills":[],"yearsExperience":0,"education":[],"workExperience":[]},"analysis":{"atsScore":70,"recommendations":["Use action verbs","Add metrics","Include keywords"],"keywordOptimization":{"missingKeywords":[],"overusedKeywords":[]},"formatting":{"score":75,"issues":[]},"content":{"strengthsFound":[],"weaknesses":[]}}}`;
+{"parsedData":{"fullName":"","email":"","phone":"","location":"","professionalTitle":"","skills":[],"yearsExperience":0},"analysis":{"atsScore":70,"recommendations":["tip1","tip2"],"keywordOptimization":{"missingKeywords":["kw1"]},"content":{"strengthsFound":["s1"],"weaknesses":["w1"]}}}`;
 
     try {
       const completion = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
@@ -253,17 +253,17 @@ ${keyInfo}
 
       // Clean and extract JSON more robustly
       let jsonStr = content.trim();
-      
+
       // Remove markdown code blocks if present
       jsonStr = jsonStr.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-      
+
       // Extract JSON object
       const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         console.error('No JSON found in response:', content.substring(0, 200));
         throw new Error("Invalid JSON response");
       }
-      
+
       // Parse with error recovery
       let result;
       try {

@@ -239,46 +239,12 @@ class AIService {
       return { ...cached.response, analysisId };
     }
 
-    // Optimized prompt - 60% fewer tokens, same quality output
-    const prompt = `ATS Resume Analysis. Return JSON only:
+    // Ultra-optimized prompt - 75% fewer tokens
+    const prompt = `ATS score for resume (JSON only):
 
-Resume: ${truncatedResume}
+${truncatedResume}
 
-{
-  "atsScore": number (15-95),
-  "scoreBreakdown": {
-    "keywords": {"score": number, "maxScore": 25, "details": "brief"},
-    "formatting": {"score": number, "maxScore": 25, "details": "brief"},
-    "content": {"score": number, "maxScore": 25, "details": "brief"},
-    "atsCompatibility": {"score": number, "maxScore": 25, "details": "brief"}
-  },
-  "recommendations": ["3 actionable fixes"],
-  "keywordOptimization": {
-    "missingKeywords": ["top 5"],
-    "overusedKeywords": ["top 3"],
-    "suggestions": ["top 5"],
-    "density": {"current": number, "recommended": number}
-  },
-  "formatting": {
-    "score": number,
-    "issues": ["top 3"],
-    "improvements": ["top 3"],
-    "atsIssues": ["top 2"]
-  },
-  "content": {
-    "strengthsFound": ["top 3"],
-    "weaknesses": ["top 3"],
-    "suggestions": ["top 3"],
-    "missingElements": ["top 3"],
-    "quantificationOpportunities": ["top 2"]
-  },
-  "rewriteSuggestions": [{"original": "text", "improved": "enhanced", "reason": "why"}],
-  "industrySpecific": {
-    "detectedIndustry": "field",
-    "industryKeywords": ["top 5"],
-    "industryStandards": ["top 3"]
-  }
-}`;
+{"atsScore":75,"recommendations":["fix1","fix2","fix3"],"keywordOptimization":{"missingKeywords":["kw1","kw2"],"suggestions":["s1","s2"]},"formatting":{"score":70,"issues":["i1","i2"]},"content":{"strengthsFound":["str1","str2"],"weaknesses":["w1","w2"]}}`;
 
     try {
       const accessInfo = this.hasAIAccess(user);
@@ -291,15 +257,15 @@ Resume: ${truncatedResume}
       const completion = await this.createChatCompletion([
         {
           role: "system",
-          content: "Expert ATS analyzer. Return JSON only."
+          content: "ATS analyzer. JSON only, no markdown."
         },
         {
           role: "user",
           content: prompt
         }
       ], {
-        temperature: 0.2,
-        max_tokens: isPremium ? 1000 : 600, // 40% token reduction for free tier
+        temperature: 0.1, // More consistent
+        max_tokens: isPremium ? 700 : 400, // Faster response time
         user
       });
 

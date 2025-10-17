@@ -412,19 +412,25 @@ export default function ResumesPage() {
                                 </div>
                                 <div className="text-center">
                                   <div className="text-2xl font-bold text-green-600">
-                                    {resume.analysis?.content?.strengthsFound?.length || 0}
+                                    {Array.isArray(resume.analysis?.content?.strengthsFound) 
+                                      ? resume.analysis.content.strengthsFound.length 
+                                      : (resume.analysis?.strengths?.length || 0)}
                                   </div>
                                   <div className="text-xs text-gray-600 dark:text-gray-400">Strengths</div>
                                 </div>
                                 <div className="text-center">
                                   <div className="text-2xl font-bold text-orange-600">
-                                    {resume.analysis?.recommendations?.length || 0}
+                                    {Array.isArray(resume.analysis?.recommendations) 
+                                      ? resume.analysis.recommendations.length 
+                                      : (resume.analysis?.improvements?.length || 0)}
                                   </div>
                                   <div className="text-xs text-gray-600 dark:text-gray-400">Improvements</div>
                                 </div>
                                 <div className="text-center">
                                   <div className="text-2xl font-bold text-purple-600">
-                                    {resume.analysis?.keywordOptimization?.missingKeywords?.length || 0}
+                                    {Array.isArray(resume.analysis?.keywordOptimization?.missingKeywords) 
+                                      ? resume.analysis.keywordOptimization.missingKeywords.length 
+                                      : (resume.analysis?.missingKeywords?.length || 0)}
                                   </div>
                                   <div className="text-xs text-gray-600 dark:text-gray-400">Missing Keywords</div>
                                 </div>
