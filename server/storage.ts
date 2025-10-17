@@ -1192,7 +1192,10 @@ export class DatabaseStorage implements IStorage {
           appliedAt: jobPostingApplications.appliedAt,
           reviewedAt: jobPostingApplications.reviewedAt,
           updatedAt: jobPostingApplications.updatedAt,
-          resumeData: sql`NULL`.as('resumeData'),
+          // Include full resume data for recruiter view
+          resumeData: resumes.resumeText,
+          resumeFileName: resumes.fileName,
+          resumeAtsScore: resumes.atsScore,
           // Include job posting information directly as separate fields
           jobPostingTitle: jobPostings.title,
           jobPostingCompany: jobPostings.companyName,
@@ -1208,6 +1211,7 @@ export class DatabaseStorage implements IStorage {
         .from(jobPostingApplications)
         .innerJoin(jobPostings, eq(jobPostingApplications.jobPostingId, jobPostings.id))
         .leftJoin(users, eq(jobPostingApplications.applicantId, users.id))
+        .leftJoin(resumes, eq(jobPostingApplications.resumeId, resumes.id))
         .where(eq(jobPostings.recruiterId, recruiterId))
         .orderBy(desc(jobPostingApplications.appliedAt));
     }, []);

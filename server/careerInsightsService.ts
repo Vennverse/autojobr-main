@@ -23,14 +23,13 @@ export class CareerInsightsService {
     const recentApps = await db
       .select({
         id: jobApplications.id,
-        jobTitle: jobPostings.title,
-        jobCategory: jobPostings.category,
-        appliedAt: jobApplications.createdAt
+        jobTitle: jobApplications.jobTitle,
+        jobCategory: jobApplications.jobType,
+        appliedAt: jobApplications.appliedDate
       })
       .from(jobApplications)
-      .leftJoin(jobPostings, eq(jobApplications.jobPostingId, jobPostings.id))
       .where(eq(jobApplications.userId, userId))
-      .orderBy(desc(jobApplications.createdAt))
+      .orderBy(desc(jobApplications.appliedDate))
       .limit(10);
     
     console.log('[CAREER INSIGHTS] Found applications:', recentApps.length);
@@ -79,10 +78,11 @@ export class CareerInsightsService {
     
     // 4. Application Velocity Alert
     if (recentApps.length >= 5) {
-      const daysSinceFirst = this.getDaysBetween(
-        new Date(recentApps[recentApps.length - 1].appliedAt),
+      const firstAppDate = recentApps[recentApps.length - 1].appliedAt;
+      const daysSinceFirst = firstAppDate ? this.getDaysBetween(
+        new Date(firstAppDate),
         new Date()
-      );
+      ) : 0;
       
       if (daysSinceFirst <= 7) {
         insights.push({
@@ -98,10 +98,10 @@ export class CareerInsightsService {
     
     // 5. Resume Update Suggestion
     const oldestResume = userResumes.reduce((oldest, current) => 
-      new Date(current.createdAt) < new Date(oldest.createdAt) ? current : oldest
+      (current.createdAt && oldest.createdAt && new Date(current.createdAt) < new Date(oldest.createdAt)) ? current : oldest
     , userResumes[0]);
     
-    if (oldestResume) {
+    if (oldestResume && oldestResume.createdAt) {
       const daysSinceUpdate = this.getDaysBetween(new Date(oldestResume.createdAt), new Date());
       if (daysSinceUpdate > 90 && recentApps.length > 0) {
         insights.push({

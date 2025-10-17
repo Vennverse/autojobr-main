@@ -5806,12 +5806,51 @@ Return ONLY the JSON object, no additional text.`;
   app.post('/api/premium/ai/cover-letter', isAuthenticated, asyncHandler(async (req: any, res) => {
     try {
       const { jobDetails, resume } = req.body;
+      const userId = req.user.id;
       
-      if (!jobDetails || !resume) {
-        return res.status(400).json({ message: 'Job details and resume are required' });
+      if (!jobDetails) {
+        return res.status(400).json({ message: 'Job details are required' });
       }
 
-      const coverLetter = await aiService.generateCoverLetter(jobDetails, resume, req.user);
+      // Auto-fetch user's active resume if not provided
+      let resumeText = resume;
+      if (!resumeText) {
+        const activeResume = await db
+          .select()
+          .from(schema.resumes)
+          .where(and(
+            eq(schema.resumes.userId, userId),
+            eq(schema.resumes.isActive, true)
+          ))
+          .limit(1);
+        
+        if (activeResume[0]?.resumeText) {
+          resumeText = activeResume[0].resumeText;
+        }
+        // If still no resume, allow the request to proceed - AI can generate generic content
+      }
+      
+      if (!resumeText) {
+        return res.status(400).json({ 
+          message: 'Please provide your resume or upload one to your profile first.',
+          hint: 'Upload a resume at /resumes for personalized cover letters'
+        });
+      }
+
+      // Fetch user profile for better personalization
+      const userProfile = await db
+        .select()
+        .from(schema.userProfiles)
+        .where(eq(schema.userProfiles.userId, userId))
+        .limit(1);
+
+      // Enhance user data with profile information
+      const enhancedUser = {
+        ...req.user,
+        profile: userProfile[0] || null
+      };
+
+      const coverLetter = await aiService.generateCoverLetter(jobDetails, resumeText, enhancedUser);
       res.json(coverLetter);
     } catch (error: any) {
       console.error('Error generating cover letter:', error);
@@ -5915,14 +5954,53 @@ Return ONLY the JSON object, no additional text.`;
   app.post('/api/premium/ai/tailor-resume', isAuthenticated, asyncHandler(async (req: any, res) => {
     try {
       const { resumeText, jobDescription, jobTitle, targetCompany } = req.body;
+      const userId = req.user.id;
       
-      if (!resumeText || !jobDescription || !jobTitle) {
-        return res.status(400).json({ message: 'Resume, job description, and job title are required' });
+      if (!jobDescription || !jobTitle) {
+        return res.status(400).json({ message: 'Job description and job title are required' });
       }
 
+      // Auto-fetch user's active resume if not provided
+      let resume = resumeText;
+      if (!resume) {
+        const activeResume = await db
+          .select()
+          .from(schema.resumes)
+          .where(and(
+            eq(schema.resumes.userId, userId),
+            eq(schema.resumes.isActive, true)
+          ))
+          .limit(1);
+        
+        if (activeResume[0]?.resumeText) {
+          resume = activeResume[0].resumeText;
+        }
+        // If still no resume, allow the request to proceed - AI can generate generic content
+      }
+      
+      if (!resume) {
+        return res.status(400).json({ 
+          message: 'Please provide your resume or upload one to your profile first.',
+          hint: 'Upload a resume at /resumes for personalized tailored resumes'
+        });
+      }
+
+      // Fetch user profile for better personalization
+      const userProfile = await db
+        .select()
+        .from(schema.userProfiles)
+        .where(eq(schema.userProfiles.userId, userId))
+        .limit(1);
+
+      // Enhance user data with profile information
+      const enhancedUser = {
+        ...req.user,
+        profile: userProfile[0] || null
+      };
+
       const tailored = await aiService.tailorResumeToJob(
-        { resumeText, jobDescription, jobTitle, targetCompany },
-        req.user
+        { resumeText: resume, jobDescription, jobTitle, targetCompany },
+        enhancedUser
       );
       res.json(tailored);
     } catch (error: any) {
