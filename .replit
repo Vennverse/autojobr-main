@@ -16,10 +16,6 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 24678
-externalPort = 8081
-
-[[ports]]
 localPort = 33151
 externalPort = 6800
 
@@ -96,7 +92,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "NODE_ENV=development npm run dev"
 waitForPort = 5000
 
 [agent]
