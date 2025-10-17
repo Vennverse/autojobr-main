@@ -1,4 +1,4 @@
-// Use dynamic import for pdf-parse to handle module issues
+// Use dynamic import for pdf-parse-debugging-disabled to handle module issues
 let pdfParse: any = null;
 
 export interface ParsedResumeData {
@@ -37,7 +37,7 @@ export class ResumeParser {
         try {
           // Dynamic import to handle module loading issues
           if (!pdfParse) {
-            pdfParse = (await import('pdf-parse')).default;
+            pdfParse = (await import('pdf-parse-debugging-disabled')).default;
           }
           const pdfData = await pdfParse(fileBuffer);
           text = pdfData.text || '';
