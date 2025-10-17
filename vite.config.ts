@@ -31,9 +31,20 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     allowedHosts: true,
+    hmr: {
+      overlay: true,
+      clientPort: undefined,
+    },
+    watch: {
+      usePolling: true,
+      interval: 100,
+    },
     fs: {
       strict: true,
       deny: ["**/.*"],
     },
+  },
+  optimizeDeps: {
+    force: true,
   },
 });
