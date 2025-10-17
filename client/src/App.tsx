@@ -89,6 +89,9 @@ import InterviewLink from "@/pages/InterviewLink";
 import VideoPractice from "@/pages/VideoPractice";
 import PremiumFeatures from "@/pages/premium-features";
 import PremiumAITools from "@/pages/premium-ai-tools";
+import JobSeekerPremium from "@/pages/JobSeekerPremium";
+import RecruiterPremium from "@/pages/RecruiterPremium";
+import CoverLetterGenerator from "@/pages/cover-letter-generator";
 
 // SEO Landing Pages to Beat Competition
 import FreeJobApplicationAutomation from "@/pages/seo/FreeJobApplicationAutomation";
