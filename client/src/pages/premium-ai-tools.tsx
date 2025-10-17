@@ -11,6 +11,14 @@ import { Navbar } from "@/components/navbar";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Sparkles,
   FileText,
   DollarSign,
@@ -24,13 +32,15 @@ import {
   Zap,
   Calendar,
   CheckCircle,
-  Mail
+  Mail,
+  Eye
 } from "lucide-react";
 
 export default function PremiumAITools() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("cover-letter");
   const [copied, setCopied] = useState(false);
+  const [showResumePreview, setShowResumePreview] = useState(false);
 
   // Check premium status
   const { data: user } = useQuery({ queryKey: ['/api/user'] });
@@ -224,7 +234,8 @@ export default function PremiumAITools() {
         experience: parseInt(careerData.experience),
         skills: careerData.skills.split(',').map(s => s.trim()),
         interests: careerData.interests.split(',').map(i => i.trim()),
-        targetRole: careerData.targetRole || undefined
+        targetRole: careerData.targetRole || undefined,
+        resume: userResume?.resumeText // Auto-use stored resume
       });
     },
     onSuccess: (data) => {
@@ -267,7 +278,7 @@ export default function PremiumAITools() {
   const tailorMutation = useMutation({
     mutationFn: async () => {
       return await apiRequest('/api/premium/ai/tailor-resume', 'POST', {
-        resumeText: tailorData.resumeText,
+        resumeText: tailorData.resumeText || userResume?.resumeText, // Auto-use stored resume
         jobDescription: tailorData.jobDescription,
         jobTitle: tailorData.jobTitle,
         targetCompany: tailorData.targetCompany || undefined
@@ -696,10 +707,41 @@ export default function PremiumAITools() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Salary Negotiation Coach</CardTitle>
-                  <CardDescription>Get AI-powered negotiation strategy and talking points</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Salary Negotiation Coach</CardTitle>
+                      <CardDescription>Get AI-powered negotiation strategy and talking points</CardDescription>
+                    </div>
+                    {userResume?.resumeText && (
+                      <Dialog open={showResumePreview} onOpenChange={setShowResumePreview}>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <Eye className="h-4 w-4 mr-2" />
+                            Preview Resume
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Your Stored Resume</DialogTitle>
+                            <DialogDescription>
+                              This is automatically used across all AI tools
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                            <pre className="whitespace-pre-wrap text-sm">{userResume.resumeText}</pre>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {userResume?.resumeText && (
+                    <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm text-green-600 flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4" />
+                      AI will use your experience from stored resume for personalized negotiation advice
+                    </div>
+                  )}
                   <div>
                     <Label htmlFor="salary-current">Current Offer ($)</Label>
                     <Input
@@ -932,10 +974,41 @@ export default function PremiumAITools() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Career Path Planner</CardTitle>
-                  <CardDescription>Get a personalized 3-5 year career roadmap</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Career Path Planner</CardTitle>
+                      <CardDescription>Get a personalized 3-5 year career roadmap</CardDescription>
+                    </div>
+                    {userResume?.resumeText && (
+                      <Dialog open={showResumePreview} onOpenChange={setShowResumePreview}>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <Eye className="h-4 w-4 mr-2" />
+                            Preview Resume
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Your Stored Resume</DialogTitle>
+                            <DialogDescription>
+                              This is automatically used across all AI tools
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                            <pre className="whitespace-pre-wrap text-sm">{userResume.resumeText}</pre>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {userResume?.resumeText && (
+                    <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm text-green-600 flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4" />
+                      Using your stored resume to personalize career path recommendations
+                    </div>
+                  )}
                   <div>
                     <Label htmlFor="career-current">Current Role</Label>
                     <Input
@@ -1052,10 +1125,41 @@ export default function PremiumAITools() {
           <TabsContent value="bullets">
             <Card>
               <CardHeader>
-                <CardTitle>AI Resume Bullet Point Enhancer</CardTitle>
-                <CardDescription>Transform weak descriptions into powerful, achievement-oriented statements</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>AI Resume Bullet Point Enhancer</CardTitle>
+                    <CardDescription>Transform weak descriptions into powerful, achievement-oriented statements</CardDescription>
+                  </div>
+                  {userResume?.resumeText && (
+                    <Dialog open={showResumePreview} onOpenChange={setShowResumePreview}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Eye className="h-4 w-4 mr-2" />
+                          Preview Resume
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Your Stored Resume</DialogTitle>
+                          <DialogDescription>
+                            This is automatically used across all AI tools
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                          <pre className="whitespace-pre-wrap text-sm">{userResume.resumeText}</pre>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
+                {userResume?.resumeText && (
+                  <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm text-green-600 flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    AI will reference your stored resume for context-aware enhancements
+                  </div>
+                )}
                 <div className="space-y-4">
                   <div>
                     <Label>Job Title</Label>
@@ -1160,9 +1264,38 @@ export default function PremiumAITools() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <Label>Your Resume Text</Label>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label>Your Resume Text</Label>
+                      {userResume?.resumeText && (
+                        <Dialog open={showResumePreview} onOpenChange={setShowResumePreview}>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <Eye className="h-4 w-4 mr-2" />
+                              Preview Stored Resume
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>Your Stored Resume</DialogTitle>
+                              <DialogDescription>
+                                This is automatically used across all AI tools
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                              <pre className="whitespace-pre-wrap text-sm">{userResume.resumeText}</pre>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                    </div>
+                    {userResume?.resumeText && (
+                      <div className="mb-2 text-sm text-green-600 flex items-center gap-1">
+                        <CheckCircle className="h-4 w-4" />
+                        Using your stored resume automatically (you can override by typing here)
+                      </div>
+                    )}
                     <Textarea
-                      placeholder="Paste your current resume text here..."
+                      placeholder={userResume?.resumeText ? "Using your stored resume (you can override by typing here)" : "Paste your current resume text here..."}
                       value={tailorData.resumeText}
                       onChange={(e) => setTailorData({...tailorData, resumeText: e.target.value})}
                       rows={6}
@@ -1254,10 +1387,41 @@ export default function PremiumAITools() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Career Gap Strategy Builder</CardTitle>
-                  <CardDescription>Present employment gaps positively and strategically</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Career Gap Strategy Builder</CardTitle>
+                      <CardDescription>Present employment gaps positively and strategically</CardDescription>
+                    </div>
+                    {userResume?.resumeText && (
+                      <Dialog open={showResumePreview} onOpenChange={setShowResumePreview}>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <Eye className="h-4 w-4 mr-2" />
+                            Preview Resume
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Your Stored Resume</DialogTitle>
+                            <DialogDescription>
+                              This is automatically used across all AI tools
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                            <pre className="whitespace-pre-wrap text-sm">{userResume.resumeText}</pre>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {userResume?.resumeText && (
+                    <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm text-green-600 flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4" />
+                      AI will analyze your stored resume to create gap strategies
+                    </div>
+                  )}
                   <div>
                     <Label>Gap Period</Label>
                     <Input
