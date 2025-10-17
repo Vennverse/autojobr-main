@@ -115,10 +115,6 @@ export default function PremiumAITools() {
   });
   const [gapSolution, setGapSolution] = useState<any>(null);
 
-  // Check premium status
-  const { data: user } = useQuery({ queryKey: ['/api/user'] });
-  const isPremium = user?.planType === 'premium' || user?.planType === 'enterprise';
-
   // Cover Letter Mutation
   const coverLetterMutation = useMutation({
     mutationFn: async () => {
