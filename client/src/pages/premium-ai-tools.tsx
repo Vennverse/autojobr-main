@@ -32,6 +32,12 @@ export default function PremiumAITools() {
   const [activeTab, setActiveTab] = useState("cover-letter");
   const [copied, setCopied] = useState(false);
 
+  // Fetch user's active resume
+  const { data: userResume } = useQuery({
+    queryKey: ['/api/resumes/active-text'],
+    enabled: !!user,
+  });
+
   // Cover Letter State
   const [coverLetterData, setCoverLetterData] = useState({
     jobTitle: "",
@@ -119,7 +125,7 @@ export default function PremiumAITools() {
           description: coverLetterData.description,
           requirements: coverLetterData.requirements
         },
-        resume: coverLetterData.resume
+        resume: coverLetterData.resume || userResume?.resumeText // Auto-use stored resume
       });
     },
     onSuccess: (data) => {
@@ -194,7 +200,7 @@ export default function PremiumAITools() {
     mutationFn: async () => {
       return await apiRequest('/api/premium/ai/interview-answer', 'POST', {
         question: interviewQuestion,
-        resume: interviewResume
+        resume: interviewResume || userResume?.resumeText // Auto-use stored resume
       });
     },
     onSuccess: (data) => {
@@ -464,10 +470,16 @@ export default function PremiumAITools() {
                   </div>
                   <div>
                     <Label htmlFor="cl-resume">Your Resume/Experience</Label>
+                    {userResume?.resumeText && (
+                      <div className="mb-2 text-sm text-green-600 flex items-center gap-1">
+                        <CheckCircle className="h-4 w-4" />
+                        Using your stored resume automatically
+                      </div>
+                    )}
                     <Textarea
                       id="cl-resume"
                       data-testid="textarea-resume"
-                      placeholder="Paste your resume or key achievements..."
+                      placeholder={userResume?.resumeText ? "Using your stored resume (you can override by typing here)" : "Paste your resume or key achievements..."}
                       value={coverLetterData.resume}
                       onChange={(e) => setCoverLetterData({...coverLetterData, resume: e.target.value})}
                       rows={4}
@@ -811,10 +823,16 @@ export default function PremiumAITools() {
                   </div>
                   <div>
                     <Label htmlFor="interview-resume">Your Background/Resume</Label>
+                    {userResume?.resumeText && (
+                      <div className="mb-2 text-sm text-green-600 flex items-center gap-1">
+                        <CheckCircle className="h-4 w-4" />
+                        Using your stored resume automatically
+                      </div>
+                    )}
                     <Textarea
                       id="interview-resume"
                       data-testid="textarea-interview-resume"
-                      placeholder="Paste your resume or relevant experience..."
+                      placeholder={userResume?.resumeText ? "Using your stored resume (you can override by typing here)" : "Paste your resume or relevant experience..."}
                       value={interviewResume}
                       onChange={(e) => setInterviewResume(e.target.value)}
                       rows={6}
