@@ -2,6 +2,7 @@ import { apiKeyRotationService } from './apiKeyRotationService';
 import { db } from './db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { groqService } from './groqService';
 
 // Types from groqService - we'll use the same interface structure
 interface ResumeAnalysis {
@@ -70,42 +71,6 @@ class AIService {
   private developmentMode: boolean;
   private responseCache: Map<string, { response: any; timestamp: number }> = new Map();
   private readonly CACHE_TTL = 3600000; // 1 hour cache
-
-  // Mock groqService for demonstration purposes if not available
-  private groqService: any = {
-    chat: async (messages: any, tokens: number, temp: number = 0.7) => {
-      console.warn("Using Mock Groq Service. Implement actual Groq API integration.");
-      // Simulate a response based on the last user message content
-      const lastMessage = messages.slice().reverse().find((m: any) => m.role === 'user');
-      if (lastMessage && lastMessage.content) {
-        const content = lastMessage.content.toLowerCase();
-        if (content.includes("cover letter") || content.includes("refine")) {
-          return JSON.stringify({
-            coverLetter: "This is a mock cover letter.",
-            matchAnalysis: [{ resume: "mock skill", job: "mock requirement", reason: "mock match" }],
-            shortVersion: "Mock elevator pitch."
-          });
-        } else if (content.includes("resume analysis")) {
-          return JSON.stringify(this.generateFallbackResumeAnalysis({ tier: 'premium' }));
-        } else if (content.includes("job match")) {
-          return JSON.stringify(this.generateFallbackJobAnalysis({ tier: 'premium' }));
-        } else if (content.includes("career path")) {
-          return JSON.stringify(this.generateFallbackCareerAnalysis({ tier: 'premium' }, { careerGoal: "mock role" }));
-        } else if (content.includes("interview answer")) {
-          return JSON.stringify(this.generateFallbackInterviewAnswer());
-        } else if (content.includes("salary negotiation")) {
-          return JSON.stringify(this.generateFallbackNegotiation({ currentOffer: 100000, desiredSalary: 120000, jobTitle: "mock job", experience: 5, location: "mock location" }));
-        } else if (content.includes("enhance resume bullet points")) {
-          return JSON.stringify(this.generateFallbackBulletEnhancer({ currentBulletPoints: ["old point"], jobTitle: "mock job" }));
-        } else if (content.includes("tailor resume to job")) {
-          return JSON.stringify(this.generateFallbackResumeTailor({ resumeText: "mock resume", jobDescription: "mock job desc", jobTitle: "mock job" }));
-        } else if (content.includes("resume gaps")) {
-          return JSON.stringify(this.generateFallbackGapFiller({ gapPeriod: "mock period" }));
-        }
-      }
-      return JSON.stringify({ error: "Mock service unable to process request." });
-    }
-  };
 
   // AI Model configuration
   private readonly models = {
@@ -236,11 +201,6 @@ class AIService {
       };
 
       if (service === 'groq') {
-        // Use the mock groqService if it's available and has the chat method
-        if (this.groqService && typeof this.groqService.chat === 'function') {
-          // Assuming groqService.chat takes messages, maxTokens, temperature
-          return await this.groqService.chat(messages, completionOptions.max_tokens, completionOptions.temperature);
-        }
         return await this.executeGroqOperation(async (client) => {
           return await client.chat.completions.create(completionOptions);
         });
@@ -1107,12 +1067,13 @@ Instruction: ${instruction}
 Return only the refined cover letter, maintaining professional formatting.`;
 
     try {
-      const response = await this.groqService.chat([
+      const completion = await this.createChatCompletion([
         { role: 'system', content: 'You are an expert cover letter writer. Refine cover letters based on user instructions while maintaining professionalism.' },
         { role: 'user', content: prompt }
-      ], isPremium ? 1500 : 1000);
+      ], { max_tokens: isPremium ? 1500 : 1000, user });
 
-      return response.trim();
+      const content = completion?.choices?.[0]?.message?.content || completion?.content || completion;
+      return typeof content === 'string' ? content.trim() : currentLetter;
     } catch (error) {
       console.error('Cover letter refinement error:', error);
       throw new Error('Failed to refine cover letter');
@@ -1152,11 +1113,13 @@ Return JSON:
 }`;
 
     try {
-      const response = await this.groqService.chat([
+      const completion = await this.createChatCompletion([
         { role: 'system', content: 'You are an expert career coach. Generate cover letters that show clear alignment between resume and job requirements.' },
         { role: 'user', content: prompt }
-      ], isPremium ? 2000 : 1200);
+      ], { max_tokens: isPremium ? 2000 : 1200, user });
 
+      const content = completion?.choices?.[0]?.message?.content || completion?.content || completion;
+      const response = typeof content === 'string' ? content : JSON.stringify(content);
       const parsed = JSON.parse(response);
       return {
         coverLetter: parsed.coverLetter,
@@ -1208,8 +1171,11 @@ Ensure the cover letter is tailored to the job, highlights relevant skills and e
         { role: "user", content: prompt }
       ], { temperature: 0.7, max_tokens: isPremium ? 1500 : 1000, user });
 
-      const content = completion.choices[0]?.message?.content;
-      return content ? content.trim() : "Failed to generate cover letter.";
+      const content = completion?.choices?.[0]?.message?.content || completion?.content || completion;
+      if (typeof content === 'string') {
+        return content.trim();
+      }
+      return "Failed to generate cover letter.";
     } catch (error) {
       console.error('Error generating cover letter:', error);
       return "An error occurred while generating the cover letter. Please try again.";
@@ -1240,10 +1206,6 @@ Ensure the cover letter is tailored to the job, highlights relevant skills and e
     marketInsights: string;
   }> {
     const isPremium = user?.planType === 'premium' || user?.planType === 'enterprise';
-
-    if (!isPremium) {
-      throw new Error('Salary negotiation coaching is a premium feature. Upgrade to access this service.');
-    }
 
     const prompt = `You are a senior career coach specializing in salary negotiation. Provide expert advice for:
 
@@ -1326,10 +1288,6 @@ Provide strategic negotiation advice in JSON:
     followUpTips: string[];
   }> {
     const isPremium = user?.planType === 'premium' || user?.planType === 'enterprise';
-
-    if (!isPremium) {
-      throw new Error('Interview answer generation is a premium feature. Upgrade to access this service.');
-    }
 
     const prompt = `Generate a compelling STAR method interview answer for:
 
@@ -1416,10 +1374,6 @@ Return JSON:
     alternativePaths: string[];
   }> {
     const isPremium = user?.planType === 'premium' || user?.planType === 'enterprise';
-
-    if (!isPremium) {
-      throw new Error('Career path planning is a premium feature. Upgrade to access this service.');
-    }
 
     const prompt = `Create a detailed career progression plan for:
 

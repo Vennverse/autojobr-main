@@ -5880,8 +5880,8 @@ Return ONLY the JSON object, no additional text.`;
         profile: userProfile[0] || null
       };
 
-      const coverLetter = await aiService.generateCoverLetter(jobDetails, resumeText, enhancedUser);
-      res.json(coverLetter);
+      const coverLetter = await aiService.generateCoverLetter(resumeText, jobDetails, userId);
+      res.json({ coverLetter });
     } catch (error: any) {
       console.error('Error generating cover letter:', error);
       if (error.message?.includes('premium feature')) {
