@@ -28,6 +28,11 @@ export default function AuthPage() {
       const decodedUrl = decodeURIComponent(redirect);
       // Only allow relative URLs starting with '/' and reject absolute URLs
       if (decodedUrl.startsWith('/') && !decodedUrl.startsWith('//')) {
+        // CRITICAL FIX: Prevent redirect loops - don't redirect back to auth page
+        if (decodedUrl.startsWith('/auth')) {
+          console.warn('Prevented redirect loop to auth page, redirecting to dashboard instead');
+          return '/';
+        }
         return decodedUrl;
       }
       // If not a valid relative URL, ignore it and return home
