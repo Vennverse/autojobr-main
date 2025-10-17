@@ -154,8 +154,21 @@ class GroqService {
   }
 
   async analyzeResume(resumeText: string, userProfile?: any, user?: any): Promise<ResumeAnalysis & { aiTier?: string, upgradeMessage?: string }> {
-    // Delegate to the unified AI service which handles rotation between Groq and OpenRouter
-    return await aiService.analyzeResume(resumeText, userProfile, user);
+    try {
+      console.log(`📊 Starting resume analysis - text length: ${resumeText.length}`);
+      const startTime = Date.now();
+      
+      // Delegate to the unified AI service
+      const result = await aiService.analyzeResume(resumeText, userProfile, user);
+      
+      const duration = Date.now() - startTime;
+      console.log(`✅ Resume analysis completed in ${duration}ms - Score: ${result.atsScore}`);
+      
+      return result;
+    } catch (error) {
+      console.error('Resume analysis error:', error);
+      throw error;
+    }
   }
 
   async analyzeJobMatch(

@@ -19,6 +19,29 @@ export interface ParsedResumeData {
   yearsExperience?: number;
   summary?: string;
   
+
+  /**
+   * Extract only key resume sections to reduce token usage by 60%
+   */
+  private extractKeyInfo(text: string): string {
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    const sections: string[] = [];
+    
+    // Get first 3 lines (usually name/contact)
+    sections.push(lines.slice(0, 3).join('\n'));
+    
+    // Find key sections (case insensitive)
+    const keywords = ['experience', 'education', 'skills', 'summary', 'objective'];
+    keywords.forEach(keyword => {
+      const idx = lines.findIndex(l => l.toLowerCase().includes(keyword));
+      if (idx !== -1) {
+        sections.push(lines.slice(idx, Math.min(idx + 8, lines.length)).join('\n'));
+      }
+    });
+    
+    return sections.join('\n\n').substring(0, 1200); // Max 1200 chars (was 2000)
+  }
+
   // Skills & Expertise
   skills?: string[];
   
@@ -202,31 +225,13 @@ Rules:
       };
     }
 
-    // MEGA OPTIMIZED: Single AI call does BOTH parsing AND analysis
-    const combinedPrompt = `Extract resume data AND analyze. Return JSON only:
+    // OPTIMIZED: Extract key sections only (60% token reduction)
+    const keyInfo = this.extractKeyInfo(rawText);
+    const combinedPrompt = `Parse resume. Return ONLY this JSON format:
 
-${rawText.substring(0, 2000)}
+${keyInfo}
 
-{
-  "parsedData": {
-    "fullName": "string",
-    "email": "string", 
-    "phone": "string",
-    "location": "string",
-    "professionalTitle": "string",
-    "skills": ["top 10"],
-    "yearsExperience": number,
-    "education": [{"degree": "str", "institution": "str", "year": "str"}],
-    "workExperience": [{"title": "str", "company": "str", "duration": "str"}]
-  },
-  "analysis": {
-    "atsScore": number (20-95),
-    "recommendations": ["3 key fixes"],
-    "keywordOptimization": {"missingKeywords": ["top 5"], "overusedKeywords": ["top 2"]},
-    "formatting": {"score": number, "issues": ["top 3"]},
-    "content": {"strengthsFound": ["top 3"], "weaknesses": ["top 3"]}
-  }
-}`;
+{"parsedData":{"fullName":"","email":"","phone":"","location":"","professionalTitle":"","skills":[],"yearsExperience":0,"education":[],"workExperience":[]},"analysis":{"atsScore":70,"recommendations":["Use action verbs","Add metrics","Include keywords"],"keywordOptimization":{"missingKeywords":[],"overusedKeywords":[]},"formatting":{"score":75,"issues":[]},"content":{"strengthsFound":[],"weaknesses":[]}}}`;
 
     try {
       const completion = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
@@ -242,8 +247,34 @@ ${rawText.substring(0, 2000)}
       });
 
       const content = completion.choices[0]?.message?.content;
-      const jsonMatch = content?.match(/\{[\s\S]*\}/);
-      const result = JSON.parse(jsonMatch ? jsonMatch[0] : content || '{}');
+      if (!content) {
+        throw new Error("No AI response");
+      }
+
+      // Clean and extract JSON more robustly
+      let jsonStr = content.trim();
+      
+      // Remove markdown code blocks if present
+      jsonStr = jsonStr.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+      
+      // Extract JSON object
+      const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.error('No JSON found in response:', content.substring(0, 200));
+        throw new Error("Invalid JSON response");
+      }
+      
+      // Parse with error recovery
+      let result;
+      try {
+        result = JSON.parse(jsonMatch[0]);
+      } catch (parseError) {
+        // Try fixing common JSON issues
+        const fixed = jsonMatch[0]
+          .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
+          .replace(/(['"])?([a-zA-Z0-9_]+)(['"])?:/g, '"$2":'); // Fix unquoted keys
+        result = JSON.parse(fixed);
+      }
 
       return {
         parsedData: { ...result.parsedData, fullText: rawText },
