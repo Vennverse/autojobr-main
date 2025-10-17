@@ -139,10 +139,15 @@ export default function PremiumAITools() {
       });
     },
     onSuccess: (data) => {
-      if (data.coverLetter) {
+      console.log('Cover letter response:', data);
+      
+      // Handle both direct string and object with coverLetter property
+      const letterText = typeof data === 'string' ? data : (data.coverLetter || data);
+      
+      if (letterText && typeof letterText === 'string') {
         // Typing animation effect
         setCoverLetter("");
-        const text = data.coverLetter;
+        const text = letterText;
         let index = 0;
         const typingSpeed = 10; // ms per character
 
@@ -627,7 +632,7 @@ export default function PremiumAITools() {
                             {editMode ? 'Hide' : 'Interactive Edit'}
                           </Button>
                           <Button
-                            onClick={() => copyToClipboard(coverLetter.coverLetter)}
+                            onClick={() => copyToClipboard(coverLetter)}
                             variant="outline"
                             size="sm"
                             data-testid="button-copy-cover-letter"
