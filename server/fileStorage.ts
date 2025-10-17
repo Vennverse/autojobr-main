@@ -74,26 +74,26 @@ export class FileStorageService {
     // Generate unique file ID
     const fileId = `resume_${userId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const fileExtension = this.getFileExtension(file.originalname);
-    const fileName = `${fileId}${fileExtension}.gz`; // Add .gz for compressed files
+    const fileName = `${fileId}${fileExtension}`; // NO compression - store original
     const filePath = path.join(this.resumesDir, fileName);
 
-    // Compress file data to save space
-    const compressedData = await gzip(file.buffer);
-    await writeFile(filePath, compressedData);
+    // Store original file WITHOUT compression to preserve PDF structure and design
+    // This ensures recruiters see the EXACT original resume
+    await writeFile(filePath, file.buffer);
 
     const storedFile: StoredFile = {
       id: fileId,
       originalName: file.originalname,
       mimeType: file.mimetype,
       size: file.size,
-      compressedSize: compressedData.length,
+      compressedSize: file.size, // Same as original since no compression
       path: filePath,
-      compressed: true,
+      compressed: false, // NO compression
       createdAt: new Date(),
       userId,
     };
 
-    console.log(`📄 Resume stored: ${file.originalname} (${file.size} bytes → ${compressedData.length} bytes, ${((1 - compressedData.length / file.size) * 100).toFixed(1)}% compression)`);
+    console.log(`📄 Resume stored (ORIGINAL): ${file.originalname} (${file.size} bytes, NO compression to preserve design)`);
     
     return storedFile;
   }

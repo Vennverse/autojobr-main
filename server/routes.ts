@@ -7314,277 +7314,83 @@ Return ONLY the JSON object, no additional text.`;
   });
 
 
-  // Resume management routes - Working upload without PDF parsing
+  // OPTIMIZED Resume Upload - AI extracts text AND parses data in ONE call (cheapest model)
   app.post('/api/resumes/upload', isAuthenticated, upload.single('resume'), async (req: any, res) => {
-    // Ensure we always return JSON, even on errors
     res.setHeader('Content-Type', 'application/json');
-    console.log('=== RESUME UPLOAD DEBUG START ===');
-    console.log('Timestamp:', new Date().toISOString());
-    console.log('Environment:', process.env.NODE_ENV);
-    console.log('Request headers:', JSON.stringify(req.headers, null, 2));
-
+    
     try {
       const userId = req.user.id;
-      const { name } = req.body;
       const file = req.file;
 
-      console.log('User ID:', userId);
-      console.log('Request body:', JSON.stringify(req.body, null, 2));
-      console.log('File received:', file ? 'YES' : 'NO');
-
-      if (file) {
-        console.log('File details:', {
-          originalname: file.originalname,
-          mimetype: file.mimetype,
-          size: file.size,
-          encoding: file.encoding,
-          fieldname: file.fieldname,
-          buffer: file.buffer ? `Buffer of ${file.buffer.length} bytes` : 'NO BUFFER'
-        });
-      }
-
       if (!file) {
-        console.log('ERROR: No file in request');
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      // Parse resume content using NLP FIRST, then GROQ as fallback
-      let resumeText = '';
-      let parsedData = null;
+      console.log(`📤 Resume upload started: ${file.originalname} (${file.size} bytes)`);
 
-      console.log('🔍 Starting resume parsing with NLP-first approach...');
-
-      try {
-        // STEP 1: Use free NLP parser FIRST to extract structured data from resume
-        console.log('📝 Attempting NLP-based resume parsing...');
-        parsedData = await resumeParser.parseResumeFile(file.buffer, file.mimetype);
-        console.log('✅ NLP parsing completed');
-        
-        // STEP 1.5: Also extract raw text for comprehensive analysis
-        let rawExtractedText = '';
-        try {
-          if (file.mimetype === 'application/pdf') {
-            const pdfParse = (await import('pdf-parse')).default;
-            const pdfData = await pdfParse(file.buffer);
-            rawExtractedText = pdfData.text || '';
-            console.log(`📄 Raw PDF text extracted: ${rawExtractedText.length} characters`);
-          } else {
-            rawExtractedText = file.buffer.toString('utf-8');
-          }
-        } catch (rawError) {
-          console.warn('⚠️ Raw text extraction had issues:', rawError.message);
-          rawExtractedText = file.buffer.toString('utf-8').replace(/[^\x20-\x7E\n]/g, '');
-        }
-
-        // Create structured resume text for analysis using BOTH NLP data AND raw text
-        const structuredInfo = `
-Resume Document: ${file.originalname}
-File Type: ${file.mimetype}
-Size: ${(file.size / 1024).toFixed(1)} KB
-
-${parsedData.fullName ? `Name: ${parsedData.fullName}` : ''}
-${parsedData.email ? `Email: ${parsedData.email}` : ''}
-${parsedData.phone ? `Phone: ${parsedData.phone}` : ''}
-${parsedData.professionalTitle ? `Professional Title: ${parsedData.professionalTitle}` : ''}
-${parsedData.yearsExperience ? `Years of Experience: ${parsedData.yearsExperience}` : ''}
-${parsedData.city || parsedData.state ? `Location: ${[parsedData.city, parsedData.state].filter(Boolean).join(', ')}` : ''}
-
-${parsedData.summary ? `Professional Summary:\n${parsedData.summary}` : ''}
-
-${parsedData.workExperience && parsedData.workExperience.length > 0 ? 
-  `Work Experience:\n${parsedData.workExperience.map(exp => 
-    `• ${exp.title || 'Position'} at ${exp.company || 'Company'} ${exp.duration ? `(${exp.duration})` : ''}\n  ${exp.description || ''}`
-  ).join('\n')}` : ''}
-
-${parsedData.skills && parsedData.skills.length > 0 ? 
-  `Skills & Technologies:\n${parsedData.skills.map(skill => `• ${skill}`).join('\n')}` : ''}
-
-${parsedData.education && parsedData.education.length > 0 ? 
-  `Education:\n${parsedData.education.map(edu => 
-    `• ${edu.degree || 'Degree'} ${edu.institution ? `from ${edu.institution}` : ''} ${edu.year ? `(${edu.year})` : ''}`
-  ).join('\n')}` : ''}
-
-${parsedData.linkedinUrl ? `LinkedIn: ${parsedData.linkedinUrl}` : ''}
-        `.trim();
-        
-        // Combine structured info with raw text for comprehensive coverage
-        resumeText = rawExtractedText.length > 200 
-          ? `${structuredInfo}\n\n--- FULL RESUME CONTENT ---\n${rawExtractedText}`
-          : structuredInfo;
-          
-        console.log(`✅ Final resume text: ${resumeText.length} characters`);
-        
-      } catch (parseError) {
-        console.error('❌ NLP parsing failed:', parseError);
-        console.log('🔄 Falling back to raw text extraction...');
-        
-        // Fallback: Extract raw text directly
-        try {
-          if (file.mimetype === 'application/pdf') {
-            const pdfParse = (await import('pdf-parse')).default;
-            const pdfData = await pdfParse(file.buffer);
-            resumeText = pdfData.text || file.buffer.toString('utf-8');
-          } else {
-            resumeText = file.buffer.toString('utf-8');
-          }
-          console.log(`✅ Fallback extraction: ${resumeText.length} characters`);
-        } catch (fallbackError) {
-          console.error('❌ Fallback extraction also failed:', fallbackError);
-          resumeText = `
-Resume Document: ${file.originalname}
-File Type: ${file.mimetype}
-Size: ${(file.size / 1024).toFixed(1)} KB
-
-Professional Summary:
-Experienced professional with demonstrated skills and expertise in their field. 
-This resume contains relevant work experience, technical competencies, and educational background.
-
-Work Experience:
-• Current or recent positions showing career progression
-• Key achievements and responsibilities in previous roles
-• Quantifiable results and contributions to organizations
-
-Skills & Technologies:
-• Technical skills relevant to the target position
-• Industry-specific knowledge and certifications
-• Software and tools proficiency
-
-Education:
-• Academic qualifications and degrees
-• Professional certifications and training
-• Continuing education and skill development
-
-Additional Information:
-• Professional achievements and recognition
-• Relevant projects and contributions
-• Industry involvement and networking
-        `.trim();
-        }
-      }
-
-      // Get user profile for better analysis
-      let userProfile;
-      try {
-        userProfile = await storage.getUserProfile(userId);
-      } catch (error) {
-        // Could not fetch user profile for analysis
-      }
-
-      // Get user for AI tier assessment
-      const user = await storage.getUser(userId);
-
-      // STEP 2: Analyze resume with GROQ AI (as fallback for detailed analysis)
-      let analysis;
-      try {
-        console.log('🤖 Attempting GROQ AI analysis for detailed insights...');
-        analysis = await groqService.analyzeResume(resumeText, userProfile, user);
-
-        // Ensure analysis has required properties
-        if (!analysis || typeof analysis.atsScore === 'undefined') {
-          throw new Error('Invalid analysis response from GROQ');
-        }
-        console.log('✅ GROQ analysis completed successfully');
-      } catch (analysisError) {
-        console.error('❌ GROQ analysis failed:', analysisError);
-        console.log('🔄 Using NLP-based fallback analysis (estimated scores)...');
-
-        // Generate better fallback scores based on NLP parsing success
-        const baseScore = parsedData && Object.keys(parsedData).length > 3 ? 80 : 65;
-
-        analysis = {
-          atsScore: baseScore,
-          recommendations: [
-            "Resume successfully parsed with NLP analysis",
-            "AI analysis temporarily unavailable - scores are estimated"
-          ],
-          keywordOptimization: {
-            missingKeywords: [],
-            overusedKeywords: [],
-            suggestions: ["Resume parsing completed with local NLP methods"]
-          },
-          formatting: {
-            score: baseScore,
-            issues: [],
-            improvements: ["Resume structure analyzed"]
-          },
-          content: {
-            strengthsFound: ["Professional resume format detected", "Contact information extracted"],
-            weaknesses: [],
-            suggestions: ["Detailed AI analysis will be available when service is restored"]
-          }
-        };
-
-        console.log(`📊 Fallback analysis generated with ${baseScore}% estimated ATS score`);
-      }
-
-      // Get existing resumes count from database
-      const existingResumes = await storage.getUserResumes(userId);
-
-      // Check resume upload limits using premium features service
+      // Check resume upload limits
       const { premiumFeaturesService } = await import('./premiumFeaturesService');
       const limitCheck = await premiumFeaturesService.checkFeatureLimit(userId, 'resumeUploads');
 
       if (!limitCheck.allowed) {
         return res.status(400).json({ 
           message: `You've reached your resume upload limit of ${limitCheck.limit}. Upgrade to Premium for unlimited resumes.`,
-          upgradeRequired: true,
-          current: limitCheck.current,
-          limit: limitCheck.limit,
-          planType: limitCheck.planType
+          upgradeRequired: true
         });
       }
 
-      // Store physical file using FileStorageService (not in database)
-      const storedFile = await fileStorage.storeResume(file, userId);
-      console.log(`[FILE_STORAGE] Resume file stored with ID: ${storedFile.id}`);
+      // Use OPTIMIZED AI parser - extracts text AND structured data in ONE call
+      const { OptimizedResumeParser } = await import('./optimizedResumeParser');
+      const parser = new OptimizedResumeParser();
+      
+      // Get user for AI tier
+      const user = await storage.getUser(userId);
+      const userProfile = await storage.getUserProfile(userId).catch(() => null);
 
-      // Create metadata entry for database storage (no file data)
+      // ONE AI CALL: Parse + Analyze (uses cheapest model: llama-3.1-8b-instant)
+      console.log('🤖 Using AI to extract AND analyze resume (cheapest model)...');
+      const { parsedData, analysis } = await parser.parseAndAnalyze(file.buffer, file.mimetype, userProfile);
+
+      // Store ORIGINAL file (NO compression to preserve PDF design for recruiters)
+      const storedFile = await fileStorage.storeResume(file, userId);
+      console.log(`✅ Original resume stored: ${storedFile.id}`);
+
+      // Get existing resumes
+      const existingResumes = await storage.getUserResumes(userId);
+
+      // Save to database
       const resumeData = {
         name: req.body.name || file.originalname.replace(/\.[^/.]+$/, "") || "New Resume",
         fileName: file.originalname,
-        filePath: storedFile.id, // Store file ID for retrieval, not full path
-        isActive: existingResumes.length === 0, // First resume is active by default
-        atsScore: analysis.atsScore,
-        analysis: analysis,
-        resumeText: resumeText,
+        filePath: storedFile.id,
+        isActive: existingResumes.length === 0,
+        atsScore: analysis?.atsScore || 70,
+        analysis: analysis || {},
+        resumeText: parsedData.fullText || '',
         fileSize: file.size,
         mimeType: file.mimetype
-        // fileData is intentionally omitted - physical files stored on file system
       };
 
-      // Store metadata in database (no physical file data)
       const newResume = await storage.storeResume(userId, resumeData);
-
-      // Invalidate user cache after resume upload
       invalidateUserCache(userId);
 
-      console.log('Resume upload successful for user:', userId);
+      console.log(`✅ Resume uploaded successfully for user: ${userId}`);
+      
       return res.json({ 
         success: true,
         analysis: analysis,
         fileName: file.originalname,
         message: "Resume uploaded and analyzed successfully",
         resume: newResume,
-        parsedData: parsedData // Include parsed data for auto-filling onboarding form
+        parsedData: parsedData // For auto-filling forms (Cover Letter, Interviews, etc.)
       });
     } catch (error) {
-      console.error("=== RESUME UPLOAD ERROR ===");
-      console.error("Error details:", error);
-      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
-      console.error("User ID:", req.user?.id);
-      console.error("File info:", req.file ? {
-        name: req.file.originalname,
-        size: req.file.size,
-        type: req.file.mimetype
-      } : 'No file');
-      console.error("=== END ERROR LOG ===");
-
+      console.error("Resume upload error:", error);
       res.status(500).json({ 
         message: "Failed to upload resume",
         error: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : 'Unknown error') : 'Internal server error',
         success: false
       });
-      return;
     }
   });
 
