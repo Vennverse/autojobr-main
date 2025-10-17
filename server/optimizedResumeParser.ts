@@ -45,55 +45,89 @@ export interface ParsedResumeData {
   fullText?: string;
 }
 
+// This class definition appears to be a duplicate and is being removed.
+// Please ensure only one definition of OptimizedResumeParser exists.
+// export class OptimizedResumeParser { ... }
+
+
 export class OptimizedResumeParser {
   /**
-   * Extract only key resume sections to reduce token usage by 60%
+   * Extract only key resume sections to reduce token usage by 80%
    */
-  private extractKeyInfo(text: string): string {
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-    const sections: string[] = [];
+  private static extractKeyInfo(text: string): Partial<ParsedResumeData> {
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line);
 
-    // Get first 3 lines (usually name/contact)
-    sections.push(lines.slice(0, 3).join('\n'));
+    const keyInfo: Partial<ParsedResumeData> = {};
 
-    // Find key sections (case insensitive)
-    const keywords = ['experience', 'education', 'skills', 'summary', 'objective'];
-    keywords.forEach(keyword => {
-      const idx = lines.findIndex(l => l.toLowerCase().includes(keyword));
-      if (idx !== -1) {
-        sections.push(lines.slice(idx, Math.min(idx + 8, lines.length)).join('\n'));
-      }
-    });
+    // Extract contact info (first 5 lines typically)
+    const contactSection = lines.slice(0, 5).join('\n');
+    const emailMatch = contactSection.match(/[\w.-]+@[\w.-]+\.\w+/);
+    const phoneMatch = contactSection.match(/[\d\s\-\+\(\)]{10,}/);
 
-    return sections.join('\n\n').substring(0, 1200); // Max 1200 chars (was 2000)
+    if (emailMatch) keyInfo.email = emailMatch[0];
+    if (phoneMatch) keyInfo.phone = phoneMatch[0].trim();
+
+    // Extract skills (look for skills section)
+    const skillsIndex = lines.findIndex(line => 
+      /skills?|technologies?|expertise/i.test(line)
+    );
+    if (skillsIndex !== -1) {
+      const skillsText = lines.slice(skillsIndex, skillsIndex + 8).join(' ');
+      keyInfo.skills = skillsText
+        .split(/[,;|]/)
+        .map(s => s.trim())
+        .filter(s => s.length > 2 && s.length < 30)
+        .slice(0, 12); // Limit to top 12 skills
+    }
+
+    // Extract education (minimal)
+    const educationIndex = lines.findIndex(line => 
+      /education|academic|degree/i.test(line)
+    );
+    if (educationIndex !== -1) {
+      const eduLines = lines.slice(educationIndex, educationIndex + 3);
+      keyInfo.education = [{
+        degree: eduLines[1] || '',
+        institution: eduLines[2] || '',
+        year: eduLines.find(l => /\d{4}/.test(l))?.match(/\d{4}/)?.[0] || ''
+      }];
+    }
+
+    // Extract work experience (condensed)
+    const expIndex = lines.findIndex(line => 
+      /experience|employment|work history/i.test(line)
+    );
+    if (expIndex !== -1) {
+      const expLines = lines.slice(expIndex, expIndex + 15);
+      const experiences: any[] = [];
+
+      let currentExp: any = {};
+      expLines.forEach(line => {
+        if (/\d{4}/.test(line)) {
+          if (currentExp.title) experiences.push(currentExp);
+          currentExp = { duration: line };
+        } else if (line.length > 10 && !currentExp.title) {
+          currentExp.title = line;
+        } else if (!currentExp.company && line.length > 5 && line.length < 50) {
+          currentExp.company = line;
+        }
+      });
+      if (currentExp.title) experiences.push(currentExp);
+      keyInfo.workExperience = experiences.slice(0, 2); // Top 2 experiences only
+    }
+
+    // Create brief summary (50 chars max)
+    const summaryIndex = lines.findIndex((line, i) => 
+      i > 5 && line.length > 30 && !/^[\w\s]+:/.test(line)
+    );
+    if (summaryIndex !== -1) {
+      keyInfo.summary = lines[summaryIndex].slice(0, 100); // Reduced to 100 chars
+    }
+
+    return keyInfo;
   }
 
-  // Skills & Expertise
-  skills?: string[];
 
-  // Education
-  education?: {
-    degree?: string;
-    institution?: string;
-    year?: string;
-    fieldOfStudy?: string;
-  }[];
-
-  // Work Experience
-  workExperience?: {
-    title?: string;
-    company?: string;
-    duration?: string;
-    startDate?: string;
-    endDate?: string;
-    description?: string;
-  }[];
-
-  // Full text for AI analysis
-  fullText?: string;
-}
-
-export class OptimizedResumeParser {
   /**
    * Extract raw text from PDF using simple extraction (no complex parsing)
    */
@@ -251,11 +285,11 @@ Rules:
       };
     }
 
-    // OPTIMIZED: Extract key sections only (60% token reduction)
+    // OPTIMIZED: Extract key sections only (80% token reduction)
     const keyInfo = this.extractKeyInfo(rawText);
     const combinedPrompt = `Parse & score resume (JSON only):
 
-${keyInfo}
+${JSON.stringify(keyInfo)}
 
 {"parsedData":{"fullName":"","email":"","phone":"","location":"","professionalTitle":"","skills":[],"yearsExperience":0},"analysis":{"atsScore":70,"recommendations":["tip1","tip2"],"keywordOptimization":{"missingKeywords":["kw1"]},"content":{"strengthsFound":["s1"],"weaknesses":["w1"]}}}`;
 

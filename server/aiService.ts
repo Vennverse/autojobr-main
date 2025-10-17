@@ -101,6 +101,11 @@ class AIService {
     console.log(`   - OpenRouter: ${status.openrouter.totalKeys} keys (${status.openrouter.availableKeys} available)`);
   }
 
+  private isConfigured(): boolean {
+    const status = apiKeyRotationService.getStatus();
+    return status.groq.totalKeys > 0 || status.openrouter.totalKeys > 0;
+  }
+
   // Execute AI operation with automatic rotation between services
   private async executeWithRotation<T>(
     operation: (service: 'groq' | 'openrouter', model: string) => Promise<T>,
@@ -223,7 +228,7 @@ class AIService {
     // TODO: Implement feedback storage in database for model improvement
   }
 
-  async analyzeResume(resumeText: string, userProfile?: any, user?: any): Promise<ResumeAnalysis & { aiTier?: string, upgradeMessage?: string, analysisId?: string }> {
+  async analyzeResume(resumeText: string, userProfile?: any, user?: any): Promise<ResumeAnalysis & { aiTier?: string, upgradeMessage?: string }> {
     const analysisId = Math.random().toString(36).substring(7);
 
     // Truncate resume to 1500 chars for free users, 3000 for premium (40% token reduction)

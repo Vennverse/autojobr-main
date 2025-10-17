@@ -76,7 +76,7 @@ export default function ResumesPage() {
   console.log("Resumes data:", resumes);
   console.log("Resumes loading:", resumesLoading);
   console.log("Resumes error:", resumesError);
-  
+
   // Additional debugging
   if (resumesError) {
     console.error("Resume fetch error details:", resumesError);
@@ -88,7 +88,7 @@ export default function ResumesPage() {
   // Resume upload handler
   const handleResumeUpload = async (file: File) => {
     setIsUploadingResume(true);
-    
+
     try {
       const formData = new FormData();
       formData.append('resume', file);
@@ -100,10 +100,10 @@ export default function ResumesPage() {
 
       if (response.ok) {
         const result = await response.json();
-        
+
         // Invalidate queries to refresh data
         queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
-        
+
         toast({
           title: "Resume Uploaded Successfully",
           description: `ATS Score: ${result.resume?.atsScore || 'Analyzing...'}% - Your resume has been analyzed and optimized.`,
@@ -217,7 +217,7 @@ export default function ResumesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <Navbar />
-      
+
       <motion.div 
         className="container mx-auto px-4 py-8"
         variants={containerVariants}
@@ -261,7 +261,7 @@ export default function ResumesPage() {
                       {(resumes as any)?.length || 0}/{user?.planType === 'premium' ? '∞' : '2'}
                     </span>
                   </div>
-                  
+
                   {((resumes as any)?.length || 0) < (user?.planType === 'premium' ? 999 : 2) ? (
                     <div>
                       <Input
@@ -353,7 +353,7 @@ export default function ResumesPage() {
               variants={itemVariants}
             >
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Your Resumes</h2>
-              
+
               {resumesError ? (
                 <Card className="border-0 shadow-lg bg-red-50 dark:bg-red-900/20 backdrop-blur-sm">
                   <CardContent className="p-8 text-center">
@@ -402,7 +402,7 @@ export default function ResumesPage() {
                                   </Badge>
                                 )}
                               </div>
-                              
+
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                                 <div className="text-center">
                                   <div className={`text-2xl font-bold ${getScoreColor(resume.atsScore || 0)}`}>
@@ -411,26 +411,20 @@ export default function ResumesPage() {
                                   <div className="text-xs text-gray-600 dark:text-gray-400">ATS Score</div>
                                 </div>
                                 <div className="text-center">
-                                  <div className="text-2xl font-bold text-green-600">
-                                    {Array.isArray(resume.analysis?.content?.strengthsFound) 
-                                      ? resume.analysis.content.strengthsFound.length 
-                                      : (resume.analysis?.strengths?.length || 0)}
+                                  <div className="text-2xl font-bold text-blue-600">
+                                    {resume.analysis?.content?.strengthsFound?.length || 0}
                                   </div>
                                   <div className="text-xs text-gray-600 dark:text-gray-400">Strengths</div>
                                 </div>
                                 <div className="text-center">
                                   <div className="text-2xl font-bold text-orange-600">
-                                    {Array.isArray(resume.analysis?.recommendations) 
-                                      ? resume.analysis.recommendations.length 
-                                      : (resume.analysis?.improvements?.length || 0)}
+                                    {resume.analysis?.recommendations?.length || 0}
                                   </div>
                                   <div className="text-xs text-gray-600 dark:text-gray-400">Improvements</div>
                                 </div>
                                 <div className="text-center">
                                   <div className="text-2xl font-bold text-purple-600">
-                                    {Array.isArray(resume.analysis?.keywordOptimization?.missingKeywords) 
-                                      ? resume.analysis.keywordOptimization.missingKeywords.length 
-                                      : (resume.analysis?.missingKeywords?.length || 0)}
+                                    {resume.analysis?.keywordOptimization?.missingKeywords?.length || 0}
                                   </div>
                                   <div className="text-xs text-gray-600 dark:text-gray-400">Missing Keywords</div>
                                 </div>
@@ -456,7 +450,7 @@ export default function ResumesPage() {
                                 <Eye className="h-4 w-4 mr-2" />
                                 Enhanced Analysis
                               </Button>
-                              
+
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -469,7 +463,7 @@ export default function ResumesPage() {
                                 <Sparkles className="h-4 w-4 mr-2 text-purple-600" />
                                 Generate AI Resume
                               </Button>
-                              
+
                               {!resume.isActive && (
                                 <Button
                                   variant="outline"
@@ -481,7 +475,7 @@ export default function ResumesPage() {
                                   Set Active
                                 </Button>
                               )}
-                              
+
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -520,7 +514,7 @@ export default function ResumesPage() {
               Detailed AI-powered analysis with ATS optimization recommendations
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedResume && (
             <div className="space-y-6">
               {/* ATS Score Overview */}
