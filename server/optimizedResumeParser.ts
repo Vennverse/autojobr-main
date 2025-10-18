@@ -286,7 +286,7 @@ Rules:
     }
 
     // OPTIMIZED: Extract key sections only (80% token reduction)
-    const keyInfo = this.extractKeyInfo(rawText);
+    const keyInfo = OptimizedResumeParser.extractKeyInfo(rawText);
     const combinedPrompt = `Parse & score resume (JSON only):
 
 ${JSON.stringify(keyInfo)}
