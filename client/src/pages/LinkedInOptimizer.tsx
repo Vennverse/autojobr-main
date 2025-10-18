@@ -115,7 +115,7 @@ export default function LinkedInOptimizer() {
               </div>
               <Progress value={completenessScore} className="h-2" data-testid="progress-completeness" />
             </div>
-            
+
             {missingElements.length > 0 && (
               <div data-testid="missing-elements">
                 <p className="text-sm font-medium mb-2">Missing:</p>
@@ -147,12 +147,86 @@ export default function LinkedInOptimizer() {
         </Button>
       </div>
 
-      {/* Headline Section */}
+      {/* Display generated profile content */}
+      {profile?.generatedHeadline && profile?.generatedAbout && (
+        <div className="mt-6 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                ✨ Optimized LinkedIn Profile
+              </CardTitle>
+              <CardDescription>
+                Use these AI-generated suggestions to enhance your profile
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Headline */}
+              {profile.generatedHeadline && (
+                <div>
+                  <h3 className="font-semibold mb-2">📌 Optimized Headline</h3>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm">{profile.generatedHeadline}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* About Section */}
+              {profile.generatedAbout && (
+                <div>
+                  <h3 className="font-semibold mb-2">📝 About Section</h3>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm whitespace-pre-wrap">{profile.generatedAbout}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Top Keywords */}
+              {topKeywords.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2">🔑 Top Keywords to Use</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {topKeywords.map((keyword: string, i: number) => (
+                      <Badge key={i} variant="secondary" data-testid={`badge-keyword-${i}`}>
+                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                        {keyword}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Button 
+            onClick={() => {
+              const content = `
+LINKEDIN HEADLINE:
+${profile.generatedHeadline || 'N/A'}
+
+ABOUT SECTION:
+${profile.generatedAbout || 'N/A'}
+
+TOP KEYWORDS:
+${topKeywords?.join(', ') || 'N/A'}
+              `.trim();
+              navigator.clipboard.writeText(content);
+              toast({ title: "📋 Copied Profile Content!", description: "Paste it into your LinkedIn profile." });
+            }}
+            variant="outline"
+            className="w-full"
+            data-testid="button-copy-all"
+          >
+            📋 Copy All to Clipboard
+          </Button>
+        </div>
+      )}
+
+      {/* Headline Section (Editable) */}
       {profile?.generatedHeadline && (
         <Card className="mb-6" data-testid="card-headline">
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle>Headline</CardTitle>
+              <CardTitle>Edit Headline</CardTitle>
               <Button 
                 variant="ghost" 
                 size="sm"
@@ -176,13 +250,13 @@ export default function LinkedInOptimizer() {
         </Card>
       )}
 
-      {/* About Section */}
+      {/* About Section (Editable) */}
       {profile?.generatedAbout && (
         <Card className="mb-6" data-testid="card-about">
           <CardHeader>
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <CardTitle>About Section</CardTitle>
+                <CardTitle>Edit About Section</CardTitle>
                 {!isPremium && <Lock className="w-4 h-4 text-muted-foreground" />}
               </div>
               {isPremium && (
@@ -220,7 +294,7 @@ export default function LinkedInOptimizer() {
         </Card>
       )}
 
-      {/* Top Keywords */}
+      {/* Top Keywords (Redundant if shown above, but kept for potential different display) */}
       {topKeywords.length > 0 && (
         <Card className="mb-6" data-testid="card-keywords">
           <CardHeader>
