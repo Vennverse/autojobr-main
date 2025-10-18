@@ -1094,6 +1094,298 @@ Best regards,
       throw new Error('Failed to get bookings');
     }
   }
+
+  /**
+   * Confirm service delivery - can be called by either job seeker or referrer
+   */
+  async confirmDelivery(bookingId: number, userId: string) {
+    try {
+      // Get booking details
+      const booking = await db.select({
+        id: referralBookings.id,
+        jobSeekerId: referralBookings.jobSeekerId,
+        referrerId: referralBookings.referrerId,
+        status: referralBookings.status,
+        paymentStatus: referralBookings.paymentStatus,
+        deliveryConfirmedByJobSeeker: referralBookings.deliveryConfirmedByJobSeeker,
+        deliveryConfirmedByReferrer: referralBookings.deliveryConfirmedByReferrer,
+      })
+      .from(referralBookings)
+      .leftJoin(referrers, eq(referralBookings.referrerId, referrers.id))
+      .where(eq(referralBookings.id, bookingId))
+      .limit(1);
+
+      if (!booking || booking.length === 0) {
+        throw new Error('Booking not found');
+      }
+
+      const bookingData = booking[0];
+
+      // Determine if user is job seeker or referrer
+      const isJobSeeker = bookingData.jobSeekerId === userId;
+      const referrer = await db.select()
+        .from(referrers)
+        .where(eq(referrers.id, bookingData.referrerId))
+        .limit(1);
+
+      const isReferrer = referrer.length > 0 && referrer[0].userId === userId;
+
+      if (!isJobSeeker && !isReferrer) {
+        throw new Error('Unauthorized - you are not part of this booking');
+      }
+
+      // Update confirmation status
+      const updateData: any = {
+        updatedAt: new Date()
+      };
+
+      if (isJobSeeker) {
+        updateData.deliveryConfirmedByJobSeeker = true;
+      } else if (isReferrer) {
+        updateData.deliveryConfirmedByReferrer = true;
+      }
+
+      // If both parties have now confirmed, release payment and complete booking
+      const bothConfirmed = (isJobSeeker && bookingData.deliveryConfirmedByReferrer) ||
+                           (isReferrer && bookingData.deliveryConfirmedByJobSeeker);
+
+      if (bothConfirmed) {
+        updateData.status = 'completed';
+        updateData.deliveryConfirmedAt = new Date();
+        updateData.completedAt = new Date();
+        updateData.escrowStatus = 'released';
+        updateData.paymentStatus = 'completed';
+      }
+
+      await db.update(referralBookings)
+        .set(updateData)
+        .where(eq(referralBookings.id, bookingId));
+
+      return {
+        success: true,
+        message: bothConfirmed ? 
+          'Both parties confirmed delivery! Payment has been released to referrer.' : 
+          'Delivery confirmed. Waiting for other party to confirm.',
+        bothConfirmed,
+        bookingCompleted: bothConfirmed
+      };
+    } catch (error) {
+      console.error('Error confirming delivery:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Confirm meeting attendance - can be called by either party
+   */
+  async confirmMeeting(bookingId: number, userId: string) {
+    try {
+      // Get booking details
+      const booking = await db.select({
+        id: referralBookings.id,
+        jobSeekerId: referralBookings.jobSeekerId,
+        referrerId: referralBookings.referrerId,
+        meetingConfirmedByJobSeeker: referralBookings.meetingConfirmedByJobSeeker,
+        meetingConfirmedByReferrer: referralBookings.meetingConfirmedByReferrer,
+      })
+      .from(referralBookings)
+      .where(eq(referralBookings.id, bookingId))
+      .limit(1);
+
+      if (!booking || booking.length === 0) {
+        throw new Error('Booking not found');
+      }
+
+      const bookingData = booking[0];
+
+      // Determine if user is job seeker or referrer
+      const isJobSeeker = bookingData.jobSeekerId === userId;
+      const referrer = await db.select()
+        .from(referrers)
+        .where(eq(referrers.id, bookingData.referrerId))
+        .limit(1);
+
+      const isReferrer = referrer.length > 0 && referrer[0].userId === userId;
+
+      if (!isJobSeeker && !isReferrer) {
+        throw new Error('Unauthorized - you are not part of this booking');
+      }
+
+      // Update confirmation status
+      const updateData: any = {
+        updatedAt: new Date()
+      };
+
+      if (isJobSeeker) {
+        updateData.meetingConfirmedByJobSeeker = true;
+      } else if (isReferrer) {
+        updateData.meetingConfirmedByReferrer = true;
+      }
+
+      const bothConfirmed = (isJobSeeker && bookingData.meetingConfirmedByReferrer) ||
+                           (isReferrer && bookingData.meetingConfirmedByJobSeeker);
+
+      await db.update(referralBookings)
+        .set(updateData)
+        .where(eq(referralBookings.id, bookingId));
+
+      return {
+        success: true,
+        message: bothConfirmed ? 
+          'Both parties confirmed the meeting took place!' : 
+          'Meeting attendance confirmed. Waiting for other party to confirm.',
+        bothConfirmed
+      };
+    } catch (error) {
+      console.error('Error confirming meeting:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verify company email domain to confirm employment
+   */
+  async verifyCompanyEmail(userId: string, email: string) {
+    try {
+      // Extract domain from email
+      const domain = email.split('@')[1].toLowerCase();
+
+      // List of common public email providers that are NOT company emails
+      const publicDomains = [
+        'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com',
+        'icloud.com', 'mail.com', 'protonmail.com', 'zoho.com', 'yandex.com'
+      ];
+
+      if (publicDomains.includes(domain)) {
+        return {
+          success: false,
+          verified: false,
+          error: 'Please use your official company email, not a personal email address'
+        };
+      }
+
+      // Email domain looks valid - mark as company email
+      return {
+        success: true,
+        verified: true,
+        domain,
+        message: `Email domain "${domain}" verified as a company email`
+      };
+    } catch (error) {
+      console.error('Error verifying company email:', error);
+      throw new Error('Failed to verify email');
+    }
+  }
+
+  /**
+   * Get referrer's bookings with full job seeker details
+   */
+  async getReferrerBookings(userId: string) {
+    try {
+      // Get referrer profile first
+      const referrerProfile = await this.getReferrerProfile(userId);
+      if (!referrerProfile) {
+        throw new Error('Referrer profile not found');
+      }
+
+      // Get all bookings for this referrer
+      const bookings = await db.select({
+        id: referralBookings.id,
+        serviceId: referralBookings.serviceId,
+        jobSeekerId: referralBookings.jobSeekerId,
+        status: referralBookings.status,
+        scheduledAt: referralBookings.scheduledAt,
+        conversationId: referralBookings.conversationId,
+        notes: referralBookings.notes,
+        totalAmount: referralBookings.totalAmount,
+        paymentStatus: referralBookings.paymentStatus,
+        meetingScheduled: referralBookings.meetingScheduled,
+        meetingConfirmedByJobSeeker: referralBookings.meetingConfirmedByJobSeeker,
+        meetingConfirmedByReferrer: referralBookings.meetingConfirmedByReferrer,
+        deliveryConfirmedByJobSeeker: referralBookings.deliveryConfirmedByJobSeeker,
+        deliveryConfirmedByReferrer: referralBookings.deliveryConfirmedByReferrer,
+        createdAt: referralBookings.createdAt,
+        // Job seeker details
+        jobSeekerEmail: users.email,
+        jobSeekerFirstName: users.firstName,
+        jobSeekerLastName: users.lastName,
+        // Service details
+        serviceTitle: referralServices.title,
+        serviceType: referralServices.serviceType,
+        sessionDuration: referralServices.sessionDuration,
+      })
+      .from(referralBookings)
+      .leftJoin(users, eq(referralBookings.jobSeekerId, users.id))
+      .leftJoin(referralServices, eq(referralBookings.serviceId, referralServices.id))
+      .where(eq(referralBookings.referrerId, referrerProfile.id))
+      .orderBy(desc(referralBookings.createdAt));
+
+      // Format the response
+      return bookings.map(booking => ({
+        id: booking.id,
+        serviceId: booking.serviceId,
+        jobSeekerId: booking.jobSeekerId,
+        status: booking.status,
+        scheduledAt: booking.scheduledAt,
+        conversationId: booking.conversationId,
+        notes: booking.notes,
+        totalAmount: booking.totalAmount,
+        paymentStatus: booking.paymentStatus,
+        meetingScheduled: booking.meetingScheduled,
+        meetingConfirmedByJobSeeker: booking.meetingConfirmedByJobSeeker,
+        meetingConfirmedByReferrer: booking.meetingConfirmedByReferrer,
+        deliveryConfirmedByJobSeeker: booking.deliveryConfirmedByJobSeeker,
+        deliveryConfirmedByReferrer: booking.deliveryConfirmedByReferrer,
+        createdAt: booking.createdAt,
+        jobSeeker: {
+          id: booking.jobSeekerId,
+          email: booking.jobSeekerEmail,
+          firstName: booking.jobSeekerFirstName,
+          lastName: booking.jobSeekerLastName,
+        },
+        service: {
+          id: booking.serviceId,
+          title: booking.serviceTitle,
+          serviceType: booking.serviceType,
+          sessionDuration: booking.sessionDuration,
+        }
+      }));
+    } catch (error) {
+      console.error('Error getting referrer bookings:', error);
+      throw new Error('Failed to get referrer bookings');
+    }
+  }
+
+  /**
+   * Update referrer settings (meeting link and email template)
+   */
+  async updateReferrerSettings(userId: string, settings: {
+    meetingScheduleLink?: string;
+    emailTemplate?: string;
+  }) {
+    try {
+      const referrerProfile = await this.getReferrerProfile(userId);
+      if (!referrerProfile) {
+        throw new Error('Referrer profile not found');
+      }
+
+      await db.update(referrers)
+        .set({
+          meetingScheduleLink: settings.meetingScheduleLink,
+          emailTemplate: settings.emailTemplate,
+          updatedAt: new Date()
+        })
+        .where(eq(referrers.id, referrerProfile.id));
+
+      return {
+        success: true,
+        message: 'Settings updated successfully'
+      };
+    } catch (error) {
+      console.error('Error updating referrer settings:', error);
+      throw new Error('Failed to update settings');
+    }
+  }
 }
 
 export const referralMarketplaceService = new ReferralMarketplaceService();

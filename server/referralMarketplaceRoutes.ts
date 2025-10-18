@@ -817,4 +817,98 @@ router.post("/send-schedule-email", async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * POST /api/referral-marketplace/confirm-delivery/:bookingId
+ * Confirm service delivery (can be called by either party)
+ */
+router.post("/confirm-delivery/:bookingId", async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    const bookingId = parseInt(req.params.bookingId);
+    if (isNaN(bookingId)) {
+      return res.status(400).json({ success: false, error: 'Invalid booking ID' });
+    }
+
+    const result = await referralMarketplaceService.confirmDelivery(
+      bookingId,
+      req.user.id
+    );
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error confirming delivery:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to confirm delivery'
+    });
+  }
+});
+
+/**
+ * POST /api/referral-marketplace/confirm-meeting/:bookingId
+ * Confirm meeting attendance (can be called by either party)
+ */
+router.post("/confirm-meeting/:bookingId", async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    const bookingId = parseInt(req.params.bookingId);
+    if (isNaN(bookingId)) {
+      return res.status(400).json({ success: false, error: 'Invalid booking ID' });
+    }
+
+    const result = await referralMarketplaceService.confirmMeeting(
+      bookingId,
+      req.user.id
+    );
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error confirming meeting:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to confirm meeting'
+    });
+  }
+});
+
+/**
+ * POST /api/referral-marketplace/verify-company-email
+ * Verify company email domain to confirm employment
+ */
+router.post("/verify-company-email", async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email is required'
+      });
+    }
+
+    const result = await referralMarketplaceService.verifyCompanyEmail(
+      req.user.id,
+      email
+    );
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error verifying company email:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to verify email'
+    });
+  }
+});
+
 export default router;
