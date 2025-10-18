@@ -21,10 +21,11 @@ router.get('/', async (req, res) => {
     }
     const userId = req.user.id;
 
-    // Check cache first
+    // Check cache first - aggressive 30 minute cache
     const cacheKey = `linkedin_profile_${userId}`;
     const cached = cacheService.get(cacheKey);
     if (cached) {
+      console.log(`✅ [CACHE HIT] LinkedIn profile for user ${userId}`);
       return res.json(cached.data);
     }
 
@@ -68,8 +69,8 @@ router.get('/', async (req, res) => {
       freeGenerationsRemaining: isPremium ? -1 : Math.max(0, 1 - (profile?.generationsThisMonth || 0))
     };
 
-    // Cache for 5 minutes
-    cacheService.set(cacheKey, result, { ttl: 5 * 60 * 1000 }, [`user:${userId}`]);
+    // Cache for 30 minutes for better performance
+    cacheService.set(cacheKey, result, { ttl: 30 * 60 * 1000 }, [`user:${userId}`]);
 
     res.json(result);
   } catch (error) {

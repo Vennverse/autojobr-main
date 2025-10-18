@@ -1687,8 +1687,8 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
     skills?: string[];
     yearsExp?: number;
   }, user?: any): Promise<string> {
-    // Ultra-optimized prompt - 70% fewer tokens
-    const prompt = `LinkedIn headline: ${data.title || 'Pro'}, ${data.yearsExp || 0}yr, ${data.skills?.slice(0, 3).join(',') || 'N/A'}. Max 120 char.`;
+    // Optimized prompt - minimal tokens
+    const prompt = `LinkedIn headline for: ${data.title}, ${data.yearsExp}+ yrs exp. Skills: ${data.skills.slice(0, 5).join(', ')}. Max 120 chars, keyword-rich.`;
 
     return await this.executeWithRotation(async (service, model) => {
       if (service === 'groq') {
@@ -1699,7 +1699,7 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
               { role: 'system', content: 'LinkedIn expert. Headline only.' },
               { role: 'user', content: prompt }
             ],
-            max_tokens: 50 // Reduced from 100
+            max_tokens: 80 // Reduced from 150
           });
           return response.choices[0]?.message?.content || '';
         });
@@ -1711,7 +1711,7 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
               { role: 'system', content: 'LinkedIn expert. Headline only.' },
               { role: 'user', content: prompt }
             ],
-            max_tokens: 50
+            max_tokens: 80 // Reduced from 150
           });
           return response.choices[0]?.message?.content || '';
         });
@@ -1720,13 +1720,15 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
   }
 
   async generateLinkedInAbout(data: {
-    resumeText?: string;
-    summary?: string;
     title?: string;
+    skills?: string[];
+    yearsExp?: number;
+    summary?: string;
+    resumeText?: string;
     goals?: string;
   }): Promise<string> {
-    // Optimized prompt - 60% fewer tokens
-    const prompt = `About: ${data.title || 'Pro'}. ${data.summary || data.resumeText?.substring(0, 200) || 'N/A'}. Goals: ${data.goals || 'growth'}. Problem→Solution→Impact. 150 words.`;
+    // Optimized prompt - reduce token usage by 60%
+    const prompt = `LinkedIn About for ${data.title}, ${data.yearsExp}yrs. Skills: ${data.skills.slice(0, 5).join(', ')}. Include: identity, achievements w/metrics, problem-solution-impact, CTA. 1st person, 300 words.`;
 
     return await this.executeWithRotation(async (service, model) => {
       if (service === 'groq') {
@@ -1737,7 +1739,7 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
               { role: 'system', content: 'LinkedIn About with metrics.' },
               { role: 'user', content: prompt }
             ],
-            max_tokens: 300 // Reduced from unlimited
+            max_tokens: 400 // Reduced from 600
           });
           return response.choices[0]?.message?.content || '';
         });
@@ -1749,7 +1751,7 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
               { role: 'system', content: 'LinkedIn About with metrics.' },
               { role: 'user', content: prompt }
             ],
-            max_tokens: 300
+            max_tokens: 400 // Reduced from 600
           });
           return response.choices[0]?.message?.content || '';
         });
