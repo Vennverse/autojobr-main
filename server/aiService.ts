@@ -579,33 +579,12 @@ Skills: ${userProfile.skills?.map((s: any) => s.skillName).join(', ') || 'None l
     const skills = data.userSkills?.slice(0, skillsToInclude).map((s: any) => s.skillName).join(',') || 'None';
     const loc = data.location || 'Not specified';
 
-    // Optimized prompts - 55% token reduction
+    // Ultra-optimized prompts - 60% token reduction
     const prompt = isPremium
-      ? `Career: ${data.careerGoal}, ${loc}. ${exp}yr exp. Skills: ${skills}. ${data.timeframe}.
-
-JSON:
-{
-  "insights": [
-    {"type":"path","title":"Strategy","content":"For ${exp}yr pro","priority":"high","timeframe":"${data.timeframe}","actionItems":["3 actions"]},
-    {"type":"skill","title":"Skills","content":"Priority","priority":"high","timeframe":"months","actionItems":["2 actions"]},
-    {"type":"location","title":"${loc}","content":"Market brief","priority":"high","timeframe":"now","actionItems":["2 tips"]}
-  ],
-  "careerPath": {
-    "currentRole":"${data.userProfile?.professionalTitle || 'Current'}","targetRole":"${data.careerGoal}","totalTimeframe":"${data.timeframe}","location":"${loc}","currency":"$","successProbability":number,"steps":[{"position":"role","timeline":"months","isCurrentLevel":bool,"requiredSkills":["skills"],"averageSalary":"range","marketDemand":"High/Med/Low","companiesHiring":["3 companies"]}]
-  },
-  "skillGaps":[{"skill":"name","currentLevel":0-10,"targetLevel":0-10,"importance":0-10,"learningResources":["resources"],"timeToAcquire":"months"}],
-  "locationContext":{"country":"","city":"","currency":"$","topCompanies":["3"],"remoteOpportunities":"brief"},
-  "networkingOpportunities":[{"type":"type","platforms":["platforms"],"targetConnections":"who"}],
-  "marketTiming":{"currentConditions":"brief","trendingSkills":["skills"],"recommendation":"advice"}
-}`
-      : `Career: ${data.careerGoal}. ${exp}yr exp.
-
-JSON:
-{
-  "insights":[{"type":"path","title":"Strategy","content":"Brief","priority":"high","timeframe":"${data.timeframe}","actionItems":["2"]}],
-  "careerPath":{"currentRole":"${data.userProfile?.professionalTitle || 'Current'}","targetRole":"${data.careerGoal}","totalTimeframe":"${data.timeframe}","location":"${loc}","currency":"$","successProbability":number,"steps":[{"position":"role","timeline":"months","isCurrentLevel":bool,"requiredSkills":["skills"],"averageSalary":"range","marketDemand":"High/Med/Low"}]},
-  "skillGaps":[{"skill":"name","currentLevel":0-10,"targetLevel":0-10,"importance":0-10,"learningResources":["resources"],"timeToAcquire":"months"}]
-}`;
+      ? `${data.careerGoal} roadmap, ${loc}, ${exp}yr, ${skills}, ${data.timeframe}
+{insights:[{type,title,content,priority,timeframe,actionItems}],careerPath:{currentRole,targetRole,totalTimeframe,location,currency,successProbability,steps:[{position,timeline,isCurrentLevel,requiredSkills,averageSalary,marketDemand}]},skillGaps:[{skill,currentLevel,targetLevel,importance,learningResources,timeToAcquire}]}`
+      : `${data.careerGoal}, ${exp}yr
+{insights:[{type,title,content,actionItems}],careerPath:{steps:[{position,timeline,requiredSkills}]},skillGaps:[{skill,currentLevel,targetLevel}]}`;
 
     try {
       const accessInfo = this.hasAIAccess(user);
@@ -616,10 +595,8 @@ JSON:
       }
 
       // Use tier-appropriate model and token limits
-      const maxTokens = isPremium ? 2000 : 1200; // Premium gets more detailed response
-      const systemPrompt = isPremium
-        ? `Career coach expert. Return JSON only. Include salary data, market analysis, progression timeline.`
-        : `Career advisor. Return JSON only. Essential steps and skills.`;
+      const maxTokens = isPremium ? 800 : 500; // Optimized for concise responses
+      const systemPrompt = `Career roadmap. JSON only.`;
 
       const completion = await this.createChatCompletion([
         {
@@ -1028,20 +1005,15 @@ JSON:
 
     const isPremium = user?.planType === 'premium';
 
-    const prompt = `Refine this cover letter based on the instruction: "${instruction}"
-
-Current Cover Letter:
-${currentLetter}
-
-Instruction: ${instruction}
-
-Return only the refined cover letter, maintaining professional formatting.`;
+    const prompt = `${instruction}
+${currentLetter.substring(0, isPremium ? 800 : 500)}
+Refine.`;
 
     try {
       const completion = await this.createChatCompletion([
         { role: 'system', content: 'You are an expert cover letter writer. Refine cover letters based on user instructions while maintaining professionalism.' },
         { role: 'user', content: prompt }
-      ], { max_tokens: isPremium ? 1500 : 1000, user });
+      ], { max_tokens: isPremium ? 600 : 400, user });
 
       const content = completion?.choices?.[0]?.message?.content || completion?.content || completion;
       return typeof content === 'string' ? content.trim() : currentLetter;
@@ -1061,33 +1033,21 @@ Return only the refined cover letter, maintaining professional formatting.`;
     });
 
     const isPremium = user?.planType === 'premium';
+    
+    // Extract only essential info
+    const resumeKey = resumeData.substring(0, isPremium ? 700 : 500);
+    const jobKey = jobDescription.substring(0, isPremium ? 600 : 400);
 
-    const prompt = `Generate a professional cover letter with smart context fusion.
-
-Resume Data:
-${resumeData}
-
-Job Description:
-${jobDescription}
-
-${customPrompt ? `Additional Instructions: ${customPrompt}` : ''}
-
-Return JSON:
-{
-  "coverLetter": "Full professional cover letter",
-  "matchAnalysis": [
-    {"resume": "skill from resume", "job": "requirement from job", "reason": "why it's a match"},
-    {"resume": "experience from resume", "job": "need from job", "reason": "alignment explanation"},
-    {"resume": "achievement from resume", "job": "goal from job", "reason": "value proposition"}
-  ],
-  "shortVersion": "3-sentence elevator pitch for email/LinkedIn outreach"
-}`;
+    const prompt = `${resumeKey}
+${jobKey}
+${customPrompt || ''}
+{coverLetter:"",matchAnalysis:[{resume,job,reason}],shortVersion:""}`;
 
     try {
       const completion = await this.createChatCompletion([
         { role: 'system', content: 'You are an expert career coach. Generate cover letters that show clear alignment between resume and job requirements.' },
         { role: 'user', content: prompt }
-      ], { max_tokens: isPremium ? 2000 : 1200, user });
+      ], { max_tokens: isPremium ? 800 : 500, user });
 
       const content = completion?.choices?.[0]?.message?.content || completion?.content || completion;
       const response = typeof content === 'string' ? content : JSON.stringify(content);
@@ -1116,17 +1076,15 @@ Return JSON:
 
     const isPremium = user?.planType === 'premium' || user?.planType === 'enterprise';
 
-    const prompt = `Generate a professional cover letter for the following job description using the provided resume data.
-
-Resume Data:
-${resumeData}
-
-Job Description:
-${jobDescription}
-
-${customPrompt ? `Additional Instructions: ${customPrompt}` : ''}
-
-Ensure the cover letter is tailored to the job, highlights relevant skills and experience, and maintains a professional tone.`;
+    // Extract only key info to reduce tokens
+    const resumeKey = resumeData.substring(0, isPremium ? 600 : 400);
+    const jobKey = jobDescription.substring(0, isPremium ? 500 : 300);
+    
+    const prompt = `Cover letter:
+Resume: ${resumeKey}
+Job: ${jobKey}
+${customPrompt ? customPrompt : ''}
+Professional, tailored, 3 paragraphs.`;
 
     try {
       if (this.developmentMode) {
@@ -1140,7 +1098,7 @@ Ensure the cover letter is tailored to the job, highlights relevant skills and e
           content: "You are an expert career coach and professional writer. Generate compelling cover letters that get interviews."
         },
         { role: "user", content: prompt }
-      ], { temperature: 0.7, max_tokens: isPremium ? 1500 : 1000, user });
+      ], { temperature: 0.7, max_tokens: isPremium ? 600 : 400, user });
 
       const content = completion?.choices?.[0]?.message?.content || completion?.content || completion;
       if (typeof content === 'string') {
