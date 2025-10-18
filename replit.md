@@ -4,6 +4,16 @@
 AutoJobr is a full-stack web application designed to automate and streamline the job application process. Its primary purpose is to help users efficiently apply to a large volume of jobs by providing features such as ATS resume optimization, AI-powered cover letter generation, interview preparation, and a Chrome extension for one-click applications. The platform aims to simplify job searching, enhance application quality, and provide tools for career advancement, positioning itself as a comprehensive solution for job seekers.
 
 ## Recent Changes (October 18, 2025)
+- **Referral Marketplace Trust & Verification System**: Transformed the employee referral marketplace into a professional, trustworthy platform with industry best practices:
+  - **Database Schema**: Added meeting scheduling, dual-party confirmation fields (meetingConfirmedByJobSeeker, meetingConfirmedByReferrer, deliveryConfirmedByJobSeeker, deliveryConfirmedByReferrer), dispute handling, and completion tracking
+  - **Backend API**: Created 3 new endpoints for meeting/delivery confirmation and email domain verification
+  - **Service Methods**: Implemented confirmDelivery(), confirmMeeting(), and verifyCompanyEmail() with dual-party confirmation logic that releases escrow payment only when both parties confirm service delivery
+  - **Trust Indicators**: Added prominent disclaimer on marketplace homepage explaining: (1) No job offer guarantee, (2) Escrow protection, (3) Verified company emails only, (4) Meeting confirmation required from both parties
+  - **Meeting Scheduling**: Integrated Calendly/Cal.com link collection in become-referrer form with optional email template customization
+  - **Confirmation Flow**: Added meeting and delivery confirmation buttons to my-bookings page with visual status tracking for both job seekers and referrers
+  - **Email Domain Verification**: Backend service validates that referrers use official company emails (blocks Gmail, Yahoo, etc.)
+  - **Payment Protection**: Dual-party confirmation ensures payments held in escrow until both parties verify service completion
+
 - **Performance Optimization & Bug Fixes**: Addressed critical performance issues and glitches identified by users:
   - Fixed Vite HMR WebSocket errors by properly configuring HMR for Replit environment
   - Fixed TypeScript errors in PWA service (pwa.ts) for better type safety
