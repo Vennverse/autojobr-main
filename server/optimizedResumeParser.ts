@@ -67,6 +67,140 @@ export class OptimizedResumeParser {
     if (emailMatch) keyInfo.email = emailMatch[0];
     if (phoneMatch) keyInfo.phone = phoneMatch[0].trim();
 
+
+
+  /**
+   * Calculate dynamic ATS score based on actual content
+   */
+  private static calculateDynamicScore(rawText: string, keyInfo: Partial<ParsedResumeData>): number {
+    let score = 50; // Base score
+
+    // Contact information (15 points)
+    if (keyInfo.email) score += 8;
+    if (keyInfo.phone) score += 7;
+
+    // Skills (20 points)
+    const skillCount = keyInfo.skills?.length || 0;
+    if (skillCount > 0) score += Math.min(20, skillCount * 2);
+
+    // Work experience (25 points)
+    const expCount = keyInfo.workExperience?.length || 0;
+    if (expCount > 0) score += Math.min(25, expCount * 8);
+
+    // Education (15 points)
+    const eduCount = keyInfo.education?.length || 0;
+    if (eduCount > 0) score += Math.min(15, eduCount * 7);
+
+    // Content length and quality (15 points)
+    const textLength = rawText.length;
+    if (textLength > 500) score += 5;
+    if (textLength > 1000) score += 5;
+    if (textLength > 2000) score += 5;
+
+    // Summary/Objective (10 points)
+    if (keyInfo.summary && keyInfo.summary.length > 30) score += 10;
+
+    // Ensure score is in valid range
+    return Math.max(35, Math.min(95, Math.round(score)));
+  }
+
+  /**
+   * Generate recommendations based on content analysis
+   */
+  private static generateRecommendations(keyInfo: Partial<ParsedResumeData>, score: number): string[] {
+    const recommendations: string[] = [];
+
+    if (!keyInfo.email && !keyInfo.phone) {
+      recommendations.push("Add contact information (email and phone number)");
+    }
+    
+    if ((keyInfo.skills?.length || 0) < 5) {
+      recommendations.push("Add more relevant technical and soft skills");
+    }
+    
+    if ((keyInfo.workExperience?.length || 0) === 0) {
+      recommendations.push("Include work experience with specific achievements");
+    }
+    
+    if (!keyInfo.summary || keyInfo.summary.length < 30) {
+      recommendations.push("Add a professional summary highlighting your value proposition");
+    }
+    
+    if (score < 70) {
+      recommendations.push("Use industry-specific keywords to improve ATS compatibility");
+      recommendations.push("Quantify achievements with metrics and numbers");
+    }
+
+    return recommendations.length > 0 ? recommendations : ["Resume looks good! Consider adding more quantifiable achievements."];
+  }
+
+  /**
+   * Find missing keywords
+   */
+  private static findMissingKeywords(keyInfo: Partial<ParsedResumeData>): string[] {
+    const keywords: string[] = [];
+    
+    if ((keyInfo.skills?.length || 0) < 5) {
+      keywords.push("Technical skills", "Soft skills", "Certifications");
+    }
+    
+    if (!keyInfo.summary) {
+      keywords.push("Professional summary", "Career objective");
+    }
+    
+    return keywords.length > 0 ? keywords : ["None - resume has good keyword coverage"];
+  }
+
+  /**
+   * Find strengths in the resume
+   */
+  private static findStrengths(keyInfo: Partial<ParsedResumeData>): string[] {
+    const strengths: string[] = [];
+    
+    if (keyInfo.email && keyInfo.phone) {
+      strengths.push("Complete contact information");
+    }
+    
+    if ((keyInfo.skills?.length || 0) >= 5) {
+      strengths.push(`Strong skills section with ${keyInfo.skills?.length} skills listed`);
+    }
+    
+    if ((keyInfo.workExperience?.length || 0) >= 2) {
+      strengths.push(`${keyInfo.workExperience?.length} professional experiences documented`);
+    }
+    
+    if (keyInfo.education && keyInfo.education.length > 0) {
+      strengths.push("Educational background included");
+    }
+    
+    return strengths.length > 0 ? strengths : ["Resume structure is clear"];
+  }
+
+  /**
+   * Find weaknesses in the resume
+   */
+  private static findWeaknesses(keyInfo: Partial<ParsedResumeData>): string[] {
+    const weaknesses: string[] = [];
+    
+    if (!keyInfo.email || !keyInfo.phone) {
+      weaknesses.push("Missing contact information");
+    }
+    
+    if ((keyInfo.skills?.length || 0) < 3) {
+      weaknesses.push("Limited skills section");
+    }
+    
+    if ((keyInfo.workExperience?.length || 0) === 0) {
+      weaknesses.push("No work experience listed");
+    }
+    
+    if (!keyInfo.summary) {
+      weaknesses.push("Missing professional summary");
+    }
+    
+    return weaknesses.length > 0 ? weaknesses : ["Minor formatting improvements possible"];
+  }
+
     // Extract skills (look for skills section)
     const skillsIndex = lines.findIndex(line => 
       /skills?|technologies?|expertise/i.test(line)
@@ -287,15 +421,31 @@ Rules:
 
     // OPTIMIZED: Extract key sections only (80% token reduction)
     const keyInfo = OptimizedResumeParser.extractKeyInfo(rawText);
-    const combinedPrompt = `Extract resume data and provide ATS analysis. Return ONLY valid JSON, no markdown, no explanations.
+    
+    // Calculate preliminary score based on content quality
+    const hasSkills = (keyInfo.skills?.length || 0) > 0;
+    const hasExperience = (keyInfo.workExperience?.length || 0) > 0;
+    const hasEducation = (keyInfo.education?.length || 0) > 0;
+    const hasContact = !!(keyInfo.email || keyInfo.phone);
+    
+    const combinedPrompt = `Analyze resume and provide realistic ATS score based on content quality.
 
-Resume info:
-${JSON.stringify(keyInfo)}
+Resume Data:
+Skills: ${keyInfo.skills?.join(', ') || 'None listed'}
+Experience: ${keyInfo.workExperience?.length || 0} positions
+Education: ${keyInfo.education?.length || 0} degrees
+Contact: ${hasContact ? 'Present' : 'Missing'}
+Summary: ${keyInfo.summary || 'None'}
 
-Expected JSON format:
-{"parsedData":{"fullName":"","email":"","phone":"","location":"","professionalTitle":"","skills":[],"yearsExperience":0},"analysis":{"atsScore":70,"recommendations":["tip1","tip2"],"keywordOptimization":{"missingKeywords":["kw1"]},"content":{"strengthsFound":["s1"],"weaknesses":["w1"]}}}
+Score this resume 0-100 based on:
+- Keyword density and relevance (30%)
+- Formatting and structure (20%)
+- Experience quality (25%)
+- Skills relevance (15%)
+- Completeness (10%)
 
-Return only the JSON object above with actual data filled in.`;
+Return ONLY this JSON structure:
+{"parsedData":{"fullName":"${keyInfo.email?.split('@')[0] || 'Unknown'}","email":"${keyInfo.email || ''}","phone":"${keyInfo.phone || ''}","location":"","professionalTitle":"","skills":${JSON.stringify(keyInfo.skills || [])},"yearsExperience":${keyInfo.workExperience?.length || 0}},"analysis":{"atsScore":75,"recommendations":["Add specific recommendations"],"keywordOptimization":{"missingKeywords":["relevant","keywords"]},"content":{"strengthsFound":["List actual strengths"],"weaknesses":["List actual weaknesses"]}}}`;
 
     try {
       const completion = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
@@ -355,10 +505,43 @@ Return only the JSON object above with actual data filled in.`;
         }
       }
 
-      // If still no result, throw error
+      // If still no result, use dynamic scoring fallback
       if (!result) {
         console.error('No JSON found in response:', content.substring(0, 200));
-        throw new Error("Invalid JSON response");
+        console.log('Using dynamic scoring fallback...');
+        
+        // Dynamic scoring based on actual content
+        const dynamicScore = this.calculateDynamicScore(rawText, keyInfo);
+        
+        return {
+          parsedData: { 
+            fullName: keyInfo.email?.split('@')[0] || 'Unknown',
+            email: keyInfo.email,
+            phone: keyInfo.phone,
+            skills: keyInfo.skills || [],
+            yearsExperience: keyInfo.workExperience?.length || 0,
+            fullText: rawText 
+          },
+          analysis: {
+            atsScore: dynamicScore,
+            recommendations: this.generateRecommendations(keyInfo, dynamicScore),
+            keywordOptimization: {
+              missingKeywords: this.findMissingKeywords(keyInfo)
+            },
+            content: {
+              strengthsFound: this.findStrengths(keyInfo),
+              weaknesses: this.findWeaknesses(keyInfo)
+            }
+          }
+        };
+      }
+
+      // Validate and adjust ATS score
+      if (result.analysis?.atsScore) {
+        const validatedScore = Math.max(30, Math.min(95, result.analysis.atsScore));
+        result.analysis.atsScore = validatedScore;
+      } else {
+        result.analysis.atsScore = this.calculateDynamicScore(rawText, keyInfo);
       }
 
       return {
@@ -367,11 +550,30 @@ Return only the JSON object above with actual data filled in.`;
       };
     } catch (error) {
       console.error('Combined AI parsing failed:', error);
-      // Fallback to basic parsing
-      const basicParsed = await this.parseWithAI(rawText);
+      
+      // Enhanced fallback with dynamic scoring
+      const dynamicScore = this.calculateDynamicScore(rawText, keyInfo);
+      
       return {
-        parsedData: basicParsed,
-        analysis: null
+        parsedData: { 
+          fullName: keyInfo.email?.split('@')[0] || 'Unknown',
+          email: keyInfo.email,
+          phone: keyInfo.phone,
+          skills: keyInfo.skills || [],
+          yearsExperience: keyInfo.workExperience?.length || 0,
+          fullText: rawText 
+        },
+        analysis: {
+          atsScore: dynamicScore,
+          recommendations: this.generateRecommendations(keyInfo, dynamicScore),
+          keywordOptimization: {
+            missingKeywords: this.findMissingKeywords(keyInfo)
+          },
+          content: {
+            strengthsFound: this.findStrengths(keyInfo),
+            weaknesses: this.findWeaknesses(keyInfo)
+          }
+        }
       };
     }
   }
