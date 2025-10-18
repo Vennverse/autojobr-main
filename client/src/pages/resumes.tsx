@@ -64,49 +64,44 @@ export default function ResumesPage() {
   const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
   const [showEnhancedModal, setShowEnhancedModal] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const { data: resumes, isLoading: resumesLoading, error: resumesError } = useQuery({
     queryKey: ["/api/resumes"],
     retry: false,
     refetchOnWindowFocus: true,
-    staleTime: 0, // Always fetch fresh data
+    staleTime: 0,
   });
 
-  // Debug logging
-  console.log("Resumes data:", resumes);
-  console.log("Resumes loading:", resumesLoading);
-  console.log("Resumes error:", resumesError);
-
-  // Additional debugging
-  if (resumesError) {
-    console.error("Resume fetch error details:", resumesError);
-  }
-  if (resumes) {
-    console.log("Number of resumes:", Array.isArray(resumes) ? resumes.length : 'Not an array');
-  }
-
-  // Resume upload handler
+  // Resume upload handler with progress
   const handleResumeUpload = async (file: File) => {
     setIsUploadingResume(true);
+    setUploadProgress(0);
 
     try {
       const formData = new FormData();
       formData.append('resume', file);
+
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 10, 90));
+      }, 200);
 
       const response = await fetch('/api/resumes/upload', {
         method: 'POST',
         body: formData,
       });
 
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
       if (response.ok) {
         const result = await response.json();
-
-        // Invalidate queries to refresh data
         queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
 
         toast({
-          title: "Resume Uploaded Successfully",
-          description: `ATS Score: ${result.resume?.atsScore || 'Analyzing...'}% - Your resume has been analyzed and optimized.`,
+          title: "✅ Resume Uploaded Successfully",
+          description: `ATS Score: ${result.resume?.atsScore || 'Analyzing...'}% - Your resume is ready!`,
         });
       } else {
         let errorMessage = "Failed to upload resume";
@@ -114,7 +109,6 @@ export default function ResumesPage() {
           const errorData = await response.json();
           errorMessage = errorData.message || errorMessage;
         } catch (parseError) {
-          // If response is not JSON (e.g., HTML error page), use status text
           errorMessage = `Server error: ${response.status} ${response.statusText}`;
         }
         throw new Error(errorMessage);
@@ -131,6 +125,7 @@ export default function ResumesPage() {
       });
     } finally {
       setIsUploadingResume(false);
+      setUploadProgress(0);
     }
   };
 
@@ -215,55 +210,82 @@ export default function ResumesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <Navbar />
 
       <motion.div 
-        className="container mx-auto px-4 py-8"
+        className="container mx-auto px-4 py-6 max-w-7xl"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
+        {/* Modern Header */}
+        <motion.div 
+          className="mb-8"
+          variants={itemVariants}
+        >
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-white" />
+                </div>
+                Resume Manager
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300 text-sm">
+                AI-powered resume optimization and ATS scoring
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="px-4 py-2">
+                <FileText className="w-4 h-4 mr-2" />
+                {(resumes as any)?.length || 0} Resumes
+              </Badge>
+              {user?.planType !== 'premium' && (
+                <Button
+                  onClick={() => window.location.href = "/subscription"}
+                  className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700"
+                >
+                  <Crown className="w-4 h-4 mr-2" />
+                  Upgrade to Premium
+                </Button>
+              )}
+            </div>
+          </div>
+        </motion.div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Upload Section - Improved */}
           <motion.div 
-            className="mb-8"
+            className="lg:col-span-4"
             variants={itemVariants}
           >
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-              Resume Management
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300">
-              Upload, analyze, and manage your resumes with AI-powered ATS optimization
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Upload New Resume Card */}
-            <motion.div 
-              className="lg:col-span-1"
-              variants={itemVariants}
-            >
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-green-500 to-teal-600 text-white h-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Upload className="h-5 w-5" />
-                    Upload New Resume
-                  </CardTitle>
-                  <p className="text-sm text-green-100">
-                    Add up to {user?.planType === 'premium' ? 'unlimited' : '2'} resumes with instant ATS analysis
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span>Resumes uploaded:</span>
-                    <span className="font-medium">
+            <Card className="border-2 border-dashed border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 h-full hover:border-blue-400 transition-all">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-blue-900 dark:text-blue-100">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
+                    <Upload className="h-4 w-4 text-white" />
+                  </div>
+                  Upload Resume
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-100 dark:border-blue-900">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Storage</span>
+                    <span className="text-sm font-bold text-blue-600">
                       {(resumes as any)?.length || 0}/{user?.planType === 'premium' ? '∞' : '2'}
                     </span>
                   </div>
+                  <Progress 
+                    value={((resumes as any)?.length || 0) / (user?.planType === 'premium' ? 100 : 2) * 100} 
+                    className="h-2"
+                  />
+                </div>
 
-                  {((resumes as any)?.length || 0) < (user?.planType === 'premium' ? 999 : 2) ? (
-                    <div>
+                {((resumes as any)?.length || 0) < (user?.planType === 'premium' ? 999 : 2) ? (
+                  <div className="space-y-3">
+                    <div className="relative">
                       <Input
                         type="file"
                         accept=".pdf,.doc,.docx"
@@ -273,231 +295,256 @@ export default function ResumesPage() {
                             handleResumeUpload(file);
                           }
                         }}
-                        className="bg-white/20 border-white/30 text-white file:bg-white/20 file:text-white file:border-0"
+                        className="cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-500 file:text-white file:font-medium hover:file:bg-blue-600"
                         disabled={isUploadingResume}
                       />
-                      {isUploadingResume && (
-                        <div className="mt-2 text-center">
-                          <div className="animate-spin rounded-full h-6 w-6 border-2 border-white/30 border-t-white mx-auto"></div>
-                          <p className="text-xs mt-1 text-green-100">Analyzing resume...</p>
+                    </div>
+                    {isUploadingResume && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+                          <span className="text-xs text-blue-600 font-medium">Analyzing resume...</span>
                         </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-center py-2">
-                      <p className="text-sm text-green-100 mb-2">
-                        {user?.planType === 'premium' ? 'Unlimited uploads available' : 'Upload limit reached'}
-                      </p>
-                      {user?.planType !== 'premium' && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="bg-white/20 hover:bg-white/30 text-white border-0"
-                          onClick={() => window.location.href = "/pricing"}
-                        >
-                          <Crown className="h-4 w-4 mr-2" />
-                          Upgrade for Unlimited
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* AI Resume Generator Card */}
-            <motion.div 
-              className="lg:col-span-1"
-              variants={itemVariants}
-            >
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-600 to-blue-600 text-white h-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5" />
-                    AI Resume Generator
-                  </CardTitle>
-                  <p className="text-sm text-purple-100">
-                    Create a completely new resume with AI-powered optimization
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <CheckCircle className="h-4 w-4 text-purple-200" />
-                      <span>ATS-optimized templates</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <CheckCircle className="h-4 w-4 text-purple-200" />
-                      <span>Job-specific keywords</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <CheckCircle className="h-4 w-4 text-purple-200" />
-                      <span>Professional formatting</span>
+                        <Progress value={uploadProgress} className="h-2" />
+                      </div>
+                    )}
+                    <div className="flex items-start gap-2 text-xs text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 p-3 rounded-lg">
+                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium mb-1">Accepted formats:</p>
+                        <p>PDF, DOC, DOCX (max 10MB)</p>
+                      </div>
                     </div>
                   </div>
-                  <Button
-                    className="w-full bg-white/20 hover:bg-white/30 text-white border-0"
-                    onClick={() => setShowAIModal(true)}
-                    data-testid="create-ai-resume-btn"
-                  >
-                    <Wand2 className="h-4 w-4 mr-2" />
-                    Create AI Resume
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Resume List */}
-            <motion.div 
-              className="lg:col-span-2 space-y-4"
-              variants={itemVariants}
-            >
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Your Resumes</h2>
-
-              {resumesError ? (
-                <Card className="border-0 shadow-lg bg-red-50 dark:bg-red-900/20 backdrop-blur-sm">
-                  <CardContent className="p-8 text-center">
-                    <AlertCircle className="h-12 w-12 mx-auto text-red-500 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                      Error loading resumes
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 mb-4">
-                      {(resumesError as any)?.message || "Failed to load resumes"}
+                ) : (
+                  <div className="text-center py-6 bg-white dark:bg-gray-800 rounded-lg border border-orange-200 dark:border-orange-800">
+                    <AlertCircle className="w-12 h-12 text-orange-500 mx-auto mb-3" />
+                    <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                      {user?.planType === 'premium' ? 'Unlimited uploads available' : 'Upload limit reached'}
                     </p>
-                  </CardContent>
-                </Card>
-              ) : !resumes || (resumes as any).length === 0 ? (
-                <Card className="border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-                  <CardContent className="p-8 text-center">
-                    <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                      No resumes uploaded yet
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 mb-4">
-                      Upload your first resume to get started with AI-powered optimization
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {(resumes as any).map((resume: any) => (
-                    <motion.div
-                      key={resume.id}
-                      variants={itemVariants}
-                      whileHover={{ scale: 1.02 }}
-                      className="relative"
-                    >
-                      <Card className={`border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm ${resume.isActive ? 'ring-2 ring-blue-500' : ''}`}>
-                        <CardContent className="p-6">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-3">
-                                <FileText className="h-5 w-5 text-blue-600" />
-                                <h3 className="font-semibold text-gray-900 dark:text-white">
-                                  {resume.name}
-                                </h3>
-                                {resume.isActive && (
-                                  <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
-                                    Active
-                                  </Badge>
-                                )}
-                              </div>
+                    {user?.planType !== 'premium' && (
+                      <Button
+                        size="sm"
+                        className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700"
+                        onClick={() => window.location.href = "/subscription"}
+                      >
+                        <Crown className="h-4 w-4 mr-2" />
+                        Upgrade for Unlimited
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
 
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                                <div className="text-center">
-                                  <div className={`text-2xl font-bold ${getScoreColor(resume.atsScore || 0)}`}>
-                                    {resume.atsScore || 0}%
-                                  </div>
-                                  <div className="text-xs text-gray-600 dark:text-gray-400">ATS Score</div>
-                                </div>
-                                <div className="text-center">
-                                  <div className="text-2xl font-bold text-blue-600">
-                                    {resume.analysis?.content?.strengthsFound?.length || 0}
-                                  </div>
-                                  <div className="text-xs text-gray-600 dark:text-gray-400">Strengths</div>
-                                </div>
-                                <div className="text-center">
-                                  <div className="text-2xl font-bold text-orange-600">
-                                    {resume.analysis?.recommendations?.length || 0}
-                                  </div>
-                                  <div className="text-xs text-gray-600 dark:text-gray-400">Improvements</div>
-                                </div>
-                                <div className="text-center">
-                                  <div className="text-2xl font-bold text-purple-600">
-                                    {resume.analysis?.keywordOptimization?.missingKeywords?.length || 0}
-                                  </div>
-                                  <div className="text-xs text-gray-600 dark:text-gray-400">Missing Keywords</div>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                <Clock className="h-4 w-4" />
-                                <span>Uploaded {new Date(resume.uploadedAt).toLocaleDateString()}</span>
-                                <span>•</span>
-                                <span>{(resume.fileSize / 1024).toFixed(1)} KB</span>
-                              </div>
-                            </div>
-
-                            <div className="flex flex-col gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedResume(resume);
-                                  setShowEnhancedModal(true);
-                                }}
-                              >
-                                <Eye className="h-4 w-4 mr-2" />
-                                Enhanced Analysis
-                              </Button>
-
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border-purple-200 dark:from-purple-900/20 dark:to-blue-900/20"
-                                onClick={() => {
-                                  setSelectedResume(resume);
-                                  setShowAIModal(true);
-                                }}
-                              >
-                                <Sparkles className="h-4 w-4 mr-2 text-purple-600" />
-                                Generate AI Resume
-                              </Button>
-
-                              {!resume.isActive && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setActiveResumeMutation.mutate(resume.id)}
-                                  disabled={setActiveResumeMutation.isPending}
-                                >
-                                  <Target className="h-4 w-4 mr-2" />
-                                  Set Active
-                                </Button>
-                              )}
-
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  toast({
-                                    title: "Resume Optimization Tips",
-                                    description: "Try the Enhanced Analysis to get personalized improvement suggestions for your resume.",
-                                  });
-                                }}
-                              >
-                                <Lightbulb className="h-4 w-4 mr-2" />
-                                Get Tips
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
+            {/* AI Generator - Modern */}
+          <motion.div 
+            className="lg:col-span-4"
+            variants={itemVariants}
+          >
+            <Card className="border-0 shadow-xl bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-600 text-white h-full overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
+              <CardHeader className="relative z-10 pb-4">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  AI Resume Generator
+                </CardTitle>
+                <p className="text-sm text-purple-100">
+                  Create professional resumes with AI in seconds
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4 relative z-10">
+                <div className="space-y-3 bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                  {[
+                    { icon: CheckCircle, text: "ATS-optimized templates" },
+                    { icon: Target, text: "Job-specific keywords" },
+                    { icon: Wand2, text: "AI-powered content" },
+                  ].map((feature, idx) => (
+                    <div key={idx} className="flex items-center gap-3">
+                      <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                        <feature.icon className="h-3 w-3" />
+                      </div>
+                      <span className="text-sm font-medium">{feature.text}</span>
+                    </div>
                   ))}
                 </div>
+                <Button
+                  className="w-full bg-white text-purple-600 hover:bg-white/90 font-semibold shadow-lg"
+                  onClick={() => setShowAIModal(true)}
+                  data-testid="create-ai-resume-btn"
+                >
+                  <Wand2 className="h-4 w-4 mr-2" />
+                  Generate AI Resume
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+            {/* Resume List - Redesigned */}
+          <motion.div 
+            className="lg:col-span-4 space-y-4"
+            variants={itemVariants}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <FileText className="w-5 h-5 text-blue-600" />
+                Your Resumes
+              </h2>
+              {resumes && (resumes as any).length > 0 && (
+                <Badge variant="secondary" className="text-sm">
+                  {(resumes as any).length} total
+                </Badge>
               )}
-            </motion.div>
+            </div>
+
+            {resumesError ? (
+              <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
+                <CardContent className="p-8 text-center">
+                  <AlertCircle className="h-12 w-12 mx-auto text-red-500 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                    Error loading resumes
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    {(resumesError as any)?.message || "Failed to load resumes"}
+                  </p>
+                </CardContent>
+              </Card>
+            ) : !resumes || (resumes as any).length === 0 ? (
+              <Card className="border-2 border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                <CardContent className="p-12 text-center">
+                  <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center mx-auto mb-4">
+                    <FileText className="h-8 w-8 text-blue-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    No resumes yet
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-sm mx-auto">
+                    Upload your first resume to get instant ATS scoring and AI-powered optimization tips
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+                    <Sparkles className="w-4 h-4" />
+                    <span>AI analysis included with every upload</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {(resumes as any).map((resume: any) => (
+                  <motion.div
+                    key={resume.id}
+                    variants={itemVariants}
+                    whileHover={{ y: -2 }}
+                    className="group"
+                  >
+                    <Card className={`border shadow-md hover:shadow-xl transition-all ${resume.isActive ? 'ring-2 ring-blue-500 border-blue-200' : 'border-gray-200 dark:border-gray-700'}`}>
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-3 flex-1">
+                            <div className={`w-10 h-10 rounded-lg ${getScoreBg(resume.atsScore || 0)} flex items-center justify-center flex-shrink-0`}>
+                              <FileText className={`h-5 w-5 ${getScoreColor(resume.atsScore || 0)}`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+                                {resume.name}
+                              </h3>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-gray-500">
+                                  {new Date(resume.uploadedAt).toLocaleDateString()}
+                                </span>
+                                <span className="text-xs text-gray-400">•</span>
+                                <span className="text-xs text-gray-500">
+                                  {(resume.fileSize / 1024).toFixed(1)} KB
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          {resume.isActive && (
+                            <Badge className="bg-blue-500 text-white flex-shrink-0">
+                              <Star className="w-3 h-3 mr-1" />
+                              Active
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Stats Grid */}
+                        <div className="grid grid-cols-4 gap-3 mb-4">
+                          <div className="text-center bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2">
+                            <div className={`text-lg font-bold ${getScoreColor(resume.atsScore || 0)}`}>
+                              {resume.atsScore || 0}%
+                            </div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400">ATS</div>
+                          </div>
+                          <div className="text-center bg-green-50 dark:bg-green-900/20 rounded-lg p-2">
+                            <div className="text-lg font-bold text-green-600">
+                              {resume.analysis?.content?.strengthsFound?.length || 0}
+                            </div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400">Strengths</div>
+                          </div>
+                          <div className="text-center bg-orange-50 dark:bg-orange-900/20 rounded-lg p-2">
+                            <div className="text-lg font-bold text-orange-600">
+                              {resume.analysis?.recommendations?.length || 0}
+                            </div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400">Tips</div>
+                          </div>
+                          <div className="text-center bg-purple-50 dark:bg-purple-900/20 rounded-lg p-2">
+                            <div className="text-lg font-bold text-purple-600">
+                              {resume.analysis?.keywordOptimization?.missingKeywords?.length || 0}
+                            </div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400">Keywords</div>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedResume(resume);
+                              setShowEnhancedModal(true);
+                            }}
+                            className="w-full"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Analysis
+                          </Button>
+                          {!resume.isActive && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setActiveResumeMutation.mutate(resume.id)}
+                              disabled={setActiveResumeMutation.isPending}
+                              className="w-full"
+                            >
+                              <Target className="h-4 w-4 mr-1" />
+                              Set Active
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedResume(resume);
+                              setShowAIModal(true);
+                            }}
+                            className="w-full col-span-2 bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border-purple-200"
+                          >
+                            <Sparkles className="h-4 w-4 mr-1 text-purple-600" />
+                            Generate AI Resume
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.div>
           </div>
         </div>
       </motion.div>
