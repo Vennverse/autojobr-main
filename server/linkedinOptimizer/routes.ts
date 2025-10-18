@@ -21,13 +21,15 @@ router.get('/', async (req, res) => {
     }
     const userId = req.user.id;
 
-    // Check cache first - aggressive 30 minute cache
+    // Check cache first - 5 minute cache for better UX
     const cacheKey = `linkedin_profile_${userId}`;
     const cached = cacheService.get(cacheKey);
     if (cached) {
       console.log(`✅ [CACHE HIT] LinkedIn profile for user ${userId}`);
       return res.json(cached.data);
     }
+    
+    console.log(`🔍 [CACHE MISS] Fetching fresh LinkedIn profile for user ${userId}`);
 
     const [profile] = await db
       .select()
@@ -69,13 +71,21 @@ router.get('/', async (req, res) => {
       freeGenerationsRemaining: isPremium ? -1 : Math.max(0, 1 - (profile?.generationsThisMonth || 0))
     };
 
-    // Cache for 30 minutes for better performance
-    cacheService.set(cacheKey, result, { ttl: 30 * 60 * 1000 }, [`user:${userId}`]);
+    // Cache for 5 minutes for better UX
+    cacheService.set(cacheKey, result, { ttl: 5 * 60 * 1000 }, [`user:${userId}`]);
 
     res.json(result);
-  } catch (error) {
-    console.error('Error fetching LinkedIn profile:', error);
-    res.status(500).json({ error: 'Failed to fetch profile' });
+  } catch (error: any) {
+    console.error('❌ Error fetching LinkedIn profile:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      userId: req.user?.id
+    });
+    res.status(500).json({ 
+      error: 'Failed to fetch profile',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
@@ -122,20 +132,33 @@ router.post('/generate', async (req, res) => {
     let about = existingProfile?.generatedAbout;
     let keywords = existingProfile?.topKeywords || [];
 
-    const shouldGenerateHeadline = !existingProfile || regenerate?.headline || !headline;
-    const shouldGenerateAbout = isPremium && (!existingProfile || regenerate?.about || !about);
-    const shouldGenerateKeywords = !existingProfile || regenerate?.keywords || keywords.length === 0;
+    // CRITICAL: Only generate on first time OR explicit regeneration request
+    const isFirstGeneration = !existingProfile || !existingProfile.generatedHeadline;
+    const shouldGenerateHeadline = isFirstGeneration || regenerate?.headline === true;
+    const shouldGenerateAbout = isPremium && (isFirstGeneration || regenerate?.about === true);
+    const shouldGenerateKeywords = isFirstGeneration || regenerate?.keywords === true;
+
+    console.log(`📊 Generation flags:`, {
+      isFirstGeneration,
+      shouldGenerateHeadline,
+      shouldGenerateAbout,
+      shouldGenerateKeywords,
+      regenerateRequest: regenerate
+    });
 
     // Generate only what's needed
     if (shouldGenerateHeadline) {
+      console.log('🔄 Generating headline...');
       headline = await aiService.generateLinkedInHeadline(userData, user);
     }
 
     if (shouldGenerateAbout) {
+      console.log('🔄 Generating about section...');
       about = await aiService.generateLinkedInAbout(userData);
     }
 
     if (shouldGenerateKeywords) {
+      console.log('🔄 Generating keywords...');
       const keywordData = await aiService.analyzeLinkedInKeywords({
         title: userData.title,
         industry: 'tech',

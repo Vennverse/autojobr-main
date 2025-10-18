@@ -35,18 +35,11 @@ export default function LinkedInOptimizer() {
   const [isEditing, setIsEditing] = useState({ headline: false, about: false });
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Redirect to login if not authenticated
+  // Fetch profile when user is authenticated
   useEffect(() => {
-    if (!user) {
-      toast({
-        title: 'Authentication Required',
-        description: 'Please log in to optimize your LinkedIn profile',
-        variant: 'destructive'
-      });
-      navigate('/auth-page?redirect=/linkedin-optimizer');
-      return;
+    if (user) {
+      fetchProfile();
     }
-    fetchProfile();
   }, [user]);
 
   const fetchProfile = async () => {
@@ -54,18 +47,29 @@ export default function LinkedInOptimizer() {
       setLoading(true);
       const res = await fetch('/api/linkedin-optimizer', { credentials: 'include' });
       if (res.status === 401) {
+        toast({
+          title: 'Authentication Required',
+          description: 'Please log in to continue',
+          variant: 'destructive'
+        });
         navigate('/auth-page?redirect=/linkedin-optimizer');
         return;
       }
-      if (!res.ok) throw new Error('Failed to fetch profile');
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Profile fetch error:', errorText);
+        throw new Error(errorText || 'Failed to fetch profile');
+      }
       const data = await res.json();
+      console.log('✅ Profile loaded:', data);
       setProfile(data);
       setEditedHeadline(data.generatedHeadline || '');
       setEditedAbout(data.generatedAbout || '');
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Profile fetch failed:', error);
       toast({
         title: 'Error',
-        description: 'Failed to load LinkedIn profile',
+        description: error.message || 'Failed to load LinkedIn profile',
         variant: 'destructive'
       });
     } finally {
@@ -175,6 +179,7 @@ ${profile?.topKeywords.join(', ')}
     }
   };
 
+  // Show loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -184,6 +189,11 @@ ${profile?.topKeywords.join(', ')}
         </div>
       </div>
     );
+  }
+
+  // Redirect if not authenticated
+  if (!user) {
+    return null; // Will redirect via useEffect
   }
 
   const isPremium = profile?.isPremium || false;
