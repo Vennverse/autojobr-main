@@ -32,6 +32,11 @@ interface Booking {
   totalAmount: string;
   paymentStatus: 'pending' | 'paid' | 'refunded';
   createdAt: Date;
+  meetingScheduled?: boolean;
+  meetingConfirmedByJobSeeker?: boolean;
+  meetingConfirmedByReferrer?: boolean;
+  deliveryConfirmedByJobSeeker?: boolean;
+  deliveryConfirmedByReferrer?: boolean;
   jobSeeker: {
     id: string;
     email: string;
@@ -209,6 +214,60 @@ Best regards,
     } catch (error) {
       console.error('Error updating settings:', error);
       alert('Failed to update settings');
+    }
+  };
+
+  const confirmMeeting = async (bookingId: number) => {
+    if (!confirm('Confirm that this meeting took place?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/referral-marketplace/confirm-meeting/${bookingId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(result.message);
+        fetchBookings(); // Refresh bookings
+      } else {
+        alert('Failed to confirm meeting: ' + (result.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error confirming meeting:', error);
+      alert('Failed to confirm meeting');
+    }
+  };
+
+  const confirmDelivery = async (bookingId: number) => {
+    if (!confirm('Confirm that you have delivered the service as promised?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/referral-marketplace/confirm-delivery/${bookingId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(result.message);
+        fetchBookings(); // Refresh bookings
+      } else {
+        alert('Failed to confirm delivery: ' + (result.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error confirming delivery:', error);
+      alert('Failed to confirm delivery');
     }
   };
 
@@ -466,6 +525,52 @@ Best regards,
                   <p className="text-sm text-gray-500 flex items-center">
                     Meeting scheduling available after payment confirmation
                   </p>
+                )}
+
+                {booking.paymentStatus === 'paid' && !booking.meetingConfirmedByReferrer && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => confirmMeeting(booking.id)}
+                    className="bg-blue-50 border-blue-200 text-blue-700"
+                  >
+                    ✓ Confirm Meeting Occurred
+                  </Button>
+                )}
+
+                {booking.meetingConfirmedByReferrer && !booking.meetingConfirmedByJobSeeker && (
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                    Meeting confirmed by you (waiting for job seeker)
+                  </Badge>
+                )}
+
+                {booking.meetingConfirmedByReferrer && booking.meetingConfirmedByJobSeeker && (
+                  <Badge variant="default" className="bg-green-100 text-green-800">
+                    ✓ Meeting confirmed by both parties
+                  </Badge>
+                )}
+
+                {booking.paymentStatus === 'paid' && booking.meetingConfirmedByJobSeeker && booking.meetingConfirmedByReferrer && !booking.deliveryConfirmedByReferrer && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => confirmDelivery(booking.id)}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    ✓ Confirm Service Delivered
+                  </Button>
+                )}
+
+                {booking.deliveryConfirmedByReferrer && !booking.deliveryConfirmedByJobSeeker && (
+                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                    Delivery confirmed by you (waiting for job seeker)
+                  </Badge>
+                )}
+
+                {booking.deliveryConfirmedByReferrer && booking.deliveryConfirmedByJobSeeker && (
+                  <Badge variant="default" className="bg-green-100 text-green-800">
+                    ✓ Service completed - Payment released!
+                  </Badge>
                 )}
               </div>
 
