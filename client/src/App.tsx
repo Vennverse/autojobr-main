@@ -90,6 +90,7 @@ import VideoPractice from "@/pages/VideoPractice";
 import PremiumFeatures from "@/pages/premium-features";
 import PremiumAITools from "@/pages/premium-ai-tools";
 import CoverLetterGenerator from "@/pages/cover-letter-generator";
+import LinkedInOptimizer from "@/pages/LinkedInOptimizer";
 
 // SEO Landing Pages to Beat Competition
 import FreeJobApplicationAutomation from "@/pages/seo/FreeJobApplicationAutomation";
@@ -414,6 +415,7 @@ function Router() {
                   <Route path="/premium-ai-tools" component={PremiumAITools} />
                   <Route path="/career-ai-assistant" component={CareerAIAssistant} />
                   <Route path="/cover-letter-generator" component={CoverLetterGenerator} />
+                  <Route path="/linkedin-optimizer" component={LinkedInOptimizer} />
                   <Route path="/referral-marketplace" component={ReferralMarketplace} />
                   <Route path="/become-referrer" component={BecomeReferrer} />
                   <Route path="/my-bookings" component={MyBookings} />
