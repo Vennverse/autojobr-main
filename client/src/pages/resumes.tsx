@@ -544,7 +544,7 @@ export default function ResumesPage() {
                 ))}
               </div>
             )}
-          </div>
+          </motion.div>
         </div>
       </motion.div>
 
