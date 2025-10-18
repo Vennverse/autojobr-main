@@ -544,10 +544,10 @@ export default function ResumesPage() {
                 ))}
               </div>
             )}
-          </motion.div>
           </div>
+          </motion.div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Analysis Dialog */}
       <Dialog open={showAnalysisDialog} onOpenChange={setShowAnalysisDialog}>
