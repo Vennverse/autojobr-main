@@ -727,6 +727,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/applications', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      const cacheKey = 'applications';
+
+      const cached = getCached(cacheKey, userId);
+      if (cached) {
+        return res.json(cached);
+      }
 
       const applications = await db
         .select({
@@ -747,6 +753,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .orderBy(desc(schema.jobPostingApplications.appliedAt));
 
       console.log(`[APPLICATIONS] Returning ${applications.length} applications with job details for user ${userId}`);
+      
+      setCache(cacheKey, applications, 180000, userId); // Cache for 3 minutes
       res.json(applications);
     } catch (error) {
       console.error('[APPLICATIONS ERROR]:', error);
@@ -3796,6 +3804,13 @@ Return only the cover letter text, no additional formatting or explanations.`;
   app.get('/api/resumes', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      const cacheKey = 'resumes';
+
+      const cached = getCached(cacheKey, userId);
+      if (cached) {
+        console.log(`[RESUME_FETCH] Returning ${cached.length} cached resumes for user: ${userId}`);
+        return res.json(cached);
+      }
 
       console.log(`[RESUME_FETCH] Fetching resumes for user: ${userId}`);
 
@@ -3840,6 +3855,8 @@ Return only the cover letter text, no additional formatting or explanations.`;
       });
 
       console.log(`[RESUME_FETCH] Returning ${formattedResumes.length} formatted resumes`);
+      
+      setCache(cacheKey, formattedResumes, 180000, userId); // Cache for 3 minutes
       res.json(formattedResumes);
     } catch (error) {
       console.error('[RESUME_FETCH] Error fetching resumes:', error);

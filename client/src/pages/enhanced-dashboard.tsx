@@ -53,21 +53,25 @@ export default function EnhancedDashboard() {
   const { data: stats } = useQuery({
     queryKey: ["/api/applications/stats"],
     retry: false,
+    enabled: isAuthenticated && !isLoading,
   });
 
   const { data: applications } = useQuery({
     queryKey: ["/api/applications"],
     retry: false,
+    enabled: isAuthenticated && !isLoading,
   });
 
   const { data: resumes } = useQuery({
     queryKey: ["/api/resumes"],
     retry: false,
+    enabled: isAuthenticated && !isLoading,
   });
 
   const { data: profile } = useQuery({
     queryKey: ["/api/profile"],
     retry: false,
+    enabled: isAuthenticated && !isLoading,
   });
 
   // Redirect if not authenticated

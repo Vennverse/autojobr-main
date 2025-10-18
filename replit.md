@@ -3,6 +3,14 @@
 ## Overview
 AutoJobr is a full-stack web application designed to automate and streamline the job application process. Its primary purpose is to help users efficiently apply to a large volume of jobs by providing features such as ATS resume optimization, AI-powered cover letter generation, interview preparation, and a Chrome extension for one-click applications. The platform aims to simplify job searching, enhance application quality, and provide tools for career advancement, positioning itself as a comprehensive solution for job seekers.
 
+## Recent Changes (October 18, 2025)
+- **Performance Optimization & Bug Fixes**: Addressed critical performance issues and glitches identified by users:
+  - Fixed Vite HMR WebSocket errors by properly configuring HMR for Replit environment
+  - Fixed TypeScript errors in PWA service (pwa.ts) for better type safety
+  - Added caching to slow API endpoints (/api/applications, /api/resumes) reducing response times from 800-1200ms to near-instant on cache hits
+  - Fixed redundant API calls on dashboard pages by adding `enabled` flag to queries, preventing calls before authentication is ready
+  - Eliminated duplicate 401 errors and retry loops that were doubling server load
+
 ## Recent Changes (October 15, 2025)
 - **LinkedIn Share Verification for Test Retakes**: Implemented dual-option retake system allowing users to unlock test retakes by either:
   - **Payment Option**: $5 one-time payment via PayPal or Amazon Pay
@@ -61,6 +69,31 @@ The project employs a monolithic architecture, combining the frontend and backen
     -   Session storage is handled via PostgreSQL to support multi-instance deployments.
     -   The WebSocket server runs on the same port as the HTTP server.
     -   Replit-specific configurations include running `npm run dev` on port 5000, utilizing Replit PostgreSQL, and being configured for Replit Autoscale deployment.
+
+## Known Technical Debt (October 18, 2025)
+**CRITICAL - Requires Future Refactoring:**
+- **server/routes.ts God File**: Nearly 8000 lines with 67 LSP errors, duplicate route registrations, and fragile routing order
+  - Multiple definitions of same endpoints (e.g., /api/user defined twice at lines 515 and 5234)
+  - Duplicate CRM, auth, and other routes causing handler shadowing issues
+  - Should be refactored into domain-specific routers (auth, users, jobs, applications, CRM, etc.)
+- **Performance Issues**: 
+  - No pagination on list endpoints - fetches full result sets causing slow queries as data grows
+  - Missing database indexes on frequently queried foreign keys
+  - Some endpoints still lack caching
+- **Authentication Flow**: 
+  - Inconsistent auth middleware - some routes use req.user, others use req.session.user
+  - Session fingerprint recovery mode triggered frequently indicating session management issues
+  - Frontend makes redundant auth checks before session is fully hydrated
+- **Code Quality**:
+  - Multiple backup files in server/ directory (routes.ts.backup, routes.ts.original.backup, routes.ts.fixed)
+  - Deduplication middleware ineffective due to duplicate route registrations
+
+**Recommendations for Future:**
+1. Break server/routes.ts into modular routers by domain
+2. Add pagination to all list endpoints
+3. Audit and add database indexes for foreign keys
+4. Standardize authentication middleware across all routes
+5. Clean up backup files and duplicate code
 
 ## External Dependencies
 -   **Databases**: PostgreSQL (via Neon/Replit Database)
