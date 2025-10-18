@@ -2737,6 +2737,26 @@ export const referralBookings = pgTable("referral_bookings", {
   // Service delivery tracking
   deliverables: jsonb("deliverables"), // What was delivered during the session
   sessionSummary: text("session_summary"),
+  
+  // Meeting verification
+  meetingScheduled: boolean("meeting_scheduled").default(false),
+  meetingScheduledAt: timestamp("meeting_scheduled_at"),
+  meetingConfirmedByJobSeeker: boolean("meeting_confirmed_by_job_seeker").default(false),
+  meetingConfirmedByReferrer: boolean("meeting_confirmed_by_referrer").default(false),
+  
+  // Delivery confirmation
+  deliveryConfirmedByJobSeeker: boolean("delivery_confirmed_by_job_seeker").default(false),
+  deliveryConfirmedByReferrer: boolean("delivery_confirmed_by_referrer").default(false),
+  deliveryConfirmedAt: timestamp("delivery_confirmed_at"),
+  
+  // Dispute handling
+  disputeReason: varchar("dispute_reason"),
+  disputeDetails: text("dispute_details"),
+  disputedAt: timestamp("disputed_at"),
+  disputedBy: varchar("disputed_by"),
+  
+  // Completion tracking
+  completedAt: timestamp("completed_at"),
 
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
