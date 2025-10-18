@@ -16,7 +16,10 @@ const isPremiumUser = (user: any): boolean => {
 // GET /api/linkedin-optimizer - Get current profile
 router.get('/', async (req, res) => {
   try {
-    const userId = req.user!.id;
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    const userId = req.user.id;
 
     // Check cache first
     const cacheKey = `linkedin_profile_${userId}`;
@@ -78,7 +81,10 @@ router.get('/', async (req, res) => {
 // POST /api/linkedin-optimizer/generate - Generate optimized profile (selective regeneration)
 router.post('/generate', async (req, res) => {
   try {
-    const userId = req.user!.id;
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    const userId = req.user.id;
     const { regenerate } = req.body; // { headline: true, about: false, keywords: true }
 
     const [user] = await db.select().from(users).where(eq(users.id, userId));
@@ -180,7 +186,10 @@ router.post('/generate', async (req, res) => {
 // POST /api/linkedin-optimizer/save-edits - Save user edits
 router.post('/save-edits', async (req, res) => {
   try {
-    const userId = req.user!.id;
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    const userId = req.user.id;
     const { headline, about } = req.body;
 
     await db
