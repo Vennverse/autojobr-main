@@ -287,22 +287,27 @@ Rules:
 
     // OPTIMIZED: Extract key sections only (80% token reduction)
     const keyInfo = OptimizedResumeParser.extractKeyInfo(rawText);
-    const combinedPrompt = `Parse & score resume (JSON only):
+    const combinedPrompt = `Extract resume data and provide ATS analysis. Return ONLY valid JSON, no markdown, no explanations.
 
+Resume info:
 ${JSON.stringify(keyInfo)}
 
-{"parsedData":{"fullName":"","email":"","phone":"","location":"","professionalTitle":"","skills":[],"yearsExperience":0},"analysis":{"atsScore":70,"recommendations":["tip1","tip2"],"keywordOptimization":{"missingKeywords":["kw1"]},"content":{"strengthsFound":["s1"],"weaknesses":["w1"]}}}`;
+Expected JSON format:
+{"parsedData":{"fullName":"","email":"","phone":"","location":"","professionalTitle":"","skills":[],"yearsExperience":0},"analysis":{"atsScore":70,"recommendations":["tip1","tip2"],"keywordOptimization":{"missingKeywords":["kw1"]},"content":{"strengthsFound":["s1"],"weaknesses":["w1"]}}}
+
+Return only the JSON object above with actual data filled in.`;
 
     try {
       const completion = await apiKeyRotationService.executeWithGroqRotation(async (client) => {
         return await client.chat.completions.create({
           model: "llama-3.1-8b-instant", // Cheapest model
           messages: [
-            { role: "system", content: "Resume parser + ATS analyzer. JSON only." },
+            { role: "system", content: "You are a resume parser. Return ONLY valid JSON without markdown code blocks or explanations." },
             { role: "user", content: combinedPrompt }
           ],
           temperature: 0.1,
-          max_tokens: 1000,
+          max_tokens: 1200,
+          response_format: { type: "json_object" } // Force JSON output
         });
       });
 
@@ -315,25 +320,45 @@ ${JSON.stringify(keyInfo)}
       let jsonStr = content.trim();
 
       // Remove markdown code blocks if present
-      jsonStr = jsonStr.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+      jsonStr = jsonStr.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
 
-      // Extract JSON object
-      const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        console.error('No JSON found in response:', content.substring(0, 200));
-        throw new Error("Invalid JSON response");
+      // Try to find JSON object boundaries more carefully
+      let result;
+      
+      // Method 1: Direct parse if it starts with {
+      if (jsonStr.startsWith('{')) {
+        try {
+          result = JSON.parse(jsonStr);
+        } catch (e) {
+          // Continue to other methods
+        }
       }
 
-      // Parse with error recovery
-      let result;
-      try {
-        result = JSON.parse(jsonMatch[0]);
-      } catch (parseError) {
-        // Try fixing common JSON issues
-        const fixed = jsonMatch[0]
-          .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
-          .replace(/(['"])?([a-zA-Z0-9_]+)(['"])?:/g, '"$2":'); // Fix unquoted keys
-        result = JSON.parse(fixed);
+      // Method 2: Extract JSON with better regex
+      if (!result) {
+        const jsonMatch = jsonStr.match(/(\{[\s\S]*\})/);
+        if (jsonMatch) {
+          try {
+            result = JSON.parse(jsonMatch[1]);
+          } catch (parseError) {
+            // Try fixing common JSON issues
+            try {
+              const fixed = jsonMatch[1]
+                .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
+                .replace(/(['"])?([a-zA-Z0-9_]+)(['"])?:/g, '"$2":') // Fix unquoted keys
+                .replace(/\n/g, ' '); // Remove newlines that might break parsing
+              result = JSON.parse(fixed);
+            } catch (e) {
+              console.error('JSON parse error even after fixes:', e);
+            }
+          }
+        }
+      }
+
+      // If still no result, throw error
+      if (!result) {
+        console.error('No JSON found in response:', content.substring(0, 200));
+        throw new Error("Invalid JSON response");
       }
 
       return {
