@@ -1809,24 +1809,25 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
     const response = await this.executeWithRotation(async (service, model) => {
       if (service === 'groq') {
         return await this.executeGroqOperation(async (client) => {
-          return await client.chat.completions.create({
+          const completion = await client.chat.completions.create({
             model,
             messages: [
               { role: 'system', content: 'Extract top LinkedIn keywords for role visibility.' },
               { role: 'user', content: prompt }
             ]
           });
+          return completion.choices[0]?.message?.content || '';
         });
       } else {
         return await this.executeOpenRouterOperation(async (client) => {
-          const res = await client.chat.completions.create({
+          const completion = await client.chat.completions.create({
             model,
             messages: [
               { role: 'system', content: 'Extract top LinkedIn keywords for role visibility.' },
               { role: 'user', content: prompt }
             ]
           });
-          return res.choices[0].message.content;
+          return completion.choices[0]?.message?.content || '';
         });
       }
     });
