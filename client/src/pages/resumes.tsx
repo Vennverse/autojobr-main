@@ -12,12 +12,12 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  FileText, 
-  Upload, 
-  Star, 
-  AlertCircle, 
-  CheckCircle, 
+import {
+  FileText,
+  Upload,
+  Star,
+  AlertCircle,
+  CheckCircle,
   Eye,
   Trash2,
   Crown,
@@ -213,14 +213,14 @@ export default function ResumesPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <Navbar />
 
-      <motion.div 
+      <motion.div
         className="container mx-auto px-4 py-6 max-w-7xl"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
         {/* Modern Header */}
-        <motion.div 
+        <motion.div
           className="mb-8"
           variants={itemVariants}
         >
@@ -256,7 +256,7 @@ export default function ResumesPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Upload Section - Improved */}
-          <motion.div 
+          <motion.div
             className="lg:col-span-4"
             variants={itemVariants}
           >
@@ -277,8 +277,8 @@ export default function ResumesPage() {
                       {(resumes as any)?.length || 0}/{user?.planType === 'premium' ? '∞' : '2'}
                     </span>
                   </div>
-                  <Progress 
-                    value={((resumes as any)?.length || 0) / (user?.planType === 'premium' ? 100 : 2) * 100} 
+                  <Progress
+                    value={((resumes as any)?.length || 0) / (user?.planType === 'premium' ? 100 : 2) * 100}
                     className="h-2"
                   />
                 </div>
@@ -338,8 +338,8 @@ export default function ResumesPage() {
             </Card>
           </motion.div>
 
-            {/* AI Generator - Modern */}
-          <motion.div 
+          {/* AI Generator - Modern */}
+          <motion.div
             className="lg:col-span-4"
             variants={itemVariants}
           >
@@ -384,8 +384,8 @@ export default function ResumesPage() {
             </Card>
           </motion.div>
 
-            {/* Resume List - Redesigned */}
-          <motion.div 
+          {/* Resume List - Redesigned */}
+          <motion.div
             className="lg:col-span-4 space-y-4"
             variants={itemVariants}
           >
@@ -545,9 +545,8 @@ export default function ResumesPage() {
               </div>
             )}
           </div>
-          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Analysis Dialog */}
       <Dialog open={showAnalysisDialog} onOpenChange={setShowAnalysisDialog}>
@@ -577,8 +576,8 @@ export default function ResumesPage() {
                     <div className={`text-3xl font-bold ${getScoreColor(selectedResume.atsScore || 0)}`}>
                       {selectedResume.atsScore || 0}%
                     </div>
-                    <Progress 
-                      value={selectedResume.atsScore || 0} 
+                    <Progress
+                      value={selectedResume.atsScore || 0}
                       className="mt-2"
                     />
                   </CardContent>
@@ -595,8 +594,8 @@ export default function ResumesPage() {
                     <div className={`text-3xl font-bold ${getScoreColor(selectedResume.analysis?.formatting?.score || 0)}`}>
                       {selectedResume.analysis?.formatting?.score || 0}%
                     </div>
-                    <Progress 
-                      value={selectedResume.analysis?.formatting?.score || 0} 
+                    <Progress
+                      value={selectedResume.analysis?.formatting?.score || 0}
                       className="mt-2"
                     />
                   </CardContent>
