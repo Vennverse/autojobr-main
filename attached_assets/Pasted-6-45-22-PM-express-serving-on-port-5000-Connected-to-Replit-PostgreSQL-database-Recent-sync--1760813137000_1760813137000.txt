@@ -1,0 +1,54 @@
+6:45:22 PM [express] serving on port 5000
+✅ Connected to Replit PostgreSQL database
+✅ Recent sync found (19 hours ago) - skipping initial sync
+(!) Failed to run dependency scan. Skipping dependency pre-bundling. Error:   Failed to scan for dependencies from entries:
+  /home/runner/workspace/client/index.html
+/home/runner/workspace/client/public/google-verification.html
+/home/runner/workspace/client/public/offline.html
+
+  ✘ [ERROR] Unexpected closing "div" tag does not match opening "motion.div" tag
+
+    client/src/pages/resumes.tsx:549:10:
+      549 │         </div>
+          │           ~~~
+          ╵           motion.div
+
+  The opening "motion.div" tag is here:
+
+    client/src/pages/resumes.tsx:216:7:
+      216 │       <motion.div 
+          ╵        ~~~~~~~~~~
+
+
+✘ [ERROR] Unexpected closing "motion.div" tag does not match opening "div" tag
+
+    client/src/pages/resumes.tsx:550:8:
+      550 │       </motion.div>
+          │         ~~~~~~~~~~
+          ╵         div
+
+  The opening "div" tag is here:
+
+    client/src/pages/resumes.tsx:213:5:
+      213 │     <div className="min-h-screen bg-gradient-to-br from-slate-50 ...
+          ╵      ~~~
+
+
+✘ [ERROR] Expected ")" but found "{"
+
+    client/src/pages/resumes.tsx:552:6:
+      552 │       {/* Analysis Dialog */}
+          │       ^
+          ╵       )
+
+
+    at failureErrorWithLog (/home/runner/workspace/node_modules/esbuild/lib/main.js:1467:15)
+    at /home/runner/workspace/node_modules/esbuild/lib/main.js:926:25
+    at runOnEndCallbacks (/home/runner/workspace/node_modules/esbuild/lib/main.js:1307:45)
+    at buildResponseToResult (/home/runner/workspace/node_modules/esbuild/lib/main.js:924:7)
+    at /home/runner/workspace/node_modules/esbuild/lib/main.js:936:9
+    at new Promise (<anonymous>)
+    at requestCallbacks.on-end (/home/runner/workspace/node_modules/esbuild/lib/main.js:935:54)
+    at handleRequest (/home/runner/workspace/node_modules/esbuild/lib/main.js:628:17)
+    at handleIncomingPacket (/home/runner/workspace/node_modules/esbuild/lib/main.js:653:7)
+    at Socket.readFromStdout (/home/runner/workspace/node_modules/esbuild/lib/main.js:581:7)
