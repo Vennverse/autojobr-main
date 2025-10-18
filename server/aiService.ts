@@ -1680,6 +1680,150 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
       ]
     };
   }
+
+  // LinkedIn Profile Optimization - Ultra-efficient prompts
+  async generateLinkedInHeadline(data: {
+    title?: string;
+    skills?: string[];
+    yearsExp?: number;
+  }): Promise<string> {
+    const prompt = `Create LinkedIn headline for: ${data.title || 'Professional'}, ${data.yearsExp || 0}y exp, skills: ${data.skills?.slice(0, 5).join(', ') || 'N/A'}. Format: Title | Experience | Top 3 Skills. Max 120 chars.`;
+
+    return await this.executeWithRotation(async (service, model) => {
+      const apiKey = apiKeyRotationService.getKey(service);
+      if (!apiKey) throw new Error('No API key available');
+
+      if (service === 'groq') {
+        const response = await groqService.chat([
+          { role: 'system', content: 'Generate professional LinkedIn headline. Be concise.' },
+          { role: 'user', content: prompt }
+        ], apiKey, model);
+        return response.trim();
+      } else {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: 'Generate professional LinkedIn headline. Be concise.' },
+              { role: 'user', content: prompt }
+            ]
+          })
+        });
+        const json = await response.json();
+        return json.choices[0].message.content.trim();
+      }
+    });
+  }
+
+  async generateLinkedInAbout(data: {
+    resumeText?: string;
+    summary?: string;
+    title?: string;
+    goals?: string;
+  }): Promise<string> {
+    const prompt = `Write LinkedIn About (200 words max). Title: ${data.title || 'N/A'}. Summary: ${data.summary || data.resumeText?.substring(0, 300) || 'N/A'}. Goals: ${data.goals || 'career growth'}. Use Problem→Solution→Impact structure. Add metrics.`;
+
+    return await this.executeWithRotation(async (service, model) => {
+      const apiKey = apiKeyRotationService.getKey(service);
+      if (!apiKey) throw new Error('No API key available');
+
+      if (service === 'groq') {
+        const response = await groqService.chat([
+          { role: 'system', content: 'Write compelling LinkedIn About section with measurable achievements.' },
+          { role: 'user', content: prompt }
+        ], apiKey, model);
+        return response.trim();
+      } else {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: 'Write compelling LinkedIn About section with measurable achievements.' },
+              { role: 'user', content: prompt }
+            ]
+          })
+        });
+        const json = await response.json();
+        return json.choices[0].message.content.trim();
+      }
+    });
+  }
+
+  async optimizeLinkedInExperience(experience: {
+    company: string;
+    position: string;
+    description?: string;
+  }): Promise<string> {
+    const prompt = `Optimize: ${experience.position} at ${experience.company}. Current: "${experience.description || 'No description'}". Output: 3 bullet points with metrics/impact. Start with action verbs.`;
+
+    return await this.executeWithRotation(async (service, model) => {
+      const apiKey = apiKeyRotationService.getKey(service);
+      if (!apiKey) throw new Error('No API key available');
+
+      if (service === 'groq') {
+        const response = await groqService.chat([
+          { role: 'system', content: 'Transform work experience into impactful LinkedIn bullets with metrics.' },
+          { role: 'user', content: prompt }
+        ], apiKey, model);
+        return response.trim();
+      } else {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: 'Transform work experience into impactful LinkedIn bullets with metrics.' },
+              { role: 'user', content: prompt }
+            ]
+          })
+        });
+        const json = await response.json();
+        return json.choices[0].message.content.trim();
+      }
+    });
+  }
+
+  async analyzeLinkedInKeywords(data: {
+    title?: string;
+    industry?: string;
+    resumeText?: string;
+  }): Promise<{ topKeywords: string[]; density: number }> {
+    const prompt = `Analyze: ${data.title || 'Professional'} in ${data.industry || 'tech'}. Resume: ${data.resumeText?.substring(0, 200) || 'N/A'}. List top 10 keywords for LinkedIn SEO. Format: keyword1,keyword2,...`;
+
+    const response = await this.executeWithRotation(async (service, model) => {
+      const apiKey = apiKeyRotationService.getKey(service);
+      if (!apiKey) throw new Error('No API key available');
+
+      if (service === 'groq') {
+        return await groqService.chat([
+          { role: 'system', content: 'Extract top LinkedIn keywords for role visibility.' },
+          { role: 'user', content: prompt }
+        ], apiKey, model);
+      } else {
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: 'Extract top LinkedIn keywords for role visibility.' },
+              { role: 'user', content: prompt }
+            ]
+          })
+        });
+        const json = await res.json();
+        return json.choices[0].message.content;
+      }
+    });
+
+    const keywords = response.trim().split(',').map(k => k.trim()).slice(0, 10);
+    return { topKeywords: keywords, density: keywords.length };
+  }
 }
 
 // Export singleton instance

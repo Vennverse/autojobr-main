@@ -280,6 +280,43 @@ export const resumes = pgTable("resumes", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// LinkedIn Profile Optimization - stores AI-generated LinkedIn profile content
+export const linkedinProfiles = pgTable("linkedin_profiles", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+
+  // Generated Content
+  generatedHeadline: text("generated_headline"),
+  generatedAbout: text("generated_about"),
+  optimizedExperiences: jsonb("optimized_experiences"), // Array of optimized work experiences
+  skillsPrioritization: jsonb("skills_prioritization"), // Recommended skills to highlight
+  
+  // Analysis Data
+  profileCompletenessScore: integer("profile_completeness_score"), // 0-100
+  keywordDensity: jsonb("keyword_density"), // Keywords and their frequency
+  topKeywords: text("top_keywords").array(), // Top 10 keywords for the role
+  missingElements: text("missing_elements").array(), // What's missing (photo, banner, etc.)
+  
+  // Recommendations
+  endorsementStrategy: text("endorsement_strategy"), // AI-generated advice on getting endorsements
+  contentCalendar: jsonb("content_calendar"), // Weekly post suggestions
+  recommendationRequests: jsonb("recommendation_requests"), // Template messages
+  trendingSkills: text("trending_skills").array(), // Skills trending in user's industry
+  
+  // User Customization
+  userEditedHeadline: text("user_edited_headline"), // If user modified AI suggestion
+  userEditedAbout: text("user_edited_about"), // If user modified AI suggestion
+  
+  // Usage Tracking
+  generationCount: integer("generation_count").default(0), // How many times generated
+  lastGenerated: timestamp("last_generated"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_linkedin_profiles_user_id").on(table.userId),
+]);
+
 // Job applications
 export const jobApplications = pgTable("job_applications", {
   id: serial("id").primaryKey(),
