@@ -74,6 +74,7 @@ import { salaryInsightsService, salaryInsightsSchema } from './salaryInsightsSer
 import { questionBankService } from "./questionBankService";
 import seo from './routes/seo';
 import { CrmService } from './crmService';
+import linkedinOptimizerRoutes from './linkedinOptimizer/routes';
 
 // Import services
 import { db as dbImport } from "./db"; // Aliased to avoid conflict with global db
@@ -7683,6 +7684,7 @@ Return ONLY the JSON object, no additional text.`;
   app.use('/api/mock-interviews', mockInterviewRoutes); // Use mockInterviewRoutes
   app.use('/api/proctoring', proctoring);
   app.use('/api/seo', seo); // Mount SEO routes
+  app.use('/api/linkedin-optimizer', linkedinOptimizerRoutes);
 
   // Initialize WebSocket server on specific path to avoid conflicts with Vite HMR
   const wss = new WebSocketServer({ server, path: '/ws/app' });
