@@ -1,173 +1,175 @@
-import { Router, type Request, type Response } from 'express';
+
+import { Router } from 'express';
 import { db } from '../db';
-import { linkedinProfiles, userProfiles, workExperience, userSkills, resumes, users } from '@shared/schema';
-import { eq, desc } from 'drizzle-orm';
+import { linkedinProfiles, users } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 import { aiService } from '../aiService';
+import { cacheService } from '../cacheService';
 
 const router = Router();
 
-// Middleware to check authentication
-const requireAuth = (req: Request, res: Response, next: Function) => {
-  if (!req.session?.user?.id) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  next();
+// Helper to check premium status
+const isPremiumUser = (user: any): boolean => {
+  return user?.planType === 'premium' || user?.planType === 'enterprise' || user?.planType === 'ultra_premium';
 };
 
-// Check if user is premium
-const isPremium = (user: any): boolean => {
-  return user?.planType === 'premium' || user?.planType === 'enterprise';
-};
-
-// GET /api/linkedin-optimizer - Get saved LinkedIn profile or create new
-router.get('/', requireAuth, async (req: Request, res: Response) => {
+// GET /api/linkedin-optimizer - Get current profile
+router.get('/', async (req, res) => {
   try {
-    const userId = req.session.user.id;
-    
-    // Get user to check premium status
-    const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-    const premium = isPremium(user[0]);
-    
-    // Get existing profile
-    const existing = await db
+    const userId = req.user!.id;
+
+    // Check cache first
+    const cacheKey = `linkedin_profile_${userId}`;
+    const cached = cacheService.get(cacheKey);
+    if (cached) {
+      return res.json(cached.data);
+    }
+
+    const [profile] = await db
       .select()
       .from(linkedinProfiles)
       .where(eq(linkedinProfiles.userId, userId))
       .limit(1);
-    
-    if (existing.length > 0) {
-      return res.json({ ...existing[0], isPremium: premium });
+
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId));
+
+    const isPremium = isPremiumUser(user);
+
+    // Calculate profile completeness
+    let completenessScore = 0;
+    const missingElements = [];
+
+    if (!profile) {
+      completenessScore = 0;
+      missingElements.push('Headline', 'About Section', 'Keywords');
+    } else {
+      if (profile.generatedHeadline) completenessScore += 33;
+      else missingElements.push('Headline');
+
+      if (profile.generatedAbout) completenessScore += 34;
+      else missingElements.push('About Section');
+
+      if (profile.topKeywords && profile.topKeywords.length > 0) completenessScore += 33;
+      else missingElements.push('Keywords');
     }
-    
-    // Return empty state for new users
-    res.json({ userId, generationCount: 0, isPremium: premium });
+
+    const result = {
+      ...profile,
+      isPremium,
+      profileCompletenessScore: completenessScore,
+      missingElements,
+      generationsThisMonth: profile?.generationsThisMonth || 0,
+      freeGenerationsRemaining: isPremium ? -1 : Math.max(0, 1 - (profile?.generationsThisMonth || 0))
+    };
+
+    // Cache for 5 minutes
+    cacheService.set(cacheKey, result, { ttl: 5 * 60 * 1000 }, [`user:${userId}`]);
+
+    res.json(result);
   } catch (error) {
     console.error('Error fetching LinkedIn profile:', error);
     res.status(500).json({ error: 'Failed to fetch profile' });
   }
 });
 
-// POST /api/linkedin-optimizer/generate - Generate LinkedIn profile content
-router.post('/generate', requireAuth, async (req: Request, res: Response) => {
+// POST /api/linkedin-optimizer/generate - Generate optimized profile (selective regeneration)
+router.post('/generate', async (req, res) => {
   try {
-    const userId = req.session.user.id;
-    const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-    const premium = isPremium(user[0]);
-    
-    // Check limits for free users
-    const existing = await db
+    const userId = req.user!.id;
+    const { regenerate } = req.body; // { headline: true, about: false, keywords: true }
+
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    const isPremium = isPremiumUser(user);
+
+    // Get existing profile
+    const [existingProfile] = await db
       .select()
       .from(linkedinProfiles)
-      .where(eq(linkedinProfiles.userId, userId))
-      .limit(1);
-    
-    if (!premium && existing.length > 0 && existing[0].generationCount! >= 1) {
-      return res.status(403).json({ 
-        error: 'Free tier limit reached. Upgrade to Premium for unlimited generations.',
-        requiresUpgrade: true 
+      .where(eq(linkedinProfiles.userId, userId));
+
+    // Check free tier limits
+    const generationsThisMonth = existingProfile?.generationsThisMonth || 0;
+    if (!isPremium && generationsThisMonth >= 1 && !existingProfile?.generatedHeadline) {
+      return res.status(403).json({
+        error: 'Free tier limit reached',
+        message: 'You have used your free generation. Upgrade to Premium for unlimited access.',
+        requiresUpgrade: true
       });
     }
-    
-    // Fetch user data
-    const [profile] = await db.select().from(userProfiles).where(eq(userProfiles.userId, userId)).limit(1);
-    const experiences = await db.select().from(workExperience).where(eq(workExperience.userId, userId)).limit(5);
-    const skills = await db.select().from(userSkills).where(eq(userSkills.userId, userId)).limit(10);
-    const [resume] = await db.select().from(resumes).where(eq(resumes.userId, userId)).orderBy(desc(resumes.createdAt)).limit(1);
-    
-    // Generate headline
-    const headline = await aiService.generateLinkedInHeadline({
-      title: profile?.professionalTitle || undefined,
-      skills: skills.map(s => s.skillName),
-      yearsExp: profile?.yearsExperience || undefined
-    });
-    
-    // Generate About section (only for premium)
-    let about = null;
-    if (premium) {
-      about = await aiService.generateLinkedInAbout({
-        resumeText: resume?.resumeText || undefined,
-        summary: profile?.summary || undefined,
-        title: profile?.professionalTitle || undefined,
-        goals: profile?.careerGoals || undefined
+
+    // Prepare user data
+    const userData = {
+      title: user.professionalTitle || user.headline || 'Professional',
+      skills: user.skills?.slice(0, isPremium ? 10 : 3) || [],
+      yearsExp: user.yearsExperience || 0,
+      resumeText: user.resumeText?.substring(0, isPremium ? 500 : 200) || '',
+      summary: user.professionalSummary || '',
+      goals: 'career growth'
+    };
+
+    // Selective regeneration (only generate what's requested or missing)
+    let headline = existingProfile?.generatedHeadline;
+    let about = existingProfile?.generatedAbout;
+    let keywords = existingProfile?.topKeywords || [];
+
+    const shouldGenerateHeadline = !existingProfile || regenerate?.headline || !headline;
+    const shouldGenerateAbout = isPremium && (!existingProfile || regenerate?.about || !about);
+    const shouldGenerateKeywords = !existingProfile || regenerate?.keywords || keywords.length === 0;
+
+    // Generate only what's needed
+    if (shouldGenerateHeadline) {
+      headline = await aiService.generateLinkedInHeadline(userData, user);
+    }
+
+    if (shouldGenerateAbout) {
+      about = await aiService.generateLinkedInAbout(userData);
+    }
+
+    if (shouldGenerateKeywords) {
+      const keywordData = await aiService.analyzeLinkedInKeywords({
+        title: userData.title,
+        industry: 'tech',
+        resumeText: userData.resumeText
       });
+      keywords = keywordData.topKeywords.slice(0, isPremium ? 10 : 5);
     }
-    
-    // Optimize experiences (only for premium)
-    let optimizedExps = [];
-    if (premium && experiences.length > 0) {
-      for (const exp of experiences.slice(0, 3)) {
-        const optimized = await aiService.optimizeLinkedInExperience({
-          company: exp.company,
-          position: exp.position,
-          description: exp.description || undefined
-        });
-        optimizedExps.push({ ...exp, optimized });
-      }
-    }
-    
-    // Analyze keywords (basic for free, full for premium)
-    const keywordData = await aiService.analyzeLinkedInKeywords({
-      title: profile?.professionalTitle || undefined,
-      industry: 'tech',
-      resumeText: resume?.resumeText || undefined
-    });
-    
-    const topKeywords = premium ? keywordData.topKeywords : keywordData.topKeywords.slice(0, 5);
-    
-    // Calculate completeness score
-    let score = 0;
-    if (profile?.fullName) score += 10;
-    if (profile?.professionalTitle) score += 15;
-    if (profile?.summary) score += 15;
-    if (profile?.linkedinUrl) score += 10;
-    if (experiences.length > 0) score += 20;
-    if (skills.length >= 5) score += 15;
-    if (resume) score += 15;
-    
-    const missingElements = [];
-    if (!profile?.linkedinUrl) missingElements.push('LinkedIn URL');
-    if (skills.length < 5) missingElements.push('At least 5 skills');
-    if (experiences.length === 0) missingElements.push('Work experience');
-    if (!resume) missingElements.push('Resume');
-    
+
     // Save to database
-    if (existing.length > 0) {
-      await db.update(linkedinProfiles)
-        .set({
-          generatedHeadline: headline,
-          generatedAbout: about,
-          optimizedExperiences: optimizedExps,
-          topKeywords,
-          profileCompletenessScore: score,
-          missingElements,
-          generationCount: (existing[0].generationCount || 0) + 1,
-          lastGenerated: new Date(),
-          updatedAt: new Date()
-        })
+    const profileData = {
+      userId,
+      generatedHeadline: headline || null,
+      generatedAbout: isPremium ? (about || null) : null,
+      topKeywords: keywords,
+      generationsThisMonth: existingProfile ? (existingProfile.generationsThisMonth || 0) + 1 : 1,
+      lastGeneratedAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    if (existingProfile) {
+      await db
+        .update(linkedinProfiles)
+        .set(profileData)
         .where(eq(linkedinProfiles.userId, userId));
     } else {
       await db.insert(linkedinProfiles).values({
-        userId,
-        generatedHeadline: headline,
-        generatedAbout: about,
-        optimizedExperiences: optimizedExps,
-        topKeywords,
-        profileCompletenessScore: score,
-        missingElements,
-        generationCount: 1,
-        lastGenerated: new Date()
+        ...profileData,
+        createdAt: new Date()
       });
     }
-    
+
+    // Invalidate cache
+    cacheService.invalidateUser(userId);
+
     res.json({
       success: true,
       headline,
-      about: premium ? about : '🔒 Upgrade to Premium to unlock AI-generated About section',
-      optimizedExperiences: premium ? optimizedExps : [],
-      topKeywords,
-      profileCompletenessScore: score,
-      missingElements,
-      isPremium: premium
+      about: isPremium ? about : null,
+      keywords,
+      isPremium,
+      message: isPremium ? 'Profile generated successfully' : 'Free tier: Headline and 5 keywords generated'
     });
   } catch (error) {
     console.error('Error generating LinkedIn profile:', error);
@@ -176,19 +178,23 @@ router.post('/generate', requireAuth, async (req: Request, res: Response) => {
 });
 
 // POST /api/linkedin-optimizer/save-edits - Save user edits
-router.post('/save-edits', requireAuth, async (req: Request, res: Response) => {
+router.post('/save-edits', async (req, res) => {
   try {
-    const userId = req.session.user.id;
+    const userId = req.user!.id;
     const { headline, about } = req.body;
-    
-    await db.update(linkedinProfiles)
+
+    await db
+      .update(linkedinProfiles)
       .set({
-        userEditedHeadline: headline,
-        userEditedAbout: about,
+        generatedHeadline: headline || null,
+        generatedAbout: about || null,
         updatedAt: new Date()
       })
       .where(eq(linkedinProfiles.userId, userId));
-    
+
+    // Invalidate cache
+    cacheService.invalidateUser(userId);
+
     res.json({ success: true });
   } catch (error) {
     console.error('Error saving edits:', error);

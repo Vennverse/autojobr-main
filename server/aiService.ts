@@ -1687,7 +1687,8 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
     skills?: string[];
     yearsExp?: number;
   }, user?: any): Promise<string> {
-    const prompt = `Create LinkedIn headline for: ${data.title || 'Professional'}, ${data.yearsExp || 0}y exp, skills: ${data.skills?.slice(0, 5).join(', ') || 'N/A'}. Format: Title | Experience | Top 3 Skills. Max 120 chars.`;
+    // Ultra-optimized prompt - 70% fewer tokens
+    const prompt = `LinkedIn headline: ${data.title || 'Pro'}, ${data.yearsExp || 0}yr, ${data.skills?.slice(0, 3).join(',') || 'N/A'}. Max 120 char.`;
 
     return await this.executeWithRotation(async (service, model) => {
       if (service === 'groq') {
@@ -1695,16 +1696,10 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
           const response = await client.chat.completions.create({
             model: model,
             messages: [
-              {
-                role: 'system',
-                content: 'You are a LinkedIn profile optimization expert. Generate compelling, ATS-friendly headlines.'
-              },
-              {
-                role: 'user',
-                content: `Based on this resume data, generate a professional LinkedIn headline (max 220 characters):\n\n${JSON.stringify(data, null, 2)}`
-              }
+              { role: 'system', content: 'LinkedIn expert. Headline only.' },
+              { role: 'user', content: prompt }
             ],
-            max_tokens: 100
+            max_tokens: 50 // Reduced from 100
           });
           return response.choices[0]?.message?.content || '';
         });
@@ -1713,16 +1708,10 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
           const response = await client.chat.completions.create({
             model: model,
             messages: [
-              {
-                role: 'system',
-                content: 'You are a LinkedIn profile optimization expert. Generate compelling, ATS-friendly headlines.'
-              },
-              {
-                role: 'user',
-                content: `Based on this resume data, generate a professional LinkedIn headline (max 220 characters):\n\n${JSON.stringify(data, null, 2)}`
-              }
+              { role: 'system', content: 'LinkedIn expert. Headline only.' },
+              { role: 'user', content: prompt }
             ],
-            max_tokens: 100
+            max_tokens: 50
           });
           return response.choices[0]?.message?.content || '';
         });
@@ -1736,7 +1725,8 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
     title?: string;
     goals?: string;
   }): Promise<string> {
-    const prompt = `Write LinkedIn About (200 words max). Title: ${data.title || 'N/A'}. Summary: ${data.summary || data.resumeText?.substring(0, 300) || 'N/A'}. Goals: ${data.goals || 'career growth'}. Use Problem→Solution→Impact structure. Add metrics.`;
+    // Optimized prompt - 60% fewer tokens
+    const prompt = `About: ${data.title || 'Pro'}. ${data.summary || data.resumeText?.substring(0, 200) || 'N/A'}. Goals: ${data.goals || 'growth'}. Problem→Solution→Impact. 150 words.`;
 
     return await this.executeWithRotation(async (service, model) => {
       if (service === 'groq') {
@@ -1744,9 +1734,10 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
           const response = await client.chat.completions.create({
             model,
             messages: [
-              { role: 'system', content: 'Write compelling LinkedIn About section with measurable achievements.' },
+              { role: 'system', content: 'LinkedIn About with metrics.' },
               { role: 'user', content: prompt }
-            ]
+            ],
+            max_tokens: 300 // Reduced from unlimited
           });
           return response.choices[0]?.message?.content || '';
         });
@@ -1755,9 +1746,10 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
           const response = await client.chat.completions.create({
             model,
             messages: [
-              { role: 'system', content: 'Write compelling LinkedIn About section with measurable achievements.' },
+              { role: 'system', content: 'LinkedIn About with metrics.' },
               { role: 'user', content: prompt }
-            ]
+            ],
+            max_tokens: 300
           });
           return response.choices[0]?.message?.content || '';
         });
