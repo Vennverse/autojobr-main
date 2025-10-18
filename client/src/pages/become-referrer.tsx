@@ -34,7 +34,9 @@ const BecomeReferrer: React.FC = () => {
     yearsAtCompany: '',
     bio: '',
     specialties: [] as string[],
-    availableRoles: [] as string[]
+    availableRoles: [] as string[],
+    meetingScheduleLink: '',
+    emailTemplate: ''
   });
 
   const [currentSpecialty, setCurrentSpecialty] = useState('');
@@ -484,6 +486,46 @@ const BecomeReferrer: React.FC = () => {
                       </Badge>
                     ))}
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5" />
+                  Meeting Scheduling (Optional)
+                </CardTitle>
+                <CardDescription>
+                  Set up your meeting scheduling link (Calendly, Cal.com, etc.) for automated booking
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="meetingScheduleLink">Meeting Schedule Link</Label>
+                  <Input
+                    id="meetingScheduleLink"
+                    value={formData.meetingScheduleLink}
+                    onChange={(e) => handleInputChange('meetingScheduleLink', e.target.value)}
+                    placeholder="https://calendly.com/your-link or https://cal.com/your-link"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Job seekers will use this link to schedule meetings with you
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="emailTemplate">Default Meeting Email Template (Optional)</Label>
+                  <Textarea
+                    id="emailTemplate"
+                    value={formData.emailTemplate}
+                    onChange={(e) => handleInputChange('emailTemplate', e.target.value)}
+                    placeholder="Hi! Looking forward to our meeting. Please use the link above to schedule a convenient time..."
+                    rows={4}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    This message will be included when sending meeting invitations to job seekers
+                  </p>
                 </div>
               </CardContent>
             </Card>
