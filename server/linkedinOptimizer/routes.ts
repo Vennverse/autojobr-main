@@ -24,6 +24,10 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
   try {
     const userId = req.session.user.id;
     
+    // Get user to check premium status
+    const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    const premium = isPremium(user[0]);
+    
     // Get existing profile
     const existing = await db
       .select()
@@ -32,11 +36,11 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
       .limit(1);
     
     if (existing.length > 0) {
-      return res.json(existing[0]);
+      return res.json({ ...existing[0], isPremium: premium });
     }
     
     // Return empty state for new users
-    res.json({ userId, generationCount: 0 });
+    res.json({ userId, generationCount: 0, isPremium: premium });
   } catch (error) {
     console.error('Error fetching LinkedIn profile:', error);
     res.status(500).json({ error: 'Failed to fetch profile' });
