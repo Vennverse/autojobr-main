@@ -136,6 +136,14 @@ export default function EnhancedDashboard() {
   // Quick action cards - Daily use features
   const quickActions = [
     {
+      title: "LinkedIn Profile Optimizer",
+      description: "10x your visibility with AI-optimized profile",
+      icon: Sparkles,
+      color: "from-blue-500 to-cyan-600",
+      route: "/linkedin-optimizer",
+      badge: "NEW"
+    },
+    {
       title: "Generate Cover Letter",
       description: "Create AI-powered cover letters in seconds",
       icon: Brain,
