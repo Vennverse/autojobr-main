@@ -1033,7 +1033,7 @@ Refine.`;
     });
 
     const isPremium = user?.planType === 'premium';
-    
+
     // Extract only essential info
     const resumeKey = resumeData.substring(0, isPremium ? 700 : 500);
     const jobKey = jobDescription.substring(0, isPremium ? 600 : 400);
@@ -1079,7 +1079,7 @@ ${customPrompt || ''}
     // Extract only key info to reduce tokens
     const resumeKey = resumeData.substring(0, isPremium ? 600 : 400);
     const jobKey = jobDescription.substring(0, isPremium ? 500 : 300);
-    
+
     const prompt = `Cover letter:
 Resume: ${resumeKey}
 Job: ${jobKey}
@@ -1686,35 +1686,48 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
     title?: string;
     skills?: string[];
     yearsExp?: number;
-  }): Promise<string> {
+  }, user?: any): Promise<string> {
     const prompt = `Create LinkedIn headline for: ${data.title || 'Professional'}, ${data.yearsExp || 0}y exp, skills: ${data.skills?.slice(0, 5).join(', ') || 'N/A'}. Format: Title | Experience | Top 3 Skills. Max 120 chars.`;
 
     return await this.executeWithRotation(async (service, model) => {
-      const apiKey = apiKeyRotationService.getKey(service);
-      if (!apiKey) throw new Error('No API key available');
-
       if (service === 'groq') {
-        const response = await groqService.chat([
-          { role: 'system', content: 'Generate professional LinkedIn headline. Be concise.' },
-          { role: 'user', content: prompt }
-        ], apiKey, model);
-        return response.trim();
-      } else {
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model,
+        return await this.executeGroqOperation(async (client) => {
+          const response = await client.chat.completions.create({
+            model: model,
             messages: [
-              { role: 'system', content: 'Generate professional LinkedIn headline. Be concise.' },
-              { role: 'user', content: prompt }
-            ]
-          })
+              {
+                role: 'system',
+                content: 'You are a LinkedIn profile optimization expert. Generate compelling, ATS-friendly headlines.'
+              },
+              {
+                role: 'user',
+                content: `Based on this resume data, generate a professional LinkedIn headline (max 220 characters):\n\n${JSON.stringify(data, null, 2)}`
+              }
+            ],
+            max_tokens: 100
+          });
+          return response.choices[0]?.message?.content || '';
         });
-        const json = await response.json();
-        return json.choices[0].message.content.trim();
+      } else {
+        return await this.executeOpenRouterOperation(async (client) => {
+          const response = await client.chat.completions.create({
+            model: model,
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a LinkedIn profile optimization expert. Generate compelling, ATS-friendly headlines.'
+              },
+              {
+                role: 'user',
+                content: `Based on this resume data, generate a professional LinkedIn headline (max 220 characters):\n\n${JSON.stringify(data, null, 2)}`
+              }
+            ],
+            max_tokens: 100
+          });
+          return response.choices[0]?.message?.content || '';
+        });
       }
-    });
+    }, user);
   }
 
   async generateLinkedInAbout(data: {
@@ -1726,29 +1739,28 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
     const prompt = `Write LinkedIn About (200 words max). Title: ${data.title || 'N/A'}. Summary: ${data.summary || data.resumeText?.substring(0, 300) || 'N/A'}. Goals: ${data.goals || 'career growth'}. Use Problem→Solution→Impact structure. Add metrics.`;
 
     return await this.executeWithRotation(async (service, model) => {
-      const apiKey = apiKeyRotationService.getKey(service);
-      if (!apiKey) throw new Error('No API key available');
-
       if (service === 'groq') {
-        const response = await groqService.chat([
-          { role: 'system', content: 'Write compelling LinkedIn About section with measurable achievements.' },
-          { role: 'user', content: prompt }
-        ], apiKey, model);
-        return response.trim();
-      } else {
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        return await this.executeGroqOperation(async (client) => {
+          const response = await client.chat.completions.create({
             model,
             messages: [
               { role: 'system', content: 'Write compelling LinkedIn About section with measurable achievements.' },
               { role: 'user', content: prompt }
             ]
-          })
+          });
+          return response.choices[0]?.message?.content || '';
         });
-        const json = await response.json();
-        return json.choices[0].message.content.trim();
+      } else {
+        return await this.executeOpenRouterOperation(async (client) => {
+          const response = await client.chat.completions.create({
+            model,
+            messages: [
+              { role: 'system', content: 'Write compelling LinkedIn About section with measurable achievements.' },
+              { role: 'user', content: prompt }
+            ]
+          });
+          return response.choices[0]?.message?.content || '';
+        });
       }
     });
   }
@@ -1761,29 +1773,28 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
     const prompt = `Optimize: ${experience.position} at ${experience.company}. Current: "${experience.description || 'No description'}". Output: 3 bullet points with metrics/impact. Start with action verbs.`;
 
     return await this.executeWithRotation(async (service, model) => {
-      const apiKey = apiKeyRotationService.getKey(service);
-      if (!apiKey) throw new Error('No API key available');
-
       if (service === 'groq') {
-        const response = await groqService.chat([
-          { role: 'system', content: 'Transform work experience into impactful LinkedIn bullets with metrics.' },
-          { role: 'user', content: prompt }
-        ], apiKey, model);
-        return response.trim();
-      } else {
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        return await this.executeGroqOperation(async (client) => {
+          const response = await client.chat.completions.create({
             model,
             messages: [
               { role: 'system', content: 'Transform work experience into impactful LinkedIn bullets with metrics.' },
               { role: 'user', content: prompt }
             ]
-          })
+          });
+          return response.choices[0]?.message?.content || '';
         });
-        const json = await response.json();
-        return json.choices[0].message.content.trim();
+      } else {
+        return await this.executeOpenRouterOperation(async (client) => {
+          const response = await client.chat.completions.create({
+            model,
+            messages: [
+              { role: 'system', content: 'Transform work experience into impactful LinkedIn bullets with metrics.' },
+              { role: 'user', content: prompt }
+            ]
+          });
+          return response.choices[0]?.message?.content || '';
+        });
       }
     });
   }
@@ -1796,28 +1807,27 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
     const prompt = `Analyze: ${data.title || 'Professional'} in ${data.industry || 'tech'}. Resume: ${data.resumeText?.substring(0, 200) || 'N/A'}. List top 10 keywords for LinkedIn SEO. Format: keyword1,keyword2,...`;
 
     const response = await this.executeWithRotation(async (service, model) => {
-      const apiKey = apiKeyRotationService.getKey(service);
-      if (!apiKey) throw new Error('No API key available');
-
       if (service === 'groq') {
-        return await groqService.chat([
-          { role: 'system', content: 'Extract top LinkedIn keywords for role visibility.' },
-          { role: 'user', content: prompt }
-        ], apiKey, model);
-      } else {
-        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        return await this.executeGroqOperation(async (client) => {
+          return await client.chat.completions.create({
             model,
             messages: [
               { role: 'system', content: 'Extract top LinkedIn keywords for role visibility.' },
               { role: 'user', content: prompt }
             ]
-          })
+          });
         });
-        const json = await res.json();
-        return json.choices[0].message.content;
+      } else {
+        return await this.executeOpenRouterOperation(async (client) => {
+          const res = await client.chat.completions.create({
+            model,
+            messages: [
+              { role: 'system', content: 'Extract top LinkedIn keywords for role visibility.' },
+              { role: 'user', content: prompt }
+            ]
+          });
+          return res.choices[0].message.content;
+        });
       }
     });
 
