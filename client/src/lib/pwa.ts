@@ -38,11 +38,10 @@ export class PWAService {
     }
 
     try {
+      const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
       const subscription = await this.registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(
-          import.meta.env.VITE_VAPID_PUBLIC_KEY || ''
-        )
+        applicationServerKey: vapidKey ? this.urlBase64ToUint8Array(vapidKey) : undefined
       });
       
       // Send subscription to server
@@ -93,9 +92,10 @@ export class PWAService {
 
   // Background sync
   static async registerBackgroundSync(tag: string): Promise<void> {
-    if ('serviceWorker' in navigator && 'sync' in this.registration!) {
+    if ('serviceWorker' in navigator && this.registration && 'sync' in this.registration) {
       try {
-        await this.registration!.sync.register(tag);
+        const syncManager = (this.registration as any).sync;
+        await syncManager.register(tag);
         console.log('Background sync registered:', tag);
       } catch (error) {
         console.error('Background sync registration failed:', error);
@@ -104,7 +104,7 @@ export class PWAService {
   }
 
   // Helper function
-  private static urlBase64ToUint8Array(base64String: string): Uint8Array {
+  private static urlBase64ToUint8Array(base64String: string): BufferSource {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
     const base64 = (base64String + padding)
       .replace(/\-/g, '+')
@@ -116,7 +116,7 @@ export class PWAService {
     for (let i = 0; i < rawData.length; ++i) {
       outputArray[i] = rawData.charCodeAt(i);
     }
-    return outputArray;
+    return outputArray.buffer;
   }
 }
 
