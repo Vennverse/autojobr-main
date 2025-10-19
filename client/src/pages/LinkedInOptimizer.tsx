@@ -83,13 +83,6 @@ export default function LinkedInOptimizer() {
   const [abTestVersions, setAbTestVersions] = useState<string[]>([]);
   const [selectedAbVersion, setSelectedAbVersion] = useState(0);
   const [aiAnalysisDepth, setAiAnalysisDepth] = useState([75]);
-  const [advancedAnalytics, setAdvancedAnalytics] = useState<AdvancedAnalytics>({
-    profileViews: 1247,
-    searchAppearances: 856,
-    engagementRate: 4.2,
-    connectionGrowth: 23,
-    contentPerformance: 87
-  });
 
   // Use React Query for smart caching - reduces API calls by 80%
   const { data: profile, isLoading: loading } = useQuery({

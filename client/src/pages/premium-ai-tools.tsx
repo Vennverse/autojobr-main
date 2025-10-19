@@ -33,7 +33,8 @@ import {
   Calendar,
   CheckCircle,
   Mail,
-  Eye
+  Eye,
+  Globe
 } from "lucide-react";
 
 export default function PremiumAITools() {
@@ -421,7 +422,7 @@ export default function PremiumAITools() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 gap-1">
+          <TabsList className="grid w-full grid-cols-8 gap-1">
             <TabsTrigger value="cover-letter" data-testid="tab-cover-letter" className="text-xs sm:text-sm">
               <FileText className="w-4 h-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Cover Letter</span>
@@ -456,6 +457,11 @@ export default function PremiumAITools() {
               <Calendar className="w-4 h-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Fill Gaps</span>
               <span className="sm:hidden">Gaps</span>
+            </TabsTrigger>
+            <TabsTrigger value="linkedin-optimizer" data-testid="tab-linkedin-optimizer" className="text-xs sm:text-sm">
+              <Globe className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">LinkedIn</span>
+              <span className="sm:hidden">LinkedIn</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1598,6 +1604,130 @@ export default function PremiumAITools() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* LinkedIn Optimizer */}
+          <TabsContent value="linkedin-optimizer">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="w-6 h-6 text-blue-600" />
+                  LinkedIn Profile Optimizer
+                </CardTitle>
+                <CardDescription>
+                  Optimize your LinkedIn profile to attract recruiters and stand out in your industry
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 p-6 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <h3 className="text-lg font-semibold mb-4 text-blue-900 dark:text-blue-100">
+                    Transform Your LinkedIn Profile with AI
+                  </h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
+                    Stand out to recruiters and hiring managers with an AI-optimized LinkedIn profile that showcases your unique value proposition.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm" data-testid="feature-headline">
+                      <div className="flex items-start gap-3">
+                        <div className="bg-blue-100 dark:bg-blue-900 p-2 rounded-lg">
+                          <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-sm mb-1">AI-Powered Headline</h4>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            Generate attention-grabbing headlines that highlight your expertise
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm" data-testid="feature-about">
+                      <div className="flex items-start gap-3">
+                        <div className="bg-purple-100 dark:bg-purple-900 p-2 rounded-lg">
+                          <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-sm mb-1">About Section</h4>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            Craft compelling narratives that tell your professional story
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm" data-testid="feature-keywords">
+                      <div className="flex items-start gap-3">
+                        <div className="bg-green-100 dark:bg-green-900 p-2 rounded-lg">
+                          <Target className="w-5 h-5 text-green-600 dark:text-green-400" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-sm mb-1">Keyword Analysis</h4>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            Optimize with industry-specific keywords to boost visibility
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-900 p-4 rounded-lg mb-4">
+                    <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      What You'll Get:
+                    </h4>
+                    <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                      <li className="flex items-start gap-2">
+                        <span className="text-blue-600 dark:text-blue-400 mt-0.5">•</span>
+                        <span>Professional headline variations tailored to your industry</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-blue-600 dark:text-blue-400 mt-0.5">•</span>
+                        <span>Compelling About section that showcases your unique value</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-blue-600 dark:text-blue-400 mt-0.5">•</span>
+                        <span>Strategic keyword recommendations for better recruiter visibility</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-blue-600 dark:text-blue-400 mt-0.5">•</span>
+                        <span>Experience bullet point enhancements with measurable impact</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-blue-600 dark:text-blue-400 mt-0.5">•</span>
+                        <span>Skills section optimization to pass LinkedIn's search algorithms</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <Button 
+                    size="lg" 
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                    asChild
+                    data-testid="button-go-to-linkedin-optimizer"
+                  >
+                    <a href="/linkedin-optimizer">
+                      <Globe className="w-5 h-5 mr-2" />
+                      Go to LinkedIn Optimizer
+                    </a>
+                  </Button>
+                </div>
+
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2 text-yellow-900 dark:text-yellow-100">
+                        Pro Tip: Maximize Your Results
+                      </h4>
+                      <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                        Upload your current resume first to help our AI understand your background and create more personalized LinkedIn optimizations. The AI will analyze your experience and achievements to craft compelling profile content.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

@@ -356,6 +356,7 @@ function Router() {
               <Route path="/recruiter-premium" component={RecruiterPremium} />
               <Route path="/premium-features" component={PremiumFeatures} />
               <Route path="/premium-ai-tools" component={PremiumAITools} />
+              <Route path="/linkedin-optimizer" component={LinkedInOptimizer} />
               <Route path="/chat" component={SimpleChatPage} />
               <Route path="/messaging" component={SimpleChatPage} />
               <Route path="/bidder-dashboard" component={BidderDashboard} />
@@ -457,7 +458,10 @@ function Router() {
               <Route path="/interview-link/:linkId" component={InterviewLink} />
               <Route path="/subscription" component={Subscription} />
               <Route path="/premium-features" component={PremiumFeatures} />
+              <Route path="/premium-ai-tools" component={PremiumAITools} />
               <Route path="/career-ai-assistant" component={CareerAIAssistant} />
+              <Route path="/linkedin-optimizer" component={LinkedInOptimizer} />
+              <Route path="/cover-letter-generator" component={CoverLetterGenerator} />
               <Route path="/referral-marketplace" component={ReferralMarketplace} />
               <Route path="/become-referrer" component={BecomeReferrer} />
               <Route path="/my-bookings" component={MyBookings} />
