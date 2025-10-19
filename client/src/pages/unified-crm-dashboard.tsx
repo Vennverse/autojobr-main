@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,6 +36,9 @@ export default function UnifiedCrmDashboard() {
   const [showContactDialog, setShowContactDialog] = useState(false);
   const [showInteractionDialog, setShowInteractionDialog] = useState(false);
   const [selectedContact, setSelectedContact] = useState<any>(null);
+  const [showEmailComposer, setShowEmailComposer] = useState(false); // State for email composer dialog
+  const [emailSubject, setEmailSubject] = useState(''); // State for email subject
+  const [emailBody, setEmailBody] = useState(''); // State for email body
 
   const contactForm = useForm({
     resolver: zodResolver(insertCrmContactSchema.extend({
@@ -120,6 +122,47 @@ export default function UnifiedCrmDashboard() {
       toast({ title: "✅ Interaction Logged", description: "Interaction recorded successfully" });
     },
   });
+
+  // Handle mailto redirect for CRM emails
+  const handleSendEmail = async () => {
+    if (!selectedContact) return;
+
+    try {
+      const response = await fetch('/api/crm/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          to: selectedContact.email,
+          subject: emailSubject,
+          body: emailBody,
+          contactId: selectedContact.id
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.mailtoUrl) {
+        // Open user's email client with pre-filled email
+        window.location.href = data.mailtoUrl;
+
+        toast({
+          title: "Opening Email Client",
+          description: "Your default email client will open with the pre-filled email"
+        });
+
+        setShowEmailComposer(false);
+        setEmailSubject('');
+        setEmailBody('');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to prepare email",
+        variant: "destructive"
+      });
+    }
+  };
 
   const resetInteractionForm = () => {
     setInteractionForm({
@@ -542,6 +585,18 @@ export default function UnifiedCrmDashboard() {
                             <MessageSquare className="h-4 w-4 mr-1" />
                             Log Interaction
                           </Button>
+                          <Button
+                            data-testid={`button-send-email-${contact.id}`}
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedContact(contact);
+                              setShowEmailComposer(true);
+                            }}
+                          >
+                            <Mail className="h-4 w-4 mr-1" />
+                            Send Email
+                          </Button>
                           <Button data-testid={`button-contact-menu-${contact.id}`} size="sm" variant="ghost">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
@@ -696,6 +751,48 @@ export default function UnifiedCrmDashboard() {
               </Button>
               <Button data-testid="button-submit-interaction" onClick={handleLogInteraction}>
                 Log Interaction
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Email Composer Dialog */}
+        <Dialog open={showEmailComposer} onOpenChange={setShowEmailComposer}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Compose Email to {selectedContact?.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>To</Label>
+                <Input value={selectedContact?.email || ''} readOnly />
+              </div>
+              <div>
+                <Label>Subject</Label>
+                <Input
+                  data-testid="input-email-subject"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  placeholder="Enter subject"
+                />
+              </div>
+              <div>
+                <Label>Body</Label>
+                <Textarea
+                  data-testid="textarea-email-body"
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                  placeholder="Write your message here..."
+                  rows={10}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button data-testid="button-cancel-email" variant="outline" onClick={() => setShowEmailComposer(false)}>
+                Cancel
+              </Button>
+              <Button data-testid="button-send-email" onClick={handleSendEmail}>
+                Send Email
               </Button>
             </div>
           </DialogContent>

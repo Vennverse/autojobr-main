@@ -842,23 +842,32 @@ export class EnhancedCrmService {
       if (!userId) return res.status(401).json({ error: 'User not authenticated' });
 
       const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-      const senderEmail = user[0]?.email || 'noreply@autojobr.com';
+      const senderEmail = user[0]?.email || '';
 
-      console.log(`[CRM Email] From: ${senderEmail}, To: ${to}, Subject: ${subject}`);
+      console.log(`[CRM Email] Preparing mailto link for: ${to}, Subject: ${subject}`);
 
+      // Create mailto URL for user's email client
+      const mailtoUrl = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+      // Log activity BEFORE opening email client (so it's tracked even if user cancels)
       await db.insert(crmActivities).values({
         userId,
         activityType: 'email',
-        title: `Email sent: ${subject}`,
-        description: `Sent email to ${to}`,
+        title: `Email prepared: ${subject}`,
+        description: `Opened email client to send to ${to}`,
         contactId: contactId ? parseInt(contactId) : null,
-        metadata: { subject, to }
+        metadata: { subject, to, from: senderEmail }
       });
 
-      res.json({ success: true, message: 'Email sent successfully via internal email system' });
+      // Return mailto URL for client-side redirect
+      res.json({ 
+        success: true, 
+        mailtoUrl,
+        message: 'Opening your email client...' 
+      });
     } catch (error) {
       console.error('Send email error:', error);
-      res.status(500).json({ error: 'Failed to send email' });
+      res.status(500).json({ error: 'Failed to prepare email' });
     }
   }
 
