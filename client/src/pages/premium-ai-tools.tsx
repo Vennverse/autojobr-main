@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Helmet } from "react-helmet";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -404,6 +405,22 @@ export default function PremiumAITools() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <Helmet>
+        <title>Premium AI Career Tools - Cover Letter, Salary Coach, Interview Prep | Autojobr</title>
+        <meta name="description" content="Access powerful AI career tools including cover letter generator, salary negotiation coach, interview answer generator, resume optimizer, and LinkedIn profile enhancement. Accelerate your job search with enterprise-grade AI assistance." />
+        <meta name="keywords" content="AI cover letter generator, salary negotiation coach, interview preparation, resume optimizer, career AI tools, job search automation, STAR method interview, professional development, career advancement" />
+        
+        <meta property="og:title" content="Premium AI Career Tools - Cover Letter, Salary Coach, Interview Prep | Autojobr" />
+        <meta property="og:description" content="Access powerful AI career tools to accelerate your job search. Generate cover letters, negotiate salaries, prepare for interviews, and optimize your resume with enterprise-grade AI." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={`${window.location.origin}/premium-ai-tools`} />
+        
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Premium AI Career Tools - Accelerate Your Job Search" />
+        <meta name="twitter:description" content="AI-powered cover letters, salary negotiation, interview prep, and resume optimization tools." />
+        
+        <link rel="canonical" href={`${window.location.origin}/premium-ai-tools`} />
+      </Helmet>
       <Navbar />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
