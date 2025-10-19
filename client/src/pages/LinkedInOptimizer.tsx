@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Sparkles, Crown, Download, RefreshCw, Lock, TrendingUp, Target, Users, Calendar } from 'lucide-react';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 
 interface LinkedInProfile {
   generatedHeadline: string | null;
@@ -24,7 +24,7 @@ interface LinkedInProfile {
 
 export default function LinkedInOptimizer() {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   
   const [profile, setProfile] = useState<LinkedInProfile | null>(null);
@@ -63,7 +63,7 @@ export default function LinkedInOptimizer() {
           description: 'Please log in to continue',
           variant: 'destructive'
         });
-        navigate('/auth-page?redirect=/linkedin-optimizer');
+        setLocation('/auth-page?redirect=/linkedin-optimizer');
         return;
       }
       
@@ -108,7 +108,7 @@ export default function LinkedInOptimizer() {
         description: 'Upgrade to Premium for unlimited generations',
         variant: 'destructive'
       });
-      navigate('/job-seeker-premium');
+      setLocation('/job-seeker-premium');
       return;
     }
 
@@ -124,7 +124,7 @@ export default function LinkedInOptimizer() {
       if (!res.ok) {
         const error = await res.json();
         if (error.requiresUpgrade) {
-          navigate('/job-seeker-premium');
+          setLocation('/job-seeker-premium');
         }
         throw new Error(error.message || 'Generation failed');
       }
@@ -222,7 +222,7 @@ ${profile?.topKeywords.join(', ')}
         <Card className="max-w-md">
           <CardContent className="pt-6 text-center">
             <p className="text-gray-600 mb-4">Please log in to access LinkedIn Optimizer</p>
-            <Button onClick={() => navigate('/auth-page?redirect=/linkedin-optimizer')}>
+            <Button onClick={() => setLocation('/auth-page?redirect=/linkedin-optimizer')}>
               Go to Login
             </Button>
           </CardContent>
@@ -246,7 +246,7 @@ ${profile?.topKeywords.join(', ')}
             <p className="text-gray-600 mt-2">AI-powered profile enhancement</p>
           </div>
           {!isPremium && (
-            <Button onClick={() => navigate('/job-seeker-premium')} className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700">
+            <Button onClick={() => setLocation('/job-seeker-premium')} className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700">
               <Crown className="w-4 h-4 mr-2" />
               Upgrade to Premium
             </Button>
@@ -468,7 +468,7 @@ ${profile?.topKeywords.join(', ')}
                     <Lock className="w-16 h-16 mx-auto text-gray-400" />
                     <h3 className="text-xl font-semibold text-gray-700">Premium Feature</h3>
                     <p className="text-gray-600">Unlock full about section optimization with 3 A/B tested versions</p>
-                    <Button onClick={() => navigate('/job-seeker-premium')} className="bg-gradient-to-r from-amber-500 to-orange-600">
+                    <Button onClick={() => setLocation('/job-seeker-premium')} className="bg-gradient-to-r from-amber-500 to-orange-600">
                       <Crown className="w-4 h-4 mr-2" />
                       Upgrade to Premium
                     </Button>

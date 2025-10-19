@@ -78,7 +78,6 @@ import linkedinOptimizerRoutes from './linkedinOptimizer/routes';
 
 // Import services
 import { db as dbImport } from "./db"; // Aliased to avoid conflict with global db
-import virtualInterviewRoutes from "./virtualInterviewRoutes.js";
 
 // Placeholder for User type if not globally available
 type User = schema.users.$inferSelect;
