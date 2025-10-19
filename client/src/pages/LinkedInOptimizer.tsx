@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
+import { Helmet } from 'react-helmet';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
@@ -58,14 +59,6 @@ interface LinkedInProfile {
   missingElements: string[];
   generationsThisMonth: number;
   freeGenerationsRemaining: number;
-}
-
-interface AdvancedAnalytics {
-  profileViews: number;
-  searchAppearances: number;
-  engagementRate: number;
-  connectionGrowth: number;
-  contentPerformance: number;
 }
 
 export default function LinkedInOptimizer() {
@@ -278,6 +271,22 @@ export default function LinkedInOptimizer() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <Helmet>
+        <title>LinkedIn Profile Optimizer - AI-Powered Profile Enhancement | Autojobr</title>
+        <meta name="description" content="Transform your LinkedIn profile with AI-powered optimization. Generate compelling headlines, engaging About sections, and discover top keywords to boost your professional visibility and attract recruiters." />
+        <meta name="keywords" content="LinkedIn optimizer, LinkedIn profile optimization, AI LinkedIn tools, LinkedIn headline generator, LinkedIn about section, professional profile enhancement, career optimization, recruiter visibility, LinkedIn SEO" />
+        
+        <meta property="og:title" content="LinkedIn Profile Optimizer - AI-Powered Profile Enhancement | Autojobr" />
+        <meta property="og:description" content="Transform your LinkedIn profile with AI-powered optimization. Generate compelling headlines, engaging About sections, and discover top keywords to boost your professional visibility." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={`${window.location.origin}/linkedin-optimizer`} />
+        
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="LinkedIn Profile Optimizer - AI-Powered Profile Enhancement" />
+        <meta name="twitter:description" content="Transform your LinkedIn profile with AI-powered optimization tools. Boost visibility and attract recruiters." />
+        
+        <link rel="canonical" href={`${window.location.origin}/linkedin-optimizer`} />
+      </Helmet>
       <div className="container max-w-7xl mx-auto px-4 py-8">
         {/* Premium Header */}
         <div className="mb-8">
@@ -308,91 +317,6 @@ export default function LinkedInOptimizer() {
               )}
             </Badge>
           </div>
-
-          {/* Advanced Analytics Dashboard */}
-          {isPremium && (
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-              <Card className="bg-gradient-to-br from-blue-500 to-blue-600 border-0 text-white">
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs opacity-90">Profile Views</p>
-                      <p className="text-2xl font-bold">{advancedAnalytics.profileViews}</p>
-                    </div>
-                    <Eye className="h-8 w-8 opacity-80" />
-                  </div>
-                  <div className="mt-2 flex items-center gap-1 text-xs">
-                    <TrendingUp className="h-3 w-3" />
-                    <span>+{advancedAnalytics.connectionGrowth}% this week</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-purple-500 to-purple-600 border-0 text-white">
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs opacity-90">Search Rank</p>
-                      <p className="text-2xl font-bold">{advancedAnalytics.searchAppearances}</p>
-                    </div>
-                    <Target className="h-8 w-8 opacity-80" />
-                  </div>
-                  <div className="mt-2 flex items-center gap-1 text-xs">
-                    <Activity className="h-3 w-3" />
-                    <span>Top 5% in industry</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-green-500 to-green-600 border-0 text-white">
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs opacity-90">Engagement</p>
-                      <p className="text-2xl font-bold">{advancedAnalytics.engagementRate}%</p>
-                    </div>
-                    <LineChart className="h-8 w-8 opacity-80" />
-                  </div>
-                  <div className="mt-2 flex items-center gap-1 text-xs">
-                    <TrendingUp className="h-3 w-3" />
-                    <span>Above average</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-orange-500 to-orange-600 border-0 text-white">
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs opacity-90">Connections</p>
-                      <p className="text-2xl font-bold">+{advancedAnalytics.connectionGrowth}</p>
-                    </div>
-                    <Users className="h-8 w-8 opacity-80" />
-                  </div>
-                  <div className="mt-2 flex items-center gap-1 text-xs">
-                    <Globe className="h-3 w-3" />
-                    <span>Growing network</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-pink-500 to-pink-600 border-0 text-white">
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs opacity-90">AI Score</p>
-                      <p className="text-2xl font-bold">{advancedAnalytics.contentPerformance}</p>
-                    </div>
-                    <Star className="h-8 w-8 opacity-80" />
-                  </div>
-                  <div className="mt-2 flex items-center gap-1 text-xs">
-                    <Sparkles className="h-3 w-3" />
-                    <span>Excellent profile</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
 
           {/* Profile Completeness Score */}
           <Card className="border-2 border-blue-200 shadow-lg">
@@ -1252,42 +1176,6 @@ export default function LinkedInOptimizer() {
                             <span className="font-bold">78%</span>
                           </div>
                           <Progress value={78} className="h-2" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-2 border-purple-200">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Users className="h-5 w-5 text-purple-600" />
-                        Network Growth
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-center py-4">
-                        <div className="text-4xl font-bold text-purple-600 mb-2">+{advancedAnalytics.connectionGrowth}%</div>
-                        <p className="text-sm text-muted-foreground">This month</p>
-                        <div className="mt-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                          <p className="text-xs font-medium">Above industry average by 15%</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-2 border-green-200">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Target className="h-5 w-5 text-green-600" />
-                        Optimization Score
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-center py-4">
-                        <div className="text-4xl font-bold text-green-600 mb-2">{advancedAnalytics.contentPerformance}/100</div>
-                        <p className="text-sm text-muted-foreground">AI Assessment</p>
-                        <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                          <p className="text-xs font-medium">Excellent - Top 10%</p>
                         </div>
                       </div>
                     </CardContent>
