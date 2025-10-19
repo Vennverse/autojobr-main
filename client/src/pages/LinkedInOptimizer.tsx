@@ -1,15 +1,38 @@
 
 import { useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Crown, Download, RefreshCw, Lock, TrendingUp, Target, Users, Calendar } from 'lucide-react';
-import { useLocation } from 'wouter';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { 
+  Sparkles, 
+  Crown, 
+  TrendingUp, 
+  Award, 
+  Target,
+  CheckCircle2,
+  Lock,
+  Copy,
+  Download,
+  RefreshCw,
+  BarChart3,
+  Users,
+  Calendar,
+  Lightbulb,
+  ArrowRight,
+  Zap,
+  Eye,
+  MessageSquare
+} from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
 
 interface LinkedInProfile {
   generatedHeadline: string | null;
@@ -34,13 +57,12 @@ export default function LinkedInOptimizer() {
   const [editedAbout, setEditedAbout] = useState('');
   const [isEditing, setIsEditing] = useState({ headline: false, about: false });
   const [activeTab, setActiveTab] = useState('overview');
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
-  // Fetch profile when user is authenticated
   useEffect(() => {
     if (user) {
       fetchProfile();
     } else if (!authLoading) {
-      // Auth loading is done and no user found
       setLoading(false);
     }
   }, [user, authLoading]);
@@ -48,19 +70,12 @@ export default function LinkedInOptimizer() {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Fetching LinkedIn profile...');
-      
       const res = await fetch('/api/linkedin-optimizer', { 
         credentials: 'include',
-        headers: {
-          'Accept': 'application/json'
-        }
+        headers: { 'Accept': 'application/json' }
       });
       
-      console.log('📡 Response status:', res.status);
-      
       if (res.status === 401) {
-        console.warn('⚠️ Not authenticated, redirecting to login');
         toast({
           title: 'Authentication Required',
           description: 'Please log in to continue',
@@ -71,24 +86,19 @@ export default function LinkedInOptimizer() {
       }
       
       if (!res.ok) {
-        const errorText = await res.text();
-        console.error('❌ Profile fetch error:', errorText);
-        throw new Error(errorText || 'Failed to fetch profile');
+        throw new Error('Failed to fetch profile');
       }
       
       const data = await res.json();
-      console.log('✅ Profile loaded successfully:', data);
       setProfile(data);
       setEditedHeadline(data.generatedHeadline || '');
       setEditedAbout(data.generatedAbout || '');
     } catch (error: any) {
-      console.error('❌ Profile fetch failed:', error);
       toast({
         title: 'Error',
         description: error.message || 'Failed to load LinkedIn profile',
         variant: 'destructive'
       });
-      // Set empty profile to stop loading state
       setProfile({
         generatedHeadline: null,
         generatedAbout: null,
@@ -104,14 +114,9 @@ export default function LinkedInOptimizer() {
     }
   };
 
-  const handleGenerate = async (regenerate?: { headline?: boolean; about?: boolean; keywords?: boolean }) => {
+  const generateOptimizations = async (section?: 'headline' | 'about' | 'keywords') => {
     if (!profile?.isPremium && profile?.freeGenerationsRemaining === 0) {
-      toast({
-        title: 'Free Tier Limit Reached',
-        description: 'Upgrade to Premium for unlimited generations',
-        variant: 'destructive'
-      });
-      setLocation('/job-seeker-premium');
+      setShowUpgradePrompt(true);
       return;
     }
 
@@ -119,32 +124,37 @@ export default function LinkedInOptimizer() {
       setGenerating(true);
       const res = await fetch('/api/linkedin-optimizer/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ regenerate: regenerate || {} })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          regenerate: section ? { [section]: true } : { headline: true, keywords: true }
+        })
       });
 
       if (!res.ok) {
         const error = await res.json();
         if (error.requiresUpgrade) {
-          setLocation('/job-seeker-premium');
+          setShowUpgradePrompt(true);
+          return;
         }
         throw new Error(error.message || 'Generation failed');
       }
 
       const data = await res.json();
       
+      if (data.headline) setEditedHeadline(data.headline);
+      if (data.about) setEditedAbout(data.about);
+      
       toast({
-        title: 'Success',
-        description: profile?.isPremium ? 'Profile optimized successfully' : 'Free tier: Headline generated',
+        title: 'Success!',
+        description: profile?.isPremium ? 'Profile optimizations generated' : 'Free optimization generated',
       });
 
-      // Refresh profile to get updated data from cache
       await fetchProfile();
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to generate profile',
+        description: error.message,
         variant: 'destructive'
       });
     } finally {
@@ -152,82 +162,63 @@ export default function LinkedInOptimizer() {
     }
   };
 
-  const handleSaveEdits = async () => {
+  const saveEdits = async () => {
     try {
       const res = await fetch('/api/linkedin-optimizer/save-edits', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           headline: editedHeadline,
           about: editedAbout
         })
       });
 
-      if (!res.ok) throw new Error('Failed to save edits');
+      if (!res.ok) throw new Error('Failed to save');
 
-      toast({
-        title: 'Saved',
-        description: 'Your edits have been saved',
-      });
-
+      toast({ title: 'Saved!', description: 'Your edits have been saved' });
       setIsEditing({ headline: false, about: false });
       await fetchProfile();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error',
-        description: 'Failed to save edits',
+        description: error.message,
         variant: 'destructive'
       });
     }
   };
 
-  const exportProfile = (format: 'txt' | 'pdf') => {
-    const content = `
-LinkedIn Profile - Optimized by AutoJobr
-
-HEADLINE:
-${editedHeadline}
-
-ABOUT SECTION:
-${editedAbout}
-
-TOP KEYWORDS:
-${profile?.topKeywords.join(', ')}
-    `.trim();
-
-    if (format === 'txt') {
-      const blob = new Blob([content], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'linkedin-profile-optimized.txt';
-      a.click();
-    }
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: 'Copied!', description: 'Content copied to clipboard' });
   };
 
-  // Show loading state
-  if (loading) {
+  if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <RefreshCw className="w-12 h-12 animate-spin mx-auto text-blue-600 mb-4" />
-          <p className="text-gray-600">Loading your profile...</p>
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Loading your LinkedIn profile...</p>
         </div>
       </div>
     );
   }
 
-  // If still no user after loading, show error message instead of blank screen
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardContent className="pt-6 text-center">
-            <p className="text-gray-600 mb-4">Please log in to access LinkedIn Optimizer</p>
-            <Button onClick={() => setLocation('/auth-page?redirect=/linkedin-optimizer')}>
-              Go to Login
-            </Button>
+      <div className="container max-w-4xl mx-auto px-4 py-16">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <Sparkles className="h-12 w-12 mx-auto mb-4 text-primary" />
+              <h2 className="text-2xl font-bold mb-2">LinkedIn Profile Optimizer</h2>
+              <p className="text-muted-foreground mb-6">
+                Sign in to optimize your LinkedIn profile with AI
+              </p>
+              <Button onClick={() => setLocation('/auth-page?redirect=/linkedin-optimizer')}>
+                Sign In to Continue
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -237,358 +228,536 @@ ${profile?.topKeywords.join(', ')}
   const isPremium = profile?.isPremium || false;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
+    <div className="container max-w-7xl mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 flex items-center gap-3">
-              <Sparkles className="w-10 h-10 text-blue-600" />
-              LinkedIn Profile Optimizer
-            </h1>
-            <p className="text-gray-600 mt-2">AI-powered profile enhancement</p>
+            <h1 className="text-4xl font-bold mb-2">LinkedIn Profile Optimizer</h1>
+            <p className="text-muted-foreground">
+              AI-powered optimization to boost your professional presence
+            </p>
           </div>
-          {!isPremium && (
-            <Button onClick={() => setLocation('/job-seeker-premium')} className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700">
-              <Crown className="w-4 h-4 mr-2" />
-              Upgrade to Premium
-            </Button>
-          )}
+          <Badge variant={isPremium ? "default" : "secondary"} className="h-8 px-4">
+            {isPremium ? (
+              <>
+                <Crown className="h-4 w-4 mr-2" />
+                Premium
+              </>
+            ) : (
+              'Free Tier'
+            )}
+          </Badge>
         </div>
 
-        {/* Tier Badge & Stats */}
-        <Card className="border-2 border-blue-200 bg-white/80 backdrop-blur">
+        {/* Profile Completeness Score */}
+        <Card>
           <CardContent className="pt-6">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                <Badge className={isPremium ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white text-lg py-2 px-4' : 'bg-blue-600 text-white text-lg py-2 px-4'}>
-                  {isPremium ? '💎 PREMIUM USER' : '🆓 FREE TIER'}
-                </Badge>
-                <div className="text-sm text-gray-600">
-                  {isPremium ? (
-                    <span className="flex items-center gap-2">
-                      <Crown className="w-4 h-4 text-amber-500" />
-                      Unlimited Generations
-                    </span>
-                  ) : (
-                    <span>Free Generations: {profile?.freeGenerationsRemaining || 0}/1 remaining</span>
-                  )}
-                </div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-primary" />
+                <span className="font-semibold">Profile Completeness</span>
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-blue-600">{profile?.profileCompletenessScore}%</div>
-                <div className="text-sm text-gray-600">Profile Complete</div>
-              </div>
+              <span className="text-2xl font-bold">{profile?.profileCompletenessScore}%</span>
             </div>
-            <Progress value={profile?.profileCompletenessScore || 0} className="mt-4 h-3" />
+            <Progress value={profile?.profileCompletenessScore || 0} className="h-2 mb-3" />
             {profile?.missingElements && profile.missingElements.length > 0 && (
-              <div className="mt-3 text-sm text-amber-600">
+              <div className="text-sm text-muted-foreground">
                 Missing: {profile.missingElements.join(', ')}
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Main Content Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-white/80 backdrop-blur">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="headline">Headline</TabsTrigger>
-            <TabsTrigger value="about">About Section</TabsTrigger>
-            <TabsTrigger value="keywords">Keywords</TabsTrigger>
-          </TabsList>
+        {/* Free Tier Usage */}
+        {!isPremium && (
+          <Alert className="mt-4">
+            <Zap className="h-4 w-4" />
+            <AlertDescription>
+              Free tier: {profile?.freeGenerationsRemaining || 0} optimization{(profile?.freeGenerationsRemaining || 0) !== 1 ? 's' : ''} remaining this month
+              {profile?.freeGenerationsRemaining === 0 && (
+                <Button 
+                  variant="link" 
+                  className="ml-2 p-0 h-auto"
+                  onClick={() => setShowUpgradePrompt(true)}
+                >
+                  Upgrade to Premium
+                </Button>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-4">
+      {/* Main Content */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-4 mb-8">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="headline">Headline</TabsTrigger>
+          <TabsTrigger value="about">About Section</TabsTrigger>
+          <TabsTrigger value="keywords">Keywords</TabsTrigger>
+        </TabsList>
+
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Current Headline */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-blue-600" />
-                  Quick Actions
+                  <Sparkles className="h-5 w-5" />
+                  Your Headline
                 </CardTitle>
-                <CardDescription>Generate or regenerate specific sections</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <Button 
-                  onClick={() => handleGenerate()} 
-                  disabled={generating || (!isPremium && profile?.freeGenerationsRemaining === 0)}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                >
-                  {generating ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                  {profile?.generatedHeadline ? 'Regenerate Full Profile' : 'Generate Full Profile'}
-                </Button>
+              <CardContent>
+                {profile?.generatedHeadline ? (
+                  <>
+                    <p className="mb-4 p-3 bg-muted rounded-lg">{profile.generatedHeadline}</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => copyToClipboard(profile.generatedHeadline!)}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy
+                    </Button>
+                  </>
+                ) : (
+                  <p className="text-muted-foreground">Generate your optimized headline</p>
+                )}
+              </CardContent>
+            </Card>
 
-                <div className="grid grid-cols-3 gap-3">
+            {/* Top Keywords */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Top Keywords
+                  {!isPremium && <Badge variant="secondary" className="ml-2">Top 5</Badge>}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {profile?.topKeywords && profile.topKeywords.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {profile.topKeywords.map((keyword, idx) => (
+                      <Badge key={idx} variant="outline">{keyword}</Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Generate keywords for your profile</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button 
+                onClick={() => generateOptimizations()}
+                disabled={generating || (!isPremium && profile?.freeGenerationsRemaining === 0)}
+                className="w-full justify-between"
+              >
+                <span className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Generate Profile Optimizations
+                </span>
+                {generating && <RefreshCw className="h-4 w-4 animate-spin" />}
+              </Button>
+              
+              {!isPremium && (
+                <div className="text-sm text-muted-foreground text-center">
+                  Free tier: Generates headline + top 5 keywords only
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Premium Features Preview */}
+          {!isPremium && (
+            <Card className="border-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-primary" />
+                  Unlock Premium Features
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
+                    <div>
+                      <div className="font-semibold">Unlimited Generations</div>
+                      <div className="text-sm text-muted-foreground">Generate as many variations as you need</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
+                    <div>
+                      <div className="font-semibold">Full About Section</div>
+                      <div className="text-sm text-muted-foreground">A/B test 3 versions</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
+                    <div>
+                      <div className="font-semibold">All Keywords</div>
+                      <div className="text-sm text-muted-foreground">Full keyword analysis with charts</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
+                    <div>
+                      <div className="font-semibold">Weekly Content Calendar</div>
+                      <div className="text-sm text-muted-foreground">AI-suggested posts</div>
+                    </div>
+                  </div>
+                </div>
+                <Button 
+                  className="w-full"
+                  onClick={() => setLocation('/subscription')}
+                >
+                  Upgrade to Premium
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Headline Tab */}
+        <TabsContent value="headline" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5" />
+                  Professional Headline
+                </span>
+                {isPremium && (
                   <Button 
-                    onClick={() => handleGenerate({ headline: true })}
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => generateOptimizations('headline')}
                     disabled={generating}
-                    variant="outline"
                   >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Headline Only
+                    <RefreshCw className={`h-4 w-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
+                    Regenerate
                   </Button>
-                  <Button 
-                    onClick={() => handleGenerate({ about: true })}
-                    disabled={generating || !isPremium}
-                    variant="outline"
-                  >
-                    {!isPremium && <Lock className="w-4 h-4 mr-2" />}
-                    About Only
-                  </Button>
-                  <Button 
-                    onClick={() => handleGenerate({ keywords: true })}
-                    disabled={generating}
-                    variant="outline"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Keywords Only
+                )}
+              </CardTitle>
+              <CardDescription>
+                Your professional tagline (120 characters max)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isEditing.headline ? (
+                <>
+                  <Textarea
+                    value={editedHeadline}
+                    onChange={(e) => setEditedHeadline(e.target.value)}
+                    maxLength={120}
+                    rows={3}
+                    className="resize-none"
+                  />
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">
+                      {editedHeadline.length}/120 characters
+                    </span>
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => setIsEditing({ ...isEditing, headline: false })}>
+                        Cancel
+                      </Button>
+                      <Button onClick={saveEdits}>Save</Button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-lg">{editedHeadline || 'No headline generated yet'}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsEditing({ ...isEditing, headline: true })}
+                      disabled={!editedHeadline}
+                    >
+                      Edit
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => copyToClipboard(editedHeadline)}
+                      disabled={!editedHeadline}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {!isPremium && (
+                <Alert>
+                  <Lock className="h-4 w-4" />
+                  <AlertDescription>
+                    Premium users can generate unlimited headline variations
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Tips */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lightbulb className="h-5 w-5" />
+                Headline Tips
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5" />
+                  <span>Include your current role and years of experience</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5" />
+                  <span>Add 2-3 top skills relevant to your industry</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5" />
+                  <span>Use industry keywords recruiters search for</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5" />
+                  <span>Keep it concise and impactful</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* About Section Tab */}
+        <TabsContent value="about" className="space-y-6">
+          {isPremium ? (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <MessageSquare className="h-5 w-5" />
+                      Professional Summary
+                    </span>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => generateOptimizations('about')}
+                      disabled={generating}
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
+                      Regenerate
+                    </Button>
+                  </CardTitle>
+                  <CardDescription>
+                    Your professional story with measurable impact
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {isEditing.about ? (
+                    <>
+                      <Textarea
+                        value={editedAbout}
+                        onChange={(e) => setEditedAbout(e.target.value)}
+                        rows={10}
+                        className="resize-none font-mono text-sm"
+                      />
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setIsEditing({ ...isEditing, about: false })}>
+                          Cancel
+                        </Button>
+                        <Button onClick={saveEdits}>Save</Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="p-4 bg-muted rounded-lg whitespace-pre-wrap">
+                        {editedAbout || 'Generate your professional summary'}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setIsEditing({ ...isEditing, about: true })}
+                          disabled={!editedAbout}
+                        >
+                          Edit
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => copyToClipboard(editedAbout)}
+                          disabled={!editedAbout}
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card className="border-primary/20">
+              <CardContent className="pt-6">
+                <div className="text-center py-12">
+                  <Lock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-xl font-semibold mb-2">Premium Feature</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Upgrade to Premium to unlock full about section optimization with A/B testing
+                  </p>
+                  <Button onClick={() => setLocation('/subscription')}>
+                    <Crown className="h-4 w-4 mr-2" />
+                    Upgrade to Premium
                   </Button>
                 </div>
               </CardContent>
             </Card>
+          )}
+        </TabsContent>
 
-            {/* Feature Comparison */}
-            <div className="grid md:grid-cols-2 gap-4">
-              <Card className="border-2 border-blue-200">
-                <CardHeader>
-                  <CardTitle className="text-lg">🆓 Free Tier</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">✅ 1 profile optimization per month</div>
-                  <div className="flex items-center gap-2">✅ Basic headline generation</div>
-                  <div className="flex items-center gap-2">✅ Top 5 keywords</div>
-                  <div className="flex items-center gap-2">✅ Profile completeness score</div>
-                  <div className="flex items-center gap-2">✅ Plain text export</div>
-                  <div className="flex items-center gap-2 text-gray-400">❌ About section optimization</div>
-                  <div className="flex items-center gap-2 text-gray-400">❌ A/B testing</div>
-                  <div className="flex items-center gap-2 text-gray-400">❌ Advanced analytics</div>
-                </CardContent>
-              </Card>
+        {/* Keywords Tab */}
+        <TabsContent value="keywords" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Top Keywords for Your Role
+                </span>
+                {isPremium && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => generateOptimizations('keywords')}
+                    disabled={generating}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                )}
+              </CardTitle>
+              <CardDescription>
+                {isPremium ? 'All keywords' : 'Top 5 keywords (upgrade for full analysis)'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {profile?.topKeywords && profile.topKeywords.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-3">
+                    {profile.topKeywords.map((keyword, idx) => (
+                      <Badge key={idx} variant="outline" className="text-base py-2 px-4">
+                        {keyword}
+                      </Badge>
+                    ))}
+                  </div>
+                  
+                  {!isPremium && (
+                    <Alert>
+                      <BarChart3 className="h-4 w-4" />
+                      <AlertDescription>
+                        Premium users get all keywords with density charts and trending analysis
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              ) : (
+                <p className="text-muted-foreground">Generate keywords to see recommendations</p>
+              )}
+            </CardContent>
+          </Card>
 
-              <Card className="border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50">
+          {/* Premium Features for Keywords */}
+          {isPremium && (
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Crown className="w-5 h-5 text-amber-600" />
-                    💎 Premium Tier
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Award className="h-5 w-5" />
+                    Skills Gap Analysis
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2 font-semibold">⭐ Unlimited optimizations</div>
-                  <div className="flex items-center gap-2 font-semibold">⭐ Full about section (3 versions)</div>
-                  <div className="flex items-center gap-2 font-semibold">⭐ Top 10 keywords + density analysis</div>
-                  <div className="flex items-center gap-2 font-semibold">⭐ Skills gap analysis</div>
-                  <div className="flex items-center gap-2 font-semibold">⭐ Endorsement templates</div>
-                  <div className="flex items-center gap-2 font-semibold">⭐ Weekly content calendar</div>
-                  <div className="flex items-center gap-2 font-semibold">⭐ Competitor analysis</div>
-                  <div className="flex items-center gap-2 font-semibold">⭐ Search visibility score</div>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    Trending skills in your industry coming soon
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Users className="h-5 w-5" />
+                    Endorsement Strategy
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    Personalized endorsement request templates
+                  </p>
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
+          )}
+        </TabsContent>
+      </Tabs>
 
-          {/* Headline Tab */}
-          <TabsContent value="headline">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Optimized Headline</span>
-                  <Button 
-                    onClick={() => handleGenerate({ headline: true })}
-                    disabled={generating}
-                    size="sm"
-                    variant="outline"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Regenerate
-                  </Button>
-                </CardTitle>
-                <CardDescription>Your professional LinkedIn headline</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {profile?.generatedHeadline ? (
-                  <div className="space-y-4">
-                    {isEditing.headline ? (
-                      <>
-                        <Textarea
-                          value={editedHeadline}
-                          onChange={(e) => setEditedHeadline(e.target.value)}
-                          rows={3}
-                          className="font-medium"
-                        />
-                        <div className="flex gap-2">
-                          <Button onClick={handleSaveEdits}>Save Changes</Button>
-                          <Button variant="outline" onClick={() => {
-                            setEditedHeadline(profile.generatedHeadline || '');
-                            setIsEditing({ ...isEditing, headline: false });
-                          }}>Cancel</Button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
-                          <p className="text-lg font-medium text-gray-900">{editedHeadline}</p>
-                        </div>
-                        <Button variant="outline" onClick={() => setIsEditing({ ...isEditing, headline: true })}>
-                          Edit Headline
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>No headline generated yet. Click "Generate Full Profile" to get started.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* About Tab */}
-          <TabsContent value="about">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>About Section</span>
-                  {isPremium && (
-                    <Button 
-                      onClick={() => handleGenerate({ about: true })}
-                      disabled={generating}
-                      size="sm"
-                      variant="outline"
-                    >
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Regenerate
-                    </Button>
-                  )}
-                </CardTitle>
-                <CardDescription>
-                  {isPremium ? 'Your optimized about section' : 'Premium feature - Upgrade to unlock'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {!isPremium ? (
-                  <div className="text-center py-12 space-y-4">
-                    <Lock className="w-16 h-16 mx-auto text-gray-400" />
-                    <h3 className="text-xl font-semibold text-gray-700">Premium Feature</h3>
-                    <p className="text-gray-600">Unlock full about section optimization with 3 A/B tested versions</p>
-                    <Button onClick={() => setLocation('/job-seeker-premium')} className="bg-gradient-to-r from-amber-500 to-orange-600">
-                      <Crown className="w-4 h-4 mr-2" />
-                      Upgrade to Premium
-                    </Button>
-                  </div>
-                ) : profile?.generatedAbout ? (
-                  <div className="space-y-4">
-                    {isEditing.about ? (
-                      <>
-                        <Textarea
-                          value={editedAbout}
-                          onChange={(e) => setEditedAbout(e.target.value)}
-                          rows={12}
-                          className="font-medium"
-                        />
-                        <div className="flex gap-2">
-                          <Button onClick={handleSaveEdits}>Save Changes</Button>
-                          <Button variant="outline" onClick={() => {
-                            setEditedAbout(profile.generatedAbout || '');
-                            setIsEditing({ ...isEditing, about: false });
-                          }}>Cancel</Button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="p-6 bg-blue-50 rounded-lg border-2 border-blue-200 whitespace-pre-wrap">
-                          <p className="text-gray-900">{editedAbout}</p>
-                        </div>
-                        <Button variant="outline" onClick={() => setIsEditing({ ...isEditing, about: true })}>
-                          Edit About Section
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>No about section generated yet. Click "Generate Full Profile" to get started.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Keywords Tab */}
-          <TabsContent value="keywords">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Top Keywords</span>
-                  <Button 
-                    onClick={() => handleGenerate({ keywords: true })}
-                    disabled={generating}
-                    size="sm"
-                    variant="outline"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Regenerate
-                  </Button>
-                </CardTitle>
-                <CardDescription>
-                  {isPremium ? 'Top 10 industry keywords with density analysis' : 'Top 5 essential keywords'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {profile?.topKeywords && profile.topKeywords.length > 0 ? (
-                  <div className="space-y-4">
-                    <div className="flex flex-wrap gap-3">
-                      {profile.topKeywords.map((keyword, idx) => (
-                        <Badge key={idx} variant="secondary" className="text-base py-2 px-4 bg-blue-100 text-blue-800">
-                          {keyword}
-                        </Badge>
-                      ))}
-                    </div>
-                    {!isPremium && (
-                      <div className="mt-6 p-4 bg-amber-50 border-2 border-amber-200 rounded-lg">
-                        <p className="text-sm text-amber-800 flex items-center gap-2">
-                          <Lock className="w-4 h-4" />
-                          Upgrade to Premium for 10 keywords, density charts, and trending analysis
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>No keywords generated yet. Click "Generate Full Profile" to get started.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        {/* Export Section */}
-        {(profile?.generatedHeadline || profile?.generatedAbout) && (
-          <Card>
+      {/* Upgrade Prompt Modal */}
+      {showUpgradePrompt && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowUpgradePrompt(false)}>
+          <Card className="max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Download className="w-5 h-5" />
-                Export Profile
+                <Crown className="h-6 w-6 text-primary" />
+                Upgrade to Premium
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex gap-3">
-                <Button onClick={() => exportProfile('txt')} variant="outline">
-                  <Download className="w-4 h-4 mr-2" />
-                  Export as Text
+            <CardContent className="space-y-4">
+              <p>You've used your free optimization. Upgrade to Premium for:</p>
+              <ul className="space-y-2">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  Unlimited optimizations
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  Full about section with A/B testing
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  Complete keyword analysis
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  Weekly content calendar
+                </li>
+              </ul>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowUpgradePrompt(false)} className="flex-1">
+                  Maybe Later
                 </Button>
-                {!isPremium && (
-                  <Button disabled variant="outline" className="opacity-50">
-                    <Lock className="w-4 h-4 mr-2" />
-                    PDF Export (Premium)
-                  </Button>
-                )}
+                <Button onClick={() => setLocation('/subscription')} className="flex-1">
+                  Upgrade Now
+                </Button>
               </div>
             </CardContent>
           </Card>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
