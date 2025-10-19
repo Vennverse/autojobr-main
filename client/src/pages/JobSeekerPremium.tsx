@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -40,11 +41,12 @@ import {
   FileText,
   Search,
   Clock,
-  Shield
+  Shield,
+  Sparkles,
+  ArrowRight,
+  CheckCircle2
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import PayPalSubscriptionButton from "@/components/PayPalSubscriptionButton";
-import PaymentGatewaySelector from "@/components/PaymentGatewaySelector";
 import UsageMonitoringWidget from "@/components/UsageMonitoringWidget";
 
 interface JobSeekerSubscriptionTier {
@@ -68,8 +70,12 @@ export default function JobSeekerPremium() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'cashfree' | 'razorpay'>('paypal');
-  const [showPayment, setShowPayment] = useState(false);
+  const [hoveredPlan, setHoveredPlan] = useState<string | null>(null);
+
+  // Fetch user data
+  const { data: user } = useQuery<{planType?: string}>({
+    queryKey: ['/api/user']
+  });
 
   // Fetch only job seeker subscription tiers
   const { data: tiersData, isLoading: tiersLoading } = useQuery({
@@ -80,29 +86,6 @@ export default function JobSeekerPremium() {
   // Fetch current subscription
   const { data: currentSubscription, isLoading: subscriptionLoading } = useQuery({
     queryKey: ['/api/subscription/current'],
-  });
-
-  // Create subscription mutation
-  const createSubscriptionMutation = useMutation({
-    mutationFn: async (data: { tierId: string; paymentMethod: string }) => {
-      return await apiRequest('POST', '/api/subscription/create', data);
-    },
-    onSuccess: (data) => {
-      if (data.order?.orderId) {
-        toast({
-          title: "Payment initiated",
-          description: "Complete your payment to activate premium features.",
-        });
-        setShowPayment(true);
-      }
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create subscription",
-        variant: "destructive",
-      });
-    },
   });
 
   // Cancel subscription mutation
@@ -126,11 +109,6 @@ export default function JobSeekerPremium() {
     },
   });
 
-  const handleSubscribe = (tierId: string) => {
-    setSelectedTier(tierId);
-    createSubscriptionMutation.mutate({ tierId, paymentMethod });
-  };
-
   const handleCancelSubscription = () => {
     if (confirm("Are you sure you want to cancel your subscription? You'll still have access until the end of your billing period.")) {
       cancelSubscriptionMutation.mutate();
@@ -140,7 +118,6 @@ export default function JobSeekerPremium() {
   // PayPal script loading and button initialization
   useEffect(() => {
     const loadPayPalScript = () => {
-      // Check if PayPal script is already loaded
       if (window.paypal) {
         initializePayPalButtons();
         return;
@@ -161,7 +138,7 @@ export default function JobSeekerPremium() {
         window.paypal.Buttons({
           style: {
             shape: 'rect',
-            color: 'gold',
+            color: 'black',
             layout: 'vertical',
             label: 'subscribe'
           },
@@ -169,12 +146,11 @@ export default function JobSeekerPremium() {
             return actions.subscription.create({
               plan_id: 'P-9SC66893530757807NCRWYCI',
               application_context: {
-                shipping_preference: 'NO_SHIPPING' // Digital service only
+                shipping_preference: 'NO_SHIPPING'
               }
             });
           },
           onApprove: function(data: any, actions: any) {
-            // Send subscription ID to backend for verification
             fetch('/api/paypal/verify-subscription', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -212,7 +188,7 @@ export default function JobSeekerPremium() {
         window.paypal.Buttons({
           style: {
             shape: 'rect',
-            color: 'gold',
+            color: 'black',
             layout: 'vertical',
             label: 'subscribe'
           },
@@ -220,12 +196,11 @@ export default function JobSeekerPremium() {
             return actions.subscription.create({
               plan_id: 'P-5JM23618R75865735NCRXOLY',
               application_context: {
-                shipping_preference: 'NO_SHIPPING' // Digital service only
+                shipping_preference: 'NO_SHIPPING'
               }
             });
           },
           onApprove: function(data: any, actions: any) {
-            // Send subscription ID to backend for verification
             fetch('/api/paypal/verify-subscription', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -261,7 +236,6 @@ export default function JobSeekerPremium() {
 
     loadPayPalScript();
 
-    // Cleanup function
     return () => {
       const premiumContainer = document.getElementById('paypal-button-container-P-9SC66893530757807NCRWYCI');
       const ultraContainer = document.getElementById('paypal-button-container-P-5JM23618R75865735NCRXOLY');
@@ -270,350 +244,338 @@ export default function JobSeekerPremium() {
     };
   }, [queryClient, toast]);
 
-  const getIconForTier = (tierName: string) => {
-    if (tierName.includes('Basic')) return <Star className="h-6 w-6" />;
-    if (tierName.includes('Premium')) return <Crown className="h-6 w-6" />;
-    return <Star className="h-6 w-6" />;
-  };
-
-  const formatLimit = (value: number) => {
-    if (value === -1) return 'Unlimited';
-    return value.toLocaleString();
-  };
-
   if (tiersLoading || subscriptionLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center min-h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
+        <div className="container mx-auto px-4 py-16">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 dark:border-gray-800"></div>
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-t-blue-600 absolute top-0 left-0"></div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Filter to ensure only job seeker tiers are displayed
-  const tiers: JobSeekerSubscriptionTier[] = (tiersData?.tiers || []).filter((tier: any) => tier.userType === 'jobseeker');
   const subscription = (currentSubscription as any)?.subscription || null;
-  
-  // Check if user has premium/ultra_premium plan type
   const isPremiumUser = user?.planType === 'premium' || user?.planType === 'ultra_premium' || user?.planType === 'enterprise';
-  
-  // Check subscription status - handle both possible response structures for backwards compatibility
   const isFreeTier = !isPremiumUser && (!subscription || !(subscription?.isActive === true || subscription?.status === 'active'));
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Usage Monitoring Sidebar */}
-        <div className="lg:col-span-1">
-          <UsageMonitoringWidget />
-        </div>
-
-        {/* Main Content */}
-        <div className="lg:col-span-2">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-4">Job Seeker Premium Plans</h1>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Supercharge your job search with AI-powered tools, unlimited applications, and premium features.
-            </p>
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 dark:from-blue-500/10 dark:via-purple-500/10 dark:to-pink-500/10"></div>
+        <div className="container mx-auto px-4 py-20 relative">
+          <div className="max-w-4xl mx-auto text-center space-y-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-900 mb-4">
+              <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Elevate Your Career</span>
+            </div>
             
-            {isFreeTier && !isPremiumUser && (
-              <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                <div className="flex items-center justify-center gap-2 text-yellow-800 dark:text-yellow-200">
-                  <AlertTriangle className="h-5 w-5" />
-                  <span className="font-medium">Free tier limits applied - Upgrade now for unlimited access!</span>
+            <h1 className="text-5xl md:text-6xl font-semibold tracking-tight text-gray-900 dark:text-white">
+              Premium Job Search,
+              <br />
+              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Simplified.
+              </span>
+            </h1>
+            
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
+              AI-powered tools that transform your job search. Get hired faster with intelligent automation and premium features.
+            </p>
+
+            {isFreeTier && (
+              <div className="mt-8 max-w-md mx-auto">
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50 border border-amber-200 dark:border-amber-800">
+                  <div className="flex items-center gap-3 text-amber-900 dark:text-amber-100">
+                    <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+                    <span className="text-sm font-medium">Free tier limits active. Upgrade for unlimited access.</span>
+                  </div>
                 </div>
               </div>
             )}
           </div>
+        </div>
+      </div>
 
-          {/* Current Subscription Status */}
-          {subscription && (
-            <Card className="mb-8 border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
+      <div className="container mx-auto px-4 pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+          {/* Sidebar - Usage Monitoring */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-8">
+              <UsageMonitoringWidget />
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-12">
+            {/* Current Subscription */}
+            {subscription && (
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-3xl opacity-0 group-hover:opacity-10 transition-opacity duration-500 blur-xl"></div>
+                <Card className="relative border-blue-100 dark:border-blue-900 shadow-lg shadow-blue-500/5 rounded-3xl overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
+                  <CardHeader className="relative">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-3 text-2xl">
+                        <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950">
+                          <Crown className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        Active Subscription
+                      </CardTitle>
+                      <Badge className="bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300 border-green-200 dark:border-green-800">
+                        {subscription.status}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="relative space-y-6">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Plan</p>
+                        <p className="font-semibold text-lg">{subscription.tierDetails?.name}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Billing</p>
+                        <p className="font-semibold text-lg">${subscription.amount}/{subscription.billingCycle}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Remaining</p>
+                        <p className="font-semibold text-lg">{subscription.daysRemaining} days</p>
+                      </div>
+                    </div>
+                    
+                    {subscription.isActive && (
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800">
+                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                          <Calendar className="h-4 w-4" />
+                          <span>Renews automatically</span>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={handleCancelSubscription}
+                          disabled={cancelSubscriptionMutation.isPending}
+                          className="hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-600"
+                        >
+                          Cancel Plan
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Pricing Plans */}
+            <div className="space-y-8">
+              <div className="text-center">
+                <h2 className="text-3xl font-semibold text-gray-900 dark:text-white mb-2">
+                  Choose Your Plan
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Select the perfect plan for your career journey
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Premium Plan */}
+                <div 
+                  className="relative group"
+                  onMouseEnter={() => setHoveredPlan('premium')}
+                  onMouseLeave={() => setHoveredPlan(null)}
+                >
+                  <div className={`absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-500 rounded-3xl transition-all duration-500 ${hoveredPlan === 'premium' ? 'opacity-20 blur-xl scale-105' : 'opacity-0'}`}></div>
+                  <Card className="relative border-gray-200 dark:border-gray-800 shadow-xl hover:shadow-2xl transition-all duration-500 rounded-3xl overflow-hidden h-full">
+                    <CardHeader className="space-y-4 pb-8">
+                      <div className="flex items-center justify-between">
+                        <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
+                          <Crown className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <Badge className="bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300 border-green-200 dark:border-green-800">
+                          Save 83%
+                        </Badge>
+                      </div>
+                      
+                      <div>
+                        <CardTitle className="text-2xl mb-2">Premium</CardTitle>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-5xl font-bold tracking-tight">$5</span>
+                          <span className="text-gray-500 dark:text-gray-400">/month</span>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    
+                    <CardContent className="space-y-6">
+                      <div className="space-y-3">
+                        {[
+                          'AI Resume Analysis',
+                          'Smart Job Matching',
+                          'Auto-fill Applications',
+                          'Unlimited Cover Letters',
+                          'Advanced Analytics',
+                          'Priority Support'
+                        ].map((feature, i) => (
+                          <div key={i} className="flex items-center gap-3">
+                            <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                            <span className="text-sm text-gray-700 dark:text-gray-300">{feature}</span>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <Separator />
+                      
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Resume Analyses</span>
+                          <span className="font-medium">25/month</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Applications</span>
+                          <span className="font-medium">Unlimited</span>
+                        </div>
+                      </div>
+                      
+                      <div className="pt-4">
+                        <div id="paypal-button-container-P-9SC66893530757807NCRWYCI" className="min-h-[50px]"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Ultra Premium Plan */}
+                <div 
+                  className="relative group"
+                  onMouseEnter={() => setHoveredPlan('ultra')}
+                  onMouseLeave={() => setHoveredPlan(null)}
+                >
+                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-3xl opacity-75 blur-sm group-hover:opacity-100 transition-all duration-500"></div>
+                  <Card className="relative bg-white dark:bg-gray-950 border-0 shadow-2xl rounded-3xl overflow-hidden h-full">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600"></div>
+                    
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                      <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0 shadow-lg px-4 py-1">
+                        <Star className="h-3 w-3 mr-1" />
+                        Most Popular
+                      </Badge>
+                    </div>
+                    
+                    <CardHeader className="space-y-4 pb-8 pt-8">
+                      <div className="flex items-center justify-between">
+                        <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600">
+                          <Sparkles className="h-8 w-8 text-white" />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <CardTitle className="text-2xl mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                          Ultra Premium
+                        </CardTitle>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-5xl font-bold tracking-tight">$15</span>
+                          <span className="text-gray-500 dark:text-gray-400">/month</span>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    
+                    <CardContent className="space-y-6">
+                      <div className="space-y-3">
+                        {[
+                          'Everything in Premium',
+                          'AI Interview Practice',
+                          'Coding Assessments',
+                          'Recruiter Chat Access',
+                          'Advanced Analytics',
+                          'API Access'
+                        ].map((feature, i) => (
+                          <div key={i} className="flex items-center gap-3">
+                            <CheckCircle2 className="h-5 w-5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                            <span className="text-sm text-gray-700 dark:text-gray-300">{feature}</span>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <Separator />
+                      
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">All Features</span>
+                          <span className="font-medium bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Unlimited</span>
+                        </div>
+                      </div>
+                      
+                      <div className="pt-4">
+                        <div id="paypal-button-container-P-5JM23618R75865735NCRXOLY" className="min-h-[50px]"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </div>
+
+            {/* Benefits Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8">
+              {[
+                {
+                  icon: Zap,
+                  title: 'AI-Powered',
+                  description: 'Advanced algorithms match you with perfect opportunities',
+                  gradient: 'from-yellow-400 to-orange-500'
+                },
+                {
+                  icon: Clock,
+                  title: 'Save Time',
+                  description: 'Auto-fill applications across 500+ job sites',
+                  gradient: 'from-green-400 to-emerald-500'
+                },
+                {
+                  icon: TrendingUp,
+                  title: 'Get Results',
+                  description: '3x more interviews on average for premium users',
+                  gradient: 'from-blue-400 to-purple-500'
+                }
+              ].map((benefit, i) => (
+                <Card key={i} className="border-gray-200 dark:border-gray-800 hover:shadow-lg transition-all duration-300 rounded-2xl group">
+                  <CardContent className="pt-6 text-center space-y-3">
+                    <div className={`w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br ${benefit.gradient} p-3 group-hover:scale-110 transition-transform duration-300`}>
+                      <benefit.icon className="h-8 w-8 text-white" />
+                    </div>
+                    <h3 className="font-semibold text-lg">{benefit.title}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                      {benefit.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Security & Trust */}
+            <Card className="border-gray-200 dark:border-gray-800 rounded-2xl">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  Current Subscription
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <div className="p-2 rounded-xl bg-green-50 dark:bg-green-950">
+                    <Shield className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  Secure & Trusted
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Plan</p>
-                    <p className="font-semibold">{subscription.tierDetails?.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Status</p>
-                    <Badge variant={subscription.isActive ? "default" : "secondary"}>
-                      {subscription.status}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Billing</p>
-                    <p className="font-semibold">
-                      ${subscription.amount} / {subscription.billingCycle}
-                    </p>
-                  </div>
-                </div>
-                
-                {subscription.isActive && (
-                  <div className="mt-4 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        {subscription.daysRemaining} days remaining
-                      </span>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Your payment is processed securely through PayPal. Cancel anytime with no questions asked.
+                </p>
+                <div className="flex flex-wrap gap-4 text-sm">
+                  {['Cancel Anytime', 'Instant Activation', '30-Day Guarantee'].map((item, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      <span className="text-gray-700 dark:text-gray-300">{item}</span>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={handleCancelSubscription}
-                      disabled={cancelSubscriptionMutation.isPending}
-                    >
-                      Cancel Subscription
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Subscription Plans - Simplified to 2 Tiers */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            {/* Premium Monthly - $5 */}
-            <Card className="relative">
-              <CardHeader className="text-center">
-                <div className="flex justify-center mb-2">
-                  <Crown className="h-8 w-8 text-blue-600" />
-                </div>
-                <CardTitle>Premium Monthly</CardTitle>
-                <CardDescription>
-                  <span className="text-3xl font-bold">$5</span>
-                  <span className="text-muted-foreground">/month</span>
-                  <Badge className="ml-2 bg-green-600">83% OFF Market Price</Badge>
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">AI Resume Analysis</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">Job Matching</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">Chrome Extension Auto-fill</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">Unlimited Cover Letters</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">Advanced Analytics</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">Basic Support</span>
-                  </div>
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-sm">Limits</h4>
-                  <div className="flex justify-between text-sm">
-                    <span>Resume Analyses</span>
-                    <span className="font-medium">25/month</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Job Applications</span>
-                    <span className="font-medium">Unlimited</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Auto-Fill Forms</span>
-                    <span className="font-medium">Unlimited</span>
-                  </div>
-                </div>
-                
-                <div className="mt-4">
-                  <div id="paypal-button-container-P-9SC66893530757807NCRWYCI" className="min-h-[50px]"></div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Ultra Premium Monthly - $15 */}
-            <Card className="relative border-blue-500 ring-2 ring-blue-200">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-blue-600 text-white">Most Popular</Badge>
-              </div>
-              
-              <CardHeader className="text-center">
-                <div className="flex justify-center mb-2">
-                  <Star className="h-8 w-8 text-blue-600" />
-                </div>
-                <CardTitle>Ultra Premium Monthly</CardTitle>
-                <CardDescription>
-                  <span className="text-3xl font-bold">$15</span>
-                  <span className="text-muted-foreground">/month</span>
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">Everything in Premium</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">Virtual AI Interviews</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">Coding Tests</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">Chat with Recruiters</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">Priority Support</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">API Access</span>
-                  </div>
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-sm">Limits</h4>
-                  <div className="flex justify-between text-sm">
-                    <span>Resume Analyses</span>
-                    <span className="font-medium">Unlimited</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Virtual Interviews</span>
-                    <span className="font-medium">Unlimited</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Everything Else</span>
-                    <span className="font-medium">Unlimited</span>
-                  </div>
-                </div>
-                
-                <div className="mt-4">
-                  <div id="paypal-button-container-P-5JM23618R75865735NCRXOLY" className="min-h-[50px]"></div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
           </div>
-
-          {/* Information Section */}
-          <Card className="mt-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-yellow-500" />
-                Why Choose Premium?
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center p-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <Zap className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <h3 className="font-semibold mb-1">AI-Powered</h3>
-                  <p className="text-sm text-muted-foreground">Advanced AI analyzes your resume and matches you with perfect jobs</p>
-                </div>
-                <div className="text-center p-4">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <Clock className="h-6 w-6 text-green-600" />
-                  </div>
-                  <h3 className="font-semibold mb-1">Save Time</h3>
-                  <p className="text-sm text-muted-foreground">Auto-fill job applications with your Chrome extension</p>
-                </div>
-                <div className="text-center p-4">
-                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <TrendingUp className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <h3 className="font-semibold mb-1">Get Results</h3>
-                  <p className="text-sm text-muted-foreground">Premium users get 3x more interviews on average</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Payment Method Information */}
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-green-500" />
-                Secure Payment with PayPal
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-2">
-                Your payment is processed securely through PayPal. You can cancel your subscription anytime from your PayPal account or our platform.
-              </p>
-              <div className="flex items-center gap-2 text-sm">
-                <Check className="h-4 w-4 text-green-600" />
-                <span>Cancel anytime</span>
-                <Check className="h-4 w-4 text-green-600" />
-                <span>Instant activation</span>
-                <Check className="h-4 w-4 text-green-600" />
-                <span>30-day money back guarantee</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Job Seeker Benefits Showcase */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-center">Why Job Seekers Choose Premium</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="text-center space-y-2">
-                  <Brain className="h-8 w-8 mx-auto text-blue-600" />
-                  <h3 className="font-semibold">AI Resume Analysis</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Get instant ATS compatibility scores and personalized resume improvements
-                  </p>
-                </div>
-                <div className="text-center space-y-2">
-                  <Search className="h-8 w-8 mx-auto text-green-600" />
-                  <h3 className="font-semibold">Smart Job Matching</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Find relevant jobs faster with AI-powered matching algorithms
-                  </p>
-                </div>
-                <div className="text-center space-y-2">
-                  <FileText className="h-8 w-8 mx-auto text-purple-600" />
-                  <h3 className="font-semibold">Auto-Fill Applications</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Chrome extension fills job applications automatically across 500+ sites
-                  </p>
-                </div>
-                <div className="text-center space-y-2">
-                  <TrendingUp className="h-8 w-8 mx-auto text-orange-600" />
-                  <h3 className="font-semibold">Interview Practice</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Practice virtual interviews and improve your performance with AI feedback
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-
         </div>
       </div>
     </div>
