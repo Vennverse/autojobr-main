@@ -5,10 +5,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 
 export default function NotFound() {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">

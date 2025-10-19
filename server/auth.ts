@@ -100,10 +100,8 @@ export async function setupAuth(app: Express) {
 
   // Configure Google OAuth Strategy (force enable for production)
   if (authConfig.providers.google.clientId) {
-    // Use dynamic callback URL based on environment
-    const callbackURL = isProduction 
-      ? 'https://autojobr.com/api/auth/google/callback'
-      : `${baseUrl}/api/auth/google/callback`;
+    // Always use dynamic callback URL based on runtime environment
+    const callbackURL = `${baseUrl}/api/auth/google/callback`;
     console.log('🔑 Setting up Google OAuth strategy with callback URL:', callbackURL);
     console.log('🔑 Using Google Client ID:', authConfig.providers.google.clientId?.substring(0, 20) + '...');
 
@@ -1099,8 +1097,8 @@ export async function setupAuth(app: Express) {
         return res.status(400).json({ message: 'Authorization code is required' });
       }
 
-      // Exchange code for tokens
-      const baseUrl = 'https://autojobr.com';
+      // Exchange code for tokens - use dynamic baseUrl
+      const requestBaseUrl = process.env.BASE_URL || process.env.REPL_URL || `${req.protocol}://${req.get('host')}`;
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: {
@@ -1111,7 +1109,7 @@ export async function setupAuth(app: Express) {
           client_secret: authConfig.providers.google.clientSecret!,
           code: code as string,
           grant_type: 'authorization_code',
-          redirect_uri: `${baseUrl}/api/auth/callback/google`,
+          redirect_uri: `${requestBaseUrl}/api/auth/callback/google`,
         }),
       });
 
@@ -1284,8 +1282,8 @@ export async function setupAuth(app: Express) {
         return res.status(400).json({ message: 'Authorization code is required' });
       }
 
-      // Exchange code for tokens
-      const baseUrl = 'https://autojobr.com';
+      // Exchange code for tokens - use dynamic baseUrl
+      const requestBaseUrl = process.env.BASE_URL || process.env.REPL_URL || `${req.protocol}://${req.get('host')}`;
       const tokenResponse = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
         method: 'POST',
         headers: {
@@ -1294,7 +1292,7 @@ export async function setupAuth(app: Express) {
         body: new URLSearchParams({
           grant_type: 'authorization_code',
           code: code as string,
-          redirect_uri: `${baseUrl}/api/auth/callback/linkedin`,
+          redirect_uri: `${requestBaseUrl}/api/auth/callback/linkedin`,
           client_id: authConfig.providers.linkedin.clientId!,
           client_secret: authConfig.providers.linkedin.clientSecret!,
         }),
