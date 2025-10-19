@@ -1,7 +1,7 @@
 
 import { db } from './db';
-import { jobApplications, resumes, users, jobPostings } from '@shared/schema';
-import { eq, desc, sql, and, gte } from 'drizzle-orm';
+import { jobApplications, resumes, users, jobPostings, userSkills } from '@shared/schema';
+import { eq, desc, sql, and, gte, count } from 'drizzle-orm';
 
 interface CareerInsight {
   type: 'resume_optimization' | 'career_transition' | 'salary_alert' | 'skill_gap' | 'application_pattern';
@@ -16,12 +16,12 @@ interface CareerInsight {
 export class CareerInsightsService {
   
   async generateProactiveInsights(userId: string): Promise<CareerInsight[]> {
-    console.log('[CAREER INSIGHTS] Generating insights for user:', userId);
+    console.log('[CAREER INSIGHTS] Generating rule-based insights for user:', userId);
     const insights: CareerInsight[] = [];
     
-    // Get user's recent applications
-    const recentApps = await db
-      .select({
+    // Get user data in parallel for efficiency
+    const [recentApps, userResumes, user, skills] = await Promise.all([
+      db.select({
         id: jobApplications.id,
         jobTitle: jobApplications.jobTitle,
         jobCategory: jobApplications.jobType,
@@ -30,185 +30,170 @@ export class CareerInsightsService {
       .from(jobApplications)
       .where(eq(jobApplications.userId, userId))
       .orderBy(desc(jobApplications.appliedDate))
-      .limit(10);
+      .limit(10),
+      
+      db.select()
+        .from(resumes)
+        .where(eq(resumes.userId, userId))
+        .orderBy(desc(resumes.createdAt)),
+        
+      db.select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1),
+        
+      db.select()
+        .from(userSkills)
+        .where(eq(userSkills.userId, userId))
+    ]);
     
-    console.log('[CAREER INSIGHTS] Found applications:', recentApps.length);
+    console.log('[CAREER INSIGHTS] Data fetched - Apps:', recentApps.length, 'Resumes:', userResumes.length);
     
-    // Get user's resumes
-    const userResumes = await db
-      .select()
-      .from(resumes)
-      .where(eq(resumes.userId, userId));
-    
-    console.log('[CAREER INSIGHTS] Found resumes:', userResumes.length);
-    
-    // 1. Pattern Detection: Same role category applications
+    // Rule 1: Application Pattern Analysis (no AI needed)
     const categoryCount = this.analyzeApplicationPatterns(recentApps);
     for (const [category, count] of Object.entries(categoryCount)) {
       if (count >= 3) {
         insights.push({
+          type: 'application_pattern',
+          priority: 'high',
+          title: `📊 ${category} Role Focus Detected`,
+          message: `You've applied to ${count} ${category} positions. Consider tailoring your resume to highlight relevant ${category} experience.`,
+          actionUrl: '/resumes',
+          actionLabel: 'Update Resume'
+        });
+        break; // Only show top pattern
+      }
+    }
+    
+    // Rule 2: Resume Score Analysis (simple check)
+    const latestResume = userResumes[0];
+    if (latestResume && latestResume.atsScore) {
+      if (latestResume.atsScore < 70) {
+        insights.push({
           type: 'resume_optimization',
           priority: 'high',
-          title: `📊 ${category} Role Pattern Detected`,
-          message: `You've applied to ${count} ${category} roles. Create a specialized resume version to boost your ATS score by 40%.`,
-          actionUrl: '/premium-ai-tools?tab=tailor',
-          actionLabel: 'Optimize Resume'
+          title: '🎯 ATS Score Below Target',
+          message: `Your resume scores ${latestResume.atsScore}%. Aim for 70+ to pass most ATS systems.`,
+          actionUrl: '/resumes',
+          actionLabel: 'Improve Score'
         });
       }
     }
     
-    // 2. Leadership Growth Detection
-    const hasLeadershipGrowth = this.detectLeadershipGrowth(userResumes);
-    if (hasLeadershipGrowth && recentApps.length > 0) {
+    // Rule 3: Application Velocity Check
+    const last7Days = new Date();
+    last7Days.setDate(last7Days.getDate() - 7);
+    const recentAppsLast7Days = recentApps.filter(app => 
+      app.appliedAt && new Date(app.appliedAt) >= last7Days
+    );
+    
+    if (recentAppsLast7Days.length >= 5) {
       insights.push({
-        type: 'career_transition',
-        priority: 'high',
-        title: '🚀 Leadership Growth Detected',
-        message: 'Your resume shows leadership experience. Ready to transition into management roles? Get a personalized career roadmap.',
-        actionUrl: '/premium-ai-tools?tab=career',
-        actionLabel: 'Plan Career Path'
+        type: 'application_pattern',
+        priority: 'medium',
+        title: '⚡ Strong Application Activity',
+        message: `${recentAppsLast7Days.length} applications this week! Keep momentum going and track your progress.`,
+        actionUrl: '/applications',
+        actionLabel: 'View Progress'
+      });
+    } else if (recentApps.length > 0 && recentAppsLast7Days.length === 0) {
+      insights.push({
+        type: 'application_pattern',
+        priority: 'medium',
+        title: '📅 Time to Apply',
+        message: `No applications in the past week. Consistency is key - aim for 3-5 quality applications weekly.`,
+        actionUrl: '/jobs',
+        actionLabel: 'Find Jobs'
       });
     }
     
-    // 3. Salary Analysis Alert
-    const salaryInsight = await this.analyzeSalaryExpectations(userId, recentApps);
-    if (salaryInsight) {
-      insights.push(salaryInsight);
-    }
-    
-    // 4. Application Velocity Alert
-    if (recentApps.length >= 5) {
-      const firstAppDate = recentApps[recentApps.length - 1].appliedAt;
-      const daysSinceFirst = firstAppDate ? this.getDaysBetween(
-        new Date(firstAppDate),
-        new Date()
-      ) : 0;
-      
-      if (daysSinceFirst <= 7) {
-        insights.push({
-          type: 'application_pattern',
-          priority: 'medium',
-          title: '⚡ High Application Velocity',
-          message: `You've applied to ${recentApps.length} jobs this week. Make sure each application is optimized with our AI tools.`,
-          actionUrl: '/applications',
-          actionLabel: 'Review Applications'
-        });
-      }
-    }
-    
-    // 5. Resume Update Suggestion
-    const oldestResume = userResumes.reduce((oldest, current) => 
-      (current.createdAt && oldest.createdAt && new Date(current.createdAt) < new Date(oldest.createdAt)) ? current : oldest
-    , userResumes[0]);
-    
-    if (oldestResume && oldestResume.createdAt) {
-      const daysSinceUpdate = this.getDaysBetween(new Date(oldestResume.createdAt), new Date());
+    // Rule 4: Resume Freshness Check
+    if (latestResume && latestResume.createdAt) {
+      const daysSinceUpdate = this.getDaysBetween(new Date(latestResume.createdAt), new Date());
       if (daysSinceUpdate > 90 && recentApps.length > 0) {
         insights.push({
           type: 'resume_optimization',
           priority: 'medium',
-          title: '📝 Resume Refresh Needed',
-          message: `Your resume is ${Math.floor(daysSinceUpdate / 30)} months old. Refresh it with AI-powered enhancements.`,
-          actionUrl: '/premium-ai-tools?tab=bullets',
-          actionLabel: 'Enhance Resume'
+          title: '📝 Resume Update Recommended',
+          message: `Resume last updated ${Math.floor(daysSinceUpdate / 30)} months ago. Fresh resumes perform 30% better.`,
+          actionUrl: '/resumes',
+          actionLabel: 'Update Resume'
         });
       }
     }
     
-    // If no insights generated, provide starter recommendations
-    if (insights.length === 0) {
+    // Rule 5: Skills Gap Analysis (based on user data)
+    const totalSkills = skills.length;
+    if (totalSkills < 5 && recentApps.length > 0) {
       insights.push({
-        type: 'resume_optimization',
+        type: 'skill_gap',
         priority: 'high',
-        title: '🚀 Get Started with Your Job Search',
-        message: 'Upload your resume to unlock personalized insights and improve your ATS score by up to 40%.',
-        actionUrl: '/resumes',
-        actionLabel: 'Upload Resume'
-      });
-      
-      insights.push({
-        type: 'application_pattern',
-        priority: 'medium',
-        title: '💼 Start Applying to Jobs',
-        message: 'Browse AI-matched jobs and start applying to get personalized recommendations.',
-        actionUrl: '/jobs',
-        actionLabel: 'Find Jobs'
-      });
-      
-      insights.push({
-        type: 'career_transition',
-        priority: 'medium',
-        title: '🎯 Build Your Career Path',
-        message: 'Use our AI Career Assistant to create a personalized roadmap to your dream role.',
-        actionUrl: '/premium-ai-tools?tab=career',
-        actionLabel: 'Plan Career'
+        title: '🔧 Skills Profile Incomplete',
+        message: `Only ${totalSkills} skills listed. Add 10+ relevant skills to improve job matching.`,
+        actionUrl: '/profile',
+        actionLabel: 'Add Skills'
       });
     }
     
-    console.log('[CAREER INSIGHTS] Returning insights:', insights.length);
+    // Starter recommendations for new users
+    if (insights.length === 0) {
+      if (!latestResume) {
+        insights.push({
+          type: 'resume_optimization',
+          priority: 'high',
+          title: '🚀 Upload Your Resume',
+          message: 'Get started by uploading your resume to receive instant ATS score and optimization tips.',
+          actionUrl: '/resumes',
+          actionLabel: 'Upload Resume'
+        });
+      }
+      
+      if (recentApps.length === 0) {
+        insights.push({
+          type: 'application_pattern',
+          priority: 'medium',
+          title: '💼 Start Your Job Search',
+          message: 'Browse thousands of job openings and start applying today.',
+          actionUrl: '/jobs',
+          actionLabel: 'Find Jobs'
+        });
+      }
+      
+      if (totalSkills === 0) {
+        insights.push({
+          type: 'skill_gap',
+          priority: 'medium',
+          title: '🎯 Complete Your Profile',
+          message: 'Add your skills and experience to get better job recommendations.',
+          actionUrl: '/profile',
+          actionLabel: 'Update Profile'
+        });
+      }
+    }
     
-    return insights.sort((a, b) => {
-      const priorityOrder = { high: 0, medium: 1, low: 2 };
-      return priorityOrder[a.priority] - priorityOrder[b.priority];
-    });
+    console.log('[CAREER INSIGHTS] Rule-based insights generated:', insights.length);
+    
+    // Sort by priority and return top 3
+    return insights
+      .sort((a, b) => {
+        const priorityOrder = { high: 0, medium: 1, low: 2 };
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+      })
+      .slice(0, 3);
   }
   
   private analyzeApplicationPatterns(apps: any[]): Record<string, number> {
     const categoryCount: Record<string, number> = {};
     
     for (const app of apps) {
-      const category = app.jobCategory || 'General';
+      const category = app.jobCategory || app.jobTitle?.split(' ')[0] || 'General';
       categoryCount[category] = (categoryCount[category] || 0) + 1;
     }
     
-    return categoryCount;
-  }
-  
-  private detectLeadershipGrowth(resumes: any[]): boolean {
-    const leadershipKeywords = ['lead', 'manager', 'director', 'head', 'senior', 'principal', 'architect'];
-    
-    for (const resume of resumes) {
-      const text = (resume.resumeText || '').toLowerCase();
-      const matchCount = leadershipKeywords.filter(keyword => text.includes(keyword)).length;
-      if (matchCount >= 3) return true;
-    }
-    
-    return false;
-  }
-  
-  private async analyzeSalaryExpectations(userId: string, recentApps: any[]): Promise<CareerInsight | null> {
-    // Get user's profile data
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId));
-    
-    if (!user) return null;
-    
-    // Simple heuristic: if user has 3+ years experience but applying to junior roles
-    const resumeData = await db
-      .select()
-      .from(resumes)
-      .where(eq(resumes.userId, userId))
-      .limit(1);
-    
-    if (resumeData.length === 0) return null;
-    
-    const resumeText = (resumeData[0].resumeText || '').toLowerCase();
-    const hasExperience = resumeText.includes('years') || resumeText.includes('experience');
-    
-    if (hasExperience && recentApps.length > 0) {
-      return {
-        type: 'salary_alert',
-        priority: 'high',
-        title: '💰 Salary Negotiation Opportunity',
-        message: 'Your experience level suggests you may be undervaluing yourself. Get a data-driven negotiation strategy.',
-        actionUrl: '/premium-ai-tools?tab=salary',
-        actionLabel: 'Check Salary Range'
-      };
-    }
-    
-    return null;
+    // Sort by frequency
+    return Object.fromEntries(
+      Object.entries(categoryCount).sort(([,a], [,b]) => b - a)
+    );
   }
   
   private getDaysBetween(date1: Date, date2: Date): number {
