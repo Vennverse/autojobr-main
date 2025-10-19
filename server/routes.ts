@@ -1972,18 +1972,9 @@ Return only the improved job description text, no additional formatting or expla
     try {
       const userId = req.user.id;
 
-      // Validate query parameters
-      const queryValidation = z.object({
-        page: z.string().optional().default("1"),
-        limit: z.string().optional().default("20")
-      }).safeParse(req.query);
-
-      if (!queryValidation.success) {
-        return handleError(res, queryValidation.error, "Invalid query parameters", 400);
-      }
-
-      const page = parseInt(queryValidation.data.page);
-      const limit = parseInt(queryValidation.data.limit);
+      // Simple pagination without strict validation
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
       const offset = (page - 1) * limit;
 
       const savedInternships = await db
@@ -2499,18 +2490,11 @@ Return only the improved job description text, no additional formatting or expla
   app.get('/api/internships/applications', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      // Validate query parameters
-      const queryValidation = internshipsQuerySchema.pick({
-        page: true,
-        limit: true,
-        status: true
-      }).safeParse(req.query);
-
-      if (!queryValidation.success) {
-        return handleError(res, queryValidation.error, "Invalid query parameters", 400);
-      }
-
-      const { page, limit, status } = queryValidation.data;
+      
+      // Simple pagination without strict validation
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const status = req.query.status as string;
       const offset = (page - 1) * limit;
 
       const conditions = [eq(schema.internshipApplications.userId, userId)];
