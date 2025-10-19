@@ -748,87 +748,6 @@ export class ReferralMarketplaceService {
   }
 
   /**
-   * Get referrer's bookings with full details including job seeker info
-   */
-  async getReferrerBookings(userId: string) {
-    try {
-      // First get referrer profile to get referrer ID
-      const referrer = await this.getReferrerProfile(userId);
-      if (!referrer) {
-        return [];
-      }
-
-      // Get bookings first
-      const bookings = await db.select()
-        .from(referralBookings)
-        .where(eq(referralBookings.referrerId, referrer.id))
-        .orderBy(desc(referralBookings.createdAt));
-
-      // For each booking, get additional details
-      const bookingsWithDetails = await Promise.all(
-        bookings.map(async (booking) => {
-          // Get job seeker details
-          let jobSeeker = null;
-          if (booking.jobSeekerId) {
-            const jobSeekerResult = await db.select()
-              .from(users)
-              .where(eq(users.id, booking.jobSeekerId))
-              .limit(1);
-
-            if (jobSeekerResult.length > 0) {
-              jobSeeker = {
-                id: jobSeekerResult[0].id,
-                email: jobSeekerResult[0].email,
-                firstName: jobSeekerResult[0].firstName,
-                lastName: jobSeekerResult[0].lastName,
-                phoneNumber: null, // Phone is stored in userProfiles table
-              };
-            }
-          }
-
-          // Get service details
-          let service = null;
-          if (booking.serviceId) {
-            const serviceResult = await db.select()
-              .from(referralServices)
-              .where(eq(referralServices.id, booking.serviceId))
-              .limit(1);
-
-            if (serviceResult.length > 0) {
-              service = {
-                id: serviceResult[0].id,
-                title: serviceResult[0].title,
-                serviceType: serviceResult[0].serviceType,
-                sessionDuration: serviceResult[0].sessionDuration,
-              };
-            }
-          }
-
-          return {
-            id: booking.id,
-            serviceId: booking.serviceId,
-            jobSeekerId: booking.jobSeekerId,
-            status: booking.status,
-            scheduledAt: booking.scheduledAt,
-            conversationId: booking.conversationId,
-            notes: booking.notes,
-            totalAmount: booking.totalAmount,
-            paymentStatus: booking.paymentStatus,
-            createdAt: booking.createdAt,
-            jobSeeker,
-            service
-          };
-        })
-      );
-
-      return bookingsWithDetails;
-    } catch (error) {
-      console.error('Error getting referrer bookings:', error);
-      throw new Error('Failed to get referrer bookings');
-    }
-  }
-
-  /**
    * Update referrer settings (meeting link and email template)
    */
   async updateReferrerSettings(userId: string, settings: {
@@ -1356,36 +1275,6 @@ Best regards,
     }
   }
 
-  /**
-   * Update referrer settings (meeting link and email template)
-   */
-  async updateReferrerSettings(userId: string, settings: {
-    meetingScheduleLink?: string;
-    emailTemplate?: string;
-  }) {
-    try {
-      const referrerProfile = await this.getReferrerProfile(userId);
-      if (!referrerProfile) {
-        throw new Error('Referrer profile not found');
-      }
-
-      await db.update(referrers)
-        .set({
-          meetingScheduleLink: settings.meetingScheduleLink,
-          emailTemplate: settings.emailTemplate,
-          updatedAt: new Date()
-        })
-        .where(eq(referrers.id, referrerProfile.id));
-
-      return {
-        success: true,
-        message: 'Settings updated successfully'
-      };
-    } catch (error) {
-      console.error('Error updating referrer settings:', error);
-      throw new Error('Failed to update settings');
-    }
-  }
 }
 
 export const referralMarketplaceService = new ReferralMarketplaceService();
