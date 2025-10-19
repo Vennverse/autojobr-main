@@ -4,12 +4,6 @@ import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-
-
-import { useState, useEffect } from 'react';
-import { useLocation } from 'wouter';
-import { useAuth } from '@/hooks/use-auth';
-import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -78,9 +72,8 @@ export default function LinkedInOptimizer() {
   const { user, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
-  const [profile, setProfile] = useState<LinkedInProfile | null>(null);
-  const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [editedHeadline, setEditedHeadline] = useState('');
   const [editedAbout, setEditedAbout] = useState('');
@@ -98,17 +91,7 @@ export default function LinkedInOptimizer() {
     contentPerformance: 87
   });
 
-  useEffect(() => {
-    if (user) {
-      fetchProfile();
-    } else if (!authLoading) {
-      setLoading(false);
-    }
-  }, [user, authLoading]);
-
   // Use React Query for smart caching - reduces API calls by 80%
-  const queryClient = useQueryClient();
-  
   const { data: profile, isLoading: loading } = useQuery({
     queryKey: ['/api/linkedin-optimizer'],
     queryFn: async () => {
@@ -134,12 +117,16 @@ export default function LinkedInOptimizer() {
       return res.json();
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    enabled: !!user,
-    onSuccess: (data) => {
-      setEditedHeadline(data.generatedHeadline || '');
-      setEditedAbout(data.generatedAbout || '');
-    }
+    enabled: !!user
   });
+
+  // Update edited fields when profile data changes
+  useEffect(() => {
+    if (profile) {
+      setEditedHeadline(profile.generatedHeadline || '');
+      setEditedAbout(profile.generatedAbout || '');
+    }
+  }, [profile]);
 
   const generateOptimizations = async (section?: 'headline' | 'about' | 'keywords') => {
     if (!profile?.isPremium && profile?.freeGenerationsRemaining === 0) {
@@ -177,7 +164,7 @@ export default function LinkedInOptimizer() {
         description: profile?.isPremium ? 'Premium optimizations generated with advanced AI' : 'Free optimization generated',
       });
 
-      await fetchProfile();
+      await queryClient.invalidateQueries({ queryKey: ['/api/linkedin-optimizer'] });
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -227,7 +214,7 @@ export default function LinkedInOptimizer() {
 
       toast({ title: '✅ Saved Successfully!', description: 'Your optimizations have been saved' });
       setIsEditing({ headline: false, about: false });
-      await fetchProfile();
+      await queryClient.invalidateQueries({ queryKey: ['/api/linkedin-optimizer'] });
     } catch (error: any) {
       toast({
         title: 'Error',
