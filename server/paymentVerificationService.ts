@@ -4,7 +4,7 @@ import { eq, and } from 'drizzle-orm';
 
 export interface PaymentVerificationRequest {
   userId: string;
-  serviceType: 'mock_interview' | 'virtual_interview' | 'ranking_test' | 'test_retake';
+  serviceType: 'mock_interview' | 'virtual_interview' | 'ranking_test' | 'test_retake' | 'video_practice';
   amount: number;
   transactionId?: string;
   paypalOrderId?: string;
@@ -115,7 +115,7 @@ export class PaymentVerificationService {
           // Keep status as 'completed' but set retakeAllowed=true so frontend knows retake is paid
           // DO NOT change status to 'assigned' - that would break the UI flow
           const result = await db.update(testAssignments)
-            .set({ 
+            .set({
               retakeAllowed: true,
               // Keep status as 'completed' - frontend checks retakeAllowed to enable retake
               // Keep score - user should see their previous score before retaking
@@ -146,14 +146,21 @@ export class PaymentVerificationService {
         case 'virtual_interview':
           // For interview retakes, we'll handle this in the interview service
           // The payment verification is sufficient - no need to update separate counters
+          await this.grantVirtualInterviewAccess(userId);
           return true;
 
         case 'mock_interview':
           // Similar logic for mock interviews
+          await this.grantMockInterviewAccess(userId);
           return true;
 
         case 'ranking_test':
           // For ranking tests, grant immediate access
+          return true;
+
+        case 'video_practice':
+          // Grant video practice access
+          await this.grantVideoPracticeAccess(userId);
           return true;
 
         default:
@@ -171,7 +178,7 @@ export class PaymentVerificationService {
    */
   async getPaymentHistory(userId: string, serviceType?: string) {
     try {
-      const whereClause = serviceType 
+      const whereClause = serviceType
         ? and(eq(oneTimePayments.userId, userId), eq(oneTimePayments.serviceType, serviceType as any))
         : eq(oneTimePayments.userId, userId);
 
@@ -191,6 +198,7 @@ export class PaymentVerificationService {
       case 'virtual_interview': return 'Virtual Interview Access - $5';
       case 'ranking_test': return 'Ranking Test Access';
       case 'test_retake': return 'Test Retake - $5';
+      case 'video_practice': return 'Video Interview Practice - $5';
       default: return `${serviceType} Payment`;
     }
   }
@@ -317,6 +325,22 @@ export class PaymentVerificationService {
       console.error('❌ [RETAKE PAYMENT] Verification error:', error);
       return { success: false, accessGranted: false, message: error.message };
     }
+  }
+
+  // Helper methods for granting access to specific services
+  private async grantMockInterviewAccess(userId: string): Promise<void> {
+    // This logic might involve updating user profiles or specific service flags
+    console.log(`✅ Mock interview access granted for user ${userId}`);
+  }
+
+  private async grantVirtualInterviewAccess(userId: string): Promise<void> {
+    // This will be handled by recordInterviewStart in virtualInterviewPaymentService
+    console.log(`✅ Virtual interview access granted for user ${userId}`);
+  }
+
+  private async grantVideoPracticeAccess(userId: string): Promise<void> {
+    // This will be handled by recordInterviewStart in videoPracticePaymentService
+    console.log(`✅ Video practice access granted for user ${userId}`);
   }
 }
 

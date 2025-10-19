@@ -290,27 +290,27 @@ export const linkedinProfiles = pgTable("linkedin_profiles", {
   generatedAbout: text("generated_about"),
   optimizedExperiences: jsonb("optimized_experiences"), // Array of optimized work experiences
   skillsPrioritization: jsonb("skills_prioritization"), // Recommended skills to highlight
-  
+
   // Analysis Data
   profileCompletenessScore: integer("profile_completeness_score"), // 0-100
   keywordDensity: jsonb("keyword_density"), // Keywords and their frequency
   topKeywords: text("top_keywords").array(), // Top 10 keywords for the role
   missingElements: text("missing_elements").array(), // What's missing (photo, banner, etc.)
-  
+
   // Recommendations
   endorsementStrategy: text("endorsement_strategy"), // AI-generated advice on getting endorsements
   contentCalendar: jsonb("content_calendar"), // Weekly post suggestions
   recommendationRequests: jsonb("recommendation_requests"), // Template messages
   trendingSkills: text("trending_skills").array(), // Skills trending in user's industry
-  
+
   // User Customization
   userEditedHeadline: text("user_edited_headline"), // If user modified AI suggestion
   userEditedAbout: text("user_edited_about"), // If user modified AI suggestion
-  
+
   // Usage Tracking
   generationCount: integer("generation_count").default(0), // How many times generated
   lastGenerated: timestamp("last_generated"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -1035,7 +1035,7 @@ export const candidateMatches = pgTable("candidate_matches", {
   isViewed: boolean("is_viewed").default(false),
   isContacted: boolean("is_contacted").default(false),
   recruiterRating: integer("recruiter_rating"), // 1-5 stars
-  recruiterNotes: text("recruiter_notes"),
+  recruiterNotes: text("recruiterNotes"),
 
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -1579,12 +1579,12 @@ export const insertResumeSchema = createInsertSchema(resumes).omit({
 });
 export type InsertResume = z.infer<typeof insertResumeSchema>;
 export type Resume = typeof resumes.$inferSelect;
-export type InsertJobApplication = z.infer<typeof insertJobApplicationSchema>;
 export type JobApplication = typeof jobApplications.$inferSelect;
-export type InsertJobRecommendation = z.infer<typeof insertJobRecommendationSchema>;
+export type InsertJobApplication = z.infer<typeof insertJobApplicationSchema>;
 export type JobRecommendation = typeof jobRecommendations.$inferSelect;
-export type InsertAiJobAnalysis = z.infer<typeof insertAiJobAnalysisSchema>;
+export type InsertJobRecommendation = z.infer<typeof insertJobRecommendationSchema>;
 export type AiJobAnalysis = typeof aiJobAnalyses.$inferSelect;
+export type InsertAiJobAnalysis = z.infer<typeof insertAiJobAnalysisSchema>;
 
 export const insertDailyUsageSchema = createInsertSchema(dailyUsage).omit({
   id: true,
@@ -2231,6 +2231,15 @@ export const virtualInterviewStats = pgTable("virtual_interview_stats", {
   index("virtual_interview_stats_last_interview_idx").on(table.lastInterviewDate),
 ]);
 
+export const videoPracticeStats = pgTable('video_practice_stats', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  totalInterviews: integer('total_interviews').default(0),
+  freeInterviewsUsed: integer('free_interviews_used').default(0),
+  lastReset: timestamp('last_reset').defaultNow(),
+  createdAt: timestamp('created_at').defaultNow()
+});
+
 // Virtual interview insert schemas
 export const insertVirtualInterviewSchema = createInsertSchema(virtualInterviews).omit({
   id: true,
@@ -2450,7 +2459,7 @@ export const mockInterviewSessions = mockInterviews;
 export const crmContacts = pgTable("crm_contacts", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
-  
+
   // Basic contact info
   name: varchar("name").notNull(),
   email: varchar("email"),
@@ -2458,28 +2467,28 @@ export const crmContacts = pgTable("crm_contacts", {
   company: varchar("company"),
   jobTitle: varchar("job_title"),
   linkedinUrl: varchar("linkedin_url"),
-  
+
   // Contact type and categorization
   contactType: varchar("contact_type").notNull(), // recruiter, hiring_manager, referral, colleague, company
   tags: text("tags").array(), // work, personal, client, lead, prospect, hot, warm, cold
-  
+
   // Relationship tracking
   relationship: varchar("relationship"), // strong, moderate, weak, new
   source: varchar("source"), // linkedin, referral, event, job_application, direct
-  
+
   // Interaction tracking
   lastContactDate: timestamp("last_contact_date"),
   nextTouchDate: timestamp("next_touch_date"),
   touchFrequency: varchar("touch_frequency").default("monthly"), // weekly, bi-weekly, monthly, quarterly
-  
+
   // Notes and context
   notes: text("notes"),
   customFields: jsonb("custom_fields"), // Flexible additional data
-  
+
   // Status
   status: varchar("status").default("active"), // active, inactive, archived
   priority: varchar("priority").default("medium"), // low, medium, high, urgent
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -2494,25 +2503,25 @@ export const contactInteractions = pgTable("contact_interactions", {
   id: serial("id").primaryKey(),
   contactId: integer("contact_id").references(() => crmContacts.id).notNull(),
   userId: varchar("user_id").references(() => users.id).notNull(),
-  
+
   // Interaction details
   interactionType: varchar("interaction_type").notNull(), // email, call, meeting, message, application, interview
   subject: varchar("subject"),
   description: text("description"),
   outcome: varchar("outcome"), // positive, neutral, negative, follow_up_needed
-  
+
   // Scheduling
   interactionDate: timestamp("interaction_date").defaultNow(),
   duration: integer("duration"), // in minutes
-  
+
   // Follow-up
   followUpRequired: boolean("follow_up_required").default(false),
   followUpDate: timestamp("follow_up_date"),
-  
+
   // Links
   relatedTaskId: integer("related_task_id"),
   relatedJobId: integer("related_job_id"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("contact_interactions_contact_idx").on(table.contactId),
@@ -2525,17 +2534,17 @@ export const contactInteractions = pgTable("contact_interactions", {
 export const pipelineStages = pgTable("pipeline_stages", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
-  
+
   // Pipeline configuration
   pipelineType: varchar("pipeline_type").notNull(), // job_search, recruitment, sales
   stageName: varchar("stage_name").notNull(),
   stageOrder: integer("stage_order").notNull(),
   stageColor: varchar("stage_color").default("#3B82F6"),
-  
+
   // Stage settings
   isActive: boolean("is_active").default(true),
   autoMoveAfterDays: integer("auto_move_after_days"), // Auto-progress after X days
-  
+
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("pipeline_stages_user_idx").on(table.userId),
@@ -2548,25 +2557,25 @@ export const pipelineItems = pgTable("pipeline_items", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
   stageId: integer("stage_id").references(() => pipelineStages.id).notNull(),
-  
+
   // Item details
   itemType: varchar("item_type").notNull(), // job_application, candidate, contact
   itemTitle: varchar("item_title").notNull(),
   itemValue: integer("item_value"), // Expected salary or deal value
-  
+
   // Related entities
   contactId: integer("contact_id").references(() => crmContacts.id),
   relatedJobId: integer("related_job_id"),
   relatedApplicationId: integer("related_application_id"),
-  
+
   // Tracking
   enteredStageAt: timestamp("entered_stage_at").defaultNow(),
   probability: integer("probability").default(50), // Success probability 0-100
-  
+
   // Notes
   notes: text("notes"),
   customData: jsonb("custom_data"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -2774,24 +2783,24 @@ export const referralBookings = pgTable("referral_bookings", {
   // Service delivery tracking
   deliverables: jsonb("deliverables"), // What was delivered during the session
   sessionSummary: text("session_summary"),
-  
+
   // Meeting verification
   meetingScheduled: boolean("meeting_scheduled").default(false),
   meetingScheduledAt: timestamp("meeting_scheduled_at"),
   meetingConfirmedByJobSeeker: boolean("meeting_confirmed_by_job_seeker").default(false),
   meetingConfirmedByReferrer: boolean("meeting_confirmed_by_referrer").default(false),
-  
+  deliveryConfirmedAt: timestamp("delivery_confirmed_at"),
+
   // Delivery confirmation
   deliveryConfirmedByJobSeeker: boolean("delivery_confirmed_by_job_seeker").default(false),
   deliveryConfirmedByReferrer: boolean("delivery_confirmed_by_referrer").default(false),
-  deliveryConfirmedAt: timestamp("delivery_confirmed_at"),
-  
+
   // Dispute handling
   disputeReason: varchar("dispute_reason"),
   disputeDetails: text("dispute_details"),
   disputedAt: timestamp("disputed_at"),
   disputedBy: varchar("disputed_by"),
-  
+
   // Completion tracking
   completedAt: timestamp("completed_at"),
 
@@ -3885,14 +3894,14 @@ export const insertJobApplicationStatsSchema = createInsertSchema(jobApplication
 export const crmCompanies = pgTable("crm_companies", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
-  
+
   // Basic company info
   name: varchar("name").notNull(),
   domain: varchar("domain"),
   industry: varchar("industry"),
   size: varchar("size"), // 1-10, 11-50, 51-200, 201-500, 501-1000, 1000+
   revenue: varchar("revenue"),
-  
+
   // Contact details
   phone: varchar("phone"),
   address: text("address"),
@@ -3900,23 +3909,23 @@ export const crmCompanies = pgTable("crm_companies", {
   state: varchar("state"),
   country: varchar("country"),
   zipCode: varchar("zip_code"),
-  
+
   // Social media
   linkedinUrl: varchar("linkedin_url"),
   twitterUrl: varchar("twitter_url"),
   facebookUrl: varchar("facebook_url"),
-  
+
   // Business details
   description: text("description"),
   founded: varchar("founded"),
   employeeCount: integer("employee_count"),
-  
+
   // Tracking
   status: varchar("status").default("active"), // active, inactive, archived, prospect, customer
   companyType: varchar("company_type"), // prospect, partner, reseller, vendor, customer
   tags: text("tags").array(),
   customFields: jsonb("custom_fields"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -3929,38 +3938,38 @@ export const crmCompanies = pgTable("crm_companies", {
 export const crmDeals = pgTable("crm_deals", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
-  
+
   // Deal basics
   dealName: varchar("deal_name").notNull(),
   dealValue: numeric("deal_value", { precision: 10, scale: 2 }),
   currency: varchar("currency").default("USD"),
-  
+
   // Related entities
   companyId: integer("company_id").references(() => crmCompanies.id),
   contactId: integer("contact_id").references(() => crmContacts.id),
-  
+
   // Pipeline & Stage
   pipelineType: varchar("pipeline_type").default("sales"), // sales, recruitment, custom
   stage: varchar("stage").notNull(), // prospecting, qualification, proposal, negotiation, closed-won, closed-lost
   probability: integer("probability").default(50), // 0-100
-  
+
   // Dates
   expectedCloseDate: timestamp("expected_close_date"),
   actualCloseDate: timestamp("actual_close_date"),
-  
+
   // Details
   dealType: varchar("deal_type"), // new_business, renewal, upsell, cross-sell
   dealSource: varchar("deal_source"), // inbound, outbound, referral, partner
   lostReason: varchar("lost_reason"),
-  
+
   // Assignment
   ownerId: varchar("owner_id"),
-  
+
   // Tracking
   notes: text("notes"),
   customFields: jsonb("custom_fields"),
   tags: text("tags").array(),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -3975,28 +3984,28 @@ export const crmDeals = pgTable("crm_deals", {
 export const crmEmailTemplates = pgTable("crm_email_templates", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
-  
+
   // Template details
   name: varchar("name").notNull(),
   subject: varchar("subject").notNull(),
   body: text("body").notNull(),
-  
+
   // Template metadata
   category: varchar("category"), // follow-up, introduction, proposal, thank-you, reminder
   language: varchar("language").default("en"),
-  
+
   // Personalization
   hasPersonalization: boolean("has_personalization").default(false),
   variables: text("variables").array(), // {{firstName}}, {{company}}, etc.
-  
+
   // Usage
   useCount: integer("use_count").default(0),
   lastUsedAt: timestamp("last_used_at"),
-  
+
   // Status
   isActive: boolean("is_active").default(true),
   isShared: boolean("is_shared").default(false),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -4008,24 +4017,24 @@ export const crmEmailTemplates = pgTable("crm_email_templates", {
 export const crmEmailCampaigns = pgTable("crm_email_campaigns", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
-  
+
   // Campaign details
   name: varchar("name").notNull(),
   subject: varchar("subject").notNull(),
   body: text("body").notNull(),
-  
+
   // Targeting
   recipientType: varchar("recipient_type").notNull(), // all_contacts, segment, custom_list
   recipientIds: text("recipient_ids").array(),
   segmentCriteria: jsonb("segment_criteria"),
-  
+
   // Schedule
   scheduledFor: timestamp("scheduled_for"),
   sentAt: timestamp("sent_at"),
-  
+
   // Status
   status: varchar("status").default("draft"), // draft, scheduled, sending, sent, paused, cancelled
-  
+
   // Analytics
   totalRecipients: integer("total_recipients").default(0),
   totalSent: integer("total_sent").default(0),
@@ -4034,7 +4043,7 @@ export const crmEmailCampaigns = pgTable("crm_email_campaigns", {
   totalClicked: integer("total_clicked").default(0),
   totalBounced: integer("total_bounced").default(0),
   totalUnsubscribed: integer("total_unsubscribed").default(0),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -4047,18 +4056,18 @@ export const crmEmailCampaigns = pgTable("crm_email_campaigns", {
 export const crmEmailSequences = pgTable("crm_email_sequences", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
-  
+
   // Sequence details
   name: varchar("name").notNull(),
   description: text("description"),
-  
+
   // Status
   isActive: boolean("is_active").default(true),
-  
+
   // Enrollment
   totalEnrolled: integer("total_enrolled").default(0),
   totalCompleted: integer("total_completed").default(0),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -4070,23 +4079,23 @@ export const crmEmailSequences = pgTable("crm_email_sequences", {
 export const crmSequenceSteps = pgTable("crm_sequence_steps", {
   id: serial("id").primaryKey(),
   sequenceId: integer("sequence_id").references(() => crmEmailSequences.id).notNull(),
-  
+
   // Step details
   stepNumber: integer("step_number").notNull(),
   stepType: varchar("step_type").default("email"), // email, task, wait
-  
+
   // For email steps
   subject: varchar("subject"),
   body: text("body"),
-  
+
   // For task steps
   taskTitle: varchar("task_title"),
   taskDescription: text("task_description"),
-  
+
   // Timing
   delayDays: integer("delay_days").default(0),
   delayHours: integer("delay_hours").default(0),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("crm_sequence_steps_sequence_idx").on(table.sequenceId),
@@ -4099,16 +4108,16 @@ export const crmSequenceEnrollments = pgTable("crm_sequence_enrollments", {
   sequenceId: integer("sequence_id").references(() => crmEmailSequences.id).notNull(),
   contactId: integer("contact_id").references(() => crmContacts.id).notNull(),
   userId: varchar("user_id").references(() => users.id).notNull(),
-  
+
   // Progress
   currentStep: integer("current_step").default(1),
   status: varchar("status").default("active"), // active, paused, completed, cancelled
-  
+
   // Timing
   enrolledAt: timestamp("enrolled_at").defaultNow(),
   completedAt: timestamp("completed_at"),
   nextActionAt: timestamp("next_action_at"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("crm_sequence_enrollments_sequence_idx").on(table.sequenceId),
@@ -4121,25 +4130,25 @@ export const crmSequenceEnrollments = pgTable("crm_sequence_enrollments", {
 export const crmWorkflows = pgTable("crm_workflows", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
-  
+
   // Workflow details
   name: varchar("name").notNull(),
   description: text("description"),
-  
+
   // Trigger
   triggerType: varchar("trigger_type").notNull(), // contact_created, deal_stage_changed, email_opened, etc.
   triggerConditions: jsonb("trigger_conditions"),
-  
+
   // Actions
   actions: jsonb("actions"), // Array of actions to perform
-  
+
   // Status
   isActive: boolean("is_active").default(false),
-  
+
   // Stats
   totalTriggers: integer("total_triggers").default(0),
   totalActions: integer("total_actions").default(0),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -4152,22 +4161,22 @@ export const crmWorkflows = pgTable("crm_workflows", {
 export const crmDocuments = pgTable("crm_documents", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
-  
+
   // Document details
   name: varchar("name").notNull(),
   description: text("description"),
   fileUrl: varchar("file_url").notNull(),
   fileType: varchar("file_type"), // pdf, docx, xlsx, pptx, txt, etc.
   fileSize: integer("file_size"), // in bytes
-  
+
   // Related entities
   relatedType: varchar("related_type"), // contact, company, deal
   relatedId: integer("related_id"),
-  
+
   // Tracking
   uploadedBy: varchar("uploaded_by"),
   tags: text("tags").array(),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("crm_documents_user_idx").on(table.userId),
@@ -4178,37 +4187,37 @@ export const crmDocuments = pgTable("crm_documents", {
 export const crmMeetings = pgTable("crm_meetings", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
-  
+
   // Meeting details
   title: varchar("title").notNull(),
   description: text("description"),
   meetingType: varchar("meeting_type"), // call, video, in-person
   location: varchar("location"),
   meetingLink: varchar("meeting_link"),
-  
+
   // Timing
   startTime: timestamp("start_time").notNull(),
   endTime: timestamp("end_time").notNull(),
   duration: integer("duration"), // in minutes
-  
+
   // Participants
   attendeeIds: text("attendee_ids").array(),
   contactId: integer("contact_id").references(() => crmContacts.id),
   companyId: integer("company_id").references(() => crmCompanies.id),
   dealId: integer("deal_id").references(() => crmDeals.id),
-  
+
   // Status
   status: varchar("status").default("scheduled"), // scheduled, completed, cancelled, no-show
-  
+
   // Notes
   notes: text("notes"),
   outcome: varchar("outcome"), // positive, neutral, negative
   recordingUrl: varchar("recording_url"),
-  
+
   // Reminders
   reminderSent: boolean("reminder_sent").default(false),
   reminderMinutesBefore: integer("reminder_minutes_before").default(30),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -4224,23 +4233,23 @@ export const crmMeetings = pgTable("crm_meetings", {
 export const crmActivities = pgTable("crm_activities", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
-  
+
   // Activity details
   activityType: varchar("activity_type").notNull(), // email, call, meeting, note, task, deal_stage_change, etc.
   title: varchar("title").notNull(),
   description: text("description"),
-  
+
   // Related entities
   contactId: integer("contact_id").references(() => crmContacts.id),
   companyId: integer("company_id").references(() => crmCompanies.id),
   dealId: integer("deal_id").references(() => crmDeals.id),
-  
+
   // Activity data
   metadata: jsonb("metadata"), // flexible field for activity-specific data
-  
+
   // Status
   status: varchar("status").default("completed"), // completed, pending, scheduled
-  
+
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("crm_activities_user_idx").on(table.userId),
@@ -4256,25 +4265,25 @@ export const crmLeadScores = pgTable("crm_lead_scores", {
   id: serial("id").primaryKey(),
   contactId: integer("contact_id").references(() => crmContacts.id).notNull().unique(),
   userId: varchar("user_id").references(() => users.id).notNull(),
-  
+
   // Scores
   totalScore: integer("total_score").default(0),
   engagementScore: integer("engagement_score").default(0),
   demographicScore: integer("demographic_score").default(0),
   behaviorScore: integer("behavior_score").default(0),
-  
+
   // Grade
   grade: varchar("grade"), // A, B, C, D, F
-  
+
   // Factors
   scoringFactors: jsonb("scoring_factors"),
-  
+
   // Last activity
   lastActivityDate: timestamp("last_activity_date"),
   lastEmailOpen: timestamp("last_email_open"),
   lastEmailClick: timestamp("last_email_click"),
   lastMeeting: timestamp("last_meeting"),
-  
+
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
   index("crm_lead_scores_contact_idx").on(table.contactId),

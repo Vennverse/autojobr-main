@@ -26,6 +26,7 @@ export default function VideoPractice() {
     interviewType: 'technical' as 'technical' | 'behavioral',
     difficulty: 'medium' as 'easy' | 'medium' | 'hard'
   });
+  const [showPaymentRequired, setShowPaymentRequired] = useState(false); // State to manage payment modal
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -109,7 +110,7 @@ export default function VideoPractice() {
           sampleRate: 44100
         }
       });
-      
+
       console.log('✅ Stream obtained:', {
         videoTracks: stream.getVideoTracks().length,
         audioTracks: stream.getAudioTracks().length
@@ -119,7 +120,7 @@ export default function VideoPractice() {
         // Set the stream first
         videoRef.current.srcObject = stream;
         videoRef.current.muted = true; // Mute local playback to avoid feedback
-        
+
         // Wait for video to be ready with better error handling
         await new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => {
@@ -130,7 +131,7 @@ export default function VideoPractice() {
           const handleCanPlay = () => {
             clearTimeout(timeout);
             videoRef.current!.removeEventListener('canplay', handleCanPlay);
-            
+
             videoRef.current!.play()
               .then(() => {
                 console.log('✅ Video stream playing successfully');
@@ -145,13 +146,13 @@ export default function VideoPractice() {
           };
 
           videoRef.current!.addEventListener('canplay', handleCanPlay);
-          
+
           // Fallback: also listen for loadedmetadata
           videoRef.current!.onloadedmetadata = () => {
             console.log('📹 Video metadata loaded');
           };
         });
-        
+
         toast({
           title: "✅ Camera & Microphone Ready",
           description: "Your video and audio are working perfectly",
@@ -159,10 +160,10 @@ export default function VideoPractice() {
       }
     } catch (error: any) {
       console.error('❌ Failed to access camera/microphone:', error);
-      
+
       let errorMessage = "Please allow camera and microphone access to continue";
       let errorTitle = "Camera Access Failed";
-      
+
       if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
         errorTitle = "Permission Denied";
         errorMessage = "You blocked camera/microphone access. Click the camera icon in your browser's address bar to enable permissions, then refresh the page.";
@@ -176,14 +177,14 @@ export default function VideoPractice() {
         errorTitle = "Initialization Timeout";
         errorMessage = "Camera took too long to start. Please refresh and try again.";
       }
-      
+
       toast({
         title: errorTitle,
         description: errorMessage,
         variant: "destructive",
         duration: 8000
       });
-      
+
       setIsVideoReady(false);
       throw error;
     }
@@ -197,15 +198,15 @@ export default function VideoPractice() {
     }
 
     const utterance = new SpeechSynthesisUtterance(text);
-    
+
     // Configure voice settings for clear, deep voice
     utterance.rate = 0.9; // Slightly slower for clarity
     utterance.pitch = 0.8; // Lower pitch for deeper voice
     utterance.volume = 1.0; // Full volume
-    
+
     // Try to get a high-quality voice
     const voices = window.speechSynthesis.getVoices();
-    
+
     // Prefer Google US English or Microsoft voices for better quality
     const preferredVoice = voices.find(voice => 
       voice.name.includes('Google US English') || 
@@ -213,7 +214,7 @@ export default function VideoPractice() {
       voice.name.includes('Alex') ||
       (voice.lang.includes('en') && voice.name.includes('Natural'))
     );
-    
+
     if (preferredVoice) {
       utterance.voice = preferredVoice;
     } else {
@@ -235,7 +236,7 @@ export default function VideoPractice() {
     const loadVoices = () => {
       window.speechSynthesis.getVoices();
     };
-    
+
     loadVoices();
     window.speechSynthesis.onvoiceschanged = loadVoices;
   }, []);
@@ -246,7 +247,7 @@ export default function VideoPractice() {
       console.log('📹 Session active and video element ready, initializing camera...');
       hasInitializedCamera.current = true;
       setCameraError(''); // Clear any previous errors
-      
+
       // Small delay to ensure DOM is fully ready
       setTimeout(() => {
         initializeVideoStream().catch((error) => {
@@ -286,19 +287,30 @@ export default function VideoPractice() {
       return;
     }
 
+    // Check free interview quota based on payment status
+    // Assuming session.paymentStatus reflects if the user has paid for premium features or previous sessions
+    // This logic might need adjustment based on your user/subscription model
+    if (session?.paymentStatus === 'free' && session.interviewsRemaining <= 0) {
+      setShowPaymentRequired(true);
+      return;
+    } else if (session?.paymentStatus === 'premium' && session.premiumInterviewsRemaining <= 0) {
+      setShowPaymentRequired(true);
+      return;
+    }
+
     try {
       setLoading(true);
-      
+
       const response = await apiRequest('/api/video-practice/start', 'POST', {
         role: setupData.role,
         company: setupData.company || undefined,
         interviewType: setupData.interviewType,
         difficulty: setupData.difficulty
       });
-      
+
       setSession(response);
       setShowSetup(false);
-      
+
       // Camera will be initialized in useEffect when video element is rendered
       // Speak the first question after a short delay
       setTimeout(() => {
@@ -332,19 +344,29 @@ export default function VideoPractice() {
       return;
     }
 
+    // Check if the user has exceeded their free quota and needs to pay
+    if (session?.interviewsRemaining <= 0 && session?.paymentStatus === 'free') {
+      setShowPaymentRequired(true);
+      return;
+    }
+    if (session?.premiumInterviewsRemaining <= 0 && session?.paymentStatus === 'premium') {
+      setShowPaymentRequired(true);
+      return;
+    }
+
     // Start video recording
     try {
       recordedChunksRef.current = [];
       const mediaRecorder = new MediaRecorder(streamRef.current, {
         mimeType: 'video/webm;codecs=vp9',
       });
-      
+
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           recordedChunksRef.current.push(event.data);
         }
       };
-      
+
       mediaRecorder.start(1000); // Capture data every second
       mediaRecorderRef.current = mediaRecorder;
     } catch (error) {
@@ -437,19 +459,19 @@ export default function VideoPractice() {
 
       audioAnalysisRef.current = new SimpleAudioAnalysis();
       await audioAnalysisRef.current.start(streamRef.current);
-      
+
       console.log('🎤 Audio analysis initialized successfully');
 
       // Initialize face analysis
       if (videoRef.current) {
         faceAnalysisRef.current = new SimpleFaceAnalysis(videoRef.current);
-        
+
         // Run analysis every 2 seconds
         analysisIntervalRef.current = setInterval(async () => {
           if (faceAnalysisRef.current) {
             const analysis = await faceAnalysisRef.current.analyzeFrame();
             setVideoAnalysis(analysis);
-            
+
             // Update feedback based on analysis
             const feedback: string[] = [];
             if (!analysis.isWellFramed) {
@@ -556,7 +578,7 @@ export default function VideoPractice() {
         setTranscript('');
         setRecordingTime(0);
         toast({ title: "Response Submitted", description: "Great! Moving to next question." });
-        
+
         // Speak the next question
         setTimeout(() => {
           if (session.questions && session.questions[nextQuestionIndex]) {
@@ -569,6 +591,38 @@ export default function VideoPractice() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePaymentComplete = async (paymentVerificationId: string) => {
+    try {
+      setLoading(true);
+
+      const response = await apiRequest('/api/video-practice/start', 'POST', {
+        role: setupData.role,
+        company: setupData.company || undefined,
+        interviewType: setupData.interviewType,
+        difficulty: setupData.difficulty,
+        isPaid: true,
+        paymentVerificationId
+      });
+
+      setSession(response);
+      setShowSetup(false);
+      setShowPaymentRequired(false);
+
+      toast({
+        title: "Payment Successful!",
+        description: "Your video interview practice has started.",
+      });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePaymentCancel = () => {
+    setShowPaymentRequired(false);
   };
 
   if (loading && !session) {
@@ -699,6 +753,61 @@ export default function VideoPractice() {
     );
   }
 
+  // If payment is required, show the payment modal
+  if (showPaymentRequired && session) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <Card className="max-w-sm w-full mx-auto p-6">
+          <CardHeader>
+            <CardTitle className="text-2xl">Unlock More Practice</CardTitle>
+            <CardDescription>
+              You've used all your free video interviews. Purchase a session to continue.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-center py-4">
+              <p className="text-4xl font-bold text-blue-600">$5</p>
+              <p className="text-sm text-gray-600">Per session</p>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+              <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
+                <strong>Includes:</strong>
+              </p>
+              <ul className="text-xs text-blue-700 dark:text-blue-300 ml-4 list-disc">
+                <li>AI Feedback</li>
+                <li>Speech Transcription</li>
+                <li>Video Analysis</li>
+              </ul>
+            </div>
+            {/* Placeholder for payment integration (e.g., PayPal button) */}
+            <Button
+              onClick={() => {
+                // Replace with actual payment gateway integration
+                // Example: Initiate PayPal checkout
+                // paypal.Buttons({
+                //   createOrder: (data, actions) => { ... },
+                //   onApprove: (data, actions) => { ... }
+                // }).render('#paypal-button-container');
+                // For now, simulate success after a delay
+                toast({ title: "Simulating Payment...", description: "Redirecting to payment gateway..." });
+                setTimeout(() => {
+                  handlePaymentComplete("simulated_payment_id_" + Date.now());
+                }, 2000);
+              }}
+              className="w-full bg-green-600 hover:bg-green-700"
+            >
+              Pay $5 Now
+            </Button>
+            <Button onClick={handlePaymentCancel} variant="outline" className="w-full">
+              Cancel
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+
   if (!session) return null;
 
   const question = session.questions[currentQuestion];
@@ -793,7 +902,7 @@ export default function VideoPractice() {
                   )}
                 </div>
               )}
-              
+
               {/* Camera status indicator */}
               <div className="absolute top-4 left-4 flex items-center gap-2">
                 {isVideoReady ? (
@@ -808,7 +917,7 @@ export default function VideoPractice() {
                   </div>
                 )}
               </div>
-              
+
               {/* Recording indicator */}
               {isRecording && (
                 <div className="absolute top-4 right-4 flex items-center gap-2 bg-red-600/90 text-white px-3 py-1.5 rounded-full backdrop-blur-sm" data-testid="status-recording">
