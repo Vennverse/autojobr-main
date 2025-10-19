@@ -520,32 +520,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const userId = req.session.user.id;
       
-      // Try to get from cache first (with proper error handling)
-      let user;
-      try {
-        const cached = getCached(`user_${userId}`, userId);
-        if (cached) {
-          return res.json(cached);
-        }
-      } catch (cacheError) {
-        // Cache error - just continue to fetch from DB
-        console.warn('[USER_API] Cache error, fetching from DB:', cacheError);
+      // OPTIMIZATION: Use session data when available
+      if (req.session.user.userType && req.session.user.email) {
+        // Return session data immediately for faster response
+        return res.json({
+          id: userId,
+          email: req.session.user.email,
+          firstName: req.session.user.firstName,
+          lastName: req.session.user.lastName,
+          userType: req.session.user.userType,
+          currentRole: req.session.user.currentRole || req.session.user.userType,
+          planType: req.session.user.planType || 'free',
+          subscriptionStatus: req.session.user.subscriptionStatus || 'free'
+        });
       }
 
-      // Fetch from database
-      user = await storage.getUser(userId);
+      // Fallback: fetch from database if session incomplete
+      const user = await storage.getUser(userId);
       
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      // Cache for future requests (with error handling)
-      try {
-        setCache(`user_${userId}`, user, 300000, userId);
-      } catch (cacheError) {
-        // Cache save failed - not critical, just log
-        console.warn('[USER_API] Failed to cache user data:', cacheError);
-      }
+      // Update session with fresh data
+      req.session.user = {
+        ...req.session.user,
+        userType: user.userType,
+        currentRole: user.currentRole || user.userType,
+        planType: user.planType || 'free',
+        subscriptionStatus: user.subscriptionStatus || 'free'
+      };
 
       res.json(user);
     } catch (error) {
@@ -734,13 +738,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(cached);
       }
 
+      // OPTIMIZATION: Optimized query with limit
       const applications = await db
         .select({
           id: schema.jobPostingApplications.id,
           jobPostingId: schema.jobPostingApplications.jobPostingId,
           status: schema.jobPostingApplications.status,
           appliedAt: schema.jobPostingApplications.appliedAt,
-          // Include job details
           jobTitle: schema.jobPostings.title,
           companyName: schema.jobPostings.companyName,
           location: schema.jobPostings.location,
@@ -750,11 +754,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(schema.jobPostingApplications)
         .leftJoin(schema.jobPostings, eq(schema.jobPostingApplications.jobPostingId, schema.jobPostings.id))
         .where(eq(schema.jobPostingApplications.applicantId, userId))
-        .orderBy(desc(schema.jobPostingApplications.appliedAt));
-
-      console.log(`[APPLICATIONS] Returning ${applications.length} applications with job details for user ${userId}`);
+        .orderBy(desc(schema.jobPostingApplications.appliedAt))
+        .limit(100); // Reasonable limit
       
-      setCache(cacheKey, applications, 180000, userId); // Cache for 3 minutes
+      setCache(cacheKey, applications, 300000, userId); // 5 min cache
       res.json(applications);
     } catch (error) {
       console.error('[APPLICATIONS ERROR]:', error);
@@ -3808,58 +3811,50 @@ Return only the cover letter text, no additional formatting or explanations.`;
 
       const cached = getCached(cacheKey, userId);
       if (cached) {
-        console.log(`[RESUME_FETCH] Returning ${cached.length} cached resumes for user: ${userId}`);
         return res.json(cached);
       }
 
-      console.log(`[RESUME_FETCH] Fetching resumes for user: ${userId}`);
-
-      // Fetch resumes from database - using resumes table (not userResumes)
-      const resumeList = await db.select()
+      // OPTIMIZATION: Single optimized query with specific columns
+      const resumeList = await db.select({
+        id: resumes.id,
+        name: resumes.name,
+        fileName: resumes.fileName,
+        fileSize: resumes.fileSize,
+        mimeType: resumes.mimeType,
+        isActive: resumes.isActive,
+        atsScore: resumes.atsScore,
+        analysisData: resumes.analysisData,
+        createdAt: resumes.createdAt,
+        // Don't fetch full resumeText for list view
+      })
         .from(resumes)
         .where(eq(resumes.userId, userId))
-        .orderBy(desc(resumes.createdAt));
-
-      console.log(`[RESUME_FETCH] Database returned ${resumeList.length} resumes`);
+        .orderBy(desc(resumes.createdAt))
+        .limit(20); // Reasonable limit
 
       if (resumeList.length === 0) {
-        console.log(`[RESUME_FETCH] No resumes found in database for user ${userId}`);
         return res.json([]);
       }
 
-      // Format response with all necessary fields
-      const formattedResumes = resumeList.map(resume => {
-        // Parse analysisData if it's a string
-        let analysis = resume.analysisData;
-        if (typeof analysis === 'string') {
-          try {
-            analysis = JSON.parse(analysis);
-          } catch (e) {
-            console.warn(`[RESUME_FETCH] Failed to parse analysisData for resume ${resume.id}`);
-            analysis = null;
-          }
-        }
+      // OPTIMIZATION: Fast format without heavy operations
+      const formattedResumes = resumeList.map(resume => ({
+        id: resume.id,
+        name: resume.name,
+        fileName: resume.fileName,
+        fileSize: resume.fileSize,
+        mimeType: resume.mimeType,
+        isActive: resume.isActive,
+        atsScore: resume.atsScore || 0,
+        analysis: typeof resume.analysisData === 'string' 
+          ? JSON.parse(resume.analysisData).catch(() => null) 
+          : resume.analysisData,
+        uploadedAt: resume.createdAt
+      }));
 
-        return {
-          id: resume.id,
-          name: resume.name,
-          fileName: resume.fileName,
-          fileSize: resume.fileSize,
-          mimeType: resume.mimeType,
-          isActive: resume.isActive,
-          atsScore: resume.atsScore || 0,
-          analysis: analysis,
-          uploadedAt: resume.createdAt,
-          resumeText: resume.resumeText ? resume.resumeText.substring(0, 500) + '...' : ''
-        };
-      });
-
-      console.log(`[RESUME_FETCH] Returning ${formattedResumes.length} formatted resumes`);
-      
-      setCache(cacheKey, formattedResumes, 180000, userId); // Cache for 3 minutes
+      setCache(cacheKey, formattedResumes, 300000, userId); // 5 min cache
       res.json(formattedResumes);
     } catch (error) {
-      console.error('[RESUME_FETCH] Error fetching resumes:', error);
+      console.error('[RESUME_FETCH] Error:', error);
       handleError(res, error, "Failed to fetch resumes");
     }
   });

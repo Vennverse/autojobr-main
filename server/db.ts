@@ -16,17 +16,20 @@ if (!DATABASE_URL) {
 const poolConfig = {
   connectionString: DATABASE_URL,
   ssl: false, // Replit PostgreSQL doesn't need SSL
-  // Right-sized pool for single instance (use pgBouncer for scaling)
-  max: 20, // Reduced for better resource management per instance
-  min: 5, // Keep minimum connections alive
-  idleTimeoutMillis: 60000, // 1 minute - longer to reduce connection churn
-  connectionTimeoutMillis: 5000, // Reduced for faster failover
-  statement_timeout: 15000, // Reduced for better responsiveness
-  query_timeout: 15000, // Faster query timeout
+  // Optimized pool settings for high performance
+  max: 10, // Smaller pool with connection reuse
+  min: 2, // Minimal idle connections
+  idleTimeoutMillis: 30000, // 30 seconds - faster cleanup
+  connectionTimeoutMillis: 3000, // Faster timeout
+  statement_timeout: 10000, // 10 second query timeout
+  query_timeout: 10000,
   keepAlive: true,
-  keepAliveInitialDelayMillis: 5000,
-  // Performance optimizations
-  allowExitOnIdle: false, // Keep pool alive
+  keepAliveInitialDelayMillis: 3000,
+  allowExitOnIdle: false,
+  // Critical: Connection reuse settings
+  application_name: 'autojobr_api',
+  // Use prepared statements for common queries
+  max_prepared_statements: 100,
 };
 
 const pgPool = new Pool(poolConfig);
