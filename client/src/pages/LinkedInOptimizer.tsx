@@ -23,7 +23,7 @@ interface LinkedInProfile {
 }
 
 export default function LinkedInOptimizer() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   
@@ -39,8 +39,11 @@ export default function LinkedInOptimizer() {
   useEffect(() => {
     if (user) {
       fetchProfile();
+    } else if (!authLoading) {
+      // Auth loading is done and no user found
+      setLoading(false);
     }
-  }, [user]);
+  }, [user, authLoading]);
 
   const fetchProfile = async () => {
     try {

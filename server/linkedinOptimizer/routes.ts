@@ -5,25 +5,9 @@ import { linkedinProfiles, users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { aiService } from '../aiService';
 import { cacheService } from '../cacheService';
+import { isAuthenticated } from '../auth';
 
 const router = Router();
-
-// Authentication middleware
-const requireAuth = (req: any, res: any, next: any) => {
-  console.log('🔐 [LinkedIn Optimizer Auth Check]', {
-    hasUser: !!req.user,
-    userId: req.user?.id,
-    sessionID: req.sessionID,
-    isAuthenticated: req.isAuthenticated?.()
-  });
-
-  if (!req.user?.id && !req.isAuthenticated?.()) {
-    console.error('❌ [LinkedIn Optimizer] No authenticated user found');
-    return res.status(401).json({ error: 'Authentication required' });
-  }
-  
-  next();
-};
 
 // Helper to check premium status
 const isPremiumUser = (user: any): boolean => {
@@ -31,7 +15,7 @@ const isPremiumUser = (user: any): boolean => {
 };
 
 // GET /api/linkedin-optimizer - Get current profile
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', isAuthenticated, async (req, res) => {
   try {
     const userId = req.user!.id;
 
@@ -104,7 +88,7 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 // POST /api/linkedin-optimizer/generate - Generate optimized profile (selective regeneration)
-router.post('/generate', requireAuth, async (req, res) => {
+router.post('/generate', isAuthenticated, async (req, res) => {
   try {
     const userId = req.user!.id;
     const { regenerate } = req.body; // { headline: true, about: false, keywords: true }
@@ -219,7 +203,7 @@ router.post('/generate', requireAuth, async (req, res) => {
 });
 
 // POST /api/linkedin-optimizer/save-edits - Save user edits
-router.post('/save-edits', requireAuth, async (req, res) => {
+router.post('/save-edits', isAuthenticated, async (req, res) => {
   try {
     const userId = req.user!.id;
     const { headline, about } = req.body;
