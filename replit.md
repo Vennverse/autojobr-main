@@ -3,6 +3,16 @@
 ## Overview
 AutoJobr is a full-stack web application designed to automate and streamline the job application process. Its primary purpose is to help users efficiently apply to a large volume of jobs by providing features such as ATS resume optimization, AI-powered cover letter generation, interview preparation, and a Chrome extension for one-click applications. The platform aims to simplify job searching, enhance application quality, and provide tools for career advancement, positioning itself as a comprehensive solution for job seekers.
 
+## Recent Changes (October 19, 2025)
+- **LinkedIn Optimizer Integration & Platform Improvements**: Enhanced the LinkedIn Profile Optimizer feature and fixed critical platform issues:
+  - **OAuth Fixes**: Fixed Google and LinkedIn OAuth callback URLs to use dynamic baseUrl instead of hard-coded autojobr.com, enabling OAuth to work in all environments (development, staging, production)
+  - **LinkedIn Optimizer Routes**: Added /linkedin-optimizer route to App.tsx for all user roles (recruiters, job seekers, default users)
+  - **Premium AI Tools Enhancement**: Added LinkedIn Optimizer tab to Premium AI Tools page with Globe icon and feature cards showcasing headline generation, About section optimization, and keyword analysis
+  - **Demo Data Removal**: Removed all placeholder analytics data from LinkedIn Optimizer (profileViews, searchAppearances, engagementRate, connectionGrowth, contentPerformance) to show only real user data
+  - **SEO Implementation**: Added comprehensive SEO meta tags to LinkedIn Optimizer and Premium AI Tools pages including title, description, keywords, Open Graph, Twitter Card, and canonical URL tags
+  - **404 Page Enhancement**: Updated NotFound page to show login prompt with redirect for unauthenticated users instead of generic 404 error, improving user experience
+  - **WebSocket Fix**: Fixed critical Vite HMR WebSocket error by implementing conditional protocol selection (wss for Replit HTTPS, ws for local HTTP development), resolving "Failed to construct 'WebSocket'" browser security errors
+  
 ## Recent Changes (October 18, 2025)
 - **Referral Marketplace Trust & Verification System**: Transformed the employee referral marketplace into a professional, trustworthy platform with industry best practices:
   - **Database Schema**: Added meeting scheduling, dual-party confirmation fields (meetingConfirmedByJobSeeker, meetingConfirmedByReferrer, deliveryConfirmedByJobSeeker, deliveryConfirmedByReferrer), dispute handling, and completion tracking
