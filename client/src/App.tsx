@@ -207,6 +207,7 @@ function Router() {
       <Route path="/blog/remote-job-search-2025" component={RemoteJobSearch2025} />
       <Route path="/chrome-extension" component={ChromeExtension} />
       <Route path="/ats-optimizer" component={ATSOptimizer} />
+      <Route path="/recruiter-features" component={RecruiterFeaturesPage} />
 
       {/* SEO-optimized referral landing page */}
       <Route path="/employee-referral-services" component={EmployeeReferralServices} />
@@ -350,7 +351,6 @@ function Router() {
               <Route path="/admin/sso-configuration" component={SSOConfiguration} />
               {/* Admin user management temporarily disabled */}
               <Route path="/jobs/:id" component={ViewJob} />
-              <Route path="/recruiter-features" component={RecruiterFeaturesPage} />
               <Route path="/profile" component={Profile} />
               <Route path="/subscription" component={RecruiterSubscription} />
               <Route path="/recruiter-premium" component={RecruiterPremium} />
@@ -482,7 +482,6 @@ function Router() {
           <Route path="/email-verification" component={() => <EmailVerificationPage />} />
           <Route path="/for-recruiters" component={RecruiterFeatures} />
           <Route path="/recruiters" component={RecruiterFeatures} />
-          <Route path="/recruiter-features" component={RecruiterFeatures} />
           <Route path="/test/:id" component={TestTaking} />
           {/* Bidder dashboard - show landing page for unauthenticated users */}
           <Route path="/bidder-dashboard" component={BidderLanding} />
