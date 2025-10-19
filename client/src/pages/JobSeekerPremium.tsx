@@ -152,7 +152,7 @@ export default function JobSeekerPremium() {
         window.paypal.Buttons({
           style: {
             shape: 'rect',
-            color: 'black',
+            color: 'gold',
             layout: 'vertical',
             label: 'subscribe'
           },
@@ -203,7 +203,7 @@ export default function JobSeekerPremium() {
         window.paypal.Buttons({
           style: {
             shape: 'rect',
-            color: 'black',
+            color: 'gold',
             layout: 'vertical',
             label: 'subscribe'
           },
