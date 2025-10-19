@@ -666,7 +666,7 @@ export default function EnhancedDashboard() {
                         <p className="text-sm text-slate-600 dark:text-slate-400">Boost your confidence with AI feedback</p>
                       </div>
                     </div>
-                    <Button onClick={() => setLocation('/virtual-interview/new')} data-testid="button-practice-interview">
+                    <Button onClick={() => setLocation('/video-practice')} data-testid="button-practice-interview">
                       <Play className="w-4 h-4 mr-2" />
                       Practice
                     </Button>
