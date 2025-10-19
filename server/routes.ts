@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 import { db } from "./db";
 import { eq, desc, and, or, like, isNotNull, count, asc, isNull, sql, inArray } from "drizzle-orm";
 import * as schema from "@shared/schema";
-import { resumes, userResumes, insertInternshipApplicationSchema, companyEmailVerifications, virtualInterviews, mockInterviews, jobPostingApplications, invitationUses, insertUserProfileSchema, insertUserSkillSchema, scrapedJobs, crmContacts, contactInteractions, pipelineStages } from "@shared/schema";
+import { resumes, userResumes, insertInternshipApplicationSchema, companyEmailVerifications, virtualInterviews, mockInterviews, jobPostingApplications, invitationUses, insertUserProfileSchema, insertUserSkillSchema, scrapedJobs, crmContacts, contactInteractions, pipelineStages, jobPostings } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated, isAuthenticatedExtension } from "./auth";
 import { storage } from "./storage";
@@ -521,10 +521,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const userId = req.session.user.id;
-      
+
       // ALWAYS fetch fresh user data from database to ensure premium status is current
       const user = await storage.getUser(userId);
-      
+
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
@@ -599,7 +599,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register virtual interview routes
   app.use('/api/virtual-interview', virtualInterviewRoutes);
-  
+
   // CRITICAL: Also mount chat interview routes for backwards compatibility
   app.use('/api/chat-interview', virtualInterviewRoutes);
 
@@ -764,7 +764,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(schema.jobPostingApplications.applicantId, userId))
         .orderBy(desc(schema.jobPostingApplications.appliedAt))
         .limit(100); // Reasonable limit
-      
+
       setCache(cacheKey, applications, 300000, userId); // 5 min cache
       res.json(applications);
     } catch (error) {
@@ -1075,7 +1075,7 @@ Return only the improved job description text, no additional formatting or expla
   app.get('/api/jobseeker/test-assignments', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      
+
       // Get all test assignments for the job seeker
       const assignments = await db
         .select()
@@ -1473,7 +1473,7 @@ Return only the improved job description text, no additional formatting or expla
 
       // Check usage and payment requirements
       const usageCheck = await videoPracticePaymentService.checkUsageAndPayment(userId);
-      
+
       // If payment is required, block session start and return payment info
       // User must complete payment via PayPal/Amazon Pay before they can start
       if (usageCheck.requiresPayment) {
@@ -1614,7 +1614,7 @@ Return only the improved job description text, no additional formatting or expla
     try {
       const userId = req.user.id;
       const usageInfo = await videoPracticePaymentService.checkUsageAndPayment(userId);
-      
+
       res.json({
         success: true,
         ...usageInfo
@@ -2039,7 +2039,7 @@ Return only the improved job description text, no additional formatting or expla
   app.get('/api/mock-interview/stats', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      
+
       // Get all virtual interviews for this user (mock interviews are practice interviews)
       const interviews = await db
         .select()
@@ -2496,7 +2496,7 @@ Return only the improved job description text, no additional formatting or expla
   app.get('/api/internships/applications', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      
+
       // Simple pagination without strict validation
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -2639,17 +2639,17 @@ Return only the improved job description text, no additional formatting or expla
   });
 
   // ===== RECRUITER TASK MANAGEMENT ROUTES =====
-  
+
   // Get all recruiter tasks
   app.get('/api/recruiter/tasks', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      
+
       const tasks = await db.select()
         .from(schema.recruiterTasks)
         .where(eq(schema.recruiterTasks.assignedById, userId))
         .orderBy(desc(schema.recruiterTasks.createdAt));
-      
+
       res.json(tasks);
     } catch (error) {
       console.error('Get recruiter tasks error:', error);
@@ -2774,7 +2774,7 @@ Return only the improved job description text, no additional formatting or expla
       const userId = req.user.id;
 
       let updateData: any = {};
-      
+
       switch (action) {
         case 'complete':
           updateData = { status: 'completed' };
@@ -2927,6 +2927,7 @@ Return only the improved job description text, no additional formatting or expla
         interviewType,
         role: config.role,
         company: config.company,
+        difficulty: config.difficulty,
         invitationId: invitation.id
       });
 
@@ -3490,9 +3491,9 @@ Return only the cover letter text, no additional formatting or explanations.`;
     try {
       const userId = req.user.id;
       const { careerInsightsService } = await import('./careerInsightsService.js');
-      
+
       const insights = await careerInsightsService.generateProactiveInsights(userId);
-      
+
       res.json({
         success: true,
         insights
@@ -3524,12 +3525,12 @@ Return only the cover letter text, no additional formatting or explanations.`;
           .from(schema.userProfiles)
           .where(eq(schema.userProfiles.userId, userId))
           .limit(1);
-        
+
         if (dbProfile) {
           const skills = await db.select()
             .from(schema.userSkills)
             .where(eq(schema.userSkills.userId, userId));
-          
+
           profile = {
             ...dbProfile,
             skills: skills.map(s => s.skillName)
@@ -3545,7 +3546,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
       if (profile && profile.skills) {
         const userSkills = profile.skills.map((s: string) => s.toLowerCase());
         const jobSkills = jobData.requiredSkills || [];
-        
+
         jobSkills.forEach((skill: string) => {
           if (userSkills.includes(skill.toLowerCase())) {
             matchingSkills.push(skill);
@@ -3586,7 +3587,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
   app.get('/api/saved-jobs', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      
+
       const savedJobs = await db.select()
         .from(schema.userSavedJobs)
         .where(eq(schema.userSavedJobs.userId, userId))
@@ -3988,7 +3989,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
         .limit(1);
 
       const isPremium = user?.subscriptionStatus === 'active' && user?.planType !== 'free';
-      
+
       // Count cover letters generated this month (simple check)
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
@@ -4079,8 +4080,8 @@ Return only the cover letter text, no additional formatting or explanations.`;
       await db.update(resumes)
         .set({ isActive: true })
         .where(and(
-          eq(resumes.id, resumeId),
-          eq(resumes.userId, userId)
+          eq(resumes.userId, userId),
+          eq(resumes.id, resumeId)
         ));
 
       res.json({ success: true });
@@ -4524,6 +4525,8 @@ Return only the cover letter text, no additional formatting or explanations.`;
           status: 'assigned',
           retakeAllowed: true,
           linkedinShareUrl: linkedinPostUrl,
+          linkedinShareVerified: true,
+          linkedinShareVerifiedAt: new Date(),
           updatedAt: new Date()
         })
         .where(eq(schema.mockInterviews.id, interviewId));
@@ -4669,7 +4672,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
         }
       } catch (verifyError: any) {
         console.error('LinkedIn oEmbed verification error:', verifyError.response?.data || verifyError.message);
-        
+
         if (verifyError.response?.status === 404) {
           return res.status(404).json({ 
             message: 'LinkedIn post not found or is not public. Please ensure the post is publicly visible.' 
@@ -4692,7 +4695,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
   app.post('/api/admin/send-retake-warnings/:testTemplateId', async (req: any, res) => {
     try {
       const testTemplateId = parseInt(req.params.testTemplateId);
-      
+
       // Get all users with terminated tests for this template
       const terminatedTests = await db
         .select({
@@ -4728,15 +4731,15 @@ Return only the cover letter text, no additional formatting or explanations.`;
               <h1 style="color: white; margin: 0; font-size: 28px;">⚠️ Final Retake Opportunity</h1>
               <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">Important Test Integrity Notice</p>
             </div>
-            
+
             <div style="background: white; padding: 40px; border: 1px solid #e1e5e9; border-top: none; border-radius: 0 0 10px 10px;">
               <h2 style="color: #333; margin-top: 0;">Dear ${userName},</h2>
-              
+
               <p style="color: #666; line-height: 1.6;">
                 We have reviewed your test assignment and noticed that it was terminated due to suspicious activity. 
                 After careful consideration, we are granting you <strong>ONE FINAL RETAKE OPPORTUNITY</strong>.
               </p>
-              
+
               <div style="background: #fee2e2; border-left: 4px solid #dc2626; padding: 20px; margin: 20px 0; border-radius: 5px;">
                 <h3 style="color: #991b1b; margin-top: 0; font-size: 18px;">🚨 CRITICAL WARNINGS</h3>
                 <ul style="color: #7f1d1d; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
@@ -4773,13 +4776,13 @@ Return only the cover letter text, no additional formatting or explanations.`;
                   Retake Test Now
                 </a>
               </div>
-              
+
               <p style="color: #666; line-height: 1.6; font-size: 14px; text-align: center;">
                 Or copy and paste this link into your private browser:<br>
                 <a href="https://autojobr.com/interview-link/link_1760040400971_3d9hswhtz" 
                    style="color: #667eea; word-break: break-all;">https://autojobr.com/interview-link/link_1760040400971_3d9hswhtz</a>
               </p>
-              
+
               <div style="background: #fef2f2; border: 2px solid #dc2626; padding: 20px; margin: 20px 0; border-radius: 8px; text-align: center;">
                 <p style="color: #991b1b; margin: 0; font-size: 16px; font-weight: bold;">
                   ⚠️ THIS IS YOUR LAST CHANCE ⚠️
@@ -4788,9 +4791,9 @@ Return only the cover letter text, no additional formatting or explanations.`;
                   Any further violations will result in permanent account suspension
                 </p>
               </div>
-              
+
               <hr style="border: none; border-top: 1px solid #e1e5e9; margin: 30px 0;">
-              
+
               <p style="color: #999; font-size: 12px; text-align: center;">
                 Please read all instructions carefully before starting the test.<br>
                 Good luck and test with integrity!
@@ -4815,7 +4818,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
 
       const results = await Promise.all(emailPromises);
       const successCount = results.filter(r => r.success).length;
-      
+
       res.json({ 
         message: `Sent warning emails to ${successCount} out of ${terminatedTests.length} users`,
         count: successCount,
@@ -4832,7 +4835,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
   app.post('/api/send-custom-email', async (req: any, res) => {
     try {
       const { to, name, link } = req.body;
-      
+
       const emailHtml = `
         <!DOCTYPE html>
         <html>
@@ -4845,15 +4848,15 @@ Return only the cover letter text, no additional formatting or explanations.`;
             <h1 style="color: white; margin: 0; font-size: 28px;">⚠️ Final Retake Opportunity</h1>
             <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">Important Test Integrity Notice</p>
           </div>
-          
+
           <div style="background: white; padding: 40px; border: 1px solid #e1e5e9; border-top: none; border-radius: 0 0 10px 10px;">
             <h2 style="color: #333; margin-top: 0;">Dear ${name},</h2>
-            
+
             <p style="color: #666; line-height: 1.6;">
               We have reviewed your test assignment and noticed that it was terminated due to suspicious activity. 
               After careful consideration, we are granting you <strong>ONE FINAL RETAKE OPPORTUNITY</strong>.
             </p>
-            
+
             <div style="background: #fee2e2; border-left: 4px solid #dc2626; padding: 20px; margin: 20px 0; border-radius: 5px;">
               <h3 style="color: #991b1b; margin-top: 0; font-size: 18px;">🚨 CRITICAL WARNINGS</h3>
               <ul style="color: #7f1d1d; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
@@ -4890,13 +4893,13 @@ Return only the cover letter text, no additional formatting or explanations.`;
                 Retake Test Now
               </a>
             </div>
-            
+
             <p style="color: #666; line-height: 1.6; font-size: 14px; text-align: center;">
               Or copy and paste this link into your private browser:<br>
               <a href="${link}" 
                  style="color: #667eea; word-break: break-all;">${link}</a>
             </p>
-            
+
             <div style="background: #fef2f2; border: 2px solid #dc2626; padding: 20px; margin: 20px 0; border-radius: 8px; text-align: center;">
               <p style="color: #991b1b; margin: 0; font-size: 16px; font-weight: bold;">
                 ⚠️ THIS IS YOUR LAST CHANCE ⚠️
@@ -4905,9 +4908,9 @@ Return only the cover letter text, no additional formatting or explanations.`;
                 Any further violations will result in permanent account suspension
               </p>
             </div>
-            
+
             <hr style="border: none; border-top: 1px solid #e1e5e9; margin: 30px 0;">
-            
+
             <p style="color: #999; font-size: 12px; text-align: center;">
               Please read all instructions carefully before starting the test.<br>
               Good luck and test with integrity!
@@ -5250,7 +5253,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
     // Check if subscription is still active
     const now = new Date();
     const isSubscriptionActive = user.subscriptionEndDate && new Date(user.subscriptionEndDate) > now;
-    
+
     const response = {
       planType: user.planType || 'free',
       subscriptionStatus: isSubscriptionActive ? 'active' : (user.subscriptionStatus || 'free'),
@@ -5912,7 +5915,7 @@ Return ONLY the JSON object, no additional text.`;
   // 2. Current Subscription Endpoint
   app.get('/api/subscription/current', isAuthenticated, asyncHandler(async (req: any, res: any) => {
     const userId = req.user.id;
-    
+
     const userSubscription = await db.query.subscriptions.findFirst({
       where: eq(schema.subscriptions.userId, userId),
       orderBy: [desc(schema.subscriptions.createdAt)]
@@ -6107,7 +6110,7 @@ Return ONLY the JSON object, no additional text.`;
     try {
       const { jobDetails, resume } = req.body;
       const userId = req.user.id;
-      
+
       if (!jobDetails) {
         return res.status(400).json({ message: 'Job details are required' });
       }
@@ -6123,13 +6126,13 @@ Return ONLY the JSON object, no additional text.`;
             eq(schema.resumes.isActive, true)
           ))
           .limit(1);
-        
+
         if (activeResume[0]?.resumeText) {
           resumeText = activeResume[0].resumeText;
         }
         // If still no resume, allow the request to proceed - AI can generate generic content
       }
-      
+
       if (!resumeText) {
         return res.status(400).json({ 
           message: 'Please provide your resume or upload one to your profile first.',
@@ -6165,7 +6168,7 @@ Return ONLY the JSON object, no additional text.`;
   app.post('/api/premium/ai/salary-negotiation', isAuthenticated, asyncHandler(async (req: any, res) => {
     try {
       const { currentOffer, desiredSalary, jobTitle, experience, location, marketData } = req.body;
-      
+
       if (!currentOffer || !desiredSalary || !jobTitle) {
         return res.status(400).json({ message: 'Offer details are required' });
       }
@@ -6188,7 +6191,7 @@ Return ONLY the JSON object, no additional text.`;
   app.post('/api/premium/ai/interview-answer', isAuthenticated, asyncHandler(async (req: any, res) => {
     try {
       const { question, resume } = req.body;
-      
+
       if (!question || !resume) {
         return res.status(400).json({ message: 'Question and resume are required' });
       }
@@ -6208,7 +6211,7 @@ Return ONLY the JSON object, no additional text.`;
   app.post('/api/premium/ai/career-path', isAuthenticated, asyncHandler(async (req: any, res) => {
     try {
       const { currentRole, experience, skills, interests, targetRole } = req.body;
-      
+
       if (!currentRole || !skills) {
         return res.status(400).json({ message: 'Current role and skills are required' });
       }
@@ -6231,7 +6234,7 @@ Return ONLY the JSON object, no additional text.`;
   app.post('/api/premium/ai/resume-bullets', isAuthenticated, asyncHandler(async (req: any, res) => {
     try {
       const { currentBulletPoints, jobTitle, company, industry } = req.body;
-      
+
       if (!currentBulletPoints || !jobTitle) {
         return res.status(400).json({ message: 'Bullet points and job title are required' });
       }
@@ -6255,7 +6258,7 @@ Return ONLY the JSON object, no additional text.`;
     try {
       const { resumeText, jobDescription, jobTitle, targetCompany } = req.body;
       const userId = req.user.id;
-      
+
       if (!jobDescription || !jobTitle) {
         return res.status(400).json({ message: 'Job description and job title are required' });
       }
@@ -6271,13 +6274,13 @@ Return ONLY the JSON object, no additional text.`;
             eq(schema.resumes.isActive, true)
           ))
           .limit(1);
-        
+
         if (activeResume[0]?.resumeText) {
           resume = activeResume[0].resumeText;
         }
         // If still no resume, allow the request to proceed - AI can generate generic content
       }
-      
+
       if (!resume) {
         return res.status(400).json({ 
           message: 'Please provide your resume or upload one to your profile first.',
@@ -6316,7 +6319,7 @@ Return ONLY the JSON object, no additional text.`;
   app.post('/api/premium/ai/resume-gaps', isAuthenticated, asyncHandler(async (req: any, res) => {
     try {
       const { gapPeriod, gapReason, previousRole, nextRole, skillsDeveloped } = req.body;
-      
+
       if (!gapPeriod) {
         return res.status(400).json({ message: 'Gap period is required' });
       }
@@ -7301,7 +7304,7 @@ Return ONLY the JSON object, no additional text.`;
       handleError(res, error, "Failed to upload video response");    }
   });
 
-  app.post('/api/video-interviews/responses/:id/analyze', isAuthenticated, async (req, res) => {
+  app.post('/api/video-interviews/:id/analyze', isAuthenticated, async (req, res) => {
     try {
       const responseId = parseInt(req.params.id);
       const { question } = req.body;
@@ -7587,7 +7590,7 @@ Return ONLY the JSON object, no additional text.`;
   // OPTIMIZED Resume Upload - AI extracts text AND parses data in ONE call (cheapest model)
   app.post('/api/resumes/upload', isAuthenticated, upload.single('resume'), async (req: any, res) => {
     res.setHeader('Content-Type', 'application/json');
-    
+
     try {
       const userId = req.user.id;
       const file = req.file;
@@ -7609,16 +7612,16 @@ Return ONLY the JSON object, no additional text.`;
         });
       }
 
-      // Use OPTIMIZED AI parser - extracts text AND structured data in ONE call
+      // Use OPTIMIZED AI parser - extracts text AND analyzes (uses cheapest model: llama-3.1-8b-instant)
+      console.log('🤖 Using AI to extract AND analyze resume (cheapest model)...');
       const { OptimizedResumeParser } = await import('./optimizedResumeParser');
       const parser = new OptimizedResumeParser();
-      
+
       // Get user for AI tier
       const user = await storage.getUser(userId);
       const userProfile = await storage.getUserProfile(userId).catch(() => null);
 
       // ONE AI CALL: Parse + Analyze (uses cheapest model: llama-3.1-8b-instant)
-      console.log('🤖 Using AI to extract AND analyze resume (cheapest model)...');
       const { parsedData, analysis } = await parser.parseAndAnalyze(file.buffer, file.mimetype, userProfile);
 
       // Store ORIGINAL file (NO compression to preserve PDF design for recruiters)
@@ -7645,7 +7648,7 @@ Return ONLY the JSON object, no additional text.`;
       invalidateUserCache(userId);
 
       console.log(`✅ Resume uploaded successfully for user: ${userId}`);
-      
+
       return res.json({ 
         success: true,
         analysis: analysis,
@@ -7855,7 +7858,7 @@ Return ONLY the JSON object, no additional text.`;
 
   // ============= ENHANCED CRM FEATURES (HubSpot-level) =============
   const { EnhancedCrmService } = await import('./enhancedCrmService');
-  
+
   app.get('/api/crm/analytics', isAuthenticated, EnhancedCrmService.getAnalytics);
   app.get('/api/crm/contacts/:contactId/score', isAuthenticated, EnhancedCrmService.scoreContact);
   app.post('/api/crm/tasks/auto-create', isAuthenticated, EnhancedCrmService.autoCreateTasks);

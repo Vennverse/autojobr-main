@@ -100,10 +100,20 @@ Disallow: /payment/
 Disallow: /onboarding
 Disallow: /reset-password
 Disallow: /verify-email
+
+# Block query parameters that cause duplicates
 Disallow: /*?*utm_*
 Disallow: /*?*ref=*
 Disallow: /*?*fbclid=*
 Disallow: /*?*gclid=*
+Disallow: /*?search=*
+Disallow: /*?page=*
+Disallow: /*&*
+
+# Allow clean job URLs
+Allow: /jobs/$
+Allow: /jobs/[0-9]*$
+Allow: /jobs/scraped/[0-9]*$
 
 # Allow public user areas (auth-gated but SEO-friendly URLs)
 Allow: /dashboard

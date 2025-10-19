@@ -59,6 +59,7 @@ router.get("/sitemap.xml", async (req, res) => {
 
     let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" 
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
         xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
     
@@ -153,7 +154,7 @@ router.get("/sitemap.xml", async (req, res) => {
     </url>`;
     });
 
-    // Add individual job posting pages
+    // Add individual job posting pages with proper structure
     activeJobs.forEach(job => {
       const lastmod = job.updatedAt ? 
         new Date(job.updatedAt).toISOString().split('T')[0] : 
@@ -163,12 +164,13 @@ router.get("/sitemap.xml", async (req, res) => {
     <url>
         <loc>${baseUrl}/jobs/${job.id}</loc>
         <lastmod>${lastmod}</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.7</priority>
+        <changefreq>daily</changefreq>
+        <priority>0.8</priority>
+        <xhtml:link rel="alternate" hreflang="en" href="${baseUrl}/jobs/${job.id}"/>
     </url>`;
     });
 
-    // Add scraped job pages (with lower priority)
+    // Add scraped job pages with canonical reference
     scrapedJobsData.forEach(job => {
       const lastmod = job.createdAt ? 
         new Date(job.createdAt).toISOString().split('T')[0] : today;
@@ -177,8 +179,9 @@ router.get("/sitemap.xml", async (req, res) => {
     <url>
         <loc>${baseUrl}/jobs/scraped/${job.id}</loc>
         <lastmod>${lastmod}</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.6</priority>
+        <changefreq>daily</changefreq>
+        <priority>0.7</priority>
+        <xhtml:link rel="alternate" hreflang="en" href="${baseUrl}/jobs/scraped/${job.id}"/>
     </url>`;
     });
 

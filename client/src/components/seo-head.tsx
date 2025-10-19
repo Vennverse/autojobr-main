@@ -94,8 +94,16 @@ export default function SEOHead({
       <meta name="geo.region" content="US" />
       <meta name="geo.placename" content="United States" />
       
-      {/* Canonical URL */}
+      {/* Canonical URL - Stronger enforcement */}
       <link rel="canonical" href={currentUrl} />
+      
+      {/* Prevent duplicate indexing */}
+      {currentUrl.includes('?') && (
+        <>
+          <meta name="robots" content="noindex, follow" />
+          <link rel="canonical" href={currentUrl.split('?')[0]} />
+        </>
+      )}
       
       {/* Enhanced Robots directives */}
       {noIndex ? (
