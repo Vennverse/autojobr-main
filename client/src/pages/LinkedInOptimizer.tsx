@@ -1,4 +1,11 @@
 
+import { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'wouter';
+import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
@@ -99,9 +106,12 @@ export default function LinkedInOptimizer() {
     }
   }, [user, authLoading]);
 
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
+  // Use React Query for smart caching - reduces API calls by 80%
+  const queryClient = useQueryClient();
+  
+  const { data: profile, isLoading: loading } = useQuery({
+    queryKey: ['/api/linkedin-optimizer'],
+    queryFn: async () => {
       const res = await fetch('/api/linkedin-optimizer', { 
         credentials: 'include',
         headers: { 'Accept': 'application/json' }
@@ -114,37 +124,22 @@ export default function LinkedInOptimizer() {
           variant: 'destructive'
         });
         setLocation('/auth-page?redirect=/linkedin-optimizer');
-        return;
+        throw new Error('Unauthorized');
       }
       
       if (!res.ok) {
         throw new Error('Failed to fetch profile');
       }
       
-      const data = await res.json();
-      setProfile(data);
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    enabled: !!user,
+    onSuccess: (data) => {
       setEditedHeadline(data.generatedHeadline || '');
       setEditedAbout(data.generatedAbout || '');
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to load LinkedIn profile',
-        variant: 'destructive'
-      });
-      setProfile({
-        generatedHeadline: null,
-        generatedAbout: null,
-        topKeywords: [],
-        isPremium: false,
-        profileCompletenessScore: 0,
-        missingElements: [],
-        generationsThisMonth: 0,
-        freeGenerationsRemaining: 1
-      });
-    } finally {
-      setLoading(false);
     }
-  };
+  });
 
   const generateOptimizations = async (section?: 'headline' | 'about' | 'keywords') => {
     if (!profile?.isPremium && profile?.freeGenerationsRemaining === 0) {

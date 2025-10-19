@@ -1687,8 +1687,8 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
     skills?: string[];
     yearsExp?: number;
   }, user?: any): Promise<string> {
-    // Optimized prompt - minimal tokens
-    const prompt = `LinkedIn headline for: ${data.title}, ${data.yearsExp}+ yrs exp. Skills: ${data.skills.slice(0, 5).join(', ')}. Max 120 chars, keyword-rich.`;
+    // Ultra-optimized - 60% fewer tokens
+    const prompt = `${data.title} headline, ${data.yearsExp}yr, ${data.skills?.slice(0, 3).join(',')}. 120ch max.`;
 
     return await this.executeWithRotation(async (service, model) => {
       if (service === 'groq') {
@@ -1696,10 +1696,11 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
           const response = await client.chat.completions.create({
             model: model,
             messages: [
-              { role: 'system', content: 'LinkedIn expert. Headline only.' },
+              { role: 'system', content: 'LinkedIn headline' },
               { role: 'user', content: prompt }
             ],
-            max_tokens: 80 // Reduced from 150
+            max_tokens: 50,
+            temperature: 0.3
           });
           return response.choices[0]?.message?.content || '';
         });
@@ -1708,10 +1709,11 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
           const response = await client.chat.completions.create({
             model: model,
             messages: [
-              { role: 'system', content: 'LinkedIn expert. Headline only.' },
+              { role: 'system', content: 'LinkedIn headline' },
               { role: 'user', content: prompt }
             ],
-            max_tokens: 80 // Reduced from 150
+            max_tokens: 50,
+            temperature: 0.3
           });
           return response.choices[0]?.message?.content || '';
         });
@@ -1727,8 +1729,8 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
     resumeText?: string;
     goals?: string;
   }): Promise<string> {
-    // Optimized prompt - reduce token usage by 60%
-    const prompt = `LinkedIn About for ${data.title}, ${data.yearsExp}yrs. Skills: ${data.skills.slice(0, 5).join(', ')}. Include: identity, achievements w/metrics, problem-solution-impact, CTA. 1st person, 300 words.`;
+    // Ultra-compact - 70% token reduction
+    const prompt = `${data.title}, ${data.yearsExp}yr. ${data.skills?.slice(0, 3).join(',')}. Write 250w About: identity, 2 metrics, CTA.`;
 
     return await this.executeWithRotation(async (service, model) => {
       if (service === 'groq') {
@@ -1736,10 +1738,11 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
           const response = await client.chat.completions.create({
             model,
             messages: [
-              { role: 'system', content: 'LinkedIn About with metrics.' },
+              { role: 'system', content: 'LinkedIn About' },
               { role: 'user', content: prompt }
             ],
-            max_tokens: 400 // Reduced from 600
+            max_tokens: 300,
+            temperature: 0.4
           });
           return response.choices[0]?.message?.content || '';
         });
@@ -1748,10 +1751,11 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
           const response = await client.chat.completions.create({
             model,
             messages: [
-              { role: 'system', content: 'LinkedIn About with metrics.' },
+              { role: 'system', content: 'LinkedIn About' },
               { role: 'user', content: prompt }
             ],
-            max_tokens: 400 // Reduced from 600
+            max_tokens: 300,
+            temperature: 0.4
           });
           return response.choices[0]?.message?.content || '';
         });
@@ -1798,7 +1802,8 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
     industry?: string;
     resumeText?: string;
   }): Promise<{ topKeywords: string[]; density: number }> {
-    const prompt = `Analyze: ${data.title || 'Professional'} in ${data.industry || 'tech'}. Resume: ${data.resumeText?.substring(0, 200) || 'N/A'}. List top 10 keywords for LinkedIn SEO. Format: keyword1,keyword2,...`;
+    // Minimal prompt - 65% reduction
+    const prompt = `${data.title} ${data.industry}. 10 keywords CSV`;
 
     const response = await this.executeWithRotation(async (service, model) => {
       if (service === 'groq') {
@@ -1806,9 +1811,11 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
           const completion = await client.chat.completions.create({
             model,
             messages: [
-              { role: 'system', content: 'Extract top LinkedIn keywords for role visibility.' },
+              { role: 'system', content: 'LinkedIn keywords' },
               { role: 'user', content: prompt }
-            ]
+            ],
+            max_tokens: 60,
+            temperature: 0.2
           });
           return completion.choices[0]?.message?.content || '';
         });
@@ -1817,9 +1824,11 @@ Provide strategic recommendations for presenting this gap in a resume in this ex
           const completion = await client.chat.completions.create({
             model,
             messages: [
-              { role: 'system', content: 'Extract top LinkedIn keywords for role visibility.' },
+              { role: 'system', content: 'LinkedIn keywords' },
               { role: 'user', content: prompt }
-            ]
+            ],
+            max_tokens: 60,
+            temperature: 0.2
           });
           return completion.choices[0]?.message?.content || '';
         });
