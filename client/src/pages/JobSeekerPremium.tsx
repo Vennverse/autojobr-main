@@ -295,8 +295,11 @@ export default function JobSeekerPremium() {
   const tiers: JobSeekerSubscriptionTier[] = (tiersData?.tiers || []).filter((tier: any) => tier.userType === 'jobseeker');
   const subscription = (currentSubscription as any)?.subscription || null;
   
+  // Check if user has premium/ultra_premium plan type
+  const isPremiumUser = user?.planType === 'premium' || user?.planType === 'ultra_premium' || user?.planType === 'enterprise';
+  
   // Check subscription status - handle both possible response structures for backwards compatibility
-  const isFreeTier = !subscription || !(subscription?.isActive === true || subscription?.status === 'active');
+  const isFreeTier = !isPremiumUser && (!subscription || !(subscription?.isActive === true || subscription?.status === 'active'));
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -314,7 +317,7 @@ export default function JobSeekerPremium() {
               Supercharge your job search with AI-powered tools, unlimited applications, and premium features.
             </p>
             
-            {isFreeTier && (
+            {isFreeTier && !isPremiumUser && (
               <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                 <div className="flex items-center justify-center gap-2 text-yellow-800 dark:text-yellow-200">
                   <AlertTriangle className="h-5 w-5" />
