@@ -96,6 +96,13 @@ export default function EnhancedCrmDashboard() {
   const [showMeetingDialog, setShowMeetingDialog] = useState(false);
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const [selectedEmailTemplate, setSelectedEmailTemplate] = useState<any>(null);
+  const [showEmailComposeDialog, setShowEmailComposeDialog] = useState(false);
+  const [emailComposeData, setEmailComposeData] = useState({
+    to: "",
+    subject: "",
+    body: "",
+  });
+  const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
 
   // Forms
   const contactForm = useForm({
@@ -343,6 +350,87 @@ export default function EnhancedCrmDashboard() {
     return colors[stage] || "bg-gray-500";
   };
 
+  // Email compose handlers
+  const handleOpenEmailCompose = (contact: any) => {
+    setSelectedContact(contact);
+    setEmailComposeData({
+      to: contact.email || "",
+      subject: "",
+      body: "",
+    });
+    setShowEmailComposeDialog(true);
+  };
+
+  const handleGenerateAIEmail = async () => {
+    if (!selectedContact) return;
+    
+    setIsGeneratingEmail(true);
+    try {
+      const response = await apiRequest('/api/crm/email/generate-ai', 'POST', {
+        contactName: selectedContact.name,
+        contactType: selectedContact.contactType,
+        company: selectedContact.company,
+        purpose: "follow-up",
+        context: selectedContact.notes || "",
+      });
+      
+      setEmailComposeData(prev => ({
+        ...prev,
+        subject: response.subject || prev.subject,
+        body: response.emailBody || response.body || prev.body,
+      }));
+      
+      toast({ 
+        title: "🤖 AI Email Generated!", 
+        description: "Review and customize before sending" 
+      });
+    } catch (error) {
+      toast({ 
+        title: "Error generating email", 
+        description: "Please try again",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingEmail(false);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!emailComposeData.to || !emailComposeData.subject || !emailComposeData.body) {
+      toast({ 
+        title: "Missing fields", 
+        description: "Please fill in all email fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await apiRequest('/api/crm/email/send', 'POST', {
+        to: emailComposeData.to,
+        subject: emailComposeData.subject,
+        body: emailComposeData.body,
+        contactId: selectedContact?.id,
+      });
+
+      toast({ 
+        title: "✅ Email sent successfully!", 
+        description: `Email sent to ${emailComposeData.to}` 
+      });
+      
+      setShowEmailComposeDialog(false);
+      setEmailComposeData({ to: "", subject: "", body: "" });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/activities"] });
+    } catch (error: any) {
+      toast({ 
+        title: "Error sending email", 
+        description: error.message || "Please try again",
+        variant: "destructive"
+      });
+    }
+  };
+
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {isRecruiter ? <RecruiterNavbar user={user as any} /> : <Navbar />}
@@ -586,12 +674,34 @@ export default function EnhancedCrmDashboard() {
                         )}
                       </div>
                       <div className="flex gap-2 mt-4">
-                        <Button size="sm" variant="outline" className="flex-1" data-testid={`button-email-contact-${contact.id}`}>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="flex-1" 
+                          onClick={() => handleOpenEmailCompose(contact)}
+                          disabled={!contact.email}
+                          data-testid={`button-email-contact-${contact.id}`}
+                        >
                           <Send className="h-4 w-4 mr-1" />
                           Email
                         </Button>
-                        <Button size="sm" variant="outline" data-testid={`button-more-contact-${contact.id}`}>
-                          <MoreVertical className="h-4 w-4" />
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={async () => {
+                            try {
+                              const response = await apiRequest('/api/crm/ai/contact-insight', 'POST', { contact });
+                              toast({
+                                title: "💡 AI Insight",
+                                description: response.insight,
+                              });
+                            } catch (error) {
+                              console.error('AI insight error:', error);
+                            }
+                          }}
+                          data-testid={`button-ai-insight-${contact.id}`}
+                        >
+                          <Sparkles className="h-4 w-4" />
                         </Button>
                       </div>
                     </CardContent>
@@ -1731,6 +1841,77 @@ export default function EnhancedCrmDashboard() {
               </div>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Compose Dialog */}
+      <Dialog open={showEmailComposeDialog} onOpenChange={setShowEmailComposeDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Send Email to {selectedContact?.name}</DialogTitle>
+            <DialogDescription>Compose and send an email</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>To</Label>
+              <Input
+                value={emailComposeData.to}
+                onChange={(e) => setEmailComposeData(prev => ({ ...prev, to: e.target.value }))}
+                placeholder="email@example.com"
+                data-testid="input-email-to"
+              />
+            </div>
+            <div>
+              <Label>Subject</Label>
+              <Input
+                value={emailComposeData.subject}
+                onChange={(e) => setEmailComposeData(prev => ({ ...prev, subject: e.target.value }))}
+                placeholder="Email subject"
+                data-testid="input-email-subject"
+              />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label>Message</Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleGenerateAIEmail}
+                  disabled={isGeneratingEmail}
+                  data-testid="button-generate-ai-email-compose"
+                >
+                  <Brain className="h-4 w-4 mr-1" />
+                  {isGeneratingEmail ? "Generating..." : "Generate with AI"}
+                </Button>
+              </div>
+              <Textarea
+                value={emailComposeData.body}
+                onChange={(e) => setEmailComposeData(prev => ({ ...prev, body: e.target.value }))}
+                placeholder="Email body..."
+                rows={12}
+                data-testid="textarea-email-body"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setShowEmailComposeDialog(false)}
+                data-testid="button-cancel-email"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSendEmail}
+                disabled={!emailComposeData.to || !emailComposeData.subject || !emailComposeData.body}
+                data-testid="button-send-email"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Send Email
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -565,7 +565,7 @@ export function ContextualSidebar() {
           items: [
             { name: "Messages", href: "/chat", icon: MessageCircle, current: false },
             { name: "Notifications", href: "/notifications", icon: Bell, current: false },
-            { name: "Task Management", href: "/task-management", icon: CheckCircle, current: false },
+            { name: "My Tasks", href: "/job-seeker-tasks", icon: CheckCircle, current: false },
             { name: "Job Alerts", href: "/job-alerts", icon: AlertCircle, current: false },
           ]
         },

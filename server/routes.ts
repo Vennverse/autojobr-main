@@ -66,6 +66,7 @@ import { mockInterviewRoutes } from "./mockInterviewRoutes";
 import { proctoring } from "./routes/proctoring";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 import { subscriptionPaymentService } from "./subscriptionPaymentService";
+import { VideoPracticePaymentService } from "./videoPracticePaymentService";
 import { interviewAssignmentService } from "./interviewAssignmentService";
 import { mockInterviewService } from "./mockInterviewService";
 import { aiService } from './aiService';
@@ -102,6 +103,7 @@ const broadcastToUser = (userId: string, message: any) => {
 const resumeParser = new ResumeParser();
 const premiumFeaturesServiceInstance = new PremiumFeaturesService(); // Renamed to avoid conflict
 const subscriptionServiceInstance = new SubscriptionService(); // Renamed to avoid conflict
+const videoPracticePaymentService = new VideoPracticePaymentService();
 
 // Advanced Assessment Services
 import { VideoInterviewService } from "./videoInterviewService";
@@ -1461,17 +1463,40 @@ Return only the improved job description text, no additional formatting or expla
   app.post('/api/video-practice/start', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { role, interviewType, difficulty } = req.body;
+      const { role, interviewType, difficulty, company } = req.body;
+
+      // Check usage and payment requirements
+      const usageCheck = await videoPracticePaymentService.checkUsageAndPayment(userId);
+      
+      // If payment is required, block session start and return payment info
+      // User must complete payment via PayPal/Amazon Pay before they can start
+      if (usageCheck.requiresPayment) {
+        return res.json({
+          paymentRequired: true,
+          cost: usageCheck.cost,
+          message: usageCheck.message,
+          freeInterviewsRemaining: 0,
+          // In future: add paymentUrl for PayPal checkout
+        });
+      }
+
+      // Only proceed if user has free interviews remaining
+      if (!usageCheck.canStartInterview) {
+        return res.status(403).json({
+          message: 'No free interviews remaining. Payment required.',
+          paymentRequired: true,
+          cost: usageCheck.cost
+        });
+      }
 
       // Generate session ID
       const sessionId = `vp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       // Generate questions using video practice service
       const { videoPracticeService } = await import('./videoPracticeService.js');
-      const { company } = req.body;
       const questions = await videoPracticeService.generateQuestions(role, interviewType, difficulty, company);
 
-      // Create session in database
+      // Create session in database (free session only at this point)
       const session = await storage.createVideoPracticeSession({
         userId,
         sessionId,
@@ -1480,15 +1505,19 @@ Return only the improved job description text, no additional formatting or expla
         difficulty,
         questions: JSON.stringify(questions),
         status: 'in_progress',
-        paymentStatus: 'pending',
-        paymentAmount: 500 // $5 in cents
+        paymentStatus: 'free',
+        paymentAmount: 0
       });
+
+      // Record the free interview start (updates usage counters)
+      await videoPracticePaymentService.recordInterviewStart(userId, false);
 
       res.json({
         sessionId,
         questions,
-        paymentRequired: true,
-        amount: 500
+        paymentRequired: false,
+        freeInterviewsRemaining: usageCheck.freeInterviewsRemaining - 1,
+        message: `Interview started successfully. You have ${usageCheck.freeInterviewsRemaining - 1} free interviews remaining.`
       });
     } catch (error) {
       console.error('Video practice start error:', error);
@@ -1571,6 +1600,22 @@ Return only the improved job description text, no additional formatting or expla
       res.json({ feedback });
     } catch (error) {
       handleError(res, error, 'Failed to generate feedback');
+    }
+  });
+
+  // Check video practice usage and limits
+  app.get('/api/video-practice/usage', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const usageInfo = await videoPracticePaymentService.checkUsageAndPayment(userId);
+      
+      res.json({
+        success: true,
+        ...usageInfo
+      });
+    } catch (error) {
+      console.error('Video practice usage check error:', error);
+      handleError(res, error, 'Failed to check usage');
     }
   });
 
@@ -2600,6 +2645,176 @@ Return only the improved job description text, no additional formatting or expla
       res.json(templates);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ===== RECRUITER TASK MANAGEMENT ROUTES =====
+  
+  // Get all recruiter tasks
+  app.get('/api/recruiter/tasks', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      const tasks = await db.select()
+        .from(schema.recruiterTasks)
+        .where(eq(schema.recruiterTasks.assignedById, userId))
+        .orderBy(desc(schema.recruiterTasks.createdAt));
+      
+      res.json(tasks);
+    } catch (error) {
+      console.error('Get recruiter tasks error:', error);
+      res.status(500).json({ message: 'Failed to fetch tasks' });
+    }
+  });
+
+  // Create recruiter task
+  app.post('/api/recruiter/tasks', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { title, description, taskType, priority, dueDateTime, candidateEmail, candidateName, jobTitle, meetingLink, calendlyLink, relatedTo, relatedId } = req.body;
+
+      const [task] = await db.insert(schema.recruiterTasks)
+        .values({
+          title,
+          description: description || '',
+          taskType,
+          priority: priority || 'medium',
+          status: 'pending',
+          dueDateTime: new Date(dueDateTime),
+          assignedById: userId,
+          assignedBy: req.user.email,
+          owner: candidateEmail || req.user.email,
+          ownerId: userId,
+          candidateEmail: candidateEmail || null,
+          candidateName: candidateName || null,
+          jobTitle: jobTitle || null,
+          meetingLink: meetingLink || null,
+          calendlyLink: calendlyLink || null,
+          relatedTo: relatedTo || null,
+          relatedId: relatedId ? parseInt(relatedId) : null,
+          emailSent: false
+        })
+        .returning();
+
+      res.json({ success: true, task });
+    } catch (error) {
+      console.error('Create recruiter task error:', error);
+      res.status(500).json({ message: 'Failed to create task' });
+    }
+  });
+
+  // Update recruiter task
+  app.patch('/api/recruiter/tasks/:taskId', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const taskId = parseInt(req.params.taskId);
+      const updateData = req.body;
+
+      const [task] = await db.update(schema.recruiterTasks)
+        .set({
+          ...updateData,
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(schema.recruiterTasks.id, taskId),
+          eq(schema.recruiterTasks.assignedById, userId)
+        ))
+        .returning();
+
+      res.json({ success: true, task });
+    } catch (error) {
+      console.error('Update recruiter task error:', error);
+      res.status(500).json({ message: 'Failed to update task' });
+    }
+  });
+
+  // Send task email
+  app.post('/api/recruiter/tasks/send-email', isAuthenticated, async (req: any, res) => {
+    try {
+      const { taskId, type } = req.body;
+      const userId = req.user.id;
+
+      const task = await db.query.recruiterTasks.findFirst({
+        where: and(
+          eq(schema.recruiterTasks.id, taskId),
+          eq(schema.recruiterTasks.assignedById, userId)
+        )
+      });
+
+      if (!task) {
+        return res.status(404).json({ message: 'Task not found' });
+      }
+
+      if (!task.candidateEmail) {
+        return res.status(400).json({ message: 'No candidate email found for this task' });
+      }
+
+      // Send email using email service
+      const emailSubject = type === 'meeting' ? `Meeting Invitation: ${task.title}` : `Task: ${task.title}`;
+      const emailBody = `
+        <h2>${task.title}</h2>
+        <p>${task.description || ''}</p>
+        ${task.meetingLink ? `<p><strong>Meeting Link:</strong> <a href="${task.meetingLink}">${task.meetingLink}</a></p>` : ''}
+        ${task.calendlyLink ? `<p><strong>Schedule a time:</strong> <a href="${task.calendlyLink}">${task.calendlyLink}</a></p>` : ''}
+        <p><strong>Due:</strong> ${new Date(task.dueDateTime).toLocaleString()}</p>
+      `;
+
+      await sendEmail({
+        to: task.candidateEmail,
+        subject: emailSubject,
+        html: emailBody
+      });
+
+      // Mark email as sent
+      await db.update(schema.recruiterTasks)
+        .set({ emailSent: true })
+        .where(eq(schema.recruiterTasks.id, taskId));
+
+      res.json({ success: true, message: 'Email sent successfully' });
+    } catch (error) {
+      console.error('Send task email error:', error);
+      res.status(500).json({ message: 'Failed to send email' });
+    }
+  });
+
+  // Bulk actions on recruiter tasks
+  app.post('/api/recruiter/tasks/bulk', isAuthenticated, async (req: any, res) => {
+    try {
+      const { action, taskIds } = req.body;
+      const userId = req.user.id;
+
+      let updateData: any = {};
+      
+      switch (action) {
+        case 'complete':
+          updateData = { status: 'completed' };
+          break;
+        case 'cancel':
+          updateData = { status: 'cancelled' };
+          break;
+        case 'send_reminder':
+          // TODO: Implement send reminder logic
+          break;
+        default:
+          return res.status(400).json({ message: 'Invalid action' });
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await db.update(schema.recruiterTasks)
+          .set({
+            ...updateData,
+            updatedAt: new Date()
+          })
+          .where(and(
+            inArray(schema.recruiterTasks.id, taskIds),
+            eq(schema.recruiterTasks.assignedById, userId)
+          ));
+      }
+
+      res.json({ success: true, message: 'Bulk action completed' });
+    } catch (error) {
+      console.error('Bulk task action error:', error);
+      res.status(500).json({ message: 'Failed to perform bulk action' });
     }
   });
 
