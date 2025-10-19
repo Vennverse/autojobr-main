@@ -7685,57 +7685,7 @@ Return ONLY the JSON object, no additional text.`;
   app.use('/api/seo', seo); // Mount SEO routes
   app.use('/api/linkedin-optimizer', linkedinOptimizerRoutes);
 
-  // Initialize WebSocket server on specific path to avoid conflicts with Vite HMR
-  const wss = new WebSocketServer({ server, path: '/ws/app' });
-  console.log('🚀 WebSocket server initialized on /ws/app');
 
-  wss.on('connection', (ws: WebSocket, req: any) => {
-    const userId = req.session?.user?.id;
-
-    if (!userId) {
-      console.log('WS Connection rejected: User not authenticated');
-      ws.close(1008, 'User not authenticated');
-      return;
-    }
-
-    // Track user connection
-    if (!wsConnections.has(userId)) {
-      wsConnections.set(userId, new Set<WebSocket>());
-    }
-    wsConnections.get(userId)?.add(ws);
-    console.log(`WS Connected for user: ${userId}. Total WS connections for user: ${wsConnections.get(userId)?.size}`);
-
-    // Handle incoming messages (e.g., for real-time chat)
-    ws.on('message', (message: string) => {
-      try {
-        const parsedMessage = JSON.parse(message);
-        console.log(`WS Message from ${userId}:`, parsedMessage);
-
-        // Example: Echo message back to sender
-        // ws.send(JSON.stringify({ type: 'echo', payload: parsedMessage }));
-
-        // Handle chat messages - route to simpleWebSocketService
-        simpleWebSocketService.handleMessage(userId, parsedMessage, wsConnections);
-
-      } catch (error) {
-        console.error('Error processing WS message:', error);
-        ws.send(JSON.stringify({ type: 'error', payload: 'Invalid message format' }));
-      }
-    });
-
-    ws.on('close', () => {
-      console.log(`WS Disconnected for user: ${userId}`);
-      wsConnections.get(userId)?.delete(ws);
-      if (wsConnections.get(userId)?.size === 0) {
-        wsConnections.delete(userId);
-      }
-      console.log(`User ${userId} disconnected. Remaining connections: ${wsConnections.get(userId)?.size ?? 0}`);
-    });
-
-    ws.on('error', (error) => {
-      console.error(`WS Error for user ${userId}:`, error);
-    });
-  });
 
   // Catch-all route for undefined API routes
   app.all('/api/*', (req, res) => {
