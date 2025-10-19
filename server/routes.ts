@@ -522,38 +522,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const userId = req.session.user.id;
       
-      // OPTIMIZATION: Use session data when available
-      if (req.session.user.userType && req.session.user.email) {
-        // Return session data immediately for faster response
-        return res.json({
-          id: userId,
-          email: req.session.user.email,
-          firstName: req.session.user.firstName,
-          lastName: req.session.user.lastName,
-          userType: req.session.user.userType,
-          currentRole: req.session.user.currentRole || req.session.user.userType,
-          planType: req.session.user.planType || 'free',
-          subscriptionStatus: req.session.user.subscriptionStatus || 'free'
-        });
-      }
-
-      // Fallback: fetch from database if session incomplete
+      // ALWAYS fetch fresh user data from database to ensure premium status is current
       const user = await storage.getUser(userId);
       
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      // Update session with fresh data
+      // Update session with fresh data from database
       req.session.user = {
         ...req.session.user,
         userType: user.userType,
         currentRole: user.currentRole || user.userType,
         planType: user.planType || 'free',
-        subscriptionStatus: user.subscriptionStatus || 'free'
+        subscriptionStatus: user.subscriptionStatus || 'free',
+        aiModelTier: user.aiModelTier || 'premium'
       };
 
-      res.json(user);
+      // Return complete user object with all subscription fields
+      const userResponse = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        userType: user.userType,
+        currentRole: user.currentRole || user.userType,
+        planType: user.planType || 'free',
+        subscriptionStatus: user.subscriptionStatus || 'free',
+        subscriptionStartDate: user.subscriptionStartDate,
+        subscriptionEndDate: user.subscriptionEndDate,
+        aiModelTier: user.aiModelTier || 'premium',
+        emailVerified: user.emailVerified,
+        onboardingCompleted: true
+      };
+
+      console.log(`👤 [USER_API] User ${userId} - planType: ${userResponse.planType}, status: ${userResponse.subscriptionStatus}`);
+
+      res.json(userResponse);
     } catch (error) {
       console.error('[USER_API] Error fetching user:', error);
       res.status(500).json({ error: 'Failed to fetch user data' });
@@ -5241,13 +5247,22 @@ Return only the cover letter text, no additional formatting or explanations.`;
 
     const usage = await usageMonitoringService.generateUsageReport(userId);
 
-    res.json({
+    // Check if subscription is still active
+    const now = new Date();
+    const isSubscriptionActive = user.subscriptionEndDate && new Date(user.subscriptionEndDate) > now;
+    
+    const response = {
       planType: user.planType || 'free',
-      subscriptionStatus: user.subscriptionStatus || 'free',
+      subscriptionStatus: isSubscriptionActive ? 'active' : (user.subscriptionStatus || 'free'),
+      subscriptionStartDate: user.subscriptionStartDate,
       subscriptionEndDate: user.subscriptionEndDate,
       usage: usage.usage,
       limits: usage.limits
-    });
+    };
+
+    console.log(`💰 [SUBSCRIPTION] User ${userId} - planType: ${response.planType}, status: ${response.subscriptionStatus}, endDate: ${response.subscriptionEndDate}`);
+
+    res.json(response);
   }));
 
   // ACE FEATURE ROUTES - Predictive Success Intelligence
