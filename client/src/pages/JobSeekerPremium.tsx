@@ -117,24 +117,38 @@ export default function JobSeekerPremium() {
 
   // PayPal script loading and button initialization
   useEffect(() => {
+    let isMounted = true;
+
     const loadPayPalScript = () => {
       if (window.paypal) {
-        initializePayPalButtons();
+        setTimeout(() => initializePayPalButtons(), 100);
+        return;
+      }
+
+      const existingScript = document.querySelector('script[src*="paypal.com/sdk/js"]');
+      if (existingScript) {
+        existingScript.addEventListener('load', () => {
+          if (isMounted) setTimeout(() => initializePayPalButtons(), 100);
+        });
         return;
       }
 
       const script = document.createElement('script');
       script.src = 'https://www.paypal.com/sdk/js?client-id=AUzUXMfJm1WWbSHiAKfylwAd4AOYkMQV_tE_Pzg2g9zxmGyPC1bt82hlQ_vQycZSrM-ke8gICEeh8kTf&vault=true&intent=subscription';
       script.setAttribute('data-sdk-integration-source', 'button-factory');
+      script.async = true;
       script.onload = () => {
-        initializePayPalButtons();
+        if (isMounted) setTimeout(() => initializePayPalButtons(), 100);
       };
       document.head.appendChild(script);
     };
 
     const initializePayPalButtons = () => {
+      if (!window.paypal) return;
+
       // Premium Monthly Button ($5)
-      if (window.paypal && document.getElementById('paypal-button-container-P-9SC66893530757807NCRWYCI')) {
+      const premiumContainer = document.getElementById('paypal-button-container-P-9SC66893530757807NCRWYCI');
+      if (premiumContainer && !premiumContainer.hasChildNodes()) {
         window.paypal.Buttons({
           style: {
             shape: 'rect',
@@ -184,7 +198,8 @@ export default function JobSeekerPremium() {
       }
 
       // Ultra Premium Monthly Button ($15)
-      if (window.paypal && document.getElementById('paypal-button-container-P-5JM23618R75865735NCRXOLY')) {
+      const ultraContainer = document.getElementById('paypal-button-container-P-5JM23618R75865735NCRXOLY');
+      if (ultraContainer && !ultraContainer.hasChildNodes()) {
         window.paypal.Buttons({
           style: {
             shape: 'rect',
@@ -237,10 +252,7 @@ export default function JobSeekerPremium() {
     loadPayPalScript();
 
     return () => {
-      const premiumContainer = document.getElementById('paypal-button-container-P-9SC66893530757807NCRWYCI');
-      const ultraContainer = document.getElementById('paypal-button-container-P-5JM23618R75865735NCRXOLY');
-      if (premiumContainer) premiumContainer.innerHTML = '';
-      if (ultraContainer) ultraContainer.innerHTML = '';
+      isMounted = false;
     };
   }, [queryClient, toast]);
 
