@@ -172,7 +172,7 @@ export default function EnhancedDashboard() {
       description: "Practice with AI interviewer",
       icon: Video,
       color: "from-orange-500 to-red-600",
-      route: "/virtual-interview/new",
+      route: "/video-practice",
       badge: "Trending"
     },
     {
