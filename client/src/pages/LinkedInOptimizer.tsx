@@ -45,8 +45,19 @@ export default function LinkedInOptimizer() {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/linkedin-optimizer', { credentials: 'include' });
+      console.log('🔄 Fetching LinkedIn profile...');
+      
+      const res = await fetch('/api/linkedin-optimizer', { 
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      console.log('📡 Response status:', res.status);
+      
       if (res.status === 401) {
+        console.warn('⚠️ Not authenticated, redirecting to login');
         toast({
           title: 'Authentication Required',
           description: 'Please log in to continue',
@@ -55,13 +66,15 @@ export default function LinkedInOptimizer() {
         navigate('/auth-page?redirect=/linkedin-optimizer');
         return;
       }
+      
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('Profile fetch error:', errorText);
+        console.error('❌ Profile fetch error:', errorText);
         throw new Error(errorText || 'Failed to fetch profile');
       }
+      
       const data = await res.json();
-      console.log('✅ Profile loaded:', data);
+      console.log('✅ Profile loaded successfully:', data);
       setProfile(data);
       setEditedHeadline(data.generatedHeadline || '');
       setEditedAbout(data.generatedAbout || '');
@@ -71,6 +84,17 @@ export default function LinkedInOptimizer() {
         title: 'Error',
         description: error.message || 'Failed to load LinkedIn profile',
         variant: 'destructive'
+      });
+      // Set empty profile to stop loading state
+      setProfile({
+        generatedHeadline: null,
+        generatedAbout: null,
+        topKeywords: [],
+        isPremium: false,
+        profileCompletenessScore: 0,
+        missingElements: [],
+        generationsThisMonth: 0,
+        freeGenerationsRemaining: 1
       });
     } finally {
       setLoading(false);
@@ -191,9 +215,20 @@ ${profile?.topKeywords.join(', ')}
     );
   }
 
-  // Redirect if not authenticated
+  // If still no user after loading, show error message instead of blank screen
   if (!user) {
-    return null; // Will redirect via useEffect
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="pt-6 text-center">
+            <p className="text-gray-600 mb-4">Please log in to access LinkedIn Optimizer</p>
+            <Button onClick={() => navigate('/auth-page?redirect=/linkedin-optimizer')}>
+              Go to Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   const isPremium = profile?.isPremium || false;
