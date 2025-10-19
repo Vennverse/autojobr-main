@@ -33,7 +33,7 @@ export default defineConfig({
     allowedHosts: true,
     hmr: {
       overlay: false,
-      protocol: 'ws',
+      protocol: process.env.REPL_ID ? 'wss' : 'ws',
       timeout: 120000,
     },
     watch: {
