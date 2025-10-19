@@ -164,25 +164,47 @@ export default function VirtualInterviewComplete() {
                   
                   <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium text-sm">Interview Retake</span>
-                      <span className="font-bold text-lg text-orange-600">$5</span>
+                      <span className="font-medium text-sm">Interview Retake Options</span>
                     </div>
                     <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                       <li>• Fresh set of questions</li>
                       <li>• Same role and difficulty</li>
-                      <li>• Instant access after payment</li>
+                      <li>• Instant access</li>
                       <li>• Best performance counts</li>
                     </ul>
                   </div>
 
                   {!showRetakePayment ? (
-                    <Button
-                      onClick={() => setShowRetakePayment(true)}
-                      className="w-full bg-orange-600 hover:bg-orange-700"
-                    >
-                      <CreditCard className="w-4 h-4 mr-2" />
-                      Pay $5 to Retake Interview
-                    </Button>
+                    <div className="space-y-3">
+                      <Button
+                        onClick={() => {
+                          const interviewName = (interviewData?.role || 'Virtual Interview').replace(/_/g, ' ');
+                          const shareText = `Just completed a ${interviewName} on AutoJobr! Excited to demonstrate my skills and improve! 🚀 #CareerGrowth #InterviewPrep`;
+                          const shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://autojobr.com')}&summary=${encodeURIComponent(shareText)}`;
+                          window.open(shareUrl, '_blank', 'width=600,height=600');
+                          
+                          toast({
+                            title: "Share on LinkedIn",
+                            description: "After sharing, paste the post URL below to unlock free retake",
+                          });
+                          setShowRetakePayment(true);
+                        }}
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                      >
+                        Share on LinkedIn for Free Retake
+                      </Button>
+                      
+                      <div className="text-center text-sm text-gray-500">or</div>
+                      
+                      <Button
+                        onClick={() => setShowRetakePayment(true)}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        Pay $5 to Retake
+                      </Button>
+                    </div>
                   ) : (
                     <div className="space-y-4">
                       <PayPalHostedButton
@@ -191,10 +213,9 @@ export default function VirtualInterviewComplete() {
                         itemName={`${(interviewData?.role || 'Interview').replace(/_/g, ' ')} Retake`}
                         onPaymentSuccess={async (paymentData) => {
                           try {
-                            // Call existing backend retake payment endpoint
                             await apiRequest(`/api/interviews/virtual/${interviewId}/retake-payment`, 'POST', {
                               paymentProvider: 'paypal',
-                              amount: 500 // $5 in cents
+                              amount: 500
                             });
                             
                             toast({

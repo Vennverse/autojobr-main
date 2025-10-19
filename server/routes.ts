@@ -4291,6 +4291,50 @@ Return only the cover letter text, no additional formatting or explanations.`;
     }
   });
 
+  // Mock interview LinkedIn retake endpoint (for recruiter-assigned only)
+  app.post('/api/interviews/mock/:interviewId/linkedin-retake', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const interviewId = parseInt(req.params.interviewId);
+      const { linkedinPostUrl } = req.body;
+
+      if (!linkedinPostUrl) {
+        return res.status(400).json({ message: 'LinkedIn post URL required' });
+      }
+
+      // Verify interview exists and is recruiter-assigned
+      const interview = await db.query.mockInterviews.findFirst({
+        where: and(
+          eq(schema.mockInterviews.id, interviewId),
+          eq(schema.mockInterviews.userId, userId)
+        )
+      });
+
+      if (!interview) {
+        return res.status(404).json({ message: 'Interview not found' });
+      }
+
+      if (!interview.assignedBy) {
+        return res.status(400).json({ message: 'LinkedIn retake only available for recruiter-assigned interviews' });
+      }
+
+      // Enable retake by resetting the interview
+      await db.update(schema.mockInterviews)
+        .set({
+          status: 'assigned',
+          retakeAllowed: true,
+          linkedinShareUrl: linkedinPostUrl,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.mockInterviews.id, interviewId));
+
+      res.json({ success: true, message: 'LinkedIn share verified. Retake enabled.' });
+    } catch (error) {
+      console.error('LinkedIn retake error:', error);
+      res.status(500).json({ message: 'Failed to process LinkedIn retake' });
+    }
+  });
+
   // Mock interview retake payment endpoint
   app.post('/api/interviews/mock/:sessionId/retake-payment', isAuthenticated, async (req: any, res) => {
     try {
