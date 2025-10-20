@@ -7,6 +7,7 @@ import { simpleWebSocketService } from "./simpleWebSocketService.js";
 import { aiService } from "./aiService.js";
 import { applyPerformanceOptimizations, createHighPerformanceRateLimiter } from "./performanceOptimizations.js";
 import { dailySyncService } from "./dailySyncService.js";
+import seoRoutes from "./routes/seo.js";
 
 // Database URL should be provided via environment variables
 if (!process.env.DATABASE_URL) {
@@ -40,12 +41,12 @@ app.use(cors({
     if (!origin) {
       return callback(null, true);
     }
-    
+
     // In development, allow all origins
     if (process.env.NODE_ENV !== 'production') {
       return callback(null, true);
     }
-    
+
     // In production, allow:
     // 1. Main domain for web app
     // 2. Chrome extension (chrome-extension://)
@@ -54,12 +55,12 @@ app.use(cors({
       'https://autojobr.com',
       'https://www.autojobr.com'
     ];
-    
+
     // Allow chrome extension protocol
     if (origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://')) {
       return callback(null, true);
     }
-    
+
     // Allow job sites where extension runs
     const jobSiteDomains = [
       'linkedin.com', 'indeed.com', 'glassdoor.com', 'ziprecruiter.com',
@@ -68,10 +69,10 @@ app.use(cors({
       'stackoverflow.com', 'angel.co', 'wellfound.com', 'careerbuilder.com',
       'simplyhired.com', 'flexjobs.com', 'remoteok.io', 'weworkremotely.com'
     ];
-    
+
     const originHostname = new URL(origin).hostname;
     const isJobSite = jobSiteDomains.some(domain => originHostname.includes(domain));
-    
+
     if (isJobSite || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -148,19 +149,22 @@ app.use((req, res, next) => {
   next();
 });
 
+// Mount SEO routes early (before static files)
+app.use(seoRoutes);
+
 (async () => {
   // Apply high-performance optimizations BEFORE registering routes
   console.log("🚀 Applying performance optimizations for millions of users...");
   applyPerformanceOptimizations(app);
-  
+
   const server = await registerRoutes(app);
-  
+
   // Initialize WebSocket service for real-time chat
   simpleWebSocketService.initialize(server);
-  
+
   // Initialize unified AI service (this will show available providers in console)
   console.log("AI Service initialized with Groq and OpenRouter support");
-  
+
   // Initialize daily sync service for automated internship updates
   // This will automatically sync internship data every 24 hours
   console.log("Daily Sync Service for internships initialized");
