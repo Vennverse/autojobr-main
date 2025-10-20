@@ -487,8 +487,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
 
   // Fetch platform jobs separately (lower priority) - only on first page
   const { data: platformJobs = [] } = useQuery({
-    queryKey: ['platform-jobs', filters.q, filters.category],
+    queryKey: ['platform-jobs', filters.page, filters.q, filters.category],
     queryFn: async () => {
+      // Only fetch if on page 1
+      if (filters.page !== 1) return [];
+      
       const params = new URLSearchParams();
       if (filters.q) params.set('search', filters.q);
       if (filters.category) params.set('category', filters.category);
@@ -501,8 +504,8 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       const data = await response.json();
       return Array.isArray(data) ? data : [];
     },
-    staleTime: 60000, // 1 minute
-    enabled: filters.page === 1, // Only fetch platform jobs on first page
+    staleTime: 0, // Don't cache
+    gcTime: 0, // Clear immediately when not in use
   });
 
   // Helper function to strip HTML tags from text
