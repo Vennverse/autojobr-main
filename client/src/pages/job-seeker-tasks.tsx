@@ -129,15 +129,20 @@ export default function JobSeekerTasks() {
     );
   }
 
+  // Debug authentication state
+  console.log('[TASKS PAGE] Auth Debug:', {
+    isAuthenticated,
+    isLoading,
+    hasUser: !!user,
+    userId: user?.id,
+    userType: user?.userType,
+    timestamp: new Date().toISOString()
+  });
+
   // If not authenticated after loading, show message but don't auto-redirect
   // Let user click the login button instead
   if (!isAuthenticated) {
-    console.log('[TASKS PAGE] User not authenticated - auth check complete', {
-      isLoading,
-      user,
-      sessionStorage: sessionStorage.getItem('current_user_id'),
-      timestamp: new Date().toISOString()
-    });
+    console.log('[TASKS PAGE] User not authenticated - showing login prompt');
   } else {
     console.log('[TASKS PAGE] User authenticated successfully', {
       userId: user?.id,
@@ -217,7 +222,7 @@ export default function JobSeekerTasks() {
         console.error('[TASKS PAGE] Task creation failed - missing due date');
         throw new Error("Due date and time are required");
       }
-      
+
       const formattedData = {
         ...taskData,
         title: taskData.title.trim(),
@@ -230,7 +235,7 @@ export default function JobSeekerTasks() {
         formattedData,
         timestamp: new Date().toISOString()
       });
-      
+
       return apiRequest("/api/tasks", "POST", formattedData);
     },
     onSuccess: () => {
@@ -490,17 +495,17 @@ export default function JobSeekerTasks() {
 
   // Extract tasks from response
   const taskList = (tasksData as any)?.tasks || [];
-  
+
   // Filter tasks
   const filteredTasks = taskList.filter((task: JobSeekerTask) => {
     const matchesSearch = !searchTerm || 
       task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    
+
     const matchesStatus = statusFilter === "all" || task.status === statusFilter;
     const matchesPriority = priorityFilter === "all" || task.priority === priorityFilter;
     const matchesType = typeFilter === "all" || task.taskType === typeFilter;
-    
+
     return matchesSearch && matchesStatus && matchesPriority && matchesType;
   });
 
@@ -536,7 +541,7 @@ export default function JobSeekerTasks() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -594,7 +599,7 @@ export default function JobSeekerTasks() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -606,7 +611,7 @@ export default function JobSeekerTasks() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -618,7 +623,7 @@ export default function JobSeekerTasks() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -648,7 +653,7 @@ export default function JobSeekerTasks() {
                   />
                 </div>
               </div>
-              
+
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[140px]" data-testid="select-status-filter">
                   <SelectValue placeholder="Status" />
@@ -661,7 +666,7 @@ export default function JobSeekerTasks() {
                   <SelectItem value="overdue">Overdue</SelectItem>
                 </SelectContent>
               </Select>
-              
+
               <Select value={priorityFilter} onValueChange={setPriorityFilter}>
                 <SelectTrigger className="w-[140px]" data-testid="select-priority-filter">
                   <SelectValue placeholder="Priority" />
@@ -674,7 +679,7 @@ export default function JobSeekerTasks() {
                   <SelectItem value="low">Low</SelectItem>
                 </SelectContent>
               </Select>
-              
+
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger className="w-[140px]" data-testid="select-type-filter">
                   <SelectValue placeholder="Type" />
@@ -717,11 +722,11 @@ export default function JobSeekerTasks() {
                           </Badge>
                           <Flag className={`h-4 w-4 ${getPriorityColor(task.priority)}`} />
                         </div>
-                        
+
                         {task.description && (
                           <p className="text-gray-600 dark:text-gray-300 mb-3">{task.description}</p>
                         )}
-                        
+
                         <div className="flex items-center gap-4 text-sm text-gray-500">
                           {task.dueDateTime && (
                             <div className="flex items-center gap-1">
@@ -746,7 +751,7 @@ export default function JobSeekerTasks() {
                           )}
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-2">
                         {task.status !== 'completed' && (
                           <Button
@@ -769,7 +774,7 @@ export default function JobSeekerTasks() {
                             )}
                           </Button>
                         )}
-                        
+
                         <Button
                           size="sm"
                           variant="ghost"
@@ -794,7 +799,7 @@ export default function JobSeekerTasks() {
               </motion.div>
             ))}
           </AnimatePresence>
-          
+
           {filteredTasks.length === 0 && !tasksLoading && (
             <Card>
               <CardContent className="p-12 text-center">
