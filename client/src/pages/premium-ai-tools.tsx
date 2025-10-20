@@ -1383,8 +1383,9 @@ export default function PremiumAITools() {
                   </div>
                   <Button
                     onClick={() => tailorMutation.mutate()}
-                    disabled={tailorMutation.isPending || !tailorData.resumeText || !tailorData.jobDescription || !tailorData.jobTitle}
+                    disabled={tailorMutation.isPending || !userResume?.resumeText || !tailorData.jobDescription || !tailorData.jobTitle}
                     className="w-full"
+                    data-testid="button-tailor-resume"
                   >
                     {tailorMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Optimize Resume
