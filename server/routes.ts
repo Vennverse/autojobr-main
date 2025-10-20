@@ -3720,6 +3720,15 @@ Return only the cover letter text, no additional formatting or explanations.`;
       const limit = parseInt(req.query.limit as string) || 10;
       const status = req.query.status as string;
 
+      console.log('[TASKS API] GET /api/tasks - Request received', {
+        userId,
+        limit,
+        status,
+        hasUser: !!req.user,
+        sessionId: req.sessionID?.substring(0, 8),
+        timestamp: new Date().toISOString()
+      });
+
       let query = db.select()
         .from(schema.tasks)
         .where(eq(schema.tasks.userId, userId))
@@ -3727,6 +3736,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
         .limit(limit);
 
       if (status) {
+        console.log('[TASKS API] Filtering by status:', status);
         query = db.select()
           .from(schema.tasks)
           .where(and(
@@ -3738,9 +3748,20 @@ Return only the cover letter text, no additional formatting or explanations.`;
       }
 
       const tasks = await query;
+      console.log('[TASKS API] Tasks fetched successfully', {
+        count: tasks.length,
+        userId,
+        timestamp: new Date().toISOString()
+      });
       res.json(tasks);
     } catch (error) {
-      console.error('Get tasks error:', error);
+      console.error('[TASKS API] Get tasks error:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        userId: req.user?.id,
+        timestamp: new Date().toISOString()
+      });
       res.status(500).json({ message: 'Failed to fetch tasks' });
     }
   });
