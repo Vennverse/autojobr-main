@@ -444,7 +444,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       const apiParams = buildApiParams(filters);
       console.log('[JOBS_PAGE] Fetching jobs with params:', apiParams.toString());
       const response = await fetch(`/api/scraped-jobs?${apiParams.toString()}`, {
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
       });
 
       if (!response.ok) {
@@ -454,9 +458,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       return response.json();
     },
     staleTime: 0, // Don't cache - always refetch on filter changes
-    gcTime: 300000, // 5 minutes
+    gcTime: 0, // Don't keep garbage collection cache
     refetchOnMount: true,
+    refetchOnWindowFocus: false,
     keepPreviousData: false,
+    cacheTime: 0, // Force no caching
   });
 
   // Extract data from response
@@ -1727,7 +1733,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                 </CardContent>
               </Card>
             ) : (
-              allJobs.map((job: any) => {
+              allJobs.map((job: any, index: number) => {
                 const compatibility = calculateCompatibility(job);
                 const isSelected = selectedJob?.id === job?.id;
                 const isApplied = Array.isArray(appliedJobIds) && appliedJobIds.includes(job.id);
@@ -1739,7 +1745,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
 
                 return (
                   <Card 
-                    key={job.id} 
+                    key={`${job.id}-${filters.page}-${index}`}
                     className={`border-0 shadow-sm hover:shadow-md transition-all cursor-pointer touch-manipulation mb-2 ${
                       isSelected ? 'ring-1 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-gray-800'
                     }`}
