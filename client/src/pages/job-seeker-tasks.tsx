@@ -106,19 +106,8 @@ export default function JobSeekerTasks() {
 
   const [selectedTemplate, setSelectedTemplate] = useState("custom");
 
-  // LOGGING: Track authentication state changes
-  console.log('[TASKS PAGE] Auth State:', {
-    isLoading,
-    isAuthenticated,
-    hasUser: !!user,
-    userId: user?.id,
-    userEmail: user?.email,
-    timestamp: new Date().toISOString()
-  });
-
   // Show loading state while checking authentication
   if (isLoading) {
-    console.log('[TASKS PAGE] Showing loading state - auth check in progress');
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
@@ -129,68 +118,19 @@ export default function JobSeekerTasks() {
     );
   }
 
-  // Debug authentication state
-  console.log('[TASKS PAGE] Auth Debug:', {
-    isAuthenticated,
-    isLoading,
-    hasUser: !!user,
-    userId: user?.id,
-    userType: user?.userType,
-    timestamp: new Date().toISOString()
-  });
-
-  // If not authenticated after loading, show message but don't auto-redirect
-  // Let user click the login button instead
-  if (!isAuthenticated) {
-    console.log('[TASKS PAGE] User not authenticated - showing login prompt');
-  } else {
-    console.log('[TASKS PAGE] User authenticated successfully', {
-      userId: user?.id,
-      userEmail: user?.email,
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  // Fetch user tasks
+  // Fetch user tasks - only when authenticated
   const { data: tasksData, isLoading: tasksLoading, refetch: refetchTasks, error: tasksError } = useQuery({
     queryKey: ["/api/tasks"],
     retry: false,
-    enabled: true, // Always try to fetch - backend will handle auth
-  });
-
-  // LOGGING: Track tasks query state
-  console.log('[TASKS PAGE] Tasks Query State:', {
-    isLoading: tasksLoading,
-    hasData: !!tasksData,
-    hasError: !!tasksError,
-    errorMessage: tasksError?.message,
-    dataType: tasksData ? typeof tasksData : 'undefined',
-    timestamp: new Date().toISOString()
+    enabled: isAuthenticated, // Only fetch when authenticated to prevent unnecessary requests
   });
 
   // Handle authentication errors from API
   useEffect(() => {
-    console.log('[TASKS PAGE] Error handling effect triggered', {
-      hasError: !!tasksError,
-      errorMessage: tasksError?.message,
-      errorType: tasksError ? typeof tasksError : 'undefined',
-      timestamp: new Date().toISOString()
-    });
-
     if (tasksError) {
       const errorMessage = (tasksError as any)?.message || '';
-      console.error('[TASKS PAGE] API Error detected:', {
-        message: errorMessage,
-        is401: errorMessage.includes('401'),
-        fullError: tasksError,
-        timestamp: new Date().toISOString()
-      });
-
+      
       if (errorMessage.includes('401')) {
-        console.error('[TASKS PAGE] Authentication error - redirecting to login', {
-          currentPath: window.location.pathname,
-          timestamp: new Date().toISOString()
-        });
         toast({
           title: "Session Expired",
           description: "Please log in again to continue.",
@@ -206,20 +146,10 @@ export default function JobSeekerTasks() {
   // Create task mutation
   const createTaskMutation = useMutation({
     mutationFn: async (taskData: any) => {
-      console.log('[TASKS PAGE] Creating task - validation', {
-        hasTitle: !!taskData.title,
-        titleLength: taskData.title?.length,
-        hasDueDateTime: !!taskData.dueDateTime,
-        taskData,
-        timestamp: new Date().toISOString()
-      });
-
       if (!taskData.title?.trim()) {
-        console.error('[TASKS PAGE] Task creation failed - missing title');
         throw new Error("Task title is required");
       }
       if (!taskData.dueDateTime) {
-        console.error('[TASKS PAGE] Task creation failed - missing due date');
         throw new Error("Due date and time are required");
       }
 
@@ -231,17 +161,9 @@ export default function JobSeekerTasks() {
         reminderDateTime: taskData.reminderDateTime ? new Date(taskData.reminderDateTime).toISOString() : undefined,
       };
 
-      console.log('[TASKS PAGE] Sending task creation request', {
-        formattedData,
-        timestamp: new Date().toISOString()
-      });
-
       return apiRequest("/api/tasks", "POST", formattedData);
     },
     onSuccess: () => {
-      console.log('[TASKS PAGE] Task created successfully', {
-        timestamp: new Date().toISOString()
-      });
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
       setShowCreateDialog(false);
       resetForm();
@@ -251,12 +173,6 @@ export default function JobSeekerTasks() {
       });
     },
     onError: (error: any) => {
-      console.error('[TASKS PAGE] Task creation error:', {
-        error,
-        message: error.message,
-        stack: error.stack,
-        timestamp: new Date().toISOString()
-      });
       toast({
         title: "❌ Failed to Create Task",
         description: error.message || "Please check all required fields and try again.",
@@ -268,38 +184,16 @@ export default function JobSeekerTasks() {
   // Update task status mutation
   const updateTaskStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number, status: string }) => {
-      console.log('[TASKS PAGE] Updating task status - request', { 
-        id, 
-        status,
-        timestamp: new Date().toISOString()
-      });
-      const result = await apiRequest(`/api/tasks/${id}/status`, "PATCH", { status });
-      console.log('[TASKS PAGE] Task status update - response', { 
-        result,
-        timestamp: new Date().toISOString()
-      });
-      return result;
+      return apiRequest(`/api/tasks/${id}/status`, "PATCH", { status });
     },
     onSuccess: (data, variables) => {
-      console.log('[TASKS PAGE] Task status update successful', { 
-        data,
-        variables,
-        timestamp: new Date().toISOString()
-      });
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
-      refetchTasks(); // Force refetch
       toast({
         title: "✅ Task Updated",
         description: `Task marked as ${variables.status.replace('_', ' ')}`,
       });
     },
     onError: (error: any) => {
-      console.error('[TASKS PAGE] Task status update error:', {
-        error,
-        message: error.message,
-        stack: error.stack,
-        timestamp: new Date().toISOString()
-      });
       toast({
         title: "❌ Update Failed",
         description: error.message || "Failed to update task status",
@@ -311,22 +205,16 @@ export default function JobSeekerTasks() {
   // Delete task mutation
   const deleteTaskMutation = useMutation({
     mutationFn: async (taskId: number) => {
-      console.log('Deleting task:', taskId);
-      const result = await apiRequest(`/api/tasks/${taskId}`, "DELETE");
-      console.log('Delete result:', result);
-      return result;
+      return apiRequest(`/api/tasks/${taskId}`, "DELETE");
     },
-    onSuccess: (data, taskId) => {
-      console.log('Task delete successful:', data);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
-      refetchTasks(); // Force refetch
       toast({
         title: "🗑️ Task Deleted",
         description: "Task has been permanently deleted.",
       });
     },
     onError: (error: any) => {
-      console.error('Task delete error:', error);
       toast({
         title: "❌ Delete Failed",
         description: error.message || "Failed to delete task",
