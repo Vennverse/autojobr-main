@@ -106,14 +106,14 @@ export default function JobSeekerTasks() {
 
   const [selectedTemplate, setSelectedTemplate] = useState("custom");
 
-  // Redirect to home if not authenticated
+  // Redirect to auth page if not authenticated (after loading is complete)
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      window.location.href = "/";
+      window.location.href = "/auth";
     }
   }, [isAuthenticated, isLoading]);
 
-  // Show loading or prevent render during redirect
+  // Show loading state while checking authentication
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -125,15 +125,32 @@ export default function JobSeekerTasks() {
     );
   }
 
+  // Don't render anything while redirecting
   if (!isAuthenticated) {
-    return null; // Prevent render while redirecting
+    return null;
   }
 
   // Fetch user tasks
-  const { data: tasksData, isLoading: tasksLoading, refetch: refetchTasks } = useQuery({
+  const { data: tasksData, isLoading: tasksLoading, refetch: refetchTasks, error: tasksError } = useQuery({
     queryKey: ["/api/tasks"],
     retry: false,
+    enabled: isAuthenticated, // Only fetch when authenticated
   });
+
+  // Handle authentication errors from API
+  useEffect(() => {
+    if (tasksError && (tasksError as any)?.message?.includes('401')) {
+      console.error('Authentication error on tasks page:', tasksError);
+      toast({
+        title: "Session Expired",
+        description: "Please log in again to continue.",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/auth";
+      }, 1500);
+    }
+  }, [tasksError, toast]);
 
   // Create task mutation
   const createTaskMutation = useMutation({
