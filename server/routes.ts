@@ -852,7 +852,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pageSize = parseInt(req.query.size as string) || 25;
       const offset = (page - 1) * pageSize;
 
-      console.log('[SCRAPED JOBS] Parsed filters:', { search, category, location, country, city, workMode, jobType, experienceLevel, page, pageSize });
+      console.log('[SCRAPED JOBS] Parsed filters:', { search, category, location, country, city, workMode, jobType, experienceLevel, page, pageSize, offset });
 
       // Build base query - simplified to avoid SQL errors
       const conditions: any[] = [eq(scrapedJobs.isActive, true)];
@@ -912,9 +912,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const total = Number(totalResult[0]?.count || 0);
 
-      console.log('[SCRAPED JOBS] Total jobs found:', total);
+      console.log('[SCRAPED JOBS] Total jobs found:', total, '| Fetching page', page, 'with offset', offset, 'and limit', pageSize);
 
-      // Fetch paginated jobs
+      // Fetch paginated jobs with correct offset
       const jobs = await db
         .select()
         .from(scrapedJobs)
@@ -923,7 +923,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .limit(pageSize)
         .offset(offset);
 
-      console.log('[SCRAPED JOBS] Returning', jobs.length, 'jobs for page', page);
+      console.log('[SCRAPED JOBS] Returning', jobs.length, 'jobs for page', page, '(offset', offset, '- expected:', pageSize, ')');
 
       res.json({
         jobs,

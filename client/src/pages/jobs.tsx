@@ -425,6 +425,14 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
 
     // Always include facets
     params.set('include_facets', 'true');
+    
+    // Ensure page and size are always set
+    if (!params.has('page')) {
+      params.set('page', '1');
+    }
+    if (!params.has('size')) {
+      params.set('size', '15');
+    }
 
     return params;
   }, []);
@@ -434,6 +442,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     queryKey: ['scraped-jobs', filters],
     queryFn: async () => {
       const apiParams = buildApiParams(filters);
+      console.log('[JOBS_PAGE] Fetching jobs with params:', apiParams.toString());
       const response = await fetch(`/api/scraped-jobs?${apiParams.toString()}`, {
         credentials: 'include'
       });
@@ -444,8 +453,9 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
 
       return response.json();
     },
-    staleTime: 30000, // 30 seconds
+    staleTime: 0, // Don't cache - always refetch on filter changes
     gcTime: 300000, // 5 minutes
+    refetchOnMount: true,
   });
 
   // Extract data from response
