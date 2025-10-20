@@ -275,6 +275,21 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     return new URLSearchParams();
   });
 
+  // Listen for URL changes and update searchParams
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const newParams = new URLSearchParams(window.location.search);
+      setSearchParams(newParams);
+    };
+
+    // Listen for popstate events (browser back/forward)
+    window.addEventListener('popstate', handleUrlChange);
+
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+    };
+  }, []);
+
   // State for inline results display
   const [interviewPrepData, setInterviewPrepData] = useState<any>(null);
   const [salaryInsightsData, setSalaryInsightsData] = useState<any>(null);
@@ -470,7 +485,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
   const facets: JobFacets | undefined = jobsResponse?.facets;
   const pagination = jobsResponse?.pagination || { total: 0, page: 1, size: 25, totalPages: 0 };
 
-  // Fetch platform jobs separately (lower priority)
+  // Fetch platform jobs separately (lower priority) - only on first page
   const { data: platformJobs = [] } = useQuery({
     queryKey: ['platform-jobs', filters.q, filters.category],
     queryFn: async () => {
@@ -487,9 +502,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       return Array.isArray(data) ? data : [];
     },
     staleTime: 60000, // 1 minute
+    enabled: filters.page === 1, // Only fetch platform jobs on first page
   });
 
   // Combine scraped and platform jobs (scraped jobs are already filtered by API)
+  // Platform jobs only show on page 1 to avoid duplication across pages
   const allJobs = useMemo(() => {
     const scrapedJobsWithMeta = jobs.map((job: any) => ({
       ...job,
@@ -500,17 +517,22 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       source: 'scraped'
     }));
 
-    const platformJobsWithMeta = platformJobs.map((job: any) => ({
-      ...job,
-      company: job.companyName || job.company_name || job.company,
-      companyName: job.companyName || job.company_name || job.company,
-      applyType: 'easy' as const,
-      priority: 1,
-      source: 'platform'
-    }));
+    // Only include platform jobs on page 1
+    if (filters.page === 1) {
+      const platformJobsWithMeta = platformJobs.map((job: any) => ({
+        ...job,
+        company: job.companyName || job.company_name || job.company,
+        companyName: job.companyName || job.company_name || job.company,
+        applyType: 'easy' as const,
+        priority: 1,
+        source: 'platform'
+      }));
+      
+      return [...platformJobsWithMeta, ...scrapedJobsWithMeta];
+    }
 
-    return [...platformJobsWithMeta, ...scrapedJobsWithMeta];
-  }, [jobs, platformJobs]);
+    return scrapedJobsWithMeta;
+  }, [jobs, platformJobs, filters.page]);
 
   // Get user profile for compatibility scoring
   const { data: userProfile } = useQuery<UserProfile>({
