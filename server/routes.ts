@@ -3623,13 +3623,55 @@ Return only the cover letter text, no additional formatting or explanations.`;
     try {
       const userId = req.user.id;
 
-      const savedJobs = await db.select()
+      // Get saved jobs with their details
+      const savedJobsData = await db.select({
+        id: schema.userSavedJobs.id,
+        savedAt: schema.userSavedJobs.savedAt,
+        scrapedJobId: schema.userSavedJobs.scrapedJobId,
+        jobPostingId: schema.userSavedJobs.jobPostingId,
+        scrapedJob: schema.scrapedJobs,
+        jobPosting: schema.jobPostings,
+      })
         .from(schema.userSavedJobs)
+        .leftJoin(schema.scrapedJobs, eq(schema.userSavedJobs.scrapedJobId, schema.scrapedJobs.id))
+        .leftJoin(schema.jobPostings, eq(schema.userSavedJobs.jobPostingId, schema.jobPostings.id))
         .where(eq(schema.userSavedJobs.userId, userId))
         .orderBy(desc(schema.userSavedJobs.savedAt))
         .limit(50);
 
-      res.json(savedJobs);
+      // Format the response with complete job details
+      const formattedJobs = savedJobsData.map(item => {
+        const job = item.scrapedJob || item.jobPosting;
+        if (!job) {
+          return {
+            id: item.id,
+            savedAt: item.savedAt,
+            title: 'Unknown',
+            company: 'Unknown',
+            location: 'Unknown',
+            status: 'Saved Invalid Date',
+            source: 'extension'
+          };
+        }
+
+        return {
+          id: item.id,
+          savedAt: item.savedAt,
+          jobId: item.scrapedJobId || item.jobPostingId,
+          title: job.title,
+          company: (job as any).company || (job as any).companyName || 'Unknown',
+          location: job.location || 'Remote',
+          description: job.description,
+          salary: (job as any).minSalary ? `$${(job as any).minSalary} - $${(job as any).maxSalary}` : null,
+          jobType: (job as any).jobType,
+          workMode: (job as any).workMode,
+          sourceUrl: (job as any).sourceUrl || (job as any).source_url,
+          source: item.scrapedJobId ? 'scraped' : 'platform',
+          status: `Saved ${new Date(item.savedAt).toLocaleDateString()}`,
+        };
+      });
+
+      res.json(formattedJobs);
     } catch (error) {
       console.error('Get saved jobs error:', error);
       res.status(500).json({ message: 'Failed to fetch saved jobs' });

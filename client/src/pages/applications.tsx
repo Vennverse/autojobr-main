@@ -82,9 +82,24 @@ export default function Applications() {
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       window.location.href = "/";
-      return;
     }
   }, [isAuthenticated, isLoading]);
+
+  // Show loading or prevent render during redirect
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null; // Prevent render while redirecting
+  }
 
   const { data: applications = [], isLoading: applicationsLoading } = useQuery({
     queryKey: ["/api/applications"],
@@ -955,9 +970,9 @@ export default function Applications() {
                             )}
 
                             <div className="flex items-center justify-between text-xs text-gray-500">
-                              <span>Saved {new Date(job.createdAt).toLocaleDateString()}</span>
+                              <span>{job.status || `Saved ${new Date(job.savedAt).toLocaleDateString()}`}</span>
                               <Badge variant="outline" className="text-xs">
-                                extension
+                                {job.source || 'extension'}
                               </Badge>
                             </div>
 
@@ -966,7 +981,9 @@ export default function Applications() {
                               <Button 
                                 size="sm" 
                                 className="text-xs h-7 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                                onClick={() => job.url && window.open(job.url, '_blank')}
+                                onClick={() => job.sourceUrl && window.open(job.sourceUrl, '_blank')}
+                                disabled={!job.sourceUrl}
+                                data-testid={`button-apply-saved-${job.id}`}
                               >
                                 Apply Now
                               </Button>
@@ -1003,7 +1020,7 @@ export default function Applications() {
                               <td className="py-4 px-6 text-gray-900 dark:text-white">{job.company}</td>
                               <td className="py-4 px-6 text-gray-600 dark:text-gray-400">{job.location || 'Not specified'}</td>
                               <td className="py-4 px-6 text-gray-600 dark:text-gray-400">
-                                {new Date(job.createdAt).toLocaleDateString()}
+                                {job.status || new Date(job.savedAt).toLocaleDateString()}
                               </td>
                               <td className="py-4 px-6">
                                 <div className="flex gap-2">
