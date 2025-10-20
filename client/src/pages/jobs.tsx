@@ -505,6 +505,14 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     enabled: filters.page === 1, // Only fetch platform jobs on first page
   });
 
+  // Helper function to strip HTML tags from text
+  const stripHtml = (html?: string) => {
+    if (!html) return '';
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    return div.textContent || div.innerText || '';
+  };
+
   // Combine scraped and platform jobs (scraped jobs are already filtered by API)
   // Platform jobs only show on page 1 to avoid duplication across pages
   const allJobs = useMemo(() => {
@@ -512,6 +520,9 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       ...job,
       company: job.company || job.companyName,
       companyName: job.company || job.companyName,
+      description: stripHtml(job.description),
+      requirements: stripHtml(job.requirements),
+      responsibilities: stripHtml(job.responsibilities),
       applyType: 'external' as const,
       priority: 2,
       source: 'scraped'
@@ -659,6 +670,14 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     onSuccess: (_, jobId) => {
       setSavedJobs(prev => new Set([...Array.from(prev), jobId]));
       toast({ title: "Job Saved", description: "Job added to your saved list!" });
+    },
+    onError: (error) => {
+      console.error('Error saving job:', error);
+      toast({ 
+        title: "Error", 
+        description: "Failed to save job. Please try again.",
+        variant: "destructive"
+      });
     }
   });
 

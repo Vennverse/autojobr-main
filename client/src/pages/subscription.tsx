@@ -30,8 +30,22 @@ interface SubscriptionData {
 export default function Subscription() {
   const { toast } = useToast();
   const [pendingTargetingJob, setPendingTargetingJob] = useState<any>(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'stripe' | 'paypal' | 'razorpay'>('stripe');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'stripe' | 'paypal' | 'razorpay'>('paypal');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  // Fetch location-based pricing
+  const { data: pricingInfo, isLoading: pricingLoading } = useQuery({
+    queryKey: ['/api/subscription/pricing-info'],
+    retry: 2,
+    retryDelay: 500,
+  });
+
+  // Auto-select payment method based on location
+  useEffect(() => {
+    if (pricingInfo?.paymentGateway) {
+      setSelectedPaymentMethod(pricingInfo.paymentGateway);
+    }
+  }, [pricingInfo]);
 
   // Check for pending targeting job from Premium Targeting page
   useEffect(() => {
@@ -337,7 +351,7 @@ export default function Subscription() {
                 <div className="flex items-center justify-between">
                   <span>Price</span>
                   <span className="font-semibold">
-                    {isPremium ? "$10/month" : "$0/month"}
+                    {isPremium ? (pricingInfo?.tiers?.premium?.displayPrice || "$5") + "/month" : "$0/month"}
                   </span>
                 </div>
                 
@@ -346,104 +360,70 @@ export default function Subscription() {
                     <Separator />
                     <div className="space-y-4">
                       <div className="text-center space-y-2">
-                        <div className="text-2xl font-bold">$5<span className="text-sm text-muted-foreground">/month</span></div>
+                        <div className="text-2xl font-bold">
+                          {pricingLoading ? '...' : (pricingInfo?.tiers?.premium?.displayPrice || '$5')}
+                          <span className="text-sm text-muted-foreground">/month</span>
+                        </div>
                         <p className="text-sm text-muted-foreground">Unlock unlimited features & AI-powered tools</p>
+                        {pricingInfo?.country && (
+                          <p className="text-xs text-muted-foreground">
+                            Pricing for {pricingInfo.country === 'IN' ? 'India' : pricingInfo.country}
+                          </p>
+                        )}
                       </div>
                       
                       {/* Payment Method Selection */}
                       <div className="space-y-3">
-                        <h4 className="font-medium text-sm">Choose Payment Method</h4>
+                        <h4 className="font-medium text-sm">Payment Method</h4>
                         
                         <div className="grid gap-2">
-                          <div 
-                            className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                              selectedPaymentMethod === 'stripe' 
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' 
-                                : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                            onClick={() => setSelectedPaymentMethod('stripe')}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className="w-6 h-6 bg-blue-600 text-white rounded flex items-center justify-center text-xs font-bold">
-                                  S
+                          {/* Show PayPal for non-India users */}
+                          {pricingInfo?.paymentGateway === 'paypal' && (
+                            <div 
+                              className="p-3 border-2 rounded-lg border-blue-500 bg-blue-50 dark:bg-blue-950"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-6 h-6 bg-blue-700 text-white rounded flex items-center justify-center text-xs font-bold">
+                                    P
+                                  </div>
+                                  <div>
+                                    <div className="font-medium text-sm">PayPal</div>
+                                    <div className="text-xs text-muted-foreground">Secure PayPal Payment</div>
+                                  </div>
                                 </div>
-                                <div>
-                                  <div className="font-medium text-sm">Stripe</div>
-                                  <div className="text-xs text-muted-foreground">Credit/Debit Card</div>
-                                </div>
-                              </div>
-                              <div className={`w-3 h-3 rounded-full border-2 ${
-                                selectedPaymentMethod === 'stripe' 
-                                  ? 'border-blue-500 bg-blue-500' 
-                                  : 'border-gray-300'
-                              }`}>
-                                {selectedPaymentMethod === 'stripe' && (
+                                <div className="w-3 h-3 rounded-full border-2 border-blue-500 bg-blue-500">
                                   <div className="w-full h-full rounded-full bg-white scale-50"></div>
-                                )}
+                                </div>
                               </div>
                             </div>
-                          </div>
+                          )}
 
-                          <div 
-                            className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                              selectedPaymentMethod === 'paypal' 
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' 
-                                : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                            onClick={() => setSelectedPaymentMethod('paypal')}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className="w-6 h-6 bg-blue-700 text-white rounded flex items-center justify-center text-xs font-bold">
-                                  P
+                          {/* Show Razorpay for India users */}
+                          {pricingInfo?.paymentGateway === 'razorpay' && (
+                            <div 
+                              className="p-3 border-2 rounded-lg border-blue-500 bg-blue-50 dark:bg-blue-950"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-6 h-6 bg-blue-600 text-white rounded flex items-center justify-center text-xs font-bold">
+                                    R
+                                  </div>
+                                  <div>
+                                    <div className="font-medium text-sm">Razorpay</div>
+                                    <div className="text-xs text-muted-foreground">UPI, Cards, Net Banking, Wallets</div>
+                                  </div>
                                 </div>
-                                <div>
-                                  <div className="font-medium text-sm">PayPal</div>
-                                  <div className="text-xs text-muted-foreground">Secure PayPal Payment</div>
-                                </div>
-                              </div>
-                              <div className={`w-3 h-3 rounded-full border-2 ${
-                                selectedPaymentMethod === 'paypal' 
-                                  ? 'border-blue-500 bg-blue-500' 
-                                  : 'border-gray-300'
-                              }`}>
-                                {selectedPaymentMethod === 'paypal' && (
+                                <div className="w-3 h-3 rounded-full border-2 border-blue-500 bg-blue-500">
                                   <div className="w-full h-full rounded-full bg-white scale-50"></div>
-                                )}
+                                </div>
                               </div>
                             </div>
-                          </div>
+                          )}
 
-                          <div 
-                            className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                              selectedPaymentMethod === 'razorpay' 
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' 
-                                : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                            onClick={() => setSelectedPaymentMethod('razorpay')}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className="w-6 h-6 bg-green-600 text-white rounded flex items-center justify-center text-xs font-bold">
-                                  R
-                                </div>
-                                <div>
-                                  <div className="font-medium text-sm">Razorpay</div>
-                                  <div className="text-xs text-muted-foreground">UPI, Cards, Net Banking</div>
-                                </div>
-                              </div>
-                              <div className={`w-3 h-3 rounded-full border-2 ${
-                                selectedPaymentMethod === 'razorpay' 
-                                  ? 'border-blue-500 bg-blue-500' 
-                                  : 'border-gray-300'
-                              }`}>
-                                {selectedPaymentMethod === 'razorpay' && (
-                                  <div className="w-full h-full rounded-full bg-white scale-50"></div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
+                          {!pricingInfo && (
+                            <p className="text-sm text-muted-foreground">Loading payment options...</p>
+                          )}
                         </div>
                       </div>
 

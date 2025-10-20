@@ -272,13 +272,45 @@ export default function ViewJob() {
     }
   };
 
-  // Determine if this is a scraped job (heuristic: scraped jobs have larger IDs)
-  const isScrapedJob = jobId && (parseInt(jobId) > 100000);
-  
-  // Fetch platform job details
+  // Helper function to strip HTML tags from text
+  const stripHtml = (html?: string) => {
+    if (!html) return '';
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    return div.textContent || div.innerText || '';
+  };
+
+  // Try fetching as scraped job first (most jobs are scraped)
+  const { data: scrapedJob, isLoading: scrapedLoading, error: scrapedError } = useQuery({
+    queryKey: [`/api/scraped-jobs/${jobId}`],
+    enabled: !!jobId,
+    queryFn: async () => {
+      const response = await fetch(`/api/scraped-jobs/${jobId}`, {
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null; // Try platform job instead
+        }
+        throw new Error(`Failed to fetch job: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      // Clean HTML from descriptions
+      if (data) {
+        data.description = stripHtml(data.description);
+        data.requirements = stripHtml(data.requirements);
+        data.responsibilities = stripHtml(data.responsibilities);
+      }
+      return data;
+    }
+  });
+
+  // If scraped job not found, try platform job
   const { data: platformJob, isLoading: platformLoading, error: platformError } = useQuery({
     queryKey: [`/api/jobs/postings/${jobId}`],
-    enabled: !!jobId && !isScrapedJob,
+    enabled: !!jobId && !scrapedJob && !scrapedLoading,
     queryFn: async () => {
       const response = await fetch(`/api/jobs/postings/${jobId}`, {
         credentials: 'include',
@@ -295,31 +327,10 @@ export default function ViewJob() {
     }
   });
   
-  // Fetch scraped jobs when needed
-  const { data: scrapedJobs, isLoading: scrapedLoading } = useQuery({
-    queryKey: ['/api/scraped-jobs?limit=2000'],
-    enabled: Boolean(jobId && isScrapedJob),
-    queryFn: async () => {
-      const response = await fetch('/api/scraped-jobs?limit=2000', {
-        credentials: 'include'
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch scraped jobs');
-      }
-      return response.json();
-    }
-  });
-  
-  // Find the scraped job by ID
-  const scrapedJob = Array.isArray(scrapedJobs) ? 
-    scrapedJobs.find((job: any) => job.id?.toString() === jobId) : null;
-  
   // Use the appropriate job data
-  const job = isScrapedJob ? scrapedJob : platformJob;
-  const isLoading = isScrapedJob ? scrapedLoading : platformLoading;
-  const error = isScrapedJob ? 
-    (scrapedJob ? null : (scrapedJobs ? new Error('Scraped job not found') : null)) : 
-    platformError;
+  const job = scrapedJob || platformJob;
+  const isLoading = scrapedLoading || platformLoading;
+  const error = !scrapedJob && !platformJob && !isLoading ? (scrapedError || platformError || new Error('Job not found')) : null;
 
   console.log('ViewJob - jobId:', jobId, 'job:', job, 'error:', error);
 

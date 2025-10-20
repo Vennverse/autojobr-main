@@ -944,6 +944,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get individual scraped job by ID - PUBLIC for SEO
+  app.get('/api/scraped-jobs/:id', async (req: any, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      
+      if (isNaN(jobId)) {
+        return res.status(400).json({ message: 'Invalid job ID' });
+      }
+
+      console.log('[SCRAPED JOB] Fetching job with ID:', jobId);
+
+      const job = await db
+        .select()
+        .from(scrapedJobs)
+        .where(and(
+          eq(scrapedJobs.id, jobId),
+          eq(scrapedJobs.isActive, true)
+        ))
+        .limit(1);
+
+      if (!job || job.length === 0) {
+        return res.status(404).json({ message: 'Job not found' });
+      }
+
+      console.log('[SCRAPED JOB] Found job:', job[0].title);
+      res.json(job[0]);
+    } catch (error) {
+      console.error('[SCRAPED JOB ERROR]:', error);
+      res.status(500).json({ 
+        message: 'Failed to fetch job',
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // RECRUITER-SPECIFIC ENDPOINTS - Must be authenticated
   app.get('/api/recruiter/jobs', isAuthenticated, async (req: any, res) => {
     try {
@@ -4934,6 +4969,101 @@ Return only the cover letter text, no additional formatting or explanations.`;
   });
 
   // ============ END RETAKE PAYMENT ROUTES ============
+
+  // Country and pricing detection for multi-currency support
+  app.get("/api/subscription/pricing-info", async (req, res) => {
+    try {
+      // Get IP address from request
+      const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip;
+      const ipString = Array.isArray(ip) ? ip[0] : ip;
+      
+      console.log('[PRICING INFO] IP:', ipString);
+      
+      // Get country code from headers (Replit provides this)
+      const countryCode = req.headers['x-replit-user-geo-country-code'] || 
+                          req.headers['cf-ipcountry'] || // Cloudflare header
+                          'US'; // Default to US
+      
+      console.log('[PRICING INFO] Country:', countryCode);
+      
+      // Define pricing by country
+      const isIndia = countryCode.toString().toUpperCase() === 'IN';
+      
+      let pricingInfo;
+      
+      if (isIndia) {
+        pricingInfo = {
+          country: 'IN',
+          currency: 'INR',
+          paymentGateway: 'razorpay',
+          tiers: {
+            premium: {
+              price: 50,
+              currency: 'INR',
+              currencySymbol: '₹',
+              displayPrice: '₹50',
+              features: ['Unlimited job applications', 'AI resume optimization', 'Interview preparation']
+            },
+            ultra_premium: {
+              price: 150,
+              currency: 'INR',
+              currencySymbol: '₹',
+              displayPrice: '₹150',
+              features: ['All Premium features', 'Priority support', 'Advanced analytics', 'Custom branding']
+            }
+          }
+        };
+      } else {
+        pricingInfo = {
+          country: countryCode.toString().toUpperCase(),
+          currency: 'USD',
+          paymentGateway: 'paypal',
+          tiers: {
+            premium: {
+              price: 5,
+              currency: 'USD',
+              currencySymbol: '$',
+              displayPrice: '$5',
+              features: ['Unlimited job applications', 'AI resume optimization', 'Interview preparation']
+            },
+            ultra_premium: {
+              price: 15,
+              currency: 'USD',
+              currencySymbol: '$',
+              displayPrice: '$15',
+              features: ['All Premium features', 'Priority support', 'Advanced analytics', 'Custom branding']
+            }
+          }
+        };
+      }
+      
+      res.json(pricingInfo);
+    } catch (error) {
+      console.error('[PRICING INFO ERROR]:', error);
+      // Default to US pricing if detection fails
+      res.json({
+        country: 'US',
+        currency: 'USD',
+        paymentGateway: 'paypal',
+        tiers: {
+          premium: {
+            price: 5,
+            currency: 'USD',
+            currencySymbol: '$',
+            displayPrice: '$5',
+            features: ['Unlimited job applications', 'AI resume optimization', 'Interview preparation']
+          },
+          ultra_premium: {
+            price: 15,
+            currency: 'USD',
+            currencySymbol: '$',
+            displayPrice: '$15',
+            features: ['All Premium features', 'Priority support', 'Advanced analytics', 'Custom branding']
+          }
+        }
+      });
+    }
+  });
 
   // Subscription Payment Routes - Consolidated
   app.get("/api/subscription/tiers", asyncHandler(async (req: any, res: any) => {
