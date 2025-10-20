@@ -5,13 +5,11 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     <title>AutoJobr - AI-Powered Job Application Platform</title>
-    <script>
-      // Suppress Vite HMR websocket reconnection errors in development
-      if (import.meta.env.DEV) {
-        window.addEventListener('error', (e) => {
-          if (e.message && e.message.includes('WebSocket')) {
-            e.stopImmediatePropagation();
-          }
+    <script type="module">
+      // Fix Vite HMR WebSocket for Replit HTTPS environment
+      if (import.meta.hot) {
+        import.meta.hot.on('vite:ws:connect', () => {
+          console.log('[vite] WebSocket connected successfully');
         });
       }
     </script>
