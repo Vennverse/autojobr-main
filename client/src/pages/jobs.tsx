@@ -439,7 +439,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
 
   // Fetch scraped jobs with advanced filtering
   const { data: jobsResponse, isLoading: jobsLoading, error: jobsError } = useQuery({
-    queryKey: ['scraped-jobs', filters],
+    queryKey: ['scraped-jobs', filters.page, filters.size, filters.q, filters.country, filters.city, filters.category, filters.job_type, filters.work_mode, filters.experience_level, filters.salary_min, filters.salary_max, filters.remote_only, filters.sort],
     queryFn: async () => {
       const apiParams = buildApiParams(filters);
       console.log('[JOBS_PAGE] Fetching jobs with params:', apiParams.toString());
@@ -456,6 +456,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     staleTime: 0, // Don't cache - always refetch on filter changes
     gcTime: 300000, // 5 minutes
     refetchOnMount: true,
+    keepPreviousData: false,
   });
 
   // Extract data from response
