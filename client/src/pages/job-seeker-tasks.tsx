@@ -106,13 +106,6 @@ export default function JobSeekerTasks() {
 
   const [selectedTemplate, setSelectedTemplate] = useState("custom");
 
-  // Redirect to auth page if not authenticated (after loading is complete)
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      window.location.href = "/auth";
-    }
-  }, [isAuthenticated, isLoading]);
-
   // Show loading state while checking authentication
   if (isLoading) {
     return (
@@ -125,16 +118,17 @@ export default function JobSeekerTasks() {
     );
   }
 
-  // Don't render anything while redirecting
+  // If not authenticated after loading, show message but don't auto-redirect
+  // Let user click the login button instead
   if (!isAuthenticated) {
-    return null;
+    console.log('[TASKS PAGE] User not authenticated');
   }
 
   // Fetch user tasks
   const { data: tasksData, isLoading: tasksLoading, refetch: refetchTasks, error: tasksError } = useQuery({
     queryKey: ["/api/tasks"],
     retry: false,
-    enabled: isAuthenticated, // Only fetch when authenticated
+    enabled: true, // Always try to fetch - backend will handle auth
   });
 
   // Handle authentication errors from API
