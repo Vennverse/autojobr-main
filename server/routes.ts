@@ -2062,6 +2062,33 @@ Return only the improved job description text, no additional formatting or expla
     }
   });
 
+  // ===== TASK MANAGEMENT ROUTES =====
+  // Create task
+  app.post('/api/tasks', isAuthenticated, TaskService.createTask);
+  
+  // Get user's tasks
+  app.get('/api/tasks', isAuthenticated, TaskService.getUserTasks);
+  
+  // Get task stats
+  app.get('/api/tasks/stats', isAuthenticated, TaskService.getTaskStats);
+  
+  // Update task status
+  app.patch('/api/tasks/:taskId/status', isAuthenticated, TaskService.updateTaskStatus);
+  
+  // Delete task
+  app.delete('/api/tasks/:taskId', isAuthenticated, TaskService.deleteTask);
+  
+  // Get pending reminders
+  app.get('/api/tasks/reminders/pending', isAuthenticated, TaskService.getPendingReminders);
+  
+  // Snooze reminder
+  app.post('/api/tasks/reminders/:reminderId/snooze', isAuthenticated, TaskService.snoozeReminder);
+  
+  // Dismiss reminder
+  app.post('/api/tasks/reminders/:reminderId/dismiss', isAuthenticated, TaskService.dismissReminder);
+  
+  console.log('✅ Task management routes registered');
+
   // ===== MOUNT VIRTUAL INTERVIEW ROUTES =====
   app.use('/api/virtual-interview', virtualInterviewRoutes);
   console.log('✅ Virtual interview routes mounted at /api/virtual-interview');
