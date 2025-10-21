@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   Mail, 
   Building, 
@@ -18,6 +19,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { Link } from 'wouter';
 
 const BecomeReferrer: React.FC = () => {
   const { user } = useAuth();
@@ -101,7 +103,7 @@ const BecomeReferrer: React.FC = () => {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         setStep(3); // Success step
       } else {
@@ -145,30 +147,30 @@ const BecomeReferrer: React.FC = () => {
             <p className="text-gray-600 text-lg mb-4">
               Help job seekers while earning money by sharing your company knowledge and network
             </p>
-            
+
             {/* Navigation Submenu */}
             <div className="flex flex-wrap gap-2 mb-6 justify-center">
               <Button
+                asChild
                 variant="outline" 
                 size="sm"
-                onClick={() => window.location.href = '/referral-marketplace'}
               >
-                Browse Services
+                <Link href="/referral-marketplace">Browse Services</Link>
               </Button>
               <Button
+                asChild
                 variant="outline" 
                 size="sm"
-                onClick={() => window.location.href = '/my-bookings'}
               >
-                My Bookings
+                <Link href="/my-bookings">My Bookings</Link>
               </Button>
               <Button
+                asChild
                 variant="outline" 
                 size="sm"
-                onClick={() => window.location.href = '/become-referrer'}
                 className="bg-blue-50 border-blue-200 text-blue-700"
               >
-                Become a Referrer
+                <Link href="/become-referrer">Become a Referrer</Link>
               </Button>
             </div>
           </div>
@@ -268,7 +270,7 @@ const BecomeReferrer: React.FC = () => {
                   </p>
                   <p className="text-sm font-medium text-green-600">Typical earnings: $50-100</p>
                 </div>
-                
+
                 <div className="border rounded-lg p-4">
                   <h3 className="font-medium mb-2">📚 Interview Preparation</h3>
                   <p className="text-sm text-gray-600 mb-2">
@@ -276,7 +278,7 @@ const BecomeReferrer: React.FC = () => {
                   </p>
                   <p className="text-sm font-medium text-green-600">Typical earnings: $80-150</p>
                 </div>
-                
+
                 <div className="border rounded-lg p-4">
                   <h3 className="font-medium mb-2">🎯 Ongoing Mentorship</h3>
                   <p className="text-sm text-gray-600 mb-2">
@@ -307,7 +309,7 @@ const BecomeReferrer: React.FC = () => {
       <div className="container mx-auto p-6">
         <div className="max-w-2xl mx-auto">
           <h1 className="text-2xl font-bold mb-6">Create Your Referrer Profile</h1>
-          
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <Card>
               <CardHeader>
@@ -582,17 +584,17 @@ const BecomeReferrer: React.FC = () => {
 
               <div className="space-y-2">
                 <Button 
-                  onClick={() => window.location.href = '/referrer-dashboard'}
+                  asChild
                   className="w-full"
                 >
-                  Go to Referrer Dashboard
+                  <Link href="/referrer-dashboard">Go to Referrer Dashboard</Link>
                 </Button>
                 <Button 
+                  asChild
                   variant="outline"
-                  onClick={() => window.location.href = '/referral-marketplace'}
                   className="w-full"
                 >
-                  Browse Marketplace
+                  <Link href="/referral-marketplace">Browse Marketplace</Link>
                 </Button>
               </div>
             </CardContent>

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import SEOHead from '@/components/seo-head';
+import { Link } from 'wouter';
 
 interface Booking {
   id: number;
@@ -397,28 +398,39 @@ Best regards,
         </div>
 
         <div className="flex flex-wrap gap-2 mt-6">
-          <Button
-            variant="outline" 
-            size="sm"
-            onClick={() => window.location.href = '/referral-marketplace'}
-          >
-            Browse Services
-          </Button>
-          <Button
-            variant="outline" 
-            size="sm"
-            onClick={() => window.location.href = '/my-bookings'}
-            className="bg-blue-50 border-blue-200 text-blue-700"
-          >
-            My Bookings
-          </Button>
-          <Button
-            variant="outline" 
-            size="sm"
-            onClick={() => window.location.href = '/become-referrer'}
-          >
-            Manage Services
-          </Button>
+          <Link href="/">
+            <Button
+              variant="outline" 
+              size="sm"
+            >
+              Dashboard
+            </Button>
+          </Link>
+          <Link href="/referral-marketplace">
+            <Button
+              variant="outline" 
+              size="sm"
+            >
+              Browse Services
+            </Button>
+          </Link>
+          <Link href="/my-bookings">
+            <Button
+              variant="outline" 
+              size="sm"
+              className="bg-blue-50 border-blue-200 text-blue-700"
+            >
+              My Bookings
+            </Button>
+          </Link>
+          <Link href="/become-referrer">
+            <Button
+              variant="outline" 
+              size="sm"
+            >
+              Manage Services
+            </Button>
+          </Link>
         </div>
       </div>
 

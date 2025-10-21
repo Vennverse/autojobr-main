@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Star, Clock, Users, Shield, MessageCircle, ExternalLink, Target } from 'lucide-react';
+import { Star, Clock, Users, Shield, MessageCircle, ExternalLink, Target, Home } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import SEOHead from '@/components/seo-head';
 import { Link } from 'wouter';
@@ -311,32 +311,45 @@ const ReferralMarketplace: React.FC = () => {
         
         {/* Navigation Tabs */}
           <div className="flex flex-wrap gap-3 justify-center">
-            <Button
-              size="lg"
-              className="bg-white text-blue-600 hover:bg-blue-50 shadow-lg font-semibold px-6"
-              onClick={() => window.location.href = '/referral-marketplace'}
-            >
-              <Target className="w-4 h-4 mr-2" />
-              Browse Services
-            </Button>
-            <Button
-              variant="outline" 
-              size="lg"
-              className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm font-semibold px-6"
-              onClick={() => window.location.href = '/my-bookings'}
-            >
-              <MessageCircle className="w-4 h-4 mr-2" />
-              My Bookings
-            </Button>
-            <Button
-              variant="outline" 
-              size="lg"
-              className="bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:from-green-500 hover:to-emerald-600 border-0 font-semibold px-6 shadow-lg"
-              onClick={() => window.location.href = '/become-referrer'}
-            >
-              <Users className="w-4 h-4 mr-2" />
-              Become a Referrer
-            </Button>
+            <Link href="/">
+              <Button
+                variant="outline" 
+                size="lg"
+                className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm font-semibold px-6"
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Dashboard
+              </Button>
+            </Link>
+            <Link href="/referral-marketplace">
+              <Button
+                size="lg"
+                className="bg-white text-blue-600 hover:bg-blue-50 shadow-lg font-semibold px-6"
+              >
+                <Target className="w-4 h-4 mr-2" />
+                Browse Services
+              </Button>
+            </Link>
+            <Link href="/my-bookings">
+              <Button
+                variant="outline" 
+                size="lg"
+                className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm font-semibold px-6"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                My Bookings
+              </Button>
+            </Link>
+            <Link href="/become-referrer">
+              <Button
+                variant="outline" 
+                size="lg"
+                className="bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:from-green-500 hover:to-emerald-600 border-0 font-semibold px-6 shadow-lg"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Become a Referrer
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
@@ -684,13 +697,14 @@ const ReferralMarketplace: React.FC = () => {
           <p className="text-green-50 text-lg mb-8 max-w-2xl mx-auto">
             Join our marketplace as a referrer and monetize your company knowledge and network. Help job seekers while earning extra income!
           </p>
-          <Button
-            className="bg-white text-green-600 hover:bg-green-50 font-bold text-lg px-8 py-6 rounded-xl shadow-xl hover:shadow-2xl transition-all"
-            onClick={() => window.location.href = '/become-referrer'}
-          >
-            <Users className="w-5 h-5 mr-2" />
-            Become a Referrer Now
-          </Button>
+          <Link href="/become-referrer">
+            <Button
+              className="bg-white text-green-600 hover:bg-green-50 font-bold text-lg px-8 py-6 rounded-xl shadow-xl hover:shadow-2xl transition-all"
+            >
+              <Users className="w-5 h-5 mr-2" />
+              Become a Referrer Now
+            </Button>
+          </Link>
         </div>
       </div>
     </div>
