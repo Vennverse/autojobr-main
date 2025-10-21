@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,8 +21,8 @@ import {
   AlertCircle,
   Trash2,
   ArrowLeft,
-  Filter,
   Search,
+  Loader2,
 } from "lucide-react";
 
 interface Task {
@@ -36,9 +37,13 @@ interface Task {
   createdAt: string;
 }
 
+interface TasksResponse {
+  tasks?: Task[];
+}
+
 export default function JobSeekerTasks() {
   const { toast } = useToast();
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -55,13 +60,43 @@ export default function JobSeekerTasks() {
     relatedUrl: "",
   });
 
-  // Fetch tasks
-  const { data: tasksResponse, isLoading: tasksLoading } = useQuery({
+  // Fetch tasks with better error handling
+  const { data: tasksData, isLoading: tasksLoading, error: tasksError } = useQuery<Task[]>({
     queryKey: ["/api/tasks"],
     enabled: isAuthenticated,
+    retry: 2,
+    staleTime: 30000,
+    queryFn: async () => {
+      console.log('[TASKS] Fetching tasks...');
+      const response = await fetch("/api/tasks", {
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[TASKS] Fetch error:', response.status, errorText);
+        throw new Error(`Failed to fetch tasks: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('[TASKS] Fetched data:', data);
+      
+      // Handle both array and object responses
+      if (Array.isArray(data)) {
+        return data;
+      }
+      if (data.tasks && Array.isArray(data.tasks)) {
+        return data.tasks;
+      }
+      
+      return [];
+    },
   });
 
-  const tasks = tasksResponse?.tasks || [];
+  const tasks = tasksData || [];
 
   // Create task mutation
   const createTaskMutation = useMutation({
@@ -72,7 +107,10 @@ export default function JobSeekerTasks() {
         credentials: "include",
         body: JSON.stringify(taskData),
       });
-      if (!response.ok) throw new Error("Failed to create task");
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || "Failed to create task");
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -96,7 +134,7 @@ export default function JobSeekerTasks() {
   // Update task status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      const response = await fetch(`/api/tasks/${id}`, {
+      const response = await fetch(`/api/tasks/${id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -204,20 +242,46 @@ export default function JobSeekerTasks() {
     }
   };
 
-  if (isLoading) {
+  // Show auth loading state
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     );
   }
 
+  // Redirect if not authenticated
   if (!isAuthenticated) {
     window.location.href = '/auth-page?redirect=/job-seeker-tasks';
     return null;
+  }
+
+  // Show error state
+  if (tasksError) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="p-8 text-center">
+              <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-red-900 mb-2">Error Loading Tasks</h3>
+              <p className="text-red-700 mb-4">{tasksError.message}</p>
+              <Button 
+                onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/tasks"] })}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Try Again
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -390,7 +454,7 @@ export default function JobSeekerTasks() {
         {/* Tasks List */}
         {tasksLoading ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
             <p className="text-gray-600">Loading tasks...</p>
           </div>
         ) : filteredTasks.length === 0 ? (

@@ -3812,6 +3812,24 @@ Return only the cover letter text, no additional formatting or explanations.`;
     }
   });
 
+  app.delete('/api/tasks/:taskId', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const taskId = parseInt(req.params.taskId);
+
+      await db.delete(schema.tasks)
+        .where(and(
+          eq(schema.tasks.id, taskId),
+          eq(schema.tasks.userId, userId)
+        ));
+
+      res.json({ success: true, message: 'Task deleted successfully' });
+    } catch (error) {
+      console.error('Delete task error:', error);
+      res.status(500).json({ message: 'Failed to delete task' });
+    }
+  });
+
   // Active Resume API for extension
   app.get('/api/resumes/active', isAuthenticated, async (req: any, res) => {
     try {
