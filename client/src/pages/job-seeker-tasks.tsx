@@ -106,18 +106,6 @@ export default function JobSeekerTasks() {
 
   const [selectedTemplate, setSelectedTemplate] = useState("custom");
 
-  // Show loading state while checking authentication
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Fetch user tasks - only when authenticated
   const { data: tasksData, isLoading: tasksLoading, refetch: refetchTasks, error: tasksError } = useQuery({
     queryKey: ["/api/tasks"],
@@ -309,12 +297,15 @@ export default function JobSeekerTasks() {
       dueDate.setHours(dueDate.getHours() + template.hoursOffset);
     }
 
-    // Use functional updates to avoid stale closure issues
     setFormData(prev => {
-      const companyName = prev.companyName || extractCompanyFromUrl(prev.relatedUrl);
-      const title = template.title && companyName ? 
-        template.title.replace('{company}', companyName) : 
-        template.title;
+      // Get company name from current state or extract from URL
+      const companyName = prev.companyName || extractCompanyFromUrl(prev.relatedUrl) || '';
+      
+      // Replace {company} placeholder with actual company name
+      let title = template.title;
+      if (companyName && title.includes('{company}')) {
+        title = title.replace('{company}', companyName);
+      }
 
       return {
         ...prev,
@@ -323,7 +314,8 @@ export default function JobSeekerTasks() {
         priority: template.priority,
         category: template.category,
         taskType: template.taskType,
-        dueDateTime: dueDate.toISOString().slice(0, 16)
+        dueDateTime: dueDate.toISOString().slice(0, 16),
+        companyName: companyName // Preserve company name
       };
     });
   };
@@ -408,22 +400,22 @@ export default function JobSeekerTasks() {
     }).length
   };
 
+  // Show loading state while checking authentication
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-        <Navbar />
-        <div className="container mx-auto px-4 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-24 bg-gray-200 rounded"></div>
-              ))}
-            </div>
-          </div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
         </div>
       </div>
     );
+  }
+
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    window.location.href = '/auth-page?redirect=/job-seeker-tasks';
+    return null;
   }
 
   return (

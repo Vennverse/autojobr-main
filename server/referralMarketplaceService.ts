@@ -306,7 +306,7 @@ export class ReferralMarketplaceService {
   async bookService(serviceId: number, jobSeekerId: string, bookingData: {
     notes?: string;
     scheduledAt?: Date;
-  }) {
+  }, sendEmailsImmediately: boolean = false) {
     try {
       // Get service details
       const service = await db.select({
@@ -395,14 +395,16 @@ export class ReferralMarketplaceService {
         })
         .where(eq(referralServices.id, serviceId));
 
-      // Send confirmation emails with trust guarantees
-      await this.sendBookingConfirmationEmails(
-        jobSeeker[0],
-        referrerDetails[0],
-        serviceData.title,
-        totalAmount,
-        bookingData.scheduledAt
-      );
+      // Only send confirmation emails if explicitly requested (after payment)
+      if (sendEmailsImmediately) {
+        await this.sendBookingConfirmationEmails(
+          jobSeeker[0],
+          referrerDetails[0],
+          serviceData.title,
+          totalAmount,
+          bookingData.scheduledAt
+        );
+      }
 
       return {
         success: true,
