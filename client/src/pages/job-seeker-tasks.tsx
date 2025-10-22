@@ -109,6 +109,15 @@ export default function JobSeekerTasks() {
   // Fetch user tasks - only when authenticated
   const { data: tasksData, isLoading: tasksLoading, refetch: refetchTasks, error: tasksError } = useQuery({
     queryKey: ["/api/tasks"],
+    queryFn: async () => {
+      const response = await fetch("/api/tasks", {
+        credentials: "include"
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch tasks");
+      }
+      return response.json();
+    },
     retry: false,
     enabled: isAuthenticated, // Only fetch when authenticated to prevent unnecessary requests
   });
@@ -149,9 +158,13 @@ export default function JobSeekerTasks() {
         reminderDateTime: taskData.reminderDateTime ? new Date(taskData.reminderDateTime).toISOString() : undefined,
       };
 
-      return apiRequest("/api/tasks", "POST", formattedData);
+      console.log('[TASK CREATE] Sending task data:', formattedData);
+      const result = await apiRequest("/api/tasks", "POST", formattedData);
+      console.log('[TASK CREATE] Task created:', result);
+      return result;
     },
     onSuccess: () => {
+      console.log('[TASK CREATE] Success - invalidating queries');
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
       setShowCreateDialog(false);
       resetForm();
@@ -159,8 +172,11 @@ export default function JobSeekerTasks() {
         title: "✅ Task Created",
         description: "Your task has been created successfully.",
       });
+      // Force refetch to ensure we get latest data
+      refetchTasks();
     },
     onError: (error: any) => {
+      console.error('[TASK CREATE] Error:', error);
       toast({
         title: "❌ Failed to Create Task",
         description: error.message || "Please check all required fields and try again.",
@@ -373,8 +389,10 @@ export default function JobSeekerTasks() {
     }
   };
 
-  // Extract tasks from response
-  const taskList = (tasksData as any)?.tasks || [];
+  // Extract tasks from response - handle both array and object with tasks property
+  const taskList = Array.isArray(tasksData) ? tasksData : ((tasksData as any)?.tasks || []);
+
+  console.log('[TASKS PAGE] Tasks data:', { tasksData, taskList, count: taskList.length });
 
   // Filter tasks
   const filteredTasks = taskList.filter((task: JobSeekerTask) => {
@@ -680,7 +698,16 @@ export default function JobSeekerTasks() {
             ))}
           </AnimatePresence>
 
-          {filteredTasks.length === 0 && !tasksLoading && (
+          {tasksLoading && (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600 dark:text-gray-400">Loading tasks...</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {!tasksLoading && filteredTasks.length === 0 && (
             <Card>
               <CardContent className="p-12 text-center">
                 <CheckSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -688,7 +715,9 @@ export default function JobSeekerTasks() {
                   No tasks found
                 </h3>
                 <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  Create your first task to get started with organizing your job search.
+                  {searchTerm || statusFilter !== "all" || priorityFilter !== "all" || typeFilter !== "all"
+                    ? "No tasks match your current filters. Try adjusting your search criteria."
+                    : "Create your first task to get started with organizing your job search."}
                 </p>
                 <Button onClick={() => setShowCreateDialog(true)}>
                   <Plus className="h-4 w-4 mr-2" />
