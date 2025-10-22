@@ -110,13 +110,17 @@ export default function JobSeekerTasks() {
   const { data: tasksData, isLoading: tasksLoading, refetch: refetchTasks, error: tasksError } = useQuery({
     queryKey: ["/api/tasks"],
     queryFn: async () => {
+      console.log('[TASKS FETCH] Fetching tasks...');
       const response = await fetch("/api/tasks", {
         credentials: "include"
       });
       if (!response.ok) {
+        console.error('[TASKS FETCH] Error:', response.status, response.statusText);
         throw new Error("Failed to fetch tasks");
       }
-      return response.json();
+      const data = await response.json();
+      console.log('[TASKS FETCH] Received data:', data);
+      return data;
     },
     retry: false,
     enabled: isAuthenticated, // Only fetch when authenticated to prevent unnecessary requests
@@ -139,6 +143,14 @@ export default function JobSeekerTasks() {
       }
     }
   }, [tasksError, toast]);
+
+  // Force refetch when component mounts to ensure fresh data
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('[TASKS PAGE] Component mounted, forcing refetch...');
+      refetchTasks();
+    }
+  }, [isAuthenticated]);
 
   // Create task mutation
   const createTaskMutation = useMutation({
@@ -392,7 +404,11 @@ export default function JobSeekerTasks() {
   // Extract tasks from response - handle both array and object with tasks property
   const taskList = Array.isArray(tasksData) ? tasksData : ((tasksData as any)?.tasks || []);
 
-  console.log('[TASKS PAGE] Tasks data:', { tasksData, taskList, count: taskList.length });
+  console.log('[TASKS PAGE] Raw tasks data:', tasksData);
+  console.log('[TASKS PAGE] Extracted task list:', taskList);
+  console.log('[TASKS PAGE] Task count:', taskList.length);
+  console.log('[TASKS PAGE] Is loading:', tasksLoading);
+  console.log('[TASKS PAGE] Is authenticated:', isAuthenticated);
 
   // Filter tasks
   const filteredTasks = taskList.filter((task: JobSeekerTask) => {
