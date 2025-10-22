@@ -456,28 +456,28 @@ export class EnhancedCrmService {
       }
 
       // LinkedIn messages are limited to 300 characters for connection requests
-      // and 8000 characters for direct messages
       const charLimit = purpose === 'connection' ? 300 : 300; // Keep follow-ups short
 
-      const prompt = `Write a brief LinkedIn message to ${contact.name}${contact.jobTitle ? `, ${contact.jobTitle}` : ''} at ${contact.company || 'their company'}.
-      Purpose: ${purpose}
-      ${context ? `Context: ${context}` : ''}
-      
-      Requirements:
-      - Maximum ${charLimit} characters
-      - Professional and personable tone
-      - Clear value proposition
-      - Natural and conversational
-      - No generic templates
-      
-      Return ONLY the message text, no quotes or formatting.`;
+      const prompt = `Write a LinkedIn ${purpose} message to ${contact.name}${contact.jobTitle ? `, ${contact.jobTitle}` : ''} at ${contact.company || 'their company'}.
+${context ? `Context: ${context}` : ''}
+
+Requirements:
+- STRICT maximum ${charLimit} characters
+- Professional and personable tone
+- Clear value proposition
+- Natural conversational style
+- Specific to this person (avoid generic phrases)
+- No emojis or special formatting
+
+Return ONLY the message text, no quotes, no extra formatting.`;
 
       const completion = await aiService.createChatCompletion([
+        { role: 'system', content: 'You are a LinkedIn networking expert. Generate ultra-concise, personalized messages that respect character limits and get responses.' },
         { role: 'user', content: prompt }
-      ], { maxTokens: 150, temperature: 0.7 });
+      ], { maxTokens: 150, temperature: 0.7, user: req.user });
 
       const messageContent = completion.choices[0]?.message?.content || '';
-      const trimmedMessage = messageContent.substring(0, charLimit);
+      const trimmedMessage = messageContent.trim().substring(0, charLimit);
 
       res.json({
         success: true,
@@ -511,43 +511,64 @@ export class EnhancedCrmService {
 
       if (channel === 'email') {
         // Generate email follow-up
-        const emailPrompt = `Professional follow-up email to ${contact.name} at ${contact.company}.
-        Purpose: ${purpose}
-        ${personalNote ? `Personal note: ${personalNote}` : ''}
-        
-        Keep it under 150 words, friendly and actionable.`;
+        const emailPrompt = `Write a professional follow-up email to ${contact.name}${contact.jobTitle ? `, ${contact.jobTitle}` : ''} at ${contact.company || 'their company'}.
+Purpose: ${purpose}
+${personalNote ? `Personal context: ${personalNote}` : ''}
+
+Requirements:
+- Maximum 150 words
+- Professional yet friendly tone
+- Include clear call-to-action
+- Personalized and specific
+- Avoid generic templates
+
+Return only the email body text, no subject line.`;
 
         const emailContent = await aiService.createChatCompletion([
+          { role: 'system', content: 'You are an expert at writing professional business emails. Generate concise, personalized emails that get responses.' },
           { role: 'user', content: emailPrompt }
-        ], { maxTokens: 300, temperature: 0.7 });
+        ], { maxTokens: 300, temperature: 0.7, user: req.user });
+
+        const emailBody = emailContent.choices[0]?.message?.content || 'Thank you for your time. I look forward to connecting with you soon.';
 
         res.json({
           success: true,
           channel: 'email',
           content: {
             subject: `Following up - ${contact.name}`,
-            body: emailContent.choices[0]?.message?.content || 'Looking forward to connecting with you.'
+            body: emailBody.trim()
           }
         });
       } else if (channel === 'linkedin') {
-        // Generate LinkedIn message
-        const linkedinPrompt = `Brief LinkedIn follow-up to ${contact.name}.
-        Purpose: ${purpose}
-        ${personalNote ? `Include: ${personalNote}` : ''}
-        
-        Max 250 characters. Professional, warm, and specific.`;
+        // Generate LinkedIn message with strict character limit
+        const linkedinPrompt = `Write a brief LinkedIn message to ${contact.name}${contact.jobTitle ? `, ${contact.jobTitle}` : ''} at ${contact.company || 'their company'}.
+Purpose: ${purpose}
+${personalNote ? `Personal context: ${personalNote}` : ''}
+
+Requirements:
+- STRICT maximum 250 characters (LinkedIn limit)
+- Professional and personable
+- Clear value proposition
+- Natural conversational tone
+- Avoid generic templates
+
+Return ONLY the message text, no formatting or quotes.`;
 
         const linkedinContent = await aiService.createChatCompletion([
+          { role: 'system', content: 'You are an expert at LinkedIn networking. Generate ultra-concise, personalized messages under 250 characters that get responses.' },
           { role: 'user', content: linkedinPrompt }
-        ], { maxTokens: 120, temperature: 0.7 });
+        ], { maxTokens: 120, temperature: 0.7, user: req.user });
 
-        const message = linkedinContent.choices[0]?.message?.content || '';
+        const rawMessage = linkedinContent.choices[0]?.message?.content || '';
+        const message = rawMessage.trim().substring(0, 300);
+
         res.json({
           success: true,
           channel: 'linkedin',
           content: {
-            message: message.substring(0, 300),
-            characterCount: Math.min(message.length, 300)
+            message: message,
+            characterCount: message.length,
+            characterLimit: 300
           }
         });
       } else {
