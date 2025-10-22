@@ -1277,6 +1277,131 @@ Best regards,
     }
   }
 
+  /**
+   * Send booking confirmation email with meeting link after payment
+   */
+  async sendBookingConfirmationEmail(
+    bookingId: number,
+    jobSeekerId: string,
+    referrerId: number,
+    meetingScheduleLink: string
+  ) {
+    try {
+      const { sendEmail } = await import('./emailService.js');
+
+      // Get booking details
+      const [booking] = await db.select()
+        .from(referralBookings)
+        .where(eq(referralBookings.id, bookingId))
+        .limit(1);
+
+      if (!booking) {
+        throw new Error('Booking not found');
+      }
+
+      // Get job seeker details
+      const [jobSeeker] = await db.select()
+        .from(users)
+        .where(eq(users.id, jobSeekerId))
+        .limit(1);
+
+      // Get service details
+      const [service] = await db.select()
+        .from(referralServices)
+        .where(eq(referralServices.id, booking.serviceId))
+        .limit(1);
+
+      // Get referrer details
+      const [referrer] = await db.select()
+        .from(referrers)
+        .where(eq(referrers.id, referrerId))
+        .limit(1);
+
+      if (!jobSeeker || !service || !referrer) {
+        throw new Error('Required data not found');
+      }
+
+      const displayName = referrer.isAnonymous 
+        ? referrer.displayName 
+        : `${referrer.companyName} Employee`;
+
+      // Email to job seeker with booking link
+      await sendEmail({
+        to: jobSeeker.email!,
+        subject: '✅ Payment Confirmed - Schedule Your Session Now!',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+            <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+              <h2 style="color: #10b981; margin-top: 0;">🎉 Payment Successful!</h2>
+              
+              <p>Hi ${jobSeeker.firstName || 'there'},</p>
+              
+              <p>Your payment of <strong>${booking.paymentCurrency} ${booking.totalAmount}</strong> has been confirmed and is now held securely in escrow.</p>
+              
+              <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #1f2937;">📋 Booking Details:</h3>
+                <ul style="list-style: none; padding: 0; line-height: 2;">
+                  <li><strong>Service:</strong> ${service.title}</li>
+                  <li><strong>Referrer:</strong> ${displayName}</li>
+                  <li><strong>Company:</strong> ${referrer.companyName}</li>
+                  <li><strong>Booking ID:</strong> #${bookingId}</li>
+                </ul>
+              </div>
+              
+              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; border-radius: 8px; margin: 30px 0; text-align: center;">
+                <h3 style="color: white; margin-top: 0;">📅 Schedule Your Session</h3>
+                <p style="color: white; margin-bottom: 20px;">Click the button below to book a time that works for you:</p>
+                <a href="${meetingScheduleLink}" 
+                   style="display: inline-block; background: white; color: #667eea; padding: 14px 32px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 16px;">
+                  📅 Schedule Your Session
+                </a>
+              </div>
+              
+              <div style="background: #ecfdf5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0;">
+                <h4 style="margin-top: 0; color: #047857;">🛡️ Escrow Protection Active</h4>
+                <ul style="line-height: 1.8; color: #065f46; margin: 0;">
+                  <li>Your payment is held securely until service delivery</li>
+                  <li>Full refund if service is not delivered as promised</li>
+                  <li>Payment released only after your confirmation</li>
+                  <li>Guaranteed at least one meeting with the referrer</li>
+                </ul>
+              </div>
+              
+              <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e5e7eb;">
+                <h4 style="color: #1f2937;">What Happens Next?</h4>
+                <ol style="line-height: 1.8; color: #4b5563;">
+                  <li>Schedule your session using the link above</li>
+                  <li>Attend your scheduled meeting with the referrer</li>
+                  <li>Receive the promised deliverables (intro, prep, referral, etc.)</li>
+                  <li>Confirm delivery to release payment from escrow</li>
+                </ol>
+              </div>
+              
+              <div style="margin-top: 30px; padding: 20px; background: #fef3c7; border-radius: 8px;">
+                <p style="margin: 0; color: #92400e;">
+                  <strong>💬 Need Help?</strong><br>
+                  You can message the referrer directly through your booking dashboard.
+                  Our support team is also available 24/7 to assist you.
+                </p>
+              </div>
+              
+              <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                <p style="color: #6b7280; font-size: 14px; margin: 0;">
+                  Best of luck with your job search! 🚀
+                </p>
+              </div>
+            </div>
+          </div>
+        `
+      });
+
+      console.log(`✅ Booking confirmation email sent to ${jobSeeker.email} with scheduling link`);
+    } catch (error) {
+      console.error('Error sending booking confirmation email:', error);
+      throw error;
+    }
+  }
+
 }
 
 export const referralMarketplaceService = new ReferralMarketplaceService();
