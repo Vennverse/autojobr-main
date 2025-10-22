@@ -2470,7 +2470,7 @@ export const crmContacts = pgTable("crm_contacts", {
 
   // Contact type and categorization
   contactType: varchar("contact_type").notNull(), // recruiter, hiring_manager, referral, colleague, company
-  tags: text("tags").array(), // work, personal, client, lead, prospect, hot, warm, cold
+  tags: text("tags").array(), // work, personal, lead, prospect, hot, warm, cold
 
   // Relationship tracking
   relationship: varchar("relationship"), // strong, moderate, weak, new

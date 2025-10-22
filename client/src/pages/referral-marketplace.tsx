@@ -73,14 +73,14 @@ const ReferralMarketplace: React.FC = () => {
     try {
       setLoading(true);
       const queryParams = new URLSearchParams();
-      
+
       if (filter.serviceType) queryParams.append('serviceType', filter.serviceType);
       if (filter.includesReferral) queryParams.append('includesReferral', filter.includesReferral);
       if (filter.companyName) queryParams.append('companyName', filter.companyName);
 
       const response = await fetch(`/api/referral-marketplace/services?${queryParams}`);
       const data = await response.json();
-      
+
       if (data.success) {
         setServices(data.services);
       }
@@ -114,7 +114,7 @@ const ReferralMarketplace: React.FC = () => {
       });
 
       const bookingData = await bookingResponse.json();
-      
+
       if (bookingData.success) {
         // Redirect to payment page with booking details
         setLocation(`/referral-marketplace/payment?bookingId=${bookingData.booking.id}&amount=${servicePrice}`);
@@ -270,71 +270,34 @@ const ReferralMarketplace: React.FC = () => {
         ogType="website"
         ogImage="https://autojobr.com/referral-marketplace-og.png"
       />
-      
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white py-12 mb-8">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Authentication Status Debug Banner - Remove after fixing */}
-          {!authLoading && (
-            <div className={`text-center py-2 mb-4 rounded-lg ${isAuthenticated ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-              <p className="text-sm">
-                {isAuthenticated ? `✅ Logged in as ${user?.email}` : '❌ Not logged in - Please sign in to book services'}
-              </p>
-            </div>
-          )}
-          <div className="text-center mb-6">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-100">
+
+      {/* Simple Navigation Bar */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Referral Marketplace
             </h1>
-            <p className="text-xl text-blue-100 max-w-3xl mx-auto">
-              Connect with verified company employees for career advice, interview prep, and internal referrals
-            </p>
-          </div>
-        
-        {/* Navigation Tabs */}
-          <div className="flex flex-wrap gap-3 justify-center">
-            <Button
-              onClick={() => setLocation(isAuthenticated ? '/dashboard' : '/')}
-              variant="outline" 
-              size="lg"
-              className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm font-semibold px-6 cursor-pointer"
-              data-testid="button-navigate-dashboard"
-            >
-              <Home className="w-4 h-4 mr-2" />
-              Dashboard
-            </Button>
-            
-            <Button
-              onClick={() => setLocation('/referral-marketplace')}
-              size="lg"
-              className="bg-white text-blue-600 hover:bg-blue-50 shadow-lg font-semibold px-6 cursor-pointer"
-              data-testid="button-browse-services"
-            >
-              <Target className="w-4 h-4 mr-2" />
-              Browse Services
-            </Button>
-            
-            <Button
-              onClick={() => setLocation('/my-bookings')}
-              variant="outline" 
-              size="lg"
-              className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm font-semibold px-6 cursor-pointer"
-              data-testid="button-my-bookings"
-            >
-              <MessageCircle className="w-4 h-4 mr-2" />
-              My Bookings
-            </Button>
-            
-            <Button
-              onClick={() => setLocation('/become-referrer')}
-              variant="outline" 
-              size="lg"
-              className="bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:from-green-500 hover:to-emerald-600 border-0 font-semibold px-6 shadow-lg cursor-pointer"
-              data-testid="button-become-referrer"
-            >
-              <Users className="w-4 h-4 mr-2" />
-              Become a Referrer
-            </Button>
+            <div className="flex gap-3">
+              <Link href="/referral-marketplace">
+                <Button variant="outline" size="sm">
+                  <Target className="w-4 h-4 mr-2" />
+                  Browse Services
+                </Button>
+              </Link>
+              <Link href="/my-bookings">
+                <Button variant="outline" size="sm">
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  My Bookings
+                </Button>
+              </Link>
+              <Link href="/become-referrer">
+                <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white">
+                  <Users className="w-4 h-4 mr-2" />
+                  Become a Referrer
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -389,14 +352,14 @@ const ReferralMarketplace: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         {/* How It Works - Step by Step Process */}
         <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 mb-8 shadow-xl border border-gray-100 dark:border-slate-700">
           <h2 className="text-3xl font-bold text-center mb-3 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             How Our Referral Program Works
           </h2>
           <p className="text-center text-gray-600 dark:text-gray-400 mb-10">Simple 4-step process to get your dream job</p>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {/* Step 1 */}
             <div className="text-center relative group">
@@ -412,7 +375,7 @@ const ReferralMarketplace: React.FC = () => {
                 </svg>
               </div>
             </div>
-            
+
             {/* Step 2 */}
             <div className="text-center relative group">
               <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white font-bold text-2xl shadow-lg group-hover:scale-110 transition-transform">
@@ -427,7 +390,7 @@ const ReferralMarketplace: React.FC = () => {
                 </svg>
               </div>
             </div>
-            
+
             {/* Step 3 */}
             <div className="text-center relative group">
               <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white font-bold text-2xl shadow-lg group-hover:scale-110 transition-transform">
@@ -442,7 +405,7 @@ const ReferralMarketplace: React.FC = () => {
                 </svg>
               </div>
             </div>
-            
+
             {/* Step 4 */}
             <div className="text-center group">
               <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white font-bold text-2xl shadow-lg group-hover:scale-110 transition-transform">
@@ -452,7 +415,7 @@ const ReferralMarketplace: React.FC = () => {
               <p className="text-sm text-gray-600 dark:text-gray-400">Internal referral to land interviews</p>
             </div>
           </div>
-          
+
           {/* What You Get */}
           <div className="mt-8 pt-8 border-t border-blue-200">
             <h3 className="text-lg font-bold text-center mb-6 text-gray-900">What You Receive:</h3>
@@ -525,7 +488,7 @@ const ReferralMarketplace: React.FC = () => {
       </div>
 
       {/* Service Listings */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {services.map((service) => (
           <Card key={service.serviceId} className="h-fit hover:shadow-2xl transition-all duration-300 border-0 bg-white dark:bg-slate-800 overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
