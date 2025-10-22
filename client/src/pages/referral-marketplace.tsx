@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Star, Clock, Users, Shield, MessageCircle, ExternalLink, Target, Home } from 'lucide-react';
+import { Star, Clock, Users, Shield, MessageCircle, ExternalLink, Target, Home, Search, Calendar, UserPlus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import SEOHead from '@/components/seo-head';
 import { Link, useLocation } from 'wouter';
@@ -64,6 +64,9 @@ const ReferralMarketplace: React.FC = () => {
     includesReferral: '',
     companyName: ''
   });
+
+  const [activeTab, setActiveTab] = useState<'browse' | 'my-bookings' | 'become-referrer'>('browse');
+  const navigate = (path: string) => setLocation(path);
 
   useEffect(() => {
     fetchServices();
@@ -261,7 +264,7 @@ const ReferralMarketplace: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950">
-      <SEOHead 
+      <SEOHead
         title="Employee Referral Marketplace 2025 - Get Internal Referrals from Verified Employees | 3x Faster Hiring | AutoJobR"
         description="🔥 #1 Employee Referral Marketplace! Get internal job referrals from verified employees at Google, Microsoft, Apple, Amazon & 500+ top companies. 89% success rate, 3x faster hiring, escrow-protected payments. Connect with company insiders for career advice, interview prep & guaranteed referrals. Join 50K+ job seekers landing dream jobs through employee referrals!"
         keywords="employee referrals 2025, internal job referrals, company employee referrals, get job referral, referral marketplace, employee referral service, internal referral network, job referral platform, verified employee referrals, tech company referrals, Google referrals, Microsoft referrals, Amazon referrals, career mentorship, interview preparation, job placement service, employee network, professional referrals, career coaching, job search help, employee insider referrals, guaranteed job referrals, escrow payment referrals, safe referral marketplace"
@@ -278,25 +281,45 @@ const ReferralMarketplace: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Referral Marketplace
             </h1>
-            <div className="flex gap-3">
-              <Link href="/referral-marketplace">
-                <Button variant="outline" size="sm">
-                  <Target className="w-4 h-4 mr-2" />
-                  Browse Services
-                </Button>
-              </Link>
-              <Link href="/my-bookings">
-                <Button variant="outline" size="sm">
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  My Bookings
-                </Button>
-              </Link>
-              <Link href="/become-referrer">
-                <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white">
-                  <Users className="w-4 h-4 mr-2" />
-                  Become a Referrer
-                </Button>
-              </Link>
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-gray-700 hover:text-primary hover:bg-primary/10 cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setActiveTab('browse');
+                }}
+              >
+                <Search className="w-4 h-4 mr-2" />
+                Browse Services
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-gray-700 hover:text-primary hover:bg-primary/10 cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  navigate('/my-bookings');
+                }}
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                My Bookings
+              </Button>
+              <Button
+                type="button"
+                className="bg-primary text-white hover:bg-primary/90 cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  navigate('/become-referrer');
+                }}
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Become a Referrer
+              </Button>
             </div>
           </div>
         </div>
@@ -333,19 +356,19 @@ const ReferralMarketplace: React.FC = () => {
               </h3>
               <div className="text-amber-800 dark:text-amber-300 space-y-2 text-sm">
                 <p>
-                  <strong>No Guarantee of Job Offer:</strong> Purchasing a referral service does NOT guarantee you will receive a job offer. 
+                  <strong>No Guarantee of Job Offer:</strong> Purchasing a referral service does NOT guarantee you will receive a job offer.
                   Referrers provide guidance, interview preparation, and can submit your resume internally, but final hiring decisions rest with the company.
                 </p>
                 <p>
-                  <strong>Escrow Protection:</strong> All payments are held in escrow until both parties confirm service delivery. 
+                  <strong>Escrow Protection:</strong> All payments are held in escrow until both parties confirm service delivery.
                   If you're not satisfied with the service, you can dispute the transaction within 48 hours.
                 </p>
                 <p>
-                  <strong>Verified Referrers:</strong> We verify company employment through email domain verification. 
+                  <strong>Verified Referrers:</strong> We verify company employment through email domain verification.
                   All referrers must use their official company email address (not personal emails like Gmail).
                 </p>
                 <p>
-                  <strong>Meeting Confirmation Required:</strong> Both you and the referrer must confirm that your scheduled meeting took place. 
+                  <strong>Meeting Confirmation Required:</strong> Both you and the referrer must confirm that your scheduled meeting took place.
                   Payment is only released after both parties verify service completion.
                 </p>
               </div>
@@ -560,8 +583,8 @@ const ReferralMarketplace: React.FC = () => {
               <div>
                 <h5 className="font-medium mb-2">What's included:</h5>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  {(expandedServices[service.serviceId] 
-                    ? service.features 
+                  {(expandedServices[service.serviceId]
+                    ? service.features
                     : service.features.slice(0, 3)
                   ).map((feature, index) => (
                     <li key={index} className="flex items-center gap-2">
@@ -576,8 +599,8 @@ const ReferralMarketplace: React.FC = () => {
                         className="text-xs text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
                         data-testid={`button-expand-features-${service.serviceId}`}
                       >
-                        {expandedServices[service.serviceId] 
-                          ? 'Show less...' 
+                        {expandedServices[service.serviceId]
+                          ? 'Show less...'
                           : `+${service.features.length - 3} more...`
                         }
                       </button>
