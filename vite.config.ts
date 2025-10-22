@@ -30,8 +30,8 @@ export default defineConfig({
   },
   server: {
     host: "0.0.0.0",
-    allowedHosts: true,
-    hmr: true,
+    port: 5000,
+    strictPort: false,
     watch: {
       usePolling: true,
       interval: 100,
