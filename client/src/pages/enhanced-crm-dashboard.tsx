@@ -396,6 +396,47 @@ export default function EnhancedCrmDashboard() {
     }
   };
 
+  const [followUpChannel, setFollowUpChannel] = useState<'email' | 'linkedin'>('email');
+  const [linkedInMessage, setLinkedInMessage] = useState('');
+  const [showFollowUpDialog, setShowFollowUpDialog] = useState(false);
+
+  const handleGenerateFollowUp = async (channel: 'email' | 'linkedin') => {
+    if (!selectedContact) return;
+    
+    setIsGeneratingEmail(true);
+    try {
+      const response = await apiRequest('/api/crm/follow-up/generate', 'POST', {
+        contactId: selectedContact.id,
+        channel: channel,
+        purpose: 'follow-up',
+        personalNote: ''
+      });
+      
+      if (channel === 'email') {
+        setEmailComposeData({
+          to: selectedContact.email || '',
+          subject: response.content.subject,
+          body: response.content.body
+        });
+      } else {
+        setLinkedInMessage(response.content.message);
+      }
+      
+      toast({ 
+        title: `🤖 ${channel === 'email' ? 'Email' : 'LinkedIn Message'} Generated!`,
+        description: 'Review and customize before sending'
+      });
+    } catch (error) {
+      toast({ 
+        title: 'Error generating follow-up',
+        description: 'Please try again',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsGeneratingEmail(false);
+    }
+  };
+
   const handleSendEmail = () => {
     if (!emailComposeData.to || !emailComposeData.subject || !emailComposeData.body) {
       toast({ 
@@ -446,6 +487,43 @@ export default function EnhancedCrmDashboard() {
 
     setShowEmailComposeDialog(false);
     setEmailComposeData({ to: "", subject: "", body: "" });
+  };
+
+  const handleSendLinkedInMessage = () => {
+    if (!linkedInMessage || !selectedContact) {
+      toast({
+        title: "Missing message",
+        description: "Please generate a message first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Copy message to clipboard
+    navigator.clipboard.writeText(linkedInMessage);
+
+    // Open LinkedIn profile if available
+    if (selectedContact.linkedinUrl) {
+      window.open(selectedContact.linkedinUrl, '_blank');
+    }
+
+    // Log activity
+    apiRequest('/api/crm/activities', 'POST', {
+      activityType: 'linkedin_message',
+      title: `LinkedIn message to ${selectedContact.name}`,
+      description: linkedInMessage.substring(0, 100),
+      contactId: selectedContact.id,
+    }).then(() => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/activities"] });
+    });
+
+    toast({
+      title: "✅ Message copied!",
+      description: "LinkedIn message copied to clipboard. Open LinkedIn to send it."
+    });
+
+    setShowFollowUpDialog(false);
+    setLinkedInMessage('');
   };
 
 

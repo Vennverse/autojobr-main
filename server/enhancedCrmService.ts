@@ -437,6 +437,128 @@ export class EnhancedCrmService {
     }
   }
 
+  // Generate LinkedIn follow-up message
+  static async generateLinkedInFollowUp(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { contactId, purpose, context } = req.body;
+
+      if (!userId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+
+      const [contact] = await db.select()
+        .from(crmContacts)
+        .where(eq(crmContacts.id, contactId));
+
+      if (!contact) {
+        return res.status(404).json({ error: 'Contact not found' });
+      }
+
+      // LinkedIn messages are limited to 300 characters for connection requests
+      // and 8000 characters for direct messages
+      const charLimit = purpose === 'connection' ? 300 : 300; // Keep follow-ups short
+
+      const prompt = `Write a brief LinkedIn message to ${contact.name}${contact.jobTitle ? `, ${contact.jobTitle}` : ''} at ${contact.company || 'their company'}.
+      Purpose: ${purpose}
+      ${context ? `Context: ${context}` : ''}
+      
+      Requirements:
+      - Maximum ${charLimit} characters
+      - Professional and personable tone
+      - Clear value proposition
+      - Natural and conversational
+      - No generic templates
+      
+      Return ONLY the message text, no quotes or formatting.`;
+
+      const completion = await aiService.createChatCompletion([
+        { role: 'user', content: prompt }
+      ], { maxTokens: 150, temperature: 0.7 });
+
+      const messageContent = completion.choices[0]?.message?.content || '';
+      const trimmedMessage = messageContent.substring(0, charLimit);
+
+      res.json({
+        success: true,
+        message: trimmedMessage,
+        characterCount: trimmedMessage.length,
+        characterLimit: charLimit
+      });
+    } catch (error) {
+      console.error('Generate LinkedIn message error:', error);
+      res.status(500).json({ error: 'Failed to generate LinkedIn message' });
+    }
+  }
+
+  // Generate automated follow-up with channel selection
+  static async generateAutomatedFollowUp(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.id;
+      const { contactId, channel, purpose, personalNote } = req.body;
+
+      if (!userId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+
+      const [contact] = await db.select()
+        .from(crmContacts)
+        .where(eq(crmContacts.id, contactId));
+
+      if (!contact) {
+        return res.status(404).json({ error: 'Contact not found' });
+      }
+
+      if (channel === 'email') {
+        // Generate email follow-up
+        const emailPrompt = `Professional follow-up email to ${contact.name} at ${contact.company}.
+        Purpose: ${purpose}
+        ${personalNote ? `Personal note: ${personalNote}` : ''}
+        
+        Keep it under 150 words, friendly and actionable.`;
+
+        const emailContent = await aiService.createChatCompletion([
+          { role: 'user', content: emailPrompt }
+        ], { maxTokens: 300, temperature: 0.7 });
+
+        res.json({
+          success: true,
+          channel: 'email',
+          content: {
+            subject: `Following up - ${contact.name}`,
+            body: emailContent.choices[0]?.message?.content || 'Looking forward to connecting with you.'
+          }
+        });
+      } else if (channel === 'linkedin') {
+        // Generate LinkedIn message
+        const linkedinPrompt = `Brief LinkedIn follow-up to ${contact.name}.
+        Purpose: ${purpose}
+        ${personalNote ? `Include: ${personalNote}` : ''}
+        
+        Max 250 characters. Professional, warm, and specific.`;
+
+        const linkedinContent = await aiService.createChatCompletion([
+          { role: 'user', content: linkedinPrompt }
+        ], { maxTokens: 120, temperature: 0.7 });
+
+        const message = linkedinContent.choices[0]?.message?.content || '';
+        res.json({
+          success: true,
+          channel: 'linkedin',
+          content: {
+            message: message.substring(0, 300),
+            characterCount: Math.min(message.length, 300)
+          }
+        });
+      } else {
+        res.status(400).json({ error: 'Invalid channel. Use "email" or "linkedin"' });
+      }
+    } catch (error) {
+      console.error('Generate automated follow-up error:', error);
+      res.status(500).json({ error: 'Failed to generate follow-up' });
+    }
+  }
+
   // Get recommended next actions
   static async getNextBestActions(req: Request, res: Response) {
     try {

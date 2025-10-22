@@ -538,6 +538,10 @@ class AutoJobrContentScript {
                 <span class="btn-icon">🤝</span>
                 <span>Find Referrals</span>
               </button>
+              <button class="autojobr-btn secondary" id="autojobr-linkedin-connect">
+                <span class="btn-icon">🔗</span>
+                <span>LinkedIn Connect</span>
+              </button>
             </div>
           </div>
 
@@ -600,6 +604,7 @@ class AutoJobrContentScript {
     document.getElementById('autojobr-interview-prep')?.addEventListener('click', () => this.handleInterviewPrep());
     document.getElementById('autojobr-salary-insights')?.addEventListener('click', () => this.handleSalaryInsights());
     document.getElementById('autojobr-referral-finder')?.addEventListener('click', () => this.handleReferralFinder());
+    document.getElementById('autojobr-linkedin-connect')?.addEventListener('click', () => this.handleLinkedInConnect());
 
     // Widget controls
     // Enhanced close button with better event handling
@@ -839,7 +844,7 @@ class AutoJobrContentScript {
       'greenhouse.io': ['/job/', '/jobs/', '/job_app/'],
       'lever.co': ['/jobs/', '/job/', '/postings/'],
       'workday.com': ['/job/', '/jobs/', '/en-us/job/', '/job_', '/job-', '/jobs/', '/job_app', '/apply', '/careers/job/', '/en/job/', '/job_detail'],
-      'myworkdayjobs.com': ['/job/', '/jobs/', '/job_', '/job-', '/apply', '/job_detail', '/job_app'],
+      'myworkdayjobs.com': ['/job/', '/jobs/', '/job_', '/job-', '/apply', '/job_app', '/job_detail'],
       'icims.com': ['/job/', '/jobs/', '/job_', '/apply'],
       'smartrecruiters.com': ['/job/', '/jobs/', '/postings/'],
       'bamboohr.com': ['/job/', '/jobs/', '/careers/'],
@@ -3509,105 +3514,292 @@ class AutoJobrContentScript {
 
   // Handle Referral Finder
   async handleReferralFinder() {
-    if (!this.currentJobData) {
-      this.showNotification('No job data found on this page', 'error');
-      return;
-    }
-
     try {
-      this.updateStatus('🔄 Finding referrals...', 'loading');
+      this.showNotification('🤝 Opening Referral Finder...', 'info');
 
-      const userProfile = await this.getUserProfile();
-      const result = await chrome.runtime.sendMessage({
-        action: 'findReferrals',
-        data: {
-          jobData: this.currentJobData,
-          userProfile: userProfile
-        }
-      });
+      // Get current job details
+      const jobData = await this.extractJobDetails();
 
-      if (result && result.success) {
-        this.showReferralFinderModal(result);
-        this.updateStatus('✅ Referrals found!', 'success');
-      } else {
-        throw new Error('Failed to find referrals');
+      if (!jobData.success || !jobData.jobData.company) {
+        this.showNotification('Please navigate to a job posting first', 'error');
+        return;
       }
+
+      // Open referral finder with company info
+      // Assuming API_BASE_URL is defined elsewhere or globally accessible
+      const referralUrl = `${API_BASE_URL}/referral-marketplace?company=${encodeURIComponent(jobData.jobData.company)}`;
+      window.open(referralUrl, '_blank');
+
     } catch (error) {
       console.error('Referral finder error:', error);
-      this.showNotification('❌ Failed to find referrals', 'error');
-      this.updateStatus('❌ Referral search failed', 'error');
+      this.showError('Failed to open referral finder');
     }
   }
 
-  // Show Interview Prep Modal
-  showInterviewPrepModal(prep) {
-    const modal = document.createElement('div');
-    modal.className = 'autojobr-modal-overlay';
-    modal.innerHTML = `
-      <div class="autojobr-modal">
-        <div class="autojobr-modal-header">
-          <h3>🎯 Interview Preparation</h3>
-          <button class="autojobr-modal-close">×</button>
-        </div>
-        <div class="autojobr-modal-content">
-          <div class="prep-section">
-            <h4>Company Insights</h4>
-            <p>${prep.companyInsights || 'Research the company culture and recent news'}</p>
-          </div>
-          <div class="prep-section">
-            <h4>Common Interview Questions</h4>
-            <ul>
-              ${(prep.questions || []).map(q => `<li>${q}</li>`).join('')}
-            </ul>
-          </div>
-          <div class="prep-section">
-            <h4>Preparation Tips</h4>
-            <p>${prep.tips || 'Practice STAR method for behavioral questions'}</p>
-          </div>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
+  // Handle LinkedIn Connect Message Generation
+  async handleLinkedInConnect() {
+    try {
+      // Check if we're on LinkedIn
+      if (!window.location.hostname.includes('linkedin.com')) {
+        this.showNotification('Navigate to a LinkedIn profile to use this feature', 'error');
+        return;
+      }
 
-    modal.querySelector('.autojobr-modal-close').addEventListener('click', () => modal.remove());
-    modal.addEventListener('click', (e) => e.target === modal && modal.remove());
+      // Get user's subscription tier
+      const result = await chrome.storage.local.get(['sessionToken', 'userId']);
+      if (!result.sessionToken) {
+        this.showNotification('Please log in to use this feature', 'error');
+        return;
+      }
+
+      // Fetch user profile to check tier
+      const userResponse = await fetch(`${API_BASE_URL}/api/user`, {
+        headers: {
+          'Authorization': `Bearer ${result.sessionToken}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+
+      if (!userResponse.ok) {
+        throw new Error('Failed to fetch user profile');
+      }
+
+      const userData = await userResponse.json();
+      const userTier = userData.planType || 'free';
+
+      // Determine character limit and generation count based on tier
+      let charLimit = 300; // LinkedIn's standard limit
+      let generationsAllowed = 2; // Free tier
+
+      if (userTier === 'premium') {
+        generationsAllowed = 30;
+      } else if (userTier === 'ultra_premium') {
+        generationsAllowed = -1; // Unlimited
+      }
+
+      // Show connection message generator modal
+      this.showLinkedInConnectModal(charLimit, generationsAllowed, userTier);
+
+    } catch (error) {
+      console.error('LinkedIn connect error:', error);
+      this.showError('Failed to generate connection message');
+    }
   }
 
-  // Show Salary Insights Modal
-  showSalaryInsightsModal(insights) {
+  showLinkedInConnectModal(charLimit, generationsAllowed, userTier) {
+    // Create modal overlay
     const modal = document.createElement('div');
-    modal.className = 'autojobr-modal-overlay';
+    modal.id = 'autojobr-linkedin-connect-modal';
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    `;
+
     modal.innerHTML = `
-      <div class="autojobr-modal">
-        <div class="autojobr-modal-header">
-          <h3>💰 Salary Insights</h3>
-          <button class="autojobr-modal-close">×</button>
+      <div style="
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      ">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3 style="margin: 0; font-size: 18px; font-weight: 600;">LinkedIn Connection Message</h3>
+          <button id="close-linkedin-modal" style="
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+          ">×</button>
         </div>
-        <div class="autojobr-modal-content">
-          <div class="salary-highlight">
-            <div class="salary-amount">$${insights.estimatedSalary?.toLocaleString() || 'N/A'}</div>
-            <div class="salary-label">Estimated Annual Salary</div>
+
+        <div style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <label style="font-weight: 500; font-size: 14px;">Personal Touch (Optional)</label>
+            <span style="font-size: 12px; color: #666;">${userTier === 'ultra_premium' ? 'Unlimited' : `${generationsAllowed} left`}</span>
           </div>
-          <div class="prep-section">
-            <h4>Salary Range</h4>
-            <div class="salary-range">
-              <span>Min: $${insights.salaryRange?.min?.toLocaleString() || 'N/A'}</span>
-              <span>Max: $${insights.salaryRange?.max?.toLocaleString() || 'N/A'}</span>
+          <textarea 
+            id="personal-note"
+            placeholder="Add a personal detail (e.g., 'Saw your work on the XYZ project')"
+            style="
+              width: 100%;
+              padding: 10px;
+              border: 2px solid #e5e7eb;
+              border-radius: 8px;
+              font-size: 14px;
+              min-height: 60px;
+              resize: vertical;
+              box-sizing: border-box;
+            "
+          ></textarea>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="font-weight: 500; font-size: 14px; display: block; margin-bottom: 8px;">Generated Message</label>
+          <div style="position: relative;">
+            <textarea 
+              id="generated-message"
+              readonly
+              placeholder="Click 'Generate' to create your connection message..."
+              style="
+                width: 100%;
+                padding: 10px;
+                border: 2px solid #e5e7eb;
+                border-radius: 8px;
+                font-size: 14px;
+                min-height: 120px;
+                resize: vertical;
+                background: #f9fafb;
+                box-sizing: border-box;
+              "
+            ></textarea>
+            <div style="
+              position: absolute;
+              bottom: 8px;
+              right: 8px;
+              font-size: 12px;
+              color: #666;
+              background: white;
+              padding: 4px 8px;
+              border-radius: 4px;
+            ">
+              <span id="char-count">0</span> / ${charLimit}
             </div>
           </div>
-          <div class="prep-section">
-            <h4>Negotiation Tips</h4>
-            <ul>
-              ${(insights.negotiationTips || []).map(tip => `<li>${tip}</li>`).join('')}
-            </ul>
-          </div>
         </div>
+
+        <div style="display: flex; gap: 12px;">
+          <button id="generate-message-btn" style="
+            flex: 1;
+            padding: 12px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 14px;
+          ">
+            🤖 Generate Message
+          </button>
+          <button id="copy-message-btn" style="
+            flex: 1;
+            padding: 12px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 14px;
+          " disabled>
+            📋 Copy Message
+          </button>
+        </div>
+
+        ${userTier === 'free' ? `
+          <div style="
+            margin-top: 16px;
+            padding: 12px;
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            font-size: 13px;
+            text-align: center;
+          ">
+            ⚡ Upgrade to Premium for 30 generations/day or Ultra Premium for unlimited!
+          </div>
+        ` : ''}
       </div>
     `;
+
     document.body.appendChild(modal);
 
-    modal.querySelector('.autojobr-modal-close').addEventListener('click', () => modal.remove());
-    modal.addEventListener('click', (e) => e.target === modal && modal.remove());
+    // Event listeners
+    document.getElementById('close-linkedin-modal').addEventListener('click', () => {
+      modal.remove();
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
+
+    let generatedMessage = '';
+
+    document.getElementById('generate-message-btn').addEventListener('click', async () => {
+      const personalNote = document.getElementById('personal-note').value;
+      const generateBtn = document.getElementById('generate-message-btn');
+
+      generateBtn.disabled = true;
+      generateBtn.textContent = '⏳ Generating...';
+
+      try {
+        // Get profile name from LinkedIn page
+        const profileName = document.querySelector('.text-heading-xlarge')?.textContent?.trim() || 'this professional';
+        const profileTitle = document.querySelector('.text-body-medium')?.textContent?.trim() || '';
+
+        const result = await chrome.storage.local.get(['sessionToken']);
+        const response = await fetch(`${API_BASE_URL}/api/crm/linkedin/generate-follow-up`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${result.sessionToken}`,
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            contactId: 0, // Not saving to CRM yet
+            purpose: 'connection',
+            context: `Connecting with ${profileName}${profileTitle ? `, ${profileTitle}` : ''}. ${personalNote || ''}`
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to generate message');
+        }
+
+        const data = await response.json();
+        generatedMessage = data.message;
+
+        document.getElementById('generated-message').value = generatedMessage;
+        document.getElementById('char-count').textContent = generatedMessage.length;
+        document.getElementById('copy-message-btn').disabled = false;
+
+        this.showNotification('✨ Message generated successfully!', 'success');
+
+      } catch (error) {
+        console.error('Generate message error:', error);
+        this.showNotification('Failed to generate message', 'error');
+      } finally {
+        generateBtn.disabled = false;
+        generateBtn.textContent = '🤖 Generate Message';
+      }
+    });
+
+    document.getElementById('copy-message-btn').addEventListener('click', () => {
+      const messageTextarea = document.getElementById('generated-message');
+      messageTextarea.select();
+      document.execCommand('copy');
+
+      this.showNotification('✅ Message copied to clipboard!', 'success');
+
+      // Close modal after short delay
+      setTimeout(() => {
+        modal.remove();
+      }, 1000);
+    });
   }
 
   // Show Referral Finder Modal
