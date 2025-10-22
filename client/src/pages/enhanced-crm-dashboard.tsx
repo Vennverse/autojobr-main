@@ -103,6 +103,7 @@ export default function EnhancedCrmDashboard() {
     body: "",
   });
   const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
+  const [emailClient, setEmailClient] = useState<'gmail' | 'outlook' | 'default'>('default');
 
   // Forms
   const contactForm = useForm({
@@ -395,7 +396,7 @@ export default function EnhancedCrmDashboard() {
     }
   };
 
-  const handleSendEmail = async () => {
+  const handleSendEmail = () => {
     if (!emailComposeData.to || !emailComposeData.subject || !emailComposeData.body) {
       toast({ 
         title: "Missing fields", 
@@ -405,29 +406,46 @@ export default function EnhancedCrmDashboard() {
       return;
     }
 
-    try {
-      await apiRequest('/api/crm/email/send', 'POST', {
-        to: emailComposeData.to,
-        subject: emailComposeData.subject,
-        body: emailComposeData.body,
-        contactId: selectedContact?.id,
-      });
+    // Encode email content for URL
+    const encodedSubject = encodeURIComponent(emailComposeData.subject);
+    const encodedBody = encodeURIComponent(emailComposeData.body);
+    const encodedTo = encodeURIComponent(emailComposeData.to);
 
-      toast({ 
-        title: "✅ Email sent successfully!", 
-        description: `Email sent to ${emailComposeData.to}` 
-      });
-      
-      setShowEmailComposeDialog(false);
-      setEmailComposeData({ to: "", subject: "", body: "" });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/activities"] });
-    } catch (error: any) {
-      toast({ 
-        title: "Error sending email", 
-        description: error.message || "Please try again",
-        variant: "destructive"
-      });
+    let emailUrl = '';
+
+    if (emailClient === 'gmail') {
+      // Gmail compose URL format
+      emailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodedTo}&su=${encodedSubject}&body=${encodedBody}`;
+    } else if (emailClient === 'outlook') {
+      // Outlook web compose URL format
+      emailUrl = `https://outlook.live.com/mail/0/deeplink/compose?to=${encodedTo}&subject=${encodedSubject}&body=${encodedBody}`;
+    } else {
+      // Default mailto link
+      emailUrl = `mailto:${emailComposeData.to}?subject=${encodedSubject}&body=${encodedBody}`;
     }
+
+    // Open email client in new tab
+    window.open(emailUrl, '_blank');
+
+    // Log activity to CRM
+    apiRequest('/api/crm/activities', 'POST', {
+      activityType: 'email',
+      title: `Email to ${selectedContact?.name || emailComposeData.to}`,
+      description: `Subject: ${emailComposeData.subject}`,
+      contactId: selectedContact?.id,
+    }).then(() => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/activities"] });
+    }).catch(err => {
+      console.error('Failed to log email activity:', err);
+    });
+
+    toast({ 
+      title: "✅ Email client opened!", 
+      description: `Opening ${emailClient === 'gmail' ? 'Gmail' : emailClient === 'outlook' ? 'Outlook' : 'default email client'} with pre-filled content` 
+    });
+
+    setShowEmailComposeDialog(false);
+    setEmailComposeData({ to: "", subject: "", body: "" });
   };
 
 
@@ -1849,9 +1867,37 @@ export default function EnhancedCrmDashboard() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Send Email to {selectedContact?.name}</DialogTitle>
-            <DialogDescription>Compose and send an email</DialogDescription>
+            <DialogDescription>Compose and send an email via your preferred email client</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            <div>
+              <Label>Email Client</Label>
+              <Select value={emailClient} onValueChange={(value: any) => setEmailClient(value)}>
+                <SelectTrigger data-testid="select-email-client">
+                  <SelectValue placeholder="Select email client" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gmail">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-red-500" />
+                      Gmail
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="outlook">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-blue-500" />
+                      Outlook
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="default">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-gray-500" />
+                      Default Email App
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label>To</Label>
               <Input

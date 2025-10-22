@@ -26,7 +26,7 @@ import { aiService } from './aiService';
 
 export class EnhancedCrmService {
   // ============= ROLE-BASED CONTACT MANAGEMENT =============
-  
+
   // Get contact types based on user role
   static getContactTypesByRole(userType: string) {
     if (userType === 'recruiter') {
@@ -41,7 +41,7 @@ export class EnhancedCrmService {
     try {
       const userId = (req.user as any)?.id;
       const userType = (req.user as any)?.userType;
-      
+
       if (!userId) {
         return res.status(401).json({ error: 'User not authenticated' });
       }
@@ -174,7 +174,7 @@ export class EnhancedCrmService {
     // Placements this month
     const firstDayOfMonth = new Date();
     firstDayOfMonth.setDate(1);
-    
+
     const placementsThisMonth = await db.select({ count: count() })
       .from(pipelineItems)
       .innerJoin(pipelineStages, eq(pipelineItems.stageId, pipelineStages.id))
@@ -203,7 +203,7 @@ export class EnhancedCrmService {
     // Interviews this week
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
+
     const interviewsThisWeek = await db.select({ count: count() })
       .from(contactInteractions)
       .where(and(
@@ -327,7 +327,7 @@ export class EnhancedCrmService {
       Contact: ${contact.name} at ${contact.company || 'Unknown Company'}
       Recent interactions: ${recentInteractions || 'No recent interactions'}
       Last contact: ${contact.lastContactDate ? new Date(contact.lastContactDate).toLocaleDateString() : 'Never'}
-      
+
       Provide actionable insight about next steps or relationship strength.`;
 
       const response = await aiService.createChatCompletion([
@@ -344,7 +344,7 @@ export class EnhancedCrmService {
   static async autoCreateTasks(req: Request, res: Response) {
     try {
       const userId = (req.user as any)?.id;
-      
+
       if (!userId) {
         return res.status(401).json({ error: 'User not authenticated' });
       }
@@ -532,7 +532,7 @@ export class EnhancedCrmService {
   }
 
   // ============= COMPANIES MANAGEMENT =============
-  
+
   static async createCompany(req: Request, res: Response) {
     try {
       const userId = (req.user as any)?.id;
@@ -611,14 +611,14 @@ export class EnhancedCrmService {
   }
 
   // ============= DEALS MANAGEMENT =============
-  
+
   static async createDeal(req: Request, res: Response) {
     try {
       const userId = (req.user as any)?.id;
       if (!userId) return res.status(401).json({ error: 'User not authenticated' });
 
       const [deal] = await db.insert(crmDeals).values({ ...req.body, userId }).returning();
-      
+
       await db.insert(crmActivities).values({
         userId,
         activityType: 'deal_created',
@@ -726,7 +726,7 @@ export class EnhancedCrmService {
   }
 
   // ============= EMAIL TEMPLATES MANAGEMENT =============
-  
+
   static async createEmailTemplate(req: Request, res: Response) {
     try {
       const userId = (req.user as any)?.id;
@@ -805,7 +805,7 @@ export class EnhancedCrmService {
   }
 
   // ============= AI EMAIL GENERATION & SENDING =============
-  
+
   static async generateEmailWithAI(req: Request, res: Response) {
     try {
       const userId = (req.user as any)?.id;
@@ -815,13 +815,13 @@ export class EnhancedCrmService {
       const emailPrompt = `Generate a professional ${context?.category || 'business'} email.
       Subject: ${context?.subject || 'Professional outreach'}
       Context: ${prompt}
-      
+
       Requirements:
       - Professional and concise
       - Clear purpose and call-to-action
       - Personalized tone
       - 150-200 words
-      
+
       Generate only the email body, no subject line.`;
 
       const emailBody = await aiService.createChatCompletion([
@@ -835,44 +835,53 @@ export class EnhancedCrmService {
     }
   }
 
+  // Prepare email for client (returns mailto or web client URL)
   static async sendEmail(req: Request, res: Response) {
     try {
       const userId = (req.user as any)?.id;
-      const { to, subject, body, contactId } = req.body;
-      if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+      const { to, subject, body, contactId, emailClient = 'default' } = req.body;
 
-      const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-      const senderEmail = user[0]?.email || '';
+      if (!to || !subject || !body) {
+        return res.status(400).json({ error: 'Missing required email fields' });
+      }
 
-      console.log(`[CRM Email] Preparing mailto link for: ${to}, Subject: ${subject}`);
-
-      // Create mailto URL for user's email client
-      const mailtoUrl = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
-      // Log activity BEFORE opening email client (so it's tracked even if user cancels)
+      // Log activity in CRM
       await db.insert(crmActivities).values({
         userId,
         activityType: 'email',
-        title: `Email prepared: ${subject}`,
-        description: `Opened email client to send to ${to}`,
+        title: `Email prepared for ${to}`,
+        description: `Subject: ${subject}`,
         contactId: contactId ? parseInt(contactId) : null,
-        metadata: { subject, to, from: senderEmail }
       });
 
-      // Return mailto URL for client-side redirect
+      // Return appropriate URL based on email client
+      const encodedTo = encodeURIComponent(to);
+      const encodedSubject = encodeURIComponent(subject);
+      const encodedBody = encodeURIComponent(body);
+
+      let emailUrl = '';
+      if (emailClient === 'gmail') {
+        emailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodedTo}&su=${encodedSubject}&body=${encodedBody}`;
+      } else if (emailClient === 'outlook') {
+        emailUrl = `https://outlook.live.com/mail/0/deeplink/compose?to=${encodedTo}&subject=${encodedSubject}&body=${encodedBody}`;
+      } else {
+        emailUrl = `mailto:${to}?subject=${encodedSubject}&body=${encodedBody}`;
+      }
+
       res.json({ 
         success: true, 
-        mailtoUrl,
-        message: 'Opening your email client...' 
+        emailUrl,
+        mailtoUrl: `mailto:${to}?subject=${encodedSubject}&body=${encodedBody}`,
+        message: 'Email prepared successfully' 
       });
     } catch (error) {
-      console.error('Send email error:', error);
+      console.error('[CRM Email] Prepare email error:', error);
       res.status(500).json({ error: 'Failed to prepare email' });
     }
   }
 
   // ============= EMAIL CAMPAIGNS =============
-  
+
   static async createEmailCampaign(req: Request, res: Response) {
     try {
       const userId = (req.user as any)?.id;
@@ -930,7 +939,7 @@ export class EnhancedCrmService {
   }
 
   // ============= EMAIL SEQUENCES =============
-  
+
   static async createEmailSequence(req: Request, res: Response) {
     try {
       const userId = (req.user as any)?.id;
@@ -978,7 +987,7 @@ export class EnhancedCrmService {
   }
 
   // ============= WORKFLOWS =============
-  
+
   static async createWorkflow(req: Request, res: Response) {
     try {
       const userId = (req.user as any)?.id;
@@ -1025,7 +1034,7 @@ export class EnhancedCrmService {
   }
 
   // ============= MEETINGS MANAGEMENT =============
-  
+
   static async createMeeting(req: Request, res: Response) {
     try {
       const userId = (req.user as any)?.id;
@@ -1113,7 +1122,7 @@ export class EnhancedCrmService {
   }
 
   // ============= DOCUMENTS MANAGEMENT =============
-  
+
   static async uploadDocument(req: Request, res: Response) {
     try {
       const userId = (req.user as any)?.id;
@@ -1158,7 +1167,7 @@ export class EnhancedCrmService {
   }
 
   // ============= ACTIVITIES TIMELINE =============
-  
+
   static async getActivities(req: Request, res: Response) {
     try {
       const userId = (req.user as any)?.id;
@@ -1186,7 +1195,7 @@ export class EnhancedCrmService {
   }
 
   // ============= LEAD SCORING =============
-  
+
   static async getLeadScores(req: Request, res: Response) {
     try {
       const userId = (req.user as any)?.id;
@@ -1238,7 +1247,7 @@ export class EnhancedCrmService {
   }
 
   // ============= DASHBOARD STATS =============
-  
+
   static async getDashboardStats(req: Request, res: Response) {
     try {
       const userId = (req.user as any)?.id;
@@ -1252,7 +1261,7 @@ export class EnhancedCrmService {
         eq(crmDeals.stage, 'proposal'),
         eq(crmDeals.stage, 'negotiation')
       )));
-      
+
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const [upcomingMeetings] = await db.select({ count: count() }).from(crmMeetings).where(and(
