@@ -6474,10 +6474,16 @@ Return ONLY the JSON object, no additional text.`;
         // If still no resume, allow the request to proceed - AI can generate generic content
       }
 
-      if (!resume) {
+      if (!resume || resume.trim().length < 50) {
         return res.status(400).json({ 
-          message: 'Please provide your resume or upload one to your profile first.',
+          message: 'Please provide a valid resume (minimum 50 characters) or upload one to your profile first.',
           hint: 'Upload a resume at /resumes for personalized tailored resumes'
+        });
+      }
+
+      if (!jobDescription || jobDescription.trim().length < 100) {
+        return res.status(400).json({
+          message: 'Job description is too short. Please provide the full job posting (minimum 100 characters).'
         });
       }
 

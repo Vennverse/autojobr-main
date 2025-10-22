@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Helmet } from "react-helmet";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components.ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,8 +35,10 @@ import {
   CheckCircle,
   Mail,
   Eye,
-  Globe
+  Globe,
+  AlertCircle
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 export default function PremiumAITools() {
   const { toast } = useToast();
@@ -142,10 +144,10 @@ export default function PremiumAITools() {
     },
     onSuccess: (data) => {
       console.log('Cover letter response:', data);
-      
+
       // Handle both direct string and object with coverLetter property
       const letterText = typeof data === 'string' ? data : (data.coverLetter || data);
-      
+
       if (letterText && typeof letterText === 'string') {
         // Typing animation effect
         setCoverLetter("");
@@ -409,16 +411,16 @@ export default function PremiumAITools() {
         <title>Premium AI Career Tools - Cover Letter, Salary Coach, Interview Prep | Autojobr</title>
         <meta name="description" content="Access powerful AI career tools including cover letter generator, salary negotiation coach, interview answer generator, resume optimizer, and LinkedIn profile enhancement. Accelerate your job search with enterprise-grade AI assistance." />
         <meta name="keywords" content="AI cover letter generator, salary negotiation coach, interview preparation, resume optimizer, career AI tools, job search automation, STAR method interview, professional development, career advancement" />
-        
+
         <meta property="og:title" content="Premium AI Career Tools - Cover Letter, Salary Coach, Interview Prep | Autojobr" />
         <meta property="og:description" content="Access powerful AI career tools to accelerate your job search. Generate cover letters, negotiate salaries, prepare for interviews, and optimize your resume with enterprise-grade AI." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={`${window.location.origin}/premium-ai-tools`} />
-        
+
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Premium AI Career Tools - Accelerate Your Job Search" />
         <meta name="twitter:description" content="AI-powered cover letters, salary negotiation, interview prep, and resume optimization tools." />
-        
+
         <link rel="canonical" href={`${window.location.origin}/premium-ai-tools`} />
       </Helmet>
       <Navbar />
@@ -974,7 +976,7 @@ export default function PremiumAITools() {
                     <div className="space-y-4">
                       <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg space-y-3">
                         <div>
-                          <span className="font-semibold text-blue-600 dark:text-blue-400">S</span>
+                          <span className="font-semibold text-blue-600 dark:text-purple-400">S</span>
                           <span className="text-sm ml-2">{interviewAnswer.starAnswer.situation}</span>
                         </div>
                         <div>
@@ -1306,141 +1308,147 @@ export default function PremiumAITools() {
               <Card>
                 <CardHeader>
                   <CardTitle>Tailor Resume to Job</CardTitle>
-                  <CardDescription>Optimize your resume for maximum ATS compatibility</CardDescription>
+                  <CardDescription>Optimize your resume for a specific job posting with ATS keywords</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <Label>Your Resume</Label>
-                      {userResume?.resumeText && (
-                        <Dialog open={showResumePreview} onOpenChange={setShowResumePreview}>
-                          <DialogTrigger asChild>
-                            <Button variant="outline" size="sm">
-                              <Eye className="h-4 w-4 mr-2" />
-                              Preview Auto-Loaded Resume
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                            <DialogHeader>
-                              <DialogTitle>Your Stored Resume (Auto-Loaded)</DialogTitle>
-                              <DialogDescription>
-                                This resume is automatically used for ATS optimization
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-                              <pre className="whitespace-pre-wrap text-sm">{userResume.resumeText}</pre>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      )}
+                  {!userResume?.resumeText && !tailorData.resumeText && (
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                      <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-300">
+                        <AlertCircle className="h-5 w-5" />
+                        <p className="text-sm font-medium">No resume found</p>
+                      </div>
+                      <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                        Please upload a resume at <a href="/resumes" className="underline">the resumes page</a> or paste your resume text below.
+                      </p>
                     </div>
-                    {userResume?.resumeText ? (
-                      <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <CheckCircle className="h-5 w-5 text-green-600" />
-                          <span className="font-medium text-green-900 dark:text-green-100">
-                            ✅ Resume Auto-Loaded Successfully
-                          </span>
-                        </div>
-                        <p className="text-sm text-green-700 dark:text-green-300">
-                          Your stored resume ({userResume.resumeText.length} characters) will be automatically optimized for the job description below.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
-                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                          ⚠️ No resume found. Please <a href="/resumes" className="underline font-medium">upload your resume</a> first for automatic optimization.
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                  )}
                   <div>
-                    <Label>Job Description</Label>
-                    <Textarea
-                      placeholder="Paste the job description here..."
-                      value={tailorData.jobDescription}
-                      onChange={(e) => setTailorData({...tailorData, jobDescription: e.target.value})}
-                      rows={6}
+                    <Label htmlFor="tailor-job-title">Target Job Title *</Label>
+                    <Input
+                      id="tailor-job-title"
+                      data-testid="input-tailor-job-title"
+                      placeholder="e.g., Senior Software Engineer"
+                      value={tailorData.jobTitle}
+                      onChange={(e) => setTailorData({...tailorData, jobTitle: e.target.value})}
+                      required
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Job Title</Label>
-                      <Input
-                        placeholder="e.g., Senior Developer"
-                        value={tailorData.jobTitle}
-                        onChange={(e) => setTailorData({...tailorData, jobTitle: e.target.value})}
-                      />
-                    </div>
-                    <div>
-                      <Label>Company (optional)</Label>
-                      <Input
-                        placeholder="e.g., Microsoft"
-                        value={tailorData.targetCompany}
-                        onChange={(e) => setTailorData({...tailorData, targetCompany: e.target.value})}
-                      />
-                    </div>
+                  <div>
+                    <Label htmlFor="tailor-company">Target Company (Optional)</Label>
+                    <Input
+                      id="tailor-company"
+                      data-testid="input-tailor-company"
+                      placeholder="e.g., Google"
+                      value={tailorData.targetCompany}
+                      onChange={(e) => setTailorData({...tailorData, targetCompany: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="tailor-job-description">Job Description *</Label>
+                    <Textarea
+                      id="tailor-job-description"
+                      data-testid="textarea-tailor-job-description"
+                      placeholder="Paste the full job description here..."
+                      value={tailorData.jobDescription}
+                      onChange={(e) => setTailorData({...tailorData, jobDescription: e.target.value})}
+                      rows={8}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="tailor-resume">Your Resume (Optional)</Label>
+                    {userResume?.resumeText && (
+                      <div className="mb-2 text-sm text-green-600 flex items-center gap-1">
+                        <CheckCircle className="h-4 w-4" />
+                        Using your stored resume automatically
+                      </div>
+                    )}
+                    <Textarea
+                      id="tailor-resume"
+                      data-testid="textarea-tailor-resume"
+                      placeholder={userResume?.resumeText ? "Using your stored resume (you can override by typing here)" : "Paste your resume text here..."}
+                      value={tailorData.resumeText}
+                      onChange={(e) => setTailorData({...tailorData, resumeText: e.target.value})}
+                      rows={4}
+                    />
                   </div>
                   <Button
-                    onClick={() => tailorMutation.mutate()}
-                    disabled={tailorMutation.isPending || !userResume?.resumeText || !tailorData.jobDescription || !tailorData.jobTitle}
                     className="w-full"
+                    onClick={() => tailorMutation.mutate()}
+                    disabled={tailorMutation.isPending || (!userResume?.resumeText && !tailorData.resumeText) || !tailorData.jobDescription?.trim() || !tailorData.jobTitle?.trim()}
                     data-testid="button-tailor-resume"
                   >
-                    {tailorMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Optimize Resume
+                    {tailorMutation.isPending ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Analyzing & Tailoring...</>
+                    ) : (
+                      <><Target className="w-4 h-4 mr-2" /> Tailor Resume</>
+                    )}
                   </Button>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Optimization Results</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Tailored Resume</CardTitle>
+                    {tailoredResume?.tailoredResume && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToClipboard(tailoredResume.tailoredResume || '')}
+                        data-testid="button-copy-tailored-resume"
+                      >
+                        {copied ? <Check className="w-4 w-4" /> : <Copy className="w-4 h-4" />}
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {tailoredResume ? (
                     <div className="space-y-4">
-                      <div className={`p-6 rounded-lg border-2 ${
-                        tailoredResume.atsScore >= 80 ? 'bg-green-50 dark:bg-green-900/20 border-green-500' :
-                        tailoredResume.atsScore >= 60 ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-500' :
-                        'bg-red-50 dark:bg-red-900/20 border-red-500'
-                      }`}>
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-bold text-lg">ATS Compatibility Score</h4>
-                          <div className={`text-3xl font-bold ${
-                            tailoredResume.atsScore >= 80 ? 'text-green-600' :
-                            tailoredResume.atsScore >= 60 ? 'text-yellow-600' :
-                            'text-red-600'
-                          }`}>
-                            {tailoredResume.atsScore}%
+                      {tailoredResume.atsScore && (
+                        <div className={`p-6 rounded-lg border-2 ${
+                          tailoredResume.atsScore >= 80 ? 'bg-green-50 dark:bg-green-900/20 border-green-500' :
+                          tailoredResume.atsScore >= 60 ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-500' :
+                          'bg-red-50 dark:bg-red-900/20 border-red-500'
+                        }`}>
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-bold text-lg">ATS Compatibility Score</h4>
+                            <div className={`text-3xl font-bold ${
+                              tailoredResume.atsScore >= 80 ? 'text-green-600' :
+                              tailoredResume.atsScore >= 60 ? 'text-yellow-600' :
+                              'text-red-600'
+                            }`}>
+                              {tailoredResume.atsScore}%
+                            </div>
                           </div>
+                          <Progress value={tailoredResume.atsScore} className="h-3 mb-3" />
+                          <div className="flex gap-2 flex-wrap">
+                            <Badge className="bg-green-600 text-white">
+                              ✓ {tailoredResume.keywordMatches?.matched?.length || 0} Keywords Matched
+                            </Badge>
+                            <Badge variant="destructive">
+                              ✗ {tailoredResume.keywordMatches?.missing?.length || 0} Keywords Missing
+                            </Badge>
+                            <Badge variant="outline">
+                              {tailoredResume.keywordMatches?.recommended?.length || 0} To Add
+                            </Badge>
+                          </div>
+                          <p className="text-sm mt-3 font-medium">
+                            {tailoredResume.atsScore >= 80 ? '🎯 Excellent! Your resume should pass most ATS systems.' :
+                             tailoredResume.atsScore >= 60 ? '⚠️ Good, but needs improvement to maximize ATS pass rate.' :
+                             '🚨 Low score - follow recommendations below to improve significantly.'}
+                          </p>
                         </div>
-                        <Progress value={tailoredResume.atsScore} className="h-3 mb-3" />
-                        <div className="flex gap-2 flex-wrap">
-                          <Badge className="bg-green-600 text-white">
-                            ✓ {tailoredResume.keywordMatches?.matched?.length || 0} Keywords Matched
-                          </Badge>
-                          <Badge variant="destructive">
-                            ✗ {tailoredResume.keywordMatches?.missing?.length || 0} Keywords Missing
-                          </Badge>
-                          <Badge variant="outline">
-                            {tailoredResume.keywordMatches?.recommended?.length || 0} To Add
-                          </Badge>
-                        </div>
-                        <p className="text-sm mt-3 font-medium">
-                          {tailoredResume.atsScore >= 80 ? '🎯 Excellent! Your resume should pass most ATS systems.' :
-                           tailoredResume.atsScore >= 60 ? '⚠️ Good, but needs improvement to maximize ATS pass rate.' :
-                           '🚨 Low score - follow recommendations below to improve significantly.'}
-                        </p>
-                      </div>
+                      )}
                       {tailoredResume.keywordMatches?.missing && tailoredResume.keywordMatches.missing.length > 0 && (
                         <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
                           <h4 className="font-semibold mb-2 text-red-800 dark:text-red-200">🚨 Critical Missing Keywords</h4>
                           <p className="text-sm mb-3">Add these keywords to your resume to improve ATS compatibility:</p>
                           <div className="flex flex-wrap gap-2">
                             {tailoredResume.keywordMatches.missing.map((keyword: string, i: number) => (
-                              <Badge 
-                                key={i} 
+                              <Badge
+                                key={i}
                                 variant="destructive"
                                 className="cursor-pointer hover:bg-red-700"
                                 onClick={() => {
@@ -1479,9 +1487,15 @@ export default function PremiumAITools() {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-                      Your optimization results will appear here
-                    </p>
+                    <div className="text-center py-12">
+                      <Target className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+                      <p className="text-gray-500 dark:text-gray-400">
+                        Your tailored resume will appear here
+                      </p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                        Fill in the job details and click "Tailor Resume" to get started
+                      </p>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -1644,7 +1658,7 @@ export default function PremiumAITools() {
                   <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
                     Stand out to recruiters and hiring managers with an AI-optimized LinkedIn profile that showcases your unique value proposition.
                   </p>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div className="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm" data-testid="feature-headline">
                       <div className="flex items-start gap-3">
@@ -1718,8 +1732,8 @@ export default function PremiumAITools() {
                     </ul>
                   </div>
 
-                  <Button 
-                    size="lg" 
+                  <Button
+                    size="lg"
                     className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
                     asChild
                     data-testid="button-go-to-linkedin-optimizer"
