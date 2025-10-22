@@ -2682,8 +2682,8 @@ export const referrers = pgTable("referrers", {
   averageRating: numeric("average_rating", { precision: 3, scale: 2 }).default("0.00"),
   totalReviews: integer("total_reviews").default(0),
 
-  // Meeting scheduling
-  meetingScheduleLink: varchar("meeting_schedule_link"),
+  // Meeting scheduling (REQUIRED for service visibility)
+  meetingScheduleLink: varchar("meeting_schedule_link").notNull(), // Calendly, Cal.com, Google Calendar, etc - MANDATORY
   emailTemplate: text("email_template"),
 
   // Status
@@ -2766,6 +2766,9 @@ export const referralBookings = pgTable("referral_bookings", {
   referralBonusAmount: numeric("referral_bonus_amount", { precision: 10, scale: 2 }).default("0.00"),
   paymentStatus: varchar("payment_status").default("pending"), // pending, escrowed, released, refunded
   paymentId: varchar("payment_id"),
+  paymentProvider: varchar("payment_provider"), // paypal, razorpay
+  paymentCountry: varchar("payment_country"), // Country where payment was made
+  paymentCurrency: varchar("payment_currency").default("USD"), // USD or INR
 
   // Escrow system
   escrowStatus: varchar("escrow_status").default("held"), // held, released_base, released_bonus, refunded
