@@ -439,6 +439,7 @@ function Router() {
                   <Route path="/discover" component={JobDiscoveryPage} />
                   <Route path="/job-seeker-tests" component={JobSeekerTests} />
                   <Route path="/job-seeker/tests" component={JobSeekerTests} />
+                  <Route path="/job-seeker-tasks" component={JobSeekerTasks} />
                   <Route path="/ranking-tests" component={RankingTests} />
                   <Route path="/ranking-test/:id" component={RankingTestTaking} />
                   <Route path="/test/:id" component={TestTaking} />
