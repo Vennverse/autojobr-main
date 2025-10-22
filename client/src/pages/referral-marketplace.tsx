@@ -281,31 +281,33 @@ const ReferralMarketplace: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Referral Marketplace
             </h1>
-            <div className="flex items-center gap-3">
-              <Link 
-                href="/referral-marketplace"
-                data-testid="link-browse-services"
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 text-gray-700 dark:text-gray-200 hover:text-primary hover:bg-primary/10 cursor-pointer"
+            <div className="flex items-center gap-3 relative z-50">
+              <Button
+                onClick={() => navigate('/referral-marketplace')}
+                variant="ghost"
+                data-testid="button-browse-services"
+                className="inline-flex items-center gap-2 h-10 px-4 py-2 text-gray-700 dark:text-gray-200 hover:text-primary hover:bg-primary/10"
               >
-                <Search className="w-4 h-4 mr-2" />
+                <Search className="w-4 h-4" />
                 Browse Services
-              </Link>
-              <Link 
-                href="/my-bookings"
-                data-testid="link-my-bookings"
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 text-gray-700 dark:text-gray-200 hover:text-primary hover:bg-primary/10 cursor-pointer"
+              </Button>
+              <Button
+                onClick={() => navigate('/my-bookings')}
+                variant="ghost"
+                data-testid="button-my-bookings"
+                className="inline-flex items-center gap-2 h-10 px-4 py-2 text-gray-700 dark:text-gray-200 hover:text-primary hover:bg-primary/10"
               >
-                <Calendar className="w-4 h-4 mr-2" />
+                <Calendar className="w-4 h-4" />
                 My Bookings
-              </Link>
-              <Link 
-                href="/become-referrer"
-                data-testid="link-become-referrer"
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-white hover:bg-primary/90 h-10 px-4 py-2 cursor-pointer"
+              </Button>
+              <Button
+                onClick={() => navigate('/become-referrer')}
+                data-testid="button-become-referrer"
+                className="inline-flex items-center gap-2 bg-primary text-white hover:bg-primary/90 h-10 px-4 py-2"
               >
-                <UserPlus className="w-4 h-4 mr-2" />
+                <UserPlus className="w-4 h-4" />
                 Become a Referrer
-              </Link>
+              </Button>
             </div>
           </div>
         </div>
