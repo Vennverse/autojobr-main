@@ -1,10 +1,11 @@
 import { Router, Request, Response } from "express";
 import { referralMarketplaceService } from "./referralMarketplaceService.js";
 import { createPaypalOrder, capturePaypalOrder } from "./paypal.js";
+import { referralMarketplacePaymentService } from "./referralMarketplacePaymentService.js";
 import { z } from "zod";
 import { db } from "./db.js";
 import { referralBookings } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 // Extend Express Request interface
 declare global {
@@ -246,6 +247,121 @@ router.post("/book/:serviceId", async (req: any, res: Response) => {
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to book service'
+    });
+  }
+});
+
+/**
+ * POST /api/referral-marketplace/payment/initialize
+ * Initialize payment - automatically selects PayPal or Razorpay based on user location
+ */
+router.post("/payment/initialize", async (req: Request, res: Response) => {
+  try {
+    const { bookingId, amount } = req.body;
+
+    if (!bookingId || !amount) {
+      return res.status(400).json({ success: false, error: 'Booking ID and amount required' });
+    }
+
+    const bookingIdNum = parseInt(bookingId);
+    if (isNaN(bookingIdNum) || bookingIdNum <= 0) {
+      return res.status(400).json({ success: false, error: 'Invalid booking ID' });
+    }
+
+    // Get user's IP address
+    const userIp = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '127.0.0.1';
+    const clientIp = Array.isArray(userIp) ? userIp[0] : userIp.split(',')[0];
+
+    // Create payment order with automatic provider selection
+    const paymentOrder = await referralMarketplacePaymentService.createPaymentOrder(
+      bookingIdNum,
+      parseFloat(amount),
+      clientIp
+    );
+
+    return res.json({
+      success: true,
+      ...paymentOrder,
+      escrowProtected: true,
+      escrowMessage: 'Payment will be held securely until service delivery is confirmed'
+    });
+  } catch (error) {
+    console.error('Error initializing payment:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to initialize payment'
+    });
+  }
+});
+
+/**
+ * POST /api/referral-marketplace/payment/razorpay/verify
+ * Verify Razorpay payment and update booking
+ */
+router.post("/payment/razorpay/verify", async (req: Request, res: Response) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, bookingId } = req.body;
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !bookingId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required payment verification fields'
+      });
+    }
+
+    // Verify payment signature
+    const isValid = referralMarketplacePaymentService.verifyRazorpayPayment(
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature
+    );
+
+    if (!isValid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid payment signature'
+      });
+    }
+
+    const bookingIdNum = parseInt(bookingId);
+
+    // Get booking details
+    const bookingDetails = await referralMarketplacePaymentService.getBookingDetails(bookingIdNum);
+    
+    if (!bookingDetails) {
+      return res.status(404).json({ success: false, error: 'Booking not found' });
+    }
+
+    // Process payment success
+    await referralMarketplacePaymentService.processPaymentSuccess(
+      bookingIdNum,
+      razorpay_payment_id,
+      'razorpay',
+      'INR',
+      'IN'
+    );
+
+    // Send confirmation email with booking link
+    if (bookingDetails.referrer?.meetingScheduleLink) {
+      await referralMarketplaceService.sendBookingConfirmationEmail(
+        bookingIdNum,
+        bookingDetails.booking.jobSeekerId,
+        bookingDetails.referrer.id,
+        bookingDetails.referrer.meetingScheduleLink
+      );
+    }
+
+    return res.json({
+      success: true,
+      message: 'Payment verified and booking confirmed',
+      bookingId: bookingIdNum,
+      paymentId: razorpay_payment_id
+    });
+  } catch (error) {
+    console.error('Error verifying Razorpay payment:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to verify payment'
     });
   }
 });
