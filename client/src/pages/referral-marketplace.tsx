@@ -282,33 +282,30 @@ const ReferralMarketplace: React.FC = () => {
               Referral Marketplace
             </h1>
             <div className="flex items-center gap-3">
-              <a 
-                href="/referral-marketplace" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 text-gray-700 hover:text-primary hover:bg-primary/10 cursor-pointer"
+              <Link 
+                href="/referral-marketplace"
+                data-testid="link-browse-services"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 text-gray-700 dark:text-gray-200 hover:text-primary hover:bg-primary/10 cursor-pointer"
               >
                 <Search className="w-4 h-4 mr-2" />
                 Browse Services
-              </a>
-              <a 
-                href="/my-bookings" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 text-gray-700 hover:text-primary hover:bg-primary/10 cursor-pointer"
+              </Link>
+              <Link 
+                href="/my-bookings"
+                data-testid="link-my-bookings"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 text-gray-700 dark:text-gray-200 hover:text-primary hover:bg-primary/10 cursor-pointer"
               >
                 <Calendar className="w-4 h-4 mr-2" />
                 My Bookings
-              </a>
-              <a 
-                href="/become-referrer" 
-                target="_blank" 
-                rel="noopener noreferrer"
+              </Link>
+              <Link 
+                href="/become-referrer"
+                data-testid="link-become-referrer"
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-white hover:bg-primary/90 h-10 px-4 py-2 cursor-pointer"
               >
                 <UserPlus className="w-4 h-4 mr-2" />
                 Become a Referrer
-              </a>
+              </Link>
             </div>
           </div>
         </div>
