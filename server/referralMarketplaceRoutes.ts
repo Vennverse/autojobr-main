@@ -224,13 +224,14 @@ router.post("/book/:serviceId", async (req: any, res: Response) => {
     };
 
     const result = await referralMarketplaceService.bookService(
-      serviceId,
-      req.user.id,
-      bookingData
-    );
+        serviceId,
+        req.user.id,
+        bookingData,
+        false // Don't send emails yet - wait for payment
+      );
 
-    res.json(result);
-  } catch (error) {
+      res.json(result);
+    } catch (error) {
     console.error('Error booking service:', error);
     if (error instanceof z.ZodError) {
       return res.status(400).json({
@@ -560,6 +561,32 @@ function getEscrowStatusMessage(status: string): string {
       await capturePaypalOrder(mockReq, mockRes);
 
       if (captureResponse && captureResponse.status === 'COMPLETED') {
+        // Update booking status to 'held' and trigger email to referrer
+        await db.update(referralBookings)
+          .set({
+            escrowStatus: 'held',
+            paymentStatus: 'completed'
+          })
+          .where(eq(referralBookings.paymentId, orderId));
+
+        // Find the booking that was just paid for
+        const updatedBooking = await db.select()
+          .from(referralBookings)
+          .where(eq(referralBookings.paymentId, orderId))
+          .limit(1);
+
+        if (updatedBooking && updatedBooking.length > 0) {
+          // Now send the confirmation email
+          await referralMarketplaceService.sendBookingConfirmationEmail(
+            updatedBooking[0].id,
+            'job_seeker' // Recipient role
+          );
+          await referralMarketplaceService.sendBookingConfirmationEmail(
+            updatedBooking[0].id,
+            'referrer' // Recipient role
+          );
+        }
+
         return res.json({
           success: true,
           captureData: captureResponse

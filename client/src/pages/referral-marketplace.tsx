@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Star, Clock, Users, Shield, MessageCircle, ExternalLink, Target } from 'lucide-react';
+import { Star, Clock, Users, Shield, MessageCircle, ExternalLink, Target, Home } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import SEOHead from '@/components/seo-head';
 import { Link } from 'wouter';
@@ -311,6 +311,16 @@ const ReferralMarketplace: React.FC = () => {
         
         {/* Navigation Tabs */}
           <div className="flex flex-wrap gap-3 justify-center">
+            <Link href="/">
+              <Button
+                variant="outline" 
+                size="lg"
+                className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm font-semibold px-6"
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Dashboard
+              </Button>
+            </Link>
             <Link href="/referral-marketplace">
               <Button
                 size="lg"
