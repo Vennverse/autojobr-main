@@ -2,6 +2,9 @@ import { Router, Request, Response } from "express";
 import { referralMarketplaceService } from "./referralMarketplaceService.js";
 import { createPaypalOrder, capturePaypalOrder } from "./paypal.js";
 import { z } from "zod";
+import { db } from "./db.js";
+import { referralBookings } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 // Extend Express Request interface
 declare global {
