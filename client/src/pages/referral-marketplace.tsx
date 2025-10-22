@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Star, Clock, Users, Shield, MessageCircle, ExternalLink, Target, Home } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import SEOHead from '@/components/seo-head';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 
 interface ReferralService {
   serviceId: number;
@@ -46,6 +46,7 @@ interface ReferralService {
 
 const ReferralMarketplace: React.FC = () => {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
   const [services, setServices] = useState<ReferralService[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -94,8 +95,7 @@ const ReferralMarketplace: React.FC = () => {
     // Check authentication status first
     if (!user || !user.id) {
       console.log('❌ User not authenticated, redirecting to auth page');
-      const currentUrl = encodeURIComponent(window.location.pathname + window.location.search);
-      window.location.href = `/auth-page?redirect=${currentUrl}`;
+      setLocation('/auth');
       return;
     }
 
@@ -116,26 +116,8 @@ const ReferralMarketplace: React.FC = () => {
       const bookingData = await bookingResponse.json();
       
       if (bookingData.success) {
-        // Create PayPal payment order
-        const paymentResponse = await fetch('/api/referral-marketplace/payment/create-order', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            bookingId: bookingData.booking.id,
-            amount: servicePrice
-          }),
-        });
-
-        const paymentData = await paymentResponse.json();
-        
-        if (paymentData.success && paymentData.approvalUrl) {
-          // Redirect to PayPal payment
-          window.location.href = paymentData.approvalUrl;
-        } else {
-          alert('Failed to create payment: ' + (paymentData.error || 'Unknown error'));
-        }
+        // Redirect to payment page with booking details
+        setLocation(`/referral-marketplace/payment?bookingId=${bookingData.booking.id}&amount=${servicePrice}`);
       } else {
         alert('Failed to create booking: ' + bookingData.error);
       }
@@ -311,45 +293,48 @@ const ReferralMarketplace: React.FC = () => {
         
         {/* Navigation Tabs */}
           <div className="flex flex-wrap gap-3 justify-center">
-            <Link href="/">
-              <Button
-                variant="outline" 
-                size="lg"
-                className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm font-semibold px-6"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Dashboard
-              </Button>
-            </Link>
-            <Link href="/referral-marketplace">
-              <Button
-                size="lg"
-                className="bg-white text-blue-600 hover:bg-blue-50 shadow-lg font-semibold px-6"
-              >
-                <Target className="w-4 h-4 mr-2" />
-                Browse Services
-              </Button>
-            </Link>
-            <Link href="/my-bookings">
-              <Button
-                variant="outline" 
-                size="lg"
-                className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm font-semibold px-6"
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                My Bookings
-              </Button>
-            </Link>
-            <Link href="/become-referrer">
-              <Button
-                variant="outline" 
-                size="lg"
-                className="bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:from-green-500 hover:to-emerald-600 border-0 font-semibold px-6 shadow-lg"
-              >
-                <Users className="w-4 h-4 mr-2" />
-                Become a Referrer
-              </Button>
-            </Link>
+            <Button
+              onClick={() => setLocation(isAuthenticated ? '/dashboard' : '/')}
+              variant="outline" 
+              size="lg"
+              className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm font-semibold px-6 cursor-pointer"
+              data-testid="button-navigate-dashboard"
+            >
+              <Home className="w-4 h-4 mr-2" />
+              Dashboard
+            </Button>
+            
+            <Button
+              onClick={() => setLocation('/referral-marketplace')}
+              size="lg"
+              className="bg-white text-blue-600 hover:bg-blue-50 shadow-lg font-semibold px-6 cursor-pointer"
+              data-testid="button-browse-services"
+            >
+              <Target className="w-4 h-4 mr-2" />
+              Browse Services
+            </Button>
+            
+            <Button
+              onClick={() => setLocation('/my-bookings')}
+              variant="outline" 
+              size="lg"
+              className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm font-semibold px-6 cursor-pointer"
+              data-testid="button-my-bookings"
+            >
+              <MessageCircle className="w-4 h-4 mr-2" />
+              My Bookings
+            </Button>
+            
+            <Button
+              onClick={() => setLocation('/become-referrer')}
+              variant="outline" 
+              size="lg"
+              className="bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:from-green-500 hover:to-emerald-600 border-0 font-semibold px-6 shadow-lg cursor-pointer"
+              data-testid="button-become-referrer"
+            >
+              <Users className="w-4 h-4 mr-2" />
+              Become a Referrer
+            </Button>
           </div>
         </div>
       </div>

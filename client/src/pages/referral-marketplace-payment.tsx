@@ -87,7 +87,7 @@ export default function ReferralMarketplacePayment() {
               description: "Your booking is confirmed. Check your email for the meeting link.",
             });
             queryClient.invalidateQueries({ queryKey: ['/api/referral-marketplace/bookings'] });
-            setLocation('/referral-marketplace/my-bookings');
+            setLocation('/my-bookings');
           }
         } catch (error: any) {
           toast({

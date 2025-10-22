@@ -359,6 +359,7 @@ function Router() {
       <Route path="/referral-marketplace" component={ReferralMarketplace} />
       <Route path="/become-referrer" component={BecomeReferrer} />
       <Route path="/my-bookings" component={MyBookings} />
+      <Route path="/referral-marketplace/payment" component={lazy(() => import("./pages/referral-marketplace-payment"))} />
 
       {isAuthenticated ? (
         <>
