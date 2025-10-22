@@ -34,6 +34,8 @@ export default defineConfig({
     hmr: {
       overlay: false,
       protocol: process.env.REPL_ID ? 'wss' : 'ws',
+      // Allow overriding HMR port via HMR_PORT env var to avoid conflicts in some hosts
+      port: process.env.HMR_PORT ? Number(process.env.HMR_PORT) : undefined,
       timeout: 120000,
     },
     watch: {
