@@ -54,7 +54,7 @@ const jobSearchStages = [
         name: "LinkedIn Optimizer",
         description: "Generate compelling headlines, about sections, and keyword-rich profiles",
         icon: Globe,
-        link: "/linkedin-optimizer",
+        link: "/premium-ai-tools?tab=linkedin-optimizer",
         benefit: "3x More Profile Views",
         features: ["Headline Generator", "About Section", "Keyword Research"],
         visual: "💼",
@@ -64,7 +64,7 @@ const jobSearchStages = [
         name: "Cover Letter Generator",
         description: "AI creates personalized cover letters matching job descriptions",
         icon: Mail,
-        link: "/premium-ai-tools",
+        link: "/premium-ai-tools?tab=cover-letter",
         benefit: "10x Faster Applications",
         features: ["AI Personalization", "Job Matching", "Multiple Versions"],
         visual: "✉️",
@@ -124,13 +124,23 @@ const jobSearchStages = [
     tools: [
       {
         name: "Virtual AI Interview",
-        description: "Practice with AI interviewers that analyze body language & speech",
-        icon: Video,
-        link: "/virtual-interview/new",
+        description: "Practice with conversational AI interviewer - real-time chat with instant feedback",
+        icon: MessageCircle,
+        link: "/virtual-interview-start",
         benefit: "Real Interview Experience",
-        features: ["AI Feedback", "Video Analysis", "Speech Recognition"],
-        visual: "🎥",
+        features: ["AI Conversation", "Instant Feedback", "Hiring Probability"],
+        visual: "💬",
         gradient: "from-green-500 to-green-700"
+      },
+      {
+        name: "Video Interview Practice",
+        description: "Record yourself answering questions with video & audio analysis",
+        icon: Video,
+        link: "/video-practice",
+        benefit: "Perfect Your Presence",
+        features: ["Body Language Analysis", "Speech Patterns", "Confidence Score"],
+        visual: "🎥",
+        gradient: "from-teal-500 to-teal-700"
       },
       {
         name: "Mock Coding Tests",
@@ -138,7 +148,7 @@ const jobSearchStages = [
         icon: Code,
         link: "/mock-interview",
         benefit: "Master Technical Skills",
-        features: ["Multiple Languages", "Live Testing", "Detailed Feedback"],
+        features: ["12+ Languages", "Live Testing", "Detailed Feedback"],
         visual: "💻",
         gradient: "from-emerald-500 to-emerald-700"
       },
@@ -146,7 +156,7 @@ const jobSearchStages = [
         name: "AI Interview Coach",
         description: "Get personalized interview answers using the STAR method",
         icon: Brain,
-        link: "/premium-ai-tools",
+        link: "/premium-ai-tools?tab=interview",
         benefit: "STAR Method Mastery",
         features: ["Question Bank", "Answer Templates", "Behavioral Prep"],
         visual: "🧠",
@@ -384,6 +394,38 @@ export default function InterviewPrepTools() {
             <p className="text-2xl md:text-3xl mb-12 text-white/90 max-w-4xl mx-auto leading-relaxed">
               From resume optimization to interview practice - master every step of your job search journey with enterprise-grade AI tools
             </p>
+            
+            {/* Quick Access Tools */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto mb-8">
+              <Link href="/chrome-extension">
+                <button className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all duration-300 text-left">
+                  <div className="text-3xl mb-2">⚡</div>
+                  <div className="font-bold text-sm">Chrome Extension</div>
+                  <div className="text-xs text-white/70">Auto-Apply Jobs</div>
+                </button>
+              </Link>
+              <Link href="/virtual-interview-start">
+                <button className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all duration-300 text-left">
+                  <div className="text-3xl mb-2">💬</div>
+                  <div className="font-bold text-sm">AI Interview</div>
+                  <div className="text-xs text-white/70">Chat Practice</div>
+                </button>
+              </Link>
+              <Link href="/video-practice">
+                <button className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all duration-300 text-left">
+                  <div className="text-3xl mb-2">🎥</div>
+                  <div className="font-bold text-sm">Video Interview</div>
+                  <div className="text-xs text-white/70">Record & Analyze</div>
+                </button>
+              </Link>
+              <Link href="/mock-interview">
+                <button className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all duration-300 text-left">
+                  <div className="text-3xl mb-2">💻</div>
+                  <div className="font-bold text-sm">Coding Tests</div>
+                  <div className="text-xs text-white/70">12+ Languages</div>
+                </button>
+              </Link>
+            </div>
             
             {/* Success Metrics */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
