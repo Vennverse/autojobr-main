@@ -117,6 +117,7 @@ import CompanyCareerPage from "@/pages/company-career-page";
 
 // Import RankingTestTaking component
 import RankingTestTaking from './pages/ranking-test-taking';
+import InterviewPrepTools from './pages/interview-prep-tools';
 
 // Import lazy for dynamic imports
 import { lazy } from "react";
@@ -346,8 +347,8 @@ function Router() {
       <Route path="/jobs/netherlands" component={JobsNetherlands} />
       <Route path="/jobs/sweden" component={JobsSweden} />
 
-      {/* Interview Prep Tools Page */}
-      <Route path="/interview-prep-tools" component={lazy(() => import("@/pages/interview-prep-tools"))} />
+      {/* Interview Prep Tools Page - Public access */}
+      <Route path="/interview-prep-tools" component={InterviewPrepTools} />
 
       <Route path="/jobs/:id" component={ViewJob} />
 
