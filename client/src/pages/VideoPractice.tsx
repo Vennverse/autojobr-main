@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Video, Mic, CheckCircle, Loader2, AlertCircle, Volume2, VolumeX, Camera, CameraOff } from 'lucide-react';
+import { Video, Mic, CheckCircle, Loader2, AlertCircle, Volume2, VolumeX, Camera, CameraOff, History, DollarSign, Crown, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { SimpleFaceAnalysis, SimpleAudioAnalysis } from '@/lib/faceAnalysis';
+import { useQuery, useMutation } from '@tanstack/react-query';
 
 export default function VideoPractice() {
   const [, setLocation] = useLocation();
@@ -26,7 +27,9 @@ export default function VideoPractice() {
     interviewType: 'technical' as 'technical' | 'behavioral',
     difficulty: 'medium' as 'easy' | 'medium' | 'hard'
   });
-  const [showPaymentRequired, setShowPaymentRequired] = useState(false); // State to manage payment modal
+  const [showPaymentRequired, setShowPaymentRequired] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'paypal' | 'razorpay'>('paypal');
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -45,6 +48,42 @@ export default function VideoPractice() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [cameraRetryTrigger, setCameraRetryTrigger] = useState(0);
   const [cameraError, setCameraError] = useState<string>('');
+
+  // Fetch video practice history
+  const { data: practiceHistory, isLoading: loadingHistory } = useQuery({
+    queryKey: ['/api/video-practice/history'],
+    enabled: showSetup
+  });
+
+  // Fetch usage information
+  const { data: usageInfo } = useQuery({
+    queryKey: ['/api/video-practice/usage'],
+    enabled: showSetup
+  });
+
+  // Payment mutation
+  const paymentMutation = useMutation({
+    mutationFn: async (data: { orderId: string; paymentMethod: string; razorpayPaymentId?: string; razorpaySignature?: string }) => {
+      return apiRequest('/api/video-practice/confirm-payment', 'POST', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/video-practice/usage'] });
+      setShowPaymentModal(false);
+      toast({
+        title: "Payment Successful!",
+        description: "You can now start your video practice interview.",
+      });
+      // Auto-start the session after payment
+      startSession();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Payment Failed",
+        description: error.message || "Failed to process payment. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
 
   const analyzeVideo = async (blob: Blob, questionId: string) => {
     console.log('Analyzing video for question:', questionId);
@@ -287,14 +326,9 @@ export default function VideoPractice() {
       return;
     }
 
-    // Check free interview quota based on payment status
-    // Assuming session.paymentStatus reflects if the user has paid for premium features or previous sessions
-    // This logic might need adjustment based on your user/subscription model
-    if (session?.paymentStatus === 'free' && session.interviewsRemaining <= 0) {
-      setShowPaymentRequired(true);
-      return;
-    } else if (session?.paymentStatus === 'premium' && session.premiumInterviewsRemaining <= 0) {
-      setShowPaymentRequired(true);
+    // Check usage limits before starting
+    if (usageInfo && !usageInfo.canStartInterview) {
+      setShowPaymentModal(true);
       return;
     }
 
@@ -636,18 +670,51 @@ export default function VideoPractice() {
   if (showSetup && !session) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
-        <div className="max-w-2xl mx-auto mt-12">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-2xl">
-                <Video className="w-6 h-6" />
-                AI Video Interview Practice - Setup
-              </CardTitle>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                Configure your practice session to get started
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-6">
+        <div className="max-w-4xl mx-auto mt-12 space-y-6">
+          {/* Usage Limits Display */}
+          {usageInfo && (
+            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 border-2" data-testid="card-usage-limits">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Free Interviews Remaining</p>
+                    <p className="text-3xl font-bold text-blue-600 dark:text-blue-400" data-testid="text-interviews-remaining">
+                      {usageInfo.freeInterviewsRemaining}
+                    </p>
+                  </div>
+                  {usageInfo.freeInterviewsRemaining === 0 && (
+                    <Badge variant="destructive" className="text-sm" data-testid="badge-no-interviews">
+                      No Free Interviews Left
+                    </Badge>
+                  )}
+                  {usageInfo.freeInterviewsRemaining > 0 && (
+                    <Badge className="bg-green-500 text-white text-sm" data-testid="badge-interviews-available">
+                      {usageInfo.freeInterviewsRemaining} Available
+                    </Badge>
+                  )}
+                </div>
+                {usageInfo.message && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2" data-testid="text-usage-message">
+                    {usageInfo.message}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Setup Form */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-2xl">
+                  <Video className="w-6 h-6" />
+                  AI Video Interview Practice
+                </CardTitle>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                  Configure your practice session
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">
@@ -748,57 +815,185 @@ export default function VideoPractice() {
               </p>
             </CardContent>
           </Card>
+
+          {/* History Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="w-5 h-5" />
+                Your Practice History
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingHistory ? (
+                <div className="text-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+                  <p className="text-gray-600 dark:text-gray-400">Loading history...</p>
+                </div>
+              ) : practiceHistory && practiceHistory.length > 0 ? (
+                <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                  {practiceHistory.map((session: any, index: number) => (
+                    <div key={session.id} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border" data-testid={`history-session-${index}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="font-medium text-sm">{session.role}</p>
+                        {session.overallScore && (
+                          <Badge className={session.overallScore >= 80 ? "bg-green-500" : session.overallScore >= 60 ? "bg-yellow-500" : "bg-red-500"}>
+                            Score: {session.overallScore}%
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                        <p>Type: {session.interviewType} | Difficulty: {session.difficulty}</p>
+                        <p>Date: {new Date(session.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      {session.analysis && (
+                        <div className="mt-2 text-xs">
+                          <p className="text-gray-500 dark:text-gray-400 line-clamp-2">
+                            {typeof session.analysis === 'string' ? JSON.parse(session.analysis).recommendation : session.analysis.recommendation}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-600 dark:text-gray-400 font-medium">No Practice History Yet</p>
+                  <p className="text-gray-500 dark:text-gray-500 text-sm mt-1">
+                    Start your first video practice to build your history
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
         </div>
       </div>
     );
   }
 
-  // If payment is required, show the payment modal
-  if (showPaymentRequired && session) {
+  // Payment modal when users need to pay
+  if (showPaymentModal) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <Card className="max-w-sm w-full mx-auto p-6">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" data-testid="modal-payment">
+        <Card className="max-w-md w-full mx-4">
           <CardHeader>
-            <CardTitle className="text-2xl">Unlock More Practice</CardTitle>
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <DollarSign className="w-6 h-6" />
+              Unlock More Practice
+            </CardTitle>
             <CardDescription>
-              You've used all your free video interviews. Purchase a session to continue.
+              You've used all your free video interviews.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-center py-4">
-              <p className="text-4xl font-bold text-blue-600">$5</p>
-              <p className="text-sm text-gray-600">Per session</p>
+            {/* Premium Upgrade Prompt */}
+            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 p-4 rounded-lg border-2 border-purple-300 dark:border-purple-700">
+              <div className="flex items-start gap-3">
+                <Crown className="w-8 h-8 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-1" />
+                <div>
+                  <p className="font-bold text-purple-900 dark:text-purple-100 mb-2">
+                    ✨ Upgrade to Premium
+                  </p>
+                  <p className="text-sm text-purple-800 dark:text-purple-200 mb-3">
+                    Get 5 free video practice interviews every month, plus all premium features!
+                  </p>
+                  <Button
+                    onClick={() => setLocation('/pricing')}
+                    className="w-full bg-purple-600 hover:bg-purple-700"
+                    data-testid="button-upgrade-premium"
+                  >
+                    <Crown className="w-4 h-4 mr-2" />
+                    View Premium Plans
+                  </Button>
+                </div>
+              </div>
             </div>
+
+            {/* Or pay per interview */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500">or pay for one interview</span>
+              </div>
+            </div>
+
+            <div className="text-center py-3">
+              <p className="text-4xl font-bold text-blue-600">$5</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Per video practice session</p>
+            </div>
+
             <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-              <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
-                <strong>Includes:</strong>
+              <p className="text-sm text-blue-800 dark:text-blue-200 mb-2 font-medium">
+                Includes:
               </p>
-              <ul className="text-xs text-blue-700 dark:text-blue-300 ml-4 list-disc">
-                <li>AI Feedback</li>
-                <li>Speech Transcription</li>
-                <li>Video Analysis</li>
+              <ul className="text-xs text-blue-700 dark:text-blue-300 ml-4 list-disc space-y-1">
+                <li>6 AI-generated interview questions</li>
+                <li>Real-time speech transcription</li>
+                <li>Video & audio analysis</li>
+                <li>Detailed performance feedback</li>
               </ul>
             </div>
-            {/* Placeholder for payment integration (e.g., PayPal button) */}
+
+            {/* Payment Method Selection */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Select Payment Method:</p>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant={selectedPaymentMethod === 'paypal' ? 'default' : 'outline'}
+                  onClick={() => setSelectedPaymentMethod('paypal')}
+                  className="w-full"
+                  data-testid="button-select-paypal"
+                >
+                  PayPal
+                </Button>
+                <Button
+                  variant={selectedPaymentMethod === 'razorpay' ? 'default' : 'outline'}
+                  onClick={() => setSelectedPaymentMethod('razorpay')}
+                  className="w-full"
+                  data-testid="button-select-razorpay"
+                >
+                  Razorpay
+                </Button>
+              </div>
+            </div>
+
             <Button
-              onClick={() => {
-                // Replace with actual payment gateway integration
-                // Example: Initiate PayPal checkout
-                // paypal.Buttons({
-                //   createOrder: (data, actions) => { ... },
-                //   onApprove: (data, actions) => { ... }
-                // }).render('#paypal-button-container');
-                // For now, simulate success after a delay
-                toast({ title: "Simulating Payment...", description: "Redirecting to payment gateway..." });
-                setTimeout(() => {
-                  handlePaymentComplete("simulated_payment_id_" + Date.now());
-                }, 2000);
+              onClick={async () => {
+                try {
+                  setLoading(true);
+                  const paymentData = await apiRequest('/api/video-practice/create-payment', 'POST', {
+                    paymentMethod: selectedPaymentMethod
+                  });
+                  
+                  // Handle PayPal
+                  if (selectedPaymentMethod === 'paypal') {
+                    // Redirect to PayPal or open PayPal modal
+                    toast({ title: "Redirecting to PayPal...", description: "Please complete your payment" });
+                    // Here you would integrate with PayPal SDK
+                  } else {
+                    // Handle Razorpay
+                    toast({ title: "Opening Razorpay...", description: "Please complete your payment" });
+                    // Here you would integrate with Razorpay SDK
+                  }
+                } catch (error: any) {
+                  toast({ title: "Error", description: error.message, variant: "destructive" });
+                } finally {
+                  setLoading(false);
+                }
               }}
               className="w-full bg-green-600 hover:bg-green-700"
+              disabled={loading}
+              data-testid="button-pay-now"
             >
-              Pay $5 Now
+              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Pay $5 Now with {selectedPaymentMethod === 'paypal' ? 'PayPal' : 'Razorpay'}
             </Button>
-            <Button onClick={handlePaymentCancel} variant="outline" className="w-full">
+            
+            <Button onClick={() => setShowPaymentModal(false)} variant="outline" className="w-full" data-testid="button-cancel-payment">
               Cancel
             </Button>
           </CardContent>
