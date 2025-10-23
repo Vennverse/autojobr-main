@@ -67,6 +67,8 @@ import { proctoring } from "./routes/proctoring";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 import { subscriptionPaymentService } from "./subscriptionPaymentService";
 import { VideoPracticePaymentService } from "./videoPracticePaymentService";
+import { videoPracticeService } from "./videoPracticeService";
+import { razorpayService } from "./razorpayService";
 import { interviewAssignmentService } from "./interviewAssignmentService";
 import { mockInterviewService } from "./mockInterviewService";
 import { aiService } from './aiService';
@@ -1657,6 +1659,144 @@ Return only the improved job description text, no additional formatting or expla
     } catch (error) {
       console.error('Video practice usage check error:', error);
       handleError(res, error, 'Failed to check usage');
+    }
+  });
+
+  // Get video practice history for user
+  app.get('/api/video-practice/history', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      if (!userId) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+
+      const sessions = await db.select()
+        .from(schema.videoPracticeSessions)
+        .where(eq(schema.videoPracticeSessions.userId, userId))
+        .orderBy(desc(schema.videoPracticeSessions.createdAt))
+        .limit(10);
+
+      res.json(sessions);
+    } catch (error) {
+      console.error('Error fetching video practice history:', error);
+      handleError(res, error, 'Failed to fetch video practice history');
+    }
+  });
+
+  // Create payment for video practice (PayPal/Razorpay)
+  app.post('/api/video-practice/create-payment', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { paymentMethod = 'paypal' } = req.body; // 'paypal' or 'razorpay'
+
+      if (!userId) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+
+      // Get user info for currency preference
+      const user = await db.query.users.findFirst({
+        where: eq(schema.users.id, userId)
+      });
+
+      const amount = 5; // $5 per video practice interview
+
+      if (paymentMethod === 'razorpay' && razorpayService.isAvailable()) {
+        // Create Razorpay order for one-time payment
+        const order = await (razorpayService as any).razorpay.orders.create({
+          amount: Math.round(amount * 83 * 100), // Convert USD to INR paise
+          currency: 'INR',
+          notes: {
+            userId,
+            purpose: 'video_practice_interview',
+            credits: '1'
+          }
+        });
+
+        res.json({
+          orderId: order.id,
+          amount: order.amount,
+          currency: order.currency,
+          paymentMethod: 'razorpay'
+        });
+      } else {
+        // Default to PayPal
+        const order = await createPaypalOrder(amount, 'USD');
+        res.json({
+          orderId: order.id,
+          paymentMethod: 'paypal'
+        });
+      }
+    } catch (error) {
+      console.error('Error creating video practice payment:', error);
+      handleError(res, error, 'Failed to create payment');
+    }
+  });
+
+  // Confirm payment and grant video practice access
+  app.post('/api/video-practice/confirm-payment', isAuthenticated, async (req: any, res) => {
+    try {
+      const { orderId, paymentMethod = 'paypal', razorpayPaymentId, razorpaySignature } = req.body;
+      const userId = req.user.id;
+
+      if (!userId || !orderId) {
+        return res.status(400).json({ message: 'Missing required data' });
+      }
+
+      let paymentConfirmed = false;
+
+      if (paymentMethod === 'razorpay' && razorpayPaymentId) {
+        // Verify Razorpay payment signature
+        const crypto = await import('crypto');
+        const expectedSignature = crypto
+          .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || '')
+          .update(`${orderId}|${razorpayPaymentId}`)
+          .digest('hex');
+
+        if (expectedSignature === razorpaySignature) {
+          paymentConfirmed = true;
+        }
+      } else {
+        // PayPal payment
+        const captureResult = await capturePaypalOrder(orderId);
+        if (captureResult.status === 'COMPLETED') {
+          paymentConfirmed = true;
+        }
+      }
+
+      if (paymentConfirmed) {
+        // Update user's video practice stats to grant them one more free interview
+        const userStats = await db.query.videoPracticeStats.findFirst({
+          where: eq(schema.videoPracticeStats.userId, userId)
+        });
+
+        if (userStats) {
+          // Decrease the used count to effectively grant one more interview
+          await db.update(schema.videoPracticeStats)
+            .set({
+              freeInterviewsUsed: Math.max(0, userStats.freeInterviewsUsed - 1)
+            })
+            .where(eq(schema.videoPracticeStats.userId, userId));
+        } else {
+          // Create stats if doesn't exist
+          await db.insert(schema.videoPracticeStats).values({
+            userId,
+            totalInterviews: 0,
+            freeInterviewsUsed: 0,
+            lastReset: new Date()
+          });
+        }
+
+        res.json({
+          success: true,
+          message: 'Payment confirmed. You can now start your video practice interview.',
+          grantedInterviews: 1
+        });
+      } else {
+        res.status(400).json({ message: 'Payment verification failed' });
+      }
+    } catch (error) {
+      console.error('Error confirming video practice payment:', error);
+      handleError(res, error, 'Failed to confirm payment');
     }
   });
 
