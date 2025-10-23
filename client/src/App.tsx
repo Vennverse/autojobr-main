@@ -347,7 +347,7 @@ function Router() {
       <Route path="/jobs/sweden" component={JobsSweden} />
 
       {/* Interview Prep Tools Page */}
-      <Route path="/interview-prep-tools" component={() => import("@/pages/interview-prep-tools").then(m => m.default)} />
+      <Route path="/interview-prep-tools" component={lazy(() => import("@/pages/interview-prep-tools"))} />
 
       <Route path="/jobs/:id" component={ViewJob} />
 
