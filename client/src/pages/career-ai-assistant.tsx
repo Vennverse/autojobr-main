@@ -1141,7 +1141,8 @@ Examples:
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={careerPath.steps.slice(0, 5).map((step, index) => {
                           // Enhanced salary parsing to handle various formats
-                          let salary = 50 + (index * 20); // default fallback
+                          // Base salary increases with each step (career progression)
+                          let salary = 60 + (index * 25); // Progressive increase: 60k, 85k, 110k, 135k, 160k
 
                           if (step.averageSalary) {
                             const salaryStr = step.averageSalary.toString();
@@ -1150,17 +1151,19 @@ Examples:
                             if (salaryMatch && salaryMatch.length > 0) {
                               const parsedSalary = parseInt(salaryMatch[0]);
                               // If salary seems to be in full format (e.g., 80000), convert to k
-                              salary = parsedSalary > 1000 ? Math.floor(parsedSalary / 1000) : parsedSalary;
+                              const baseSalary = parsedSalary > 1000 ? Math.floor(parsedSalary / 1000) : parsedSalary;
+                              // Ensure salary increases with progression
+                              salary = Math.max(baseSalary, 60 + (index * 25));
                             }
                           }
 
-                          // Determine market demand score
-                          let demandScore = 50; // default
+                          // Determine market demand score - increases with seniority
+                          let demandScore = 65 + (index * 5); // Progressive: 65, 70, 75, 80, 85
                           if (step.marketDemand) {
                             const demand = step.marketDemand.toLowerCase();
-                            if (demand.includes('high') || demand.includes('strong')) demandScore = 90;
-                            else if (demand.includes('medium') || demand.includes('moderate')) demandScore = 70;
-                            else if (demand.includes('low') || demand.includes('weak')) demandScore = 40;
+                            if (demand.includes('high') || demand.includes('strong')) demandScore = Math.max(demandScore, 85 + index * 2);
+                            else if (demand.includes('medium') || demand.includes('moderate')) demandScore = Math.max(demandScore, 70 + index * 2);
+                            else if (demand.includes('low') || demand.includes('weak')) demandScore = Math.max(demandScore, 55 + index * 2);
                           }
 
                           return {
