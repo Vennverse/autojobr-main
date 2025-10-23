@@ -12,6 +12,7 @@ import {
   FileText,
   Mail,
   MessageSquare,
+  MessageCircle,
   TrendingUp,
   CheckCircle,
   ArrowRight,
@@ -361,7 +362,7 @@ export default function InterviewPrepTools() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
+    <div className="min-h-screen bg-white dark:bg-gray-900 scroll-smooth">
       <Helmet>
         <title>AI Interview Prep Tools - Virtual Interviews, Mock Tests & Resume Optimizer | AutoJobR</title>
         <meta name="description" content="Complete AI-powered interview preparation suite: Virtual AI interviews, mock coding tests, resume optimizer, LinkedIn optimization, cover letter generator, and job search automation. Land your dream job 10x faster." />
@@ -415,32 +416,32 @@ export default function InterviewPrepTools() {
             {/* Quick Access Tools */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto mb-8">
               <Link href="/chrome-extension">
-                <button className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all duration-300 text-left">
+                <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all duration-300 text-left cursor-pointer">
                   <div className="text-3xl mb-2">⚡</div>
                   <div className="font-bold text-sm">Chrome Extension</div>
                   <div className="text-xs text-white/70">Auto-Apply Jobs</div>
-                </button>
+                </div>
               </Link>
               <Link href="/virtual-interview-start">
-                <button className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all duration-300 text-left">
+                <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all duration-300 text-left cursor-pointer">
                   <div className="text-3xl mb-2">💬</div>
                   <div className="font-bold text-sm">AI Interview</div>
                   <div className="text-xs text-white/70">Chat Practice</div>
-                </button>
+                </div>
               </Link>
               <Link href="/video-practice">
-                <button className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all duration-300 text-left">
+                <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all duration-300 text-left cursor-pointer">
                   <div className="text-3xl mb-2">🎥</div>
                   <div className="font-bold text-sm">Video Interview</div>
                   <div className="text-xs text-white/70">Record & Analyze</div>
-                </button>
+                </div>
               </Link>
               <Link href="/mock-interview">
-                <button className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all duration-300 text-left">
+                <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all duration-300 text-left cursor-pointer">
                   <div className="text-3xl mb-2">💻</div>
                   <div className="font-bold text-sm">Coding Tests</div>
                   <div className="text-xs text-white/70">12+ Languages</div>
-                </button>
+                </div>
               </Link>
             </div>
             
