@@ -216,7 +216,7 @@ const successMetrics = [
 
 function StageSection({ stage, index }: { stage: typeof jobSearchStages[0]; index: number }) {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: false, amount: 0.3 });
+  const isInView = useInView(ref, { once: true, amount: 0.2 });
   const Icon = stage.icon;
 
   return (
@@ -224,7 +224,7 @@ function StageSection({ stage, index }: { stage: typeof jobSearchStages[0]; inde
       ref={ref}
       initial={{ opacity: 0 }}
       animate={isInView ? { opacity: 1 } : { opacity: 0.3 }}
-      transition={{ duration: 0.8 }}
+      transition={{ duration: 0.5 }}
       className={`min-h-screen flex items-center py-20 bg-gradient-to-br ${stage.bgGradient} dark:${stage.darkBgGradient}`}
     >
       <div className="container mx-auto px-4 max-w-7xl">
@@ -253,9 +253,9 @@ function StageSection({ stage, index }: { stage: typeof jobSearchStages[0]; inde
             return (
               <motion.div
                 key={toolIndex}
-                initial={{ y: 100, opacity: 0, scale: 0.8 }}
-                animate={isInView ? { y: 0, opacity: 1, scale: 1 } : { y: 100, opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.6, delay: 0.3 + toolIndex * 0.1 }}
+                initial={{ y: 50, opacity: 0 }}
+                animate={isInView ? { y: 0, opacity: 1 } : { y: 50, opacity: 0 }}
+                transition={{ duration: 0.4, delay: toolIndex * 0.1 }}
               >
                 <Card className="group h-full hover:shadow-2xl transition-all duration-500 hover:-translate-y-3 border-2 overflow-hidden relative">
                   {/* Gradient overlay */}
@@ -333,6 +333,7 @@ function StageSection({ stage, index }: { stage: typeof jobSearchStages[0]; inde
 export default function InterviewPrepTools() {
   const { scrollYProgress } = useScroll();
   const [activeStage, setActiveStage] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Update active stage based on scroll
   useEffect(() => {
@@ -342,6 +343,22 @@ export default function InterviewPrepTools() {
     });
     return () => unsubscribe();
   }, [scrollYProgress]);
+
+  // Ensure page loads properly
+  useEffect(() => {
+    setIsLoading(false);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-xl text-gray-600 dark:text-gray-400">Loading AI Tools...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
@@ -377,9 +394,9 @@ export default function InterviewPrepTools() {
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="container mx-auto max-w-6xl relative z-10">
           <motion.div
-            initial={{ y: 50, opacity: 0 }}
+            initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.5 }}
             className="text-center mb-12"
           >
             <Badge className="mb-6 bg-white/20 text-white border-0 px-8 py-3 text-lg backdrop-blur">
