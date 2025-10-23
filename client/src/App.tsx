@@ -346,6 +346,9 @@ function Router() {
       <Route path="/jobs/netherlands" component={JobsNetherlands} />
       <Route path="/jobs/sweden" component={JobsSweden} />
 
+      {/* Interview Prep Tools Page */}
+      <Route path="/interview-prep-tools" component={() => import("@/pages/interview-prep-tools").then(m => m.default)} />
+
       <Route path="/jobs/:id" component={ViewJob} />
 
       {/* Company career pages - accessible to everyone */}

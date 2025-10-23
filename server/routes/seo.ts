@@ -187,6 +187,7 @@ router.get("/sitemap.xml", async (req, res) => {
 
     // Add static high-value SEO pages
     const staticPages = [
+      { path: '/interview-prep-tools', priority: '0.95', changefreq: 'daily' },
       { path: '/about', priority: '0.8', changefreq: 'monthly' },
       { path: '/contact', priority: '0.8', changefreq: 'monthly' },
       { path: '/blog', priority: '0.8', changefreq: 'weekly' },
