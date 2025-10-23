@@ -114,23 +114,33 @@ const jobSearchStages = [
     ]
   },
   {
-    stage: "3. Prepare for Interview",
-    icon: Brain,
+    stage: "3. Practice Interviews",
+    icon: Video,
     color: "from-green-600 to-emerald-600",
     bgGradient: "from-green-50 to-emerald-50",
     darkBgGradient: "from-green-950/30 to-emerald-950/30",
     accentColor: "green",
-    emoji: "🧠",
+    emoji: "🎥",
     tools: [
       {
-        name: "Virtual AI Interview",
-        description: "Practice with AI interviewers that analyze body language & speech",
+        name: "Video Interview Practice",
+        description: "Real-time AI video interviews with facial analysis and speech-to-text feedback",
         icon: Video,
-        link: "/virtual-interview/new",
-        benefit: "Real Interview Experience",
-        features: ["AI Feedback", "Video Analysis", "Speech Recognition"],
+        link: "/video-practice",
+        benefit: "98% Confidence Boost",
+        features: ["Real-Time Analysis", "Body Language Feedback", "AI Scoring"],
         visual: "🎥",
         gradient: "from-green-500 to-green-700"
+      },
+      {
+        name: "Virtual AI Interview",
+        description: "Text-based interview practice with comprehensive AI evaluation",
+        icon: MessageSquare,
+        link: "/virtual-interview/new",
+        benefit: "Unlimited Practice",
+        features: ["AI Interviewer", "Instant Feedback", "Performance Reports"],
+        visual: "💬",
+        gradient: "from-emerald-500 to-emerald-700"
       },
       {
         name: "Mock Coding Tests",
@@ -140,8 +150,19 @@ const jobSearchStages = [
         benefit: "Master Technical Skills",
         features: ["Multiple Languages", "Live Testing", "Detailed Feedback"],
         visual: "💻",
-        gradient: "from-emerald-500 to-emerald-700"
-      },
+        gradient: "from-green-600 to-emerald-600"
+      }
+    ]
+  },
+  {
+    stage: "4. Ace Real Interviews",
+    icon: Brain,
+    color: "from-indigo-600 to-violet-600",
+    bgGradient: "from-indigo-50 to-violet-50",
+    darkBgGradient: "from-indigo-950/30 to-violet-950/30",
+    accentColor: "indigo",
+    emoji: "🧠",
+    tools: [
       {
         name: "AI Interview Coach",
         description: "Get personalized interview answers using the STAR method",
@@ -150,12 +171,32 @@ const jobSearchStages = [
         benefit: "STAR Method Mastery",
         features: ["Question Bank", "Answer Templates", "Behavioral Prep"],
         visual: "🧠",
-        gradient: "from-green-600 to-emerald-600"
+        gradient: "from-indigo-500 to-indigo-700"
+      },
+      {
+        name: "Interview Prep Guide",
+        description: "Company research, common questions, and preparation tips",
+        icon: Target,
+        link: "/premium-ai-tools",
+        benefit: "Company Insights",
+        features: ["Company Research", "Question Database", "Prep Strategies"],
+        visual: "🎯",
+        gradient: "from-violet-500 to-violet-700"
+      },
+      {
+        name: "Salary Negotiation",
+        description: "Data-driven salary insights and negotiation strategies",
+        icon: TrendingUp,
+        link: "/premium-ai-tools",
+        benefit: "15% Higher Offers",
+        features: ["Market Data", "Negotiation Scripts", "Offer Analysis"],
+        visual: "💰",
+        gradient: "from-indigo-600 to-violet-600"
       }
     ]
   },
   {
-    stage: "4. Network & Follow Up",
+    stage: "5. Network & Follow Up",
     icon: Users,
     color: "from-orange-600 to-red-600",
     bgGradient: "from-orange-50 to-red-50",
@@ -192,6 +233,47 @@ const jobSearchStages = [
         features: ["Message Crafting", "LinkedIn Integration", "Email Templates"],
         visual: "📞",
         gradient: "from-orange-600 to-red-600"
+      }
+    ]
+  },
+  {
+    stage: "6. Automate Everything",
+    icon: Zap,
+    color: "from-yellow-600 to-amber-600",
+    bgGradient: "from-yellow-50 to-amber-50",
+    darkBgGradient: "from-yellow-950/30 to-amber-950/30",
+    accentColor: "yellow",
+    emoji: "⚡",
+    tools: [
+      {
+        name: "Chrome Extension",
+        description: "Auto-fill job applications across 100+ job boards in one click",
+        icon: Zap,
+        link: "/chrome-extension",
+        benefit: "Save 20+ Hours Weekly",
+        features: ["One-Click Apply", "Smart Auto-Fill", "Multi-Platform Support"],
+        visual: "🔌",
+        gradient: "from-yellow-500 to-yellow-700"
+      },
+      {
+        name: "Bulk Apply",
+        description: "Apply to hundreds of jobs automatically with personalized applications",
+        icon: Rocket,
+        link: "/jobs",
+        benefit: "100+ Apps per Day",
+        features: ["Bulk Actions", "AI Customization", "Quality Control"],
+        visual: "🚀",
+        gradient: "from-amber-500 to-amber-700"
+      },
+      {
+        name: "Auto-Tracker",
+        description: "Automatically track all applications and update your CRM",
+        icon: BarChart3,
+        link: "/applications",
+        benefit: "Zero Manual Entry",
+        features: ["Auto Sync", "Status Updates", "Analytics Dashboard"],
+        visual: "📈",
+        gradient: "from-yellow-600 to-amber-600"
       }
     ]
   }
