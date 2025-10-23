@@ -12,7 +12,6 @@ import {
   FileText,
   Mail,
   MessageSquare,
-  MessageCircle,
   TrendingUp,
   CheckCircle,
   ArrowRight,
@@ -55,7 +54,7 @@ const jobSearchStages = [
         name: "LinkedIn Optimizer",
         description: "Generate compelling headlines, about sections, and keyword-rich profiles",
         icon: Globe,
-        link: "/premium-ai-tools?tab=linkedin-optimizer",
+        link: "/linkedin-optimizer",
         benefit: "3x More Profile Views",
         features: ["Headline Generator", "About Section", "Keyword Research"],
         visual: "💼",
@@ -65,7 +64,7 @@ const jobSearchStages = [
         name: "Cover Letter Generator",
         description: "AI creates personalized cover letters matching job descriptions",
         icon: Mail,
-        link: "/premium-ai-tools?tab=cover-letter",
+        link: "/premium-ai-tools",
         benefit: "10x Faster Applications",
         features: ["AI Personalization", "Job Matching", "Multiple Versions"],
         visual: "✉️",
@@ -125,23 +124,13 @@ const jobSearchStages = [
     tools: [
       {
         name: "Virtual AI Interview",
-        description: "Practice with conversational AI interviewer - real-time chat with instant feedback",
-        icon: MessageCircle,
-        link: "/virtual-interview-start",
-        benefit: "Real Interview Experience",
-        features: ["AI Conversation", "Instant Feedback", "Hiring Probability"],
-        visual: "💬",
-        gradient: "from-green-500 to-green-700"
-      },
-      {
-        name: "Video Interview Practice",
-        description: "Record yourself answering questions with video & audio analysis",
+        description: "Practice with AI interviewers that analyze body language & speech",
         icon: Video,
-        link: "/video-practice",
-        benefit: "Perfect Your Presence",
-        features: ["Body Language Analysis", "Speech Patterns", "Confidence Score"],
+        link: "/virtual-interview/new",
+        benefit: "Real Interview Experience",
+        features: ["AI Feedback", "Video Analysis", "Speech Recognition"],
         visual: "🎥",
-        gradient: "from-teal-500 to-teal-700"
+        gradient: "from-green-500 to-green-700"
       },
       {
         name: "Mock Coding Tests",
@@ -149,7 +138,7 @@ const jobSearchStages = [
         icon: Code,
         link: "/mock-interview",
         benefit: "Master Technical Skills",
-        features: ["12+ Languages", "Live Testing", "Detailed Feedback"],
+        features: ["Multiple Languages", "Live Testing", "Detailed Feedback"],
         visual: "💻",
         gradient: "from-emerald-500 to-emerald-700"
       },
@@ -157,7 +146,7 @@ const jobSearchStages = [
         name: "AI Interview Coach",
         description: "Get personalized interview answers using the STAR method",
         icon: Brain,
-        link: "/premium-ai-tools?tab=interview",
+        link: "/premium-ai-tools",
         benefit: "STAR Method Mastery",
         features: ["Question Bank", "Answer Templates", "Behavioral Prep"],
         visual: "🧠",
@@ -217,7 +206,7 @@ const successMetrics = [
 
 function StageSection({ stage, index }: { stage: typeof jobSearchStages[0]; index: number }) {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, amount: 0.2 });
+  const isInView = useInView(ref, { once: false, amount: 0.3 });
   const Icon = stage.icon;
 
   return (
@@ -225,7 +214,7 @@ function StageSection({ stage, index }: { stage: typeof jobSearchStages[0]; inde
       ref={ref}
       initial={{ opacity: 0 }}
       animate={isInView ? { opacity: 1 } : { opacity: 0.3 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.8 }}
       className={`min-h-screen flex items-center py-20 bg-gradient-to-br ${stage.bgGradient} dark:${stage.darkBgGradient}`}
     >
       <div className="container mx-auto px-4 max-w-7xl">
@@ -254,9 +243,9 @@ function StageSection({ stage, index }: { stage: typeof jobSearchStages[0]; inde
             return (
               <motion.div
                 key={toolIndex}
-                initial={{ y: 50, opacity: 0 }}
-                animate={isInView ? { y: 0, opacity: 1 } : { y: 50, opacity: 0 }}
-                transition={{ duration: 0.4, delay: toolIndex * 0.1 }}
+                initial={{ y: 100, opacity: 0, scale: 0.8 }}
+                animate={isInView ? { y: 0, opacity: 1, scale: 1 } : { y: 100, opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.6, delay: 0.3 + toolIndex * 0.1 }}
               >
                 <Card className="group h-full hover:shadow-2xl transition-all duration-500 hover:-translate-y-3 border-2 overflow-hidden relative">
                   {/* Gradient overlay */}
@@ -334,7 +323,6 @@ function StageSection({ stage, index }: { stage: typeof jobSearchStages[0]; inde
 export default function InterviewPrepTools() {
   const { scrollYProgress } = useScroll();
   const [activeStage, setActiveStage] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Update active stage based on scroll
   useEffect(() => {
@@ -345,24 +333,8 @@ export default function InterviewPrepTools() {
     return () => unsubscribe();
   }, [scrollYProgress]);
 
-  // Ensure page loads properly
-  useEffect(() => {
-    setIsLoading(false);
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-xl text-gray-600 dark:text-gray-400">Loading AI Tools...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 scroll-smooth">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
       <Helmet>
         <title>AI Interview Prep Tools - Virtual Interviews, Mock Tests & Resume Optimizer | AutoJobR</title>
         <meta name="description" content="Complete AI-powered interview preparation suite: Virtual AI interviews, mock coding tests, resume optimizer, LinkedIn optimization, cover letter generator, and job search automation. Land your dream job 10x faster." />
@@ -395,9 +367,9 @@ export default function InterviewPrepTools() {
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="container mx-auto max-w-6xl relative z-10">
           <motion.div
-            initial={{ y: 30, opacity: 0 }}
+            initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.8 }}
             className="text-center mb-12"
           >
             <Badge className="mb-6 bg-white/20 text-white border-0 px-8 py-3 text-lg backdrop-blur">
@@ -412,38 +384,6 @@ export default function InterviewPrepTools() {
             <p className="text-2xl md:text-3xl mb-12 text-white/90 max-w-4xl mx-auto leading-relaxed">
               From resume optimization to interview practice - master every step of your job search journey with enterprise-grade AI tools
             </p>
-            
-            {/* Quick Access Tools */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto mb-8">
-              <Link href="/chrome-extension">
-                <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all duration-300 text-left cursor-pointer">
-                  <div className="text-3xl mb-2">⚡</div>
-                  <div className="font-bold text-sm">Chrome Extension</div>
-                  <div className="text-xs text-white/70">Auto-Apply Jobs</div>
-                </div>
-              </Link>
-              <Link href="/virtual-interview-start">
-                <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all duration-300 text-left cursor-pointer">
-                  <div className="text-3xl mb-2">💬</div>
-                  <div className="font-bold text-sm">AI Interview</div>
-                  <div className="text-xs text-white/70">Chat Practice</div>
-                </div>
-              </Link>
-              <Link href="/video-practice">
-                <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all duration-300 text-left cursor-pointer">
-                  <div className="text-3xl mb-2">🎥</div>
-                  <div className="font-bold text-sm">Video Interview</div>
-                  <div className="text-xs text-white/70">Record & Analyze</div>
-                </div>
-              </Link>
-              <Link href="/mock-interview">
-                <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all duration-300 text-left cursor-pointer">
-                  <div className="text-3xl mb-2">💻</div>
-                  <div className="font-bold text-sm">Coding Tests</div>
-                  <div className="text-xs text-white/70">12+ Languages</div>
-                </div>
-              </Link>
-            </div>
             
             {/* Success Metrics */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
