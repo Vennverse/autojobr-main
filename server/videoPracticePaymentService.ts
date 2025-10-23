@@ -12,8 +12,8 @@ export interface VideoPracticeUsage {
 }
 
 export class VideoPracticePaymentService {
-  private readonly FREE_INTERVIEWS_LIMIT = 1; // 1 free interview for all users
-  private readonly PREMIUM_FREE_LIMIT = 5; // 5 free interviews for premium users
+  private readonly FREE_INTERVIEWS_LIMIT = 2; // 2 free interviews for all users per month
+  private readonly PREMIUM_FREE_LIMIT = 5; // 5 free interviews for premium users per month
   private readonly INTERVIEW_COST = 5; // $5 per interview after free limit
 
   async checkUsageAndPayment(userId: string): Promise<VideoPracticeUsage> {
@@ -65,7 +65,7 @@ export class VideoPracticePaymentService {
         cost: this.INTERVIEW_COST,
         message: isPremium 
           ? `You've used all ${this.PREMIUM_FREE_LIMIT} free video interviews. Pay $${this.INTERVIEW_COST} via PayPal or Amazon Pay for additional interviews.`
-          : `You've used your ${this.FREE_INTERVIEWS_LIMIT} free video interview. Upgrade to premium for ${this.PREMIUM_FREE_LIMIT} free interviews or pay $${this.INTERVIEW_COST} per interview via PayPal or Amazon Pay.`
+          : `You've used your ${this.FREE_INTERVIEWS_LIMIT} free video interviews. Upgrade to premium for ${this.PREMIUM_FREE_LIMIT} free interviews or pay $${this.INTERVIEW_COST} per interview via PayPal or Amazon Pay.`
       };
 
     } catch (error) {
