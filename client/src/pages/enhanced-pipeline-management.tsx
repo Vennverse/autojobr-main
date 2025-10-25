@@ -40,6 +40,114 @@ import {
   Bell,
   Filter,
   Download,
+
+
+// Helper functions to extract data from AI resume analysis
+function determineSeniorityFromAnalysis(analysis: any, app: any): string {
+  // Check analysis for seniority indicators
+  const content = analysis.content || analysis;
+  const strengths = content.strengthsFound || content.strengths || [];
+  
+  const strengthsText = strengths.join(' ').toLowerCase();
+  
+  if (strengthsText.includes('executive') || strengthsText.includes('c-level')) return 'Executive';
+  if (strengthsText.includes('senior') || strengthsText.includes('lead')) return 'Senior';
+  if (strengthsText.includes('mid-level') || strengthsText.includes('intermediate')) return 'Mid-Level';
+  if (strengthsText.includes('junior') || strengthsText.includes('entry')) return 'Junior';
+  
+  // Fallback to experience years if available
+  const years = extractExperienceYears(analysis, app);
+  if (years >= 10) return 'Senior';
+  if (years >= 5) return 'Mid-Level';
+  if (years >= 2) return 'Junior';
+  return 'Entry-Level';
+}
+
+function extractExperienceYears(analysis: any, app: any): number {
+  // Try to get from app data first
+  if (app.applicantYearsExperience) return app.applicantYearsExperience;
+  
+  // Parse from analysis
+  const content = analysis.content || analysis;
+  const text = JSON.stringify(content).toLowerCase();
+  
+  const yearMatches = text.match(/(\d+)\s*(?:years?|yrs?)\s*(?:of\s*)?(?:experience|exp)/i);
+  if (yearMatches) return parseInt(yearMatches[1]);
+  
+  return 0;
+}
+
+function extractDegree(analysis: any, app: any): string {
+  // Try from app data first
+  if (app.applicantEducation) {
+    const edu = app.applicantEducation.toLowerCase();
+    if (edu.includes('phd') || edu.includes('doctorate')) return 'PhD';
+    if (edu.includes('master') || edu.includes('mba')) return 'Master\'s';
+    if (edu.includes('bachelor')) return 'Bachelor\'s';
+  }
+  
+  // Parse from analysis
+  const content = analysis.content || analysis;
+  const text = JSON.stringify(content).toLowerCase();
+  
+  if (text.includes('phd') || text.includes('doctorate')) return 'PhD';
+  if (text.includes('master') || text.includes('mba')) return 'Master\'s';
+  if (text.includes('bachelor')) return 'Bachelor\'s';
+  
+  return 'Not specified';
+}
+
+function calculateEducationScore(analysis: any, app: any): number {
+  const degree = extractDegree(analysis, app);
+  
+  if (degree.includes('PhD')) return 100;
+  if (degree.includes('Master')) return 90;
+  if (degree.includes('Bachelor')) return 75;
+  return 60;
+}
+
+function extractMatchedSkills(analysis: any, app: any): string[] {
+  const content = analysis.content || analysis;
+  
+  // Get skills from keyword optimization
+  const keywords = analysis.keywordOptimization?.suggestions || [];
+  
+  // Get skills from app data
+  const appSkills = app.applicantSkills ? app.applicantSkills.split(',').map((s: string) => s.trim()) : [];
+  
+  // Combine and deduplicate
+  const allSkills = [...keywords, ...appSkills].filter(Boolean);
+  return [...new Set(allSkills)].slice(0, 8);
+}
+
+function extractTopSkills(analysis: any, app: any): string[] {
+  return extractMatchedSkills(analysis, app).slice(0, 10);
+}
+
+function generateJobMatchHighlights(atsScore: number, analysis: any, app: any): string[] {
+  const highlights = [
+    `ATS Score: ${atsScore}/100`,
+  ];
+  
+  const seniority = determineSeniorityFromAnalysis(analysis, app);
+  const years = extractExperienceYears(analysis, app);
+  if (years > 0) {
+    highlights.push(`Experience: ${seniority} (${years} years)`);
+  }
+  
+  const skills = extractMatchedSkills(analysis, app);
+  if (skills.length > 0) {
+    highlights.push(`Skills: ${skills.length} relevant matches`);
+  }
+  
+  const degree = extractDegree(analysis, app);
+  if (degree !== 'Not specified') {
+    highlights.push(`Education: ${degree}`);
+  }
+  
+  return highlights;
+}
+
   Calendar,
   Clock,
   Eye,
@@ -63,10 +171,39 @@ import { motion, AnimatePresence } from "framer-motion";
 
 // Enhanced NLP Analysis Function - Uses Actual AI Resume Analysis Data
 function analyzeApplicantNLP(app: any): Partial<Application> {
-  // Use existing AI resume analysis data if available
+  // PRIORITY 1: Use existing AI resume analysis data if available
   const existingAtsScore = app.applicantAtsScore || app.atsScore;
   const existingResumeAnalysis = app.applicantResumeAnalysis;
   
+  // If we have AI analysis data, use it directly
+  if (existingResumeAnalysis && existingAtsScore) {
+    console.log(`Using AI resume analysis for ${app.applicantName}:`, {
+      atsScore: existingAtsScore,
+      hasAnalysis: !!existingResumeAnalysis
+    });
+
+    return {
+      fitScore: existingAtsScore,
+      seniorityLevel: determineSeniorityFromAnalysis(existingResumeAnalysis, app),
+      totalExperience: extractExperienceYears(existingResumeAnalysis, app),
+      highestDegree: extractDegree(existingResumeAnalysis, app),
+      educationScore: calculateEducationScore(existingResumeAnalysis, app),
+      companyPrestige: 75, // Default - could be enhanced
+      matchedSkills: extractMatchedSkills(existingResumeAnalysis, app),
+      topSkills: extractTopSkills(existingResumeAnalysis, app),
+      strengths: existingResumeAnalysis.content?.strengthsFound || 
+                 existingResumeAnalysis.strengths || 
+                 ['Strong professional background'],
+      riskFactors: (existingResumeAnalysis.content?.weaknesses || 
+                    existingResumeAnalysis.weaknesses || 
+                    []).map((w: string) => `Area for improvement: ${w}`),
+      interviewFocus: (existingResumeAnalysis.recommendations || []).slice(0, 3),
+      jobMatchHighlights: generateJobMatchHighlights(existingAtsScore, existingResumeAnalysis, app),
+      nlpInsights: `AI Analysis: ${existingAtsScore}/100 ATS Score`
+    };
+  }
+  
+  // FALLBACK: If no AI data, use basic profile analysis
   const profileText = [
     app.recruiterNotes,
     app.applicantName,
