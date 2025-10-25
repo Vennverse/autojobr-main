@@ -101,7 +101,7 @@ export class SimpleFaceAnalysis {
     }
     
     let motionScore = 0;
-    const sampleRate = 50; // Sample every 50th pixel for performance
+    const sampleRate = 100; // Increased from 50 to 100 (50% fewer calculations)
     
     for (let i = 0; i < currentFrame.data.length; i += sampleRate * 4) {
       const diff = Math.abs(currentFrame.data[i] - this.previousFrame.data[i]);
@@ -121,7 +121,7 @@ export class SimpleFaceAnalysis {
     let faceX = width / 2;
     let faceY = height / 2;
     
-    const gridSize = 20;
+    const gridSize = 40; // Increased from 20 to 40 (75% fewer calculations)
     for (let y = 0; y < height; y += gridSize) {
       for (let x = 0; x < width; x += gridSize) {
         const i = (y * width + x) * 4;

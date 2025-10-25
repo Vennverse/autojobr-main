@@ -158,7 +158,7 @@ export default function VideoPractice() {
 
       // Request permissions with optimal settings - BOTH video AND audio
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
+        video: {
           width: { ideal: 1280 },
           height: { ideal: 720 },
           facingMode: 'user'
@@ -268,8 +268,8 @@ export default function VideoPractice() {
     const voices = window.speechSynthesis.getVoices();
 
     // Prefer Google US English or Microsoft voices for better quality
-    const preferredVoice = voices.find(voice => 
-      voice.name.includes('Google US English') || 
+    const preferredVoice = voices.find(voice =>
+      voice.name.includes('Google US English') ||
       voice.name.includes('Microsoft David') ||
       voice.name.includes('Alex') ||
       (voice.lang.includes('en') && voice.name.includes('Natural'))
@@ -630,7 +630,7 @@ export default function VideoPractice() {
       if (videoRef.current) {
         faceAnalysisRef.current = new SimpleFaceAnalysis(videoRef.current);
 
-        // Run analysis every 2 seconds
+        // Run analysis every 5 seconds
         analysisIntervalRef.current = setInterval(async () => {
           if (faceAnalysisRef.current) {
             const analysis = await faceAnalysisRef.current.analyzeFrame();
@@ -653,7 +653,7 @@ export default function VideoPractice() {
               setVideoFeedback('');
             }
           }
-        }, 2000);
+        }, 5000); // Reduced from 2s to 5s for 60% compute savings
       }
 
     } catch (error) {
@@ -886,7 +886,7 @@ export default function VideoPractice() {
                     <option value="behavioral">Behavioral Interview</option>
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
-                    {setupData.interviewType === 'technical' 
+                    {setupData.interviewType === 'technical'
                       ? 'Focus on technical skills, problem-solving, and domain knowledge'
                       : 'Focus on past experiences, soft skills, and situational responses'}
                   </p>
@@ -929,9 +929,9 @@ export default function VideoPractice() {
               </div>
 
               <div className="space-y-3">
-                <Button 
-                  onClick={startSession} 
-                  className="w-full" 
+                <Button
+                  onClick={startSession}
+                  className="w-full"
                   size="lg"
                   disabled={loading || !setupData.role.trim()}
                 >
@@ -999,8 +999,8 @@ export default function VideoPractice() {
                           <span>Level: {session.difficulty}</span>
                         </div>
                         <p className="text-gray-500">
-                          {new Date(session.createdAt).toLocaleDateString('en-US', { 
-                            month: 'short', 
+                          {new Date(session.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
                             day: 'numeric',
                             hour: '2-digit',
                             minute: '2-digit'
@@ -1014,9 +1014,9 @@ export default function VideoPractice() {
                           </p>
                         </div>
                       )}
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="w-full mt-2 text-xs"
                         onClick={() => setLocation(`/video-practice/feedback/${session.sessionId}`)}
                       >
@@ -1137,7 +1137,7 @@ export default function VideoPractice() {
                   const paymentData = await apiRequest('/api/video-practice/create-payment', 'POST', {
                     paymentMethod: selectedPaymentMethod
                   });
-                  
+
                   // Handle PayPal
                   if (selectedPaymentMethod === 'paypal') {
                     // Redirect to PayPal or open PayPal modal
@@ -1161,7 +1161,7 @@ export default function VideoPractice() {
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Pay $5 Now with {selectedPaymentMethod === 'paypal' ? 'PayPal' : 'Razorpay'}
             </Button>
-            
+
             <Button onClick={() => setShowPaymentModal(false)} variant="outline" className="w-full" data-testid="button-cancel-payment">
               Cancel
             </Button>
@@ -1388,7 +1388,7 @@ export default function VideoPractice() {
                 <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">
                   Get instant AI-powered feedback on your interview performance, body language, and communication skills
                 </p>
-                <Button 
+                <Button
                   className="w-full bg-blue-600 hover:bg-blue-700"
                   onClick={() => {
                     // Integrate with PayPal or other payment gateway
