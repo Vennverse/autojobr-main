@@ -387,6 +387,7 @@ function Router() {
               <Route path="/test-assignments" component={TestAssignments} />
               <Route path="/recruiter/test-management" component={TestManagement} />
               <Route path="/recruiter/test-assignments" component={TestAssignments} />
+              <Route path="/recruiter/scorecards" component={CollaborativeHiringScorecard} />ts} />
               <Route path="/recruiter/question-builder/:templateId">
                 {(params) => <QuestionBuilder templateId={parseInt(params.templateId)} />}
               </Route>
