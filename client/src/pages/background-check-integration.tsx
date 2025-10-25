@@ -158,7 +158,7 @@ export default function BackgroundCheckIntegration() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -266,10 +266,10 @@ export default function BackgroundCheckIntegration() {
       check.candidateName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       check.candidateEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
       check.jobTitle.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = statusFilter === "all" || check.status === statusFilter;
     const matchesProvider = providerFilter === "all" || check.provider === providerFilter;
-    
+
     return matchesSearch && matchesStatus && matchesProvider;
   });
 
@@ -337,7 +337,7 @@ export default function BackgroundCheckIntegration() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800">
       <RecruiterNavbar user={user} />
-      
+
       <div className="container mx-auto px-4 py-8 space-y-6">
         {/* Header */}
         <motion.div 
@@ -353,7 +353,7 @@ export default function BackgroundCheckIntegration() {
               Streamline background verification and compliance screening
             </p>
           </div>
-          
+
           <div className="flex flex-wrap gap-3">
             <Button
               onClick={() => setShowNewCheckDialog(true)}
@@ -392,7 +392,7 @@ export default function BackgroundCheckIntegration() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -406,7 +406,7 @@ export default function BackgroundCheckIntegration() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -420,7 +420,7 @@ export default function BackgroundCheckIntegration() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -462,7 +462,7 @@ export default function BackgroundCheckIntegration() {
                       />
                     </div>
                   </div>
-                  
+
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-48" data-testid="select-status-filter">
                       <SelectValue placeholder="All Statuses" />
@@ -476,7 +476,7 @@ export default function BackgroundCheckIntegration() {
                       <SelectItem value="cancelled">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
-                  
+
                   <Select value={providerFilter} onValueChange={setProviderFilter}>
                     <SelectTrigger className="w-48" data-testid="select-provider-filter">
                       <SelectValue placeholder="All Providers" />
@@ -499,7 +499,7 @@ export default function BackgroundCheckIntegration() {
               {filteredChecks.map((check) => {
                 const statusDisplay = getStatusDisplay(check.status);
                 const StatusIcon = statusDisplay.icon;
-                
+
                 return (
                   <motion.div
                     key={check.id}
@@ -527,7 +527,7 @@ export default function BackgroundCheckIntegration() {
                           </Badge>
                         </div>
                       </CardHeader>
-                      
+
                       <CardContent className="space-y-4">
                         <div className="grid grid-cols-2 gap-3 text-sm">
                           <div>
@@ -600,7 +600,7 @@ export default function BackgroundCheckIntegration() {
                             <Eye className="w-3 h-3 mr-1" />
                             View
                           </Button>
-                          
+
                           {check.status === "completed" && (
                             <Button 
                               size="sm" 
@@ -612,7 +612,7 @@ export default function BackgroundCheckIntegration() {
                               Export
                             </Button>
                           )}
-                          
+
                           {["pending", "in_progress"].includes(check.status) && (
                             <Button 
                               size="sm" 
@@ -671,7 +671,7 @@ export default function BackgroundCheckIntegration() {
                       </Badge>
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent className="space-y-4">
                     <div>
                       <h4 className="font-medium mb-2">Pricing</h4>
@@ -754,7 +754,7 @@ export default function BackgroundCheckIntegration() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
                   <Label>Auto-approval Threshold</Label>
                   <Select defaultValue="low">
@@ -768,7 +768,7 @@ export default function BackgroundCheckIntegration() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
                   <Label>FCRA Compliance Mode</Label>
                   <Select defaultValue="strict">
@@ -792,7 +792,7 @@ export default function BackgroundCheckIntegration() {
             <DialogHeader>
               <DialogTitle>Start New Background Check</DialogTitle>
             </DialogHeader>
-            
+
             <div className="space-y-6 mt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -813,7 +813,7 @@ export default function BackgroundCheckIntegration() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
                   <Label>Background Check Provider</Label>
                   <Select value={selectedProvider} onValueChange={setSelectedProvider}>
@@ -830,7 +830,7 @@ export default function BackgroundCheckIntegration() {
                   </Select>
                 </div>
               </div>
-              
+
               <div>
                 <Label>Check Type</Label>
                 <Select value={checkType} onValueChange={setCheckType}>
@@ -845,7 +845,7 @@ export default function BackgroundCheckIntegration() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               {checkType === "custom" && (
                 <div>
                   <Label>Custom Checks</Label>
@@ -870,7 +870,7 @@ export default function BackgroundCheckIntegration() {
                   </div>
                 </div>
               )}
-              
+
               <div className="flex justify-end gap-3">
                 <Button variant="outline" onClick={() => setShowNewCheckDialog(false)}>
                   Cancel
