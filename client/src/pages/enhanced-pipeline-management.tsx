@@ -910,168 +910,186 @@ Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gray-50 dark:from-gray-900 dark:to-gray-800">
       <RecruiterNavbar user={user} />
       
-      <div className="container mx-auto px-4 py-8 space-y-6">
-        {/* Header */}
+      <div className="container mx-auto px-4 py-6 space-y-6">
+        {/* Simplified Header */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6"
         >
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Recruitment Pipeline
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-1">
-              Manage candidates through your hiring process
-            </p>
-          </div>
-          
-          <div className="flex flex-wrap gap-3">
-            <Button
-              variant={viewMode === "kanban" ? "default" : "outline"}
-              onClick={() => setViewMode("kanban")}
-              data-testid="button-kanban-view"
-            >
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Kanban
-            </Button>
-            <Button
-              variant={viewMode === "list" ? "default" : "outline"}
-              onClick={() => setViewMode("list")}
-              data-testid="button-list-view"
-            >
-              <Users className="w-4 h-4 mr-2" />
-              List
-            </Button>
-            <Button 
-              onClick={() => refetchApplications()}
-              variant="outline"
-              data-testid="button-refresh"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
-            </Button>
-            <Button 
-              onClick={handleExportCSV}
-              variant="outline"
-              data-testid="button-export-csv"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Download CSV
-            </Button>
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Recruitment Pipeline
+              </h1>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                {filteredApplications.length} candidates • Drag & drop to move between stages
+              </p>
+            </div>
+            
+            <div className="flex flex-wrap gap-2">
+              <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                <Button
+                  variant={viewMode === "kanban" ? "default" : "ghost"}
+                  onClick={() => setViewMode("kanban")}
+                  size="sm"
+                  className="px-3"
+                  data-testid="button-kanban-view"
+                >
+                  <BarChart3 className="w-4 h-4 mr-1" />
+                  Board
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "default" : "ghost"}
+                  onClick={() => setViewMode("list")}
+                  size="sm"
+                  className="px-3"
+                  data-testid="button-list-view"
+                >
+                  <Users className="w-4 h-4 mr-1" />
+                  List
+                </Button>
+              </div>
+              
+              <Button 
+                onClick={() => refetchApplications()}
+                variant="outline"
+                size="sm"
+                data-testid="button-refresh"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+              <Button 
+                onClick={handleExportCSV}
+                variant="outline"
+                size="sm"
+                data-testid="button-export-csv"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </div>
           </div>
         </motion.div>
 
-        {/* Analytics Overview */}
-        {analytics && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="grid grid-cols-1 md:grid-cols-4 gap-4"
-          >
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Candidates</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{analytics.totalCandidates || filteredApplications.length}</p>
-                  </div>
-                  <Users className="w-8 h-8 text-blue-500" />
+        {/* Simplified Analytics */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-3"
+        >
+          <Card className="bg-white dark:bg-gray-800 border-l-4 border-l-blue-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Total</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                    {filteredApplications.length}
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-300">In Progress</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                      {filteredApplications.filter(app => !["hired", "rejected"].includes(app.status)).length}
-                    </p>
-                  </div>
-                  <Activity className="w-8 h-8 text-yellow-500" />
+                <Users className="w-6 h-6 text-blue-500" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-white dark:bg-gray-800 border-l-4 border-l-yellow-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Active</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                    {filteredApplications.filter(app => !["hired", "rejected"].includes(app.status)).length}
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Hired</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                      {filteredApplications.filter(app => app.status === "hired").length}
-                    </p>
-                  </div>
-                  <CheckCircle className="w-8 h-8 text-green-500" />
+                <Activity className="w-6 h-6 text-yellow-500" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-white dark:bg-gray-800 border-l-4 border-l-green-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Hired</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                    {filteredApplications.filter(app => app.status === "hired").length}
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Success Rate</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                      {filteredApplications.length > 0 ? Math.round((filteredApplications.filter(app => app.status === "hired").length / filteredApplications.length) * 100) : 0}%
-                    </p>
-                  </div>
-                  <TrendingUp className="w-8 h-8 text-purple-500" />
+                <CheckCircle className="w-6 h-6 text-green-500" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-white dark:bg-gray-800 border-l-4 border-l-purple-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Success</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                    {filteredApplications.length > 0 ? Math.round((filteredApplications.filter(app => app.status === "hired").length / filteredApplications.length) * 100) : 0}%
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
+                <TrendingUp className="w-6 h-6 text-purple-500" />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        {/* Filters */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-col lg:flex-row gap-4">
-              <div className="flex-1">
+        {/* Clearer Filters */}
+        <Card className="bg-white dark:bg-gray-800">
+          <CardContent className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="md:col-span-1">
+                <Label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Search</Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
-                    placeholder="Search candidates by name, email, or job title..."
+                    placeholder="Name, email, or job..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 h-9"
                     data-testid="input-search-candidates"
                   />
                 </div>
               </div>
               
-              <Select value={selectedJob} onValueChange={setSelectedJob}>
-                <SelectTrigger className="w-48" data-testid="select-job-filter">
-                  <SelectValue placeholder="All Jobs" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Jobs</SelectItem>
-                  {jobs.map((job: any) => (
-                    <SelectItem key={job.id} value={job.id.toString()}>
-                      {job.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div>
+                <Label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Job Position</Label>
+                <Select value={selectedJob} onValueChange={setSelectedJob}>
+                  <SelectTrigger className="h-9" data-testid="select-job-filter">
+                    <SelectValue placeholder="All Jobs" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Jobs</SelectItem>
+                    {jobs.map((job: any) => (
+                      <SelectItem key={job.id} value={job.id.toString()}>
+                        {job.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               
-              <Select value={selectedStage} onValueChange={setSelectedStage}>
-                <SelectTrigger className="w-48" data-testid="select-stage-filter">
-                  <SelectValue placeholder="All Stages" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Stages</SelectItem>
-                  {PIPELINE_STAGES.map((stage) => (
-                    <SelectItem key={stage.id} value={stage.id}>
-                      {stage.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div>
+                <Label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Stage</Label>
+                <Select value={selectedStage} onValueChange={setSelectedStage}>
+                  <SelectTrigger className="h-9" data-testid="select-stage-filter">
+                    <SelectValue placeholder="All Stages" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Stages</SelectItem>
+                    {PIPELINE_STAGES.map((stage) => (
+                      <SelectItem key={stage.id} value={stage.id}>
+                        {stage.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -1165,9 +1183,10 @@ Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
           </CardContent>
         </Card>
 
-        {/* Pipeline View */}
+        {/* Improved Pipeline View */}
         {viewMode === "kanban" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+          <div className="overflow-x-auto">
+            <div className="inline-flex gap-4 pb-4 min-w-full">
             {pipelineStages.map((stage) => {
               const StageIcon = stage.icon;
               return (
@@ -1175,24 +1194,27 @@ Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
                   key={stage.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+                  className="flex-shrink-0 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-sm border-2 border-gray-200 dark:border-gray-700 flex flex-col"
+                  style={{ maxHeight: 'calc(100vh - 400px)' }}
                 >
-                  <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="p-3 border-b-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-t-lg">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <StageIcon className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                        <span className="font-medium text-sm text-gray-900 dark:text-white">
+                        <div className={`w-8 h-8 rounded-lg ${stage.color} bg-opacity-20 flex items-center justify-center`}>
+                          <StageIcon className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+                        </div>
+                        <span className="font-semibold text-sm text-gray-900 dark:text-white">
                           {stage.name}
                         </span>
                       </div>
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className="text-xs font-bold">
                         {stage.count}
                       </Badge>
                     </div>
                   </div>
                   
                   <div 
-                    className="p-2 space-y-2 max-h-96 overflow-y-auto"
+                    className="flex-1 p-2 space-y-2 overflow-y-auto"
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, stage.id)}
                   >
@@ -1203,220 +1225,119 @@ Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.95 }}
-                          whileHover={{ scale: 1.02 }}
-                          className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 cursor-move hover:shadow-md transition-all"
+                          whileHover={{ scale: 1.01, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+                          className="p-3 bg-white dark:bg-gray-700 rounded-lg border-2 border-gray-100 dark:border-gray-600 cursor-move hover:border-blue-300 transition-all"
                           onClick={() => setSelectedApplication(application)}
                           draggable
                           onDragStart={(e) => handleDragStart(e, application.id)}
                           onDragEnd={handleDragEnd}
                           data-testid={`card-application-${application.id}`}
                         >
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={bulkSelection.has(application.id)}
-                                onChange={(e) => {
-                                  e.stopPropagation();
-                                  toggleBulkSelection(application.id);
-                                }}
-                                className="rounded"
-                                data-testid={`checkbox-application-${application.id}`}
-                              />
-                              <Avatar className="w-8 h-8">
+                          {/* Candidate Header */}
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <Avatar className="w-9 h-9 border-2 border-gray-200">
                                 <AvatarImage src={application.candidate.avatar} />
-                                <AvatarFallback>
+                                <AvatarFallback className="bg-blue-100 text-blue-700 text-xs font-bold">
                                   {application.candidate.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>
-                            </div>
-                            {/* Enhanced Fit Score Display */}
-                            {application.fitScore ? (
-                              <div className="flex items-center gap-2">
-                                <Badge 
-                                  variant="outline" 
-                                  className={`text-xs ${
-                                    application.fitScore >= 80 ? 'border-green-500 text-green-700 bg-green-50' :
-                                    application.fitScore >= 60 ? 'border-yellow-500 text-yellow-700 bg-yellow-50' :
-                                    'border-red-500 text-red-700 bg-red-50'
-                                  }`}
-                                >
-                                  {application.fitScore}%
-                                </Badge>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-sm text-gray-900 dark:text-white truncate">
+                                  {application.candidate.name}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                  {application.job.title}
+                                </p>
                               </div>
-                            ) : (
-                              <Badge variant="outline" className="text-xs border-gray-400">
-                                N/A
+                            </div>
+                            {application.fitScore && (
+                              <Badge 
+                                className={`text-xs font-bold ${
+                                  application.fitScore >= 80 ? 'bg-green-100 text-green-700' :
+                                  application.fitScore >= 60 ? 'bg-yellow-100 text-yellow-700' :
+                                  'bg-red-100 text-red-700'
+                                }`}
+                              >
+                                {application.fitScore}%
                               </Badge>
                             )}
                           </div>
                           
-                          <div className="space-y-1">
-                            <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
-                              {application.candidate.name}
-                            </p>
-                            <p className="text-xs text-gray-600 dark:text-gray-300 truncate">
-                              {application.candidate.professionalTitle || "Candidate"}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                              {application.job.title}
-                            </p>
-                            
-                            {/* Enhanced Resume Analytics Display */}
-                            {(application.seniorityLevel || application.totalExperience || application.highestDegree) && (
-                              <div className="flex flex-wrap gap-1 mt-2">
-                                {application.seniorityLevel && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    {application.seniorityLevel}
-                                  </Badge>
-                                )}
-                                {application.totalExperience && application.totalExperience > 0 && (
-                                  <Badge variant="outline" className="text-xs text-blue-600">
-                                    {application.totalExperience}y exp
-                                  </Badge>
-                                )}
-                                {application.highestDegree && application.highestDegree !== "High School" && (
-                                  <Badge variant="outline" className="text-xs text-purple-600">
-                                    {application.highestDegree}
-                                  </Badge>
-                                )}
-                              </div>
-                            )}
-                            
-                            {/* Skills Match Display */}
-                            {application.matchedSkills && application.matchedSkills.length > 0 && (
-                              <div className="mt-1">
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  Skills: {application.matchedSkills.slice(0, 3).join(", ")}
-                                  {application.matchedSkills.length > 3 && " +" + (application.matchedSkills.length - 3)}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-500 dark:text-gray-400">
-                                {new Date(application.appliedAt).toLocaleDateString()}
-                              </span>
-                              {application.fitScore && (
-                                <Badge 
-                                  variant={application.fitScore >= 80 ? "default" : application.fitScore >= 60 ? "secondary" : "outline"}
-                                  className="text-xs"
-                                >
-                                  {application.fitScore}% match
+                          {/* Quick Info Tags */}
+                          {(application.seniorityLevel || application.totalExperience) && (
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {application.seniorityLevel && (
+                                <Badge variant="secondary" className="text-xs py-0">
+                                  {application.seniorityLevel}
+                                </Badge>
+                              )}
+                              {application.totalExperience && application.totalExperience > 0 && (
+                                <Badge variant="outline" className="text-xs py-0">
+                                  {application.totalExperience}y
                                 </Badge>
                               )}
                             </div>
-                            {/* Enhanced Action Buttons from Original Pipeline */}
-                            <div className="flex gap-1 flex-wrap mt-2">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 px-2 text-xs text-blue-600 hover:bg-blue-50"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedNlpApplication(application);
-                                }}
-                                title="View AI NLP Insights"
-                              >
-                                <BarChart3 className="w-3 h-3 mr-1" />
-                                NLP
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 px-2 text-xs text-green-600 hover:bg-green-50"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // Open resume in new tab for analysis
-                                  if (application.candidate.resumeUrl) {
-                                    window.open(application.candidate.resumeUrl, '_blank');
-                                  }
-                                  toast({
-                                    title: "Resume Analysis",
-                                    description: "Opening resume for ATS scoring...",
-                                  });
-                                }}
-                                title="Resume & ATS Score"
-                              >
-                                <FileText className="w-3 h-3 mr-1" />
-                                Resume
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 px-2 text-xs text-purple-600 hover:bg-purple-50"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  window.open(`/chat?user=${application.candidate.id}`, '_blank');
-                                }}
-                                title="Start AI Chat"
-                              >
-                                <MessageCircle className="w-3 h-3 mr-1" />
-                                Chat
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 px-2 text-xs text-orange-600 hover:bg-orange-50"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedApplication(application);
-                                  setShowInterviewDialog(true);
-                                  setInterviewAssignmentData((prev) => ({
-                                    ...prev,
-                                    role: application.job?.title || "",
-                                    candidateId: application.candidate.id,
-                                    jobPostingId: application.job.id.toString(),
-                                  }));
-                                }}
-                                title="Assign AI Interview"
-                                data-testid={`button-interview-kanban-${application.id}`}
-                              >
-                                <Video className="w-3 h-3 mr-1" />
-                                Interview
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 px-2 text-xs text-red-600 hover:bg-red-50"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedApplication(application);
-                                  setShowInterviewDialog(true);
-                                  setInterviewAssignmentData((prev) => ({
-                                    ...prev,
-                                    assignmentType: "test",
-                                    role: application.job?.title || "",
-                                    candidateId: application.candidate.id,
-                                    jobPostingId: application.job.id.toString(),
-                                  }));
-                                }}
-                                title="Assign Test"
-                                data-testid={`button-test-kanban-${application.id}`}
-                              >
-                                <Code className="w-3 h-3 mr-1" />
-                                Test
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 px-2 text-xs text-indigo-600 hover:bg-indigo-50"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleScheduleAppointment(application);
-                                }}
-                                title="Schedule Appointment"
-                                data-testid={`button-schedule-kanban-${application.id}`}
-                              >
-                                <Calendar className="w-3 h-3 mr-1" />
-                                Schedule
-                              </Button>
-                            </div>
+                          )}
+                          
+                          {/* Action Buttons - Simplified */}
+                          <div className="flex gap-1 pt-2 border-t border-gray-100 dark:border-gray-600">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-xs flex-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedApplication(application);
+                              }}
+                              title="View Details"
+                            >
+                              <Eye className="w-3 h-3 mr-1" />
+                              View
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-xs flex-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedApplication(application);
+                                setShowInterviewDialog(true);
+                                setInterviewAssignmentData((prev) => ({
+                                  ...prev,
+                                  role: application.job?.title || "",
+                                  candidateId: application.candidate.id,
+                                  jobPostingId: application.job.id.toString(),
+                                }));
+                              }}
+                              title="Interview"
+                              data-testid={`button-interview-kanban-${application.id}`}
+                            >
+                              <Video className="w-3 h-3 mr-1" />
+                              Meet
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleScheduleAppointment(application);
+                              }}
+                              title="Schedule"
+                              data-testid={`button-schedule-kanban-${application.id}`}
+                            >
+                              <Calendar className="w-3 h-3" />
+                            </Button>
                           </div>
                         </motion.div>
                       ))}
+                      {stage.applications.length === 0 && (
+                        <div className="text-center py-8 text-gray-400">
+                          <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                          <p className="text-xs">No candidates</p>
+                        </div>
+                      )}
                     </AnimatePresence>
                   </div>
                 </motion.div>
