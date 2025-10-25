@@ -98,6 +98,9 @@ import BestJobApplicationTools from "@/pages/seo/BestJobApplicationTools";
 import RemoteJobsStudents from "@/pages/seo/RemoteJobsStudents";
 import OneClickApplyJobs from "@/pages/seo/OneClickApplyJobs";
 import JobApplicationAutofillExtension from "@/pages/seo/JobApplicationAutofillExtension";
+import GreenhouseAlternative from "@/pages/greenhouse-alternative";
+import AtsForStartups from "@/pages/ats-for-startups";
+import AiInterviewPlatform from "@/pages/ai-interview-platform";
 
 // Public Pages
 import About from "@/pages/about";
@@ -277,6 +280,17 @@ function Router() {
       <Route path="/auto-apply-1000-jobs-daily" component={FreeJobApplicationAutomation} />
       <Route path="/linkedin-auto-apply-bot" component={ChromeExtension} />
       <Route path="/indeed-auto-apply-tool" component={ChromeExtension} />
+      
+      {/* Competitive ATS SEO Pages - Target Greenhouse, Workday, Lever customers */}
+      <Route path="/greenhouse-alternative" component={GreenhouseAlternative} />
+      <Route path="/ats-for-startups" component={AtsForStartups} />
+      <Route path="/ai-interview-platform" component={AiInterviewPlatform} />
+      <Route path="/greenhouse-alternative-pricing" component={GreenhouseAlternative} />
+      <Route path="/affordable-ats-software" component={AtsForStartups} />
+      <Route path="/applicant-tracking-system" component={AtsForStartups} />
+      <Route path="/recruiting-software-startups" component={AtsForStartups} />
+      <Route path="/virtual-interview-software" component={AiInterviewPlatform} />
+      <Route path="/automated-candidate-screening" component={AiInterviewPlatform} />
 
       {/* Strategic Long-Tail SEO Pages */}
       <Route path="/best-job-application-tools-2025" component={BestJobApplicationTools} />

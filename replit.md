@@ -3,6 +3,15 @@
 ## Overview
 AutoJobr is a full-stack web application designed to automate and streamline the job application process. Its primary purpose is to help users efficiently apply to a large volume of jobs by providing features such as ATS resume optimization, AI-powered cover letter generation, interview preparation, and a Chrome extension for one-click applications. The platform aims to simplify job searching, enhance application quality, and provide tools for career advancement, positioning itself as a comprehensive solution for job seekers.
 
+## Recent Changes (October 25, 2025)
+- **SEO Landing Pages & Feature Enhancements**: Created world-class competitive landing pages and strategic improvements:
+  - **Greenhouse Alternative Page** (`/greenhouse-alternative`): Comprehensive comparison page targeting companies considering Greenhouse alternatives, highlighting 90% cost savings ($6,500/year → $588/year), AI features Greenhouse lacks, and detailed feature comparison table
+  - **ATS for Startups Page** (`/ats-for-startups`): Startup-focused landing page addressing pain points of expensive enterprise ATS systems, with stage-specific features (Pre-Seed to Series C+), unique value props, and simple pricing
+  - **AI Interview Platform Page** (`/ai-interview-platform`): Showcase of AI-powered virtual interview capabilities with video and chat options, industry templates, anti-cheating features, and 80% time-saving ROI metrics
+  - **Enhanced RecruiterNavbar**: Added "More Tools" dropdown organizing all recruiter features into categories (Hiring & Interviews, Sourcing & Targeting, Management Tools) with icons and premium indicators
+  - **SEO Routing Strategy**: Multiple URL variants for each page targeting different search queries (e.g., /applicant-tracking-system, /affordable-ats-software, /recruiting-software-startups all route to ATS for Startups page)
+  - **Competitive Analysis Documentation**: Created COMPETITIVE_ADVANTAGES.md outlining 12 unique features AutoJobr has that Greenhouse/Workday/Lever don't have, market positioning strategy, and SEO content roadmap
+
 ## Recent Changes (October 19, 2025)
 - **LinkedIn Optimizer Integration & Platform Improvements**: Enhanced the LinkedIn Profile Optimizer feature and fixed critical platform issues:
   - **OAuth Fixes**: Fixed Google and LinkedIn OAuth callback URLs to use dynamic baseUrl instead of hard-coded autojobr.com, enabling OAuth to work in all environments (development, staging, production)
