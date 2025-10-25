@@ -2594,6 +2594,171 @@ Return only the improved job description text, no additional formatting or expla
     }
   });
 
+  // ===== SSO CONFIGURATION ROUTES =====
+  app.get('/api/admin/sso/providers', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'admin' && user?.email !== 'admin@autojobr.com') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const providers = await ssoService.getProviders();
+      res.json(providers);
+    } catch (error) {
+      console.error('[SSO] Get providers error:', error);
+      handleError(res, error, 'Failed to fetch SSO providers');
+    }
+  });
+
+  app.post('/api/admin/sso/providers', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'admin' && user?.email !== 'admin@autojobr.com') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const provider = await ssoService.saveProvider(req.body);
+      res.json(provider);
+    } catch (error) {
+      console.error('[SSO] Create provider error:', error);
+      handleError(res, error, 'Failed to create SSO provider');
+    }
+  });
+
+  app.put('/api/admin/sso/providers/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'admin' && user?.email !== 'admin@autojobr.com') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const provider = await ssoService.saveProvider({ ...req.body, id: req.params.id });
+      res.json(provider);
+    } catch (error) {
+      console.error('[SSO] Update provider error:', error);
+      handleError(res, error, 'Failed to update SSO provider');
+    }
+  });
+
+  app.delete('/api/admin/sso/providers/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'admin' && user?.email !== 'admin@autojobr.com') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      await ssoService.deleteProvider(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[SSO] Delete provider error:', error);
+      handleError(res, error, 'Failed to delete SSO provider');
+    }
+  });
+
+  app.post('/api/admin/sso/providers/:id/toggle', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'admin' && user?.email !== 'admin@autojobr.com') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      await ssoService.toggleProvider(req.params.id, req.body.isActive);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[SSO] Toggle provider error:', error);
+      handleError(res, error, 'Failed to toggle SSO provider');
+    }
+  });
+
+  app.post('/api/admin/sso/providers/:id/test', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'admin' && user?.email !== 'admin@autojobr.com') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const result = await ssoService.testConnection(req.params.id);
+      res.json(result);
+    } catch (error) {
+      console.error('[SSO] Test connection error:', error);
+      handleError(res, error, 'Failed to test SSO connection');
+    }
+  });
+
+  app.get('/api/admin/sso/sessions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'admin' && user?.email !== 'admin@autojobr.com') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const sessions = await ssoService.getActiveSessions();
+      res.json(sessions);
+    } catch (error) {
+      console.error('[SSO] Get sessions error:', error);
+      handleError(res, error, 'Failed to fetch SSO sessions');
+    }
+  });
+
+  app.post('/api/admin/sso/sessions/:id/revoke', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'admin' && user?.email !== 'admin@autojobr.com') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      await ssoService.revokeSession(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[SSO] Revoke session error:', error);
+      handleError(res, error, 'Failed to revoke SSO session');
+    }
+  });
+
+  app.get('/api/admin/sso/analytics', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'admin' && user?.email !== 'admin@autojobr.com') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const analytics = await ssoService.getAnalytics();
+      res.json(analytics);
+    } catch (error) {
+      console.error('[SSO] Get analytics error:', error);
+      handleError(res, error, 'Failed to fetch SSO analytics');
+    }
+  });
+
+  app.get('/api/admin/sso/saml/metadata', async (req: any, res) => {
+    try {
+      const metadata = ssoService.generateSAMLMetadata();
+      res.set('Content-Type', 'application/xml');
+      res.send(metadata);
+    } catch (error) {
+      console.error('[SSO] Generate metadata error:', error);
+      handleError(res, error, 'Failed to generate SAML metadata');
+    }
+  });
+
   // ===== MOUNT PAYMENT ROUTES =====
   const { paymentRoutes } = await import('./paymentRoutes.js');
   app.use('/api/payments', paymentRoutes);
