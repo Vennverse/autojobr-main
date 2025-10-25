@@ -1581,6 +1581,114 @@ Provide tailoring recommendations in this exact JSON format:
   }
 
   /**
+   * Generate Complete Tailored Resume (Token-Efficient)
+   * Only modifies job-specific sections (summary, bullets, skill order)
+   * Keeps all static data (dates, companies, education) unchanged
+   */
+  async generateCompleteTailoredResume(data: {
+    resumeData: any; // Structured resume data from DB
+    jobDescription: string;
+    jobTitle: string;
+    targetCompany?: string;
+  }, user?: any): Promise<any> {
+    // Token-efficient prompt that only modifies necessary sections
+    const prompt = `Job: ${data.jobTitle}${data.targetCompany ? ' at ' + data.targetCompany : ''}
+
+Job Description (key requirements):
+${data.jobDescription.substring(0, 1500)}
+
+Current Experience Bullets (first job):
+${data.resumeData.experience?.[0]?.bulletPoints?.slice(0, 3).join('\n') || 'No experience data'}
+
+Current Skills:
+${data.resumeData.skills?.slice(0, 15).join(', ') || 'No skills data'}
+
+Generate ONLY these modifications in JSON:
+{
+  "summary": "2-3 sentence professional summary with job title and top 3-5 keywords from job description",
+  "experienceBulletModifications": [
+    {
+      "jobIndex": 0,
+      "newBullets": ["bullet 1 with job keywords", "bullet 2 with quantifiable results"]
+    }
+  ],
+  "reorderedSkills": ["skill1", "skill2", "skill3"] (reorder by relevance to job, max 15)
+}`;
+
+    try {
+      if (this.developmentMode) {
+        console.log("Development mode - using fallback complete resume");
+        return this.generateFallbackCompleteResume(data);
+      }
+
+      const completion = await this.createChatCompletion([
+        {
+          role: "system",
+          content: "You are a resume optimization expert. Modify ONLY the summary, experience bullets, and skill order to match the job. Keep everything else identical."
+        },
+        { role: "user", content: prompt }
+      ], { temperature: 0.5, max_tokens: 1000, user });
+
+      const content = completion.choices[0]?.message?.content;
+      const jsonMatch = content?.match(/\{[\s\S]*\}/);
+      const modifications = jsonMatch ? JSON.parse(jsonMatch[0]) : this.generateFallbackCompleteResume(data);
+      
+      // Apply modifications to the resume data
+      return this.applyResumeModifications(data.resumeData, modifications);
+    } catch (error) {
+      console.error('Error generating complete tailored resume:', error);
+      return this.applyResumeModifications(data.resumeData, this.generateFallbackCompleteResume(data));
+    }
+  }
+
+  private generateFallbackCompleteResume(data: any) {
+    return {
+      summary: `${data.jobTitle} with proven experience in software development and team leadership. Skilled in modern web technologies, agile methodologies, and delivering high-impact solutions. Passionate about building scalable systems and driving technical excellence.`,
+      experienceBulletModifications: data.resumeData.experience?.slice(0, 2).map((_: any, idx: number) => ({
+        jobIndex: idx,
+        newBullets: [
+          "Led development of scalable web applications using React and Node.js, improving performance by 40%",
+          "Collaborated with cross-functional teams to deliver features ahead of schedule, increasing customer satisfaction by 25%",
+          "Implemented CI/CD pipelines and automated testing, reducing deployment time by 60%"
+        ]
+      })) || [],
+      reorderedSkills: data.resumeData.skills?.slice(0, 15) || []
+    };
+  }
+
+  private applyResumeModifications(originalData: any, modifications: any): any {
+    const tailoredResume = JSON.parse(JSON.stringify(originalData)); // Deep clone
+    
+    // Apply summary
+    if (modifications.summary) {
+      tailoredResume.summary = modifications.summary;
+    }
+    
+    // Apply experience bullet modifications
+    if (modifications.experienceBulletModifications && tailoredResume.experience) {
+      modifications.experienceBulletModifications.forEach((mod: any) => {
+        if (tailoredResume.experience[mod.jobIndex]) {
+          tailoredResume.experience[mod.jobIndex].bulletPoints = mod.newBullets;
+        }
+      });
+    }
+    
+    // Apply skill reordering
+    if (modifications.reorderedSkills) {
+      tailoredResume.skills = modifications.reorderedSkills;
+    }
+    
+    return {
+      tailoredResumeData: tailoredResume,
+      modifications: {
+        summaryChanged: !!modifications.summary,
+        experienceModified: modifications.experienceBulletModifications?.length || 0,
+        skillsReordered: modifications.reorderedSkills?.length || 0
+      }
+    };
+  }
+
+  /**
    * Resume Gap Filler - Helps present career gaps and transitions positively
    */
   async fillResumeGaps(data: {

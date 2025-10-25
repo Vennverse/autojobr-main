@@ -118,6 +118,8 @@ export default function PremiumAITools() {
     targetCompany: ""
   });
   const [tailoredResume, setTailoredResume] = useState<any>(null);
+  const [completeResume, setCompleteResume] = useState<any>(null);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   // Resume Gap State
   const [gapData, setGapData] = useState({
@@ -285,7 +287,7 @@ export default function PremiumAITools() {
     }
   });
 
-  // Resume Tailor Mutation
+  // Resume Tailor Mutation (old recommendations version)
   const tailorMutation = useMutation({
     mutationFn: async () => {
       return await apiRequest('/api/premium/ai/tailor-resume', 'POST', {
@@ -307,6 +309,103 @@ export default function PremiumAITools() {
       });
     }
   });
+
+  // Complete Resume Generation Mutation (NEW - generates full resume PDF)
+  const completeResumeMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('/api/premium/ai/generate-tailored-resume', 'POST', {
+        jobDescription: tailorData.jobDescription,
+        jobTitle: tailorData.jobTitle,
+        targetCompany: tailorData.targetCompany || undefined
+      });
+    },
+    onSuccess: (data) => {
+      setCompleteResume(data);
+      toast({ 
+        title: "✨ Complete Resume Generated!", 
+        description: "Your tailored resume is ready. Click 'Download PDF' to save it." 
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message?.includes('premium') ? "This feature requires a Premium subscription." : 
+                     error.message?.includes('No structured') ? "Please complete your profile with experience and education first." :
+                     "Failed to generate resume.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Download PDF function
+  const downloadResumePdf = async () => {
+    if (!completeResume?.tailoredResume) {
+      toast({ title: "Error", description: "No resume data to download", variant: "destructive" });
+      return;
+    }
+
+    setIsDownloadingPdf(true);
+    try {
+      const response = await fetch('/api/premium/ai/download-tailored-resume-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // CRITICAL: Include session cookie for authentication
+        body: JSON.stringify({
+          resumeData: completeResume.tailoredResume,
+          templateStyle: 'harvard'
+        }),
+      });
+
+      if (!response.ok) {
+        // Handle specific error cases
+        const errorData = await response.json().catch(() => ({ message: 'Failed to download PDF' }));
+        
+        if (response.status === 401 || response.status === 403) {
+          toast({ 
+            title: "Authentication Required", 
+            description: errorData.message || "Please log in to download your resume", 
+            variant: "destructive" 
+          });
+        } else if (response.status === 400) {
+          toast({ 
+            title: "Invalid Data", 
+            description: errorData.message || "Resume data is invalid", 
+            variant: "destructive" 
+          });
+        } else {
+          toast({ 
+            title: "Download Failed", 
+            description: errorData.message || "Failed to generate PDF", 
+            variant: "destructive" 
+          });
+        }
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Tailored_Resume_${tailorData.jobTitle.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({ title: "Success!", description: "Resume PDF downloaded successfully" });
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      toast({ 
+        title: "Error", 
+        description: error instanceof Error ? error.message : "Failed to download PDF", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
 
   // Resume Gap Filler Mutation
   const gapMutation = useMutation({
@@ -1372,39 +1471,141 @@ export default function PremiumAITools() {
                       rows={4}
                     />
                   </div>
-                  <Button
-                    className="w-full"
-                    onClick={() => tailorMutation.mutate()}
-                    disabled={tailorMutation.isPending || (!userResume?.resumeText && !tailorData.resumeText) || !tailorData.jobDescription?.trim() || !tailorData.jobTitle?.trim()}
-                    data-testid="button-tailor-resume"
-                  >
-                    {tailorMutation.isPending ? (
-                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Analyzing & Tailoring...</>
-                    ) : (
-                      <><Target className="w-4 h-4 mr-2" /> Tailor Resume</>
-                    )}
-                  </Button>
+                  <div className="space-y-2">
+                    <Button
+                      className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                      onClick={() => completeResumeMutation.mutate()}
+                      disabled={completeResumeMutation.isPending || !tailorData.jobDescription?.trim() || !tailorData.jobTitle?.trim()}
+                      data-testid="button-generate-complete-resume"
+                    >
+                      {completeResumeMutation.isPending ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating Complete Resume...</>
+                      ) : (
+                        <><FileText className="w-4 h-4 mr-2" /> Generate Complete Resume & PDF</>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => tailorMutation.mutate()}
+                      disabled={tailorMutation.isPending || (!userResume?.resumeText && !tailorData.resumeText) || !tailorData.jobDescription?.trim() || !tailorData.jobTitle?.trim()}
+                      data-testid="button-tailor-resume"
+                    >
+                      {tailorMutation.isPending ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Analyzing...</>
+                      ) : (
+                        <><Target className="w-4 h-4 mr-2" /> Get Recommendations Only</>
+                      )}
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>Tailored Resume</CardTitle>
-                    {tailoredResume?.tailoredResume && (
+                    <CardTitle>
+                      {completeResume ? 'Your Tailored Resume' : 'Tailored Resume'}
+                    </CardTitle>
+                    {completeResume?.tailoredResume && (
                       <Button
-                        variant="outline"
+                        variant="default"
                         size="sm"
-                        onClick={() => copyToClipboard(tailoredResume.tailoredResume || '')}
-                        data-testid="button-copy-tailored-resume"
+                        onClick={downloadResumePdf}
+                        disabled={isDownloadingPdf}
+                        data-testid="button-download-pdf"
+                        className="bg-green-600 hover:bg-green-700"
                       >
-                        {copied ? <Check className="w-4 w-4" /> : <Copy className="w-4 h-4" />}
+                        {isDownloadingPdf ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Downloading...</>
+                        ) : (
+                          <><FileText className="w-4 h-4 mr-2" /> Download PDF</>
+                        )}
                       </Button>
                     )}
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {tailoredResume ? (
+                  {completeResume?.tailoredResume ? (
+                    <div className="space-y-4">
+                      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                        <div className="flex items-center gap-2 text-green-800 dark:text-green-300 mb-2">
+                          <CheckCircle className="h-5 w-5" />
+                          <h4 className="font-semibold">Resume Generated Successfully!</h4>
+                        </div>
+                        <p className="text-sm text-green-700 dark:text-green-400">
+                          Your resume has been tailored for {tailorData.jobTitle}
+                          {tailorData.targetCompany && ` at ${tailorData.targetCompany}`}.
+                          Click "Download PDF" to save it.
+                        </p>
+                      </div>
+                      
+                      {completeResume.modifications && (
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                          <h4 className="font-semibold mb-2 text-blue-800 dark:text-blue-200">✨ AI Modifications Applied:</h4>
+                          <ul className="space-y-1 text-sm">
+                            {completeResume.modifications.summaryChanged && (
+                              <li className="flex items-center gap-2">
+                                <Check className="w-4 h-4 text-blue-600" />
+                                Professional summary optimized with job keywords
+                              </li>
+                            )}
+                            {completeResume.modifications.experienceModified > 0 && (
+                              <li className="flex items-center gap-2">
+                                <Check className="w-4 h-4 text-blue-600" />
+                                {completeResume.modifications.experienceModified} experience section(s) enhanced
+                              </li>
+                            )}
+                            {completeResume.modifications.skillsReordered > 0 && (
+                              <li className="flex items-center gap-2">
+                                <Check className="w-4 h-4 text-blue-600" />
+                                Skills reordered by relevance to job
+                              </li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+
+                      <div className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
+                        <h4 className="font-semibold mb-3">Resume Preview:</h4>
+                        <div className="space-y-3 text-sm">
+                          <div>
+                            <p className="font-semibold text-lg">{completeResume.tailoredResume.fullName}</p>
+                            <p className="text-gray-600 dark:text-gray-400">{completeResume.tailoredResume.email}</p>
+                          </div>
+                          {completeResume.tailoredResume.summary && (
+                            <div>
+                              <p className="font-semibold">Professional Summary:</p>
+                              <p className="text-gray-700 dark:text-gray-300">{completeResume.tailoredResume.summary}</p>
+                            </div>
+                          )}
+                          {completeResume.tailoredResume.skills && completeResume.tailoredResume.skills.length > 0 && (
+                            <div>
+                              <p className="font-semibold">Top Skills:</p>
+                              <p className="text-gray-700 dark:text-gray-300">
+                                {completeResume.tailoredResume.skills.slice(0, 10).join(' • ')}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={downloadResumePdf}
+                          disabled={isDownloadingPdf}
+                          className="flex-1"
+                          data-testid="button-download-pdf-main"
+                        >
+                          {isDownloadingPdf ? (
+                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Downloading...</>
+                          ) : (
+                            <><FileText className="w-4 h-4 mr-2" /> Download PDF</>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : tailoredResume ? (
                     <div className="space-y-4">
                       {tailoredResume.atsScore && (
                         <div className={`p-6 rounded-lg border-2 ${

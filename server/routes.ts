@@ -6677,6 +6677,119 @@ Return ONLY the JSON object, no additional text.`;
     }
   }));
 
+  // PREMIUM ONLY: Generate Complete Tailored Resume with PDF
+  app.post('/api/premium/ai/generate-tailored-resume', isAuthenticated, asyncHandler(async (req: any, res) => {
+    try {
+      const { jobDescription, jobTitle, targetCompany } = req.body;
+      const userId = req.user.id;
+
+      if (!jobDescription || !jobTitle) {
+        return res.status(400).json({ message: 'Job description and job title are required' });
+      }
+
+      // Fetch user's profile data
+      const [userProfile, userExperience, userEducation, userSkills, activeResume] = await Promise.all([
+        db.select().from(schema.userProfiles).where(eq(schema.userProfiles.userId, userId)).limit(1),
+        db.select().from(schema.workExperience).where(eq(schema.workExperience.userId, userId)),
+        db.select().from(schema.education).where(eq(schema.education.userId, userId)),
+        db.select().from(schema.userSkills).where(eq(schema.userSkills.userId, userId)),
+        db.select().from(schema.resumes).where(and(eq(schema.resumes.userId, userId), eq(schema.resumes.isActive, true))).limit(1)
+      ]);
+
+      const profile = userProfile[0];
+
+      // Structure resume data
+      const resumeData = {
+        fullName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || profile?.fullName || 'Your Name',
+        email: req.user.email || '',
+        phone: profile?.phone || '',
+        location: profile?.location || '',
+        linkedinUrl: profile?.linkedinUrl || '',
+        githubUrl: profile?.githubUrl || '',
+        portfolioUrl: profile?.portfolioUrl || '',
+        summary: profile?.summary || '',
+        experience: userExperience.map(exp => ({
+          company: exp.company,
+          position: exp.position,
+          location: exp.location || '',
+          startDate: exp.startDate ? new Date(exp.startDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '',
+          endDate: exp.endDate ? new Date(exp.endDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '',
+          isCurrent: exp.isCurrent || false,
+          bulletPoints: exp.achievements || []
+        })),
+        education: userEducation.map(edu => ({
+          institution: edu.institution,
+          degree: edu.degree,
+          fieldOfStudy: edu.fieldOfStudy || '',
+          graduationYear: edu.graduationYear || undefined,
+          gpa: edu.gpa || '',
+          achievements: edu.achievements || []
+        })),
+        skills: userSkills.map(skill => skill.skillName),
+        certifications: profile?.relevantCertifications?.split(',').map((c: string) => c.trim()).filter(Boolean) || []
+      };
+
+      // Ensure we have some data to work with
+      if (!resumeData.experience.length && !resumeData.education.length && !resumeData.skills.length) {
+        // Try to extract from resume text if available
+        if (activeResume[0]?.resumeText) {
+          return res.status(400).json({
+            message: 'No structured resume data found. Please complete your profile first.',
+            hint: 'Visit /profile to add your experience, education, and skills.'
+          });
+        }
+      }
+
+      // Generate AI-tailored resume
+      const enhancedUser = { ...req.user, profile };
+      const tailoredResult = await aiService.generateCompleteTailoredResume(
+        { resumeData, jobDescription, jobTitle, targetCompany },
+        enhancedUser
+      );
+
+      // Return the tailored resume data for preview and PDF generation
+      res.json({
+        success: true,
+        tailoredResume: tailoredResult.tailoredResumeData,
+        modifications: tailoredResult.modifications,
+        originalData: resumeData
+      });
+
+    } catch (error: any) {
+      console.error('Error generating tailored resume:', error);
+      if (error.message?.includes('premium feature')) {
+        return res.status(403).json({ message: error.message });
+      }
+      res.status(500).json({ message: 'Failed to generate tailored resume' });
+    }
+  }));
+
+  // Generate PDF from tailored resume data
+  app.post('/api/premium/ai/download-tailored-resume-pdf', isAuthenticated, asyncHandler(async (req: any, res) => {
+    try {
+      const { resumeData, templateStyle } = req.body;
+
+      if (!resumeData) {
+        return res.status(400).json({ message: 'Resume data is required' });
+      }
+
+      // Import PDF generator
+      const { resumePdfGenerator } = await import('./resumePdfGenerator');
+      
+      // Generate PDF
+      const pdfBuffer = await resumePdfGenerator.generatePdf(resumeData, templateStyle || 'harvard');
+
+      // Set headers for PDF download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="Tailored_Resume_${Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+
+    } catch (error: any) {
+      console.error('Error generating PDF:', error);
+      res.status(500).json({ message: 'Failed to generate PDF' });
+    }
+  }));
+
   // ============ RANKING TEST API ROUTES ============
 
   // Get available test categories and domains
