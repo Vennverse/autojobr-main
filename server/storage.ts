@@ -1204,6 +1204,8 @@ export class DatabaseStorage implements IStorage {
           jobPostingWorkMode: jobPostings.workMode,
           // Include applicant information
           applicantName: sql`CONCAT(${users.firstName}, ' ', ${users.lastName})`.as('applicantName'),
+          candidateName: sql`CONCAT(${users.firstName}, ' ', ${users.lastName})`.as('candidateName'),
+          jobTitle: jobPostings.title,
           applicantEmail: users.email,
           applicantFirstName: users.firstName,
           applicantLastName: users.lastName,

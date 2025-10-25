@@ -56,6 +56,8 @@ export default function UnifiedAtsPlatform() {
   const [interviewType, setInterviewType] = useState("video");
   const [interviewDuration, setInterviewDuration] = useState("60");
   const [meetingLink, setMeetingLink] = useState("");
+  const [filterJob, setFilterJob] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
   const { data: dashboardData, isLoading } = useQuery({
     queryKey: ["/api/ats/unified-dashboard"],
@@ -118,10 +120,11 @@ export default function UnifiedAtsPlatform() {
   };
 
   const handleSelectAll = () => {
-    if (selectedApplications.length === applications.length) {
+    const filteredIds = filteredApplications.map((app: any) => app.id);
+    if (selectedApplications.length === filteredIds.length && filteredIds.length > 0) {
       setSelectedApplications([]);
     } else {
-      setSelectedApplications(applications.map((app: any) => app.id));
+      setSelectedApplications(filteredIds);
     }
   };
 
@@ -209,6 +212,15 @@ export default function UnifiedAtsPlatform() {
   }
 
   const stats = dashboardData?.stats || {};
+
+  const filteredApplications = applications.filter((app: any) => {
+    if (filterJob !== "all" && app.jobTitle !== filterJob) return false;
+    if (filterStatus !== "all" && app.status !== filterStatus) return false;
+    return true;
+  });
+
+  const uniqueJobs = Array.from(new Set(applications.map((app: any) => app.jobTitle).filter(Boolean)));
+  const uniqueStatuses = Array.from(new Set(applications.map((app: any) => app.status).filter(Boolean)));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800">
@@ -304,21 +316,51 @@ export default function UnifiedAtsPlatform() {
           <TabsContent value="applications" className="space-y-4">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-4">
                   <CardTitle>All Applications</CardTitle>
                   <div className="flex items-center gap-2">
                     <Checkbox
-                      checked={selectedApplications.length === applications.length && applications.length > 0}
+                      checked={selectedApplications.length === filteredApplications.length && filteredApplications.length > 0}
                       onCheckedChange={handleSelectAll}
                       data-testid="checkbox-select-all"
                     />
                     <Label>Select All</Label>
                   </div>
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Filter by Job</Label>
+                    <Select value={filterJob} onValueChange={setFilterJob}>
+                      <SelectTrigger data-testid="select-filter-job">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Jobs</SelectItem>
+                        {uniqueJobs.map((job: string) => (
+                          <SelectItem key={job} value={job}>{job}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Filter by Status</Label>
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                      <SelectTrigger data-testid="select-filter-status">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        {uniqueStatuses.map((status: string) => (
+                          <SelectItem key={status} value={status}>{status}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {applications.map((app: any) => (
+                  {filteredApplications.map((app: any) => (
                     <div
                       key={app.id}
                       className="flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
@@ -355,9 +397,14 @@ export default function UnifiedAtsPlatform() {
                       </Button>
                     </div>
                   ))}
-                  {applications.length === 0 && (
+                  {filteredApplications.length === 0 && applications.length === 0 && (
                     <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                       No applications yet
+                    </div>
+                  )}
+                  {filteredApplications.length === 0 && applications.length > 0 && (
+                    <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                      No applications match the selected filters. Try adjusting your filters.
                     </div>
                   )}
                 </div>

@@ -64,7 +64,7 @@ class UnifiedAtsService {
         job: jobPostings,
       })
       .from(jobPostingApplications)
-      .leftJoin(users, eq(users.id, jobPostingApplications.userId))
+      .leftJoin(users, eq(users.id, jobPostingApplications.applicantId))
       .leftJoin(jobPostings, eq(jobPostings.id, jobPostingApplications.jobPostingId))
       .where(
         and(
@@ -160,7 +160,7 @@ class UnifiedAtsService {
           job: jobPostings,
         })
         .from(jobPostingApplications)
-        .leftJoin(users, eq(users.id, jobPostingApplications.userId))
+        .leftJoin(users, eq(users.id, jobPostingApplications.applicantId))
         .leftJoin(jobPostings, eq(jobPostings.id, jobPostingApplications.jobPostingId))
         .where(
           and(
@@ -314,7 +314,7 @@ ${request.notes || ''}
         job: jobPostings,
       })
       .from(jobPostingApplications)
-      .leftJoin(users, eq(users.id, jobPostingApplications.userId))
+      .leftJoin(users, eq(users.id, jobPostingApplications.applicantId))
       .leftJoin(jobPostings, eq(jobPostings.id, jobPostingApplications.jobPostingId))
       .where(eq(jobPostings.recruiterId, recruiterId));
 
