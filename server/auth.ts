@@ -339,16 +339,21 @@ export async function setupAuth(app: Express) {
 
             console.log(`✅ Secure session created for user: ${user.email} (${user.userType}) - Session: ${newSessionId.substring(0, 8)}...`);
 
-            res.json({ 
-              message: "Login successful", 
-              user: {
-                id: user.id,
-                email: user.email,
-                name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-                userType: user.userType,
-                currentRole: user.currentRole || user.userType
-              }
-            });
+            // Add a small delay to ensure session is fully written to database
+            setTimeout(() => {
+              res.json({ 
+                message: "Login successful", 
+                user: {
+                  id: user.id,
+                  email: user.email,
+                  name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+                  userType: user.userType,
+                  currentRole: user.currentRole || user.userType,
+                  planType: user.planType || 'free',
+                  subscriptionStatus: user.subscriptionStatus || 'free'
+                }
+              });
+            }, 100);
           });
         });
       } catch (error) {
