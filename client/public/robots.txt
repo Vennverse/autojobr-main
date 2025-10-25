@@ -126,13 +126,13 @@ Allow: /recruiter-dashboard
 # Crawl optimization by search engine
 User-agent: Googlebot
 Allow: /
-Crawl-delay: 0.5
-Request-rate: 1/2s
+Crawl-delay: 0.2
+Request-rate: 1/1s
 
 User-agent: Bingbot
 Allow: /
-Crawl-delay: 1
-Request-rate: 1/3s
+Crawl-delay: 0.5
+Request-rate: 1/2s
 
 User-agent: Slurp
 Allow: /
