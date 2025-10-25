@@ -40,7 +40,26 @@ import {
   Bell,
   Filter,
   Download,
-
+  Calendar,
+  Clock,
+  Eye,
+  FileText,
+  Mail,
+  Phone,
+  MapPin,
+  UserCheck,
+  UserX,
+  Plus,
+  Edit,
+  Trash2,
+  MoreHorizontal,
+  ArrowRight,
+  Award,
+  Zap,
+  Shield,
+  PlayCircle
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Helper functions to extract data from AI resume analysis
 function determineSeniorityFromAnalysis(analysis: any, app: any): string {
@@ -147,27 +166,6 @@ function generateJobMatchHighlights(atsScore: number, analysis: any, app: any): 
   
   return highlights;
 }
-
-  Calendar,
-  Clock,
-  Eye,
-  FileText,
-  Mail,
-  Phone,
-  MapPin,
-  UserCheck,
-  UserX,
-  Plus,
-  Edit,
-  Trash2,
-  MoreHorizontal,
-  ArrowRight,
-  Award,
-  Zap,
-  Shield,
-  PlayCircle
-} from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
 // Enhanced NLP Analysis Function - Uses Actual AI Resume Analysis Data
 function analyzeApplicantNLP(app: any): Partial<Application> {
