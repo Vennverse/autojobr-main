@@ -115,7 +115,6 @@ export class CameraProctorService {
   private lightingThreshold = 0.4;
   
   private sessionData: Map<string, any> = new Map();
-  private analysisCache: Map<string, { result: FaceDetectionResult; timestamp: number }> = new Map();
 
   // Initialize proctoring session
   async initializeSession(sessionId: string, config: any = {}): Promise<void> {
@@ -145,20 +144,13 @@ export class CameraProctorService {
       throw new Error('Session not initialized');
     }
 
-    // Smart frame sampling: Only analyze every 3rd frame (66% reduction)
-    session.statistics.totalFrames++;
-    if (session.statistics.totalFrames % 3 !== 0) {
-      // Return cached result for skipped frames
-      const lastResult = session.faceHistory[session.faceHistory.length - 1]?.result;
-      if (lastResult) return lastResult;
-    }
-
     // In a real implementation, this would use computer vision libraries like OpenCV, face-api.js, or TensorFlow.js
     // For now, we'll simulate the analysis based on the provided frame data
     
     const result = await this.simulateFaceDetection(frameData);
     
     // Update session statistics
+    session.statistics.totalFrames++;
     if (result.facesCount > 0) {
       session.statistics.framesWithFace++;
     }
@@ -166,35 +158,16 @@ export class CameraProctorService {
       session.statistics.framesWithMultipleFaces++;
     }
 
-    // Add to face history (with size limit to prevent memory bloat)
+    // Add to face history
     session.faceHistory.push({
       timestamp: Date.now(),
       result
     });
-    
-    // Keep only last 100 entries to prevent memory issues
-    if (session.faceHistory.length > 100) {
-      session.faceHistory.shift();
-    }
 
-    // Check for violations (only on critical changes)
-    if (this.shouldCheckViolations(session, result)) {
-      await this.checkForViolations(sessionId, result);
-    }
+    // Check for violations
+    await this.checkForViolations(sessionId, result);
 
     return result;
-  }
-
-  // Only check violations on significant changes
-  private shouldCheckViolations(session: any, currentResult: FaceDetectionResult): boolean {
-    const lastResult = session.faceHistory[session.faceHistory.length - 2]?.result;
-    if (!lastResult) return true;
-    
-    // Check violations only if status changed
-    return (
-      lastResult.facesCount !== currentResult.facesCount ||
-      (lastResult.primaryFace?.isLookingAtScreen !== currentResult.primaryFace?.isLookingAtScreen)
-    );
   }
 
   // Analyze audio stream for voice detection and multiple speaker detection
