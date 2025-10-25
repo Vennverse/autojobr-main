@@ -61,8 +61,12 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Enhanced NLP Analysis Function from Original Pipeline
+// Enhanced NLP Analysis Function - Uses Actual AI Resume Analysis Data
 function analyzeApplicantNLP(app: any): Partial<Application> {
+  // Use existing AI resume analysis data if available
+  const existingAtsScore = app.applicantAtsScore || app.atsScore;
+  const existingResumeAnalysis = app.applicantResumeAnalysis;
+  
   const profileText = [
     app.recruiterNotes,
     app.applicantName,
@@ -197,43 +201,71 @@ function analyzeApplicantNLP(app: any): Partial<Application> {
   const profileSkills = extractedSkills.profile;
   const matchedSkills = jobSkills.filter(skill => profileSkills.includes(skill));
 
-  // Calculate fit score
-  const weights = { skills: 0.40, experience: 0.25, education: 0.15, company: 0.15, location: 0.05 };
+  // Use actual AI-based ATS score if available, otherwise calculate
+  let fitScore = existingAtsScore || 0;
   
-  let skillsScore = 0;
-  if (jobSkills.length > 0) {
-    skillsScore = (matchedSkills.length / jobSkills.length) * 100;
+  if (!fitScore || fitScore < 20) {
+    // Fallback calculation if no AI score available
+    const weights = { skills: 0.40, experience: 0.25, education: 0.15, company: 0.15, location: 0.05 };
+    
+    let skillsScore = 0;
+    if (jobSkills.length > 0) {
+      skillsScore = (matchedSkills.length / jobSkills.length) * 100;
+    }
+
+    const experienceScore = Math.min(100, maxExperience <= 2 ? maxExperience * 30 : maxExperience <= 5 ? 60 + (maxExperience - 2) * 15 : 105 + (maxExperience - 5) * 5);
+    
+    fitScore = Math.round(
+      skillsScore * weights.skills +
+      experienceScore * weights.experience +
+      educationScore * weights.education +
+      companyPrestige * weights.company +
+      50 * weights.location // Default location score
+    );
   }
 
-  const experienceScore = Math.min(100, maxExperience <= 2 ? maxExperience * 30 : maxExperience <= 5 ? 60 + (maxExperience - 2) * 15 : 105 + (maxExperience - 5) * 5);
+  // Extract insights from AI resume analysis if available
+  let strengths = [];
+  let riskFactors = [];
+  let interviewFocus = [];
   
-  const fitScore = Math.round(
-    skillsScore * weights.skills +
-    experienceScore * weights.experience +
-    educationScore * weights.education +
-    companyPrestige * weights.company +
-    50 * weights.location // Default location score
-  );
-
-  // Generate insights
-  const strengths = [];
-  if (fitScore >= 85) strengths.push("Exceptional overall match");
-  if (companyPrestige >= 90) strengths.push("Top-tier company experience");
-  if (maxExperience >= 10) strengths.push("Extensive industry experience");
-  if (educationScore >= 90) strengths.push("Elite educational background");
-  if (matchedSkills.length >= jobSkills.length * 0.8) strengths.push("Excellent skill alignment");
-
-  const riskFactors = [];
-  if (maxExperience < 1 && !profileSkills.length) riskFactors.push("Limited experience and skills");
-  if (educationScore < 50 && maxExperience < 2) riskFactors.push("Lacks both education and experience");
-  if (matchedSkills.length === 0 && jobSkills.length > 0) riskFactors.push("No matching technical skills");
-
-  const interviewFocus = [];
-  if (matchedSkills.length > 0) {
-    interviewFocus.push(`Technical deep-dive: ${matchedSkills.slice(0, 3).join(", ")}`);
+  if (existingResumeAnalysis) {
+    // Use AI-generated strengths and weaknesses from job seeker's resume analysis
+    strengths = existingResumeAnalysis.content?.strengthsFound || 
+                existingResumeAnalysis.strengths || [];
+    
+    // Convert weaknesses to risk factors
+    const weaknesses = existingResumeAnalysis.content?.weaknesses || 
+                       existingResumeAnalysis.weaknesses || [];
+    riskFactors = weaknesses.map((w: string) => `Resume Issue: ${w}`);
+    
+    // Use AI recommendations as interview focus
+    const recommendations = existingResumeAnalysis.recommendations || [];
+    interviewFocus = recommendations.slice(0, 3).map((r: string) => `Focus: ${r}`);
   }
-  if (maxExperience >= 5) {
-    interviewFocus.push("Leadership and project management experience");
+  
+  // Fallback to basic analysis if no AI data
+  if (strengths.length === 0) {
+    if (fitScore >= 85) strengths.push("Exceptional overall match");
+    if (companyPrestige >= 90) strengths.push("Top-tier company experience");
+    if (maxExperience >= 10) strengths.push("Extensive industry experience");
+    if (educationScore >= 90) strengths.push("Elite educational background");
+    if (matchedSkills.length >= jobSkills.length * 0.8) strengths.push("Excellent skill alignment");
+  }
+  
+  if (riskFactors.length === 0) {
+    if (maxExperience < 1 && !profileSkills.length) riskFactors.push("Limited experience and skills");
+    if (educationScore < 50 && maxExperience < 2) riskFactors.push("Lacks both education and experience");
+    if (matchedSkills.length === 0 && jobSkills.length > 0) riskFactors.push("No matching technical skills");
+  }
+  
+  if (interviewFocus.length === 0) {
+    if (matchedSkills.length > 0) {
+      interviewFocus.push(`Technical deep-dive: ${matchedSkills.slice(0, 3).join(", ")}`);
+    }
+    if (maxExperience >= 5) {
+      interviewFocus.push("Leadership and project management experience");
+    }
   }
 
   const jobMatchHighlights = [
@@ -413,9 +445,23 @@ export default function EnhancedPipelineManagement() {
     refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 
-  // Transform applications with NLP analysis
+  // Fetch candidate profiles with AI analysis data
+  const { data: candidateProfiles = {} } = useQuery({
+    queryKey: ["/api/recruiter/candidate-profiles"],
+    enabled: rawApplications.length > 0,
+  });
+
+  // Transform applications with NLP analysis and AI resume data
   const applications = rawApplications.map((app: any) => {
-    const nlpData = analyzeApplicantNLP(app);
+    // Get candidate's AI resume analysis if available
+    const candidateProfile = candidateProfiles[app.applicantId] || {};
+    const enhancedApp = {
+      ...app,
+      applicantAtsScore: candidateProfile.atsScore,
+      applicantResumeAnalysis: candidateProfile.resumeAnalysis,
+    };
+    
+    const nlpData = analyzeApplicantNLP(enhancedApp);
     return {
       ...app,
       ...nlpData,
