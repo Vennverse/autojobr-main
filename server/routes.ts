@@ -81,6 +81,7 @@ import linkedinOptimizerRoutes from './linkedinOptimizer/routes';
 
 // Import services
 import { db as dbImport } from "./db"; // Aliased to avoid conflict with global db
+import { publicBackgroundCheckService } from "./publicBackgroundCheckService";
 
 // Placeholder for User type if not globally available
 type User = schema.users.$inferSelect;
@@ -943,6 +944,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined
       });
+    }
+  });
+
+  // ===== PUBLIC BACKGROUND CHECK ROUTES (FREE) =====
+  
+  // Get all public background checks for recruiter
+  app.get('/api/public-background-checks', isAuthenticated, async (req: any, res) => {
+    try {
+      const checks = await publicBackgroundCheckService.getBackgroundChecks();
+      res.json(checks);
+    } catch (error) {
+      console.error('[PUBLIC BG CHECK ERROR]:', error);
+      handleError(res, error, "Failed to fetch background checks");
+    }
+  });
+
+  // Start a new public background check
+  app.post('/api/public-background-checks/start', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      const { candidateId, candidateName, candidateEmail, candidateLinkedIn, candidateGithub, candidatePhone, jobTitle } = req.body;
+
+      if (!candidateEmail) {
+        return res.status(400).json({ message: "Candidate email is required" });
+      }
+
+      const check = await publicBackgroundCheckService.startBackgroundCheck({
+        candidateId,
+        candidateName,
+        candidateEmail,
+        candidateLinkedIn,
+        candidateGithub,
+        candidatePhone,
+        jobTitle
+      });
+
+      res.json(check);
+    } catch (error) {
+      console.error('[PUBLIC BG CHECK START ERROR]:', error);
+      handleError(res, error, "Failed to start background check");
+    }
+  });
+
+  // Get specific background check
+  app.get('/api/public-background-checks/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const checkId = req.params.id;
+      const check = await publicBackgroundCheckService.getBackgroundCheck(checkId);
+
+      if (!check) {
+        return res.status(404).json({ message: 'Background check not found' });
+      }
+
+      res.json(check);
+    } catch (error) {
+      console.error('[PUBLIC BG CHECK GET ERROR]:', error);
+      handleError(res, error, "Failed to fetch background check");
+    }
+  });
+
+  // Export background check report
+  app.get('/api/public-background-checks/:id/export', isAuthenticated, async (req: any, res) => {
+    try {
+      const checkId = req.params.id;
+      const check = await publicBackgroundCheckService.getBackgroundCheck(checkId);
+
+      if (!check) {
+        return res.status(404).json({ message: 'Background check not found' });
+      }
+
+      if (check.status !== 'completed') {
+        return res.status(400).json({ message: 'Background check not completed yet' });
+      }
+
+      const report = publicBackgroundCheckService.generateTextReport(check);
+      
+      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Content-Disposition', `attachment; filename="background-check-${checkId}.txt"`);
+      res.send(report);
+    } catch (error) {
+      console.error('[PUBLIC BG CHECK EXPORT ERROR]:', error);
+      handleError(res, error, "Failed to export background check");
     }
   });
 

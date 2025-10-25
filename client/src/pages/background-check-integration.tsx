@@ -168,9 +168,9 @@ export default function BackgroundCheckIntegration() {
   const [checkType, setCheckType] = useState("standard");
   const [customChecks, setCustomChecks] = useState<string[]>([]);
 
-  // Fetch background checks
+  // Fetch background checks (using FREE public service)
   const { data: backgroundChecks = [], isLoading: checksLoading, refetch: refetchChecks } = useQuery<BackgroundCheck[]>({
-    queryKey: ["/api/background-checks"],
+    queryKey: ["/api/public-background-checks"],
     refetchInterval: 30000,
   });
 
@@ -184,20 +184,20 @@ export default function BackgroundCheckIntegration() {
     queryKey: ["/api/background-checks/providers"],
   });
 
-  // Start background check mutation
+  // Start background check mutation (FREE public service)
   const startCheckMutation = useMutation({
     mutationFn: async (checkData: any) => {
-      return apiRequest("/api/background-checks/start", {
+      return apiRequest("/api/public-background-checks/start", {
         method: "POST",
         body: checkData
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/background-checks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public-background-checks"] });
       setShowNewCheckDialog(false);
       toast({
-        title: "Background Check Started",
-        description: "Background check has been initiated successfully.",
+        title: "FREE Background Check Started",
+        description: "Public background verification initiated - no cost!",
       });
     },
     onError: () => {
@@ -242,17 +242,17 @@ export default function BackgroundCheckIntegration() {
     }
   });
 
-  // Export results mutation
+  // Export results mutation (FREE public service)
   const exportResultsMutation = useMutation({
     mutationFn: async (checkId: string) => {
-      const response = await fetch(`/api/background-checks/${checkId}/export`, {
+      const response = await fetch(`/api/public-background-checks/${checkId}/export`, {
         method: "GET",
       });
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `background-check-${checkId}.pdf`;
+      a.download = `public-background-check-${checkId}.txt`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
