@@ -383,16 +383,7 @@ function Router() {
       <Route path="/my-bookings" component={MyBookings} />
       <Route path="/referral-marketplace/payment" component={lazy(() => import("./pages/referral-marketplace-payment"))} />
 
-      {isLoading ? (
-        <Route path="*">
-          <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">Loading...</p>
-            </div>
-          </div>
-        </Route>
-      ) : isAuthenticated ? (
+      {isAuthenticated ? (
         <>
           {/* Handle different user types */}
           {user?.currentRole === 'recruiter' || user?.userType === 'recruiter' || user?.userType === 'admin' || (user?.currentRole === 'autojobr' && user?.userType === 'recruiter') ? (
@@ -412,6 +403,7 @@ function Router() {
               <Route path="/test-assignments" component={TestAssignments} />
               <Route path="/recruiter/test-management" component={TestManagement} />
               <Route path="/recruiter/test-assignments" component={TestAssignments} />
+              <Route path="/recruiter/scorecards" component={CollaborativeHiringScorecard} />ts} />
               <Route path="/recruiter/question-builder/:templateId">
                 {(params) => <QuestionBuilder templateId={parseInt(params.templateId)} />}
               </Route>

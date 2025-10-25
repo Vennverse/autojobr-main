@@ -79,9 +79,9 @@ export default function EnhancedDashboard() {
     if (!isLoading && !isAuthenticated) {
       console.log('🔒 [ENHANCED_DASHBOARD] Not authenticated, redirecting to /auth');
       sessionStorage.clear(); // Clear any stale session data
-      setLocation("/auth?reason=session_required");
+      window.location.href = "/auth?reason=session_required";
     }
-  }, [isAuthenticated, isLoading, setLocation]);
+  }, [isAuthenticated, isLoading]);
 
   // Calculate daily streak
   useEffect(() => {

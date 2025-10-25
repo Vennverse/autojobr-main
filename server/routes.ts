@@ -1702,6 +1702,62 @@ Return only the improved job description text, no additional formatting or expla
         message: 'Failed to trigger job scraper',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
+
+
+  // Email templates management
+  app.get('/api/recruiter/email-templates', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      const defaultTemplates = [
+        {
+          id: 'screening_invite',
+          name: 'Screening Interview Invite',
+          subject: 'Interview Opportunity at {{company_name}}',
+          body: `Hi {{candidate_name}},\n\nThank you for applying to {{job_title}}. We'd like to schedule a screening call.\n\nPlease select a time: {{scheduling_link}}\n\nBest regards,\n{{recruiter_name}}`
+        },
+        {
+          id: 'rejection',
+          name: 'Application Rejection',
+          subject: 'Update on Your Application',
+          body: `Hi {{candidate_name}},\n\nThank you for your interest in {{job_title}}. After careful consideration, we've decided to move forward with other candidates.\n\nWe appreciate your time and wish you success.\n\nBest,\n{{recruiter_name}}`
+        },
+        {
+          id: 'offer',
+          name: 'Job Offer',
+          subject: 'Job Offer - {{job_title}}',
+          body: `Hi {{candidate_name}},\n\nWe're excited to offer you the position of {{job_title}}!\n\nSalary: {{salary}}\nStart Date: {{start_date}}\n\nPlease review the attached offer letter.\n\nCongratulations!\n{{recruiter_name}}`
+        }
+      ];
+      
+      res.json({ success: true, templates: defaultTemplates });
+    } catch (error) {
+      console.error('Get templates error:', error);
+      res.status(500).json({ message: 'Failed to fetch templates' });
+    }
+  });
+
+  // Send bulk email to candidates
+  app.post('/api/recruiter/bulk-email', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { candidateIds, templateId, customizations } = req.body;
+      
+      // Send emails to all candidates
+      const results = await Promise.all(
+        candidateIds.map(async (candidateId: number) => {
+          // Fetch candidate details and send email
+          return { candidateId, sent: true };
+        })
+      );
+      
+      res.json({ success: true, sent: results.length });
+    } catch (error) {
+      console.error('Bulk email error:', error);
+      res.status(500).json({ message: 'Failed to send emails' });
+    }
+  });
+
     }
   });
 

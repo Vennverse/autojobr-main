@@ -29,10 +29,10 @@ export class VideoPracticeService {
   ): Promise<VideoPracticeQuestion[]> {
     const questions: VideoPracticeQuestion[] = [];
     const isTechnical = interviewType?.toLowerCase() === 'technical';
-
+    
     // Check if AI service is available
     const isAIAvailable = aiService && typeof aiService.createChatCompletion === 'function' && !aiService['developmentMode'];
-
+    
     // First 3 questions: Always General/Behavioral (realistic interview flow)
     const companyContext = company ? ` at ${company}` : '';
     const behavioralPrompts = [
@@ -50,7 +50,7 @@ export class VideoPracticeService {
 
     for (let i = 0; i < 3; i++) {
       let questionText = fallbackBehavioral[i];
-
+      
       if (isAIAvailable) {
         try {
           const aiResponse = await aiService.createChatCompletion([
@@ -99,7 +99,7 @@ export class VideoPracticeService {
 
       for (let i = 0; i < 3; i++) {
         let questionText = fallbackTechnical[i];
-
+        
         if (isAIAvailable) {
           try {
             const aiResponse = await aiService.createChatCompletion([
@@ -146,13 +146,13 @@ export class VideoPracticeService {
 
       for (let i = 0; i < 3; i++) {
         let questionText = fallbackDomain[i];
-
+        
         if (isAIAvailable) {
           try {
             const aiResponse = await aiService.createChatCompletion([
               {
                 role: 'system',
-                content: `You are interviewing for a ${role} role. Generate practical, domain-specific questions that real hiring managers ask. The candidate will write their answer AND explain verbally.`
+                content: `You are interviewing for a ${role} position. Generate practical, domain-specific questions that real hiring managers ask. The candidate will write their answer AND explain verbally.`
               },
               {
                 role: 'user',
@@ -306,97 +306,6 @@ Provide detailed JSON analysis:
     }
   }
 
-  private async generateFeedback(
-    questionType: string,
-    transcript: string,
-    videoAnalysis: any,
-    audioAnalysis: any
-  ): Promise<string> {
-    const prompt = `You are an expert interview coach. Analyze this video interview response in detail.
-
-Question Type: ${questionType}
-Transcript: "${transcript}"
-
-Video Analysis:
-- Eye Contact: ${videoAnalysis?.eyeContact || 'N/A'}%
-- Posture: ${videoAnalysis?.posture || 'N/A'}
-- Motion: ${videoAnalysis?.motion || 'N/A'}
-- Facial Expression: ${videoAnalysis?.facialExpression || 'N/A'}
-
-Audio Analysis:
-- Average Volume: ${audioAnalysis?.avgVolume || 'N/A'}
-- Clarity: ${audioAnalysis?.clarity || 'N/A'}
-
-Provide detailed, actionable feedback in this format:
-
-**Content Quality (0-100):** [Score]
-- What they did well
-- What needs improvement
-
-**Delivery & Communication (0-100):** [Score]
-- Voice modulation and pace
-- Clarity and articulation
-- Filler words usage
-
-**Body Language & Presence (0-100):** [Score]
-- Eye contact and engagement
-- Posture and confidence
-- Facial expressions
-
-**Key Strengths:**
-- [Strength 1]
-- [Strength 2]
-
-**Areas to Improve:**
-- [Improvement 1 with specific tip]
-- [Improvement 2 with specific tip]
-
-**Overall Recommendation:**
-[Specific, actionable advice for their next practice]
-
-Be encouraging but honest. Focus on growth.`;
-
-    try {
-      const response = await groqService.client?.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7,
-        max_tokens: 800,
-      });
-
-      return response?.choices[0]?.message?.content || this.getFallbackFeedback(questionType, transcript);
-    } catch (error) {
-      console.error('Error generating feedback:', error);
-      return this.getFallbackFeedback(questionType, transcript);
-    }
-  }
-
-  private getFallbackFeedback(questionType: string, transcript: string): string {
-    const wordCount = transcript.split(' ').length;
-    const hasGoodLength = wordCount >= 100 && wordCount <= 200;
-
-    return `**Content Quality (70/100):**
-Your response was ${hasGoodLength ? 'well-structured' : wordCount < 100 ? 'too brief - aim for 100-150 words' : 'too lengthy - be more concise'}.
-
-**Delivery & Communication (75/100):**
-Practice speaking clearly and at a moderate pace. ${questionType === 'technical' ? 'Explain your technical reasoning step-by-step.' : 'Use the STAR method for behavioral questions.'}
-
-**Body Language & Presence (70/100):**
-Maintain good eye contact with the camera and sit with confident posture.
-
-**Key Strengths:**
-- You attempted to answer the question
-- Your response showed effort
-
-**Areas to Improve:**
-- Provide more specific examples
-- Structure your answer more clearly
-- Practice speaking more naturally
-
-**Overall Recommendation:**
-Record yourself and review it. Practice answering similar questions to build confidence.`;
-  }
-
   private countFillerWords(text: string): number {
     const fillers = ['um', 'uh', 'like', 'you know', 'actually', 'basically', 'sort of', 'kind of'];
     const words = text.toLowerCase().split(' ');
@@ -527,7 +436,7 @@ Return as JSON:
         specificStrengths: ['Completed all questions', 'Showed engagement', 'Attempted comprehensive answers'],
         criticalImprovements: ['Provide more specific examples from experience', 'Improve technical depth in explanations', 'Enhance confidence in delivery'],
         bodyLanguageFeedback: 'Work on maintaining steady eye contact with camera and minimizing nervous movements.',
-        speechPatternFeedback: 'Reduce filler words (um, uh, like), speak at moderate pace, and project more confidence.',
+        speechPatternFeedback: 'Reduce filler words (um, uh), speak at moderate pace, and project more confidence.',
         technicalDepth: 'Demonstrates basic understanding but needs more real-world examples and deeper technical insights.',
         nextSteps: ['Practice STAR method with specific examples', 'Review core technical concepts for the role', 'Record mock interviews to improve delivery'],
         readinessLevel: `${Math.max(50, avgScore)}% ready for real ${role} interview`,
