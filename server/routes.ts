@@ -1144,6 +1144,86 @@ Return only the improved job description text, no additional formatting or expla
     }
   });
 
+  app.post('/api/ats/bulk-email', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      const { unifiedAtsService } = await import('./unifiedAtsService.js');
+      const result = await unifiedAtsService.sendBulkEmails(req.body, userId);
+      
+      console.log(`📧 [ATS] Bulk email result: ${result.sent} sent, ${result.failed} failed`);
+      res.json(result);
+    } catch (error) {
+      console.error('[ATS BULK EMAIL ERROR]:', error);
+      handleError(res, error, "Failed to send bulk emails");
+    }
+  });
+
+  app.post('/api/ats/schedule-interview', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      const { unifiedAtsService } = await import('./unifiedAtsService.js');
+      const result = await unifiedAtsService.scheduleInterview(req.body, userId);
+      
+      console.log(`📅 [ATS] Interview schedule result:`, result);
+      res.json(result);
+    } catch (error) {
+      console.error('[ATS SCHEDULE ERROR]:', error);
+      handleError(res, error, "Failed to schedule interview");
+    }
+  });
+
+  app.post('/api/ats/process-scorecard', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      const { unifiedAtsService } = await import('./unifiedAtsService.js');
+      const result = await unifiedAtsService.processScorecardAndAdvance(req.body, userId);
+      
+      console.log(`📊 [ATS] Scorecard processed:`, result);
+      res.json(result);
+    } catch (error) {
+      console.error('[ATS SCORECARD ERROR]:', error);
+      handleError(res, error, "Failed to process scorecard");
+    }
+  });
+
+  app.get('/api/ats/unified-dashboard', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      const { unifiedAtsService } = await import('./unifiedAtsService.js');
+      const data = await unifiedAtsService.getUnifiedDashboardData(userId);
+      
+      console.log(`📊 [ATS] Dashboard data loaded for ${userId}`);
+      res.json(data);
+    } catch (error) {
+      console.error('[ATS DASHBOARD ERROR]:', error);
+      handleError(res, error, "Failed to load dashboard data");
+    }
+  });
+
   // Get job seeker's test assignments
   app.get('/api/jobseeker/test-assignments', isAuthenticated, async (req: any, res) => {
     try {

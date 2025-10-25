@@ -118,6 +118,8 @@ import CompanyCareerPage from "@/pages/company-career-page";
 // Import RankingTestTaking component
 import RankingTestTaking from './pages/ranking-test-taking';
 import InterviewPrepTools from './pages/interview-prep-tools';
+import UnifiedAtsPlatform from '@/pages/unified-ats-platform';
+import CollaborativeHiringScorecard from '@/pages/collaborative-hiring-scorecard';
 
 // Import lazy for dynamic imports
 import { lazy } from "react";
@@ -406,6 +408,11 @@ function Router() {
               <Route path="/recruiter/applicants" component={ApplicantsPage} />
               <Route path="/recruiter/pipeline" component={PipelineManagement} />
               <Route path="/recruiter/enhanced-pipeline" component={EnhancedPipelineManagement} />
+              <Route path="/recruiter/ats" component={UnifiedAtsPlatform} />
+              <Route path="/unified-ats" component={UnifiedAtsPlatform} />
+              <Route path="/ats-platform" component={UnifiedAtsPlatform} />
+              <Route path="/collaborative-hiring-scorecard" component={CollaborativeHiringScorecard} />
+              <Route path="/recruiter/scorecards" component={CollaborativeHiringScorecard} />
               <Route path="/recruiter/tasks" component={TaskManagement} />
               <Route path="/recruiter/background-checks" component={BackgroundCheckIntegration} />
               <Route path="/recruiter/settings" component={RecruiterSettings} />
