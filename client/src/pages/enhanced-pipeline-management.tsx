@@ -1344,6 +1344,7 @@ Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
               );
             })}
           </div>
+        </div>
         ) : (
           // List View
           <Card>
