@@ -1000,6 +1000,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get single job posting by ID
+  app.get('/api/recruiter/jobs/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      const jobId = parseInt(req.params.id);
+
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      if (isNaN(jobId)) {
+        return res.status(400).json({ message: "Invalid job ID" });
+      }
+
+      const job = await db
+        .select()
+        .from(jobPostings)
+        .where(and(
+          eq(jobPostings.id, jobId),
+          eq(jobPostings.recruiterId, userId)
+        ))
+        .limit(1);
+
+      if (!job || job.length === 0) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      console.log(`[RECRUITER JOB] Fetched job ${jobId} for recruiter ${userId}`);
+      res.json(job[0]);
+    } catch (error) {
+      console.error('[RECRUITER JOB ERROR]:', error);
+      handleError(res, error, "Failed to fetch job posting");
+    }
+  });
+
   // Improve job description with AI
   app.post('/api/recruiter/improve-jd', isAuthenticated, async (req: any, res) => {
     try {
