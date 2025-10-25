@@ -144,8 +144,8 @@
   
   /* Critical above-the-fold content */
   .hero-section {
-    @apply min-h-screen flex items-center justify-center
-           bg-gradient-to-br from-primary/5 to-secondary/5;
+    @apply min-h-screen flex items-center justify-center;
+    background: linear-gradient(to bottom right, hsl(var(--primary) / 0.05), hsl(var(--secondary) / 0.05));
     content-visibility: auto;
     contain: layout style paint;
   }
