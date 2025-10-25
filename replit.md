@@ -4,6 +4,21 @@
 AutoJobr is a full-stack web application designed to automate and streamline the job application process. Its primary purpose is to help users efficiently apply to a large volume of jobs by providing features such as ATS resume optimization, AI-powered cover letter generation, interview preparation, and a Chrome extension for one-click applications. The platform aims to simplify job searching, enhance application quality, and provide tools for career advancement, positioning itself as a comprehensive solution for job seekers.
 
 ## Recent Changes (October 25, 2025)
+- **Unified ATS Platform Bug Fixes** (Latest): Fixed critical issues in the unified ATS platform:
+  - **Backend Data Fixes**: 
+    - Added `candidateName` and `jobTitle` fields to storage.ts query response (previously only returned `applicantName` and `jobPostingTitle`)
+    - Fixed unifiedAtsService.ts join condition from incorrect `userId` to correct `applicantId`, resolving "Unknown Candidate" display issue
+  - **Filtering Functionality**: 
+    - Added filter dropdowns for Job Position and Application Status on Applications tab
+    - Implemented client-side filtering logic with proper state management
+    - Updated "Select All" checkbox to work with filtered results
+    - Added contextual empty states for filtered vs unfiltered views
+  - **Feature Verification**: 
+    - Confirmed bulk email system works with template selection (rejection, acceptance, interview invite, custom)
+    - Verified interview scheduling through "Schedule" button on each application row
+    - Confirmed calendar integration auto-syncs scheduled interviews to Google Calendar
+    - Verified scorecards redirect to dedicated collaborative hiring scorecard page
+
 - **SEO Landing Pages & Feature Enhancements**: Created world-class competitive landing pages and strategic improvements:
   - **Greenhouse Alternative Page** (`/greenhouse-alternative`): Comprehensive comparison page targeting companies considering Greenhouse alternatives, highlighting 90% cost savings ($6,500/year → $588/year), AI features Greenhouse lacks, and detailed feature comparison table
   - **ATS for Startups Page** (`/ats-for-startups`): Startup-focused landing page addressing pain points of expensive enterprise ATS systems, with stage-specific features (Pre-Seed to Series C+), unique value props, and simple pricing
