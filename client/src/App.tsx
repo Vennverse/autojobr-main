@@ -256,6 +256,8 @@ function Router() {
       <Route path="/chrome-extension" component={ChromeExtension} />
       <Route path="/ats-optimizer" component={ATSOptimizer} />
       <Route path="/recruiter-features" component={RecruiterFeaturesPage} />
+      <Route path="/for-recruiters" component={RecruiterFeaturesPage} />
+      <Route path="/recruiters" component={RecruiterFeaturesPage} />
 
       {/* SEO-optimized referral landing page */}
       <Route path="/employee-referral-services" component={EmployeeReferralServices} />
@@ -533,8 +535,6 @@ function Router() {
           <Route path="/" component={Landing} />
           <Route path="/auth" component={AuthPage} />
           <Route path="/email-verification" component={EmailVerificationPage} />
-          <Route path="/for-recruiters" component={RecruiterFeatures} />
-          <Route path="/recruiters" component={RecruiterFeatures} />
           <Route path="/test/:id" component={TestTaking} />
           {/* Bidder dashboard - show landing page for unauthenticated users */}
           <Route path="/bidder-dashboard" component={BidderLanding} />
