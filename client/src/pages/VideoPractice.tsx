@@ -277,6 +277,43 @@ export default function VideoPractice() {
     };
 
     loadVoices();
+
+
+            {/* Interview Tips */}
+            {!isRecording && session && (
+              <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border-2 border-blue-200 dark:border-blue-800">
+                <CardContent className="pt-4">
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-blue-600" />
+                    Quick Tips for This Question:
+                  </h4>
+                  <ul className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
+                    {session.questions[currentQuestion].type === 'technical' && (
+                      <>
+                        <li>• Explain your thought process step-by-step</li>
+                        <li>• Mention time/space complexity if relevant</li>
+                        <li>• Discuss alternative approaches</li>
+                      </>
+                    )}
+                    {session.questions[currentQuestion].type === 'behavioral' && (
+                      <>
+                        <li>• Use the STAR method (Situation, Task, Action, Result)</li>
+                        <li>• Provide specific examples from your experience</li>
+                        <li>• Keep your answer between 60-90 seconds</li>
+                      </>
+                    )}
+                    {session.questions[currentQuestion].type === 'domain' && (
+                      <>
+                        <li>• Demonstrate your domain knowledge</li>
+                        <li>• Reference industry best practices</li>
+                        <li>• Explain your reasoning clearly</li>
+                      </>
+                    )}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+
     window.speechSynthesis.onvoiceschanged = loadVoices;
   }, []);
 
@@ -347,6 +384,36 @@ export default function VideoPractice() {
 
       // Camera will be initialized in useEffect when video element is rendered
       // Speak the first question after a short delay
+
+
+              {/* Performance Comparison */}
+              {practiceHistory && practiceHistory.length > 1 && (
+                <Card className="mt-4">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5" />
+                      Your Progress
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Previous Best</p>
+                        <p className="text-2xl font-bold text-blue-600">
+                          {Math.max(...practiceHistory.map((s: any) => s.overallScore || 0))}%
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Average Score</p>
+                        <p className="text-2xl font-bold text-purple-600">
+                          {Math.round(practiceHistory.reduce((sum: number, s: any) => sum + (s.overallScore || 0), 0) / practiceHistory.length)}%
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
       setTimeout(() => {
         if (response.questions && response.questions[0]) {
           speakQuestion(response.questions[0].question);
@@ -1181,18 +1248,34 @@ export default function VideoPractice() {
               </div>
             )}
 
-            <div className="flex gap-4">
-              {!isRecording ? (
-                <Button onClick={startRecording} className="flex-1" size="lg" disabled={session?.paymentStatus === 'pending'}>
-                  <Mic className="w-4 h-4 mr-2" />
-                  Start Recording
-                </Button>
-              ) : (
-                <Button onClick={stopRecording} variant="destructive" className="flex-1" size="lg">
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Stop & Submit
-                </Button>
+            <div className="space-y-4">
+              {/* Progress Indicator */}
+              {session && (
+                <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">Interview Progress</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      {currentQuestion + 1} of {session.questions.length}
+                    </span>
+                  </div>
+                  <Progress value={((currentQuestion + 1) / session.questions.length) * 100} className="h-2" />
+                </div>
               )}
+
+              {/* Recording Controls */}
+              <div className="flex gap-4">
+                {!isRecording ? (
+                  <Button onClick={startRecording} className="flex-1" size="lg" disabled={session?.paymentStatus === 'pending'}>
+                    <Mic className="w-4 h-4 mr-2" />
+                    Start Recording
+                  </Button>
+                ) : (
+                  <Button onClick={stopRecording} variant="destructive" className="flex-1" size="lg">
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Stop & Submit ({Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')})
+                  </Button>
+                )}
+              </div>
             </div>
 
             {session?.paymentStatus === 'pending' && (
