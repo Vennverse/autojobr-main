@@ -1233,6 +1233,85 @@ Return only the improved job description text, no additional formatting or expla
     }
   });
 
+  // Get candidate profiles with AI resume analysis
+  app.get('/api/recruiter/candidate-profiles', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      // Get all applications for this recruiter
+      const applications = await storage.getApplicationsForRecruiter(userId);
+      
+      // Build candidate profiles map with resume analysis
+      const candidateProfiles: Record<string, any> = {};
+      
+      for (const app of applications) {
+        if (app.applicantId && !candidateProfiles[app.applicantId]) {
+          // Get candidate's active resume with analysis
+          const resumes = await db
+            .select()
+            .from(schema.userResumes)
+            .where(
+              and(
+                eq(schema.userResumes.userId, app.applicantId),
+                eq(schema.userResumes.isActive, true)
+              )
+            )
+            .limit(1);
+
+          const activeResume = resumes[0];
+          
+          candidateProfiles[app.applicantId] = {
+            atsScore: activeResume?.atsScore || 0,
+            resumeAnalysis: activeResume?.analysis || null
+          };
+        }
+      }
+
+      console.log(`[CANDIDATE PROFILES] Loaded ${Object.keys(candidateProfiles).length} profiles for recruiter ${userId}`);
+      res.json(candidateProfiles);
+    } catch (error) {
+      console.error('[CANDIDATE PROFILES ERROR]:', error);
+      handleError(res, error, "Failed to fetch candidate profiles");
+    }
+  });
+
+  // Get pipeline analytics
+  app.get('/api/recruiter/pipeline-analytics', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      const applications = await storage.getApplicationsForRecruiter(userId);
+      
+      // Calculate analytics
+      const analytics = {
+        totalApplications: applications.length,
+        byStatus: applications.reduce((acc, app) => {
+          acc[app.status] = (acc[app.status] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>),
+        averageAtsScore: applications.reduce((sum, app) => sum + (app.applicantAtsScore || 0), 0) / (applications.length || 1),
+        topCandidates: applications
+          .filter(app => (app.applicantAtsScore || 0) >= 70)
+          .length
+      };
+
+      res.json(analytics);
+    } catch (error) {
+      console.error('[PIPELINE ANALYTICS ERROR]:', error);
+      handleError(res, error, "Failed to fetch pipeline analytics");
+    }
+  });
+
   app.post('/api/ats/bulk-email', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -1703,6 +1782,40 @@ Return only the improved job description text, no additional formatting or expla
         error: error instanceof Error ? error.message : 'Unknown error'
       });
 
+
+  // Collaborative Hiring Scorecard endpoints
+  app.post('/api/recruiter/scorecard-feedback', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { applicationId, ratings, comments, recommendation, interviewerId, interviewerName } = req.body;
+
+      // Verify recruiter access
+      const user = await storage.getUser(userId);
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      // Update application with scorecard data
+      await db.update(schema.jobPostingApplications)
+        .set({
+          scorecardData: {
+            ratings,
+            comments,
+            recommendation,
+            interviewerId,
+            interviewerName,
+            submittedAt: new Date().toISOString()
+          },
+          lastUpdated: new Date()
+        })
+        .where(eq(schema.jobPostingApplications.id, applicationId));
+
+      res.json({ success: true, message: 'Scorecard feedback submitted successfully' });
+    } catch (error) {
+      console.error('[SCORECARD] Submit feedback error:', error);
+      handleError(res, error, 'Failed to submit scorecard feedback');
+    }
+  });
 
   // Email templates management
   app.get('/api/recruiter/email-templates', isAuthenticated, async (req: any, res) => {

@@ -173,15 +173,18 @@ function analyzeApplicantNLP(app: any): Partial<Application> {
   const existingAtsScore = app.applicantAtsScore || app.atsScore;
   const existingResumeAnalysis = app.applicantResumeAnalysis;
   
-  // If we have AI analysis data, use it directly
-  if (existingResumeAnalysis && existingAtsScore) {
-    console.log(`Using AI resume analysis for ${app.applicantName}:`, {
+  // Log what we're working with
+  console.log(`[NLP] Analyzing ${app.applicantName} - ATS: ${existingAtsScore}, HasAnalysis: ${!!existingResumeAnalysis}`);
+  
+  // If we have AI analysis data, use it directly - even if score is 0
+  if (existingResumeAnalysis || existingAtsScore > 0) {
+    console.log(`[NLP] ✅ Using AI resume data for ${app.applicantName}:`, {
       atsScore: existingAtsScore,
       hasAnalysis: !!existingResumeAnalysis
     });
 
     return {
-      fitScore: existingAtsScore,
+      fitScore: existingAtsScore || 0,
       seniorityLevel: determineSeniorityFromAnalysis(existingResumeAnalysis, app),
       totalExperience: extractExperienceYears(existingResumeAnalysis, app),
       highestDegree: extractDegree(existingResumeAnalysis, app),
@@ -189,17 +192,19 @@ function analyzeApplicantNLP(app: any): Partial<Application> {
       companyPrestige: 75, // Default - could be enhanced
       matchedSkills: extractMatchedSkills(existingResumeAnalysis, app),
       topSkills: extractTopSkills(existingResumeAnalysis, app),
-      strengths: existingResumeAnalysis.content?.strengthsFound || 
-                 existingResumeAnalysis.strengths || 
-                 ['Strong professional background'],
-      riskFactors: (existingResumeAnalysis.content?.weaknesses || 
-                    existingResumeAnalysis.weaknesses || 
-                    []).map((w: string) => `Area for improvement: ${w}`),
-      interviewFocus: (existingResumeAnalysis.recommendations || []).slice(0, 3),
-      jobMatchHighlights: generateJobMatchHighlights(existingAtsScore, existingResumeAnalysis, app),
-      nlpInsights: `AI Analysis: ${existingAtsScore}/100 ATS Score`
+      strengths: existingResumeAnalysis?.content?.strengthsFound || 
+                 existingResumeAnalysis?.strengths || 
+                 ['Professional background'],
+      riskFactors: (existingResumeAnalysis?.content?.weaknesses || 
+                    existingResumeAnalysis?.weaknesses || 
+                    []).map((w: string) => `${w}`),
+      interviewFocus: (existingResumeAnalysis?.recommendations || []).slice(0, 3),
+      jobMatchHighlights: generateJobMatchHighlights(existingAtsScore || 0, existingResumeAnalysis, app),
+      nlpInsights: existingAtsScore ? `AI Analysis: ${existingAtsScore}/100 ATS Score` : 'Resume pending analysis'
     };
   }
+  
+  console.log(`[NLP] ⚠️ No AI data for ${app.applicantName}, using fallback analysis`);
   
   // FALLBACK: If no AI data, use basic profile analysis
   const profileText = [
