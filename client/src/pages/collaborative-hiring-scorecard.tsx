@@ -10,8 +10,9 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { RecruiterNavbar } from "@/components/RecruiterNavbar";
 import { useAuth } from "@/hooks/use-auth";
-import { Star, Users, MessageSquare, TrendingUp, CheckCircle } from "lucide-react";
+import { Star, Users, MessageSquare, CheckCircle, TrendingUp, BarChart3 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
 
 interface ScorecardCriteria {
   id: string;
@@ -47,8 +48,14 @@ export default function CollaborativeHiringScorecard() {
   const [recommendation, setRecommendation] = useState<string>("");
 
   // Fetch applications pending feedback
-  const { data: applications = [] } = useQuery({
+  const { data: applications = [], isLoading } = useQuery({
     queryKey: ["/api/recruiter/applications"],
+  });
+
+  // Fetch candidate profiles with AI resume data
+  const { data: candidateProfiles = {} } = useQuery({
+    queryKey: ["/api/recruiter/candidate-profiles"],
+    enabled: applications.length > 0,
   });
 
   // Submit scorecard feedback
@@ -64,8 +71,16 @@ export default function CollaborativeHiringScorecard() {
       setRatings({});
       setComments("");
       setRecommendation("");
+      setSelectedApplication(null);
       queryClient.invalidateQueries({ queryKey: ["/api/recruiter/applications"] });
     },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to submit feedback. Please try again.",
+        variant: "destructive",
+      });
+    }
   });
 
   const calculateAverageScore = (feedback: InterviewerFeedback[]) => {
@@ -86,12 +101,23 @@ export default function CollaborativeHiringScorecard() {
       comments,
       recommendation,
       interviewerId: user?.id,
-      interviewerName: `${user?.firstName} ${user?.lastName}`,
+      interviewerName: user?.name || `${user?.firstName} ${user?.lastName}`,
     });
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <RecruiterNavbar user={user} />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gray-50">
       <RecruiterNavbar user={user} />
       
       <div className="container mx-auto px-4 py-8 space-y-6">
@@ -101,7 +127,7 @@ export default function CollaborativeHiringScorecard() {
               Interview Scorecards
             </h1>
             <p className="text-gray-600 dark:text-gray-300 mt-1">
-              Collaborative candidate evaluation and feedback
+              Collaborative candidate evaluation with AI resume insights
             </p>
           </div>
         </div>
@@ -118,29 +144,49 @@ export default function CollaborativeHiringScorecard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {applications.map((app: any) => (
-                    <div
-                      key={app.id}
-                      onClick={() => setSelectedApplication(app)}
-                      className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                        selectedApplication?.id === app.id
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarFallback>
-                            {app.applicantName?.split(' ').map((n: string) => n[0]).join('') || 'U'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <p className="font-medium">{app.applicantName}</p>
-                          <p className="text-sm text-gray-600">{app.jobPostingTitle}</p>
-                        </div>
-                      </div>
+                  {applications.length === 0 ? (
+                    <div className="text-center text-gray-500 py-8">
+                      <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                      <p>No applications to review</p>
                     </div>
-                  ))}
+                  ) : (
+                    applications.map((app: any) => {
+                      const profile = candidateProfiles[app.applicantId] || {};
+                      const atsScore = profile.atsScore || app.applicantAtsScore || 0;
+                      
+                      return (
+                        <div
+                          key={app.id}
+                          onClick={() => setSelectedApplication(app)}
+                          className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                            selectedApplication?.id === app.id
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar>
+                              <AvatarFallback>
+                                {app.applicantName?.split(' ').map((n: string) => n[0]).join('') || 'U'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{app.applicantName}</p>
+                              <p className="text-sm text-gray-600 truncate">{app.jobPostingTitle}</p>
+                              {atsScore > 0 && (
+                                <div className="flex items-center gap-2 mt-1">
+                                  <BarChart3 className="w-3 h-3 text-blue-500" />
+                                  <span className="text-xs text-blue-600 font-medium">
+                                    AI Score: {atsScore}%
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -155,6 +201,30 @@ export default function CollaborativeHiringScorecard() {
                     <Star className="w-5 h-5 text-yellow-500" />
                     Interview Scorecard - {selectedApplication.applicantName}
                   </CardTitle>
+                  {/* AI Resume Score Display */}
+                  {(candidateProfiles[selectedApplication.applicantId]?.atsScore || selectedApplication.applicantAtsScore) && (
+                    <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                            AI Resume Analysis Score
+                          </p>
+                          <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                            Based on automated resume screening
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-3xl font-bold text-blue-600">
+                            {candidateProfiles[selectedApplication.applicantId]?.atsScore || selectedApplication.applicantAtsScore}%
+                          </div>
+                          <Progress 
+                            value={candidateProfiles[selectedApplication.applicantId]?.atsScore || selectedApplication.applicantAtsScore || 0} 
+                            className="w-32 mt-2"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Rating Criteria */}
@@ -202,16 +272,16 @@ export default function CollaborativeHiringScorecard() {
                     <Label>Your Recommendation</Label>
                     <div className="grid grid-cols-2 gap-3 mt-2">
                       {[
-                        { value: 'strong_hire', label: 'Strong Hire', color: 'green' },
-                        { value: 'hire', label: 'Hire', color: 'blue' },
-                        { value: 'no_hire', label: 'No Hire', color: 'orange' },
-                        { value: 'strong_no_hire', label: 'Strong No Hire', color: 'red' }
+                        { value: 'strong_hire', label: 'Strong Hire', color: 'bg-green-600' },
+                        { value: 'hire', label: 'Hire', color: 'bg-blue-600' },
+                        { value: 'no_hire', label: 'No Hire', color: 'bg-orange-600' },
+                        { value: 'strong_no_hire', label: 'Strong No Hire', color: 'bg-red-600' }
                       ].map((rec) => (
                         <Button
                           key={rec.value}
                           variant={recommendation === rec.value ? "default" : "outline"}
                           onClick={() => setRecommendation(rec.value)}
-                          className={recommendation === rec.value ? `bg-${rec.color}-600` : ''}
+                          className={recommendation === rec.value ? rec.color : ''}
                         >
                           {rec.label}
                         </Button>
@@ -221,11 +291,11 @@ export default function CollaborativeHiringScorecard() {
 
                   <Button
                     onClick={handleSubmitFeedback}
-                    disabled={Object.keys(ratings).length < defaultCriteria.length || !recommendation}
+                    disabled={Object.keys(ratings).length < defaultCriteria.length || !recommendation || submitFeedbackMutation.isPending}
                     className="w-full"
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />
-                    Submit Feedback
+                    {submitFeedbackMutation.isPending ? 'Submitting...' : 'Submit Feedback'}
                   </Button>
                 </CardContent>
               </Card>
