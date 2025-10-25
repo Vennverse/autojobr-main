@@ -32,7 +32,16 @@ import {
   ChevronDown,
   Home,
   TrendingUp,
-  MessageCircle
+  MessageCircle,
+  Mail,
+  Calendar,
+  CheckSquare,
+  ClipboardList,
+  UserPlus,
+  DollarSign,
+  Award,
+  Sparkles,
+  BriefcaseBusiness
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -145,13 +154,14 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
       name: "Dashboard",
       href: "/recruiter/dashboard",
       icon: Home,
-      current: location === "/recruiter/dashboard" || location === "/recruiter/analytics"
+      current: location === "/recruiter/dashboard" || location === "/" || location === "/dashboard"
     },
     {
-      name: "CRM",
-      href: "/enhanced-crm",
-      icon: Users,
-      current: location === "/enhanced-crm" || location.startsWith("/enhanced-crm") || location === "/crm"
+      name: "🚀 ATS Platform",
+      href: "/unified-ats",
+      icon: Zap,
+      current: location === "/unified-ats" || location === "/ats-platform" || location === "/recruiter/ats",
+      highlight: true
     },
     {
       name: "Applicants",
@@ -163,27 +173,26 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
       name: "Pipeline",
       href: "/recruiter/enhanced-pipeline",
       icon: GitBranch,
-      current: location === "/recruiter/enhanced-pipeline"
+      current: location === "/recruiter/enhanced-pipeline" || location === "/recruiter/pipeline"
     },
     {
-      name: "Task Management",
-      href: "/recruiter/tasks",
-      icon: Target,
-      current: location === "/recruiter/tasks"
+      name: "CRM",
+      href: "/enhanced-crm",
+      icon: Building,
+      current: location === "/enhanced-crm" || location.startsWith("/enhanced-crm") || location === "/crm"
+    },
+    {
+      name: "Analytics",
+      href: "/advanced-analytics-dashboard",
+      icon: TrendingUp,
+      current: location === "/advanced-analytics-dashboard"
     },
     {
       name: "Messages",
       href: "/chat",
       icon: MessageCircle,
-      current: location === "/chat",
+      current: location === "/chat" || location === "/messaging",
       badge: unreadCount > 0 ? unreadCount : undefined
-    },
-    {
-      name: "Premium Targeting",
-      href: "/premium-targeting",
-      icon: Target,
-      current: location === "/premium-targeting",
-      premium: true
     }
   ];
 
@@ -244,6 +253,87 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
 
             {/* Right side */}
             <div className="hidden md:ml-6 md:flex md:items-center md:space-x-3">
+              
+              {/* More Tools Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    More Tools
+                    <ChevronDown className="w-3 h-3 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-72" align="end">
+                  <DropdownMenuLabel className="font-semibold">📋 Hiring & Interviews</DropdownMenuLabel>
+                  <DropdownMenuItem asChild>
+                    <Link href="/recruiter/post-job" className="w-full flex items-center cursor-pointer">
+                      <Briefcase className="mr-2 h-4 w-4" />
+                      <span>Post New Job</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/recruiter/interview-assignments" className="w-full flex items-center cursor-pointer">
+                      <Video className="mr-2 h-4 w-4" />
+                      <span>Interview Assignments</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/collaborative-hiring-scorecard" className="w-full flex items-center cursor-pointer">
+                      <CheckSquare className="mr-2 h-4 w-4" />
+                      <span>Scorecards</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/recruiter/test-management" className="w-full flex items-center cursor-pointer">
+                      <ClipboardList className="mr-2 h-4 w-4" />
+                      <span>Test Management</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="font-semibold">🎯 Sourcing & Targeting</DropdownMenuLabel>
+                  <DropdownMenuItem asChild>
+                    <Link href="/premium-targeting" className="w-full flex items-center cursor-pointer">
+                      <Target className="mr-2 h-4 w-4" />
+                      <span>Premium Targeting</span>
+                      <Crown className="w-3 h-3 ml-auto text-amber-500" />
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/referral-marketplace" className="w-full flex items-center cursor-pointer">
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      <span>Referral Marketplace</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/bidder-dashboard" className="w-full flex items-center cursor-pointer">
+                      <DollarSign className="mr-2 h-4 w-4" />
+                      <span>Bidder System</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="font-semibold">⚙️ Management Tools</DropdownMenuLabel>
+                  <DropdownMenuItem asChild>
+                    <Link href="/recruiter/tasks" className="w-full flex items-center cursor-pointer">
+                      <ClipboardList className="mr-2 h-4 w-4" />
+                      <span>Task Management</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/recruiter/background-checks" className="w-full flex items-center cursor-pointer">
+                      <Award className="mr-2 h-4 w-4" />
+                      <span>Background Checks</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/sso-configuration" className="w-full flex items-center cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>SSO Configuration</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               {/* Upgrade Button for Free Users */}
               {user?.planType === 'free' && (
