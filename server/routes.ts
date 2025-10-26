@@ -7451,10 +7451,55 @@ Return ONLY the JSON object, no additional text.`;
         enhancedUser
       );
 
+      // Map the tailored resume data to PDF generator format
+      const pdfReadyData = {
+        fullName: tailoredResult.tailoredResumeData.personalInfo?.fullName || resumeData.fullName,
+        email: tailoredResult.tailoredResumeData.personalInfo?.email || resumeData.email,
+        phone: tailoredResult.tailoredResumeData.personalInfo?.phone || resumeData.phone,
+        location: tailoredResult.tailoredResumeData.personalInfo?.location || resumeData.location,
+        linkedinUrl: tailoredResult.tailoredResumeData.personalInfo?.linkedin || resumeData.linkedinUrl,
+        githubUrl: tailoredResult.tailoredResumeData.personalInfo?.github || resumeData.githubUrl,
+        portfolioUrl: tailoredResult.tailoredResumeData.personalInfo?.portfolio || resumeData.portfolioUrl,
+        summary: tailoredResult.tailoredResumeData.professionalSummary,
+        experience: (tailoredResult.tailoredResumeData.experience || []).map((exp: any) => ({
+          company: exp.company,
+          position: exp.jobTitle || exp.position,
+          location: exp.location,
+          startDate: exp.startDate,
+          endDate: exp.endDate,
+          isCurrent: exp.isCurrent,
+          bulletPoints: exp.achievements || exp.bulletPoints || []
+        })),
+        education: (tailoredResult.tailoredResumeData.education || []).map((edu: any) => ({
+          institution: edu.university || edu.institution,
+          degree: edu.degree,
+          fieldOfStudy: edu.major || edu.fieldOfStudy,
+          graduationYear: edu.graduationDate ? parseInt(edu.graduationDate) : undefined,
+          gpa: edu.gpa,
+          achievements: edu.achievements || []
+        })),
+        skills: Array.isArray(tailoredResult.tailoredResumeData.skills) 
+          ? tailoredResult.tailoredResumeData.skills 
+          : [
+              ...(tailoredResult.tailoredResumeData.skills?.programming || []),
+              ...(tailoredResult.tailoredResumeData.skills?.frameworks || []),
+              ...(tailoredResult.tailoredResumeData.skills?.databases || []),
+              ...(tailoredResult.tailoredResumeData.skills?.tools || []),
+              ...(tailoredResult.tailoredResumeData.skills?.cloudPlatforms || [])
+            ].filter(Boolean),
+        projects: (tailoredResult.tailoredResumeData.projects || []).map((proj: any) => ({
+          name: proj.name,
+          description: Array.isArray(proj.description) ? proj.description.join(' ') : proj.description,
+          technologies: proj.technologies || [],
+          url: proj.url
+        })),
+        certifications: tailoredResult.tailoredResumeData.certifications || []
+      };
+
       // Return the tailored resume data for preview and PDF generation
       res.json({
         success: true,
-        tailoredResume: tailoredResult.tailoredResumeData,
+        tailoredResume: pdfReadyData,
         modifications: tailoredResult.modifications,
         originalData: resumeData
       });

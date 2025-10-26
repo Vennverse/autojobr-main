@@ -472,13 +472,36 @@ Example: "5+ years Software Engineer with expertise in React, Node.js, and AWS. 
     userProfile: UserProfile,
     enhancedContent: any,
   ): ResumeData {
+    // Map experience format: AI returns "achievements" but PDF needs "bulletPoints"
+    const mappedExperience = Array.isArray(enhancedContent.enhancedExperience) 
+      ? enhancedContent.enhancedExperience.map((exp: any) => ({
+          ...exp,
+          bulletPoints: exp.achievements || exp.bulletPoints || []
+        }))
+      : [];
+
+    // Flatten skills into a single array for PDF generator
+    const allSkills = enhancedContent.skills ? [
+      ...(enhancedContent.skills.programming || []),
+      ...(enhancedContent.skills.frameworks || []),
+      ...(enhancedContent.skills.databases || []),
+      ...(enhancedContent.skills.tools || []),
+      ...(enhancedContent.skills.cloudPlatforms || []),
+      ...(enhancedContent.skills.business || []),
+      ...(enhancedContent.skills.marketing || []),
+      ...(enhancedContent.skills.sales || []),
+      ...(enhancedContent.skills.finance || []),
+      ...(enhancedContent.skills.healthcare || []),
+      ...(enhancedContent.skills.education || [])
+    ].filter(Boolean) : [];
+
     return {
       // Use DB data directly (no AI tokens wasted)
       personalInfo: userProfile.personalInfo,
 
       // Use AI-enhanced content where it adds value, with fallbacks to empty arrays
       professionalSummary: enhancedContent.professionalSummary,
-      experience: Array.isArray(enhancedContent.enhancedExperience) ? enhancedContent.enhancedExperience : [],
+      experience: mappedExperience,
       projects: Array.isArray(enhancedContent.enhancedProjects) ? enhancedContent.enhancedProjects : [],
 
       // Use basic parsing for structured data
@@ -489,6 +512,12 @@ Example: "5+ years Software Engineer with expertise in React, Node.js, and AWS. 
         databases: [],
         tools: [],
         cloudPlatforms: [],
+        business: [],
+        marketing: [],
+        sales: [],
+        finance: [],
+        healthcare: [],
+        education: []
       },
       certifications: Array.isArray(enhancedContent.certifications) ? enhancedContent.certifications : [],
       additionalInfo: enhancedContent.additionalInfo || {},
