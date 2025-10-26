@@ -1,5 +1,5 @@
-import htmlPdf from 'html-pdf-node';
-import { execSync } from 'child_process';
+import PDFDocument from 'pdfkit';
+import { Readable } from 'stream';
 
 interface ResumeData {
   // Personal Information
@@ -54,397 +54,281 @@ interface ResumeData {
 }
 
 export class ResumePdfGenerator {
-  private chromiumPath: string | null = null;
-
-  /**
-   * Find Chromium executable path in Nix environment
-   */
-  private getChromiumPath(): string {
-    if (this.chromiumPath) {
-      return this.chromiumPath;
-    }
-
-    // Check environment variable first
-    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-      this.chromiumPath = process.env.PUPPETEER_EXECUTABLE_PATH;
-      console.log('🌐 Using Chromium from env:', this.chromiumPath);
-      return this.chromiumPath;
-    }
-
-    // Try to find chromium on the system
-    const fallbackPaths = [
-      'which chromium',
-      'which chromium-browser',
-      'which google-chrome',
-      'which google-chrome-stable'
-    ];
-
-    for (const cmd of fallbackPaths) {
-      try {
-        const path = execSync(cmd, { encoding: 'utf-8' }).trim();
-        if (path) {
-          this.chromiumPath = path;
-          console.log('🌐 Using Chromium at:', path);
-          return path;
-        }
-      } catch (error) {
-        // Continue to next fallback
-      }
-    }
-
-    // Last resort: common installation paths
-    const commonPaths = [
-      '/usr/bin/chromium',
-      '/usr/bin/chromium-browser',
-      '/usr/bin/google-chrome',
-      '/usr/bin/google-chrome-stable'
-    ];
-
-    for (const path of commonPaths) {
-      try {
-        execSync(`test -f ${path}`, { encoding: 'utf-8' });
-        this.chromiumPath = path;
-        console.log('🌐 Using Chromium at fallback path:', path);
-        return path;
-      } catch (error) {
-        // Continue to next path
-      }
-    }
-
-    console.error('⚠️ Could not find chromium, using default path');
-    return '/usr/bin/chromium';
-  }
   
   /**
-   * Generate a professional ATS-friendly resume PDF
+   * Generate a professional ATS-friendly resume PDF using PDFKit
    */
   async generatePdf(resumeData: ResumeData, templateStyle: 'modern' | 'classic' | 'harvard' = 'harvard'): Promise<Buffer> {
-    const html = this.generateHtml(resumeData, templateStyle);
-    
-    const options = {
-      format: 'Letter',
-      printBackground: true,
-      margin: {
-        top: '0.5in',
-        right: '0.75in',
-        bottom: '0.5in',
-        left: '0.75in'
-      },
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
-      executablePath: this.getChromiumPath()
-    };
-    
-    const file = { content: html };
-    const pdfBuffer = await htmlPdf.generatePdf(file, options);
-    
-    return pdfBuffer as Buffer;
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'LETTER',
+          margins: { top: 50, bottom: 50, left: 50, right: 50 }
+        });
+
+        const chunks: Buffer[] = [];
+        
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        console.log('📄 Generating PDF with data:', {
+          name: resumeData.fullName,
+          phone: resumeData.phone || 'N/A',
+          location: resumeData.location || 'N/A',
+          experience: resumeData.experience?.length || 0,
+          education: resumeData.education?.length || 0,
+          skills: resumeData.skills?.length || 0
+        });
+
+        // Generate content based on template
+        this.generateHarvardTemplate(doc, resumeData);
+
+        doc.end();
+      } catch (error) {
+        console.error('❌ PDF generation error:', error);
+        reject(error);
+      }
+    });
   }
-  
-  /**
-   * Generate HTML template for resume
-   */
-  private generateHtml(data: ResumeData, templateStyle: string): string {
-    switch (templateStyle) {
-      case 'harvard':
-        return this.generateHarvardTemplate(data);
-      case 'modern':
-        return this.generateModernTemplate(data);
-      case 'classic':
-        return this.generateClassicTemplate(data);
-      default:
-        return this.generateHarvardTemplate(data);
-    }
-  }
-  
+
   /**
    * Harvard/MIT/Stanford Style Resume Template
-   * Single column, clean, ATS-friendly
+   * Professional, ATS-friendly, single-column layout
    */
-  private generateHarvardTemplate(data: ResumeData): string {
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+  private generateHarvardTemplate(doc: PDFKit.PDFDocument, data: ResumeData) {
+    const pageWidth = doc.page.width;
+    const margins = doc.page.margins;
+    const contentWidth = pageWidth - margins.left - margins.right;
+
+    // Header - Name and Contact Info
+    doc.fontSize(22)
+       .font('Helvetica-Bold')
+       .text(data.fullName.toUpperCase(), { align: 'center' });
+
+    doc.moveDown(0.3);
+
+    // Contact Information
+    const contactInfo: string[] = [];
+    if (data.phone) contactInfo.push(data.phone);
+    if (data.email) contactInfo.push(data.email);
+    if (data.location) contactInfo.push(data.location);
+    
+    if (contactInfo.length > 0) {
+      doc.fontSize(10)
+         .font('Helvetica')
+         .text(contactInfo.join(' | '), { align: 'center' });
     }
+
+    // Links (LinkedIn, GitHub, Portfolio)
+    const links: string[] = [];
+    if (data.linkedinUrl) links.push(`LinkedIn: ${data.linkedinUrl}`);
+    if (data.githubUrl) links.push(`GitHub: ${data.githubUrl}`);
+    if (data.portfolioUrl) links.push(`Portfolio: ${data.portfolioUrl}`);
     
-    body {
-      font-family: 'Calibri', 'Arial', sans-serif;
-      font-size: 11pt;
-      line-height: 1.3;
-      color: #000000;
-      background: white;
+    if (links.length > 0) {
+      doc.moveDown(0.2);
+      doc.fontSize(9)
+         .font('Helvetica')
+         .text(links.join(' | '), { align: 'center' });
     }
-    
-    .container {
-      max-width: 8.5in;
-      margin: 0 auto;
+
+    // Horizontal line under header
+    doc.moveDown(0.5);
+    this.drawLine(doc, margins.left, doc.y, pageWidth - margins.right, doc.y);
+    doc.moveDown(0.5);
+
+    // Professional Summary
+    if (data.summary) {
+      this.addSectionHeader(doc, 'PROFESSIONAL SUMMARY');
+      doc.fontSize(10)
+         .font('Helvetica')
+         .text(data.summary, { align: 'justify', lineGap: 2 });
+      doc.moveDown(0.8);
     }
-    
-    /* Header */
-    .header {
-      text-align: center;
-      margin-bottom: 15px;
-      border-bottom: 1px solid #000;
-      padding-bottom: 8px;
+
+    // Work Experience
+    if (data.experience && data.experience.length > 0) {
+      this.addSectionHeader(doc, 'PROFESSIONAL EXPERIENCE');
+      
+      data.experience.forEach((exp, index) => {
+        // Job Title and Company
+        doc.fontSize(11)
+           .font('Helvetica-Bold')
+           .text(exp.position, { continued: true })
+           .fontSize(10)
+           .font('Helvetica')
+           .text(` - ${exp.company}`);
+
+        // Location and Dates
+        const dateText = `${exp.startDate} - ${exp.isCurrent ? 'Present' : (exp.endDate || '')}`;
+        doc.fontSize(9)
+           .font('Helvetica-Oblique')
+           .text(`${exp.location || ''} | ${dateText}`, { lineGap: 2 });
+
+        // Bullet Points
+        if (exp.bulletPoints && exp.bulletPoints.length > 0) {
+          doc.moveDown(0.3);
+          exp.bulletPoints.forEach(bullet => {
+            const bulletX = doc.x;
+            const bulletY = doc.y;
+            
+            doc.fontSize(10)
+               .font('Helvetica')
+               .text('•', bulletX, bulletY, { continued: false })
+               .text(bullet, bulletX + 15, bulletY, { 
+                 width: contentWidth - 15,
+                 lineGap: 1
+               });
+            
+            doc.moveDown(0.3);
+          });
+        }
+
+        if (index < data.experience.length - 1) {
+          doc.moveDown(0.5);
+        }
+      });
+      doc.moveDown(0.8);
     }
-    
-    .name {
-      font-size: 20pt;
-      font-weight: bold;
-      margin-bottom: 5px;
-      letter-spacing: 0.5px;
+
+    // Education
+    if (data.education && data.education.length > 0) {
+      this.addSectionHeader(doc, 'EDUCATION');
+      
+      data.education.forEach((edu, index) => {
+        doc.fontSize(11)
+           .font('Helvetica-Bold')
+           .text(edu.degree + (edu.fieldOfStudy ? ` in ${edu.fieldOfStudy}` : ''));
+
+        doc.fontSize(10)
+           .font('Helvetica')
+           .text(edu.institution);
+
+        if (edu.graduationYear || edu.gpa) {
+          const eduDetails: string[] = [];
+          if (edu.graduationYear) eduDetails.push(`Graduated: ${edu.graduationYear}`);
+          if (edu.gpa) eduDetails.push(`GPA: ${edu.gpa}`);
+          
+          doc.fontSize(9)
+             .font('Helvetica-Oblique')
+             .text(eduDetails.join(' | '), { lineGap: 2 });
+        }
+
+        if (edu.achievements && edu.achievements.length > 0) {
+          doc.moveDown(0.3);
+          edu.achievements.forEach(achievement => {
+            const bulletX = doc.x;
+            const bulletY = doc.y;
+            
+            doc.fontSize(10)
+               .font('Helvetica')
+               .text('•', bulletX, bulletY)
+               .text(achievement, bulletX + 15, bulletY, { 
+                 width: contentWidth - 15
+               });
+            
+            doc.moveDown(0.2);
+          });
+        }
+
+        if (index < data.education.length - 1) {
+          doc.moveDown(0.5);
+        }
+      });
+      doc.moveDown(0.8);
     }
-    
-    .contact-info {
-      font-size: 10pt;
-      color: #333;
+
+    // Skills
+    if (data.skills && data.skills.length > 0) {
+      this.addSectionHeader(doc, 'TECHNICAL SKILLS');
+      
+      const skillsText = data.skills.join(' • ');
+      doc.fontSize(10)
+         .font('Helvetica')
+         .text(skillsText, { align: 'left', lineGap: 2 });
+      
+      doc.moveDown(0.8);
     }
-    
-    .contact-info a {
-      color: #0066cc;
-      text-decoration: none;
+
+    // Projects
+    if (data.projects && data.projects.length > 0) {
+      this.addSectionHeader(doc, 'KEY PROJECTS');
+      
+      data.projects.forEach((project, index) => {
+        doc.fontSize(11)
+           .font('Helvetica-Bold')
+           .text(project.name);
+
+        doc.fontSize(10)
+           .font('Helvetica')
+           .text(project.description, { lineGap: 2 });
+
+        if (project.technologies && project.technologies.length > 0) {
+          doc.fontSize(9)
+             .font('Helvetica-Oblique')
+             .text(`Technologies: ${project.technologies.join(', ')}`, { lineGap: 2 });
+        }
+
+        if (project.url) {
+          doc.fontSize(9)
+             .fillColor('blue')
+             .text(project.url, { link: project.url })
+             .fillColor('black');
+        }
+
+        if (index < data.projects.length - 1) {
+          doc.moveDown(0.5);
+        }
+      });
+      doc.moveDown(0.8);
     }
-    
-    /* Section Headers */
-    .section {
-      margin-bottom: 14px;
+
+    // Certifications
+    if (data.certifications && data.certifications.length > 0) {
+      this.addSectionHeader(doc, 'CERTIFICATIONS');
+      
+      data.certifications.forEach(cert => {
+        const bulletX = doc.x;
+        const bulletY = doc.y;
+        
+        doc.fontSize(10)
+           .font('Helvetica')
+           .text('•', bulletX, bulletY)
+           .text(cert, bulletX + 15, bulletY, { width: contentWidth - 15 });
+        
+        doc.moveDown(0.3);
+      });
     }
-    
-    .section-title {
-      font-size: 12pt;
-      font-weight: bold;
-      text-transform: uppercase;
-      margin-bottom: 6px;
-      border-bottom: 1px solid #000;
-      padding-bottom: 2px;
-    }
-    
-    /* Summary */
-    .summary {
-      margin-bottom: 4px;
-      text-align: justify;
-    }
-    
-    /* Experience */
-    .experience-item, .education-item, .project-item {
-      margin-bottom: 10px;
-    }
-    
-    .item-header {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 3px;
-    }
-    
-    .item-title {
-      font-weight: bold;
-    }
-    
-    .item-subtitle {
-      font-style: italic;
-      margin-bottom: 3px;
-    }
-    
-    .item-dates {
-      font-style: italic;
-      white-space: nowrap;
-    }
-    
-    .bullet-points {
-      margin-left: 20px;
-      margin-top: 3px;
-    }
-    
-    .bullet-points li {
-      margin-bottom: 3px;
-      line-height: 1.4;
-    }
-    
-    /* Skills */
-    .skills-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-    }
-    
-    .skill-item {
-      display: inline;
-    }
-    
-    .skill-item:not(:last-child)::after {
-      content: " • ";
-    }
-    
-    /* Two Column Layout for Education */
-    .two-column {
-      display: flex;
-      justify-content: space-between;
-    }
-    
-    /* Page break control */
-    .no-break {
-      page-break-inside: avoid;
-    }
-    
-    @media print {
-      body {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    
-    <!-- Header -->
-    <div class="header">
-      <div class="name">${this.escapeHtml(data.fullName)}</div>
-      <div class="contact-info">
-        ${data.email}${data.phone ? ' • ' + data.phone : ''}${data.location ? ' • ' + data.location : ''}
-        ${data.linkedinUrl ? '<br><a href="' + data.linkedinUrl + '">LinkedIn</a>' : ''}${data.githubUrl ? ' • <a href="' + data.githubUrl + '">GitHub</a>' : ''}${data.portfolioUrl ? ' • <a href="' + data.portfolioUrl + '">Portfolio</a>' : ''}
-      </div>
-    </div>
-    
-    ${data.summary ? `
-    <!-- Summary -->
-    <div class="section">
-      <div class="section-title">Professional Summary</div>
-      <div class="summary">${this.escapeHtml(data.summary)}</div>
-    </div>
-    ` : ''}
-    
-    <!-- Education -->
-    ${data.education && data.education.length > 0 ? `
-    <div class="section">
-      <div class="section-title">Education</div>
-      ${data.education.map(edu => `
-        <div class="education-item no-break">
-          <div class="item-header">
-            <div>
-              <div class="item-title">${this.escapeHtml(edu.institution)}</div>
-              <div class="item-subtitle">${this.escapeHtml(edu.degree)}${edu.fieldOfStudy ? ', ' + this.escapeHtml(edu.fieldOfStudy) : ''}</div>
-            </div>
-            <div class="item-dates">${edu.graduationYear || ''}</div>
-          </div>
-          ${edu.gpa ? `<div>GPA: ${edu.gpa}</div>` : ''}
-          ${edu.achievements && edu.achievements.length > 0 ? `
-            <ul class="bullet-points">
-              ${edu.achievements.map(achievement => `<li>${this.escapeHtml(achievement)}</li>`).join('')}
-            </ul>
-          ` : ''}
-        </div>
-      `).join('')}
-    </div>
-    ` : ''}
-    
-    <!-- Experience -->
-    ${data.experience && data.experience.length > 0 ? `
-    <div class="section">
-      <div class="section-title">Professional Experience</div>
-      ${data.experience.map(exp => `
-        <div class="experience-item no-break">
-          <div class="item-header">
-            <div>
-              <div class="item-title">${this.escapeHtml(exp.company)} - ${this.escapeHtml(exp.position)}</div>
-              ${exp.location ? `<div class="item-subtitle">${this.escapeHtml(exp.location)}</div>` : ''}
-            </div>
-            <div class="item-dates">${exp.startDate} - ${exp.isCurrent ? 'Present' : (exp.endDate || '')}</div>
-          </div>
-          ${exp.bulletPoints && exp.bulletPoints.length > 0 ? `
-            <ul class="bullet-points">
-              ${exp.bulletPoints.map(bullet => `<li>${this.escapeHtml(bullet)}</li>`).join('')}
-            </ul>
-          ` : ''}
-        </div>
-      `).join('')}
-    </div>
-    ` : ''}
-    
-    <!-- Skills -->
-    ${data.skills && data.skills.length > 0 ? `
-    <div class="section">
-      <div class="section-title">Skills</div>
-      <div class="skills-list">
-        ${data.skills.map(skill => `<span class="skill-item">${this.escapeHtml(skill)}</span>`).join('')}
-      </div>
-    </div>
-    ` : ''}
-    
-    <!-- Projects -->
-    ${data.projects && data.projects.length > 0 ? `
-    <div class="section">
-      <div class="section-title">Projects</div>
-      ${data.projects.map(project => `
-        <div class="project-item no-break">
-          <div class="item-title">${this.escapeHtml(project.name)}${project.url ? ' • <a href="' + project.url + '">' + project.url + '</a>' : ''}</div>
-          <div>${this.escapeHtml(project.description)}</div>
-          ${project.technologies ? `<div><em>Technologies: ${project.technologies.join(', ')}</em></div>` : ''}
-        </div>
-      `).join('')}
-    </div>
-    ` : ''}
-    
-    <!-- Certifications -->
-    ${data.certifications && data.certifications.length > 0 ? `
-    <div class="section">
-      <div class="section-title">Certifications</div>
-      <ul class="bullet-points">
-        ${data.certifications.map(cert => `<li>${this.escapeHtml(cert)}</li>`).join('')}
-      </ul>
-    </div>
-    ` : ''}
-    
-    <!-- Awards -->
-    ${data.awards && data.awards.length > 0 ? `
-    <div class="section">
-      <div class="section-title">Awards & Achievements</div>
-      <ul class="bullet-points">
-        ${data.awards.map(award => `<li>${this.escapeHtml(award)}</li>`).join('')}
-      </ul>
-    </div>
-    ` : ''}
-    
-  </div>
-</body>
-</html>
-    `.trim();
   }
-  
+
   /**
-   * Modern Resume Template (Alternative style)
+   * Add a section header with underline
    */
-  private generateModernTemplate(data: ResumeData): string {
-    // Similar structure but with modern styling
-    return this.generateHarvardTemplate(data); // For now, use Harvard template
+  private addSectionHeader(doc: PDFKit.PDFDocument, title: string) {
+    const startY = doc.y;
+    
+    doc.fontSize(12)
+       .font('Helvetica-Bold')
+       .text(title);
+
+    const endY = doc.y;
+    
+    // Underline
+    this.drawLine(doc, doc.page.margins.left, endY + 2, doc.page.width - doc.page.margins.right, endY + 2);
+    
+    doc.moveDown(0.5);
   }
-  
+
   /**
-   * Classic Resume Template (Traditional style)
+   * Draw a horizontal line
    */
-  private generateClassicTemplate(data: ResumeData): string {
-    // Similar structure but with classic styling
-    return this.generateHarvardTemplate(data); // For now, use Harvard template
-  }
-  
-  /**
-   * Escape HTML special characters to prevent XSS
-   */
-  private escapeHtml(text: string): string {
-    const map: { [key: string]: string } = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#039;'
-    };
-    return text.replace(/[&<>"']/g, m => map[m]);
+  private drawLine(doc: PDFKit.PDFDocument, x1: number, y1: number, x2: number, y2: number) {
+    doc.strokeColor('#000000')
+       .lineWidth(0.5)
+       .moveTo(x1, y1)
+       .lineTo(x2, y2)
+       .stroke();
   }
 }
 

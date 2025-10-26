@@ -7341,7 +7341,7 @@ Return ONLY the JSON object, no additional text.`;
         return res.status(400).json({ message: 'Job description and job title are required' });
       }
 
-      // Fetch user's profile data
+      // Fetch user's profile data AND stored resume
       const [userProfile, userExperience, userEducation, userSkills, activeResume] = await Promise.all([
         db.select().from(schema.userProfiles).where(eq(schema.userProfiles.userId, userId)).limit(1),
         db.select().from(schema.workExperience).where(eq(schema.workExperience.userId, userId)),
@@ -7351,47 +7351,97 @@ Return ONLY the JSON object, no additional text.`;
       ]);
 
       const profile = userProfile[0];
+      const storedResume = activeResume[0];
 
-      // Structure resume data
-      const resumeData = {
-        fullName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || profile?.fullName || 'Your Name',
-        email: req.user.email || '',
-        phone: profile?.phone || '',
-        location: profile?.location || '',
-        linkedinUrl: profile?.linkedinUrl || '',
-        githubUrl: profile?.githubUrl || '',
-        portfolioUrl: profile?.portfolioUrl || '',
-        summary: profile?.summary || '',
-        experience: userExperience.map(exp => ({
-          company: exp.company,
-          position: exp.position,
-          location: exp.location || '',
-          startDate: exp.startDate ? new Date(exp.startDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '',
-          endDate: exp.endDate ? new Date(exp.endDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '',
-          isCurrent: exp.isCurrent || false,
-          bulletPoints: exp.achievements || []
-        })),
-        education: userEducation.map(edu => ({
-          institution: edu.institution,
-          degree: edu.degree,
-          fieldOfStudy: edu.fieldOfStudy || '',
-          graduationYear: edu.graduationYear || undefined,
-          gpa: edu.gpa || '',
-          achievements: edu.achievements || []
-        })),
-        skills: userSkills.map(skill => skill.skillName),
-        certifications: profile?.relevantCertifications?.split(',').map((c: string) => c.trim()).filter(Boolean) || []
-      };
+      let resumeData: any;
+
+      // PRIORITY 1: If user has stored resume text, parse it for complete data
+      if (storedResume?.resumeText) {
+        console.log('📄 Parsing stored resume text for complete data');
+        const { resumeTextParser } = await import('./resumeTextParser');
+        const parsedData = resumeTextParser.parse(storedResume.resumeText);
+        
+        // Use parsed data but override with database values if they exist
+        resumeData = {
+          fullName: parsedData.fullName || `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || 'Your Name',
+          email: parsedData.email || req.user.email || '',
+          phone: parsedData.phone || profile?.phone || '',
+          location: parsedData.location || profile?.location || '',
+          linkedinUrl: parsedData.linkedinUrl || profile?.linkedinUrl || '',
+          githubUrl: parsedData.githubUrl || profile?.githubUrl || '',
+          portfolioUrl: parsedData.portfolioUrl || profile?.portfolioUrl || '',
+          summary: parsedData.summary || profile?.summary || '',
+          experience: parsedData.experience.length > 0 ? parsedData.experience : userExperience.map(exp => ({
+            company: exp.company,
+            position: exp.position,
+            location: exp.location || '',
+            startDate: exp.startDate ? new Date(exp.startDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '',
+            endDate: exp.endDate ? new Date(exp.endDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '',
+            isCurrent: exp.isCurrent || false,
+            bulletPoints: exp.achievements || []
+          })),
+          education: parsedData.education.length > 0 ? parsedData.education : userEducation.map(edu => ({
+            institution: edu.institution,
+            degree: edu.degree,
+            fieldOfStudy: edu.fieldOfStudy || '',
+            graduationYear: edu.graduationYear || undefined,
+            gpa: edu.gpa || '',
+            achievements: edu.achievements || []
+          })),
+          skills: parsedData.skills.length > 0 ? parsedData.skills : userSkills.map(skill => skill.skillName),
+          projects: parsedData.projects || [],
+          certifications: parsedData.certifications || profile?.relevantCertifications?.split(',').map((c: string) => c.trim()).filter(Boolean) || []
+        };
+
+        console.log('✅ Resume data extracted:', {
+          name: resumeData.fullName,
+          phone: resumeData.phone || 'N/A',
+          location: resumeData.location || 'N/A',
+          experience: resumeData.experience?.length || 0,
+          education: resumeData.education?.length || 0,
+          skills: resumeData.skills?.length || 0,
+          projects: resumeData.projects?.length || 0
+        });
+      } else {
+        // PRIORITY 2: Use structured database data
+        resumeData = {
+          fullName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || profile?.fullName || 'Your Name',
+          email: req.user.email || '',
+          phone: profile?.phone || '',
+          location: profile?.location || '',
+          linkedinUrl: profile?.linkedinUrl || '',
+          githubUrl: profile?.githubUrl || '',
+          portfolioUrl: profile?.portfolioUrl || '',
+          summary: profile?.summary || '',
+          experience: userExperience.map(exp => ({
+            company: exp.company,
+            position: exp.position,
+            location: exp.location || '',
+            startDate: exp.startDate ? new Date(exp.startDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '',
+            endDate: exp.endDate ? new Date(exp.endDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '',
+            isCurrent: exp.isCurrent || false,
+            bulletPoints: exp.achievements || []
+          })),
+          education: userEducation.map(edu => ({
+            institution: edu.institution,
+            degree: edu.degree,
+            fieldOfStudy: edu.fieldOfStudy || '',
+            graduationYear: edu.graduationYear || undefined,
+            gpa: edu.gpa || '',
+            achievements: edu.achievements || []
+          })),
+          skills: userSkills.map(skill => skill.skillName),
+          projects: [],
+          certifications: profile?.relevantCertifications?.split(',').map((c: string) => c.trim()).filter(Boolean) || []
+        };
+      }
 
       // Ensure we have some data to work with
       if (!resumeData.experience.length && !resumeData.education.length && !resumeData.skills.length) {
-        // Try to extract from resume text if available
-        if (activeResume[0]?.resumeText) {
-          return res.status(400).json({
-            message: 'No structured resume data found. Please complete your profile first.',
-            hint: 'Visit /profile to add your experience, education, and skills.'
-          });
-        }
+        return res.status(400).json({
+          message: 'No resume data found. Please upload a resume or complete your profile.',
+          hint: 'Go to /resumes to upload your resume, or visit /profile to add your details manually.'
+        });
       }
 
       // Generate AI-tailored resume
