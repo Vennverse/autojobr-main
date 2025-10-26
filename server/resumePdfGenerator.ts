@@ -1,4 +1,5 @@
 import htmlPdf from 'html-pdf-node';
+import { execSync } from 'child_process';
 
 interface ResumeData {
   // Personal Information
@@ -53,6 +54,26 @@ interface ResumeData {
 }
 
 export class ResumePdfGenerator {
+  private chromiumPath: string | null = null;
+
+  /**
+   * Find Chromium executable path in Nix environment
+   */
+  private getChromiumPath(): string {
+    if (this.chromiumPath) {
+      return this.chromiumPath;
+    }
+
+    try {
+      const path = execSync('which chromium', { encoding: 'utf-8' }).trim();
+      this.chromiumPath = path;
+      console.log('🌐 Using Chromium at:', path);
+      return path;
+    } catch (error) {
+      console.error('⚠️ Could not find chromium, using default path');
+      return '/usr/bin/chromium';
+    }
+  }
   
   /**
    * Generate a professional ATS-friendly resume PDF
@@ -68,7 +89,9 @@ export class ResumePdfGenerator {
         right: '0.75in',
         bottom: '0.5in',
         left: '0.75in'
-      }
+      },
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+      executablePath: this.getChromiumPath()
     };
     
     const file = { content: html };
