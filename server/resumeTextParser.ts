@@ -197,46 +197,45 @@ export class ResumeTextParser {
         // Parse company/location/dates from next line
         i++; // Move to the next line
           
-          // Parse: Company | Location | Dates
-          // Or: Company, Location | Dates
-          // Or: Company | Dates
-          const parts = nextLine.split('|').map(p => p.trim());
-          
-          if (parts.length >= 1) {
-            // First part is always company (may include location after comma)
-            const companyPart = parts[0];
-            const companyLocationMatch = companyPart.match(/^(.+?),\s*(.+)$/);
-            if (companyLocationMatch) {
-              currentExp.company = companyLocationMatch[1].trim();
-              currentExp.location = companyLocationMatch[2].trim();
-            } else {
-              currentExp.company = companyPart;
-            }
+        // Parse: Company | Location | Dates
+        // Or: Company, Location | Dates
+        // Or: Company | Dates
+        const parts = nextLine.split('|').map(p => p.trim());
+        
+        if (parts.length >= 1) {
+          // First part is always company (may include location after comma)
+          const companyPart = parts[0];
+          const companyLocationMatch = companyPart.match(/^(.+?),\s*(.+)$/);
+          if (companyLocationMatch) {
+            currentExp.company = companyLocationMatch[1].trim();
+            currentExp.location = companyLocationMatch[2].trim();
+          } else {
+            currentExp.company = companyPart;
           }
-          
-          if (parts.length >= 2) {
-            // Check if second part is location or dates
-            const datePattern = /(\w{3,}\s+\d{4}|\d{4})/i;
-            if (datePattern.test(parts[1])) {
-              // Second part is dates
-              const dateMatch = parts[1].match(/(.+?)\s*[-–—]\s*(.+)/);
+        }
+        
+        if (parts.length >= 2) {
+          // Check if second part is location or dates
+          const datePattern = /(\w{3,}\s+\d{4}|\d{4})/i;
+          if (datePattern.test(parts[1])) {
+            // Second part is dates
+            const dateMatch = parts[1].match(/(.+?)\s*[-–—]\s*(.+)/);
+            if (dateMatch) {
+              currentExp.startDate = dateMatch[1].trim();
+              currentExp.endDate = dateMatch[2].trim();
+              currentExp.isCurrent = dateMatch[2].toLowerCase().includes('present');
+            }
+          } else {
+            // Second part is location
+            currentExp.location = parts[1];
+            
+            // Third part should be dates
+            if (parts.length >= 3) {
+              const dateMatch = parts[2].match(/(.+?)\s*[-–—]\s*(.+)/);
               if (dateMatch) {
                 currentExp.startDate = dateMatch[1].trim();
                 currentExp.endDate = dateMatch[2].trim();
                 currentExp.isCurrent = dateMatch[2].toLowerCase().includes('present');
-              }
-            } else {
-              // Second part is location
-              currentExp.location = parts[1];
-              
-              // Third part should be dates
-              if (parts.length >= 3) {
-                const dateMatch = parts[2].match(/(.+?)\s*[-–—]\s*(.+)/);
-                if (dateMatch) {
-                  currentExp.startDate = dateMatch[1].trim();
-                  currentExp.endDate = dateMatch[2].trim();
-                  currentExp.isCurrent = dateMatch[2].toLowerCase().includes('present');
-                }
               }
             }
           }
