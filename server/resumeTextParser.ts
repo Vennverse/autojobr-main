@@ -85,9 +85,22 @@ export class ResumeTextParser {
   }
 
   private extractPhone(text: string): string {
-    const phoneRegex = /(?:Mobile|Phone|Tel|Contact)?:?\s*(\+?\d{1,3}[\s-]?\(?\d{2,4}\)?[\s-]?\d{3,4}[\s-]?\d{3,4})/i;
-    const match = text.match(phoneRegex);
-    return match ? match[1].trim() : '';
+    // Try multiple phone patterns for international support
+    const patterns = [
+      /(?:Mobile|Phone|Tel|Contact)?:?\s*(\+?\d{1,3}[\s-]?\(?\d{2,4}\)?[\s-]?\d{3,4}[\s-]?\d{3,4})/i,
+      /(\+?\d{1,3}[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})/,
+      /(\d{3}[-.\s]?\d{3}[-.\s]?\d{4})/,
+      /(\+\d{10,15})/
+    ];
+    
+    for (const regex of patterns) {
+      const match = text.match(regex);
+      if (match) {
+        return match[1].trim();
+      }
+    }
+    
+    return '';
   }
 
   private extractLocation(text: string): string {

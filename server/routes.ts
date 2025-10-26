@@ -847,6 +847,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const category = req.query.category as string;
       const location = req.query.location as string;
       const country = req.query.country as string;
+
+
+  // Download generated resume as PDF
+  app.post('/api/resumes/download-generated', isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    try {
+      const { resumeData, templateType = 'harvard' } = req.body;
+
+      if (!resumeData) {
+        return res.status(400).json({ error: 'Resume data is required' });
+      }
+
+      console.log('📄 Generating PDF for download...', {
+        name: resumeData.fullName,
+        template: templateType
+      });
+
+      // Generate PDF using ResumePdfGenerator
+      const { resumePdfGenerator } = await import('./resumePdfGenerator.js');
+      const pdfBuffer = await resumePdfGenerator.generatePdf(resumeData, templateType);
+
+      // Set headers for download
+      const fileName = `${resumeData.fullName.replace(/\s+/g, '_')}_Resume_${Date.now()}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+
+      console.log('✅ PDF generated successfully:', fileName);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      res.status(500).json({ 
+        error: 'Failed to generate PDF',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }));
+
       const city = req.query.city as string;
       const workMode = req.query.work_mode as string;
       const jobType = req.query.job_type as string;
@@ -7451,31 +7488,31 @@ Return ONLY the JSON object, no additional text.`;
         enhancedUser
       );
 
-      // Map the tailored resume data to PDF generator format
+      // Map the tailored resume data to PDF generator format with ALL fields
       const pdfReadyData = {
-        fullName: tailoredResult.tailoredResumeData.personalInfo?.fullName || resumeData.fullName,
-        email: tailoredResult.tailoredResumeData.personalInfo?.email || resumeData.email,
-        phone: tailoredResult.tailoredResumeData.personalInfo?.phone || resumeData.phone,
-        location: tailoredResult.tailoredResumeData.personalInfo?.location || resumeData.location,
-        linkedinUrl: tailoredResult.tailoredResumeData.personalInfo?.linkedin || resumeData.linkedinUrl,
-        githubUrl: tailoredResult.tailoredResumeData.personalInfo?.github || resumeData.githubUrl,
-        portfolioUrl: tailoredResult.tailoredResumeData.personalInfo?.portfolio || resumeData.portfolioUrl,
-        summary: tailoredResult.tailoredResumeData.professionalSummary,
+        fullName: tailoredResult.tailoredResumeData.personalInfo?.fullName || resumeData.fullName || 'Your Name',
+        email: tailoredResult.tailoredResumeData.personalInfo?.email || resumeData.email || '',
+        phone: tailoredResult.tailoredResumeData.personalInfo?.phone || resumeData.phone || '',
+        location: tailoredResult.tailoredResumeData.personalInfo?.location || resumeData.location || '',
+        linkedinUrl: tailoredResult.tailoredResumeData.personalInfo?.linkedin || resumeData.linkedinUrl || '',
+        githubUrl: tailoredResult.tailoredResumeData.personalInfo?.github || resumeData.githubUrl || '',
+        portfolioUrl: tailoredResult.tailoredResumeData.personalInfo?.portfolio || resumeData.portfolioUrl || '',
+        summary: tailoredResult.tailoredResumeData.professionalSummary || '',
         experience: (tailoredResult.tailoredResumeData.experience || []).map((exp: any) => ({
-          company: exp.company,
-          position: exp.jobTitle || exp.position,
-          location: exp.location,
-          startDate: exp.startDate,
-          endDate: exp.endDate,
-          isCurrent: exp.isCurrent,
+          company: exp.company || 'Company Name',
+          position: exp.jobTitle || exp.position || 'Job Title',
+          location: exp.location || '',
+          startDate: exp.startDate || '',
+          endDate: exp.endDate || '',
+          isCurrent: exp.isCurrent || false,
           bulletPoints: exp.achievements || exp.bulletPoints || []
         })),
         education: (tailoredResult.tailoredResumeData.education || []).map((edu: any) => ({
-          institution: edu.university || edu.institution,
-          degree: edu.degree,
-          fieldOfStudy: edu.major || edu.fieldOfStudy,
+          institution: edu.university || edu.institution || 'University',
+          degree: edu.degree || 'Degree',
+          fieldOfStudy: edu.major || edu.fieldOfStudy || '',
           graduationYear: edu.graduationDate ? parseInt(edu.graduationDate) : undefined,
-          gpa: edu.gpa,
+          gpa: edu.gpa || '',
           achievements: edu.achievements || []
         })),
         skills: Array.isArray(tailoredResult.tailoredResumeData.skills) 
@@ -7485,15 +7522,23 @@ Return ONLY the JSON object, no additional text.`;
               ...(tailoredResult.tailoredResumeData.skills?.frameworks || []),
               ...(tailoredResult.tailoredResumeData.skills?.databases || []),
               ...(tailoredResult.tailoredResumeData.skills?.tools || []),
-              ...(tailoredResult.tailoredResumeData.skills?.cloudPlatforms || [])
+              ...(tailoredResult.tailoredResumeData.skills?.cloudPlatforms || []),
+              ...(tailoredResult.tailoredResumeData.skills?.business || []),
+              ...(tailoredResult.tailoredResumeData.skills?.marketing || []),
+              ...(tailoredResult.tailoredResumeData.skills?.sales || []),
+              ...(tailoredResult.tailoredResumeData.skills?.finance || []),
+              ...(tailoredResult.tailoredResumeData.skills?.healthcare || []),
+              ...(tailoredResult.tailoredResumeData.skills?.education || [])
             ].filter(Boolean),
         projects: (tailoredResult.tailoredResumeData.projects || []).map((proj: any) => ({
-          name: proj.name,
-          description: Array.isArray(proj.description) ? proj.description.join(' ') : proj.description,
+          name: proj.name || 'Project',
+          description: Array.isArray(proj.description) ? proj.description.join(' ') : (proj.description || ''),
           technologies: proj.technologies || [],
-          url: proj.url
+          url: proj.url || ''
         })),
-        certifications: tailoredResult.tailoredResumeData.certifications || []
+        certifications: (tailoredResult.tailoredResumeData.certifications || []).map((cert: any) => 
+          typeof cert === 'string' ? cert : cert.name || 'Certification'
+        )
       };
 
       // Return the tailored resume data for preview and PDF generation

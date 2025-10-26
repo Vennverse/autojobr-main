@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Copy, RefreshCw, CheckCircle, FileText } from "lucide-react";
+import { Sparkles, Copy, RefreshCw, CheckCircle, FileText, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface AIResumeImprovementModalProps {
@@ -267,6 +267,59 @@ export default function AIResumeImprovementModal({
               <div className="flex gap-2 pt-4">
                 <Button variant="outline" onClick={() => setImprovements(null)}>
                   Start Over
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/resumes/download-generated', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                          resumeData: {
+                            fullName: resumeText.split('\n')[0] || 'Your Name',
+                            email: resumeText.match(/[\w\.-]+@[\w\.-]+\.\w+/)?.[0] || '',
+                            phone: resumeText.match(/\d{10}/)?.[0] || '',
+                            location: '',
+                            summary: improvements.improvements?.[0]?.example || resumeText.substring(0, 200),
+                            experience: [],
+                            education: [],
+                            skills: improvements.keywordSuggestions || [],
+                            projects: [],
+                            certifications: []
+                          },
+                          templateType: 'harvard'
+                        })
+                      });
+
+                      if (!response.ok) throw new Error('Download failed');
+
+                      const blob = await response.blob();
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `AI_Improved_Resume_${Date.now()}.pdf`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      window.URL.revokeObjectURL(url);
+
+                      toast({
+                        title: "Downloaded!",
+                        description: "Your improved resume has been downloaded.",
+                      });
+                    } catch (error) {
+                      toast({
+                        title: "Download Failed",
+                        description: "Could not download resume. Try copying the text instead.",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download PDF
                 </Button>
                 <Button onClick={handleClose}>
                   Done
