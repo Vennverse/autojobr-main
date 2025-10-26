@@ -64,15 +64,55 @@ export class ResumePdfGenerator {
       return this.chromiumPath;
     }
 
-    try {
-      const path = execSync('which chromium', { encoding: 'utf-8' }).trim();
-      this.chromiumPath = path;
-      console.log('🌐 Using Chromium at:', path);
-      return path;
-    } catch (error) {
-      console.error('⚠️ Could not find chromium, using default path');
-      return '/usr/bin/chromium';
+    // Check environment variable first
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+      this.chromiumPath = process.env.PUPPETEER_EXECUTABLE_PATH;
+      console.log('🌐 Using Chromium from env:', this.chromiumPath);
+      return this.chromiumPath;
     }
+
+    // Try to find chromium on the system
+    const fallbackPaths = [
+      'which chromium',
+      'which chromium-browser',
+      'which google-chrome',
+      'which google-chrome-stable'
+    ];
+
+    for (const cmd of fallbackPaths) {
+      try {
+        const path = execSync(cmd, { encoding: 'utf-8' }).trim();
+        if (path) {
+          this.chromiumPath = path;
+          console.log('🌐 Using Chromium at:', path);
+          return path;
+        }
+      } catch (error) {
+        // Continue to next fallback
+      }
+    }
+
+    // Last resort: common installation paths
+    const commonPaths = [
+      '/usr/bin/chromium',
+      '/usr/bin/chromium-browser',
+      '/usr/bin/google-chrome',
+      '/usr/bin/google-chrome-stable'
+    ];
+
+    for (const path of commonPaths) {
+      try {
+        execSync(`test -f ${path}`, { encoding: 'utf-8' });
+        this.chromiumPath = path;
+        console.log('🌐 Using Chromium at fallback path:', path);
+        return path;
+      } catch (error) {
+        // Continue to next path
+      }
+    }
+
+    console.error('⚠️ Could not find chromium, using default path');
+    return '/usr/bin/chromium';
   }
   
   /**
