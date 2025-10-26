@@ -36,7 +36,9 @@ import {
   UserCheck,
   Timer,
   Percent,
-  Hash
+  Hash,
+  Shield,
+  Video
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -155,7 +157,7 @@ export default function AdvancedAnalyticsDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type, dateRange, jobId: selectedJob }),
       });
-      
+
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -194,7 +196,7 @@ export default function AdvancedAnalyticsDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800">
       <RecruiterNavbar user={user} />
-      
+
       <div className="container mx-auto px-4 py-8 space-y-6">
         {/* Header */}
         <motion.div 
@@ -210,7 +212,7 @@ export default function AdvancedAnalyticsDashboard() {
               Comprehensive hiring insights and performance metrics
             </p>
           </div>
-          
+
           <div className="flex flex-wrap gap-3">
             <Select value={dateRange} onValueChange={setDateRange}>
               <SelectTrigger className="w-32" data-testid="select-date-range">
@@ -224,7 +226,7 @@ export default function AdvancedAnalyticsDashboard() {
                 <SelectItem value="1y">Last year</SelectItem>
               </SelectContent>
             </Select>
-            
+
             <Select value={selectedJob} onValueChange={setSelectedJob}>
               <SelectTrigger className="w-48" data-testid="select-job-filter">
                 <SelectValue placeholder="All Jobs" />
@@ -238,7 +240,7 @@ export default function AdvancedAnalyticsDashboard() {
                 ))}
               </SelectContent>
             </Select>
-            
+
             <Button 
               onClick={() => refetchAnalytics()}
               variant="outline"
@@ -247,7 +249,7 @@ export default function AdvancedAnalyticsDashboard() {
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
-            
+
             <Button 
               onClick={() => generateReport("comprehensive")}
               data-testid="button-download-report"
@@ -287,7 +289,7 @@ export default function AdvancedAnalyticsDashboard() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -307,7 +309,7 @@ export default function AdvancedAnalyticsDashboard() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -327,7 +329,7 @@ export default function AdvancedAnalyticsDashboard() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -376,7 +378,7 @@ export default function AdvancedAnalyticsDashboard() {
                         {Object.entries(analytics?.applicationsByStatus || {}).map(([status, count]) => {
                           const total = Object.values(analytics?.applicationsByStatus || {}).reduce((a, b) => a + b, 0);
                           const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
-                          
+
                           return (
                             <div key={status} className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
@@ -414,7 +416,7 @@ export default function AdvancedAnalyticsDashboard() {
                           </div>
                           <Calendar className="w-8 h-8 text-blue-500" />
                         </div>
-                        
+
                         <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                           <div>
                             <p className="font-medium">Applications Last 30 Days</p>
@@ -424,7 +426,7 @@ export default function AdvancedAnalyticsDashboard() {
                           </div>
                           <TrendingUp className="w-8 h-8 text-green-500" />
                         </div>
-                        
+
                         <div className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                           <div>
                             <p className="font-medium">Interviews This Week</p>
@@ -781,7 +783,7 @@ export default function AdvancedAnalyticsDashboard() {
                 <Users className="w-6 h-6" />
                 <span>Generate Diversity Report</span>
               </Button>
-              
+
               <Button 
                 onClick={() => generateReport("performance")}
                 variant="outline" 
@@ -791,7 +793,7 @@ export default function AdvancedAnalyticsDashboard() {
                 <BarChart3 className="w-6 h-6" />
                 <span>Generate Performance Report</span>
               </Button>
-              
+
               <Button 
                 onClick={() => generateReport("compliance")}
                 variant="outline" 

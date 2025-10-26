@@ -280,7 +280,7 @@ function Router() {
       <Route path="/auto-apply-1000-jobs-daily" component={FreeJobApplicationAutomation} />
       <Route path="/linkedin-auto-apply-bot" component={ChromeExtension} />
       <Route path="/indeed-auto-apply-tool" component={ChromeExtension} />
-      
+
       {/* Competitive ATS SEO Pages - Target Greenhouse, Workday, Lever customers */}
       <Route path="/greenhouse-alternative" component={GreenhouseAlternative} />
       <Route path="/ats-for-startups" component={AtsForStartups} />
@@ -440,6 +440,8 @@ function Router() {
               <Route path="/job-seeker-view" component={Dashboard} />
               {/* Add the enhanced-crm route here */}
               <Route path="/enhanced-crm" component={EnhancedCrmDashboard} />
+              {/* Add the advanced-analytics-dashboard route here */}
+              <Route path="/advanced-analytics-dashboard" component={AdvancedAnalyticsDashboard} />
             </>
           ) : user?.userType === 'job_seeker' ? (
             <>
