@@ -7427,11 +7427,26 @@ Return ONLY the JSON object, no additional text.`;
         return res.status(400).json({ message: 'Resume data is required' });
       }
 
+      console.log('📄 Generating PDF for resume:', {
+        fullName: resumeData.fullName,
+        experienceCount: resumeData.experience?.length || 0,
+        educationCount: resumeData.education?.length || 0,
+        skillsCount: resumeData.skills?.length || 0,
+        template: templateStyle || 'harvard'
+      });
+
+      // Validate resume data structure
+      if (!resumeData.fullName || !resumeData.email) {
+        return res.status(400).json({ message: 'Resume must include name and email' });
+      }
+
       // Import PDF generator
       const { resumePdfGenerator } = await import('./resumePdfGenerator');
       
       // Generate PDF
       const pdfBuffer = await resumePdfGenerator.generatePdf(resumeData, templateStyle || 'harvard');
+
+      console.log('✅ PDF generated successfully, size:', pdfBuffer.length, 'bytes');
 
       // Set headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
@@ -7439,8 +7454,13 @@ Return ONLY the JSON object, no additional text.`;
       res.send(pdfBuffer);
 
     } catch (error: any) {
-      console.error('Error generating PDF:', error);
-      res.status(500).json({ message: 'Failed to generate PDF' });
+      console.error('❌ Error generating PDF:', error);
+      console.error('Error stack:', error.stack);
+      res.status(500).json({ 
+        message: 'Failed to generate PDF',
+        error: error.message,
+        details: error.stack?.split('\n').slice(0, 3).join('\n')
+      });
     }
   }));
 
