@@ -748,6 +748,7 @@ export const jobPostingApplications = pgTable("job_posting_applications", {
   status: varchar("status").default("applied"), // applied, reviewed, shortlisted, interviewed, hired, rejected
   matchScore: integer("match_score"), // AI-calculated compatibility score
   recruiterNotes: text("recruiter_notes"), // Private notes from recruiter
+  scorecardData: jsonb("scorecard_data"), // Collaborative hiring scorecard feedback
   appliedAt: timestamp("applied_at").defaultNow(),
   reviewedAt: timestamp("reviewed_at"),
   updatedAt: timestamp("updated_at").defaultNow(),

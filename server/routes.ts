@@ -1338,33 +1338,46 @@ Return only the improved job description text, no additional formatting or expla
       // Get all applications for this recruiter
       const applications = await storage.getApplicationsForRecruiter(userId);
       
+      // OPTIMIZATION: Get all unique applicant IDs to avoid N+1 queries
+      const uniqueApplicantIds = [...new Set(applications.map(app => app.applicantId).filter(Boolean))];
+      
+      if (uniqueApplicantIds.length === 0) {
+        return res.json({});
+      }
+      
+      // OPTIMIZATION: Fetch ALL active resumes in ONE query instead of N queries
+      const activeResumes = await db
+        .select()
+        .from(schema.userResumes)
+        .where(
+          and(
+            inArray(schema.userResumes.userId, uniqueApplicantIds),
+            eq(schema.userResumes.isActive, true)
+          )
+        );
+
       // Build candidate profiles map with resume analysis
       const candidateProfiles: Record<string, any> = {};
       
-      for (const app of applications) {
-        if (app.applicantId && !candidateProfiles[app.applicantId]) {
-          // Get candidate's active resume with analysis
-          const resumes = await db
-            .select()
-            .from(schema.userResumes)
-            .where(
-              and(
-                eq(schema.userResumes.userId, app.applicantId),
-                eq(schema.userResumes.isActive, true)
-              )
-            )
-            .limit(1);
-
-          const activeResume = resumes[0];
-          
-          candidateProfiles[app.applicantId] = {
-            atsScore: activeResume?.atsScore || 0,
-            resumeAnalysis: activeResume?.analysis || null
+      // First, populate profiles from resumes
+      for (const resume of activeResumes) {
+        candidateProfiles[resume.userId] = {
+          atsScore: resume.atsScore || 0,
+          resumeAnalysis: resume.analysis || null
+        };
+      }
+      
+      // CRITICAL: Add default profiles for applicants without active resumes
+      for (const applicantId of uniqueApplicantIds) {
+        if (!candidateProfiles[applicantId]) {
+          candidateProfiles[applicantId] = {
+            atsScore: 0,
+            resumeAnalysis: null
           };
         }
       }
 
-      console.log(`[CANDIDATE PROFILES] Loaded ${Object.keys(candidateProfiles).length} profiles for recruiter ${userId}`);
+      console.log(`[CANDIDATE PROFILES] Loaded ${Object.keys(candidateProfiles).length} profiles for recruiter ${userId} (optimized query)`);
       res.json(candidateProfiles);
     } catch (error) {
       console.error('[CANDIDATE PROFILES ERROR]:', error);
@@ -1988,7 +2001,8 @@ Return only the improved job description text, no additional formatting or expla
         message: 'Failed to trigger job scraper',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
-
+    }
+  });
 
   // Collaborative Hiring Scorecard endpoints
   app.post('/api/recruiter/scorecard-feedback', isAuthenticated, async (req: any, res) => {
@@ -2075,9 +2089,6 @@ Return only the improved job description text, no additional formatting or expla
     } catch (error) {
       console.error('Bulk email error:', error);
       res.status(500).json({ message: 'Failed to send emails' });
-    }
-  });
-
     }
   });
 

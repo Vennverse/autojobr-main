@@ -1433,7 +1433,7 @@ Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="space-y-2">
-                            {application.fitScore && (
+                            {application.fitScore && application.fitScore > 0 && (
                               <div className="flex items-center">
                                 <Progress value={application.fitScore} className="w-16 mr-2" />
                                 <span className="text-sm text-gray-600 dark:text-gray-300">
@@ -1443,7 +1443,7 @@ Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
                             )}
                             {/* Enhanced Analytics Display for List View */}
                             <div className="flex flex-wrap gap-1">
-                              {application.seniorityLevel && (
+                              {application.seniorityLevel && application.seniorityLevel !== "Not specified" && (
                                 <Badge variant="secondary" className="text-xs">
                                   {application.seniorityLevel}
                                 </Badge>
@@ -1453,7 +1453,7 @@ Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
                                   {application.totalExperience}y
                                 </Badge>
                               )}
-                              {application.highestDegree && application.highestDegree !== "High School" && (
+                              {application.highestDegree && application.highestDegree !== "High School" && application.highestDegree !== "Not specified" && (
                                 <Badge variant="outline" className="text-xs text-purple-600">
                                   {application.highestDegree}
                                 </Badge>
@@ -1593,10 +1593,18 @@ Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
                 </DialogHeader>
 
                 <Tabs defaultValue="overview" className="mt-6">
-                  <TabsList className="grid w-full grid-cols-4">
+                  <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="timeline">Timeline</TabsTrigger>
                     <TabsTrigger value="notes">Notes</TabsTrigger>
+                    <TabsTrigger value="feedback">
+                      Team Feedback
+                      {selectedApplication.scorecardData && (
+                        <Badge variant="secondary" className="ml-2 text-xs">
+                          ✓
+                        </Badge>
+                      )}
+                    </TabsTrigger>
                     <TabsTrigger value="actions">Actions</TabsTrigger>
                   </TabsList>
 
@@ -1765,6 +1773,96 @@ Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
                         </div>
                       </CardContent>
                     </Card>
+                  </TabsContent>
+
+                  <TabsContent value="feedback" className="space-y-4 mt-6">
+                    {selectedApplication.scorecardData ? (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Users className="w-5 h-5 text-blue-500" />
+                            Interview Scorecard Feedback
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                          {/* Display scorecard ratings */}
+                          {selectedApplication.scorecardData.ratings && (
+                            <div>
+                              <h4 className="font-medium mb-3">Ratings:</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {Object.entries(selectedApplication.scorecardData.ratings).map(([key, value]: [string, any]) => (
+                                  <div key={key} className="space-y-1">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm font-medium capitalize">{key.replace(/_/g, ' ')}</span>
+                                      <Badge variant="secondary">{value}/5</Badge>
+                                    </div>
+                                    <Progress value={(value / 5) * 100} className="h-2" />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Display comments */}
+                          {selectedApplication.scorecardData.comments && (
+                            <div>
+                              <h4 className="font-medium mb-2">Comments:</h4>
+                              <p className="text-sm text-gray-700 dark:text-gray-300 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                {selectedApplication.scorecardData.comments}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Display recommendation */}
+                          {selectedApplication.scorecardData.recommendation && (
+                            <div>
+                              <h4 className="font-medium mb-2">Recommendation:</h4>
+                              <Badge 
+                                className={
+                                  selectedApplication.scorecardData.recommendation === 'strong_hire' ? 'bg-green-500' :
+                                  selectedApplication.scorecardData.recommendation === 'hire' ? 'bg-blue-500' :
+                                  selectedApplication.scorecardData.recommendation === 'no_hire' ? 'bg-orange-500' :
+                                  'bg-red-500'
+                                }
+                              >
+                                {selectedApplication.scorecardData.recommendation.replace(/_/g, ' ').toUpperCase()}
+                              </Badge>
+                            </div>
+                          )}
+
+                          {/* Display interviewer info */}
+                          {(selectedApplication.scorecardData.interviewerName || selectedApplication.scorecardData.submittedAt) && (
+                            <div className="text-xs text-gray-500 pt-4 border-t">
+                              {selectedApplication.scorecardData.interviewerName && (
+                                <p>Reviewed by: {selectedApplication.scorecardData.interviewerName}</p>
+                              )}
+                              {selectedApplication.scorecardData.submittedAt && (
+                                <p>Submitted: {new Date(selectedApplication.scorecardData.submittedAt).toLocaleDateString()}</p>
+                              )}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card>
+                        <CardContent className="text-center py-12">
+                          <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                            No Team Feedback Yet
+                          </h3>
+                          <p className="text-gray-600 dark:text-gray-400 mb-4">
+                            Team members haven't submitted interview scorecard feedback for this candidate yet.
+                          </p>
+                          <Button 
+                            onClick={() => window.open('/collaborative-hiring-scorecard', '_blank')}
+                            variant="outline"
+                          >
+                            <Star className="w-4 h-4 mr-2" />
+                            Submit Scorecard Feedback
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="actions" className="space-y-4 mt-6">
