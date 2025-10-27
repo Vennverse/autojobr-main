@@ -1270,6 +1270,50 @@ Return only the improved job description text, no additional formatting or expla
     }
   });
 
+  // Update application status (for drag-and-drop in pipeline)
+  app.patch('/api/recruiter/applications/:id/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const applicationId = parseInt(req.params.id);
+      const { status, notes } = req.body;
+
+      if (!status) {
+        return res.status(400).json({ message: "Status is required" });
+      }
+
+      // Get user and verify they're a recruiter
+      const user = await storage.getUser(userId);
+      if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        return res.status(403).json({ message: "Access denied - recruiter role required" });
+      }
+
+      // Update application status in database
+      const [updatedApp] = await db
+        .update(schema.jobPostingApplications)
+        .set({
+          status,
+          recruiterNotes: notes || undefined,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.jobPostingApplications.id, applicationId))
+        .returning();
+
+      if (!updatedApp) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+
+      console.log(`[APPLICATION STATUS UPDATED] Application ${applicationId} moved to ${status}`);
+      res.json({
+        success: true,
+        message: "Application status updated successfully",
+        application: updatedApp
+      });
+    } catch (error) {
+      console.error('[UPDATE APPLICATION STATUS ERROR]:', error);
+      handleError(res, error, "Failed to update application status");
+    }
+  });
+
   // Get candidate profiles with AI resume analysis
   app.get('/api/recruiter/candidate-profiles', isAuthenticated, async (req: any, res) => {
     try {
