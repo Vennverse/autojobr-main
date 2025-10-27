@@ -1258,11 +1258,17 @@ Return only the improved job description text, no additional formatting or expla
       const user = await storage.getUser(userId);
 
       if (user?.userType !== 'recruiter' && user?.currentRole !== 'recruiter') {
+        console.log(`[RECRUITER APPLICATIONS] Access denied for user ${userId} - userType: ${user?.userType}, currentRole: ${user?.currentRole}`);
         return res.status(403).json({ message: "Access denied - recruiter role required" });
       }
 
       const applications = await storage.getApplicationsForRecruiter(userId);
       console.log(`[RECRUITER APPLICATIONS] Recruiter ${userId} has ${applications.length} applications`);
+      
+      if (applications.length === 0) {
+        console.log(`[RECRUITER APPLICATIONS] No applications found for recruiter ${userId}`);
+      }
+      
       res.json(applications);
     } catch (error) {
       console.error('[RECRUITER APPLICATIONS ERROR]:', error);

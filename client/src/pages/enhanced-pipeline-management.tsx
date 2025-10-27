@@ -401,7 +401,7 @@ export default function EnhancedPipelineManagement() {
   const [emailPreviewContent, setEmailPreviewContent] = useState("");
 
   // Fetch applications and apply NLP analysis
-  const { data: rawApplications = [], isLoading: applicationsLoading, refetch: refetchApplications } = useQuery({
+  const { data: rawApplications = [], isLoading: applicationsLoading, refetch: refetchApplications, error: applicationsError } = useQuery({
     queryKey: ["/api/recruiter/applications"],
     refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
@@ -412,59 +412,59 @@ export default function EnhancedPipelineManagement() {
     enabled: rawApplications.length > 0,
   });
 
-  // Transform applications with NLP analysis and AI resume data
-  const applications = rawApplications.map((app: any) => {
-    // Get candidate's AI resume analysis if available
-    const candidateProfile = candidateProfiles[app.applicantId] || {};
-    
-    console.log(`[NLP] Analyzing ${app.applicantName} - ATS: ${candidateProfile.atsScore}, HasAnalysis: ${!!candidateProfile.resumeAnalysis}`);
-    
-    const enhancedApp = {
-      ...app,
-      applicantAtsScore: candidateProfile.atsScore || app.applicantAtsScore || 0,
-      applicantResumeAnalysis: candidateProfile.resumeAnalysis || app.applicantResumeAnalysis || null,
-      // Also pass stored data from applicant profile
-      applicantYearsExperience: app.applicantYearsExperience,
-      applicantSkills: app.applicantSkills,
-      applicantEducation: app.applicantEducation,
-      applicantSeniority: app.applicantSeniority,
-    };
-    
-    // Only log fallback if we truly have no data
-    if (!enhancedApp.applicantAtsScore && !enhancedApp.applicantResumeAnalysis && !enhancedApp.applicantYearsExperience) {
-      console.log(`[NLP] ⚠️ No AI data for ${app.applicantName}, using fallback analysis`);
-    }
-    
-    const nlpData = analyzeApplicantNLP(enhancedApp);
-    return {
-      ...app,
-      ...nlpData,
-      candidate: {
-        id: app.applicantId,
-        name: app.applicantName || "Unknown",
-        email: app.applicantEmail || "",
-        phone: app.applicantPhone,
-        location: app.applicantLocation,
-        resumeUrl: app.applicantResumeUrl,
-      },
-      job: {
-        id: app.jobPostingId,
-        title: app.jobPostingTitle || "Unknown",
-        company: app.jobPostingCompany || "Unknown",
-        location: app.jobPostingLocation || "",
-      },
-    };
-  });
-
   // Fetch job postings for filtering
-  const { data: jobs = [] } = useQuery({
+  const { data: jobs = [], isLoading: jobsLoading } = useQuery({
     queryKey: ["/api/recruiter/jobs"],
   });
 
   // Fetch analytics data
-  const { data: analytics } = useQuery({
+  const { data: analytics, isLoading: analyticsLoading } = useQuery({
     queryKey: ["/api/recruiter/pipeline-analytics"],
   });
+
+  // Transform applications with NLP analysis and AI resume data
+  const applications = React.useMemo(() => {
+    if (!rawApplications || rawApplications.length === 0) {
+      console.log('[NLP] No raw applications to process');
+      return [];
+    }
+
+    return rawApplications.map((app: any) => {
+      // Get candidate's AI resume analysis if available
+      const candidateProfile = candidateProfiles[app.applicantId] || {};
+      
+      const enhancedApp = {
+        ...app,
+        applicantAtsScore: candidateProfile.atsScore || app.applicantAtsScore || 0,
+        applicantResumeAnalysis: candidateProfile.resumeAnalysis || app.applicantResumeAnalysis || null,
+        // Also pass stored data from applicant profile
+        applicantYearsExperience: app.applicantYearsExperience,
+        applicantSkills: app.applicantSkills,
+        applicantEducation: app.applicantEducation,
+        applicantSeniority: app.applicantSeniority,
+      };
+      
+      const nlpData = analyzeApplicantNLP(enhancedApp);
+      return {
+        ...app,
+        ...nlpData,
+        candidate: {
+          id: app.applicantId,
+          name: app.applicantName || "Unknown",
+          email: app.applicantEmail || "",
+          phone: app.applicantPhone,
+          location: app.applicantLocation,
+          resumeUrl: app.applicantResumeUrl,
+        },
+        job: {
+          id: app.jobPostingId,
+          title: app.jobPostingTitle || "Unknown",
+          company: app.jobPostingCompany || "Unknown",
+          location: app.jobPostingLocation || "",
+        },
+      };
+    });
+  }, [rawApplications, candidateProfiles]);
 
   // Move application to different stage
   const moveApplicationMutation = useMutation({
@@ -907,27 +907,46 @@ Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
     }
   };
 
-  if (applicationsLoading) {
+  if (applicationsLoading || jobsLoading || profilesLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800">
         <RecruiterNavbar user={user} />
         <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-8 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
-                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
-                <div className="space-y-3">
-                  {Array.from({ length: 3 }).map((_, j) => (
-                    <div key={j} className="h-24 bg-gray-100 dark:bg-gray-700 rounded"></div>
-                  ))}
-                </div>
-              </div>
-            ))}
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <RefreshCw className="w-12 h-12 animate-spin mx-auto mb-4 text-blue-500" />
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Loading Pipeline Data...</h2>
+              <p className="text-gray-600 dark:text-gray-400">Fetching applications and candidate profiles</p>
+            </div>
           </div>
         </div>
       </div>
     );
   }
+
+  if (applicationsError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800">
+        <RecruiterNavbar user={user} />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Error Loading Data</h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">Failed to load pipeline applications</p>
+              <Button onClick={() => refetchApplications()}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Retry
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  console.log('[PIPELINE] Applications loaded:', applications.length);
+  console.log('[PIPELINE] Jobs loaded:', jobs.length);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:from-gray-900 dark:to-gray-800">
@@ -1205,6 +1224,21 @@ Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
 
         {/* Improved Pipeline View */}
         {viewMode === "kanban" ? (
+          applications.length === 0 ? (
+            <Card className="p-12">
+              <div className="text-center">
+                <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Applications Yet</h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Applications will appear here once candidates start applying to your job postings
+                </p>
+                <Button onClick={() => window.location.href = '/post-job'}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Post a Job
+                </Button>
+              </div>
+            </Card>
+          ) : (
           <div className="overflow-x-auto">
             <div className="inline-flex gap-4 pb-4 min-w-full">
             {pipelineStages.map((stage) => {
@@ -1365,6 +1399,21 @@ Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
             })}
           </div>
         </div>
+          )
+        ) : applications.length === 0 ? (
+          <Card className="p-12">
+            <div className="text-center">
+              <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Applications Yet</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Applications will appear here once candidates start applying to your job postings
+              </p>
+              <Button onClick={() => window.location.href = '/post-job'}>
+                <Plus className="w-4 h-4 mr-2" />
+                Post a Job
+              </Button>
+            </div>
+          </Card>
         ) : (
           // List View
           <Card>
