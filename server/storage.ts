@@ -1192,10 +1192,13 @@ export class DatabaseStorage implements IStorage {
           appliedAt: jobPostingApplications.appliedAt,
           reviewedAt: jobPostingApplications.reviewedAt,
           updatedAt: jobPostingApplications.updatedAt,
-          // Include full resume data for recruiter view
+          // Include full resume data for recruiter view INCLUDING AI ANALYSIS
           resumeData: resumes.resumeText,
           resumeFileName: resumes.fileName,
           resumeAtsScore: resumes.atsScore,
+          resumeAnalysisData: resumes.analysisData, // CRITICAL: Full AI resume analysis
+          resumeRecommendations: resumes.recommendations, // ATS improvement recommendations
+          resumeLastAnalyzed: resumes.lastAnalyzed,
           // Include job posting information directly as separate fields
           jobPostingTitle: jobPostings.title,
           jobPostingCompany: jobPostings.companyName,
@@ -1209,11 +1212,24 @@ export class DatabaseStorage implements IStorage {
           applicantEmail: users.email,
           applicantFirstName: users.firstName,
           applicantLastName: users.lastName,
+          applicantProfileImage: users.profileImageUrl,
+          // Include user profile data for complete candidate information
+          applicantPhone: userProfiles.phone,
+          applicantLocation: userProfiles.location,
+          applicantProfessionalTitle: userProfiles.professionalTitle,
+          applicantSummary: userProfiles.summary,
+          applicantYearsExperience: userProfiles.yearsExperience,
+          applicantHighestDegree: userProfiles.highestDegree,
+          applicantMajorFieldOfStudy: userProfiles.majorFieldOfStudy,
+          applicantLinkedinUrl: userProfiles.linkedinUrl,
+          applicantGithubUrl: userProfiles.githubUrl,
+          applicantPortfolioUrl: userProfiles.portfolioUrl,
         })
         .from(jobPostingApplications)
         .innerJoin(jobPostings, eq(jobPostingApplications.jobPostingId, jobPostings.id))
         .leftJoin(users, eq(jobPostingApplications.applicantId, users.id))
         .leftJoin(resumes, eq(jobPostingApplications.resumeId, resumes.id))
+        .leftJoin(userProfiles, eq(jobPostingApplications.applicantId, userProfiles.userId))
         .where(eq(jobPostings.recruiterId, recruiterId))
         .orderBy(desc(jobPostingApplications.appliedAt));
     }, []);

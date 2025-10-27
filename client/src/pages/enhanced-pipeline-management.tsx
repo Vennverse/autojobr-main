@@ -129,17 +129,33 @@ function calculateEducationScore(analysis: any, app: any): number {
 }
 
 function extractMatchedSkills(analysis: any, app: any): string[] {
-  const content = analysis.content || analysis;
+  if (!analysis) return [];
   
-  // Get skills from keyword optimization
-  const keywords = analysis.keywordOptimization?.suggestions || [];
+  const allSkills: string[] = [];
   
-  // Get skills from app data
-  const appSkills = app.applicantSkills ? app.applicantSkills.split(',').map((s: string) => s.trim()) : [];
+  // Try to extract from analysis data structure
+  if (analysis.skills) {
+    allSkills.push(...(Array.isArray(analysis.skills) ? analysis.skills : []));
+  }
+  if (analysis.keySkills) {
+    allSkills.push(...(Array.isArray(analysis.keySkills) ? analysis.keySkills : []));
+  }
+  if (analysis.keywordOptimization?.suggestions) {
+    allSkills.push(...analysis.keywordOptimization.suggestions);
+  }
+  if (analysis.content?.skills) {
+    allSkills.push(...(Array.isArray(analysis.content.skills) ? analysis.content.skills : []));
+  }
+  
+  // Get professional title which might contain skills
+  if (app.applicantProfessionalTitle) {
+    const titleSkills = app.applicantProfessionalTitle.split(/[,\/]/).map((s: string) => s.trim());
+    allSkills.push(...titleSkills);
+  }
   
   // Combine and deduplicate
-  const allSkills = [...keywords, ...appSkills].filter(Boolean);
-  return [...new Set(allSkills)].slice(0, 8);
+  const uniqueSkills = [...new Set(allSkills.filter(Boolean).map(s => typeof s === 'string' ? s : ''))];
+  return uniqueSkills.slice(0, 10);
 }
 
 function extractTopSkills(analysis: any, app: any): string[] {
@@ -172,44 +188,54 @@ function generateJobMatchHighlights(atsScore: number, analysis: any, app: any): 
 
 // Enhanced NLP Analysis Function - Uses Actual AI Resume Analysis Data
 function analyzeApplicantNLP(app: any): Partial<Application> {
-  // PRIORITY 1: Use existing AI resume analysis data if available
-  const existingAtsScore = app.applicantAtsScore || app.atsScore || 0;
-  const existingResumeAnalysis = app.applicantResumeAnalysis;
+  // PRIORITY 1: Get ATS score from database (correct field names from storage)
+  const atsScore = app.resumeAtsScore || app.matchScore || 0;
   
-  // PRIORITY 2: Check if we have basic applicant data from profile
-  const hasBasicData = app.applicantYearsExperience || app.applicantSkills || app.applicantEducation;
+  // PRIORITY 2: Get AI resume analysis data from database
+  const resumeAnalysis = app.resumeAnalysisData;
   
-  // If we have AI analysis data OR basic profile data, use it directly
-  if (existingResumeAnalysis || existingAtsScore > 0 || hasBasicData) {
-    const skills = extractMatchedSkills(existingResumeAnalysis, app);
-    const experience = extractExperienceYears(existingResumeAnalysis, app);
-    const degree = extractDegree(existingResumeAnalysis, app);
+  // PRIORITY 3: Get user profile data
+  const yearsExp = app.applicantYearsExperience || 0;
+  const highestDegree = app.applicantHighestDegree || '';
+  const professionalTitle = app.applicantProfessionalTitle || '';
+  
+  console.log(`[NLP ANALYSIS] Processing ${app.applicantName}:`, {
+    atsScore,
+    hasAnalysis: !!resumeAnalysis,
+    yearsExp,
+    highestDegree
+  });
+  
+  // If we have AI analysis data OR basic profile data, use it
+  if (resumeAnalysis || atsScore > 0 || yearsExp > 0) {
+    const skills = extractMatchedSkills(resumeAnalysis, app);
+    const experience = yearsExp || extractExperienceYears(resumeAnalysis, app);
+    const degree = highestDegree || extractDegree(resumeAnalysis, app);
 
     return {
-      fitScore: existingAtsScore,
-      seniorityLevel: determineSeniorityFromAnalysis(existingResumeAnalysis, app),
+      fitScore: atsScore,
+      seniorityLevel: determineSeniorityFromAnalysis(resumeAnalysis, app),
       totalExperience: experience,
       highestDegree: degree,
-      educationScore: calculateEducationScore(existingResumeAnalysis, app),
+      educationScore: calculateEducationScore(resumeAnalysis, app),
       companyPrestige: 75,
       matchedSkills: skills,
-      topSkills: extractTopSkills(existingResumeAnalysis, app),
-      strengths: existingResumeAnalysis?.content?.strengthsFound || 
-                 existingResumeAnalysis?.strengths || 
-                 (existingAtsScore > 70 ? ['Strong resume score', 'Good qualifications'] : ['Pending detailed review']),
-      riskFactors: (existingResumeAnalysis?.content?.weaknesses || 
-                    existingResumeAnalysis?.weaknesses || 
+      topSkills: extractTopSkills(resumeAnalysis, app),
+      strengths: resumeAnalysis?.content?.strengthsFound || 
+                 resumeAnalysis?.strengths || 
+                 (atsScore > 70 ? ['Strong resume score', 'Good qualifications'] : ['Pending detailed review']),
+      riskFactors: (resumeAnalysis?.content?.weaknesses || 
+                    resumeAnalysis?.weaknesses || 
                     []).map((w: string) => `${w}`),
-      interviewFocus: (existingResumeAnalysis?.recommendations || ['Review technical skills', 'Discuss experience', 'Assess cultural fit']).slice(0, 3),
-      jobMatchHighlights: generateJobMatchHighlights(existingAtsScore, existingResumeAnalysis, app),
-      nlpInsights: existingAtsScore > 0 ? `AI Resume Score: ${existingAtsScore}/100` : 'Profile-based analysis'
+      interviewFocus: (app.resumeRecommendations || resumeAnalysis?.recommendations || ['Review technical skills', 'Discuss experience', 'Assess cultural fit']).slice(0, 3),
+      jobMatchHighlights: generateJobMatchHighlights(atsScore, resumeAnalysis, app),
+      nlpInsights: atsScore > 0 ? `AI Resume Score: ${atsScore}/100` : 'Profile-based analysis'
     };
   }
   
   // FALLBACK: Only show minimal data if nothing available
   console.log(`[NLP] ⚠️ Limited data for ${app.applicantName}, showing basic profile`);
   
-  // FALLBACK: Show minimal data when nothing available
   return {
     fitScore: 0,
     seniorityLevel: "Not specified",

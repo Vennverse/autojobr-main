@@ -135,46 +135,46 @@ export default function ApplicantsPage() {
     retry: false,
   });
 
-  // Calculate realistic match score based on actual applicant data
+  // Calculate realistic match score based on actual applicant data from database
   const calculateRealisticMatchScore = (app: any): number => {
+    // PRIORITY 1: Use existing match score or ATS score from database
+    if (app.matchScore && app.matchScore > 0 && app.matchScore <= 100) {
+      return app.matchScore;
+    }
+    
+    if (app.resumeAtsScore && app.resumeAtsScore > 0) {
+      return app.resumeAtsScore;
+    }
+    
+    // PRIORITY 2: Calculate from profile data if available
     let score = 50; // Base score
     
-    // Skills matching (40% weight)
-    if (app.skills && Array.isArray(app.skills) && app.skills.length > 0) {
-      const skillCount = app.skills.length;
-      const skillBonus = Math.min(skillCount * 5, 30); // Max 30 points for skills
-      score += skillBonus;
+    // Years of experience (30% weight)
+    const yearsExp = app.applicantYearsExperience || 0;
+    if (yearsExp > 0) {
+      score += Math.min(yearsExp * 2, 20); // Max 20 points
     }
     
-    // Experience boost (30% weight)
-    if (app.experience && typeof app.experience === 'string') {
-      const expText = app.experience.toLowerCase();
-      if (expText.includes('senior') || expText.includes('lead')) score += 20;
-      else if (expText.includes('mid') || expText.includes('intermediate')) score += 15;
-      else if (expText.includes('junior') || expText.includes('entry')) score += 10;
-      
-      // Extract years of experience
-      const yearMatch = expText.match(/(\d+)\s*(?:years?|yrs?)/i);
-      if (yearMatch) {
-        const years = parseInt(yearMatch[1]);
-        score += Math.min(years * 2, 15); // Max 15 points for years
-      }
-    }
+    // Education boost (25% weight)
+    const degree = app.applicantHighestDegree || '';
+    if (degree.toLowerCase().includes('phd') || degree.toLowerCase().includes('doctorate')) score += 20;
+    else if (degree.toLowerCase().includes('master') || degree.toLowerCase().includes('mba')) score += 15;
+    else if (degree.toLowerCase().includes('bachelor')) score += 10;
     
-    // Education boost (20% weight)
-    if (app.applicantEducation) {
-      const edu = app.applicantEducation.toLowerCase();
-      if (edu.includes('master') || edu.includes('mba') || edu.includes('phd')) score += 15;
-      else if (edu.includes('bachelor') || edu.includes('degree')) score += 10;
-      else if (edu.includes('diploma') || edu.includes('certificate')) score += 5;
-    }
+    // Professional title (15% weight)
+    const title = app.applicantProfessionalTitle || '';
+    if (title.toLowerCase().includes('senior') || title.toLowerCase().includes('lead')) score += 15;
+    else if (title.toLowerCase().includes('principal') || title.toLowerCase().includes('staff')) score += 12;
+    else if (title.toLowerCase().includes('mid') || title.toLowerCase().includes('intermediate')) score += 8;
     
     // Location match (10% weight)
-    if (app.applicantLocation && app.applicantLocation.toLowerCase().includes('remote')) {
-      score += 10;
+    if (app.applicantLocation) {
+      const loc = app.applicantLocation.toLowerCase();
+      if (loc.includes('remote') || loc.includes('anywhere')) score += 10;
+      else if (loc.includes('hybrid')) score += 7;
     }
     
-    // Ensure score is within 45-95 range for realistic variation
+    // Ensure score is within reasonable range (45-95)
     return Math.max(45, Math.min(95, Math.round(score)));
   };
 
@@ -200,25 +200,27 @@ export default function ApplicantsPage() {
     }));
   }, [applications]);
 
-  // Analytics calculations
+  // Analytics calculations - using real data only
   const analytics = useMemo(() => {
     const totalApplications = realCandidates.length;
     const hiredCount = realCandidates.filter(c => c.status === 'hired').length;
     const interviewingCount = realCandidates.filter(c => c.status === 'interviewing' || c.status === 'phone_screen' || c.status === 'technical_interview' || c.status === 'final_interview').length;
     const rejectedCount = realCandidates.filter(c => c.status === 'rejected').length;
+    const screeningCount = realCandidates.filter(c => c.status === 'screening' || c.status === 'applied').length;
+    const offerCount = realCandidates.filter(c => c.status === 'offer_extended').length;
 
     const hireRate = totalApplications > 0 ? Math.round((hiredCount / totalApplications) * 100) : 0;
-    const costPerHire = 3200; // This would come from actual recruitment analytics
-    const timeToHire = 18; // This would come from actual recruitment analytics
+    const responseRate = totalApplications > 0 ? Math.round(((totalApplications - screeningCount) / totalApplications) * 100) : 0;
 
     return {
       totalApplications,
       hiredCount,
       interviewingCount,
       rejectedCount,
+      screeningCount,
+      offerCount,
       hireRate,
-      costPerHire,
-      timeToHire,
+      responseRate,
     };
   }, [realCandidates]);
 
@@ -663,16 +665,16 @@ export default function ApplicantsPage() {
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Analytics</h3>
                 
-                {/* Time to Hire & Cost per Hire */}
+                {/* Hire Rate & Response Rate */}
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <Card className="p-4">
                     <div className="text-center">
                       <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                        Time to Hire
+                        Hire Rate
                       </h4>
                       {renderCircularChart(analytics.hireRate, "Hire Rate", "text-blue-500")}
                       <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                        {analytics.timeToHire} days avg
+                        {analytics.hireRate}% conversion
                       </div>
                     </div>
                   </Card>
@@ -680,11 +682,11 @@ export default function ApplicantsPage() {
                   <Card className="p-4">
                     <div className="text-center">
                       <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                        Cost-per-Hire
+                        Response Rate
                       </h4>
-                      {renderCircularChart(67, "Cost Efficiency", "text-green-500")}
+                      {renderCircularChart(analytics.responseRate, "Response Rate", "text-green-500")}
                       <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                        ${analytics.costPerHire}
+                        {analytics.responseRate}% responded
                       </div>
                     </div>
                   </Card>
