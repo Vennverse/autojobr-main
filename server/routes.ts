@@ -716,11 +716,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'You have already applied to this job' });
       }
 
+      // Get user's active resume if resumeId not provided
+      let finalResumeId = resumeId;
+      if (!finalResumeId) {
+        const userResumes = await storage.getUserResumes(userId);
+        const activeResume = userResumes.find(r => r.isActive) || userResumes[0];
+        if (activeResume) {
+          finalResumeId = activeResume.id;
+          console.log(`[EASY APPLY] Auto-attached active resume ${finalResumeId} for user ${userId}`);
+        }
+      }
+
       // Create application
       await db.insert(schema.jobPostingApplications).values({
         jobPostingId: jobId,
         applicantId: userId,
-        resumeId: resumeId || null,
+        resumeId: finalResumeId || null,
         coverLetter: coverLetter || null,
         status: 'applied',
         appliedAt: new Date()

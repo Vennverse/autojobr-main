@@ -1941,7 +1941,17 @@ Best regards,\n${user?.name || 'The Recruiting Team'}\nAutoJobr`;
                             <Download className="w-4 h-4 mr-2" />
                             Download Resume
                           </Button>
-                          <Button className="w-full" variant="outline" data-testid="button-view-portfolio">
+                          <Button 
+                            className="w-full" 
+                            variant="outline" 
+                            onClick={() => {
+                              toast({
+                                title: "Portfolio View",
+                                description: "Portfolio feature coming soon! View candidate resume for now.",
+                              });
+                            }}
+                            data-testid="button-view-portfolio"
+                          >
                             <Eye className="w-4 h-4 mr-2" />
                             View Portfolio
                           </Button>
