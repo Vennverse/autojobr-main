@@ -62,8 +62,10 @@ const mapEmploymentType = (jobType?: string): string => {
 // Parse location string into address components
 const parseLocation = (location?: string) => {
   if (!location) return {
+    streetAddress: '',
     addressLocality: '',
     addressRegion: '',
+    postalCode: '',
     addressCountry: 'US'
   };
 
@@ -75,8 +77,10 @@ const parseLocation = (location?: string) => {
   
   if (location.toLowerCase().includes('remote')) {
     return {
+      streetAddress: '',
       addressLocality: 'Remote',
       addressRegion: '',
+      postalCode: '',
       addressCountry: 'US'
     };
   }
@@ -86,8 +90,10 @@ const parseLocation = (location?: string) => {
   if (parts.length >= 3) {
     // Format: City, State, Country
     return {
+      streetAddress: '',
       addressLocality: parts[0],
       addressRegion: parts[1],
+      postalCode: '',
       addressCountry: getCountryCode(parts[2])
     };
   } else if (parts.length === 2) {
@@ -98,23 +104,29 @@ const parseLocation = (location?: string) => {
     if (usStates.includes(secondPart) || parts[1].length === 2) {
       // Likely US state
       return {
+        streetAddress: '',
         addressLocality: parts[0],
         addressRegion: parts[1],
+        postalCode: '',
         addressCountry: 'US'
       };
     } else {
       // Likely City, Country
       return {
+        streetAddress: '',
         addressLocality: parts[0],
         addressRegion: '',
+        postalCode: '',
         addressCountry: getCountryCode(parts[1])
       };
     }
   } else {
     // Single part - assume it's a city
     return {
+      streetAddress: '',
       addressLocality: parts[0],
       addressRegion: '',
+      postalCode: '',
       addressCountry: 'US'
     };
   }
@@ -187,8 +199,10 @@ const generateJobPostingStructuredData = (job: any, jobId: string) => {
       "@type": "Place",
       "address": {
         "@type": "PostalAddress",
+        "streetAddress": address.streetAddress,
         "addressLocality": address.addressLocality,
         "addressRegion": address.addressRegion,
+        "postalCode": address.postalCode,
         "addressCountry": address.addressCountry
       }
     },

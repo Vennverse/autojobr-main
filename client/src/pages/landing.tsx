@@ -134,7 +134,7 @@ const heroSlides = [
     subtitle: "Post jobs, screen candidates with AI, and find perfect matches in minutes",
     stat: "AI-Powered Matching",
     cta: "Start Recruiting",
-    ctaLink: "/recruiter-features",
+    ctaLink: "/partner",
     icon: Users,
     color: "from-teal-600 to-emerald-600"
   }
@@ -213,7 +213,7 @@ export default function LandingPage() {
                 Become Referrer
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 group-hover:w-full transition-all duration-300"></span>
               </Link>
-              <Link href="/recruiter-features" className="relative text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-all duration-300 group text-sm">
+              <Link href="/partner" className="relative text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-all duration-300 group text-sm">
                 For Recruiters
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 group-hover:w-full transition-all duration-300"></span>
               </Link>

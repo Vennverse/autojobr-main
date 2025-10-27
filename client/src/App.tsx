@@ -260,6 +260,9 @@ function Router() {
       <Route path="/blog/remote-job-search-2025" component={RemoteJobSearch2025} />
       <Route path="/chrome-extension" component={ChromeExtension} />
       <Route path="/ats-optimizer" component={ATSOptimizer} />
+      <Route path="/partner" component={RecruiterFeaturesPage} />
+      <Route path="/partners" component={RecruiterFeaturesPage} />
+      <Route path="/for-partners" component={RecruiterFeaturesPage} />
       <Route path="/recruiter-features" component={RecruiterFeaturesPage} />
       <Route path="/for-recruiters" component={RecruiterFeaturesPage} />
       <Route path="/recruiters" component={RecruiterFeaturesPage} />
