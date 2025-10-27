@@ -62,6 +62,7 @@ interface RawApplication {
   jobPostingCompany?: string;
   jobPostingLocation?: string;
   updatedAt?: string;
+  applicantAtsScore?: number; // Added for ATS score
 }
 
 interface Application {
@@ -103,6 +104,7 @@ interface Application {
     company: string;
     location: string;
   };
+  applicantAtsScore?: number; // Added for ATS score
 }
 
 interface PipelineStage {
@@ -218,7 +220,7 @@ function analyzeApplicantNLP(app: RawApplication): Partial<Application> {
       aiml: ["machine learning", "deep learning", "tensorflow", "pytorch", "pandas", "numpy", "sklearn", "nlp", "computer vision"],
       devops: ["docker", "kubernetes", "jenkins", "ansible", "terraform", "monitoring", "logging"],
     },
-    
+
     // Business & Management
     business: {
       management: ["project management", "strategic planning", "operations management", "leadership", "team management", "change management", "agile", "scrum", "six sigma"],
@@ -280,12 +282,12 @@ function analyzeApplicantNLP(app: RawApplication): Partial<Application> {
 
   // More efficient fuzzy matching with optimized regex
   const compiledPatterns = new Map<string, RegExp>();
-  
+
   function getPattern(skill: string, isLocation = false): RegExp {
     const key = `${skill}-${isLocation}`;
     if (!compiledPatterns.has(key)) {
       const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const pattern = isLocation 
+      const pattern = isLocation
         ? new RegExp(`\\b${escaped}(?:\\s+(?:city|state|province|region|area))?\\b`, 'i')
         : new RegExp(`\\b${escaped}(?:js|css|html|api|framework|library)?\\b`, 'i');
       compiledPatterns.set(key, pattern);
@@ -356,7 +358,7 @@ function analyzeApplicantNLP(app: RawApplication): Partial<Application> {
     let match;
     while ((match = pattern.exec(profileText)) !== null) {
       let years = 0;
-      
+
       if (match[0].includes('-') || match[0].includes('–') || match[0].includes('to')) {
         // Handle date ranges
         const startYear = parseInt(match[1]);
@@ -374,7 +376,7 @@ function analyzeApplicantNLP(app: RawApplication): Partial<Application> {
         // Handle explicit year mentions
         years = parseInt(match[1]) * weight;
       }
-      
+
       maxExperience = Math.max(maxExperience, years);
     }
   });
@@ -412,14 +414,14 @@ function analyzeApplicantNLP(app: RawApplication): Partial<Application> {
       // Top Global Universities
       mit: 100, stanford: 100, harvard: 100, caltech: 100, oxford: 100, cambridge: 100,
       eth: 95, imperial: 95, ucl: 95, princeton: 100, yale: 95, columbia: 90,
-      // Top Asian Universities
+      // Asian Universities
       tsinghua: 95, peking: 95, nus: 95, ntu: 95, "university of tokyo": 95, kyoto: 90,
       iit: 90, iim: 90, iisc: 90, "chinese university": 85,
-      // Top European Universities
+      // European Universities
       sorbonne: 90, "eth zurich": 95, "technical university": 85, epfl: 90,
-      // Top Australian Universities
+      // Australian Universities
       melbourne: 85, sydney: 85, anu: 85, "university of queensland": 80,
-      // Top Canadian Universities
+      // Canadian Universities
       toronto: 90, mcgill: 85, waterloo: 90, ubc: 85,
       // Other notable institutions
       berkeley: 95, michigan: 85, carnegie: 90, cornell: 90, "georgia tech": 85,
@@ -428,7 +430,7 @@ function analyzeApplicantNLP(app: RawApplication): Partial<Application> {
 
   let educationScore = 0;
   let highestDegree = "High School";
-  
+
   // Check degrees
   Object.entries(educationData.degrees).forEach(([degree, data]) => {
     if (fuzzyIncludes(profileText, degree)) {
@@ -468,7 +470,7 @@ function analyzeApplicantNLP(app: RawApplication): Partial<Application> {
 
   let companyPrestige = 0;
   let workHistory: Array<{ company: string; prestige: number }> = [];
-  
+
   Object.entries(prestigiousCompanies).forEach(([company, score]) => {
     if (fuzzyIncludes(profileText, company)) {
       companyPrestige = Math.max(companyPrestige, score);
@@ -489,7 +491,7 @@ function analyzeApplicantNLP(app: RawApplication): Partial<Application> {
   const jobSkills = extractedSkills.job;
   const profileSkills = extractedSkills.profile;
   const matchedSkills = jobSkills.filter(skill => profileSkills.includes(skill));
-  
+
   // Enhanced skills scoring with domain clustering
   let skillsScore = 0;
   if (jobSkills.length > 0) {
@@ -500,7 +502,7 @@ function analyzeApplicantNLP(app: RawApplication): Partial<Application> {
   }
 
   // Experience scoring with diminishing returns
-  const experienceScore = Math.min(100, 
+  const experienceScore = Math.min(100,
     maxExperience <= 2 ? maxExperience * 30 :
     maxExperience <= 5 ? 60 + (maxExperience - 2) * 15 :
     maxExperience <= 10 ? 105 + (maxExperience - 5) * 5 :
@@ -512,7 +514,7 @@ function analyzeApplicantNLP(app: RawApplication): Partial<Application> {
   if (app.applicantLocation && app.jobPostingLocation) {
     const jobLoc = app.jobPostingLocation.toLowerCase();
     const appLoc = app.applicantLocation.toLowerCase();
-    
+
     if (jobLoc.includes("remote") || appLoc.includes("remote")) {
       locationScore = 100;
     } else if (fuzzyIncludes(jobLoc, appLoc, true) || fuzzyIncludes(appLoc, jobLoc, true)) {
@@ -520,7 +522,7 @@ function analyzeApplicantNLP(app: RawApplication): Partial<Application> {
     } else {
       // Check for same country/region
       const regions = ["usa", "uk", "eu", "asia", "canada", "australia"];
-      const sameRegion = regions.some(region => 
+      const sameRegion = regions.some(region =>
         jobLoc.includes(region) && appLoc.includes(region)
       );
       locationScore = sameRegion ? 60 : 30;
@@ -562,7 +564,7 @@ function analyzeApplicantNLP(app: RawApplication): Partial<Application> {
   const strengths = [];
   if (fitScore >= 90) strengths.push("Exceptional overall match");
   else if (fitScore >= 75) strengths.push("Strong candidate profile");
-  
+
   if (companyPrestige >= 90) strengths.push("Top-tier company experience");
   if (maxExperience >= 10) strengths.push("Extensive industry experience");
   if (educationScore >= 90) strengths.push("Elite educational background");
@@ -686,6 +688,7 @@ export default function PipelineManagement() {
           userId: app.applicantId,
           applicantId: app.applicantId,
           appliedAt: app.appliedAt,
+          applicantAtsScore: app.applicantAtsScore, // Pass ATS score
         };
       });
 
@@ -714,7 +717,7 @@ export default function PipelineManagement() {
       queryClient.invalidateQueries({ queryKey: ["/api/recruiter/applications"] });
       queryClient.refetchQueries({ queryKey: ["/api/recruiter/applications"] });
       toast({
-        title: "Application Updated", 
+        title: "Application Updated",
         description: "Application stage updated successfully",
       });
     },
@@ -1006,20 +1009,20 @@ export default function PipelineManagement() {
                                 </div>
                               </div>
                               <div className="flex items-center gap-2">
-                                {application.fitScore !== undefined && (
+                                {(application.applicantAtsScore > 0 || application.fitScore > 0) && (
                                   <Badge
-                                    variant={application.fitScore > 80 ? "default" : application.fitScore > 60 ? "secondary" : "outline"}
+                                    variant={(application.applicantAtsScore || application.fitScore || 0) > 70 ? "default" : (application.applicantAtsScore || application.fitScore || 0) > 50 ? "secondary" : "outline"}
                                     className="mr-2 cursor-pointer"
                                     onClick={() => setSelectedNlpApplication(application)}
                                   >
-                                    Fit Score: {application.fitScore}%
+                                    AI Score: {application.applicantAtsScore || application.fitScore || 0}%
                                   </Badge>
                                 )}
-                                {application.nlpInsights && (
+                                {(application.applicantAtsScore > 0 || application.fitScore > 0) && (
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    title="View AI Insights"
+                                    title="View Resume Analysis"
                                     onClick={() => setSelectedNlpApplication(application)}
                                   >
                                     <BarChart3 className="h-4 w-4 text-blue-500" />
@@ -1209,13 +1212,13 @@ export default function PipelineManagement() {
                   </div>
                   <div className="text-right">
                     <div className="flex flex-col items-end">
-                      <div className="text-3xl font-bold text-emerald-600">{selectedNlpApplication.fitScore || 0}%</div>
+                      <div className="text-3xl font-bold text-emerald-600">{(selectedNlpApplication.applicantAtsScore || selectedNlpApplication.fitScore || 0)}%</div>
                       <div className="w-32 mt-2">
                         <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
                           <div
                             className="h-2 rounded-full bg-emerald-500"
-                            style={{ width: `${selectedNlpApplication.fitScore || 0}%` }}
-                            title={`Fit Score: ${selectedNlpApplication.fitScore || 0}%`}
+                            style={{ width: `${selectedNlpApplication.applicantAtsScore || selectedNlpApplication.fitScore || 0}%` }}
+                            title={`AI Score: ${selectedNlpApplication.applicantAtsScore || selectedNlpApplication.fitScore || 0}%`}
                           />
                         </div>
                       </div>
@@ -1470,4 +1473,3 @@ export default function PipelineManagement() {
     </div>
   );
 }
-

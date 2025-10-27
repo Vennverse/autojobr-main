@@ -63,8 +63,11 @@ import { motion, AnimatePresence } from "framer-motion";
 
 // Helper functions to extract data from AI resume analysis
 function determineSeniorityFromAnalysis(analysis: any, app: any): string {
+  // First check if we have direct seniority from stored data
+  if (app.applicantSeniority) return app.applicantSeniority;
+  
   // Check analysis for seniority indicators
-  const content = analysis.content || analysis;
+  const content = analysis?.content || analysis || {};
   const strengths = content.strengthsFound || content.strengths || [];
   
   const strengthsText = strengths.join(' ').toLowerCase();
@@ -170,265 +173,57 @@ function generateJobMatchHighlights(atsScore: number, analysis: any, app: any): 
 // Enhanced NLP Analysis Function - Uses Actual AI Resume Analysis Data
 function analyzeApplicantNLP(app: any): Partial<Application> {
   // PRIORITY 1: Use existing AI resume analysis data if available
-  const existingAtsScore = app.applicantAtsScore || app.atsScore;
+  const existingAtsScore = app.applicantAtsScore || app.atsScore || 0;
   const existingResumeAnalysis = app.applicantResumeAnalysis;
   
-  // Log what we're working with
-  console.log(`[NLP] Analyzing ${app.applicantName} - ATS: ${existingAtsScore}, HasAnalysis: ${!!existingResumeAnalysis}`);
+  // PRIORITY 2: Check if we have basic applicant data from profile
+  const hasBasicData = app.applicantYearsExperience || app.applicantSkills || app.applicantEducation;
   
-  // If we have AI analysis data, use it directly - even if score is 0
-  if (existingResumeAnalysis || existingAtsScore > 0) {
-    console.log(`[NLP] ✅ Using AI resume data for ${app.applicantName}:`, {
-      atsScore: existingAtsScore,
-      hasAnalysis: !!existingResumeAnalysis
-    });
+  // If we have AI analysis data OR basic profile data, use it directly
+  if (existingResumeAnalysis || existingAtsScore > 0 || hasBasicData) {
+    const skills = extractMatchedSkills(existingResumeAnalysis, app);
+    const experience = extractExperienceYears(existingResumeAnalysis, app);
+    const degree = extractDegree(existingResumeAnalysis, app);
 
     return {
-      fitScore: existingAtsScore || 0,
+      fitScore: existingAtsScore,
       seniorityLevel: determineSeniorityFromAnalysis(existingResumeAnalysis, app),
-      totalExperience: extractExperienceYears(existingResumeAnalysis, app),
-      highestDegree: extractDegree(existingResumeAnalysis, app),
+      totalExperience: experience,
+      highestDegree: degree,
       educationScore: calculateEducationScore(existingResumeAnalysis, app),
-      companyPrestige: 75, // Default - could be enhanced
-      matchedSkills: extractMatchedSkills(existingResumeAnalysis, app),
+      companyPrestige: 75,
+      matchedSkills: skills,
       topSkills: extractTopSkills(existingResumeAnalysis, app),
       strengths: existingResumeAnalysis?.content?.strengthsFound || 
                  existingResumeAnalysis?.strengths || 
-                 ['Professional background'],
+                 (existingAtsScore > 70 ? ['Strong resume score', 'Good qualifications'] : ['Pending detailed review']),
       riskFactors: (existingResumeAnalysis?.content?.weaknesses || 
                     existingResumeAnalysis?.weaknesses || 
                     []).map((w: string) => `${w}`),
-      interviewFocus: (existingResumeAnalysis?.recommendations || []).slice(0, 3),
-      jobMatchHighlights: generateJobMatchHighlights(existingAtsScore || 0, existingResumeAnalysis, app),
-      nlpInsights: existingAtsScore ? `AI Analysis: ${existingAtsScore}/100 ATS Score` : 'Resume pending analysis'
+      interviewFocus: (existingResumeAnalysis?.recommendations || ['Review technical skills', 'Discuss experience', 'Assess cultural fit']).slice(0, 3),
+      jobMatchHighlights: generateJobMatchHighlights(existingAtsScore, existingResumeAnalysis, app),
+      nlpInsights: existingAtsScore > 0 ? `AI Resume Score: ${existingAtsScore}/100` : 'Profile-based analysis'
     };
   }
   
-  console.log(`[NLP] ⚠️ No AI data for ${app.applicantName}, using fallback analysis`);
+  // FALLBACK: Only show minimal data if nothing available
+  console.log(`[NLP] ⚠️ Limited data for ${app.applicantName}, showing basic profile`);
   
-  // FALLBACK: If no AI data, use basic profile analysis
-  const profileText = [
-    app.recruiterNotes,
-    app.applicantName,
-    app.applicantEmail,
-    app.applicantLocation,
-    app.applicantEducation,
-    app.applicantExperience,
-    app.applicantSkills,
-    app.applicantBio,
-    app.applicantSummary,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase()
-    .replace(/[^\w\s.-]/g, " ")
-    .replace(/\s+/g, " ");
-
-  const jobText = [
-    app.jobPostingTitle,
-    app.jobPostingDescription,
-    app.jobPostingRequirements,
-    app.jobPostingCompany,
-    app.jobPostingLocation,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase()
-    .replace(/[^\w\s.-]/g, " ")
-    .replace(/\s+/g, " ");
-
-  // Enhanced skill database
-  const skillsDatabase = {
-    programming: {
-      languages: ["javascript", "python", "java", "typescript", "c++", "c#", "go", "rust", "kotlin", "swift", "php", "ruby"],
-      frontend: ["react", "vue", "angular", "nextjs", "svelte", "html", "css", "sass", "tailwind"],
-      backend: ["nodejs", "express", "django", "flask", "spring", "laravel", "rails", "fastapi"],
-      databases: ["sql", "postgresql", "mysql", "mongodb", "redis", "elasticsearch"],
-      cloud: ["aws", "azure", "gcp", "docker", "kubernetes", "terraform", "jenkins"],
-      mobile: ["react native", "flutter", "ios", "android"],
-      aiml: ["machine learning", "deep learning", "tensorflow", "pytorch", "pandas", "nlp"],
-    },
-    business: {
-      management: ["project management", "strategic planning", "leadership", "team management", "agile", "scrum"],
-      sales: ["sales", "business development", "b2b sales", "crm", "lead generation"],
-      marketing: ["digital marketing", "seo", "content marketing", "social media", "email marketing"],
-      finance: ["financial analysis", "accounting", "budgeting", "auditing", "financial modeling"],
-    }
-  };
-
-  const allSkills = Object.values(skillsDatabase).flatMap(domain => Object.values(domain)).flat();
-  
-  function fuzzyIncludes(text: string, skill: string): boolean {
-    return text.includes(skill.toLowerCase()) || 
-           skill.toLowerCase().split(" ").every(word => text.includes(word));
-  }
-
-  const extractedSkills = {
-    profile: allSkills.filter(skill => fuzzyIncludes(profileText, skill)),
-    job: allSkills.filter(skill => fuzzyIncludes(jobText, skill)),
-  };
-
-  // Experience extraction
-  const experiencePatterns = [
-    /(\d+)\s*(?:years?|yrs?)\s*(?:of\s*)?(?:experience|exp)/gi,
-    /(\d+)\+\s*(?:years?|yrs?)/gi,
-    /(\d{4})\s*[-–to]\s*(\d{4}|\w+)/gi,
-  ];
-
-  let maxExperience = 0;
-  const currentYear = new Date().getFullYear();
-
-  experiencePatterns.forEach(pattern => {
-    let match;
-    while ((match = pattern.exec(profileText)) !== null) {
-      let years = 0;
-      if (match[0].includes('-') || match[0].includes('–') || match[0].includes('to')) {
-        const startYear = parseInt(match[1]);
-        const endYear = match[2] === 'present' || match[2] === 'current' ? currentYear : parseInt(match[2]);
-        if (startYear && endYear && endYear >= startYear) {
-          years = endYear - startYear;
-        }
-      } else {
-        years = parseInt(match[1]);
-      }
-      maxExperience = Math.max(maxExperience, years);
-    }
-  });
-
-  // Seniority classification
-  let seniorityLevel = "Entry-Level";
-  if (maxExperience >= 15) seniorityLevel = "Executive";
-  else if (maxExperience >= 10) seniorityLevel = "Senior";
-  else if (maxExperience >= 5) seniorityLevel = "Mid-Level";
-  else if (maxExperience >= 2) seniorityLevel = "Junior";
-
-  // Education scoring
-  const degreePatterns = {
-    phd: 100, doctorate: 100, "d.phil": 100,
-    mba: 95, master: 85, "m.s": 85, "m.sc": 85, "m.a": 85,
-    bachelor: 70, "b.s": 70, "b.sc": 70, "b.a": 70, "b.tech": 75,
-    associate: 55, diploma: 50, certificate: 40,
-  };
-
-  let educationScore = 40; // Default
-  let highestDegree = "Not specified";
-  
-  Object.entries(degreePatterns).forEach(([degree, score]) => {
-    if (fuzzyIncludes(profileText, degree)) {
-      if (score > educationScore) {
-        educationScore = score;
-        highestDegree = degree.charAt(0).toUpperCase() + degree.slice(1);
-      }
-    }
-  });
-
-  // Company prestige scoring
-  const prestigiousCompanies = {
-    google: 100, apple: 100, microsoft: 100, amazon: 100, facebook: 100, meta: 100,
-    netflix: 95, tesla: 95, uber: 90, airbnb: 90, spotify: 85, twitter: 85,
-    ibm: 80, oracle: 80, salesforce: 85, adobe: 85, intel: 80, nvidia: 90,
-  };
-
-  let companyPrestige = 50; // Default
-  Object.entries(prestigiousCompanies).forEach(([company, score]) => {
-    if (fuzzyIncludes(profileText, company)) {
-      companyPrestige = Math.max(companyPrestige, score);
-    }
-  });
-
-  // Skills matching
-  const jobSkills = extractedSkills.job;
-  const profileSkills = extractedSkills.profile;
-  const matchedSkills = jobSkills.filter(skill => profileSkills.includes(skill));
-
-  // Use actual AI-based ATS score if available, otherwise calculate
-  let fitScore = existingAtsScore || 0;
-  
-  if (!fitScore || fitScore < 20) {
-    // Fallback calculation if no AI score available
-    const weights = { skills: 0.40, experience: 0.25, education: 0.15, company: 0.15, location: 0.05 };
-    
-    let skillsScore = 0;
-    if (jobSkills.length > 0) {
-      skillsScore = (matchedSkills.length / jobSkills.length) * 100;
-    }
-
-    const experienceScore = Math.min(100, maxExperience <= 2 ? maxExperience * 30 : maxExperience <= 5 ? 60 + (maxExperience - 2) * 15 : 105 + (maxExperience - 5) * 5);
-    
-    fitScore = Math.round(
-      skillsScore * weights.skills +
-      experienceScore * weights.experience +
-      educationScore * weights.education +
-      companyPrestige * weights.company +
-      50 * weights.location // Default location score
-    );
-  }
-
-  // Extract insights from AI resume analysis if available
-  let strengths = [];
-  let riskFactors = [];
-  let interviewFocus = [];
-  
-  if (existingResumeAnalysis) {
-    // Use AI-generated strengths and weaknesses from job seeker's resume analysis
-    strengths = existingResumeAnalysis.content?.strengthsFound || 
-                existingResumeAnalysis.strengths || [];
-    
-    // Convert weaknesses to risk factors
-    const weaknesses = existingResumeAnalysis.content?.weaknesses || 
-                       existingResumeAnalysis.weaknesses || [];
-    riskFactors = weaknesses.map((w: string) => `Resume Issue: ${w}`);
-    
-    // Use AI recommendations as interview focus
-    const recommendations = existingResumeAnalysis.recommendations || [];
-    interviewFocus = recommendations.slice(0, 3).map((r: string) => `Focus: ${r}`);
-  }
-  
-  // Fallback to basic analysis if no AI data
-  if (strengths.length === 0) {
-    if (fitScore >= 85) strengths.push("Exceptional overall match");
-    if (companyPrestige >= 90) strengths.push("Top-tier company experience");
-    if (maxExperience >= 10) strengths.push("Extensive industry experience");
-    if (educationScore >= 90) strengths.push("Elite educational background");
-    if (matchedSkills.length >= jobSkills.length * 0.8) strengths.push("Excellent skill alignment");
-  }
-  
-  if (riskFactors.length === 0) {
-    if (maxExperience < 1 && !profileSkills.length) riskFactors.push("Limited experience and skills");
-    if (educationScore < 50 && maxExperience < 2) riskFactors.push("Lacks both education and experience");
-    if (matchedSkills.length === 0 && jobSkills.length > 0) riskFactors.push("No matching technical skills");
-  }
-  
-  if (interviewFocus.length === 0) {
-    if (matchedSkills.length > 0) {
-      interviewFocus.push(`Technical deep-dive: ${matchedSkills.slice(0, 3).join(", ")}`);
-    }
-    if (maxExperience >= 5) {
-      interviewFocus.push("Leadership and project management experience");
-    }
-  }
-
-  const jobMatchHighlights = [
-    `Overall Match: ${fitScore}/100`,
-    `Experience: ${seniorityLevel} (${maxExperience} years)`,
-    `Skills: ${matchedSkills.length}/${jobSkills.length} required matches`,
-    `Education: ${highestDegree} (${educationScore}/100)`,
-  ];
-
+  // FALLBACK: Show minimal data when nothing available
   return {
-    fitScore,
-    seniorityLevel,
-    totalExperience: maxExperience,
-    highestDegree,
-    educationScore,
-    companyPrestige,
-    matchedSkills: matchedSkills.slice(0, 8),
-    topSkills: profileSkills.slice(0, 10),
-    strengths,
-    riskFactors,
-    interviewFocus,
-    jobMatchHighlights,
-    nlpInsights: `${seniorityLevel} candidate with ${maxExperience} years experience`,
+    fitScore: 0,
+    seniorityLevel: "Not specified",
+    totalExperience: 0,
+    highestDegree: "Not specified",
+    educationScore: 0,
+    companyPrestige: 50,
+    matchedSkills: [],
+    topSkills: [],
+    strengths: ['Awaiting resume analysis'],
+    riskFactors: ['Resume analysis pending'],
+    interviewFocus: ['Conduct initial screening', 'Review application materials'],
+    jobMatchHighlights: ['Resume analysis pending'],
+    nlpInsights: 'Awaiting applicant profile data',
   };
 }
 
