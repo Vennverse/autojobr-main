@@ -109,10 +109,6 @@ export default function BackgroundCheckIntegration() {
     refetchInterval: 30000,
   });
 
-  const { data: candidates = [] } = useQuery({
-    queryKey: ["/api/recruiter/candidates/background-eligible"],
-  });
-
   const startCheckMutation = useMutation({
     mutationFn: async (checkData: any) => {
       return apiRequest("/api/public-background-checks/start", {
@@ -232,12 +228,6 @@ export default function BackgroundCheckIntegration() {
     startCheckMutation.mutate(checkData);
   };
 
-  const selectCandidate = (candidate: any) => {
-    setCandidateName(candidate.name);
-    setCandidateEmail(candidate.email);
-    setJobTitle(candidate.jobTitle || "");
-  };
-
   if (checksLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800">
@@ -295,27 +285,6 @@ export default function BackgroundCheckIntegration() {
                 </DialogHeader>
                 
                 <div className="space-y-4">
-                  {candidates.length > 0 && (
-                    <div>
-                      <Label>Or select from eligible candidates:</Label>
-                      <Select onValueChange={(value) => {
-                        const candidate = candidates.find((c: any) => c.id === value);
-                        if (candidate) selectCandidate(candidate);
-                      }}>
-                        <SelectTrigger data-testid="select-candidate">
-                          <SelectValue placeholder="Select a candidate" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {candidates.map((candidate: any) => (
-                            <SelectItem key={candidate.id} value={candidate.id}>
-                              {candidate.name} - {candidate.email}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
                   <div>
                     <Label>Candidate Name *</Label>
                     <Input
