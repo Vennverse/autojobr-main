@@ -381,7 +381,7 @@ export default function EnhancedPipelineManagement() {
   });
 
   // Fetch candidate profiles with AI analysis data
-  const { data: candidateProfiles = {} } = useQuery({
+  const { data: candidateProfiles = {}, isLoading: profilesLoading } = useQuery({
     queryKey: ["/api/recruiter/candidate-profiles"],
     enabled: rawApplications.length > 0,
   });
@@ -390,11 +390,24 @@ export default function EnhancedPipelineManagement() {
   const applications = rawApplications.map((app: any) => {
     // Get candidate's AI resume analysis if available
     const candidateProfile = candidateProfiles[app.applicantId] || {};
+    
+    console.log(`[NLP] Analyzing ${app.applicantName} - ATS: ${candidateProfile.atsScore}, HasAnalysis: ${!!candidateProfile.resumeAnalysis}`);
+    
     const enhancedApp = {
       ...app,
-      applicantAtsScore: candidateProfile.atsScore,
-      applicantResumeAnalysis: candidateProfile.resumeAnalysis,
+      applicantAtsScore: candidateProfile.atsScore || app.applicantAtsScore || 0,
+      applicantResumeAnalysis: candidateProfile.resumeAnalysis || app.applicantResumeAnalysis || null,
+      // Also pass stored data from applicant profile
+      applicantYearsExperience: app.applicantYearsExperience,
+      applicantSkills: app.applicantSkills,
+      applicantEducation: app.applicantEducation,
+      applicantSeniority: app.applicantSeniority,
     };
+    
+    // Only log fallback if we truly have no data
+    if (!enhancedApp.applicantAtsScore && !enhancedApp.applicantResumeAnalysis && !enhancedApp.applicantYearsExperience) {
+      console.log(`[NLP] ⚠️ No AI data for ${app.applicantName}, using fallback analysis`);
+    }
     
     const nlpData = analyzeApplicantNLP(enhancedApp);
     return {
