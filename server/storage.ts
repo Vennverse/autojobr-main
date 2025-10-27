@@ -1196,6 +1196,10 @@ export class DatabaseStorage implements IStorage {
           resumeData: resumes.resumeText,
           resumeFileName: resumes.fileName,
           resumeAtsScore: resumes.atsScore,
+          // Map fields for Enhanced Pipeline frontend compatibility
+          applicantAtsScore: resumes.atsScore,
+          atsScore: resumes.atsScore,
+          applicantResumeAnalysis: resumes.analysisData,
           // Include job posting information directly as separate fields
           jobPostingTitle: jobPostings.title,
           jobPostingCompany: jobPostings.companyName,
