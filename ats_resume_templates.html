@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATS-Optimized Resume Templates</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        .template-selector {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .template-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 0 10px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .template-btn:hover, .template-btn.active {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .resume-container {
+            max-width: 8.5in;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .resume-container.active {
+            display: block;
+        }
+        
+        .page {
+            min-height: 11in;
+            padding: 0.75in;
+            page-break-after: always;
+            position: relative;
+        }
+        
+        .page:last-child {
+            page-break-after: auto;
+        }
+        
+        /* Template 1: Professional Standard */
+        .template1 {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            font-size: 11pt;
+            line-height: 1.15;
+            color: #000000;
+        }
+        
+        .template1 .header {
+            text-align: center;
+            border-bottom: 2pt solid #000000;
+            padding-bottom: 15pt;
+            margin-bottom: 15pt;
+        }
+        
+        .template1 .name {
+            font-size: 18pt;
+            font-weight: bold;
+            margin-bottom: 5pt;
+            text-transform: uppercase;
+            letter-spacing: 1pt;
+        }
+        
+        .template1 .contact-info {
+            font-size: 10pt;
+            margin-bottom: 3pt;
+        }
+        
+        .template1 .section-header {
+            font-size: 12pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-bottom: 1pt solid #000000;
+            margin: 15pt 0 8pt 0;
+            padding-bottom: 3pt;
+            letter-spacing: 0.5pt;
+        }
+        
+        .template1 .job-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 3pt;
+        }
+        
+        .template1 .job-title {
+            font-weight: bold;
+            font-size: 11pt;
+        }
+        
+        .template1 .company {
+            font-weight: bold;
+            font-size: 11pt;
+        }
+        
+        .template1 .location-date {
+            text-align: right;
+            font-size: 10pt;
+            font-style: italic;
+        }
+        
+        .template1 ul {
+            margin: 5pt 0 10pt 15pt;
+            padding: 0;
+        }
+        
+        .template1 li {
+            margin-bottom: 3pt;
+            font-size: 10pt;
+        }
+        
+        /* Template 2: Modern Clean */
+        .template2 {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 10pt;
+            line-height: 1.2;
+            color: #2c3e50;
+        }
+        
+        .template2 .header {
+            background: #f8f9fa;
+            padding: 20pt;
+            margin: -18pt -18pt 20pt -18pt;
+            text-align: center;
+        }
+        
+        .template2 .name {
+            font-size: 20pt;
+            font-weight: 300;
+            margin-bottom: 8pt;
+            color: #2c3e50;
+        }
+        
+        .template2 .title {
+            font-size: 12pt;
+            color: #7f8c8d;
+            margin-bottom: 10pt;
+        }
+        
+        .template2 .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 5pt;
+            font-size: 9pt;
+        }
+        
+        .template2 .section-header {
+            font-size: 11pt;
+            font-weight: 600;
+            color: #2c3e50;
+            border-left: 3pt solid #3498db;
+            padding-left: 8pt;
+            margin: 18pt 0 10pt 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5pt;
+        }
+        
+        .template2 .experience-item {
+            margin-bottom: 15pt;
+            padding-bottom: 10pt;
+            border-bottom: 0.5pt solid #ecf0f1;
+        }
+        
+        .template2 .experience-item:last-child {
+            border-bottom: none;
+        }
+        
+        .template2 .job-header {
+            margin-bottom: 5pt;
+        }
+        
+        .template2 .job-title {
+            font-weight: 600;
+            font-size: 11pt;
+            color: #2c3e50;
+        }
+        
+        .template2 .company-location {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10pt;
+            color: #7f8c8d;
+            margin-bottom: 5pt;
+        }
+        
+        .template2 .date-range {
+            font-weight: 500;
+        }
+        
+        .template2 ul {
+            margin: 0;
+            padding-left: 15pt;
+        }
+        
+        .template2 li {
+            margin-bottom: 3pt;
+            font-size: 10pt;
+            line-height: 1.3;
+        }
+        
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10pt;
+        }
+        
+        .skill-category {
+            margin-bottom: 10pt;
+        }
+        
+        .skill-category-title {
+            font-weight: 600;
+            font-size: 9pt;
+            margin-bottom: 3pt;
+            text-transform: uppercase;
+        }
+        
+        .skill-list {
+            font-size: 9pt;
+            line-height: 1.4;
+        }
+        
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .template-selector {
+                display: none;
+            }
+            
+            .resume-container {
+                box-shadow: none;
+                max-width: none;
+            }
+            
+            .page {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+        
+        /* Data field indicators for AI */
+        .data-field {
+            background: rgba(52, 152, 219, 0.1);
+            border: 1px dashed #3498db;
+            padding: 2px 4px;
+            border-radius: 2px;
+            position: relative;
+        }
+        
+        .data-field::before {
+            content: attr(data-field);
+            font-size: 8px;
+            color: #3498db;
+            position: absolute;
+            top: -12px;
+            left: 0;
+            background: white;
+            padding: 0 3px;
+        }
+        
+        .show-fields .data-field {
+            background: rgba(52, 152, 219, 0.1);
+            border: 1px dashed #3498db;
+        }
+        
+        .show-fields .data-field::before {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="template-selector">
+        <h1 style="color: #2c3e50; margin-bottom: 10px;">ATS-Optimized Resume Templates</h1>
+        <p style="color: #7f8c8d; margin-bottom: 20px;">Professional 2-page formats preferred by companies and universities</p>
+        <button class="template-btn active" onclick="showTemplate(1)">Professional Standard</button>
+        <button class="template-btn" onclick="showTemplate(2)">Modern Clean</button>
+        <button class="template-btn" onclick="toggleFields()" id="fieldsBtn">Show Data Fields</button>
+    </div>
+
+    <!-- Template 1: Professional Standard -->
+    <div class="resume-container template1 active" id="template1">
+        <!-- Page 1 -->
+        <div class="page">
+            <div class="header">
+                <div class="name data-field" data-field="FULL_NAME">[FULL_NAME]</div>
+                <div class="contact-info data-field" data-field="EMAIL">[EMAIL]</div>
+                <div class="contact-info data-field" data-field="PHONE">[PHONE] | <span class="data-field" data-field="LOCATION">[CITY, STATE]</span></div>
+                <div class="contact-info">
+                    <span class="data-field" data-field="LINKEDIN">LinkedIn: [LINKEDIN_URL]</span> | 
+                    <span class="data-field" data-field="PORTFOLIO">Portfolio: [PORTFOLIO_URL]</span>
+                </div>
+            </div>
+
+            <div class="section-header">PROFESSIONAL SUMMARY</div>
+            <p class="data-field" data-field="PROFESSIONAL_SUMMARY">[PROFESSIONAL_SUMMARY - 3-4 lines highlighting years of experience, key skills, and career achievements]</p>
+
+            <div class="section-header">CORE COMPETENCIES</div>
+            <p class="data-field" data-field="CORE_SKILLS">[CORE_SKILLS - Comma-separated list of relevant technical and soft skills]</p>
+
+            <div class="section-header">PROFESSIONAL EXPERIENCE</div>
+            
+            <div style="margin-bottom: 15pt;">
+                <div class="job-header">
+                    <div>
+                        <div class="job-title data-field" data-field="JOB_TITLE_1">[JOB_TITLE_1]</div>
+                        <div class="company data-field" data-field="COMPANY_1">[COMPANY_1]</div>
+                    </div>
+                    <div class="location-date">
+                        <div class="data-field" data-field="LOCATION_1">[LOCATION_1]</div>
+                        <div class="data-field" data-field="DATES_1">[START_DATE_1] - [END_DATE_1]</div>
+                    </div>
+                </div>
+                <ul>
+                    <li class="data-field" data-field="ACHIEVEMENT_1_1">[ACHIEVEMENT_1_1 - Quantified accomplishment with specific metrics]</li>
+                    <li class="data-field" data-field="ACHIEVEMENT_1_2">[ACHIEVEMENT_1_2 - Action-oriented responsibility or project outcome]</li>
+                    <li class="data-field" data-field="ACHIEVEMENT_1_3">[ACHIEVEMENT_1_3 - Leadership or collaboration example]</li>
+                    <li class="data-field" data-field="ACHIEVEMENT_1_4">[ACHIEVEMENT_1_4 - Technical skill or process improvement]</li>
+                </ul>
+            </div>
+
+            <div style="margin-bottom: 15pt;">
+                <div class="job-header">
+                    <div>
+                        <div class="job-title data-field" data-field="JOB_TITLE_2">[JOB_TITLE_2]</div>
+                        <div class="company data-field" data-field="COMPANY_2">[COMPANY_2]</div>
+                    </div>
+                    <div class="location-date">
+                        <div class="data-field" data-field="LOCATION_2">[LOCATION_2]</div>
+                        <div class="data-field" data-field="DATES_2">[START_DATE_2] - [END_DATE_2]</div>
+                    </div>
+                </div>
+                <ul>
+                    <li class="data-field" data-field="ACHIEVEMENT_2_1">[ACHIEVEMENT_2_1 - Key accomplishment with numbers]</li>
+                    <li class="data-field" data-field="ACHIEVEMENT_2_2">[ACHIEVEMENT_2_2 - Process improvement or efficiency gain]</li>
+                    <li class="data-field" data-field="ACHIEVEMENT_2_3">[ACHIEVEMENT_2_3 - Cross-functional collaboration]</li>
+                    <li class="data-field" data-field="ACHIEVEMENT_2_4">[ACHIEVEMENT_2_4 - Skill development or training]</li>
+                </ul>
+            </div>
+
+            <div style="margin-bottom: 15pt;">
+                <div class="job-header">
+                    <div>
+                        <div class="job-title data-field" data-field="JOB_TITLE_3">[JOB_TITLE_3]</div>
+                        <div class="company data-field" data-field="COMPANY_3">[COMPANY_3]</div>
+                    </div>
+                    <div class="location-date">
+                        <div class="data-field" data-field="LOCATION_3">[LOCATION_3]</div>
+                        <div class="data-field" data-field="DATES_3">[START_DATE_3] - [END_DATE_3]</div>
+                    </div>
+                </div>
+                <ul>
+                    <li class="data-field" data-field="ACHIEVEMENT_3_1">[ACHIEVEMENT_3_1 - Measurable impact or result]</li>
+                    <li class="data-field" data-field="ACHIEVEMENT_3_2">[ACHIEVEMENT_3_2 - Key responsibility or project]</li>
+                    <li class="data-field" data-field="ACHIEVEMENT_3_3">[ACHIEVEMENT_3_3 - Innovation or problem-solving]</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Page 2 -->
+        <div class="page">
+            <div class="section-header">EDUCATION</div>
+            <div style="margin-bottom: 15pt;">
+                <div class="job-header">
+                    <div>
+                        <div class="job-title data-field" data-field="DEGREE_1">[DEGREE_1] in <span class="data-field" data-field="MAJOR_1">[MAJOR_1]</span></div>
+                        <div class="company data-field" data-field="UNIVERSITY_1">[UNIVERSITY_1]</div>
+                    </div>
+                    <div class="location-date">
+                        <div class="data-field" data-field="UNI_LOCATION_1">[UNIVERSITY_LOCATION_1]</div>
+                        <div class="data-field" data-field="GRAD_DATE_1">[GRADUATION_DATE_1]</div>
+                    </div>
+                </div>
+                <p style="margin: 5pt 0; font-size: 10pt;">
+                    <span class="data-field" data-field="GPA_1">GPA: [GPA_1]</span> | 
+                    <span class="data-field" data-field="HONORS_1">Honors: [HONORS_1]</span>
+                </p>
+                <p style="margin: 0; font-size: 10pt;"><strong>Relevant Coursework:</strong> <span class="data-field" data-field="COURSEWORK_1">[RELEVANT_COURSEWORK_1]</span></p>
+            </div>
+
+            <div class="section-header">TECHNICAL SKILLS</div>
+            <div style="margin-bottom: 15pt;">
+                <p><strong>Programming Languages:</strong> <span class="data-field" data-field="PROGRAMMING_LANGS">[PROGRAMMING_LANGUAGES]</span></p>
+                <p><strong>Frameworks/Libraries:</strong> <span class="data-field" data-field="FRAMEWORKS">[FRAMEWORKS_LIBRARIES]</span></p>
+                <p><strong>Databases:</strong> <span class="data-field" data-field="DATABASES">[DATABASES]</span></p>
+                <p><strong>Tools/Software:</strong> <span class="data-field" data-field="TOOLS">[TOOLS_SOFTWARE]</span></p>
+                <p><strong>Cloud Platforms:</strong> <span class="data-field" data-field="CLOUD_PLATFORMS">[CLOUD_PLATFORMS]</span></p>
+            </div>
+
+            <div class="section-header">KEY PROJECTS</div>
+            <div style="margin-bottom: 15pt;">
+                <div class="job-header">
+                    <div class="job-title data-field" data-field="PROJECT_1_NAME">[PROJECT_1_NAME]</div>
+                    <div class="location-date data-field" data-field="PROJECT_1_DATE">[PROJECT_1_DATE]</div>
+                </div>
+                <ul>
+                    <li class="data-field" data-field="PROJECT_1_DESC1">[PROJECT_1_DESCRIPTION_1]</li>
+                    <li class="data-field" data-field="PROJECT_1_DESC2">[PROJECT_1_DESCRIPTION_2]</li>
+                    <li><strong>Technologies:</strong> <span class="data-field" data-field="PROJECT_1_TECH">[PROJECT_1_TECHNOLOGIES]</span></li>
+                </ul>
+            </div>
+
+            <div style="margin-bottom: 15pt;">
+                <div class="job-header">
+                    <div class="job-title data-field" data-field="PROJECT_2_NAME">[PROJECT_2_NAME]</div>
+                    <div class="location-date data-field" data-field="PROJECT_2_DATE">[PROJECT_2_DATE]</div>
+                </div>
+                <ul>
+                    <li class="data-field" data-field="PROJECT_2_DESC1">[PROJECT_2_DESCRIPTION_1]</li>
+                    <li class="data-field" data-field="PROJECT_2_DESC2">[PROJECT_2_DESCRIPTION_2]</li>
+                    <li><strong>Technologies:</strong> <span class="data-field" data-field="PROJECT_2_TECH">[PROJECT_2_TECHNOLOGIES]</span></li>
+                </ul>
+            </div>
+
+            <div class="section-header">CERTIFICATIONS</div>
+            <ul style="margin-bottom: 15pt;">
+                <li class="data-field" data-field="CERT_1">[CERTIFICATION_1] - [ISSUING_ORGANIZATION_1] ([CERT_DATE_1])</li>
+                <li class="data-field" data-field="CERT_2">[CERTIFICATION_2] - [ISSUING_ORGANIZATION_2] ([CERT_DATE_2])</li>
+                <li class="data-field" data-field="CERT_3">[CERTIFICATION_3] - [ISSUING_ORGANIZATION_3] ([CERT_DATE_3])</li>
+            </ul>
+
+            <div class="section-header">ADDITIONAL INFORMATION</div>
+            <p><strong>Languages:</strong> <span class="data-field" data-field="LANGUAGES">[LANGUAGES_WITH_PROFICIENCY]</span></p>
+            <p><strong>Volunteer Experience:</strong> <span class="data-field" data-field="VOLUNTEER">[VOLUNTEER_EXPERIENCE]</span></p>
+            <p><strong>Professional Associations:</strong> <span class="data-field" data-field="ASSOCIATIONS">[PROFESSIONAL_ASSOCIATIONS]</span></p>
+        </div>
+    </div>
+
+    <!-- Template 2: Modern Clean -->
+    <div class="resume-container template2" id="template2">
+        <!-- Page 1 -->
+        <div class="page">
+            <div class="header">
+                <div class="name data-field" data-field="FULL_NAME">[FULL_NAME]</div>
+                <div class="title data-field" data-field="PROFESSIONAL_TITLE">[PROFESSIONAL_TITLE]</div>
+                <div class="contact-grid">
+                    <div>📧 <span class="data-field" data-field="EMAIL">[EMAIL]</span></div>
+                    <div>📱 <span class="data-field" data-field="PHONE">[PHONE]</span></div>
+                    <div>📍 <span class="data-field" data-field="LOCATION">[CITY, STATE]</span></div>
+                    <div>💼 <span class="data-field" data-field="LINKEDIN">[LINKEDIN_PROFILE]</span></div>
+                </div>
+            </div>
+
+            <div class="section-header">Professional Summary</div>
+            <p class="data-field" data-field="PROFESSIONAL_SUMMARY" style="margin-bottom: 15pt; line-height: 1.4;">[PROFESSIONAL_SUMMARY - Comprehensive overview of experience, expertise, and career goals]</p>
+
+            <div class="section-header">Professional Experience</div>
+            
+            <div class="experience-item">
+                <div class="job-header">
+                    <div class="job-title data-field" data-field="JOB_TITLE_1">[JOB_TITLE_1]</div>
+                </div>
+                <div class="company-location">
+                    <span><strong class="data-field" data-field="COMPANY_1">[COMPANY_1]</strong> • <span class="data-field" data-field="LOCATION_1">[LOCATION_1]</span></span>
+                    <span class="date-range data-field" data-field="DATES_1">[START_DATE_1] - [END_DATE_1]</span>
+                </div>
+                <ul>
+                    <li class="data-field" data-field="ACHIEVEMENT_1_1">[ACHIEVEMENT_1_1 - Quantified business impact with specific metrics]</li>
+                    <li class="data-field" data-field="ACHIEVEMENT_1_2">[ACHIEVEMENT_1_2 - Strategic initiative or process optimization]</li>
+                    <li class="data-field" data-field="ACHIEVEMENT_1_3">[ACHIEVEMENT_1_3 - Team leadership or cross-functional collaboration]</li>
+                    <li class="data-field" data-field="ACHIEVEMENT_1_4">[ACHIEVEMENT_1_4 - Technical implementation or innovation]</li>
+                    <li class="data-field" data-field="ACHIEVEMENT_1_5">[ACHIEVEMENT_1_5 - Client satisfaction or stakeholder management]</li>
+                </ul>
+            </div>
+
+            <div class="experience-item">
+                <div class="job-header">
+                    <div class="job-title data-field" data-field="JOB_TITLE_2">[JOB_TITLE_2]</div>
+                </div>
+                <div class="company-location">
+                    <span><strong class="data-field" data-field="COMPANY_2">[COMPANY_2]</strong> • <span class="data-field" data-field="LOCATION_2">[LOCATION_2]</span></span>
+                    <span class="date-range data-field" data-field="DATES_2">[START_DATE_2] - [END_DATE_2]</span>
+                </div>
+                <ul>
+                    <li class="data-field" data-field="ACHIEVEMENT_2_1">[ACHIEVEMENT_2_1 - Revenue growth or cost reduction achievement]</li>
+                    <li class="data-field" data-field="ACHIEVEMENT_2_2">[ACHIEVEMENT_2_2 - Project management or delivery success]</li>
+                    <li class="data-field" data-field="ACHIEVEMENT_2_3">[ACHIEVEMENT_2_3 - System implementation or improvement]</li>
+                    <li class="data-field" data-field="ACHIEVEMENT_2_4">[ACHIEVEMENT_2_4 - Training or knowledge transfer]</li>
+                </ul>
+            </div>
+
+            <div class="experience-item">
+                <div class="job-header">
+                    <div class="job-title data-field" data-field="JOB_TITLE_3">[JOB_TITLE_3]</div>
+                </div>
+                <div class="company-location">
+                    <span><strong class="data-field" data-field="COMPANY_3">[COMPANY_3]</strong> • <span class="data-field" data-field="LOCATION_3">[LOCATION_3]</span></span>
+                    <span class="date-range data-field" data-field="DATES_3">[START_DATE_3] - [END_DATE_3]</span>
+                </div>
+                <ul>
+                    <li class="data-field" data-field="ACHIEVEMENT_3_1">[ACHIEVEMENT_3_1 - Performance improvement or efficiency gain]</li>
+                    <li class="data-field" data-field="ACHIEVEMENT_3_2">[ACHIEVEMENT_3_2 - Problem-solving or analytical contribution]</li>
+                    <li class="data-field" data-field="ACHIEVEMENT_3_3">[ACHIEVEMENT_3_3 - Professional development or skill acquisition]</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Page 2 -->
+        <div class="page">
+            <div class="section-header">Education & Academic Achievements</div>
+            <div class="experience-item">
+                <div class="job-header">
+                    <div class="job-title"><span class="data-field" data-field="DEGREE_1">[DEGREE_1]</span> in <span class="data-field" data-field="MAJOR_1">[MAJOR_1]</span></div>
+                </div>
+                <div class="company-location">
+                    <span><strong class="data-field" data-field="UNIVERSITY_1">[UNIVERSITY_1]</strong> • <span class="data-field" data-field="UNI_LOCATION_1">[UNIVERSITY_LOCATION_1]</span></span>
+                    <span class="date-range data-field" data-field="GRAD_DATE_1">[GRADUATION_DATE_1]</span>
+                </div>
+                <ul style="margin-bottom: 0;">
+                    <li><strong>GPA:</strong> <span class="data-field" data-field="GPA_1">[GPA_1]</span> | <strong>Honors:</strong> <span class="data-field" data-field="HONORS_1">[HONORS_1]</span></li>
+                    <li><strong>Relevant Coursework:</strong> <span class="data-field" data-field="COURSEWORK_1">[RELEVANT_COURSEWORK_1]</span></li>
+                    <li><strong>Academic Projects:</strong> <span class="data-field" data-field="ACADEMIC_PROJECTS">[ACADEMIC_PROJECTS]</span></li>
+                </ul>
+            </div>
+
+            <div class="section-header">Technical Skills & Proficiencies</div>
+            <div class="skills-grid" style="margin-bottom: 20pt;">
+                <div class="skill-category">
+                    <div class="skill-category-title">Programming Languages</div>
+                    <div class="skill-list data-field" data-field="PROGRAMMING_LANGS">[PROGRAMMING_LANGUAGES]</div>
+                </div>
+                <div class="skill-category">
+                    <div class="skill-category-title">Frameworks & Libraries</div>
+                    <div class="skill-list data-field" data-field="FRAMEWORKS">[FRAMEWORKS_LIBRARIES]</div>
+                </div>
+                <div class="skill-category">
+                    <div class="skill-category-title">Database Systems</div>
+                    <div class="skill-list data-field" data-field="DATABASES">[DATABASE_SYSTEMS]</div>
+                </div>
+                <div class="skill-category">
+                    <div class="skill-category-title">Cloud & DevOps</div>
+                    <div class="skill-list data-field" data-field="CLOUD_DEVOPS">[CLOUD_DEVOPS_TOOLS]</div>
+                </div>
+                <div class="skill-category">
+                    <div class="skill-category-title">Development Tools</div>
+                    <div class="skill-list data-field" data-field="DEV_TOOLS">[DEVELOPMENT_TOOLS]</div>
+                </div>
+                <div class="skill-category">
+                    <div class="skill-category-title">Methodologies</div>
+                    <div class="skill-list data-field" data-field="METHODOLOGIES">[METHODOLOGIES]</div>
+                </div>
+            </div>
+
+            <div class="section-header">Featured Projects</div>
+            <div class="experience-item">
+                <div class="job-header">
+                    <div class="job-title data-field" data-field="PROJECT_1_NAME">[PROJECT_1_NAME]</div>
+                </div>
+                <div class="company-location">
+                    <span class="data-field" data-field="PROJECT_1_TYPE">[PROJECT_TYPE_1]</span>
+                    <span class="date-range data-field" data-field="PROJECT_1_DATE">[PROJECT_1_DATE]</span>
+                </div>
+                <ul>
+                    <li class="data-field" data-field="PROJECT_1_DESC1">[PROJECT_1_DESCRIPTION_1]</li>
+                    <li class="data-field" data-field="PROJECT_1_DESC2">[PROJECT_1_DESCRIPTION_2]</li>
+                    <li><strong>Tech Stack:</strong> <span class="data-field" data-field="PROJECT_1_TECH">[PROJECT_1_TECHNOLOGIES]</span></li>
+                    <li><strong>Impact:</strong> <span class="data-field" data-field="PROJECT_1_IMPACT">[PROJECT_1_IMPACT]</span></li>
+                </ul>
+            </div>
+
+            <div class="experience-item">
+                <div class="job-header">
+                    <div class="job-title data-field" data-field="PROJECT_2_NAME">[PROJECT_2_NAME]</div>
+                </div>
+                <div class="company-
