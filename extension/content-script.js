@@ -16,6 +16,9 @@ class AutoJobrContentScript {
     this.analysisDebounceTimer = null; // Debounce analysis calls
     this.cachedProfile = null; // Cache profile to prevent excessive requests
     this.lastAuthCheck = 0; // Track last authentication check
+    this.automationRunning = false; // LinkedIn automation state
+    this.applicationsSubmitted = 0; // Track successful applications
+    this.applicationsSkipped = 0; // Track skipped jobs
     this.init();
   }
 
@@ -543,6 +546,21 @@ class AutoJobrContentScript {
                 <span>LinkedIn Connect</span>
               </button>
             </div>
+
+            <div class="autojobr-automation" id="autojobr-automation" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+              <div style="text-align: center; margin-bottom: 10px;">
+                <strong style="font-size: 14px;">🤖 LinkedIn Auto-Apply</strong>
+              </div>
+              <button class="autojobr-btn primary" id="autojobr-start-automation" style="width: 100%;">
+                <span class="btn-icon">🚀</span>
+                <span class="btn-text">Start Auto-Apply</span>
+              </button>
+              <button class="autojobr-btn secondary" id="autojobr-stop-automation" style="width: 100%; margin-top: 8px; display: none;">
+                <span class="btn-icon">⏸️</span>
+                <span class="btn-text">Stop Automation</span>
+              </button>
+              <div id="autojobr-automation-status" style="font-size: 12px; text-align: center; margin-top: 8px; color: #6b7280;"></div>
+            </div>
           </div>
 
           <div class="autojobr-features">
@@ -605,6 +623,19 @@ class AutoJobrContentScript {
     document.getElementById('autojobr-salary-insights')?.addEventListener('click', () => this.handleSalaryInsights());
     document.getElementById('autojobr-referral-finder')?.addEventListener('click', () => this.handleReferralFinder());
     document.getElementById('autojobr-linkedin-connect')?.addEventListener('click', () => this.handleLinkedInConnect());
+
+    // LinkedIn automation buttons
+    document.getElementById('autojobr-start-automation')?.addEventListener('click', () => {
+      this.startLinkedInAutomation();
+      document.getElementById('autojobr-start-automation').style.display = 'none';
+      document.getElementById('autojobr-stop-automation').style.display = 'block';
+    });
+
+    document.getElementById('autojobr-stop-automation')?.addEventListener('click', () => {
+      this.stopLinkedInAutomation();
+      document.getElementById('autojobr-start-automation').style.display = 'block';
+      document.getElementById('autojobr-stop-automation').style.display = 'none';
+    });
 
     // Widget controls
     // Enhanced close button with better event handling
@@ -2654,6 +2685,426 @@ class AutoJobrContentScript {
     } else {
       this.showNotification(`❌ Auto-fill failed: ${result.error}`, 'error');
     }
+  }
+
+  // LinkedIn Easy Apply Automation
+  async startLinkedInAutomation() {
+    if (!window.location.hostname.includes('linkedin.com')) {
+      this.showNotification('❌ Please navigate to LinkedIn jobs page first', 'error');
+      return;
+    }
+
+    this.automationRunning = true;
+    this.applicationsSubmitted = 0;
+    this.applicationsSkipped = 0;
+
+    this.showNotification('🚀 LinkedIn automation started!', 'success');
+    
+    try {
+      await this.processLinkedInJobs();
+    } catch (error) {
+      console.error('Automation error:', error);
+      this.showNotification(`❌ Automation stopped: ${error.message}`, 'error');
+    } finally {
+      this.automationRunning = false;
+    }
+  }
+
+  async processLinkedInJobs() {
+    const userProfile = await this.getUserProfile();
+    if (!userProfile) {
+      throw new Error('Please sign in to AutoJobr first');
+    }
+
+    // Find all job cards on the current page
+    const jobCards = this.findLinkedInJobCards();
+    
+    if (jobCards.length === 0) {
+      this.showNotification('❌ No jobs found. Please navigate to LinkedIn jobs page.', 'error');
+      return;
+    }
+
+    this.showNotification(`📋 Found ${jobCards.length} jobs to process`, 'info');
+
+    for (let i = 0; i < jobCards.length && this.automationRunning; i++) {
+      const jobCard = jobCards[i];
+      
+      try {
+        // Click on job card to view details
+        jobCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        await this.delay(1000);
+        jobCard.click();
+        await this.delay(2000);
+
+        // Check if Easy Apply button exists
+        const easyApplyButton = this.findEasyApplyButton();
+        
+        if (!easyApplyButton) {
+          console.log(`Job ${i + 1}: No Easy Apply - Skipping`);
+          this.applicationsSkipped++;
+          continue;
+        }
+
+        // Extract job details
+        const jobData = this.extractLinkedInJobDetails();
+        console.log(`Job ${i + 1}: Processing ${jobData.title} at ${jobData.company}`);
+
+        // Click Easy Apply button
+        easyApplyButton.click();
+        await this.delay(2000);
+
+        // Fill and submit the application
+        const applied = await this.fillAndSubmitLinkedInApplication(userProfile, jobData);
+        
+        if (applied) {
+          this.applicationsSubmitted++;
+          this.showNotification(
+            `✅ Applied to ${jobData.title} (${this.applicationsSubmitted} total)`,
+            'success'
+          );
+
+          // Track application
+          await this.trackLinkedInApplication(jobData);
+        } else {
+          this.applicationsSkipped++;
+        }
+
+        // Wait before moving to next job
+        await this.delay(3000 + Math.random() * 2000);
+
+      } catch (error) {
+        console.error(`Error processing job ${i + 1}:`, error);
+        this.applicationsSkipped++;
+        
+        // Close any open modals
+        this.closeLinkedInModal();
+        await this.delay(1000);
+      }
+    }
+
+    // Show final summary
+    this.showNotification(
+      `🎉 Automation complete! Applied: ${this.applicationsSubmitted}, Skipped: ${this.applicationsSkipped}`,
+      'success'
+    );
+  }
+
+  findLinkedInJobCards() {
+    const selectors = [
+      '.job-card-container',
+      '.jobs-search-results__list-item',
+      '.scaffold-layout__list-item',
+      '[data-job-id]',
+      '.job-card-list__entity-lockup'
+    ];
+
+    let jobCards = [];
+    for (const selector of selectors) {
+      jobCards = Array.from(document.querySelectorAll(selector));
+      if (jobCards.length > 0) break;
+    }
+
+    return jobCards;
+  }
+
+  findEasyApplyButton() {
+    const selectors = [
+      'button.jobs-apply-button',
+      'button[aria-label*="Easy Apply"]',
+      '.jobs-apply-button--top-card',
+      'button:has(.jobs-apply-button__text)',
+      'button:contains("Easy Apply")'
+    ];
+
+    for (const selector of selectors) {
+      try {
+        const button = document.querySelector(selector);
+        if (button && button.textContent.includes('Easy Apply')) {
+          return button;
+        }
+      } catch (e) {
+        // Skip invalid selectors
+      }
+    }
+
+    // Fallback: find by text content
+    const allButtons = document.querySelectorAll('button');
+    for (const button of allButtons) {
+      if (button.textContent.trim().includes('Easy Apply')) {
+        return button;
+      }
+    }
+
+    return null;
+  }
+
+  async fillAndSubmitLinkedInApplication(userProfile, jobData) {
+    try {
+      // Wait for modal to appear
+      await this.delay(1500);
+
+      let currentStep = 1;
+      const maxSteps = 5;
+
+      while (currentStep <= maxSteps) {
+        // Fill current page fields
+        await this.fillLinkedInApplicationPage(userProfile);
+        await this.delay(1000);
+
+        // Look for Next or Submit button
+        const nextButton = this.findLinkedInNextButton();
+        const submitButton = this.findLinkedInSubmitButton();
+
+        if (submitButton) {
+          // Final submission
+          console.log('Submitting application...');
+          submitButton.click();
+          await this.delay(2000);
+          
+          // Check for success confirmation
+          if (this.checkLinkedInSubmissionSuccess()) {
+            return true;
+          }
+          return false;
+        } else if (nextButton) {
+          // Go to next page
+          console.log(`Moving to step ${currentStep + 1}...`);
+          nextButton.click();
+          await this.delay(2000);
+          currentStep++;
+        } else {
+          // No buttons found - might be single page application
+          console.log('No next/submit button found, checking for auto-submit...');
+          await this.delay(1000);
+          
+          const autoSubmit = this.findLinkedInSubmitButton();
+          if (autoSubmit) {
+            autoSubmit.click();
+            await this.delay(2000);
+            return this.checkLinkedInSubmissionSuccess();
+          }
+          
+          break;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Application submission error:', error);
+      return false;
+    }
+  }
+
+  async fillLinkedInApplicationPage(userProfile) {
+    // Find the application modal/form
+    const modal = document.querySelector('.jobs-easy-apply-modal') || 
+                   document.querySelector('[data-test-modal-id="easy-apply-modal"]') ||
+                   document.querySelector('.artdeco-modal');
+
+    if (!modal) return;
+
+    // Fill form fields within modal
+    const fields = modal.querySelectorAll('input, select, textarea');
+    
+    for (const field of fields) {
+      if (this.shouldSkipField(field)) continue;
+
+      try {
+        const fieldInfo = this.analyzeFieldAdvanced(field);
+        const value = this.getValueForFieldSmart(fieldInfo, userProfile, true);
+
+        if (value) {
+          await this.fillFieldSmart(field, userProfile, true);
+          await this.delay(300);
+        }
+      } catch (error) {
+        console.warn('Field fill error:', error);
+      }
+    }
+
+    // Handle file upload (resume)
+    await this.handleLinkedInResumeUpload(modal, userProfile);
+
+    // Handle additional questions
+    await this.handleLinkedInAdditionalQuestions(modal, userProfile);
+  }
+
+  async handleLinkedInResumeUpload(modal, userProfile) {
+    const fileInput = modal.querySelector('input[type="file"]');
+    if (!fileInput) return;
+
+    try {
+      // Get user's active resume from server
+      const apiUrl = await this.getApiUrl();
+      const response = await fetch(`${apiUrl}/api/resumes/active`, {
+        credentials: 'include',
+        headers: { 'Accept': 'application/octet-stream' }
+      });
+
+      if (response.ok) {
+        const resumeBlob = await response.blob();
+        const fileName = response.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || 'resume.pdf';
+        const resumeFile = new File([resumeBlob], fileName, { type: resumeBlob.type });
+
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(resumeFile);
+        fileInput.files = dataTransfer.files;
+        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+        console.log('✅ Resume uploaded');
+        await this.delay(1000);
+      }
+    } catch (error) {
+      console.warn('Resume upload failed:', error);
+    }
+  }
+
+  async handleLinkedInAdditionalQuestions(modal, userProfile) {
+    // Handle common LinkedIn additional questions
+    const questionContainers = modal.querySelectorAll('[data-test-form-element]');
+    
+    for (const container of questionContainers) {
+      const label = container.querySelector('label')?.textContent?.toLowerCase() || '';
+      
+      // Handle "How much book size have you run" type questions
+      if (label.includes('book size') || label.includes('book') || label.includes('size')) {
+        const input = container.querySelector('input[type="text"], input[type="number"]');
+        if (input && !input.value) {
+          input.value = userProfile.bookSize || '3'; // Default answer
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+          await this.delay(200);
+        }
+      }
+
+      // Handle experience questions
+      if (label.includes('years') && label.includes('experience')) {
+        const input = container.querySelector('input[type="text"], input[type="number"]');
+        if (input && !input.value) {
+          input.value = userProfile.yearsExperience?.toString() || '3';
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+          await this.delay(200);
+        }
+      }
+
+      // Handle checkboxes (follow company, etc.)
+      const checkbox = container.querySelector('input[type="checkbox"]');
+      if (checkbox && label.includes('follow')) {
+        checkbox.checked = true;
+        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+        await this.delay(200);
+      }
+    }
+  }
+
+  findLinkedInNextButton() {
+    const selectors = [
+      'button[aria-label*="Continue"]',
+      'button[aria-label*="Next"]',
+      '.artdeco-button--primary:contains("Next")',
+      'button:contains("Next")',
+      'button:contains("Continue")'
+    ];
+
+    for (const selector of selectors) {
+      try {
+        const buttons = document.querySelectorAll('button');
+        for (const button of buttons) {
+          const text = button.textContent.trim();
+          if ((text === 'Next' || text === 'Continue') && !button.disabled) {
+            return button;
+          }
+        }
+      } catch (e) {
+        // Continue to next selector
+      }
+    }
+
+    return null;
+  }
+
+  findLinkedInSubmitButton() {
+    const buttons = document.querySelectorAll('button');
+    for (const button of buttons) {
+      const text = button.textContent.trim();
+      if ((text === 'Submit application' || text === 'Submit') && !button.disabled) {
+        return button;
+      }
+    }
+    return null;
+  }
+
+  checkLinkedInSubmissionSuccess() {
+    const successSelectors = [
+      '.artdeco-modal__header:contains("Application sent")',
+      '.artdeco-inline-feedback--success',
+      '[data-test-modal-id="post-apply-modal"]'
+    ];
+
+    for (const selector of successSelectors) {
+      try {
+        const element = document.querySelector(selector);
+        if (element) return true;
+      } catch (e) {
+        // Continue checking
+      }
+    }
+
+    // Check for success text
+    const modalContent = document.querySelector('.artdeco-modal__content');
+    if (modalContent && modalContent.textContent.includes('Your application was sent')) {
+      return true;
+    }
+
+    return false;
+  }
+
+  extractLinkedInJobDetails() {
+    return {
+      title: document.querySelector('.job-details-jobs-unified-top-card__job-title')?.textContent?.trim() || 
+             document.querySelector('.jobs-unified-top-card__job-title')?.textContent?.trim() || 'Job',
+      company: document.querySelector('.job-details-jobs-unified-top-card__company-name')?.textContent?.trim() ||
+               document.querySelector('.jobs-unified-top-card__company-name')?.textContent?.trim() || 'Company',
+      location: document.querySelector('.job-details-jobs-unified-top-card__bullet')?.textContent?.trim() || '',
+      url: window.location.href,
+      platform: 'LinkedIn'
+    };
+  }
+
+  async trackLinkedInApplication(jobData) {
+    try {
+      await chrome.runtime.sendMessage({
+        action: 'trackApplication',
+        data: {
+          jobTitle: jobData.title,
+          company: jobData.company,
+          location: jobData.location,
+          jobUrl: jobData.url,
+          status: 'applied',
+          source: 'linkedin_automation',
+          platform: 'LinkedIn'
+        }
+      });
+    } catch (error) {
+      console.warn('Failed to track application:', error);
+    }
+  }
+
+  closeLinkedInModal() {
+    const closeButtons = document.querySelectorAll('[data-test-modal-close-btn], .artdeco-modal__dismiss');
+    for (const button of closeButtons) {
+      try {
+        button.click();
+      } catch (e) {
+        // Continue
+      }
+    }
+  }
+
+  stopLinkedInAutomation() {
+    this.automationRunning = false;
+    this.showNotification('⏸️ Automation stopped', 'info');
   }
 
   async handleAnalyze() {

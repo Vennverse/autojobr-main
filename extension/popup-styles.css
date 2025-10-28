@@ -988,3 +988,12 @@
     transform: scale(1);
   }
 }
+
+/* Automation Controls Styling */
+.autojobr-automation {
+  animation: fadeInScale 0.3s ease-out;
+}
+
+#autojobr-automation-status {
+  min-height: 20px;
+}
