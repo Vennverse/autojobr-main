@@ -100,8 +100,8 @@ export async function setupAuth(app: Express) {
 
   // Configure Google OAuth Strategy (force enable for production)
   if (authConfig.providers.google.clientId) {
-    // Always use dynamic callback URL based on runtime environment
-    const callbackURL = `${baseUrl}/api/auth/google/callback`;
+    // Use the authorized redirect URI from Google Cloud Console
+    const callbackURL = 'https://autojobr.com/api/auth/google/callback';
     console.log('🔑 Setting up Google OAuth strategy with callback URL:', callbackURL);
     console.log('🔑 Using Google Client ID:', authConfig.providers.google.clientId?.substring(0, 20) + '...');
 
