@@ -2688,7 +2688,7 @@ class AutoJobrContentScript {
   }
 
   // LinkedIn Easy Apply Automation
-  async startLinkedInAutomation() {
+  async async startLinkedInAutomation() {
     if (!window.location.hostname.includes('linkedin.com')) {
       this.showNotification('❌ Please navigate to LinkedIn jobs page first', 'error');
       return;
@@ -2698,7 +2698,13 @@ class AutoJobrContentScript {
     this.applicationsSubmitted = 0;
     this.applicationsSkipped = 0;
 
-    this.showNotification('🚀 LinkedIn automation started!', 'success');
+    // Update UI to show automation is running
+    const statusDiv = document.getElementById('autojobr-automation-status');
+    if (statusDiv) {
+      statusDiv.innerHTML = '🔄 Processing jobs... Page 1';
+    }
+
+    this.showNotification('🚀 LinkedIn automation started! Will process all pages automatically.', 'success');
     
     try {
       await this.processLinkedInJobs();
@@ -2707,6 +2713,11 @@ class AutoJobrContentScript {
       this.showNotification(`❌ Automation stopped: ${error.message}`, 'error');
     } finally {
       this.automationRunning = false;
+      
+      // Update UI to show automation completed
+      if (statusDiv) {
+        statusDiv.innerHTML = `✅ Completed: ${this.applicationsSubmitted} applied, ${this.applicationsSkipped} skipped`;
+      }
     }
   }
 
@@ -2716,75 +2727,106 @@ class AutoJobrContentScript {
       throw new Error('Please sign in to AutoJobr first');
     }
 
-    // Find all job cards on the current page
-    const jobCards = this.findLinkedInJobCards();
-    
-    if (jobCards.length === 0) {
-      this.showNotification('❌ No jobs found. Please navigate to LinkedIn jobs page.', 'error');
-      return;
-    }
+    let currentPage = 1;
+    let hasMorePages = true;
 
-    this.showNotification(`📋 Found ${jobCards.length} jobs to process`, 'info');
-
-    for (let i = 0; i < jobCards.length && this.automationRunning; i++) {
-      const jobCard = jobCards[i];
+    while (hasMorePages && this.automationRunning) {
+      // Find all job cards on the current page
+      const jobCards = this.findLinkedInJobCards();
       
-      try {
-        // Click on job card to view details
-        jobCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        await this.delay(1000);
-        jobCard.click();
-        await this.delay(2000);
+      if (jobCards.length === 0) {
+        this.showNotification('❌ No jobs found on this page.', 'error');
+        break;
+      }
 
-        // Check if Easy Apply button exists
-        const easyApplyButton = this.findEasyApplyButton();
+      this.showNotification(`📋 Page ${currentPage}: Found ${jobCards.length} jobs to process`, 'info');
+
+      for (let i = 0; i < jobCards.length && this.automationRunning; i++) {
+        const jobCard = jobCards[i];
         
-        if (!easyApplyButton) {
-          console.log(`Job ${i + 1}: No Easy Apply - Skipping`);
+        try {
+          // Click on job card to view details
+          jobCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          await this.delay(1000);
+          jobCard.click();
+          await this.delay(2000);
+
+          // Check if Easy Apply button exists
+          const easyApplyButton = this.findEasyApplyButton();
+          
+          if (!easyApplyButton) {
+            console.log(`Job ${i + 1}: No Easy Apply - Skipping`);
+            this.applicationsSkipped++;
+            continue;
+          }
+
+          // Extract job details
+          const jobData = this.extractLinkedInJobDetails();
+          console.log(`Job ${i + 1}: Processing ${jobData.title} at ${jobData.company}`);
+
+          // Click Easy Apply button
+          easyApplyButton.click();
+          await this.delay(2000);
+
+          // Fill and submit the application
+          const applied = await this.fillAndSubmitLinkedInApplication(userProfile, jobData);
+          
+          if (applied) {
+            this.applicationsSubmitted++;
+            this.showNotification(
+              `✅ Applied to ${jobData.title} (${this.applicationsSubmitted} total)`,
+              'success'
+            );
+
+            // Track application
+            await this.trackLinkedInApplication(jobData);
+          } else {
+            this.applicationsSkipped++;
+          }
+
+          // Wait before moving to next job
+          await this.delay(3000 + Math.random() * 2000);
+
+        } catch (error) {
+          console.error(`Error processing job ${i + 1}:`, error);
           this.applicationsSkipped++;
-          continue;
+          
+          // Close any open modals
+          this.closeLinkedInModal();
+          await this.delay(1000);
         }
+      }
 
-        // Extract job details
-        const jobData = this.extractLinkedInJobDetails();
-        console.log(`Job ${i + 1}: Processing ${jobData.title} at ${jobData.company}`);
-
-        // Click Easy Apply button
-        easyApplyButton.click();
-        await this.delay(2000);
-
-        // Fill and submit the application
-        const applied = await this.fillAndSubmitLinkedInApplication(userProfile, jobData);
+      // Check if there's a next page button and click it
+      if (this.automationRunning) {
+        const nextPageButton = this.findLinkedInNextPageButton();
         
-        if (applied) {
-          this.applicationsSubmitted++;
-          this.showNotification(
-            `✅ Applied to ${jobData.title} (${this.applicationsSubmitted} total)`,
-            'success'
-          );
-
-          // Track application
-          await this.trackLinkedInApplication(jobData);
+        if (nextPageButton && !nextPageButton.disabled) {
+          console.log(`📄 Moving to page ${currentPage + 1}...`);
+          this.showNotification(`📄 Moving to page ${currentPage + 1}...`, 'info');
+          
+          // Scroll to pagination area
+          nextPageButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          await this.delay(1000);
+          
+          // Click next page button
+          nextPageButton.click();
+          await this.delay(3000); // Wait for page to load
+          
+          currentPage++;
         } else {
-          this.applicationsSkipped++;
+          console.log('✅ No more pages available');
+          this.showNotification('✅ Processed all available pages', 'success');
+          hasMorePages = false;
         }
-
-        // Wait before moving to next job
-        await this.delay(3000 + Math.random() * 2000);
-
-      } catch (error) {
-        console.error(`Error processing job ${i + 1}:`, error);
-        this.applicationsSkipped++;
-        
-        // Close any open modals
-        this.closeLinkedInModal();
-        await this.delay(1000);
+      } else {
+        hasMorePages = false;
       }
     }
 
     // Show final summary
     this.showNotification(
-      `🎉 Automation complete! Applied: ${this.applicationsSubmitted}, Skipped: ${this.applicationsSkipped}`,
+      `🎉 Automation complete! Applied: ${this.applicationsSubmitted}, Skipped: ${this.applicationsSkipped} across ${currentPage} pages`,
       'success'
     );
   }
@@ -2805,6 +2847,57 @@ class AutoJobrContentScript {
     }
 
     return jobCards;
+  }
+
+  findLinkedInNextPageButton() {
+    // Multiple selectors for LinkedIn pagination
+    const selectors = [
+      'button[aria-label*="Page"][aria-label*="next"]',
+      'button[aria-label="Next"]',
+      '.artdeco-pagination__button--next',
+      'button.artdeco-pagination__button[aria-label*="next"]',
+      'li[data-test-pagination-page-btn].selected + li button',
+      '.jobs-search-pagination__next-button',
+      'button[type="button"]:has(> li-icon[type="chevron-right"])'
+    ];
+
+    for (const selector of selectors) {
+      try {
+        const button = document.querySelector(selector);
+        if (button && !button.disabled && button.getAttribute('aria-disabled') !== 'true') {
+          return button;
+        }
+      } catch (e) {
+        // Continue to next selector
+      }
+    }
+
+    // Fallback: look for pagination buttons and find the one after the active page
+    const paginationButtons = document.querySelectorAll('button[aria-label*="Page"]');
+    for (let i = 0; i < paginationButtons.length; i++) {
+      const button = paginationButtons[i];
+      const ariaLabel = button.getAttribute('aria-label') || '';
+      const ariaCurrent = button.getAttribute('aria-current');
+      
+      // If this is the current page, check if there's a next button
+      if (ariaCurrent === 'true' && i + 1 < paginationButtons.length) {
+        const nextButton = paginationButtons[i + 1];
+        if (!nextButton.disabled && nextButton.getAttribute('aria-disabled') !== 'true') {
+          return nextButton;
+        }
+      }
+    }
+
+    // Alternative: Look for chevron-right icon in pagination area
+    const chevronButtons = document.querySelectorAll('.artdeco-pagination button');
+    for (const button of chevronButtons) {
+      const icon = button.querySelector('li-icon[type="chevron-right"]');
+      if (icon && !button.disabled && button.getAttribute('aria-disabled') !== 'true') {
+        return button;
+      }
+    }
+
+    return null;
   }
 
   findEasyApplyButton() {
