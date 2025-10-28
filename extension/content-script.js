@@ -2694,6 +2694,22 @@ class AutoJobrContentScript {
       return;
     }
 
+    // Check user's subscription tier and usage
+    const userProfile = await this.getUserProfile();
+    if (!userProfile) {
+      this.showNotification('❌ Please sign in to use automation', 'error');
+      return;
+    }
+
+    // Get usage limits based on tier
+    const tierLimits = await this.getAutomationLimits(userProfile);
+    
+    // Check if user has exceeded their usage
+    if (!tierLimits.canUse) {
+      this.showUpgradePrompt(tierLimits);
+      return;
+    }
+
     this.automationRunning = true;
     this.applicationsSubmitted = 0;
     this.applicationsSkipped = 0;
@@ -2701,13 +2717,16 @@ class AutoJobrContentScript {
     // Update UI to show automation is running
     const statusDiv = document.getElementById('autojobr-automation-status');
     if (statusDiv) {
-      statusDiv.innerHTML = '🔄 Processing jobs... Page 1';
+      statusDiv.innerHTML = `🔄 Processing jobs... Page 1/${tierLimits.maxPages}`;
     }
 
-    this.showNotification('🚀 LinkedIn automation started! Will process all pages automatically.', 'success');
+    this.showNotification(`🚀 LinkedIn automation started! Will process up to ${tierLimits.maxPages} page(s).`, 'success');
     
     try {
-      await this.processLinkedInJobs();
+      await this.processLinkedInJobs(tierLimits.maxPages);
+      
+      // Track usage after successful run
+      await this.trackAutomationUsage();
     } catch (error) {
       console.error('Automation error:', error);
       this.showNotification(`❌ Automation stopped: ${error.message}`, 'error');
@@ -2716,12 +2735,13 @@ class AutoJobrContentScript {
       
       // Update UI to show automation completed
       if (statusDiv) {
-        statusDiv.innerHTML = `✅ Completed: ${this.applicationsSubmitted} applied, ${this.applicationsSkipped} skipped`;
+        const remaining = tierLimits.usesRemaining - 1;
+        statusDiv.innerHTML = `✅ Completed: ${this.applicationsSubmitted} applied, ${this.applicationsSkipped} skipped. ${remaining} uses remaining this month.`;
       }
     }
   }
 
-  async processLinkedInJobs() {
+  async processLinkedInJobs(maxPages = 1) {
     const userProfile = await this.getUserProfile();
     if (!userProfile) {
       throw new Error('Please sign in to AutoJobr first');
@@ -2730,7 +2750,7 @@ class AutoJobrContentScript {
     let currentPage = 1;
     let hasMorePages = true;
 
-    while (hasMorePages && this.automationRunning) {
+    while (hasMorePages && this.automationRunning && currentPage <= maxPages) {
       // Find all job cards on the current page
       const jobCards = this.findLinkedInJobCards();
       
@@ -3198,6 +3218,183 @@ class AutoJobrContentScript {
   stopLinkedInAutomation() {
     this.automationRunning = false;
     this.showNotification('⏸️ Automation stopped', 'info');
+  }
+
+  async getAutomationLimits(userProfile) {
+    try {
+      const apiUrl = await this.getApiUrl();
+      const response = await fetch(`${apiUrl}/api/extension/automation-limits`, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        console.error('Failed to get automation limits');
+        // Default to free tier limits
+        return {
+          tier: 'free',
+          maxPages: 1,
+          monthlyUses: 2,
+          usesRemaining: 0,
+          canUse: false
+        };
+      }
+
+      const limits = await response.json();
+      return limits;
+    } catch (error) {
+      console.error('Error getting automation limits:', error);
+      return {
+        tier: 'free',
+        maxPages: 1,
+        monthlyUses: 2,
+        usesRemaining: 0,
+        canUse: false
+      };
+    }
+  }
+
+  async trackAutomationUsage() {
+    try {
+      const apiUrl = await this.getApiUrl();
+      await fetch(`${apiUrl}/api/extension/track-automation`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          applicationsSubmitted: this.applicationsSubmitted,
+          applicationsSkipped: this.applicationsSkipped
+        })
+      });
+    } catch (error) {
+      console.error('Failed to track automation usage:', error);
+    }
+  }
+
+  showUpgradePrompt(tierLimits) {
+    const upgradeMessages = {
+      free: {
+        title: '🚀 Upgrade to Premium',
+        message: `You've used all ${tierLimits.monthlyUses} free automation runs this month!`,
+        benefits: [
+          '✨ Premium: 5 pages per run, unlimited uses',
+          '🔥 Ultra Premium: 15 pages per run, unlimited uses'
+        ]
+      },
+      premium: {
+        title: '🔥 Upgrade to Ultra Premium',
+        message: 'Get 15 pages per automation run instead of 5!',
+        benefits: [
+          '🚀 15 pages per run (vs 5)',
+          '⚡ Faster application processing',
+          '🎯 Advanced targeting features'
+        ]
+      }
+    };
+
+    const promptConfig = upgradeMessages[tierLimits.tier] || upgradeMessages.free;
+
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 10001;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    `;
+
+    modal.innerHTML = `
+      <div style="
+        background: white;
+        border-radius: 16px;
+        padding: 32px;
+        max-width: 500px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      ">
+        <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600;">
+          ${promptConfig.title}
+        </h2>
+        <p style="margin: 0 0 24px 0; font-size: 16px; color: #666;">
+          ${promptConfig.message}
+        </p>
+        <div style="margin-bottom: 24px;">
+          ${promptConfig.benefits.map(benefit => `
+            <div style="padding: 8px 0; font-size: 14px;">
+              ${benefit}
+            </div>
+          `).join('')}
+        </div>
+        <div style="display: flex; gap: 12px;">
+          <button id="upgrade-now-btn" style="
+            flex: 1;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 16px;
+          ">
+            Upgrade Now
+          </button>
+          <button id="maybe-later-btn" style="
+            flex: 1;
+            padding: 12px 24px;
+            background: #f3f4f6;
+            color: #374151;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 16px;
+          ">
+            Maybe Later
+          </button>
+        </div>
+        ${tierLimits.tier === 'free' ? `
+          <div style="
+            margin-top: 16px;
+            padding: 12px;
+            background: #fef3c7;
+            border-radius: 8px;
+            font-size: 13px;
+            text-align: center;
+          ">
+            ⏰ Your usage resets on the 1st of next month
+          </div>
+        ` : ''}
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    document.getElementById('upgrade-now-btn').addEventListener('click', async () => {
+      const apiUrl = await this.getApiUrl();
+      window.open(`${apiUrl}/job-seeker-premium`, '_blank');
+      modal.remove();
+    });
+
+    document.getElementById('maybe-later-btn').addEventListener('click', () => {
+      modal.remove();
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
   }
 
   async handleAnalyze() {
