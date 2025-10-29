@@ -102,9 +102,8 @@ export function Navbar() {
 
       console.log('✅ [NAVBAR] All state cleared');
 
-      // CRITICAL: Force hard refresh to clear browser cache
-      // Using href instead of replace to trigger full page reload
-      window.location.href = '/auth?t=' + Date.now();
+      // CRITICAL: Force hard refresh to clear browser cache and redirect to landing page
+      window.location.href = '/?t=' + Date.now();
     },
     onError: (error: any) => {
       console.error('❌ [NAVBAR] Logout error:', error);
@@ -123,8 +122,8 @@ export function Navbar() {
         variant: "destructive",
       });
 
-      // Force redirect anyway
-      window.location.replace('/auth');
+      // Force redirect to landing page anyway
+      window.location.replace('/');
     },
   });
 

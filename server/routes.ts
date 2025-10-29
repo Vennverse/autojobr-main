@@ -570,7 +570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Enhanced logout endpoint with cache clearing
-  app.post('/api/auth/logout', asyncHandler(async (req: any, res: any) => {
+  const handleLogout = asyncHandler(async (req: any, res: any) => {
     const userId = req.session?.user?.id;
 
     req.session.destroy(async (err: any) => {
@@ -598,7 +598,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         redirectTo: "/" 
       });
     });
-  }));
+  });
+
+  app.post('/api/auth/logout', handleLogout);
+  app.post('/api/auth/signout', handleLogout);
 
   // Register virtual interview routes
   app.use('/api/virtual-interview', virtualInterviewRoutes);
