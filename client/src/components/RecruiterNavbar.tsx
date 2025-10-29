@@ -115,10 +115,9 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
 
       console.log('✅ [RECRUITER] All state cleared, redirecting...');
 
-      // CRITICAL: Force immediate redirect to landing page
-      setTimeout(() => {
-        window.location.href = '/?t=' + Date.now();
-      }, 100);
+      // CRITICAL: Use replace to prevent back button issues and ensure clean redirect
+      // Redirect to auth page to ensure user sees login screen
+      window.location.replace('/auth');
     },
     onError: (error: any) => {
       console.error('❌ [RECRUITER] Logout error:', error);
@@ -126,7 +125,10 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
       // Even on error, clear everything for security
       queryClient.clear();
       sessionStorage.clear();
+      
+      const theme = localStorage.getItem('theme');
       localStorage.clear();
+      if (theme) localStorage.setItem('theme', theme);
 
       toast({
         title: "Logout failed",
@@ -134,10 +136,8 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
         variant: "destructive",
       });
 
-      // Force immediate redirect to landing page anyway
-      setTimeout(() => {
-        window.location.href = '/?t=' + Date.now();
-      }, 100);
+      // Force redirect to auth page anyway for security
+      window.location.replace('/auth');
     }
   });
 

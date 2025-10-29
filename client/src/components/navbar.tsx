@@ -102,8 +102,9 @@ export function Navbar() {
 
       console.log('✅ [NAVBAR] All state cleared');
 
-      // CRITICAL: Force hard refresh to clear browser cache and redirect to landing page
-      window.location.href = '/?t=' + Date.now();
+      // CRITICAL: Use replace to prevent back button issues and ensure clean redirect
+      // Redirect to auth page to ensure user sees login screen
+      window.location.replace('/auth');
     },
     onError: (error: any) => {
       console.error('❌ [NAVBAR] Logout error:', error);
