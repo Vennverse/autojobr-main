@@ -486,9 +486,9 @@ export default function JobSeekerPremium() {
                           </div>
                         ) : paymentGateway === 'razorpay' ? (
                           <RazorpaySubscriptionButton
-                            tierId="premium_monthly"
-                            tierName="Premium"
-                            price={5}
+                            tierId="jobseeker_premium_monthly"
+                            tierName="Premium Monthly"
+                            price={9.99}
                             userEmail={user?.email || ''}
                           />
                         ) : (
@@ -567,9 +567,9 @@ export default function JobSeekerPremium() {
                           </div>
                         ) : paymentGateway === 'razorpay' ? (
                           <RazorpaySubscriptionButton
-                            tierId="ultra_premium_monthly"
-                            tierName="Ultra Premium"
-                            price={15}
+                            tierId="jobseeker_ultra_premium_monthly"
+                            tierName="Ultra Premium Monthly"
+                            price={19.99}
                             userEmail={user?.email || ''}
                           />
                         ) : (

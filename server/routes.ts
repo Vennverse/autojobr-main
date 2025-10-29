@@ -6153,9 +6153,9 @@ Return only the cover letter text, no additional formatting or explanations.`;
     }
 
     try {
-      // Get subscription tier details
-      const tiers = await subscriptionPaymentService.getSubscriptionTiers('jobseeker');
-      const selectedTier = tiers.find((t: any) => t.id === tierId);
+      // Get all subscription tiers (both jobseeker and recruiter)
+      const allTiers = await subscriptionPaymentService.getSubscriptionTiers();
+      const selectedTier = allTiers.find((t: any) => t.id === tierId);
 
       if (!selectedTier) {
         return res.status(400).json({ error: 'Invalid tier ID' });
@@ -6166,7 +6166,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
         userId,
         selectedTier.name,
         selectedTier.price,
-        'monthly',
+        selectedTier.billingCycle || 'monthly',
         email
       );
 
