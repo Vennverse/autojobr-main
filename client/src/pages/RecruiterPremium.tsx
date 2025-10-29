@@ -295,29 +295,30 @@ export default function RecruiterPremium() {
                         />
                       </div>
                     ) : (
-                      <PaymentGatewaySelector
-                        tierId={tier.id}
-                        tierName={tier.name}
-                        amount={tier.price}
-                        currency="USD"
-                        userType="recruiter"
-                        onPaymentSuccess={(data) => {
-                          toast({
-                            title: "Subscription Activated!",
-                            description: "Your premium recruiting features are now active.",
-                          });
-                          queryClient.invalidateQueries({ queryKey: ['/api/subscription/current'] });
-                        }}
-                        onPaymentError={(error) => {
-                          toast({
-                            title: "Payment Error",
-                            description: error.message || "Payment failed. Please try again.",
-                            variant: "destructive",
-                          });
-                        }}
-                        description={`Monthly subscription for ${tier.name} recruiting plan`}
-                        className="mt-4"
-                      />
+                      <div className="mt-4">
+                        <PayPalSubscriptionButton
+                          tierId={tier.id}
+                          amount={tier.price.toString()}
+                          currency="USD"
+                          planName={tier.name}
+                          userType="recruiter"
+                          onSuccess={(data) => {
+                            toast({
+                              title: "Subscription Activated!",
+                              description: "Your premium recruiting features are now active.",
+                            });
+                            queryClient.invalidateQueries({ queryKey: ['/api/subscription/current'] });
+                          }}
+                          onError={(error) => {
+                            toast({
+                              title: "Payment Error",
+                              description: error.message || "Payment failed. Please try again.",
+                              variant: "destructive",
+                            });
+                          }}
+                          intent="CAPTURE"
+                        />
+                      </div>
                     )}
                   </div>
                 </CardHeader>
