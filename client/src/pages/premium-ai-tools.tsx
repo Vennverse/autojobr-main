@@ -663,7 +663,7 @@ export default function PremiumAITools() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => copyToClipboard(coverLetter.coverLetter)}
+                        onClick={() => copyToClipboard(coverLetter)}
                         data-testid="button-copy-cover-letter"
                       >
                         {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -745,7 +745,6 @@ export default function PremiumAITools() {
                       )}
 
                       <div className="flex justify-between items-center">
-                        <CardTitle>Generated Cover Letter</CardTitle>
                         <div className="flex gap-2">
                           <Button
                             onClick={() => setEditMode(!editMode)}
@@ -754,14 +753,6 @@ export default function PremiumAITools() {
                           >
                             <Sparkles className="h-4 w-4 mr-2" />
                             {editMode ? 'Hide' : 'Interactive Edit'}
-                          </Button>
-                          <Button
-                            onClick={() => copyToClipboard(coverLetter)}
-                            variant="outline"
-                            size="sm"
-                            data-testid="button-copy-cover-letter"
-                          >
-                            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                           </Button>
                         </div>
                       </div>
@@ -788,13 +779,13 @@ export default function PremiumAITools() {
                                       method: 'POST',
                                       headers: { 'Content-Type': 'application/json' },
                                       body: JSON.stringify({
-                                        currentLetter: coverLetter.coverLetter, // Use coverLetter.coverLetter
+                                        currentLetter: coverLetter,
                                         instruction: editPrompt
                                       })
                                     });
                                     const data = await response.json();
                                     if (data.refinedLetter) {
-                                      setCoverLetter(data.refinedLetter); // Update state with refined letter
+                                      setCoverLetter(data.refinedLetter);
                                       toast({ title: "✨ Refined!", description: "Cover letter updated" });
                                       setEditPrompt("");
                                     }
@@ -826,18 +817,11 @@ export default function PremiumAITools() {
                       )}
 
                       <Textarea
-                        value={coverLetter.coverLetter} // Use coverLetter.coverLetter
-                        onChange={(e) => setCoverLetter({...coverLetter, coverLetter: e.target.value})} // Update state correctly
+                        value={coverLetter}
+                        onChange={(e) => setCoverLetter(e.target.value)}
                         className="min-h-[400px]"
+                        data-testid="textarea-generated-cover-letter"
                       />
-                      <div>
-                        <h4 className="font-semibold mb-2">Key Highlights:</h4>
-                        <ul className="list-disc list-inside space-y-1">
-                          {coverLetter.keyHighlights?.map((highlight: string, i: number) => (
-                            <li key={i} className="text-sm text-gray-600 dark:text-gray-300">{highlight}</li>
-                          ))}
-                        </ul>
-                      </div>
                     </div>
                   ) : (
                     <p className="text-gray-500 dark:text-gray-400 text-center py-8">
