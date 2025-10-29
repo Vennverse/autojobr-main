@@ -7198,6 +7198,32 @@ Return ONLY the JSON object, no additional text.`;
 
   // ============ PREMIUM AI SERVICES ROUTES ============
 
+  // Cover Letter Refine Endpoint
+  app.post('/api/cover-letter/refine', isAuthenticated, asyncHandler(async (req: any, res) => {
+    try {
+      const { currentLetter, instruction } = req.body;
+      const userId = req.user.id;
+
+      if (!currentLetter || !instruction) {
+        return res.status(400).json({ message: 'Current letter and instruction are required' });
+      }
+
+      const user = await db.query.users.findFirst({
+        where: eq(schema.users.id, userId)
+      });
+
+      const result = await aiService.refineCoverLetter(currentLetter, instruction, user);
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error refining cover letter:', error);
+      res.status(500).json({ 
+        message: 'Failed to refine cover letter',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }));
+
   // PREMIUM ONLY: AI Cover Letter Generator
   app.post('/api/premium/ai/cover-letter', isAuthenticated, asyncHandler(async (req: any, res) => {
     try {

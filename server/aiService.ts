@@ -1124,6 +1124,60 @@ Professional, tailored, 3 paragraphs.`;
     };
   }
 
+  // Refine/Edit existing cover letter based on user instructions
+  async refineCoverLetter(currentLetter: string, instruction: string, user?: any): Promise<{refinedLetter: string, modelUsed: string}> {
+    if (this.developmentMode) {
+      return {
+        refinedLetter: currentLetter + "\n\n[Refined based on: " + instruction + "]",
+        modelUsed: "Development Mode"
+      };
+    }
+
+    const prompt = `You have a cover letter that needs to be refined. The user wants you to: "${instruction}"
+
+Current cover letter:
+${currentLetter}
+
+Please revise the cover letter according to the instruction. Return ONLY the revised cover letter text, no explanations or extra commentary.`;
+
+    try {
+      let modelUsed = '';
+      const completion = await this.executeWithRotation(async (service, model) => {
+        modelUsed = `${service === 'groq' ? 'Groq' : 'OpenRouter'} (${model})`;
+        const completionOptions = {
+          messages: [
+            { role: "system", content: "You are an expert career coach and professional writer. Refine cover letters based on user instructions while maintaining professional quality." },
+            { role: "user", content: prompt }
+          ],
+          model: model,
+          temperature: 0.7,
+          max_tokens: 800,
+        };
+
+        if (service === 'groq') {
+          return await this.executeGroqOperation(async (client) => {
+            return await client.chat.completions.create(completionOptions);
+          });
+        } else {
+          return await this.executeOpenRouterOperation(async (client) => {
+            return await client.chat.completions.create(completionOptions);
+          });
+        }
+      }, user);
+
+      const content = completion?.choices?.[0]?.message?.content || completion?.content || completion;
+      const refinedLetter = typeof content === 'string' ? content.trim() : currentLetter;
+      
+      return {
+        refinedLetter,
+        modelUsed
+      };
+    } catch (error) {
+      console.error('Error refining cover letter:', error);
+      throw new Error('Failed to refine cover letter');
+    }
+  }
+
   // PREMIUM-ONLY: Salary Negotiation Coach
   async getSalaryNegotiationAdvice(data: {
     currentOffer: number;
