@@ -1069,16 +1069,21 @@ ${customPrompt || ''}
     }
   }
 
-  async generateCoverLetter(resumeData: string, jobDescription: string, userId: string, customPrompt?: string): Promise<string> {
+  async generateCoverLetter(resumeData: string, jobDescription: string | any, userId: string, customPrompt?: string): Promise<string> {
     const user = await db.query.users.findFirst({
       where: eq(users.id, userId)
     });
 
     const isPremium = user?.planType === 'premium' || user?.planType === 'enterprise';
 
+    // Convert jobDescription to string if it's an object
+    const jobDescString = typeof jobDescription === 'string' 
+      ? jobDescription 
+      : (jobDescription?.description || jobDescription?.jobDescription || JSON.stringify(jobDescription));
+
     // Extract only key info to reduce tokens
     const resumeKey = resumeData.substring(0, isPremium ? 600 : 400);
-    const jobKey = jobDescription.substring(0, isPremium ? 500 : 300);
+    const jobKey = jobDescString.substring(0, isPremium ? 500 : 300);
 
     const prompt = `Cover letter:
 Resume: ${resumeKey}
