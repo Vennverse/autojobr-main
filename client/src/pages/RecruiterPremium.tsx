@@ -24,6 +24,8 @@ import { apiRequest } from "@/lib/queryClient";
 import PayPalSubscriptionButton from "@/components/PayPalSubscriptionButton";
 import PaymentGatewaySelector from "@/components/PaymentGatewaySelector";
 import UsageMonitoringWidget from "@/components/UsageMonitoringWidget";
+import RazorpaySubscriptionButton from "@/components/RazorpaySubscriptionButton";
+import { useEffect } from "react";
 
 interface RecruiterSubscriptionTier {
   id: string;
@@ -46,6 +48,13 @@ export default function RecruiterPremium() {
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'paypal'>('paypal');
   const [showPayment, setShowPayment] = useState(false);
+  const [paymentGateway, setPaymentGateway] = useState<'paypal' | 'razorpay' | null>(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
+
+  // Fetch user data for email
+  const { data: user } = useQuery<{email?: string}>({
+    queryKey: ['/api/user']
+  });
 
   // Fetch only recruiter subscription tiers
   const { data: tiersData, isLoading: tiersLoading } = useQuery({
@@ -57,6 +66,31 @@ export default function RecruiterPremium() {
   const { data: currentSubscription, isLoading: subscriptionLoading } = useQuery({
     queryKey: ['/api/subscription/current'],
   });
+
+  // Detect user location and set payment gateway
+  useEffect(() => {
+    const detectLocation = async () => {
+      try {
+        const response = await fetch('https://ipapi.co/json/');
+        const data = await response.json();
+        
+        if (data.country_code === 'IN') {
+          setPaymentGateway('razorpay');
+          console.log('Indian user detected - using Razorpay');
+        } else {
+          setPaymentGateway('paypal');
+          console.log('International user detected - using PayPal');
+        }
+      } catch (error) {
+        console.error('Location detection failed, defaulting to PayPal:', error);
+        setPaymentGateway('paypal');
+      } finally {
+        setIsLoadingLocation(false);
+      }
+    };
+
+    detectLocation();
+  }, []);
 
   // Create subscription mutation
   const createSubscriptionMutation = useMutation({
@@ -247,29 +281,44 @@ export default function RecruiterPremium() {
                         </CardDescription>
                       </div>
                     </div>
-                    <PaymentGatewaySelector
-                      tierId={tier.id}
-                      tierName={tier.name}
-                      amount={tier.price}
-                      currency="USD"
-                      userType="recruiter"
-                      onPaymentSuccess={(data) => {
-                        toast({
-                          title: "Subscription Activated!",
-                          description: "Your premium recruiting features are now active.",
-                        });
-                        queryClient.invalidateQueries({ queryKey: ['/api/subscription/current'] });
-                      }}
-                      onPaymentError={(error) => {
-                        toast({
-                          title: "Payment Error",
-                          description: error.message || "Payment failed. Please try again.",
-                          variant: "destructive",
-                        });
-                      }}
-                      description={`Monthly subscription for ${tier.name} recruiting plan`}
-                      className="mt-4"
-                    />
+                    {isLoadingLocation ? (
+                      <div className="mt-4 flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      </div>
+                    ) : paymentGateway === 'razorpay' ? (
+                      <div className="mt-4">
+                        <RazorpaySubscriptionButton
+                          tierId={tier.id}
+                          tierName={tier.name}
+                          price={tier.price}
+                          userEmail={user?.email || ''}
+                        />
+                      </div>
+                    ) : (
+                      <PaymentGatewaySelector
+                        tierId={tier.id}
+                        tierName={tier.name}
+                        amount={tier.price}
+                        currency="USD"
+                        userType="recruiter"
+                        onPaymentSuccess={(data) => {
+                          toast({
+                            title: "Subscription Activated!",
+                            description: "Your premium recruiting features are now active.",
+                          });
+                          queryClient.invalidateQueries({ queryKey: ['/api/subscription/current'] });
+                        }}
+                        onPaymentError={(error) => {
+                          toast({
+                            title: "Payment Error",
+                            description: error.message || "Payment failed. Please try again.",
+                            variant: "destructive",
+                          });
+                        }}
+                        description={`Monthly subscription for ${tier.name} recruiting plan`}
+                        className="mt-4"
+                      />
+                    )}
                   </div>
                 </CardHeader>
                 

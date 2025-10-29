@@ -20,6 +20,7 @@ declare global {
         render: (selector: string) => void;
       };
     };
+    Razorpay?: any;
   }
 }
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import UsageMonitoringWidget from "@/components/UsageMonitoringWidget";
+import RazorpaySubscriptionButton from "@/components/RazorpaySubscriptionButton";
 
 interface JobSeekerSubscriptionTier {
   id: string;
@@ -71,6 +73,8 @@ export default function JobSeekerPremium() {
   const queryClient = useQueryClient();
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
   const [hoveredPlan, setHoveredPlan] = useState<string | null>(null);
+  const [paymentGateway, setPaymentGateway] = useState<'paypal' | 'razorpay' | null>(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
 
   // Fetch user data
   const { data: user } = useQuery<{planType?: string}>({
@@ -115,8 +119,53 @@ export default function JobSeekerPremium() {
     }
   };
 
+  // Detect user location and set payment gateway
+  useEffect(() => {
+    const detectLocation = async () => {
+      try {
+        // Try to get location from IP
+        const response = await fetch('https://ipapi.co/json/');
+        const data = await response.json();
+        
+        if (data.country_code === 'IN') {
+          setPaymentGateway('razorpay');
+          console.log('Indian user detected - using Razorpay');
+        } else {
+          setPaymentGateway('paypal');
+          console.log('International user detected - using PayPal');
+        }
+      } catch (error) {
+        console.error('Location detection failed, defaulting to PayPal:', error);
+        setPaymentGateway('paypal');
+      } finally {
+        setIsLoadingLocation(false);
+      }
+    };
+
+    detectLocation();
+  }, []);
+
+  // Load Razorpay script for Indian users
+  useEffect(() => {
+    if (paymentGateway !== 'razorpay') return;
+
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.head.appendChild(script);
+
+    return () => {
+      const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+      if (existingScript) {
+        existingScript.remove();
+      }
+    };
+  }, [paymentGateway]);
+
   // PayPal script loading and button initialization
   useEffect(() => {
+    if (paymentGateway !== 'paypal') return;
+    
     let isMounted = true;
 
     const loadPayPalScript = () => {
@@ -451,7 +500,20 @@ export default function JobSeekerPremium() {
                       </div>
                       
                       <div className="pt-4">
-                        <div id="paypal-button-container-P-9SC66893530757807NCRWYCI" className="min-h-[50px]"></div>
+                        {isLoadingLocation ? (
+                          <div className="min-h-[50px] flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                          </div>
+                        ) : paymentGateway === 'razorpay' ? (
+                          <RazorpaySubscriptionButton
+                            tierId="premium_monthly"
+                            tierName="Premium"
+                            price={5}
+                            userEmail={user?.email || ''}
+                          />
+                        ) : (
+                          <div id="paypal-button-container-P-9SC66893530757807NCRWYCI" className="min-h-[50px]"></div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -519,7 +581,20 @@ export default function JobSeekerPremium() {
                       </div>
                       
                       <div className="pt-4">
-                        <div id="paypal-button-container-P-5JM23618R75865735NCRXOLY" className="min-h-[50px]"></div>
+                        {isLoadingLocation ? (
+                          <div className="min-h-[50px] flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+                          </div>
+                        ) : paymentGateway === 'razorpay' ? (
+                          <RazorpaySubscriptionButton
+                            tierId="ultra_premium_monthly"
+                            tierName="Ultra Premium"
+                            price={15}
+                            userEmail={user?.email || ''}
+                          />
+                        ) : (
+                          <div id="paypal-button-container-P-5JM23618R75865735NCRXOLY" className="min-h-[50px]"></div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
