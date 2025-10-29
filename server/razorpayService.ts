@@ -166,20 +166,25 @@ export class RazorpayService {
       });
 
       // Save subscription to database
-      await storage.createSubscription({
-        id: `razorpay_${subscription.id}`,
+      const { db } = await import('./db');
+      const schema = await import('@shared/schema');
+      
+      await db.insert(schema.subscriptions).values({
         userId,
         tier: tierName,
+        tierId: tierName, // For compatibility
         status: 'pending',
         paymentMethod: 'razorpay',
-        amount: usdPrice,
+        amount: usdPrice.toString(),
         currency: 'USD',
         billingCycle: interval,
         startDate: new Date(subscription.start_at * 1000),
         endDate: new Date(subscription.start_at * 1000 + (interval === 'yearly' ? 365 : 30) * 24 * 60 * 60 * 1000),
+        nextBillingDate: new Date(subscription.start_at * 1000 + (interval === 'yearly' ? 365 : 30) * 24 * 60 * 60 * 1000),
         razorpaySubscriptionId: subscription.id,
         razorpayCustomerId: customer.id,
-        razorpayPlanId: planId
+        razorpayPlanId: planId,
+        createdAt: new Date()
       });
 
       return {
@@ -221,11 +226,30 @@ export class RazorpayService {
     const userId = subscription.notes.userId;
     if (!userId) return;
 
-    await storage.updateSubscription(`razorpay_${subscription.id}`, {
-      status: 'active',
-      startDate: new Date(subscription.current_start * 1000),
-      endDate: new Date(subscription.current_end * 1000)
-    });
+    const { db } = await import('./db');
+    const schema = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+
+    await db.update(schema.subscriptions)
+      .set({
+        status: 'active',
+        startDate: new Date(subscription.current_start * 1000),
+        endDate: new Date(subscription.current_end * 1000),
+        activatedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(schema.subscriptions.razorpaySubscriptionId, subscription.id));
+
+    // Update user subscription status
+    await db.update(schema.users)
+      .set({
+        subscriptionStatus: 'active',
+        planType: subscription.notes.tierName || 'premium',
+        subscriptionStartDate: new Date(subscription.current_start * 1000),
+        subscriptionEndDate: new Date(subscription.current_end * 1000),
+        updatedAt: new Date()
+      })
+      .where(eq(schema.users.id, userId));
 
     console.log(`Razorpay subscription activated for user ${userId}`);
   }
@@ -234,10 +258,18 @@ export class RazorpayService {
     const userId = subscription.notes.userId;
     if (!userId) return;
 
+    const { db } = await import('./db');
+    const schema = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+
     // Update subscription end date for renewal
-    await storage.updateSubscription(`razorpay_${subscription.id}`, {
-      endDate: new Date(subscription.current_end * 1000)
-    });
+    await db.update(schema.subscriptions)
+      .set({
+        endDate: new Date(subscription.current_end * 1000),
+        nextBillingDate: new Date(subscription.current_end * 1000),
+        updatedAt: new Date()
+      })
+      .where(eq(schema.subscriptions.razorpaySubscriptionId, subscription.id));
 
     console.log(`Razorpay subscription charged for user ${userId}`);
   }
@@ -246,9 +278,17 @@ export class RazorpayService {
     const userId = subscription.notes.userId;
     if (!userId) return;
 
-    await storage.updateSubscription(`razorpay_${subscription.id}`, {
-      status: 'cancelled'
-    });
+    const { db } = await import('./db');
+    const schema = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+
+    await db.update(schema.subscriptions)
+      .set({
+        status: 'cancelled',
+        cancelledAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(schema.subscriptions.razorpaySubscriptionId, subscription.id));
 
     console.log(`Razorpay subscription cancelled for user ${userId}`);
   }
@@ -257,9 +297,16 @@ export class RazorpayService {
     const userId = subscription.notes.userId;
     if (!userId) return;
 
-    await storage.updateSubscription(`razorpay_${subscription.id}`, {
-      status: 'completed'
-    });
+    const { db } = await import('./db');
+    const schema = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+
+    await db.update(schema.subscriptions)
+      .set({
+        status: 'completed',
+        updatedAt: new Date()
+      })
+      .where(eq(schema.subscriptions.razorpaySubscriptionId, subscription.id));
 
     console.log(`Razorpay subscription completed for user ${userId}`);
   }
