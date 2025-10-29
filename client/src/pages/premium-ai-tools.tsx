@@ -786,7 +786,7 @@ export default function PremiumAITools() {
                                     const data = await response.json();
                                     if (data.refinedLetter) {
                                       setCoverLetter(data.refinedLetter);
-                                      toast({ title: "✨ Refined!", description: "Cover letter updated" });
+                                      toast({ title: "✨ Refined!", description: "Cover letter updated successfully" });
                                       setEditPrompt("");
                                     }
                                   } catch (error) {
