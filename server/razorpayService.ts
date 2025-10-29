@@ -140,41 +140,69 @@ export class RazorpayService {
       
       // Try to find existing customer by email or create new one
       let customer;
-      try {
-        // Check if customer already exists in database
-        const { db } = await import('./db');
-        const schema = await import('@shared/schema');
-        const { eq } = await import('drizzle-orm');
-        
-        const existingUser = await db.query.users.findFirst({
-          where: eq(schema.users.id, userId)
-        });
-        
-        if (existingUser?.razorpayCustomerId) {
+      
+      const { db } = await import('./db');
+      const schema = await import('@shared/schema');
+      const { eq } = await import('drizzle-orm');
+      
+      // Check if customer already exists in database
+      const existingUser = await db.query.users.findFirst({
+        where: eq(schema.users.id, userId)
+      });
+      
+      if (existingUser?.razorpayCustomerId) {
+        try {
           // Fetch existing customer from Razorpay
           customer = await this.razorpay.customers.fetch(existingUser.razorpayCustomerId);
-        } else {
-          throw new Error('Customer not found in database');
+          console.log(`✅ Using existing Razorpay customer: ${customer.id}`);
+        } catch (fetchError) {
+          console.log(`⚠️ Failed to fetch existing customer, will create new one`);
+          // Customer ID in DB but doesn't exist in Razorpay, create new one
+          customer = null;
         }
-      } catch (error) {
-        // Customer doesn't exist, create new one
-        customer = await this.razorpay.customers.create({
-          name: userEmail.split('@')[0],
-          email: userEmail,
-          contact: '',
-          notes: {
-            userId: userId
+      }
+      
+      // If no customer found, create new one
+      if (!customer) {
+        try {
+          customer = await this.razorpay.customers.create({
+            name: userEmail.split('@')[0],
+            email: userEmail,
+            contact: '',
+            notes: {
+              userId: userId
+            }
+          });
+          
+          console.log(`✅ Created new Razorpay customer: ${customer.id}`);
+          
+          // Save customer ID to database
+          await db.update(schema.users)
+            .set({ razorpayCustomerId: customer.id })
+            .where(eq(schema.users.id, userId));
+        } catch (createError: any) {
+          // If customer already exists in Razorpay, try to find them by email
+          if (createError.error?.description?.includes('Customer already exists')) {
+            console.log(`⚠️ Customer exists in Razorpay but not in DB, fetching by email...`);
+            
+            // List customers and find by email
+            const customersList = await this.razorpay.customers.all({ email: userEmail });
+            if (customersList.items && customersList.items.length > 0) {
+              customer = customersList.items[0];
+              
+              // Save to database
+              await db.update(schema.users)
+                .set({ razorpayCustomerId: customer.id })
+                .where(eq(schema.users.id, userId));
+              
+              console.log(`✅ Found and linked existing customer: ${customer.id}`);
+            } else {
+              throw new Error('Customer exists but could not be found');
+            }
+          } else {
+            throw createError;
           }
-        });
-        
-        // Save customer ID to database
-        const { db } = await import('./db');
-        const schema = await import('@shared/schema');
-        const { eq } = await import('drizzle-orm');
-        
-        await db.update(schema.users)
-          .set({ razorpayCustomerId: customer.id })
-          .where(eq(schema.users.id, userId));
+        }
       }
 
       // Create subscription
