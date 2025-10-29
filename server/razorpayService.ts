@@ -66,7 +66,7 @@ export class RazorpayService {
 
   // Convert USD to INR (you might want to use a currency API for real-time rates)
   private usdToInr(usdAmount: number): number {
-    const exchangeRate = 83; // Approximate rate, should use live API
+    const exchangeRate = 84; // Updated approximate rate (Jan 2025)
     return Math.round(usdAmount * exchangeRate * 100); // Razorpay expects amount in paise
   }
 
@@ -211,8 +211,8 @@ export class RazorpayService {
         customer_id: customer.id,
         quantity: 1,
         total_count: interval === 'yearly' ? 1 : 12, // 1 year or 12 months
-        start_at: Math.floor(Date.now() / 1000) + 60, // Start 1 minute from now
-        expire_by: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // Expire in 24 hours if not paid
+        start_at: Math.floor(Date.now() / 1000) + (10 * 60), // Start 10 minutes from now to avoid timing issues
+        expire_by: Math.floor(Date.now() / 1000) + (48 * 60 * 60), // Expire in 48 hours if not paid
         customer_notify: true,
         notes: {
           userId,
