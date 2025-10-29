@@ -113,10 +113,12 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
       localStorage.clear();
       if (theme) localStorage.setItem('theme', theme);
 
-      console.log('✅ [RECRUITER] All state cleared');
+      console.log('✅ [RECRUITER] All state cleared, redirecting...');
 
-      // CRITICAL: Force hard refresh to clear browser cache and redirect to landing page
-      window.location.href = '/?t=' + Date.now();
+      // CRITICAL: Force immediate redirect to landing page
+      setTimeout(() => {
+        window.location.href = '/?t=' + Date.now();
+      }, 100);
     },
     onError: (error: any) => {
       console.error('❌ [RECRUITER] Logout error:', error);
@@ -132,8 +134,10 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
         variant: "destructive",
       });
 
-      // Force redirect to landing page anyway
-      window.location.href = '/?t=' + Date.now();
+      // Force immediate redirect to landing page anyway
+      setTimeout(() => {
+        window.location.href = '/?t=' + Date.now();
+      }, 100);
     }
   });
 
