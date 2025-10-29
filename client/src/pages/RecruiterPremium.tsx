@@ -67,29 +67,10 @@ export default function RecruiterPremium() {
     queryKey: ['/api/subscription/current'],
   });
 
-  // Detect user location and set payment gateway
+  // Set payment gateway to Razorpay for all users (supports international payments)
   useEffect(() => {
-    const detectLocation = async () => {
-      try {
-        const response = await fetch('https://ipapi.co/json/');
-        const data = await response.json();
-        
-        if (data.country_code === 'IN') {
-          setPaymentGateway('razorpay');
-          console.log('Indian user detected - using Razorpay');
-        } else {
-          setPaymentGateway('paypal');
-          console.log('International user detected - using PayPal');
-        }
-      } catch (error) {
-        console.error('Location detection failed, defaulting to PayPal:', error);
-        setPaymentGateway('paypal');
-      } finally {
-        setIsLoadingLocation(false);
-      }
-    };
-
-    detectLocation();
+    setPaymentGateway('razorpay');
+    setIsLoadingLocation(false);
   }, []);
 
   // Create subscription mutation
