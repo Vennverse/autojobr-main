@@ -6133,6 +6133,59 @@ Return only the cover letter text, no additional formatting or explanations.`;
     });
   }));
 
+  // Razorpay-specific subscription endpoint for frontend component
+  app.post("/api/subscription/razorpay/create", isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    const { tierId, userEmail } = req.body;
+    const userId = req.user.id;
+    const email = userEmail || req.user.email;
+
+    if (!tierId) {
+      return res.status(400).json({ error: 'Tier ID is required' });
+    }
+
+    // Import razorpay service
+    const { razorpayService } = await import('./razorpayService');
+
+    if (!razorpayService.isAvailable()) {
+      return res.status(503).json({ 
+        error: 'Razorpay payment is not available at the moment. Please contact support or try PayPal.' 
+      });
+    }
+
+    try {
+      // Get subscription tier details
+      const tiers = await subscriptionPaymentService.getSubscriptionTiers('jobseeker');
+      const selectedTier = tiers.find((t: any) => t.id === tierId);
+
+      if (!selectedTier) {
+        return res.status(400).json({ error: 'Invalid tier ID' });
+      }
+
+      // Create Razorpay subscription
+      const subscription = await razorpayService.createSubscription(
+        userId,
+        selectedTier.name,
+        selectedTier.price,
+        'monthly',
+        email
+      );
+
+      console.log(`✅ Razorpay subscription created for user ${userId}: ${subscription.subscriptionId}`);
+
+      return res.json({
+        success: true,
+        subscriptionId: subscription.subscriptionId,
+        shortUrl: subscription.shortUrl,
+        amountInINR: subscription.amountInINR
+      });
+    } catch (error: any) {
+      console.error('❌ Razorpay subscription creation error:', error);
+      return res.status(500).json({ 
+        error: error.message || 'Failed to create Razorpay subscription. Please try again.' 
+      });
+    }
+  }));
+
   // PayPal Subscription Success Handler
   app.get("/subscription/success", async (req, res) => {
     try {
