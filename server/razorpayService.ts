@@ -222,9 +222,7 @@ export class RazorpayService {
         }
       });
 
-      // Save subscription to database
-      const { db } = await import('./db');
-      const schema = await import('@shared/schema');
+      // Save subscription to database (reuse existing db and schema imports)
       
       await db.insert(schema.subscriptions).values({
         userId,
