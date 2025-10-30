@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -9,12 +10,24 @@ import {
   Check, 
   Crown, 
   Sparkles,
-  Coffee,
-  Briefcase,
+  Zap,
+  Rocket,
+  Star,
   TrendingUp,
-  Calendar,
   X,
-  Loader2
+  Loader2,
+  Shield,
+  Infinity,
+  Award,
+  Users,
+  Target,
+  BarChart3,
+  MessageCircle,
+  Video,
+  FileText,
+  Brain,
+  ChevronRight,
+  Clock
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -25,7 +38,7 @@ declare global {
   }
 }
 
-type PlanType = 'smart_saver' | 'monthly_access' | null;
+type PlanType = 'smart_saver' | 'monthly_access' | 'ultra_premium' | null;
 type PaymentMethod = 'paypal' | 'razorpay' | null;
 
 export default function JobSeekerPremium() {
@@ -44,7 +57,6 @@ export default function JobSeekerPremium() {
     queryKey: ['/api/subscription/current'],
   });
 
-  // Handle subscription success/error from URL params (after PayPal redirect)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const subscription = urlParams.get('subscription');
@@ -55,9 +67,7 @@ export default function JobSeekerPremium() {
         title: "Subscription Activated!",
         description: message || "Your premium subscription is now active.",
       });
-      // Clean up URL
       window.history.replaceState({}, '', '/job-seeker-premium');
-      // Refresh subscription data
       queryClient.invalidateQueries({ queryKey: ['/api/subscription/current'] });
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });
     } else if (subscription === 'error') {
@@ -66,7 +76,6 @@ export default function JobSeekerPremium() {
         description: message || "There was an issue activating your subscription.",
         variant: "destructive",
       });
-      // Clean up URL
       window.history.replaceState({}, '', '/job-seeker-premium');
     } else if (subscription === 'cancelled') {
       toast({
@@ -74,7 +83,6 @@ export default function JobSeekerPremium() {
         description: message || "Subscription setup was cancelled.",
         variant: "destructive",
       });
-      // Clean up URL
       window.history.replaceState({}, '', '/job-seeker-premium');
     }
   }, [toast, queryClient]);
@@ -99,7 +107,6 @@ export default function JobSeekerPremium() {
     },
   });
 
-  // Load Razorpay script
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
@@ -114,7 +121,6 @@ export default function JobSeekerPremium() {
     };
   }, []);
 
-  // Load PayPal script
   useEffect(() => {
     const existingScript = document.querySelector('script[src*="paypal.com/sdk/js"]');
     if (!existingScript) {
@@ -155,14 +161,19 @@ export default function JobSeekerPremium() {
   const handlePayPalPayment = async () => {
     const planPricing = {
       smart_saver: 13.00,
-      monthly_access: 19.00
+      monthly_access: 19.00,
+      ultra_premium: 24.00
     };
 
     const price = selectedPlan ? planPricing[selectedPlan] : 0;
-    const planName = selectedPlan === 'smart_saver' ? 'Smart Saver' : 'Monthly Access';
+    const planNames = {
+      smart_saver: 'Smart Saver',
+      monthly_access: 'Monthly Access',
+      ultra_premium: 'Ultra Premium'
+    };
+    const planName = selectedPlan ? planNames[selectedPlan] : '';
 
     try {
-      // Create PayPal subscription order via backend
       const response = await apiRequest('/api/payments/paypal/create-subscription', 'POST', {
         amount: price,
         currency: 'USD',
@@ -171,13 +182,11 @@ export default function JobSeekerPremium() {
       });
 
       if (response.approvalUrl) {
-        // Redirect to PayPal for payment approval
         toast({
           title: "Redirecting to PayPal",
           description: "Taking you to PayPal to complete your subscription...",
         });
         
-        // Small delay to show the toast before redirecting
         setTimeout(() => {
           window.location.href = response.approvalUrl;
         }, 1000);
@@ -192,12 +201,18 @@ export default function JobSeekerPremium() {
 
   const handleRazorpayPayment = async () => {
     const planPrices = {
-      smart_saver: 1300, // $13 in cents
-      monthly_access: 1900 // $19 in cents
+      smart_saver: 1300,
+      monthly_access: 1900,
+      ultra_premium: 2400
     };
 
     const price = selectedPlan ? planPrices[selectedPlan] : 0;
-    const planName = selectedPlan === 'smart_saver' ? 'Smart Saver' : 'Monthly Access';
+    const planNames = {
+      smart_saver: 'Smart Saver',
+      monthly_access: 'Monthly Access',
+      ultra_premium: 'Ultra Premium'
+    };
+    const planName = selectedPlan ? planNames[selectedPlan] : '';
 
     try {
       const response = await apiRequest('/api/payments/razorpay/create-subscription', 'POST', {
@@ -263,49 +278,82 @@ export default function JobSeekerPremium() {
   };
 
   const subscription = (currentSubscription as any)?.subscription || null;
-  const isPremiumUser = user?.planType === 'premium' || user?.planType === 'smart_saver' || user?.planType === 'monthly_access';
+  const isPremiumUser = user?.planType === 'premium' || user?.planType === 'smart_saver' || user?.planType === 'monthly_access' || user?.planType === 'ultra_premium';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-gray-950 dark:via-slate-900 dark:to-gray-950">
+      {/* Animated Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      </div>
+
       {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 dark:from-blue-500/10 dark:via-purple-500/10 dark:to-pink-500/10"></div>
-        <div className="container mx-auto px-4 py-16 relative">
-          <div className="max-w-4xl mx-auto text-center space-y-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-900 mb-4">
-              <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Land Your Dream Job</span>
+      <div className="relative pt-20 pb-16">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto text-center space-y-8">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-blue-600/10 to-purple-600/10 border border-blue-200 dark:border-blue-800 backdrop-blur-sm">
+              <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400 animate-pulse" />
+              <span className="text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Join 10,000+ Successful Job Seekers
+              </span>
+              <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400 animate-pulse" />
             </div>
             
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900 dark:text-white">
-              Land your next job faster —
-              <br />
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                without overpaying.
+            {/* Main Heading */}
+            <h1 className="text-5xl md:text-7xl font-black tracking-tight">
+              <span className="block text-gray-900 dark:text-white mb-2">
+                Land Your Dream Job
+              </span>
+              <span className="block bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Without Overpaying
               </span>
             </h1>
             
-            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              Competitors charge $19–$29 for fewer tools. AutoJobr gives you everything for less.
+            {/* Subheading */}
+            <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
+              AI-powered tools that give you <span className="font-bold text-blue-600">5× more interviews</span> at a fraction of the cost
             </p>
+
+            {/* Social Proof */}
+            <div className="flex flex-wrap items-center justify-center gap-8 pt-4">
+              <div className="flex items-center gap-2">
+                <div className="flex -space-x-2">
+                  {[1,2,3,4].map((i) => (
+                    <div key={i} className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 border-2 border-white dark:border-gray-900"></div>
+                  ))}
+                </div>
+                <div className="text-left">
+                  <div className="text-sm font-bold text-gray-900 dark:text-white">10,000+</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Active Users</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                {[1,2,3,4,5].map((i) => (
+                  <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                ))}
+                <span className="ml-2 text-sm font-bold text-gray-900 dark:text-white">4.9/5</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Current Subscription Status */}
       {subscription && subscription.isActive && (
-        <div className="container mx-auto px-4 pb-8 max-w-4xl">
-          <Card className="border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
+        <div className="container mx-auto px-4 pb-12 max-w-6xl relative z-10">
+          <Card className="border-2 border-green-400 dark:border-green-600 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 shadow-xl">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-green-100 dark:bg-green-900">
-                    <Crown className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-500 shadow-lg">
+                    <Crown className="h-8 w-8 text-white" />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900 dark:text-white">Active Subscription</p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-white">Active Subscription</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {subscription.tierDetails?.name} - Renews in {subscription.daysRemaining} days
+                      {subscription.tierDetails?.name} • Renews in <span className="font-semibold">{subscription.daysRemaining} days</span>
                     </p>
                   </div>
                 </div>
@@ -314,7 +362,7 @@ export default function JobSeekerPremium() {
                   size="sm"
                   onClick={() => cancelSubscriptionMutation.mutate()}
                   disabled={cancelSubscriptionMutation.isPending}
-                  className="hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-600"
+                  className="hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-600 transition-all"
                   data-testid="button-cancel-subscription"
                 >
                   Cancel Plan
@@ -326,339 +374,292 @@ export default function JobSeekerPremium() {
       )}
 
       {/* Pricing Cards */}
-      <div className="container mx-auto px-4 pb-20">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* CARD 1 - SMART SAVER (Most Popular) */}
+      <div className="container mx-auto px-4 pb-20 relative z-10">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-3 gap-8">
+            
+            {/* CARD 1 - SMART SAVER */}
             <Card 
-              className="relative border-2 border-green-200 dark:border-green-800 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group"
+              className="relative border-2 border-green-300 dark:border-green-700 shadow-2xl hover:shadow-3xl hover:-translate-y-2 transition-all duration-300 overflow-hidden group bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm"
               data-testid="card-plan-smart-saver"
             >
-              {/* Most Popular Badge */}
-              <div className="absolute -right-12 top-6 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-12 py-1 rotate-45 text-xs font-semibold shadow-lg">
-                Most Popular
+              {/* Popular Badge */}
+              <div className="absolute -right-12 top-8 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-16 py-2 rotate-45 text-sm font-bold shadow-lg z-10">
+                POPULAR
               </div>
 
-              {/* Soft Green Glow */}
-              <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 group-hover:from-green-500/10 group-hover:to-emerald-500/10 transition-all duration-300"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-emerald-500/5 to-green-500/5 group-hover:from-green-500/10 group-hover:to-emerald-500/10 transition-all duration-500"></div>
 
-              <CardHeader className="relative pb-6">
-                <div className="flex items-start justify-between mb-4">
-                  <Badge className="bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300 border-green-300 dark:border-green-700 text-xs px-3 py-1">
-                    🏷️ Smart Saver — Most Popular
+              <CardHeader className="relative pb-8 pt-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <Badge className="bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300 border-green-300 dark:border-green-700 text-sm px-4 py-1.5 font-semibold">
+                    💰 Best Value
                   </Badge>
                 </div>
 
-                <CardTitle className="text-3xl font-bold mb-2">
-                  <span className="text-5xl">$13</span>
-                  <span className="text-xl text-gray-500 dark:text-gray-400 font-normal"> / month</span>
+                <CardTitle className="text-4xl font-black mb-4">
+                  Smart Saver
                 </CardTitle>
 
-                <div className="space-y-2">
-                  <Badge className="bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300 border-0 text-sm font-medium">
-                    💚 Save $72 a year
-                  </Badge>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                    <Coffee className="h-3 w-3" />
-                    Just $0.43 a day — less than a coffee, more for your career.
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-6xl font-black bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">$13</span>
+                    <span className="text-2xl text-gray-500 dark:text-gray-400 font-normal">/month</span>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Just $0.43/day — less than a coffee
                   </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 italic">
-                    Auto-renew — Cancel Anytime
-                  </p>
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-100 dark:bg-green-950/50">
+                    <TrendingUp className="h-4 w-4 text-green-600" />
+                    <span className="text-sm font-bold text-green-700 dark:text-green-300">Save $72/year</span>
+                  </div>
                 </div>
               </CardHeader>
 
-              <CardContent className="relative space-y-6">
-                <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                  "Land your next job faster — without overpaying."
-                </p>
-
-                <div className="space-y-3">
+              <CardContent className="relative space-y-6 pb-8">
+                <div className="space-y-4">
                   {[
-                    'Unlimited Resumes & Job Tracking',
-                    'AI-Powered Keyword & Cover Letter Builder',
-                    'Resume & Profile Analysis for Better Matches',
-                    '72% of users landed interviews within 3 weeks',
-                    'Competitors charge $19–$29 for fewer tools',
-                    'Cancel Anytime — No Commitment'
+                    'Unlimited Resumes & Job Applications',
+                    'AI-Powered Resume & Cover Letter Builder',
+                    'Resume & Profile Analysis',
+                    'Job Matching Algorithm',
+                    'Application Tracking Dashboard',
+                    'Email Support',
+                    'Cancel Anytime'
                   ].map((feature, i) => (
                     <div key={i} className="flex items-start gap-3">
-                      <Check className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{feature}</span>
+                      <div className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-950 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      </div>
+                      <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{feature}</span>
                     </div>
                   ))}
                 </div>
 
-                <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    Smart choice for serious job seekers.
-                  </p>
-                  
-                  <Button 
-                    className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold py-6 text-lg shadow-lg hover:shadow-xl transition-all"
-                    onClick={() => handlePlanSelect('smart_saver')}
-                    data-testid="button-select-smart-saver"
-                  >
-                    Get Started — $13/mo
-                  </Button>
-                  <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
-                    Auto-renew, cancel anytime.
-                  </p>
-                </div>
+                <Button 
+                  className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-7 text-lg shadow-xl hover:shadow-2xl transition-all group"
+                  onClick={() => handlePlanSelect('smart_saver')}
+                  data-testid="button-select-smart-saver"
+                >
+                  Get Started
+                  <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </Button>
               </CardContent>
             </Card>
 
-            {/* CARD 2 - MONTHLY ACCESS (Try Once) */}
+            {/* CARD 2 - MONTHLY ACCESS */}
             <Card 
-              className="relative border-2 border-yellow-200 dark:border-yellow-800 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group"
+              className="relative border-2 border-blue-300 dark:border-blue-700 shadow-2xl hover:shadow-3xl hover:-translate-y-2 transition-all duration-300 overflow-hidden group bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm"
               data-testid="card-plan-monthly-access"
             >
-              {/* Flexible Badge */}
-              <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 to-orange-500/5 group-hover:from-yellow-500/10 group-hover:to-orange-500/10 transition-all duration-300"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-blue-500/5 group-hover:from-blue-500/10 group-hover:to-purple-500/10 transition-all duration-500"></div>
 
-              <CardHeader className="relative pb-6">
-                <Badge className="bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700 text-xs px-3 py-1 mb-4 w-fit">
-                  ⚡ Flexible Plan — Pay As You Go
-                </Badge>
+              <CardHeader className="relative pb-8 pt-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-300 dark:border-blue-700 text-sm px-4 py-1.5 font-semibold">
+                    ⚡ Flexible
+                  </Badge>
+                </div>
 
-                <CardTitle className="text-3xl font-bold mb-2">
-                  <span className="text-5xl">$19</span>
-                  <span className="text-xl text-gray-500 dark:text-gray-400 font-normal"> / month</span>
+                <CardTitle className="text-4xl font-black mb-4">
+                  Monthly Access
                 </CardTitle>
 
-                <div className="space-y-2">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                    <Briefcase className="h-3 w-3" />
-                    $0.63 a day — great for quick projects or resumes.
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 italic">
-                    Monthly subscription
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-6xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">$19</span>
+                    <span className="text-2xl text-gray-500 dark:text-gray-400 font-normal">/month</span>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    $0.63/day — perfect for quick wins
                   </p>
                 </div>
               </CardHeader>
 
-              <CardContent className="relative space-y-6">
-                <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                  "Try for a month — flexible access."
-                </p>
-
-                <div className="space-y-3">
+              <CardContent className="relative space-y-6 pb-8">
+                <div className="space-y-4">
                   {[
-                    'Same AI tools & resume features as Smart Saver',
-                    'Perfect for one-off applications or interview prep',
-                    'Upgrade anytime to Smart Saver and save 30%',
-                    'Full access to all premium features',
-                    'No long-term commitment required'
+                    'Everything in Smart Saver',
+                    'Priority AI Processing',
+                    'Advanced Analytics Dashboard',
+                    'Interview Preparation Tools',
+                    'Salary Negotiation Coach',
+                    'Priority Email Support',
+                    'Monthly Subscription'
                   ].map((feature, i) => (
                     <div key={i} className="flex items-start gap-3">
-                      <Check className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{feature}</span>
+                      <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-950 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Check className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{feature}</span>
                     </div>
                   ))}
                 </div>
 
-                <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    $19 shows value — $13 feels smart.
-                  </p>
-                  
-                  <Button 
-                    className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-semibold py-6 text-lg shadow-lg hover:shadow-xl transition-all"
-                    onClick={() => handlePlanSelect('monthly_access')}
-                    data-testid="button-select-monthly-access"
-                  >
-                    Start Monthly — $19
-                  </Button>
-                  <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
-                    Upgrade later to save 30%.
-                  </p>
+                <Button 
+                  className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-bold py-7 text-lg shadow-xl hover:shadow-2xl transition-all group"
+                  onClick={() => handlePlanSelect('monthly_access')}
+                  data-testid="button-select-monthly-access"
+                >
+                  Get Started
+                  <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* CARD 3 - ULTRA PREMIUM (NEW) */}
+            <Card 
+              className="relative border-2 border-purple-300 dark:border-purple-700 shadow-2xl hover:shadow-3xl hover:-translate-y-2 transition-all duration-300 overflow-hidden group bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/50 dark:to-pink-950/50 backdrop-blur-sm"
+              data-testid="card-plan-ultra-premium"
+            >
+              {/* Premium Badge */}
+              <div className="absolute -right-12 top-8 bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 text-white px-16 py-2 rotate-45 text-sm font-bold shadow-lg z-10 animate-pulse">
+                PREMIUM
+              </div>
+
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-purple-500/10 group-hover:from-purple-500/20 group-hover:to-pink-500/20 transition-all duration-500"></div>
+
+              <CardHeader className="relative pb-8 pt-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0 text-sm px-4 py-1.5 font-semibold shadow-lg">
+                    🚀 Ultimate
+                  </Badge>
                 </div>
+
+                <CardTitle className="text-4xl font-black mb-4">
+                  Ultra Premium
+                </CardTitle>
+
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-6xl font-black bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 bg-clip-text text-transparent">$24</span>
+                    <span className="text-2xl text-gray-500 dark:text-gray-400 font-normal">/month</span>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                    <Infinity className="h-4 w-4" />
+                    Complete career acceleration package
+                  </p>
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-950/50 dark:to-pink-950/50">
+                    <Award className="h-4 w-4 text-purple-600" />
+                    <span className="text-sm font-bold text-purple-700 dark:text-purple-300">VIP Treatment</span>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="relative space-y-6 pb-8">
+                <div className="space-y-4">
+                  {[
+                    { icon: Infinity, text: 'Everything in Monthly Access' },
+                    { icon: Video, text: 'Unlimited AI Mock Interviews' },
+                    { icon: Brain, text: 'Personalized Career Coaching' },
+                    { icon: Users, text: 'Direct Recruiter Connections' },
+                    { icon: Target, text: 'Premium Job Targeting' },
+                    { icon: MessageCircle, text: '24/7 Priority Chat Support' },
+                    { icon: Shield, text: 'Background Check Assistance' },
+                    { icon: FileText, text: 'Professional Resume Writing' }
+                  ].map((feature, i) => {
+                    const Icon = feature.icon;
+                    return (
+                      <div key={i} className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Icon className="h-3 w-3 text-white" />
+                        </div>
+                        <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-medium">{feature.text}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <Button 
+                  className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 hover:from-purple-700 hover:via-pink-700 hover:to-rose-700 text-white font-bold py-7 text-lg shadow-xl hover:shadow-2xl transition-all group"
+                  onClick={() => handlePlanSelect('ultra_premium')}
+                  data-testid="button-select-ultra-premium"
+                >
+                  Get Ultra Premium
+                  <Rocket className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </Button>
               </CardContent>
             </Card>
           </div>
 
           {/* Comparison Section */}
-          <div className="mt-12 text-center space-y-4">
-            <div className="inline-block p-6 rounded-2xl bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border border-blue-100 dark:border-blue-900">
-              <p className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Competitors charge $19–$29 for fewer tools.
+          <div className="mt-20 text-center space-y-8">
+            <div className="inline-block p-8 rounded-3xl bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 dark:from-blue-950/30 dark:via-purple-950/30 dark:to-pink-950/30 border-2 border-blue-200 dark:border-blue-800 shadow-xl backdrop-blur-sm">
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                Why AutoJobr Beats the Competition
               </p>
-              <p className="text-base text-gray-700 dark:text-gray-300">
-                AutoJobr gives you everything for just $13 — or $19 if you prefer flexibility.
+              <p className="text-lg text-gray-700 dark:text-gray-300 max-w-3xl">
+                Competitors charge <span className="font-bold text-red-600">$29-$49/month</span> for basic features. <br/>
+                We give you <span className="font-bold text-green-600">everything for just $13-$24</span> — up to 73% savings!
               </p>
             </div>
-
-            <div className="flex items-center justify-center gap-2 text-gray-600 dark:text-gray-400">
-              <TrendingUp className="h-5 w-5 text-green-600" />
-              <span className="text-sm">
-                🧠 Real ROI: Users report 5× more applications and faster interviews.
-              </span>
-            </div>
           </div>
 
-          {/* Social Proof Stats */}
-          <div className="mt-16 grid grid-cols-3 gap-6 max-w-3xl mx-auto">
-            <div className="text-center p-6 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-100 dark:border-green-900">
-              <div className="text-3xl font-bold text-green-600 dark:text-green-400">72%</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">Got Interviews in 3 Weeks</div>
-            </div>
-            <div className="text-center p-6 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border border-blue-100 dark:border-blue-900">
-              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">5×</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">More Job Applications</div>
-            </div>
-            <div className="text-center p-6 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border border-purple-100 dark:border-purple-900">
-              <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">10k+</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">Happy Job Seekers</div>
-            </div>
+          {/* Stats Grid */}
+          <div className="mt-16 grid grid-cols-1 md:grid-cols-4 gap-6">
+            {[
+              { icon: Users, value: '10k+', label: 'Happy Users', color: 'from-blue-500 to-cyan-500' },
+              { icon: Target, value: '72%', label: 'Got Interviews in 3 Weeks', color: 'from-green-500 to-emerald-500' },
+              { icon: TrendingUp, value: '5×', label: 'More Applications', color: 'from-purple-500 to-pink-500' },
+              { icon: Award, value: '4.9★', label: 'Average Rating', color: 'from-yellow-500 to-orange-500' }
+            ].map((stat, i) => {
+              const Icon = stat.icon;
+              return (
+                <Card key={i} className="border-2 hover:shadow-xl transition-all duration-300 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
+                  <CardContent className="p-6 text-center">
+                    <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}>
+                      <Icon className="h-8 w-8 text-white" />
+                    </div>
+                    <div className={`text-4xl font-black bg-gradient-to-r ${stat.color} bg-clip-text text-transparent mb-2`}>
+                      {stat.value}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">{stat.label}</div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
 
-          {/* Testimonials */}
-          <div className="mt-16">
-            <h3 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-8">
-              Join Thousands Who Landed Their Dream Jobs
+          {/* Final CTA */}
+          <div className="mt-20 text-center p-12 rounded-3xl bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 shadow-2xl">
+            <h3 className="text-3xl md:text-4xl font-black text-white mb-4">
+              Ready to Transform Your Career?
             </h3>
-            <div className="grid md:grid-cols-3 gap-6">
-              {/* Testimonial 1 */}
-              <Card className="border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-xl transition-all">
-                <CardContent className="p-6 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
-                      S
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900 dark:text-white">Shivani Patel</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Data Analyst at Microsoft</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-1 text-yellow-500">
-                    {'★★★★★'.split('').map((star, i) => (
-                      <span key={i}>{star}</span>
-                    ))}
-                  </div>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 italic">
-                    "I landed my dream Data Analyst role in just 2 weeks using AutoJobr. The AI-powered resume builder made all the difference!"
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Testimonial 2 */}
-              <Card className="border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-xl transition-all">
-                <CardContent className="p-6 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-white font-bold text-lg">
-                      M
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900 dark:text-white">Marcus Johnson</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Software Engineer at Google</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-1 text-yellow-500">
-                    {'★★★★★'.split('').map((star, i) => (
-                      <span key={i}>{star}</span>
-                    ))}
-                  </div>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 italic">
-                    "AutoJobr's job tracking saved me hours. I applied to 120+ jobs efficiently and got 8 interviews. Best $13 I've spent!"
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Testimonial 3 */}
-              <Card className="border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-xl transition-all">
-                <CardContent className="p-6 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-white font-bold text-lg">
-                      E
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900 dark:text-white">Emily Chen</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Product Manager at Amazon</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-1 text-yellow-500">
-                    {'★★★★★'.split('').map((star, i) => (
-                      <span key={i}>{star}</span>
-                    ))}
-                  </div>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 italic">
-                    "The resume analysis feature helped me optimize my profile. Went from 2% to 35% response rate. Life-changing!"
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Trust Badges */}
-          <div className="mt-16 flex flex-wrap items-center justify-center gap-8 text-center">
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-14 h-14 rounded-full bg-green-100 dark:bg-green-950 flex items-center justify-center">
-                <Check className="h-7 w-7 text-green-600 dark:text-green-400" />
-              </div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Secure Payment</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">256-bit SSL</p>
-            </div>
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-14 h-14 rounded-full bg-blue-100 dark:bg-blue-950 flex items-center justify-center">
-                <Calendar className="h-7 w-7 text-blue-600 dark:text-blue-400" />
-              </div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Cancel Anytime</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">No Questions</p>
-            </div>
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-14 h-14 rounded-full bg-purple-100 dark:bg-purple-950 flex items-center justify-center">
-                <Crown className="h-7 w-7 text-purple-600 dark:text-purple-400" />
-              </div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Instant Access</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Start Immediately</p>
-            </div>
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-14 h-14 rounded-full bg-yellow-100 dark:bg-yellow-950 flex items-center justify-center">
-                <Sparkles className="h-7 w-7 text-yellow-600 dark:text-yellow-400" />
-              </div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">AI-Powered</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Latest Technology</p>
-            </div>
-          </div>
-
-          {/* Final CTA Section */}
-          <div className="mt-16 text-center p-10 rounded-3xl bg-gradient-to-r from-green-50 via-blue-50 to-purple-50 dark:from-green-950/20 dark:via-blue-950/20 dark:to-purple-950/20 border border-green-200 dark:border-green-900">
-            <h3 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
-              Ready to Land Your Dream Job?
-            </h3>
-            <p className="text-lg text-gray-700 dark:text-gray-300 mb-6 max-w-2xl mx-auto">
-              Join 10,000+ job seekers who accelerated their careers with AutoJobr. 
-              Start today for less than a cup of coffee per day.
+            <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+              Join thousands who landed their dream jobs. Start today for less than a coffee per day.
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-4">
-              <Button 
-                size="lg"
-                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold px-8 py-6 text-lg shadow-xl hover:shadow-2xl transition-all"
-                onClick={() => handlePlanSelect('smart_saver')}
-                data-testid="button-cta-smart-saver"
-              >
-                Get Started for $13/mo →
-              </Button>
-              <p className="text-sm text-gray-600 dark:text-gray-400 w-full mt-2">
-                ✨ Cancel anytime • 🔒 Secure payment • ⚡ Instant access
-              </p>
-            </div>
+            <Button 
+              size="lg"
+              className="bg-white text-purple-600 hover:bg-gray-100 font-bold px-10 py-7 text-xl shadow-xl hover:shadow-2xl transition-all"
+              onClick={() => handlePlanSelect('smart_saver')}
+              data-testid="button-cta-smart-saver"
+            >
+              Start for $13/month →
+            </Button>
+            <p className="text-sm text-blue-100 mt-4">
+              ✨ Cancel anytime • 🔒 Secure payment • ⚡ Instant access
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Payment Method Selection Dialog */}
+      {/* Payment Method Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
         <DialogContent className="sm:max-w-md" data-testid="dialog-payment-method">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">Choose Payment Method</DialogTitle>
             <DialogDescription>
-              Select your preferred payment provider to complete your {selectedPlan === 'smart_saver' ? 'Smart Saver ($13/mo)' : 'Monthly Access ($19/mo)'} subscription
+              Select your preferred payment provider for {
+                selectedPlan === 'smart_saver' ? 'Smart Saver ($13/mo)' : 
+                selectedPlan === 'monthly_access' ? 'Monthly Access ($19/mo)' : 
+                'Ultra Premium ($24/mo)'
+              }
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-6">
-            {/* PayPal Option */}
             <button
               onClick={() => handlePaymentMethodSelect('paypal')}
               disabled={isProcessing}
@@ -683,7 +684,6 @@ export default function JobSeekerPremium() {
               </div>
             </button>
 
-            {/* Razorpay Option */}
             <button
               onClick={() => handlePaymentMethodSelect('razorpay')}
               disabled={isProcessing}
