@@ -495,6 +495,155 @@ export default function JobSeekerPremium() {
               </span>
             </div>
           </div>
+
+          {/* Social Proof Stats */}
+          <div className="mt-16 grid grid-cols-3 gap-6 max-w-3xl mx-auto">
+            <div className="text-center p-6 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-100 dark:border-green-900">
+              <div className="text-3xl font-bold text-green-600 dark:text-green-400">72%</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">Got Interviews in 3 Weeks</div>
+            </div>
+            <div className="text-center p-6 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border border-blue-100 dark:border-blue-900">
+              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">5×</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">More Job Applications</div>
+            </div>
+            <div className="text-center p-6 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border border-purple-100 dark:border-purple-900">
+              <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">10k+</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">Happy Job Seekers</div>
+            </div>
+          </div>
+
+          {/* Testimonials */}
+          <div className="mt-16">
+            <h3 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-8">
+              Join Thousands Who Landed Their Dream Jobs
+            </h3>
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Testimonial 1 */}
+              <Card className="border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-xl transition-all">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
+                      S
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-white">Shivani Patel</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Data Analyst at Microsoft</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-1 text-yellow-500">
+                    {'★★★★★'.split('').map((star, i) => (
+                      <span key={i}>{star}</span>
+                    ))}
+                  </div>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 italic">
+                    "I landed my dream Data Analyst role in just 2 weeks using AutoJobr. The AI-powered resume builder made all the difference!"
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Testimonial 2 */}
+              <Card className="border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-xl transition-all">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-white font-bold text-lg">
+                      M
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-white">Marcus Johnson</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Software Engineer at Google</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-1 text-yellow-500">
+                    {'★★★★★'.split('').map((star, i) => (
+                      <span key={i}>{star}</span>
+                    ))}
+                  </div>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 italic">
+                    "AutoJobr's job tracking saved me hours. I applied to 120+ jobs efficiently and got 8 interviews. Best $13 I've spent!"
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Testimonial 3 */}
+              <Card className="border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-xl transition-all">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-white font-bold text-lg">
+                      E
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-white">Emily Chen</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Product Manager at Amazon</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-1 text-yellow-500">
+                    {'★★★★★'.split('').map((star, i) => (
+                      <span key={i}>{star}</span>
+                    ))}
+                  </div>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 italic">
+                    "The resume analysis feature helped me optimize my profile. Went from 2% to 35% response rate. Life-changing!"
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Trust Badges */}
+          <div className="mt-16 flex flex-wrap items-center justify-center gap-8 text-center">
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-14 h-14 rounded-full bg-green-100 dark:bg-green-950 flex items-center justify-center">
+                <Check className="h-7 w-7 text-green-600 dark:text-green-400" />
+              </div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Secure Payment</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">256-bit SSL</p>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-14 h-14 rounded-full bg-blue-100 dark:bg-blue-950 flex items-center justify-center">
+                <Calendar className="h-7 w-7 text-blue-600 dark:text-blue-400" />
+              </div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Cancel Anytime</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">No Questions</p>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-14 h-14 rounded-full bg-purple-100 dark:bg-purple-950 flex items-center justify-center">
+                <Crown className="h-7 w-7 text-purple-600 dark:text-purple-400" />
+              </div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Instant Access</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Start Immediately</p>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-14 h-14 rounded-full bg-yellow-100 dark:bg-yellow-950 flex items-center justify-center">
+                <Sparkles className="h-7 w-7 text-yellow-600 dark:text-yellow-400" />
+              </div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">AI-Powered</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Latest Technology</p>
+            </div>
+          </div>
+
+          {/* Final CTA Section */}
+          <div className="mt-16 text-center p-10 rounded-3xl bg-gradient-to-r from-green-50 via-blue-50 to-purple-50 dark:from-green-950/20 dark:via-blue-950/20 dark:to-purple-950/20 border border-green-200 dark:border-green-900">
+            <h3 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
+              Ready to Land Your Dream Job?
+            </h3>
+            <p className="text-lg text-gray-700 dark:text-gray-300 mb-6 max-w-2xl mx-auto">
+              Join 10,000+ job seekers who accelerated their careers with AutoJobr. 
+              Start today for less than a cup of coffee per day.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <Button 
+                size="lg"
+                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold px-8 py-6 text-lg shadow-xl hover:shadow-2xl transition-all"
+                onClick={() => handlePlanSelect('smart_saver')}
+                data-testid="button-cta-smart-saver"
+              >
+                Get Started for $13/mo →
+              </Button>
+              <p className="text-sm text-gray-600 dark:text-gray-400 w-full mt-2">
+                ✨ Cancel anytime • 🔒 Secure payment • ⚡ Instant access
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
