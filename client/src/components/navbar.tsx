@@ -103,8 +103,8 @@ export function Navbar() {
       console.log('✅ [NAVBAR] All state cleared');
 
       // CRITICAL: Use replace to prevent back button issues and ensure clean redirect
-      // Redirect to auth page to ensure user sees login screen
-      window.location.replace('/auth');
+      // Redirect to landing page after logout
+      window.location.replace('/');
     },
     onError: (error: any) => {
       console.error('❌ [NAVBAR] Logout error:', error);
@@ -123,7 +123,7 @@ export function Navbar() {
         variant: "destructive",
       });
 
-      // Force redirect to landing page anyway
+      // Force redirect to landing page
       window.location.replace('/');
     },
   });

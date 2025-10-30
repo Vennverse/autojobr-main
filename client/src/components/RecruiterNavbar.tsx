@@ -116,8 +116,8 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
       console.log('✅ [RECRUITER] All state cleared, redirecting...');
 
       // CRITICAL: Use replace to prevent back button issues and ensure clean redirect
-      // Redirect to auth page to ensure user sees login screen
-      window.location.replace('/auth');
+      // Redirect to landing page after logout
+      window.location.replace('/');
     },
     onError: (error: any) => {
       console.error('❌ [RECRUITER] Logout error:', error);
@@ -136,8 +136,8 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
         variant: "destructive",
       });
 
-      // Force redirect to auth page anyway for security
-      window.location.replace('/auth');
+      // Force redirect to landing page for security
+      window.location.replace('/');
     }
   });
 
