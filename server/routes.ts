@@ -6186,37 +6186,267 @@ Return only the cover letter text, no additional formatting or explanations.`;
     }
   }));
 
+  // New Razorpay subscription creation endpoint for frontend
+  app.post("/api/payments/razorpay/create-subscription", isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    const { amount, currency, planType, planName } = req.body;
+    const userId = req.user.id;
+    const userEmail = req.user.email;
+
+    if (!amount || !planType || !planName) {
+      return res.status(400).json({ error: 'Amount, plan type, and plan name are required' });
+    }
+
+    const { razorpayService } = await import('./razorpayService');
+
+    if (!razorpayService.isAvailable()) {
+      return res.status(503).json({ 
+        error: 'Razorpay payment is not available. Please try PayPal or contact support.' 
+      });
+    }
+
+    try {
+      // Convert USD to INR for Razorpay (amount is in cents, so divide by 100 first)
+      const usdPrice = amount / 100;
+      
+      // Create Razorpay subscription
+      const subscription = await razorpayService.createSubscription(
+        userId,
+        planName,
+        usdPrice,
+        'monthly',
+        userEmail
+      );
+
+      console.log(`✅ Razorpay subscription created for ${planType}: ${subscription.subscriptionId}`);
+
+      return res.json({
+        success: true,
+        subscriptionId: subscription.subscriptionId,
+        keyId: process.env.RAZORPAY_KEY_ID,
+        amountInINR: subscription.amountInINR
+      });
+    } catch (error: any) {
+      console.error('❌ Razorpay subscription creation error:', error);
+      return res.status(500).json({ 
+        error: error.message || 'Failed to create Razorpay subscription' 
+      });
+    }
+  }));
+
+  // Razorpay subscription verification endpoint
+  app.post("/api/payments/razorpay/verify-subscription", isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    const { razorpayPaymentId, razorpaySubscriptionId, razorpaySignature, planType } = req.body;
+    const userId = req.user.id;
+
+    if (!razorpayPaymentId || !razorpaySubscriptionId || !razorpaySignature || !planType) {
+      return res.status(400).json({ 
+        error: 'Missing required payment verification fields' 
+      });
+    }
+
+    const { razorpayService } = await import('./razorpayService');
+
+    if (!razorpayService.isAvailable()) {
+      return res.status(503).json({ 
+        error: 'Razorpay not available' 
+      });
+    }
+
+    try {
+      // Verify the payment signature
+      const crypto = require('crypto');
+      const expectedSignature = crypto
+        .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
+        .update(`${razorpayPaymentId}|${razorpaySubscriptionId}`)
+        .digest('hex');
+
+      if (expectedSignature !== razorpaySignature) {
+        return res.status(400).json({ error: 'Invalid payment signature' });
+      }
+
+      // Update user subscription
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 1);
+
+      const planPricing: Record<string, string> = {
+        'smart_saver': '13.00',
+        'monthly_access': '19.00',
+        'premium': '5.00',
+        'ultra_premium': '15.00'
+      };
+
+      await db.update(schema.users)
+        .set({
+          planType,
+          subscriptionStatus: 'active',
+          razorpayCustomerId: razorpaySubscriptionId,
+          subscriptionStartDate: new Date(),
+          subscriptionEndDate: endDate,
+          paymentProvider: 'razorpay',
+          updatedAt: new Date()
+        })
+        .where(eq(schema.users.id, userId));
+
+      // Create/update subscription record
+      await db.insert(schema.subscriptions).values({
+        userId,
+        tier: planType,
+        tierId: razorpaySubscriptionId,
+        status: 'active',
+        paymentMethod: 'razorpay',
+        amount: planPricing[planType] || '0.00',
+        currency: 'INR',
+        billingCycle: 'monthly',
+        startDate: new Date(),
+        endDate: endDate,
+        nextBillingDate: endDate,
+        createdAt: new Date()
+      }).onConflictDoUpdate({
+        target: schema.subscriptions.userId,
+        set: {
+          tier: planType,
+          status: 'active',
+          updatedAt: new Date()
+        }
+      });
+
+      console.log(`✅ Razorpay subscription verified for user ${userId}, plan: ${planType}`);
+
+      res.json({ 
+        success: true, 
+        message: 'Subscription activated successfully',
+        planType 
+      });
+    } catch (error: any) {
+      console.error('❌ Razorpay verification error:', error);
+      res.status(500).json({ 
+        error: 'Failed to verify payment' 
+      });
+    }
+  }));
+
+  // PayPal subscription creation endpoint for frontend
+  app.post("/api/payments/paypal/create-subscription", isAuthenticated, asyncHandler(async (req: any, res: any) => {
+    const { amount, currency, planType, planName } = req.body;
+    const userId = req.user.id;
+    const userEmail = req.user.email;
+
+    if (!amount || !planType || !planName) {
+      return res.status(400).json({ error: 'Amount, plan type, and plan name are required' });
+    }
+
+    const { PayPalSubscriptionService } = await import('./paypalSubscriptionService');
+    const paypalService = new PayPalSubscriptionService();
+
+    try {
+      // Create or get product for this plan
+      const productId = await paypalService.createOrGetProduct(planName, 'jobseeker');
+      
+      // Create billing plan
+      const planId = await paypalService.createBillingPlan(productId, amount, currency, planName);
+      
+      // Create subscription
+      const subscription = await paypalService.createSubscription(planId, userEmail);
+      
+      // Find approval URL from links
+      const approvalUrl = subscription.links?.find((link: any) => link.rel === 'approve')?.href;
+      
+      if (!approvalUrl) {
+        throw new Error('No approval URL returned from PayPal');
+      }
+
+      console.log(`✅ PayPal subscription created for ${planType}: ${subscription.id}`);
+
+      // Store subscription info temporarily (will be finalized on webhook/return)
+      await db.insert(schema.subscriptions).values({
+        userId,
+        tier: planType,
+        tierId: planId,
+        paypalSubscriptionId: subscription.id,
+        status: 'pending',
+        paymentMethod: 'paypal',
+        amount: amount.toString(),
+        currency: currency || 'USD',
+        billingCycle: 'monthly',
+        createdAt: new Date()
+      }).onConflictDoNothing();
+
+      return res.json({
+        success: true,
+        subscriptionId: subscription.id,
+        approvalUrl: approvalUrl
+      });
+    } catch (error: any) {
+      console.error('❌ PayPal subscription creation error:', error);
+      return res.status(500).json({ 
+        error: error.message || 'Failed to create PayPal subscription' 
+      });
+    }
+  }));
+
   // PayPal Subscription Success Handler
   app.get("/subscription/success", async (req, res) => {
     try {
-      const { userId, subscription_id } = req.query;
+      const { userId, subscription_id, token } = req.query;
 
-      if (subscription_id) {
-        // Update subscription status to active
-        await db.update(schema.subscriptions)
-          .set({ 
-            status: 'active',
-            activatedAt: new Date()
-          })
-          .where(eq(schema.subscriptions.paypalSubscriptionId, subscription_id as string));
+      if (subscription_id || token) {
+        const subscriptionId = (subscription_id || token) as string;
+        
+        // Get the subscription record to find the tier/planType
+        const subscriptionRecord = await db.query.subscriptions.findFirst({
+          where: eq(schema.subscriptions.paypalSubscriptionId, subscriptionId)
+        });
 
-        // Update user subscription status
-        if (userId) {
+        if (subscriptionRecord) {
+          const endDate = new Date();
+          endDate.setMonth(endDate.getMonth() + 1);
+
+          // Update subscription status to active
+          await db.update(schema.subscriptions)
+            .set({ 
+              status: 'active',
+              activatedAt: new Date(),
+              startDate: new Date(),
+              endDate: endDate,
+              nextBillingDate: endDate,
+              updatedAt: new Date()
+            })
+            .where(eq(schema.subscriptions.paypalSubscriptionId, subscriptionId));
+
+          // Update user with the correct plan type from the subscription record
+          if (subscriptionRecord.userId) {
+            await db.update(schema.users)
+              .set({
+                planType: subscriptionRecord.tier, // Use the tier from subscription (smart_saver or monthly_access)
+                subscriptionStatus: 'active',
+                paypalSubscriptionId: subscriptionId,
+                subscriptionStartDate: new Date(),
+                subscriptionEndDate: endDate,
+                paymentProvider: 'paypal',
+                updatedAt: new Date()
+              })
+              .where(eq(schema.users.id, subscriptionRecord.userId));
+
+            console.log(`✅ PayPal subscription activated: ${subscriptionId} for user ${subscriptionRecord.userId}, plan: ${subscriptionRecord.tier}`);
+          }
+        } else if (userId) {
+          // Fallback: update user status if we have userId but no subscription record
           const user = await storage.getUser(userId as string);
           if (user) {
             await storage.upsertUser({
               ...user,
-              subscriptionStatus: 'active' // Ensure user status is updated
+              subscriptionStatus: 'active',
+              paypalSubscriptionId: subscriptionId
             });
           }
         }
       }
 
-      // Redirect to appropriate dashboard
-      res.redirect('/?subscription=success&message=Subscription activated successfully!');
+      // Redirect to job seeker premium page with success message
+      res.redirect('/job-seeker-premium?subscription=success&message=Subscription activated successfully!');
     } catch (error) {
       console.error('Subscription success handler error:', error);
-      res.redirect('/?subscription=error&message=There was an issue activating your subscription');
+      res.redirect('/job-seeker-premium?subscription=error&message=There was an issue activating your subscription');
     }
   });
 
@@ -6253,6 +6483,14 @@ Return only the cover letter text, no additional formatting or explanations.`;
         })
         .where(eq(schema.users.id, userId));
 
+      // Map plan types to pricing
+      const planPricing: Record<string, string> = {
+        'smart_saver': '13.00',
+        'monthly_access': '19.00',
+        'premium': '5.00',
+        'ultra_premium': '15.00'
+      };
+
       // Also create/update subscription record
       await db.insert(schema.subscriptions).values({
         userId,
@@ -6261,7 +6499,7 @@ Return only the cover letter text, no additional formatting or explanations.`;
         paypalSubscriptionId: subscriptionId,
         status: 'active',
         paymentMethod: 'paypal',
-        amount: planType === 'premium' ? '5.00' : planType === 'ultra_premium' ? '15.00' : '0.00',
+        amount: planPricing[planType] || '0.00',
         currency: 'USD',
         billingCycle: 'monthly',
         startDate: new Date(),

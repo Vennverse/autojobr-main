@@ -1,101 +1,87 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-
-// PayPal TypeScript declarations
-declare global {
-  interface Window {
-    paypal?: {
-      Buttons: (options: {
-        style?: {
-          shape?: string;
-          color?: string;
-          layout?: string;
-          label?: string;
-        };
-        createSubscription?: (data: any, actions: any) => Promise<string>;
-        onApprove?: (data: any, actions: any) => void;
-        onError?: (err: any) => void;
-      }) => {
-        render: (selector: string) => void;
-      };
-    };
-    Razorpay?: any;
-  }
-}
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Check, 
   Crown, 
-  Star, 
-  Zap, 
-  CreditCard,
-  Calendar,
-  AlertTriangle,
-  TrendingUp,
-  Brain,
-  Target,
-  FileText,
-  Search,
-  Clock,
-  Shield,
   Sparkles,
-  ArrowRight,
-  CheckCircle2
+  Coffee,
+  Briefcase,
+  TrendingUp,
+  Calendar,
+  X,
+  Loader2
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import UsageMonitoringWidget from "@/components/UsageMonitoringWidget";
-import RazorpaySubscriptionButton from "@/components/RazorpaySubscriptionButton";
 
-interface JobSeekerSubscriptionTier {
-  id: string;
-  name: string;
-  price: number;
-  currency: string;
-  billingCycle: 'monthly' | 'yearly';
-  userType: 'jobseeker';
-  features: string[];
-  limits: {
-    jobAnalyses?: number;
-    resumeAnalyses?: number;
-    applications?: number;
-    autoFills?: number;
-    interviews?: number;
-  };
+declare global {
+  interface Window {
+    paypal?: any;
+    Razorpay?: any;
+  }
 }
+
+type PlanType = 'smart_saver' | 'monthly_access' | null;
+type PaymentMethod = 'paypal' | 'razorpay' | null;
 
 export default function JobSeekerPremium() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedTier, setSelectedTier] = useState<string | null>(null);
-  const [hoveredPlan, setHoveredPlan] = useState<string | null>(null);
-  const [paymentGateway, setPaymentGateway] = useState<'paypal' | 'razorpay' | null>(null);
-  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
+  const [selectedPlan, setSelectedPlan] = useState<PlanType>(null);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Fetch user data
-  const { data: user } = useQuery<{planType?: string}>({
+  const { data: user } = useQuery<{planType?: string; email?: string}>({
     queryKey: ['/api/user']
   });
 
-  // Fetch only job seeker subscription tiers
-  const { data: tiersData, isLoading: tiersLoading } = useQuery({
-    queryKey: ['/api/subscription/tiers'],
-    queryFn: () => fetch('/api/subscription/tiers?userType=jobseeker').then(res => res.json()),
-  });
-
-  // Fetch current subscription
-  const { data: currentSubscription, isLoading: subscriptionLoading } = useQuery({
+  const { data: currentSubscription } = useQuery({
     queryKey: ['/api/subscription/current'],
   });
 
-  // Cancel subscription mutation
+  // Handle subscription success/error from URL params (after PayPal redirect)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const subscription = urlParams.get('subscription');
+    const message = urlParams.get('message');
+
+    if (subscription === 'success') {
+      toast({
+        title: "Subscription Activated!",
+        description: message || "Your premium subscription is now active.",
+      });
+      // Clean up URL
+      window.history.replaceState({}, '', '/job-seeker-premium');
+      // Refresh subscription data
+      queryClient.invalidateQueries({ queryKey: ['/api/subscription/current'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+    } else if (subscription === 'error') {
+      toast({
+        title: "Subscription Failed",
+        description: message || "There was an issue activating your subscription.",
+        variant: "destructive",
+      });
+      // Clean up URL
+      window.history.replaceState({}, '', '/job-seeker-premium');
+    } else if (subscription === 'cancelled') {
+      toast({
+        title: "Payment Cancelled",
+        description: message || "Subscription setup was cancelled.",
+        variant: "destructive",
+      });
+      // Clean up URL
+      window.history.replaceState({}, '', '/job-seeker-premium');
+    }
+  }, [toast, queryClient]);
+
   const cancelSubscriptionMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('POST', '/api/subscription/cancel', {});
+      return await apiRequest('/api/subscription/cancel', 'POST', {});
     },
     onSuccess: () => {
       toast({
@@ -113,22 +99,8 @@ export default function JobSeekerPremium() {
     },
   });
 
-  const handleCancelSubscription = () => {
-    if (confirm("Are you sure you want to cancel your subscription? You'll still have access until the end of your billing period.")) {
-      cancelSubscriptionMutation.mutate();
-    }
-  };
-
-  // Set payment gateway to Razorpay for all users (supports international payments)
+  // Load Razorpay script
   useEffect(() => {
-    setPaymentGateway('razorpay');
-    setIsLoadingLocation(false);
-  }, []);
-
-  // Load Razorpay script for Indian users
-  useEffect(() => {
-    if (paymentGateway !== 'razorpay') return;
-
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.async = true;
@@ -140,511 +112,466 @@ export default function JobSeekerPremium() {
         existingScript.remove();
       }
     };
-  }, [paymentGateway]);
+  }, []);
 
-  // PayPal script loading and button initialization
+  // Load PayPal script
   useEffect(() => {
-    if (paymentGateway !== 'paypal') return;
-    
-    let isMounted = true;
-
-    const loadPayPalScript = () => {
-      if (window.paypal) {
-        setTimeout(() => initializePayPalButtons(), 100);
-        return;
-      }
-
-      const existingScript = document.querySelector('script[src*="paypal.com/sdk/js"]');
-      if (existingScript) {
-        existingScript.addEventListener('load', () => {
-          if (isMounted) setTimeout(() => initializePayPalButtons(), 100);
-        });
-        return;
-      }
-
+    const existingScript = document.querySelector('script[src*="paypal.com/sdk/js"]');
+    if (!existingScript) {
       const script = document.createElement('script');
       script.src = 'https://www.paypal.com/sdk/js?client-id=AUzUXMfJm1WWbSHiAKfylwAd4AOYkMQV_tE_Pzg2g9zxmGyPC1bt82hlQ_vQycZSrM-ke8gICEeh8kTf&vault=true&intent=subscription';
       script.setAttribute('data-sdk-integration-source', 'button-factory');
       script.async = true;
-      script.onload = () => {
-        if (isMounted) setTimeout(() => initializePayPalButtons(), 100);
-      };
       document.head.appendChild(script);
-    };
+    }
+  }, []);
 
-    const initializePayPalButtons = () => {
-      if (!window.paypal) return;
+  const handlePlanSelect = (plan: PlanType) => {
+    setSelectedPlan(plan);
+    setShowPaymentDialog(true);
+  };
 
-      // Premium Monthly Button ($5)
-      const premiumContainer = document.getElementById('paypal-button-container-P-9SC66893530757807NCRWYCI');
-      if (premiumContainer && !premiumContainer.hasChildNodes()) {
-        window.paypal.Buttons({
-          style: {
-            shape: 'rect',
-            color: 'gold',
-            layout: 'vertical',
-            label: 'subscribe'
-          },
-          createSubscription: function(data: any, actions: any) {
-            return actions.subscription.create({
-              plan_id: 'P-9SC66893530757807NCRWYCI',
-              application_context: {
-                shipping_preference: 'NO_SHIPPING'
-              }
-            });
-          },
-          onApprove: function(data: any, actions: any) {
-            fetch('/api/paypal/verify-subscription', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                subscriptionId: data.subscriptionID,
-                planId: 'P-9SC66893530757807NCRWYCI',
-                planType: 'premium'
-              })
-            }).then(response => response.json())
-            .then(result => {
-              if (result.success) {
-                queryClient.invalidateQueries({ queryKey: ['/api/subscription/current'] });
-                queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-                queryClient.invalidateQueries({ queryKey: ['/api/usage/report'] });
-                toast({
-                  title: "Premium Activated!",
-                  description: "Your premium features are now active.",
-                });
-              }
-            });
-          },
-          onError: function(err: any) {
-            console.error('PayPal subscription error:', err);
-            toast({
-              title: "Payment Error",
-              description: "Failed to process subscription. Please try again.",
-              variant: "destructive",
-            });
-          }
-        }).render('#paypal-button-container-P-9SC66893530757807NCRWYCI');
+  const handlePaymentMethodSelect = async (method: PaymentMethod) => {
+    setSelectedPaymentMethod(method);
+    setIsProcessing(true);
+
+    try {
+      if (method === 'paypal') {
+        await handlePayPalPayment();
+      } else if (method === 'razorpay') {
+        await handleRazorpayPayment();
       }
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast({
+        title: "Payment Failed",
+        description: "There was an error processing your payment. Please try again.",
+        variant: "destructive",
+      });
+      setIsProcessing(false);
+    }
+  };
 
-      // Ultra Premium Monthly Button ($15)
-      const ultraContainer = document.getElementById('paypal-button-container-P-5JM23618R75865735NCRXOLY');
-      if (ultraContainer && !ultraContainer.hasChildNodes()) {
-        window.paypal.Buttons({
-          style: {
-            shape: 'rect',
-            color: 'gold',
-            layout: 'vertical',
-            label: 'subscribe'
-          },
-          createSubscription: function(data: any, actions: any) {
-            return actions.subscription.create({
-              plan_id: 'P-5JM23618R75865735NCRXOLY',
-              application_context: {
-                shipping_preference: 'NO_SHIPPING'
-              }
-            });
-          },
-          onApprove: function(data: any, actions: any) {
-            fetch('/api/paypal/verify-subscription', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                subscriptionId: data.subscriptionID,
-                planId: 'P-5JM23618R75865735NCRXOLY',
-                planType: 'ultra_premium'
-              })
-            }).then(response => response.json())
-            .then(result => {
-              if (result.success) {
-                queryClient.invalidateQueries({ queryKey: ['/api/subscription/current'] });
-                queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-                queryClient.invalidateQueries({ queryKey: ['/api/usage/report'] });
-                toast({
-                  title: "Ultra Premium Activated!",
-                  description: "Your ultra premium features are now active.",
-                });
-              }
-            });
-          },
-          onError: function(err: any) {
-            console.error('PayPal subscription error:', err);
-            toast({
-              title: "Payment Error",
-              description: "Failed to process subscription. Please try again.",
-              variant: "destructive",
-            });
-          }
-        }).render('#paypal-button-container-P-5JM23618R75865735NCRXOLY');
+  const handlePayPalPayment = async () => {
+    const planPricing = {
+      smart_saver: 13.00,
+      monthly_access: 19.00
+    };
+
+    const price = selectedPlan ? planPricing[selectedPlan] : 0;
+    const planName = selectedPlan === 'smart_saver' ? 'Smart Saver' : 'Monthly Access';
+
+    try {
+      // Create PayPal subscription order via backend
+      const response = await apiRequest('/api/payments/paypal/create-subscription', 'POST', {
+        amount: price,
+        currency: 'USD',
+        planType: selectedPlan,
+        planName: planName
+      });
+
+      if (response.approvalUrl) {
+        // Redirect to PayPal for payment approval
+        toast({
+          title: "Redirecting to PayPal",
+          description: "Taking you to PayPal to complete your subscription...",
+        });
+        
+        // Small delay to show the toast before redirecting
+        setTimeout(() => {
+          window.location.href = response.approvalUrl;
+        }, 1000);
+      } else {
+        throw new Error('Failed to get PayPal approval URL');
       }
+    } catch (error: any) {
+      console.error('PayPal subscription error:', error);
+      throw new Error(error.message || 'Failed to create PayPal subscription');
+    }
+  };
+
+  const handleRazorpayPayment = async () => {
+    const planPrices = {
+      smart_saver: 1300, // $13 in cents
+      monthly_access: 1900 // $19 in cents
     };
 
-    loadPayPalScript();
+    const price = selectedPlan ? planPrices[selectedPlan] : 0;
+    const planName = selectedPlan === 'smart_saver' ? 'Smart Saver' : 'Monthly Access';
 
-    return () => {
-      isMounted = false;
-    };
-  }, [queryClient, toast]);
+    try {
+      const response = await apiRequest('/api/payments/razorpay/create-subscription', 'POST', {
+        amount: price,
+        currency: 'USD',
+        planType: selectedPlan,
+        planName: planName
+      });
 
-  if (tiersLoading || subscriptionLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
-        <div className="container mx-auto px-4 py-16">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="relative">
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 dark:border-gray-800"></div>
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-t-blue-600 absolute top-0 left-0"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+      if (response.subscriptionId && window.Razorpay) {
+        const options = {
+          key: response.keyId,
+          subscription_id: response.subscriptionId,
+          name: 'AutoJobr',
+          description: `${planName} Subscription`,
+          handler: async function (response: any) {
+            try {
+              await apiRequest('/api/payments/razorpay/verify-subscription', 'POST', {
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySubscriptionId: response.razorpay_subscription_id,
+                razorpaySignature: response.razorpay_signature,
+                planType: selectedPlan
+              });
+
+              queryClient.invalidateQueries({ queryKey: ['/api/subscription/current'] });
+              queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+
+              toast({
+                title: "Success!",
+                description: `${planName} activated successfully!`,
+              });
+
+              setShowPaymentDialog(false);
+              setIsProcessing(false);
+            } catch (error) {
+              console.error('Verification error:', error);
+              toast({
+                title: "Verification Failed",
+                description: "Payment received but verification failed. Please contact support.",
+                variant: "destructive",
+              });
+              setIsProcessing(false);
+            }
+          },
+          prefill: {
+            email: user?.email || 'customer@example.com'
+          },
+          theme: {
+            color: '#3B82F6'
+          }
+        };
+
+        const razorpay = new window.Razorpay(options);
+        razorpay.open();
+        setIsProcessing(false);
+      } else {
+        throw new Error('Failed to create Razorpay subscription');
+      }
+    } catch (error) {
+      console.error('Razorpay error:', error);
+      throw error;
+    }
+  };
 
   const subscription = (currentSubscription as any)?.subscription || null;
-  const isPremiumUser = user?.planType === 'premium' || user?.planType === 'ultra_premium' || user?.planType === 'enterprise';
-  const isFreeTier = !isPremiumUser && (!subscription || !(subscription?.isActive === true || subscription?.status === 'active'));
+  const isPremiumUser = user?.planType === 'premium' || user?.planType === 'smart_saver' || user?.planType === 'monthly_access';
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 dark:from-blue-500/10 dark:via-purple-500/10 dark:to-pink-500/10"></div>
-        <div className="container mx-auto px-4 py-20 relative">
+        <div className="container mx-auto px-4 py-16 relative">
           <div className="max-w-4xl mx-auto text-center space-y-6">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-900 mb-4">
               <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Elevate Your Career</span>
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Land Your Dream Job</span>
             </div>
             
-            <h1 className="text-5xl md:text-6xl font-semibold tracking-tight text-gray-900 dark:text-white">
-              Premium Job Search,
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900 dark:text-white">
+              Land your next job faster —
               <br />
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Simplified.
+                without overpaying.
               </span>
             </h1>
             
-            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
-              AI-powered tools that transform your job search. Get hired faster with intelligent automation and premium features.
+            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Competitors charge $19–$29 for fewer tools. AutoJobr gives you everything for less.
             </p>
-
-            {isFreeTier && (
-              <div className="mt-8 max-w-md mx-auto">
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50 border border-amber-200 dark:border-amber-800">
-                  <div className="flex items-center gap-3 text-amber-900 dark:text-amber-100">
-                    <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-                    <span className="text-sm font-medium">Free tier limits active. Upgrade for unlimited access.</span>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 pb-20">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-          {/* Sidebar - Usage Monitoring */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-8">
-              <UsageMonitoringWidget />
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-12">
-            {/* Current Subscription */}
-            {subscription && (
-              <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-3xl opacity-0 group-hover:opacity-10 transition-opacity duration-500 blur-xl"></div>
-                <Card className="relative border-blue-100 dark:border-blue-900 shadow-lg shadow-blue-500/5 rounded-3xl overflow-hidden">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
-                  <CardHeader className="relative">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-3 text-2xl">
-                        <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950">
-                          <Crown className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        Active Subscription
-                      </CardTitle>
-                      <Badge className="bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300 border-green-200 dark:border-green-800">
-                        {subscription.status}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="relative space-y-6">
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-1">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Plan</p>
-                        <p className="font-semibold text-lg">{subscription.tierDetails?.name}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Billing</p>
-                        <p className="font-semibold text-lg">${subscription.amount}/{subscription.billingCycle}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Remaining</p>
-                        <p className="font-semibold text-lg">{subscription.daysRemaining} days</p>
-                      </div>
-                    </div>
-                    
-                    {subscription.isActive && (
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800">
-                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                          <Calendar className="h-4 w-4" />
-                          <span>Renews automatically</span>
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={handleCancelSubscription}
-                          disabled={cancelSubscriptionMutation.isPending}
-                          className="hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-600"
-                        >
-                          Cancel Plan
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Pricing Plans */}
-            <div className="space-y-8">
-              <div className="text-center">
-                <h2 className="text-3xl font-semibold text-gray-900 dark:text-white mb-2">
-                  Choose Your Plan
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Select the perfect plan for your career journey
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Premium Plan */}
-                <div 
-                  className="relative group"
-                  onMouseEnter={() => setHoveredPlan('premium')}
-                  onMouseLeave={() => setHoveredPlan(null)}
-                >
-                  <div className={`absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-500 rounded-3xl transition-all duration-500 ${hoveredPlan === 'premium' ? 'opacity-20 blur-xl scale-105' : 'opacity-0'}`}></div>
-                  <Card className="relative border-gray-200 dark:border-gray-800 shadow-xl hover:shadow-2xl transition-all duration-500 rounded-3xl overflow-hidden h-full">
-                    <CardHeader className="space-y-4 pb-8">
-                      <div className="flex items-center justify-between">
-                        <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
-                          <Crown className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <Badge className="bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300 border-green-200 dark:border-green-800">
-                          Save 83%
-                        </Badge>
-                      </div>
-                      
-                      <div>
-                        <CardTitle className="text-2xl mb-2">Premium</CardTitle>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-5xl font-bold tracking-tight">$5</span>
-                          <span className="text-gray-500 dark:text-gray-400">/month</span>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    
-                    <CardContent className="space-y-6">
-                      <div className="space-y-3">
-                        {[
-                          'AI Resume Analysis',
-                          'Smart Job Matching',
-                          'Auto-fill Applications',
-                          'Unlimited Cover Letters',
-                          'Advanced Analytics',
-                          'Priority Support'
-                        ].map((feature, i) => (
-                          <div key={i} className="flex items-center gap-3">
-                            <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                            <span className="text-sm text-gray-700 dark:text-gray-300">{feature}</span>
-                          </div>
-                        ))}
-                      </div>
-                      
-                      <Separator />
-                      
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">Resume Analyses</span>
-                          <span className="font-medium">25/month</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">Applications</span>
-                          <span className="font-medium">Unlimited</span>
-                        </div>
-                      </div>
-                      
-                      <div className="pt-4">
-                        {isLoadingLocation ? (
-                          <div className="min-h-[50px] flex items-center justify-center">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                          </div>
-                        ) : paymentGateway === 'razorpay' ? (
-                          <RazorpaySubscriptionButton
-                            tierId="jobseeker_premium_monthly"
-                            tierName="Premium Monthly"
-                            price={9.99}
-                            userEmail={user?.email || ''}
-                          />
-                        ) : (
-                          <div id="paypal-button-container-P-9SC66893530757807NCRWYCI" className="min-h-[50px]"></div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Ultra Premium Plan */}
-                <div 
-                  className="relative group"
-                  onMouseEnter={() => setHoveredPlan('ultra')}
-                  onMouseLeave={() => setHoveredPlan(null)}
-                >
-                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-3xl opacity-75 blur-sm group-hover:opacity-100 transition-all duration-500"></div>
-                  <Card className="relative bg-white dark:bg-gray-950 border-0 shadow-2xl rounded-3xl overflow-hidden h-full">
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600"></div>
-                    
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
-                      <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0 shadow-lg px-4 py-1">
-                        <Star className="h-3 w-3 mr-1" />
-                        Most Popular
-                      </Badge>
-                    </div>
-                    
-                    <CardHeader className="space-y-4 pb-8 pt-8">
-                      <div className="flex items-center justify-between">
-                        <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600">
-                          <Sparkles className="h-8 w-8 text-white" />
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <CardTitle className="text-2xl mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                          Ultra Premium
-                        </CardTitle>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-5xl font-bold tracking-tight">$15</span>
-                          <span className="text-gray-500 dark:text-gray-400">/month</span>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    
-                    <CardContent className="space-y-6">
-                      <div className="space-y-3">
-                        {[
-                          'Everything in Premium',
-                          'AI Interview Practice',
-                          'Coding Assessments',
-                          'Recruiter Chat Access',
-                          'Advanced Analytics',
-                          'API Access'
-                        ].map((feature, i) => (
-                          <div key={i} className="flex items-center gap-3">
-                            <CheckCircle2 className="h-5 w-5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
-                            <span className="text-sm text-gray-700 dark:text-gray-300">{feature}</span>
-                          </div>
-                        ))}
-                      </div>
-                      
-                      <Separator />
-                      
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">All Features</span>
-                          <span className="font-medium bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Unlimited</span>
-                        </div>
-                      </div>
-                      
-                      <div className="pt-4">
-                        {isLoadingLocation ? (
-                          <div className="min-h-[50px] flex items-center justify-center">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
-                          </div>
-                        ) : paymentGateway === 'razorpay' ? (
-                          <RazorpaySubscriptionButton
-                            tierId="jobseeker_ultra_premium_monthly"
-                            tierName="Ultra Premium Monthly"
-                            price={19.99}
-                            userEmail={user?.email || ''}
-                          />
-                        ) : (
-                          <div id="paypal-button-container-P-5JM23618R75865735NCRXOLY" className="min-h-[50px]"></div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </div>
-
-            {/* Benefits Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8">
-              {[
-                {
-                  icon: Zap,
-                  title: 'AI-Powered',
-                  description: 'Advanced algorithms match you with perfect opportunities',
-                  gradient: 'from-yellow-400 to-orange-500'
-                },
-                {
-                  icon: Clock,
-                  title: 'Save Time',
-                  description: 'Auto-fill applications across 500+ job sites',
-                  gradient: 'from-green-400 to-emerald-500'
-                },
-                {
-                  icon: TrendingUp,
-                  title: 'Get Results',
-                  description: '3x more interviews on average for premium users',
-                  gradient: 'from-blue-400 to-purple-500'
-                }
-              ].map((benefit, i) => (
-                <Card key={i} className="border-gray-200 dark:border-gray-800 hover:shadow-lg transition-all duration-300 rounded-2xl group">
-                  <CardContent className="pt-6 text-center space-y-3">
-                    <div className={`w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br ${benefit.gradient} p-3 group-hover:scale-110 transition-transform duration-300`}>
-                      <benefit.icon className="h-8 w-8 text-white" />
-                    </div>
-                    <h3 className="font-semibold text-lg">{benefit.title}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                      {benefit.description}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* Security & Trust */}
-            <Card className="border-gray-200 dark:border-gray-800 rounded-2xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3 text-xl">
-                  <div className="p-2 rounded-xl bg-green-50 dark:bg-green-950">
-                    <Shield className="h-5 w-5 text-green-600 dark:text-green-400" />
+      {/* Current Subscription Status */}
+      {subscription && subscription.isActive && (
+        <div className="container mx-auto px-4 pb-8 max-w-4xl">
+          <Card className="border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-xl bg-green-100 dark:bg-green-900">
+                    <Crown className="h-6 w-6 text-green-600 dark:text-green-400" />
                   </div>
-                  Secure & Trusted
+                  <div>
+                    <p className="font-semibold text-gray-900 dark:text-white">Active Subscription</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {subscription.tierDetails?.name} - Renews in {subscription.daysRemaining} days
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => cancelSubscriptionMutation.mutate()}
+                  disabled={cancelSubscriptionMutation.isPending}
+                  className="hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-600"
+                  data-testid="button-cancel-subscription"
+                >
+                  Cancel Plan
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Pricing Cards */}
+      <div className="container mx-auto px-4 pb-20">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* CARD 1 - SMART SAVER (Most Popular) */}
+            <Card 
+              className="relative border-2 border-green-200 dark:border-green-800 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group"
+              data-testid="card-plan-smart-saver"
+            >
+              {/* Most Popular Badge */}
+              <div className="absolute -right-12 top-6 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-12 py-1 rotate-45 text-xs font-semibold shadow-lg">
+                Most Popular
+              </div>
+
+              {/* Soft Green Glow */}
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 group-hover:from-green-500/10 group-hover:to-emerald-500/10 transition-all duration-300"></div>
+
+              <CardHeader className="relative pb-6">
+                <div className="flex items-start justify-between mb-4">
+                  <Badge className="bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300 border-green-300 dark:border-green-700 text-xs px-3 py-1">
+                    🏷️ Smart Saver — Most Popular
+                  </Badge>
+                </div>
+
+                <CardTitle className="text-3xl font-bold mb-2">
+                  <span className="text-5xl">$13</span>
+                  <span className="text-xl text-gray-500 dark:text-gray-400 font-normal"> / month</span>
                 </CardTitle>
+
+                <div className="space-y-2">
+                  <Badge className="bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300 border-0 text-sm font-medium">
+                    💚 Save $72 a year
+                  </Badge>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                    <Coffee className="h-3 w-3" />
+                    Just $0.43 a day — less than a coffee, more for your career.
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 italic">
+                    Auto-renew — Cancel Anytime
+                  </p>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Your payment is processed securely through PayPal. Cancel anytime with no questions asked.
+
+              <CardContent className="relative space-y-6">
+                <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                  "Land your next job faster — without overpaying."
                 </p>
-                <div className="flex flex-wrap gap-4 text-sm">
-                  {['Cancel Anytime', 'Instant Activation', '30-Day Guarantee'].map((item, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      <span className="text-gray-700 dark:text-gray-300">{item}</span>
+
+                <div className="space-y-3">
+                  {[
+                    'Unlimited Resumes & Job Tracking',
+                    'AI-Powered Keyword & Cover Letter Builder',
+                    'Resume & Profile Analysis for Better Matches',
+                    '72% of users landed interviews within 3 weeks',
+                    'Competitors charge $19–$29 for fewer tools',
+                    'Cancel Anytime — No Commitment'
+                  ].map((feature, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <Check className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{feature}</span>
                     </div>
                   ))}
+                </div>
+
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Smart choice for serious job seekers.
+                  </p>
+                  
+                  <Button 
+                    className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold py-6 text-lg shadow-lg hover:shadow-xl transition-all"
+                    onClick={() => handlePlanSelect('smart_saver')}
+                    data-testid="button-select-smart-saver"
+                  >
+                    Get Started — $13/mo
+                  </Button>
+                  <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
+                    Auto-renew, cancel anytime.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* CARD 2 - MONTHLY ACCESS (Try Once) */}
+            <Card 
+              className="relative border-2 border-yellow-200 dark:border-yellow-800 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group"
+              data-testid="card-plan-monthly-access"
+            >
+              {/* Flexible Badge */}
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 to-orange-500/5 group-hover:from-yellow-500/10 group-hover:to-orange-500/10 transition-all duration-300"></div>
+
+              <CardHeader className="relative pb-6">
+                <Badge className="bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700 text-xs px-3 py-1 mb-4 w-fit">
+                  ⚡ Flexible Plan — Pay As You Go
+                </Badge>
+
+                <CardTitle className="text-3xl font-bold mb-2">
+                  <span className="text-5xl">$19</span>
+                  <span className="text-xl text-gray-500 dark:text-gray-400 font-normal"> / month</span>
+                </CardTitle>
+
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                    <Briefcase className="h-3 w-3" />
+                    $0.63 a day — great for quick projects or resumes.
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 italic">
+                    Monthly subscription
+                  </p>
+                </div>
+              </CardHeader>
+
+              <CardContent className="relative space-y-6">
+                <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                  "Try for a month — flexible access."
+                </p>
+
+                <div className="space-y-3">
+                  {[
+                    'Same AI tools & resume features as Smart Saver',
+                    'Perfect for one-off applications or interview prep',
+                    'Upgrade anytime to Smart Saver and save 30%',
+                    'Full access to all premium features',
+                    'No long-term commitment required'
+                  ].map((feature, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <Check className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    $19 shows value — $13 feels smart.
+                  </p>
+                  
+                  <Button 
+                    className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-semibold py-6 text-lg shadow-lg hover:shadow-xl transition-all"
+                    onClick={() => handlePlanSelect('monthly_access')}
+                    data-testid="button-select-monthly-access"
+                  >
+                    Start Monthly — $19
+                  </Button>
+                  <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
+                    Upgrade later to save 30%.
+                  </p>
                 </div>
               </CardContent>
             </Card>
           </div>
+
+          {/* Comparison Section */}
+          <div className="mt-12 text-center space-y-4">
+            <div className="inline-block p-6 rounded-2xl bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border border-blue-100 dark:border-blue-900">
+              <p className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Competitors charge $19–$29 for fewer tools.
+              </p>
+              <p className="text-base text-gray-700 dark:text-gray-300">
+                AutoJobr gives you everything for just $13 — or $19 if you prefer flexibility.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 text-gray-600 dark:text-gray-400">
+              <TrendingUp className="h-5 w-5 text-green-600" />
+              <span className="text-sm">
+                🧠 Real ROI: Users report 5× more applications and faster interviews.
+              </span>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Payment Method Selection Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className="sm:max-w-md" data-testid="dialog-payment-method">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">Choose Payment Method</DialogTitle>
+            <DialogDescription>
+              Select your preferred payment provider to complete your {selectedPlan === 'smart_saver' ? 'Smart Saver ($13/mo)' : 'Monthly Access ($19/mo)'} subscription
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-6">
+            {/* PayPal Option */}
+            <button
+              onClick={() => handlePaymentMethodSelect('paypal')}
+              disabled={isProcessing}
+              className="w-full p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-lg transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="button-payment-paypal"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.93 4.778-4.005 7.201-9.138 7.201h-2.19a.563.563 0 0 0-.556.479l-1.187 7.527h-.506l-.24 1.516a.56.56 0 0 0 .554.647h3.882c.46 0 .85-.334.922-.788.06-.26.76-4.852.76-4.852a.932.932 0 0 1 .922-.788h.58c3.76 0 6.705-1.528 7.565-5.946.36-1.847.174-3.388-.814-4.463z"/>
+                    </svg>
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold text-gray-900 dark:text-white">PayPal</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Secure payment with PayPal</p>
+                  </div>
+                </div>
+                {isProcessing && selectedPaymentMethod === 'paypal' && (
+                  <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                )}
+              </div>
+            </button>
+
+            {/* Razorpay Option */}
+            <button
+              onClick={() => handlePaymentMethodSelect('razorpay')}
+              disabled={isProcessing}
+              className="w-full p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-purple-500 dark:hover:border-purple-500 hover:shadow-lg transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="button-payment-razorpay"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold text-lg">R</span>
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold text-gray-900 dark:text-white">Razorpay</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Credit/Debit Card, UPI, NetBanking</p>
+                  </div>
+                </div>
+                {isProcessing && selectedPaymentMethod === 'razorpay' && (
+                  <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
+                )}
+              </div>
+            </button>
+          </div>
+
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setShowPaymentDialog(false);
+              setSelectedPlan(null);
+              setSelectedPaymentMethod(null);
+            }}
+            className="w-full"
+            data-testid="button-cancel-payment"
+          >
+            Cancel
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

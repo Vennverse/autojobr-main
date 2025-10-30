@@ -1,0 +1,79 @@
+CARD 1 — SMART SAVER (Most Popular)
+
+Top Badge: 🏷️ Smart Saver — Most Popular
+Sub-badge (under price): 💚 Save $72 a year
+
+Price:
+💲**$13 / month**
+(Auto-renew — Cancel Anytime)
+
+Daily Cost Line (small grey):
+☕ Just $0.43 a day — less than a coffee, more for your career.
+
+Tagline:
+
+“Land your next job faster — without overpaying.”
+
+Key Highlights (short, scannable, no clutter):
+✅ Unlimited Resumes & Job Tracking
+✅ AI-Powered Keyword & Cover Letter Builder
+✅ Resume & Profile Analysis for Better Matches
+✅ 72% of users landed interviews within 3 weeks
+✅ Competitors charge $19–$29 for fewer tools
+✅ Cancel Anytime — No Commitment
+
+Bottom line (soft nudge):
+
+Smart choice for serious job seekers.
+
+CTA Button:
+🟢 Get Started — $13/mo
+(Smaller text below: “Auto-renew, cancel anytime.”)
+
+🟨 CARD 2 — MONTHLY ACCESS (Try Once)
+
+Top Badge: ⚡ Flexible Plan — Pay As You Go
+
+Price:
+💲**$19 / month**
+(One-time, no auto-renew)
+
+Daily Cost Line (grey):
+💼 $0.63 a day — great for quick projects or resumes.
+
+Tagline:
+
+“Try for a month — no commitments needed.”
+
+Key Highlights:
+🚀 Same AI tools & resume features as Smart Saver
+⏳ Perfect for one-off applications or interview prep
+💸 Upgrade anytime to Smart Saver and save 30%
+📈 AutoJobr gives you everything for just $15 — or $13 if you’re a Smart Saver
+
+Bottom line (anchor effect):
+
+$19 shows value — $13 feels smart.
+
+CTA Button:
+🟡 Start Monthly — $19
+(Smaller text: “Upgrade later to save 30%.”)
+
+⚔️ Mini Comparison Row (Below Cards)
+
+“Competitors charge $19–$29 for fewer tools.
+AutoJobr gives you everything for just $15 — or $13 if you’re a Smart Saver.”
+
+🧠 Real ROI: Users report 5× more applications and faster interviews.
+
+🪄 Design & UX Notes
+
+Show Smart Saver first (left card) with soft green glow/shadow.
+
+Add “Most Popular” ribbon across top-left corner.
+
+Keep $13 larger font size, “Cancel Anytime” right below it in grey.
+
+CTA buttons use action verbs: “Get Started”, “Start Monthly”.
+
+Include real faces/testimonials just below cards for trust (optional line: “Shivani landed a Data Analyst job in 2 weeks using AutoJobr.”).
