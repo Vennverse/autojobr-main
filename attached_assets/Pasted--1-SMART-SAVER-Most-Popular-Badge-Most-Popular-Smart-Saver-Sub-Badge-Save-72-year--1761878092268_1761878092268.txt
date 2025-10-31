@@ -1,0 +1,102 @@
+🟩 1. SMART SAVER — Most Popular
+
+Badge: 🏷️ Most Popular · Smart Saver
+Sub-Badge: 💚 Save $72/year — Cancel Anytime
+
+💲 $13 / month (Auto-Renew)
+or $130 / year (Save $26)
+☕ Just $0.43/day — less than a coffee.
+
+Tagline:
+
+“Everything you need to get hired — faster.”
+
+Highlights:
+✅ Unlimited Resumes & Job Tracking
+✅ AI Resume & Cover Letter Builder
+✅ LinkedIn & ATS Optimization
+✅ Chrome Extension for One-Click Apply
+✅ Interview Practice Tools
+✅ 72% of users got interviews within 3 weeks
+✅ Cancel Anytime — No Hidden Fees
+
+Soft close line:
+
+Smart choice for job seekers who mean business.
+
+CTA:
+🟢 Get Started — $13/mo
+(Auto-renew · Cancel anytime)
+
+🟨 2. MONTHLY ACCESS — Pay As You Go
+
+Badge: ⚡ Flexible Plan
+
+💲 $19 / month (One-time)
+💼 $0.63/day — great for quick goals.
+
+Tagline:
+
+“Try full access for a month — no subscription.”
+
+Highlights:
+🚀 Same AI tools & Resume Builder as Smart Saver
+⏳ Ideal for quick job hunts or interview prep
+💸 Upgrade anytime to Smart Saver and save 30%
+✅ Full access — no auto-renew hassle
+
+Soft close line:
+
+For users testing the waters before committing.
+
+CTA:
+🟡 Start Monthly — $19
+
+🟦 3. ULTRA PLAN — Power Career Mode
+
+Badge: 💎 Premium Experience
+Sub-badge: ✨ For serious professionals
+
+💲 $24 / month (Auto-Renew)
+or $240 / year (Save $48)
+🚀 $0.80/day — premium results, affordable rate.
+
+Tagline:
+
+“Go beyond applications — accelerate your entire career.”
+
+Highlights:
+🔥 Everything in Smart Saver, plus:
+⚙️ Unlimited AI Applications & Mock Interviews
+🎥 Video Interview Prep + AI Feedback
+📊 Career Analytics & Salary Coach
+💼 Priority Referrals & Early Job Access
+🎯 Career Planning & Growth Tracker
+💬 24-hour Priority Support
+
+Soft close line:
+
+Designed for ambitious professionals & career switchers.
+
+CTA:
+🔵 Upgrade to Ultra — $24/mo
+
+🧠 Conversion Boost Strip (below cards)
+
+Why 78% choose AutoJobr:
+💡 “More tools. More ROI. More interviews.”
+🧾 Average user applies to 5× more jobs and lands interviews 3× faster.
+⚖️ Competitors charge 2–3× more for fewer features.
+🎯 Smart Saver users say it paid for itself in their first interview.
+
+🪄 DESIGN NOTES (for your UI team)
+
+Place Smart Saver in the middle with a subtle green glow + raised card.
+
+Add “Most Popular” ribbon across the corner (strong color contrast).
+
+Price font: bold and large; small “per month” underneath.
+
+CTA buttons with consistent verb → “Get Started”, “Start Monthly”, “Upgrade to Ultra”.
+
+Beneath cards: small testimonial slider or trust badges.

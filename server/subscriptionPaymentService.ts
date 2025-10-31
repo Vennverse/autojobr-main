@@ -25,46 +25,102 @@ export interface SubscriptionTier {
 }
 
 export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
-  // Job Seeker Plans
+  // Job Seeker Plans - New Structure
+  // 1. MONTHLY ACCESS - Pay As You Go
   {
-    id: 'jobseeker_premium_monthly',
-    name: 'Premium Monthly',
-    price: 9.99,
+    id: 'monthly-access',
+    name: 'MONTHLY ACCESS',
+    price: 19,
     currency: 'USD',
     billingCycle: 'monthly',
     userType: 'jobseeker',
     features: [
-      'AI Resume Analysis',
-      'Job Matching', 
-      'Chrome Extension with Auto-fill',
-      'Basic Support',
-      'Unlimited Cover Letter Generations',
-      'Advanced Analytics'
+      'Same AI tools & Resume Builder as Smart Saver',
+      'Ideal for quick job hunts or interview prep',
+      'Upgrade anytime to Smart Saver and save 30%',
+      'Full access — no auto-renew hassle'
     ],
     limits: {
-      jobAnalyses: 100,
-      resumeAnalyses: 25,
+      jobAnalyses: -1, // Unlimited
+      resumeAnalyses: -1, // Unlimited
       applications: -1, // Unlimited applications
       autoFills: -1, // Unlimited auto-fills
-      coverLetters: -1 // Unlimited cover letters
+      coverLetters: -1, // Unlimited cover letters
+      interviews: 10 // Limited mock interviews
     }
   },
+  
+  // 2. SMART SAVER - Most Popular (Monthly)
   {
-    id: 'jobseeker_ultra_premium_monthly',
-    name: 'Ultra Premium Monthly',
-    price: 19.99,
+    id: 'smart-saver-monthly',
+    name: 'SMART SAVER',
+    price: 13,
     currency: 'USD',
     billingCycle: 'monthly',
     userType: 'jobseeker',
     features: [
-      'Everything in Premium',
-      'Virtual AI Interviews',
-      'Coding Tests',
-      'Advanced Analytics',
-      'Priority Support',
-      'Chat with Recruiters',
-      'Background Checks',
-      'API Access'
+      'Unlimited Resumes & Job Tracking',
+      'AI Resume & Cover Letter Builder',
+      'LinkedIn & ATS Optimization',
+      'Chrome Extension for One-Click Apply',
+      'Interview Practice Tools',
+      '72% of users got interviews within 3 weeks',
+      'Cancel Anytime — No Hidden Fees'
+    ],
+    limits: {
+      jobAnalyses: -1, // Unlimited
+      resumeAnalyses: -1, // Unlimited
+      applications: -1, // Unlimited applications
+      autoFills: -1, // Unlimited auto-fills
+      coverLetters: -1, // Unlimited cover letters
+      interviews: -1 // Unlimited interviews
+    }
+  },
+  
+  // 2b. SMART SAVER - Most Popular (Yearly)
+  {
+    id: 'smart-saver-yearly',
+    name: 'SMART SAVER',
+    price: 130,
+    currency: 'USD',
+    billingCycle: 'yearly',
+    userType: 'jobseeker',
+    features: [
+      'Unlimited Resumes & Job Tracking',
+      'AI Resume & Cover Letter Builder',
+      'LinkedIn & ATS Optimization',
+      'Chrome Extension for One-Click Apply',
+      'Interview Practice Tools',
+      '72% of users got interviews within 3 weeks',
+      'Cancel Anytime — No Hidden Fees',
+      'Save $26/year compared to monthly'
+    ],
+    limits: {
+      jobAnalyses: -1, // Unlimited
+      resumeAnalyses: -1, // Unlimited
+      applications: -1, // Unlimited applications
+      autoFills: -1, // Unlimited auto-fills
+      coverLetters: -1, // Unlimited cover letters
+      interviews: -1 // Unlimited interviews
+    }
+  },
+  
+  // 3. ULTRA PLAN - Power Career Mode (Monthly)
+  {
+    id: 'ultra-plan-monthly',
+    name: 'ULTRA PLAN',
+    price: 24,
+    currency: 'USD',
+    billingCycle: 'monthly',
+    userType: 'jobseeker',
+    features: [
+      'Everything in Smart Saver, plus:',
+      'Unlimited AI Applications & Mock Interviews',
+      'Video Interview Prep + AI Feedback',
+      'Career Analytics & Salary Coach',
+      'Priority Referrals & Early Job Access',
+      'Career Planning & Growth Tracker',
+      '24-hour Priority Support'
     ],
     limits: {
       jobAnalyses: -1, // Unlimited
@@ -75,19 +131,24 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
       coverLetters: -1 // Unlimited cover letters
     }
   },
+  
+  // 3b. ULTRA PLAN - Power Career Mode (Yearly)
   {
-    id: 'jobseeker_ultra_premium_yearly',
-    name: 'Ultra Premium Yearly',
-    price: 199.99,
+    id: 'ultra-plan-yearly',
+    name: 'ULTRA PLAN',
+    price: 240,
     currency: 'USD',
     billingCycle: 'yearly',
     userType: 'jobseeker',
     features: [
-      'Everything in Ultra Premium Monthly',
-      '2 months free',
-      'Career Coaching Session',
-      'Resume Writing Service',
-      'Dedicated Account Manager'
+      'Everything in Smart Saver, plus:',
+      'Unlimited AI Applications & Mock Interviews',
+      'Video Interview Prep + AI Feedback',
+      'Career Analytics & Salary Coach',
+      'Priority Referrals & Early Job Access',
+      'Career Planning & Growth Tracker',
+      '24-hour Priority Support',
+      'Save $48/year compared to monthly'
     ],
     limits: {
       jobAnalyses: -1, // Unlimited
