@@ -684,17 +684,17 @@ export default function LandingPage() {
 
       {/* Pricing with Social Proof & Urgency */}
       <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-900">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="text-center mb-8">
             <Badge className="mb-4 bg-gradient-to-r from-orange-600 to-red-600 text-white px-4 py-2 animate-pulse">
               <Clock className="w-4 h-4 mr-2" />
               Limited Time: First 1,000 users get Premium FREE for 30 days
             </Badge>
             <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
-              Start Free, Upgrade When Ready
+              Choose Your Plan
             </h2>
             <p className="text-xl text-slate-600 dark:text-slate-300">
-              Try everything free. Upgrade for unlimited access.
+              From quick wins to career transformation
             </p>
             <div className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-500">
               <Users className="w-4 h-4" />
@@ -702,80 +702,138 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Free Plan */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Monthly Access Plan */}
             <Card className="border-2 hover:shadow-xl transition-shadow">
               <CardContent className="p-8">
-                <h3 className="text-2xl font-bold mb-2">Free Forever</h3>
-                <div className="text-4xl font-bold mb-4">$0<span className="text-lg text-slate-500">/month</span></div>
-                <Badge className="mb-4 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                  Perfect to get started
-                </Badge>
+                <div className="text-center mb-4">
+                  <Badge className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">
+                    ⚡ Flexible Plan
+                  </Badge>
+                </div>
+                <h3 className="text-2xl font-bold mb-2 text-center">MONTHLY ACCESS</h3>
+                <div className="text-center">
+                  <div className="text-4xl font-bold mb-2">$19<span className="text-lg text-slate-500">/month</span></div>
+                  <p className="text-sm text-slate-500 mb-4">$0.63/day</p>
+                </div>
+                <p className="text-sm text-center text-slate-600 dark:text-slate-300 mb-6 italic">
+                  Try full access for a month — no subscription.
+                </p>
                 <ul className="space-y-3 mb-6">
                   {[
-                    "Access to referral network",
-                    "2 AI interviews/day",
-                    "3 resume uploads",
-                    "Chrome extension basic",
-                    "Browse freelance projects"
+                    "Same AI tools & Resume Builder",
+                    "Ideal for quick job hunts",
+                    "Upgrade anytime to save 30%",
+                    "Full access — no auto-renew"
                   ].map((feature, idx) => (
-                    <li key={idx} className="flex items-center">
-                      <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                      <span>{feature}</span>
+                    <li key={idx} className="flex items-start">
+                      <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                      <span className="text-sm">{feature}</span>
                     </li>
                   ))}
                 </ul>
-                <Link href="/auth">
-                  <Button className="w-full" variant="outline" size="lg" data-testid="button-start-free-plan">
-                    Start Free Now
+                <Link href="/job-seeker-premium">
+                  <Button className="w-full" variant="outline" size="lg" data-testid="button-monthly-access">
+                    Start Monthly — $19
                   </Button>
                 </Link>
-                <p className="text-xs text-center text-slate-500 mt-3">No credit card required</p>
+                <p className="text-xs text-center text-slate-500 mt-3">One-time payment • No auto-renew</p>
               </CardContent>
             </Card>
 
-            {/* Premium Plan */}
-            <Card className="border-2 border-blue-500 relative shadow-2xl hover:shadow-3xl transition-shadow">
+            {/* Smart Saver Plan */}
+            <Card className="border-2 border-green-500 relative shadow-2xl hover:shadow-3xl transition-shadow scale-105">
               <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                <Badge className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-1">
-                  <Crown className="w-3 h-3 mr-1" />
-                  Most Popular
+                <Badge className="bg-green-500 hover:bg-green-600 text-white px-4 py-1">
+                  <Star className="w-3 h-3 mr-1" />
+                  MOST POPULAR
                 </Badge>
               </div>
               <CardContent className="p-8">
-                <h3 className="text-2xl font-bold mb-2">Premium</h3>
-                <div className="flex items-baseline gap-2 mb-4">
-                  <span className="text-4xl font-bold">$5</span>
-                  <span className="text-lg text-slate-500 line-through">$29.99</span>
-                  <span className="text-lg text-slate-500">/month</span>
+                <div className="text-center mb-4">
+                  <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                    🏷️ Smart Saver
+                  </Badge>
+                  <Badge className="mt-2 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 border-green-200">
+                    💚 Save $72/year — Cancel Anytime
+                  </Badge>
                 </div>
-                <Badge className="mb-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-                  Save 83% vs LinkedIn Premium
-                </Badge>
+                <h3 className="text-2xl font-bold mb-2 text-center">SMART SAVER</h3>
+                <div className="text-center">
+                  <div className="text-4xl font-bold mb-2">$13<span className="text-lg text-slate-500">/month</span></div>
+                  <p className="text-sm text-green-600 dark:text-green-400 mb-2">Save $26/year (billed yearly at $130)</p>
+                  <p className="text-sm text-slate-500 mb-4">$0.43/day — less than a coffee</p>
+                </div>
+                <p className="text-sm text-center text-slate-600 dark:text-slate-300 mb-6 italic">
+                  Everything you need to get hired — faster.
+                </p>
                 <ul className="space-y-3 mb-6">
                   {[
-                    "Everything in Free",
-                    "Unlimited AI interviews",
-                    "Unlimited resumes & analysis",
-                    "Priority referral matching",
-                    "Advanced Chrome extension",
-                    "Freelance project priority",
-                    "Interview preparation AI",
-                    "Priority support"
+                    "Unlimited Resumes & Job Tracking",
+                    "AI Resume & Cover Letter Builder",
+                    "LinkedIn & ATS Optimization",
+                    "Chrome Extension - One-Click Apply",
+                    "Interview Practice Tools",
+                    "72% got interviews in 3 weeks"
                   ].map((feature, idx) => (
-                    <li key={idx} className="flex items-center">
-                      <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                      <span className="font-medium">{feature}</span>
+                    <li key={idx} className="flex items-start">
+                      <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                      <span className="text-sm font-medium">{feature}</span>
                     </li>
                   ))}
                 </ul>
-                <Link href="/subscription">
-                  <Button className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white" size="lg" data-testid="button-upgrade-premium">
-                    Get 30 Days Free
+                <Link href="/job-seeker-premium">
+                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white" size="lg" data-testid="button-smart-saver">
+                    Get Started — $13/mo
                     <Sparkles className="w-4 h-4 ml-2" />
                   </Button>
                 </Link>
-                <p className="text-xs text-center text-slate-500 mt-3">Cancel anytime. Money-back guarantee</p>
+                <p className="text-xs text-center text-slate-500 mt-3">Auto-renew • Cancel anytime</p>
+              </CardContent>
+            </Card>
+
+            {/* Ultra Plan */}
+            <Card className="border-2 border-blue-500 hover:shadow-xl transition-shadow">
+              <CardContent className="p-8">
+                <div className="text-center mb-4">
+                  <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                    💎 Premium Experience
+                  </Badge>
+                  <Badge className="mt-2 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 border-blue-200">
+                    ✨ For serious professionals
+                  </Badge>
+                </div>
+                <h3 className="text-2xl font-bold mb-2 text-center">ULTRA PLAN</h3>
+                <div className="text-center">
+                  <div className="text-4xl font-bold mb-2">$24<span className="text-lg text-slate-500">/month</span></div>
+                  <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">Save $48/year (billed yearly at $240)</p>
+                  <p className="text-sm text-slate-500 mb-4">$0.80/day</p>
+                </div>
+                <p className="text-sm text-center text-slate-600 dark:text-slate-300 mb-6 italic">
+                  Go beyond applications — accelerate your entire career.
+                </p>
+                <ul className="space-y-3 mb-6">
+                  {[
+                    "Everything in Smart Saver, plus:",
+                    "Unlimited AI Applications & Interviews",
+                    "Video Interview Prep + AI Feedback",
+                    "Career Analytics & Salary Coach",
+                    "Priority Referrals & Early Job Access",
+                    "24-hour Priority Support"
+                  ].map((feature, idx) => (
+                    <li key={idx} className="flex items-start">
+                      <CheckCircle className="w-5 h-5 text-blue-500 mr-3 flex-shrink-0 mt-0.5" />
+                      <span className="text-sm font-medium">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/job-seeker-premium">
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white" size="lg" data-testid="button-ultra-plan">
+                    Upgrade to Ultra — $24/mo
+                    <Crown className="w-4 h-4 ml-2" />
+                  </Button>
+                </Link>
+                <p className="text-xs text-center text-slate-500 mt-3">Auto-renew • Cancel anytime</p>
               </CardContent>
             </Card>
           </div>
