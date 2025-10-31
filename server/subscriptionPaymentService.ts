@@ -314,12 +314,24 @@ export class SubscriptionPaymentService {
     });
 
     if (subscription) {
+      // Update user profile subscription tier
       await db.update(userProfiles)
         .set({
           subscriptionTier: subscription.tier,
           subscriptionStatus: 'active'
         })
         .where(eq(userProfiles.userId, subscription.userId));
+
+      // CRITICAL: Update user's planType to 'premium' for access control
+      const { users } = await import('@shared/schema');
+      await db.update(users)
+        .set({
+          planType: 'premium',
+          subscriptionStatus: 'active',
+          subscriptionStartDate: new Date(),
+          subscriptionEndDate: subscription.endDate
+        })
+        .where(eq(users.id, subscription.userId));
     }
   }
 

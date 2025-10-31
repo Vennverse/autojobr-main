@@ -506,13 +506,17 @@ export default function JobSeekerPremium() {
                 {paymentGateway === 'paypal' && user?.email && selectedTier && (
                   <PayPalSubscriptionButton
                     tierId={getSelectedTierId()}
-                    userEmail={user.email}
+                    amount={getSelectedPrice().toString()}
+                    currency="USD"
+                    planName={selectedTier.name}
+                    userType="jobseeker"
                     onSuccess={() => {
                       toast({
                         title: "🎉 Subscription Activated!",
                         description: "Welcome to premium! Your features are now unlocked.",
                       });
                       queryClient.invalidateQueries({ queryKey: ['/api/subscription/current'] });
+                      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
                       setShowPaymentDialog(false);
                     }}
                     onError={(error) => {
@@ -525,15 +529,19 @@ export default function JobSeekerPremium() {
                   />
                 )}
 
-                {paymentGateway === 'razorpay' && selectedTier && (
+                {paymentGateway === 'razorpay' && selectedTier && user?.email && (
                   <RazorpaySubscriptionButton
                     tierId={getSelectedTierId()}
+                    tierName={selectedTier.name}
+                    price={getSelectedPrice()}
+                    userEmail={user.email}
                     onSuccess={() => {
                       toast({
                         title: "🎉 Subscription Activated!",
                         description: "Welcome to premium! Your features are now unlocked.",
                       });
                       queryClient.invalidateQueries({ queryKey: ['/api/subscription/current'] });
+                      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
                       setShowPaymentDialog(false);
                     }}
                     onError={(error) => {

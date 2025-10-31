@@ -12,6 +12,8 @@ interface RazorpaySubscriptionButtonProps {
   userEmail: string;
   disabled?: boolean;
   className?: string;
+  onSuccess?: () => void;
+  onError?: (error: string) => void;
 }
 
 // Declare Razorpay global
@@ -27,7 +29,9 @@ export default function RazorpaySubscriptionButton({
   price,
   userEmail,
   disabled = false,
-  className = ""
+  className = "",
+  onSuccess,
+  onError
 }: RazorpaySubscriptionButtonProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -84,6 +88,9 @@ export default function RazorpaySubscriptionButton({
           // Invalidate and refetch subscription data
           queryClient.invalidateQueries({ queryKey: ['/api/subscription/current'] });
           queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+          
+          // Call success callback
+          onSuccess?.();
         },
         prefill: {
           email: userEmail,
@@ -107,11 +114,15 @@ export default function RazorpaySubscriptionButton({
     },
     onError: (error: any) => {
       console.error('Razorpay subscription error:', error);
+      const errorMessage = error.message || "Failed to create subscription. Please try again.";
       toast({
         title: "Subscription Error",
-        description: "Failed to create subscription. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
+      
+      // Call error callback
+      onError?.(errorMessage);
     },
     onSettled: () => {
       setIsProcessing(false);
