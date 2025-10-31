@@ -26,7 +26,7 @@ import {
   Star
 } from "lucide-react";
 import PayPalSubscriptionButton from "@/components/PayPalSubscriptionButton";
-import PaymentGatewaySelector from "@/components/PaymentGatewaySelector";
+import SimplePaymentGatewaySelector from "@/components/SimplePaymentGatewaySelector";
 import RazorpaySubscriptionButton from "@/components/RazorpaySubscriptionButton";
 import { useEffect } from "react";
 
@@ -497,7 +497,7 @@ export default function JobSeekerPremium() {
               <>
                 <div className="space-y-4">
                   <label className="text-sm font-medium">Select Payment Method:</label>
-                  <PaymentGatewaySelector
+                  <SimplePaymentGatewaySelector
                     selectedGateway={paymentGateway}
                     onGatewayChange={setPaymentGateway}
                   />

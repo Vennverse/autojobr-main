@@ -6551,12 +6551,26 @@ Return only the cover letter text, no additional formatting or explanations.`;
         case 'BILLING.SUBSCRIPTION.CANCELLED':
         case 'BILLING.SUBSCRIPTION.SUSPENDED':
           // Update subscription to cancelled/suspended
-          await db.update(schema.subscriptions)
-            .set({ 
-              status: 'cancelled',
-              cancelledAt: new Date()
-            })
-            .where(eq(schema.subscriptions.paypalSubscriptionId, event.resource.id));
+          const cancelledSub = await db.query.subscriptions.findFirst({
+            where: eq(schema.subscriptions.paypalSubscriptionId, event.resource.id)
+          });
+          
+          if (cancelledSub) {
+            await db.update(schema.subscriptions)
+              .set({ 
+                status: 'cancelled',
+                cancelledAt: new Date()
+              })
+              .where(eq(schema.subscriptions.paypalSubscriptionId, event.resource.id));
+            
+            // Downgrade user to free plan
+            await db.update(schema.users)
+              .set({
+                planType: 'free',
+                subscriptionStatus: 'cancelled'
+              })
+              .where(eq(schema.users.id, cancelledSub.userId));
+          }
           break;
 
         case 'BILLING.SUBSCRIPTION.PAYMENT.FAILED':

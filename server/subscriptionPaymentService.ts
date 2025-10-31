@@ -351,6 +351,15 @@ export class SubscriptionPaymentService {
         subscriptionStatus: 'cancelled'
       })
       .where(eq(userProfiles.userId, userId));
+
+    // CRITICAL: Downgrade user to free plan when subscription is cancelled
+    const { users } = await import('@shared/schema');
+    await db.update(users)
+      .set({
+        planType: 'free',
+        subscriptionStatus: 'cancelled'
+      })
+      .where(eq(users.id, userId));
   }
 
   async getSubscriptionTiers(userType?: 'jobseeker' | 'recruiter'): Promise<SubscriptionTier[]> {
