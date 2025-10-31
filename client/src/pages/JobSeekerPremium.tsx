@@ -144,13 +144,15 @@ export default function JobSeekerPremium() {
 
   const handleSelectTier = (tier: PricingTier) => {
     setSelectedTier(tier);
-    setSelectedBillingCycle(billingCycle);
+    // Monthly Access is always monthly, other tiers use the global billing cycle
+    const tierBillingCycle = tier.id === 'monthly-access' ? 'monthly' : billingCycle;
+    setSelectedBillingCycle(tierBillingCycle);
     setShowPaymentDialog(true);
   };
   
   const getSelectedTierId = () => {
     if (!selectedTier) return '';
-    // For monthly-access, always use monthly tier ID
+    // For monthly-access, always use monthly tier ID (no suffix)
     if (selectedTier.id === 'monthly-access') return selectedTier.id;
     // For other tiers, append billing cycle
     return selectedBillingCycle === 'yearly' ? `${selectedTier.id}-yearly` : `${selectedTier.id}-monthly`;
@@ -252,8 +254,14 @@ export default function JobSeekerPremium() {
         <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
           {pricingTiers.map((tier, index) => {
             const isCurrentPlan = currentSubscription?.tierName?.toLowerCase().includes(tier.name.toLowerCase());
-            const displayPrice = billingCycle === 'yearly' && tier.yearlyPrice ? tier.yearlyPrice : tier.monthlyPrice;
-            const priceLabel = billingCycle === 'yearly' ? 'year' : 'month';
+            // Monthly Access is always monthly, regardless of billing toggle
+            const isMonthlyAccessTier = tier.id === 'monthly-access';
+            const displayPrice = isMonthlyAccessTier 
+              ? tier.monthlyPrice 
+              : (billingCycle === 'yearly' && tier.yearlyPrice ? tier.yearlyPrice : tier.monthlyPrice);
+            const priceLabel = isMonthlyAccessTier 
+              ? 'month' 
+              : (billingCycle === 'yearly' && tier.yearlyPrice ? 'year' : 'month');
 
             return (
               <Card 

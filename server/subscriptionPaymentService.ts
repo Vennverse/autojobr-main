@@ -234,6 +234,9 @@ export class SubscriptionPaymentService {
     }
 
     // Create subscription record in database (pending)
+    // Monthly Access is a one-time payment with no auto-renew
+    const shouldAutoRenew = tierId !== 'monthly-access';
+    
     const subscription = await db.insert(subscriptions).values({
       userId,
       tier: tierId,
@@ -244,7 +247,7 @@ export class SubscriptionPaymentService {
       billingCycle: tier.billingCycle,
       startDate: new Date(),
       endDate: this.calculateEndDate(tier.billingCycle),
-      autoRenew: true
+      autoRenew: shouldAutoRenew
     }).returning();
 
     if (paymentMethod === 'paypal') {
