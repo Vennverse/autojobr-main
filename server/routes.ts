@@ -7888,6 +7888,18 @@ Return ONLY the JSON object, no additional text.`;
         enhancedUser
       );
 
+      // Helper function to sanitize array items to strings
+      const toStringArray = (arr: any[]): string[] => {
+        if (!Array.isArray(arr)) return [];
+        return arr.map(item => {
+          if (typeof item === 'string') return item.trim();
+          if (typeof item === 'object' && item !== null) {
+            return item.text || item.description || item.name || item.value || JSON.stringify(item);
+          }
+          return String(item);
+        }).filter(s => s && s.length > 0);
+      };
+
       // Map the tailored resume data to PDF generator format with ALL fields
       const pdfReadyData = {
         fullName: tailoredResult.tailoredResumeData.personalInfo?.fullName || resumeData.fullName || 'Your Name',
@@ -7905,7 +7917,7 @@ Return ONLY the JSON object, no additional text.`;
           startDate: exp.startDate || '',
           endDate: exp.endDate || '',
           isCurrent: exp.isCurrent || false,
-          bulletPoints: exp.achievements || exp.bulletPoints || []
+          bulletPoints: toStringArray(exp.achievements || exp.bulletPoints || [])
         })),
         education: (tailoredResult.tailoredResumeData.education || []).map((edu: any) => ({
           institution: edu.university || edu.institution || 'University',
@@ -7913,31 +7925,35 @@ Return ONLY the JSON object, no additional text.`;
           fieldOfStudy: edu.major || edu.fieldOfStudy || '',
           graduationYear: edu.graduationDate ? parseInt(edu.graduationDate) : undefined,
           gpa: edu.gpa || '',
-          achievements: edu.achievements || []
+          achievements: toStringArray(edu.achievements || [])
         })),
-        skills: Array.isArray(tailoredResult.tailoredResumeData.skills) 
-          ? tailoredResult.tailoredResumeData.skills 
-          : [
-              ...(tailoredResult.tailoredResumeData.skills?.programming || []),
-              ...(tailoredResult.tailoredResumeData.skills?.frameworks || []),
-              ...(tailoredResult.tailoredResumeData.skills?.databases || []),
-              ...(tailoredResult.tailoredResumeData.skills?.tools || []),
-              ...(tailoredResult.tailoredResumeData.skills?.cloudPlatforms || []),
-              ...(tailoredResult.tailoredResumeData.skills?.business || []),
-              ...(tailoredResult.tailoredResumeData.skills?.marketing || []),
-              ...(tailoredResult.tailoredResumeData.skills?.sales || []),
-              ...(tailoredResult.tailoredResumeData.skills?.finance || []),
-              ...(tailoredResult.tailoredResumeData.skills?.healthcare || []),
-              ...(tailoredResult.tailoredResumeData.skills?.education || [])
-            ].filter(Boolean),
+        skills: toStringArray(
+          Array.isArray(tailoredResult.tailoredResumeData.skills) 
+            ? tailoredResult.tailoredResumeData.skills 
+            : [
+                ...(tailoredResult.tailoredResumeData.skills?.programming || []),
+                ...(tailoredResult.tailoredResumeData.skills?.frameworks || []),
+                ...(tailoredResult.tailoredResumeData.skills?.databases || []),
+                ...(tailoredResult.tailoredResumeData.skills?.tools || []),
+                ...(tailoredResult.tailoredResumeData.skills?.cloudPlatforms || []),
+                ...(tailoredResult.tailoredResumeData.skills?.business || []),
+                ...(tailoredResult.tailoredResumeData.skills?.marketing || []),
+                ...(tailoredResult.tailoredResumeData.skills?.sales || []),
+                ...(tailoredResult.tailoredResumeData.skills?.finance || []),
+                ...(tailoredResult.tailoredResumeData.skills?.healthcare || []),
+                ...(tailoredResult.tailoredResumeData.skills?.education || [])
+              ].filter(Boolean)
+        ),
         projects: (tailoredResult.tailoredResumeData.projects || []).map((proj: any) => ({
           name: proj.name || 'Project',
           description: Array.isArray(proj.description) ? proj.description.join(' ') : (proj.description || ''),
-          technologies: proj.technologies || [],
+          technologies: toStringArray(proj.technologies || []),
           url: proj.url || ''
         })),
-        certifications: (tailoredResult.tailoredResumeData.certifications || []).map((cert: any) => 
-          typeof cert === 'string' ? cert : cert.name || 'Certification'
+        certifications: toStringArray(
+          (tailoredResult.tailoredResumeData.certifications || []).map((cert: any) => 
+            typeof cert === 'string' ? cert : cert.name || ''
+          )
         )
       };
 

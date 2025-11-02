@@ -63,7 +63,7 @@ export class ResumePdfGenerator {
       try {
         const doc = new PDFDocument({
           size: 'LETTER',
-          margins: { top: 50, bottom: 50, left: 50, right: 50 }
+          margins: { top: 36, bottom: 36, left: 45, right: 45 }
         });
 
         const chunks: Buffer[] = [];
@@ -81,8 +81,11 @@ export class ResumePdfGenerator {
           skills: resumeData.skills?.length || 0
         });
 
+        // Sanitize data to prevent [object Object] errors
+        const sanitizedData = this.sanitizeResumeData(resumeData);
+
         // Generate content based on template
-        this.generateHarvardTemplate(doc, resumeData);
+        this.generateHarvardTemplate(doc, sanitizedData);
 
         doc.end();
       } catch (error) {
@@ -92,23 +95,55 @@ export class ResumePdfGenerator {
     });
   }
 
+  private sanitizeResumeData(data: ResumeData): ResumeData {
+    const toStringArray = (arr: any[]): string[] => {
+      if (!Array.isArray(arr)) return [];
+      return arr.map(item => {
+        if (typeof item === 'string') return item.trim();
+        if (typeof item === 'object' && item !== null) {
+          return item.text || item.description || item.name || item.value || String(item);
+        }
+        return String(item);
+      }).filter(s => s && s.length > 0 && s !== '[object Object]');
+    };
+
+    return {
+      ...data,
+      skills: toStringArray(data.skills || []),
+      certifications: toStringArray(data.certifications || []),
+      awards: toStringArray(data.awards || []),
+      experience: (data.experience || []).map(exp => ({
+        ...exp,
+        bulletPoints: toStringArray(exp.bulletPoints || [])
+      })),
+      education: (data.education || []).map(edu => ({
+        ...edu,
+        achievements: toStringArray(edu.achievements || [])
+      })),
+      projects: (data.projects || []).map(proj => ({
+        ...proj,
+        technologies: toStringArray(proj.technologies || [])
+      }))
+    };
+  }
+
   /**
    * Harvard/MIT/Stanford Style Resume Template
-   * Professional, ATS-friendly, single-column layout
+   * Professional, ATS-friendly, single-column layout with Times Roman font
    */
   private generateHarvardTemplate(doc: PDFKit.PDFDocument, data: ResumeData) {
     const pageWidth = doc.page.width;
     const margins = doc.page.margins;
     const contentWidth = pageWidth - margins.left - margins.right;
 
-    // Header - Name and Contact Info
-    doc.fontSize(22)
-       .font('Helvetica-Bold')
+    // Header - Name and Contact Info (Professional, clean header)
+    doc.fontSize(20)
+       .font('Times-Bold')
        .text(data.fullName.toUpperCase(), { align: 'center' });
 
-    doc.moveDown(0.3);
+    doc.moveDown(0.2);
 
-    // Contact Information
+    // Contact Information - Single line, professional format
     const contactInfo: string[] = [];
     if (data.phone) contactInfo.push(data.phone);
     if (data.email) contactInfo.push(data.email);
@@ -116,35 +151,40 @@ export class ResumePdfGenerator {
     
     if (contactInfo.length > 0) {
       doc.fontSize(10)
-         .font('Helvetica')
+         .font('Times-Roman')
          .text(contactInfo.join(' | '), { align: 'center' });
     }
 
-    // Links (LinkedIn, GitHub, Portfolio)
+    // Links (LinkedIn, GitHub, Portfolio) - Professional format
     const links: string[] = [];
-    if (data.linkedinUrl) links.push(`LinkedIn: ${data.linkedinUrl}`);
-    if (data.githubUrl) links.push(`GitHub: ${data.githubUrl}`);
-    if (data.portfolioUrl) links.push(`Portfolio: ${data.portfolioUrl}`);
+    if (data.linkedinUrl) {
+      const linkedinHandle = data.linkedinUrl.replace(/https?:\/\/(www\.)?linkedin\.com\/in\//, '');
+      links.push(`LinkedIn: ${linkedinHandle}`);
+    }
+    if (data.githubUrl) {
+      const githubHandle = data.githubUrl.replace(/https?:\/\/(www\.)?github\.com\//, '');
+      links.push(`GitHub: ${githubHandle}`);
+    }
+    if (data.portfolioUrl) {
+      links.push(`Portfolio: ${data.portfolioUrl.replace(/https?:\/\/(www\.)?/, '')}`);
+    }
     
     if (links.length > 0) {
-      doc.moveDown(0.2);
+      doc.moveDown(0.15);
       doc.fontSize(9)
-         .font('Helvetica')
+         .font('Times-Roman')
          .text(links.join(' | '), { align: 'center' });
     }
 
-    // Horizontal line under header
-    doc.moveDown(0.5);
-    this.drawLine(doc, margins.left, doc.y, pageWidth - margins.right, doc.y);
-    doc.moveDown(0.5);
+    doc.moveDown(0.6);
 
-    // Professional Summary
+    // Career Objective (simplified summary)
     if (data.summary) {
-      this.addSectionHeader(doc, 'PROFESSIONAL SUMMARY');
+      this.addSectionHeader(doc, 'CAREER OBJECTIVE');
       doc.fontSize(10)
-         .font('Helvetica')
-         .text(data.summary, { align: 'justify', lineGap: 2 });
-      doc.moveDown(0.8);
+         .font('Times-Roman')
+         .text(data.summary, { align: 'left', lineGap: 1.5 });
+      doc.moveDown(0.7);
     }
 
     // Work Experience
@@ -152,44 +192,44 @@ export class ResumePdfGenerator {
       this.addSectionHeader(doc, 'PROFESSIONAL EXPERIENCE');
       
       data.experience.forEach((exp, index) => {
-        // Job Title and Company
+        // Position and Company
         doc.fontSize(11)
-           .font('Helvetica-Bold')
-           .text(exp.position, { continued: true })
-           .fontSize(10)
-           .font('Helvetica')
-           .text(` - ${exp.company}`);
+           .font('Times-Bold')
+           .text(exp.position + ' - ' + exp.company);
 
-        // Location and Dates
+        // Location and Dates on same line
         const dateText = `${exp.startDate} - ${exp.isCurrent ? 'Present' : (exp.endDate || '')}`;
-        doc.fontSize(9)
-           .font('Helvetica-Oblique')
-           .text(`${exp.location || ''} | ${dateText}`, { lineGap: 2 });
+        const locationDate = exp.location ? `${exp.location} | ${dateText}` : dateText;
+        
+        doc.fontSize(10)
+           .font('Times-Italic')
+           .text(locationDate);
 
         // Bullet Points
         if (exp.bulletPoints && exp.bulletPoints.length > 0) {
-          doc.moveDown(0.3);
+          doc.moveDown(0.25);
           exp.bulletPoints.forEach(bullet => {
             const bulletX = doc.x;
             const bulletY = doc.y;
             
             doc.fontSize(10)
-               .font('Helvetica')
+               .font('Times-Roman')
                .text('•', bulletX, bulletY, { continued: false })
-               .text(bullet, bulletX + 15, bulletY, { 
-                 width: contentWidth - 15,
-                 lineGap: 1
+               .text('   ' + bullet, bulletX, bulletY, { 
+                 width: contentWidth,
+                 lineGap: 1.2,
+                 indent: 15
                });
             
-            doc.moveDown(0.3);
+            doc.moveDown(0.25);
           });
         }
 
         if (index < data.experience.length - 1) {
-          doc.moveDown(0.5);
+          doc.moveDown(0.4);
         }
       });
-      doc.moveDown(0.8);
+      doc.moveDown(0.7);
     }
 
     // Education
@@ -197,46 +237,45 @@ export class ResumePdfGenerator {
       this.addSectionHeader(doc, 'EDUCATION');
       
       data.education.forEach((edu, index) => {
+        // Degree - Field of Study
+        const degreeText = edu.fieldOfStudy 
+          ? `${edu.degree} – ${edu.fieldOfStudy}` 
+          : edu.degree;
+        
         doc.fontSize(11)
-           .font('Helvetica-Bold')
-           .text(edu.degree + (edu.fieldOfStudy ? ` in ${edu.fieldOfStudy}` : ''));
+           .font('Times-Bold')
+           .text(degreeText);
 
+        // University name
         doc.fontSize(10)
-           .font('Helvetica')
+           .font('Times-Roman')
            .text(edu.institution);
 
+        // Graduation year and GPA on same line
         if (edu.graduationYear || edu.gpa) {
           const eduDetails: string[] = [];
-          if (edu.graduationYear) eduDetails.push(`Graduated: ${edu.graduationYear}`);
+          if (edu.graduationYear) eduDetails.push(edu.graduationYear.toString());
           if (edu.gpa) eduDetails.push(`GPA: ${edu.gpa}`);
           
-          doc.fontSize(9)
-             .font('Helvetica-Oblique')
-             .text(eduDetails.join(' | '), { lineGap: 2 });
+          doc.fontSize(10)
+             .font('Times-Italic')
+             .text(eduDetails.join(' | '));
         }
 
+        // Academic performance/achievements
         if (edu.achievements && edu.achievements.length > 0) {
-          doc.moveDown(0.3);
-          edu.achievements.forEach(achievement => {
-            const bulletX = doc.x;
-            const bulletY = doc.y;
-            
-            doc.fontSize(10)
-               .font('Helvetica')
-               .text('•', bulletX, bulletY)
-               .text(achievement, bulletX + 15, bulletY, { 
-                 width: contentWidth - 15
-               });
-            
-            doc.moveDown(0.2);
-          });
+          doc.moveDown(0.2);
+          const achievementsText = 'Academic Performance: ' + edu.achievements.join(', ');
+          doc.fontSize(10)
+             .font('Times-Roman')
+             .text(achievementsText);
         }
 
         if (index < data.education.length - 1) {
-          doc.moveDown(0.5);
+          doc.moveDown(0.4);
         }
       });
-      doc.moveDown(0.8);
+      doc.moveDown(0.7);
     }
 
     // Skills
@@ -245,10 +284,10 @@ export class ResumePdfGenerator {
       
       const skillsText = data.skills.join(' • ');
       doc.fontSize(10)
-         .font('Helvetica')
-         .text(skillsText, { align: 'left', lineGap: 2 });
+         .font('Times-Roman')
+         .text(skillsText, { align: 'left', lineGap: 1.5 });
       
-      doc.moveDown(0.8);
+      doc.moveDown(0.7);
     }
 
     // Projects
@@ -257,31 +296,25 @@ export class ResumePdfGenerator {
       
       data.projects.forEach((project, index) => {
         doc.fontSize(11)
-           .font('Helvetica-Bold')
+           .font('Times-Bold')
            .text(project.name);
 
-        doc.fontSize(10)
-           .font('Helvetica')
-           .text(project.description, { lineGap: 2 });
-
         if (project.technologies && project.technologies.length > 0) {
-          doc.fontSize(9)
-             .font('Helvetica-Oblique')
-             .text(`Technologies: ${project.technologies.join(', ')}`, { lineGap: 2 });
+          doc.fontSize(10)
+             .font('Times-Italic')
+             .text(`Technologies: ${project.technologies.join(', ')}`);
         }
 
-        if (project.url) {
-          doc.fontSize(9)
-             .fillColor('blue')
-             .text(project.url, { link: project.url })
-             .fillColor('black');
-        }
+        doc.moveDown(0.15);
+        doc.fontSize(10)
+           .font('Times-Roman')
+           .text(project.description, { lineGap: 1.5 });
 
         if (index < data.projects.length - 1) {
-          doc.moveDown(0.5);
+          doc.moveDown(0.4);
         }
       });
-      doc.moveDown(0.8);
+      doc.moveDown(0.7);
     }
 
     // Certifications
@@ -293,31 +326,53 @@ export class ResumePdfGenerator {
         const bulletY = doc.y;
         
         doc.fontSize(10)
-           .font('Helvetica')
+           .font('Times-Roman')
            .text('•', bulletX, bulletY)
-           .text(cert, bulletX + 15, bulletY, { width: contentWidth - 15 });
+           .text('   ' + cert, bulletX, bulletY, { 
+             width: contentWidth,
+             indent: 15
+           });
         
-        doc.moveDown(0.3);
+        doc.moveDown(0.25);
+      });
+      doc.moveDown(0.4);
+    }
+
+    // Additional Information (if any awards exist)
+    if (data.awards && data.awards.length > 0) {
+      this.addSectionHeader(doc, 'ADDITIONAL INFORMATION');
+      
+      data.awards.forEach(award => {
+        const bulletX = doc.x;
+        const bulletY = doc.y;
+        
+        doc.fontSize(10)
+           .font('Times-Roman')
+           .text('•', bulletX, bulletY)
+           .text('   ' + award, bulletX, bulletY, { 
+             width: contentWidth,
+             indent: 15
+           });
+        
+        doc.moveDown(0.25);
       });
     }
   }
 
   /**
-   * Add a section header with underline
+   * Add a section header with underline (Harvard style)
    */
   private addSectionHeader(doc: PDFKit.PDFDocument, title: string) {
-    const startY = doc.y;
-    
-    doc.fontSize(12)
-       .font('Helvetica-Bold')
+    doc.fontSize(11)
+       .font('Times-Bold')
        .text(title);
 
     const endY = doc.y;
     
-    // Underline
-    this.drawLine(doc, doc.page.margins.left, endY + 2, doc.page.width - doc.page.margins.right, endY + 2);
+    // Thin underline for professional look
+    this.drawLine(doc, doc.page.margins.left, endY + 1, doc.page.width - doc.page.margins.right, endY + 1);
     
-    doc.moveDown(0.5);
+    doc.moveDown(0.4);
   }
 
   /**
