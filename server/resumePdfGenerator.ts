@@ -178,24 +178,26 @@ export class ResumePdfGenerator {
     if (data.email) contactInfo.push(data.email);
     if (data.location) contactInfo.push(data.location);
     
-    // Add LinkedIn to contact line if present
-    if (data.linkedinUrl) {
-      const linkedinHandle = data.linkedinUrl.replace(/https?:\/\/(www\.)?linkedin\.com\/in\//, '');
-      contactInfo.push(`LinkedIn: https://www.linkedin.com/in/${linkedinHandle}`);
-    }
-    
     if (contactInfo.length > 0) {
       doc.fontSize(spacing.fontSize)
          .font('Times-Roman')
          .text(contactInfo.join(' | '), { align: 'center' });
     }
 
+    // Add LinkedIn URL on separate line below contact info
+    if (data.linkedinUrl) {
+      const linkedinHandle = data.linkedinUrl.replace(/https?:\/\/(www\.)?linkedin\.com\/in\//, '');
+      doc.fontSize(spacing.fontSize)
+         .font('Times-Roman')
+         .text(`LinkedIn: https://www.linkedin.com/in/${linkedinHandle}`, { align: 'center' });
+    }
+
     doc.moveDown(spacing.afterContact);
 
-    // Professional Summary - Complete and concise
+    // Professional Summary - 2-3 line concise summary below LinkedIn
     if (data.summary) {
       this.addSectionHeader(doc, 'PROFESSIONAL SUMMARY');
-      // Ensure summary is complete and well-formatted
+      // Ensure summary is complete and well-formatted as 2-3 lines
       const summaryText = data.summary.trim();
       doc.fontSize(spacing.fontSize)
          .font('Times-Roman')

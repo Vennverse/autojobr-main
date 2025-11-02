@@ -392,35 +392,39 @@ Return JSON: [{"name":"","date":"","description":["bullet1","bullet2"],"technolo
     return Array.from(keywords).slice(0, 20).join(", ");
   }
 
-  // Generate ATS-optimized professional summary
+  // Generate ATS-optimized professional summary (2-3 lines, NOT career objective)
   private async generateProfessionalSummary(
     content: ExtractedResumeContent,
     jobDescription?: string,
   ): Promise<string> {
-    const prompt = `Create a 100% ATS-optimized professional summary that will score maximum points:
+    const prompt = `Create a 2-3 line PROFESSIONAL SUMMARY (NOT a career objective) that showcases achievements:
 
 Experience: ${content.rawExperience.substring(0, 300)}
 Skills: ${content.rawSkills.substring(0, 100)}
 ${jobDescription ? `TARGET JOB KEYWORDS: ${this.extractJobKeywords(jobDescription)}` : ""}
 
-ATS SUMMARY REQUIREMENTS:
-1. INCLUDE exact keywords from job description
-2. START with years of experience (e.g., "5+ years")
-3. MENTION specific technologies and skills
-4. INCLUDE industry-standard terminology
-5. USE quantifiable achievements when possible
-6. AVOID buzzwords like "passionate," "innovative," "dynamic"
-7. KEEP it 2-3 lines, 50-80 words total
-8. ENSURE keywords appear naturally
+PROFESSIONAL SUMMARY REQUIREMENTS (NOT CAREER OBJECTIVE):
+1. Write in THIRD PERSON perspective about accomplishments
+2. START with years of experience + current role (e.g., "5+ years Petroleum Engineer")
+3. SECOND LINE: Highlight 2-3 key technical skills with measurable impact
+4. THIRD LINE: Showcase quantified achievements or expertise area
+5. INCLUDE exact keywords from job description naturally
+6. AVOID career objective language like "seeking," "looking for," "objective is"
+7. KEEP it exactly 2-3 lines, 60-90 words total
+8. Focus on WHAT YOU'VE DONE, not what you want to do
 
-FORMAT: [X years] + [Role/Industry] + [Key Skills] + [Quantified Achievement]
-Example: "5+ years Software Engineer with expertise in React, Node.js, and AWS. Built 15+ applications serving 100K+ users with 99.9% uptime."`;
+CORRECT FORMAT (3 lines):
+Line 1: "[X+ years] [Current Role] with expertise in [Key Skill 1], [Key Skill 2], and [Key Skill 3]."
+Line 2: "Proven track record of [Achievement with numbers] using [Technologies/Methods]."
+Line 3: "Specialized in [Domain Area] with focus on [Specific expertise that matches job]."
+
+Example: "5+ years Petroleum Engineer with expertise in reservoir simulation, production optimization, and data analytics. Increased production efficiency by 25% across 10+ wells using Python-based predictive models and advanced reservoir analysis. Specialized in upstream operations with focus on maximizing recovery rates and reducing operational costs."`;
 
     try {
-      const result = await this.callAI(prompt, 200); // Very small token limit
+      const result = await this.callAI(prompt, 250);
       return result.trim();
     } catch (error) {
-      return "Experienced professional with proven track record of delivering results in dynamic environments.";
+      return "Experienced professional with proven track record of delivering measurable results. Skilled in leveraging technical expertise and data-driven approaches to solve complex challenges. Focused on driving operational excellence and continuous improvement.";
     }
   }
 
