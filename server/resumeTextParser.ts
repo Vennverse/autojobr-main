@@ -806,7 +806,8 @@ export class ResumeTextParser {
   }
 
   private extractSkillYears(text: string, skill: string): number {
-    const pattern = new RegExp(`${skill}.*?(\\d+)\\s*(?:years?|yrs?)`, 'i');
+    const escapedSkill = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`${escapedSkill}.*?(\\d+)\\s*(?:years?|yrs?)`, 'i');
     const match = text.match(pattern);
     return match ? parseInt(match[1]) : 0;
   }
