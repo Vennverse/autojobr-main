@@ -27,45 +27,8 @@ class RankingTestService {
     return test || null;
   }
 
-  // Create a new ranking test for a user
+  // Create a new ranking test for a user - NOW FREE FOR ALL!
   async createRankingTest(userId: string, category: string, domain: string, difficultyLevel: string): Promise<RankingTest> {
-    // Check user's free practice allocation from users table
-    const [user] = await db.select()
-      .from(users)
-      .where(eq(users.id, userId));
-
-    let isFreeTest = false;
-    let paymentStatus = "pending";
-
-    // Grant free test for premium users if they don't have any
-    if (user && user.planType === 'premium' && user.subscriptionStatus === 'active' && user.freeRankingTestsRemaining === 0) {
-      await db.update(users)
-        .set({ 
-          freeRankingTestsRemaining: 1
-        })
-        .where(eq(users.id, userId));
-      
-      console.log(`🎁 Auto-granted 1 free ranking test to premium user ${userId}`);
-      user.freeRankingTestsRemaining = 1;
-    }
-
-    if (user && user.freeRankingTestsRemaining > 0) {
-      // User has free tests remaining
-      isFreeTest = true;
-      paymentStatus = "completed";
-      
-      // Deduct one free test
-      await db.update(users)
-        .set({ 
-          freeRankingTestsRemaining: user.freeRankingTestsRemaining - 1
-        })
-        .where(eq(users.id, userId));
-        
-      console.log(`✅ Used free practice test for user ${userId}. Remaining: ${user.freeRankingTestsRemaining - 1}`);
-    } else {
-      console.log(`❌ No free tests remaining for user ${userId}. Current: ${user?.freeRankingTestsRemaining || 0}`);
-    }
-    
     // Generate questions using the existing question bank
     const questions = getQuestionsByCategory(category).slice(0, 30);
     
@@ -84,11 +47,12 @@ class RankingTestService {
       answers: [],
       questions: questions as any,
       status: "in_progress",
-      paymentStatus,
-      paymentId: isFreeTest ? "free_practice_test" : null
+      paymentStatus: "completed", // All tests are free now
+      paymentId: "free_ranking_test"
     };
 
     const [test] = await db.insert(rankingTests).values(testData).returning();
+    console.log(`✅ Created free ranking test for user ${userId}`);
     return test;
   }
 

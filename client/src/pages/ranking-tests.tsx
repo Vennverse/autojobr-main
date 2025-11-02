@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Trophy, Star, Clock, Users, Crown, Target, CheckCircle, XCircle, CreditCard, Gift, Calendar } from 'lucide-react';
+import { Trophy, Star, Clock, Users, Crown, Target, CheckCircle, XCircle, CreditCard, Gift, Calendar, Sparkles, Award, TrendingUp } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
@@ -20,21 +20,9 @@ export default function RankingTests() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedDomain, setSelectedDomain] = useState('');
   const [leaderboardType, setLeaderboardType] = useState<'weekly' | 'monthly' | 'all-time'>('weekly');
-  const [showPayment, setShowPayment] = useState(false);
-  const [currentTest, setCurrentTest] = useState<any>(null);
-  const [paymentProvider, setPaymentProvider] = useState<'stripe' | 'paypal'>('stripe');
-  const [useFreeTest, setUseFreeTest] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { 
-    canUseFreeTest, 
-    remainingFreeTests, 
-    nextResetDate, 
-    isPremium,
-    usage,
-    refetch: refetchUsage 
-  } = useRankingTestUsage();
 
   // Fetch available test categories and domains
   const { data: categories = { categories: [], domains: [] } } = useQuery({
@@ -86,30 +74,17 @@ export default function RankingTests() {
 
   // Create new test mutation
   const createTestMutation = useMutation({
-    mutationFn: async (testData: { category: string; domain: string; difficultyLevel: string; useFreeTest?: boolean }) => {
+    mutationFn: async (testData: { category: string; domain: string; difficultyLevel: string }) => {
       const response = await apiRequest('/api/ranking-tests/create', 'POST', testData);
       return response;
     },
     onSuccess: (test) => {
-      setCurrentTest(test);
-      
-      // If using free test, skip payment and start directly
-      if (useFreeTest && canUseFreeTest) {
-        // Refetch usage to update the count
-        refetchUsage();
-        toast({
-          title: "Free Test Started!",
-          description: "Your monthly free ranking test has started. Good luck!",
-        });
-        // Redirect to test taking page
-        window.location.href = `/test/${test.id}`;
-      } else {
-        setShowPayment(true);
-        toast({
-          title: "Test Created",
-          description: "Your ranking test has been created. Complete payment to start.",
-        });
-      }
+      toast({
+        title: "Test Started!",
+        description: "Your ranking test has started. Good luck! 🚀",
+      });
+      // Redirect to test taking page
+      window.location.href = `/test/${test.id}`;
     },
     onError: (error: any) => {
       toast({
@@ -120,7 +95,7 @@ export default function RankingTests() {
     }
   });
 
-  const handleCreateTest = (useFreeTrial = false) => {
+  const handleCreateTest = () => {
     if (!selectedCategory || !selectedDomain) {
       toast({
         title: "Missing Information",
@@ -130,24 +105,10 @@ export default function RankingTests() {
       return;
     }
 
-    // Check if trying to use free test but not eligible
-    if (useFreeTrial && !canUseFreeTest) {
-      toast({
-        title: "Free Test Not Available",
-        description: isPremium 
-          ? "You've already used your monthly free test. Next reset: " + nextResetDate?.toLocaleDateString()
-          : "Free tests are only available for Premium users.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setUseFreeTest(useFreeTrial);
     createTestMutation.mutate({
       category: selectedCategory,
       domain: selectedDomain,
-      difficultyLevel: 'expert',
-      useFreeTest: useFreeTrial
+      difficultyLevel: 'expert'
     });
   };
 
@@ -173,42 +134,45 @@ export default function RankingTests() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full text-white text-sm font-medium mb-4">
+            <Sparkles className="w-4 h-4" />
+            100% Free • No Payment Required
+          </div>
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
             Ranking Test System
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Take ranking tests ($1 per attempt) to compete for top positions. 
-            {isPremium && (
-              <span className="text-purple-600 font-medium">
-                {" "}Premium users get 1 free monthly test!
-              </span>
-            )}
-            {" "}Top performers get their profiles shared with recruiters automatically.
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+            Compete with top talent, showcase your skills, and get discovered by recruiters.
+            Take unlimited free tests and climb the leaderboard! 🚀
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Test Creation Section */}
           <div className="lg:col-span-2">
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Star className="w-5 h-5 text-yellow-500" />
-                  Take New Ranking Test
+            <Card className="mb-6 border-2 border-blue-200 dark:border-blue-800 shadow-xl">
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
+                <CardTitle className="flex items-center gap-2 text-2xl">
+                  <Award className="w-6 h-6 text-blue-600" />
+                  Start Your Free Ranking Test
                 </CardTitle>
-                <CardDescription>
-                  Select your test parameters and compete for rankings
+                <CardDescription className="text-base">
+                  Select your test parameters and start competing - completely free! 🎉
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6 pt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Category</label>
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                      <Target className="w-4 h-4 inline mr-1" />
+                      Category
+                    </label>
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                      <SelectTrigger>
+                      <SelectTrigger className="border-2">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
@@ -220,11 +184,14 @@ export default function RankingTests() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div>
-                    <label className="block text-sm font-medium mb-2">Domain</label>
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                      <TrendingUp className="w-4 h-4 inline mr-1" />
+                      Domain
+                    </label>
                     <Select value={selectedDomain} onValueChange={setSelectedDomain}>
-                      <SelectTrigger>
+                      <SelectTrigger className="border-2">
                         <SelectValue placeholder="Select domain" />
                       </SelectTrigger>
                       <SelectContent>
@@ -237,117 +204,53 @@ export default function RankingTests() {
                     </Select>
                   </div>
                 </div>
-                
-                <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950 dark:to-orange-950 p-4 rounded-lg border-2 border-amber-200 dark:border-amber-800">
                   <div className="flex items-center gap-2 mb-2">
-                    <Star className="w-4 h-4 text-amber-600" />
-                    <span className="font-medium text-amber-900">Expert Level Only</span>
+                    <Star className="w-5 h-5 text-amber-600" />
+                    <span className="font-semibold text-amber-900 dark:text-amber-100">Expert Level Challenge</span>
                   </div>
-                  <p className="text-sm text-amber-800">
-                    All ranking tests are set to expert difficulty level to ensure fair competition among top performers.
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    All ranking tests are set to expert difficulty to ensure fair competition among top performers.
+                    This is where the best showcase their skills! 💪
                   </p>
                 </div>
-                
-                {/* Premium Benefits & Free Test Info */}
-                {isPremium ? (
-                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Crown className="w-5 h-5 text-purple-600" />
-                      <span className="font-medium text-purple-900">Premium Benefits</span>
-                    </div>
-                    <div className="text-sm text-purple-800 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span>Monthly Free Test:</span>
-                        <Badge className={`${canUseFreeTest ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                          {canUseFreeTest ? '✓ Available' : '✗ Used'}
-                        </Badge>
-                      </div>
-                      {nextResetDate && (
-                        <div className="flex items-center gap-2 text-xs text-purple-700">
-                          <Calendar className="w-3 h-3" />
-                          <span>Next free test: {nextResetDate.toLocaleDateString()}</span>
-                        </div>
-                      )}
-                      {canUseFreeTest && (
-                        <div className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
-                          💡 You have 1 free monthly test available this month!
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Star className="w-4 h-4 text-blue-600" />
-                      <span className="font-medium text-blue-900">Upgrade to Premium</span>
-                    </div>
-                    <p className="text-sm text-blue-800">
-                      Get 1 free monthly ranking test + unlimited features. 
-                      <a href="/subscription" className="text-blue-600 hover:text-blue-800 font-medium ml-1">
-                        Upgrade now →
-                      </a>
-                    </p>
-                  </div>
-                )}
 
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Trophy className="w-4 h-4 text-blue-600" />
-                    <span className="font-medium text-blue-900">Ranking System</span>
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 p-4 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Trophy className="w-5 h-5 text-blue-600" />
+                    <span className="font-semibold text-blue-900 dark:text-blue-100">Why Take Ranking Tests?</span>
                   </div>
-                  <ul className="text-sm text-blue-800 space-y-1">
-                    <li>• Weekly top 10 performers get shared with recruiters</li>
-                    <li>• Monthly top 5 performers get additional exposure</li>
-                    <li>• All rankings are public and competitive</li>
-                    <li>• Each test attempt costs $1 {isPremium ? '(or use monthly free)' : ''}</li>
+                  <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>Weekly top 10 performers get featured to recruiters</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>Monthly top 5 performers get premium recruiter exposure</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>100% free - take as many tests as you want!</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>Public rankings to showcase your expertise</span>
+                    </li>
                   </ul>
                 </div>
-                
-                {/* Test Buttons */}
-                <div className="space-y-3">
-                  {/* Free Test Button for Premium Users */}
-                  {isPremium && canUseFreeTest && (
-                    <Button 
-                      onClick={() => handleCreateTest(true)}
-                      disabled={!selectedCategory || !selectedDomain || createTestMutation.isPending}
-                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                    >
-                      <Gift className="w-4 h-4 mr-2" />
-                      {createTestMutation.isPending && useFreeTest ? 'Starting Free Test...' : 'Use Monthly Free Test'}
-                    </Button>
-                  )}
-                  
-                  {/* Paid Test Button */}
-                  <Button 
-                    onClick={() => handleCreateTest(false)}
-                    disabled={!selectedCategory || !selectedDomain || createTestMutation.isPending}
-                    className="w-full"
-                    variant={isPremium && canUseFreeTest ? "outline" : "default"}
-                  >
-                    <CreditCard className="w-4 h-4 mr-2" />
-                    {createTestMutation.isPending && !useFreeTest ? 'Starting Test...' : 'Take Paid Test ($1)'}
-                  </Button>
-                  
-                  {/* Upgrade Prompt for Free Users */}
-                  {!isPremium && (
-                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-3 rounded-lg border border-amber-200">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Crown className="w-4 h-4 text-amber-600" />
-                        <span className="font-medium text-amber-900 text-sm">Premium Benefit</span>
-                      </div>
-                      <p className="text-xs text-amber-800 mb-2">
-                        Premium users get 1 free ranking test every month!
-                      </p>
-                      <Button 
-                        size="sm" 
-                        className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
-                        onClick={() => window.location.href = '/job-seeker-premium'}
-                      >
-                        Upgrade to Premium
-                      </Button>
-                    </div>
-                  )}
-                </div>
+
+                {/* Start Test Button */}
+                <Button 
+                  onClick={handleCreateTest}
+                  disabled={!selectedCategory || !selectedDomain || createTestMutation.isPending}
+                  className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all"
+                  size="lg"
+                >
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  {createTestMutation.isPending ? 'Starting Test...' : 'Start Free Test Now'}
+                </Button>
               </CardContent>
             </Card>
 
@@ -484,229 +387,6 @@ export default function RankingTests() {
             </Card>
           </div>
         </div>
-      </div>
-
-      {/* Payment Modal */}
-      {showPayment && currentTest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Complete Payment to Start Test</h3>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
-              Test: {currentTest.testTitle}
-            </p>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-4">$1.00</p>
-            
-            {/* Payment Provider Selection */}
-            <div className="mb-4">
-              <Label className="text-sm font-medium mb-2 block text-gray-900 dark:text-white">Select Payment Method</Label>
-              <RadioGroup value={paymentProvider} onValueChange={(value: 'stripe' | 'paypal') => setPaymentProvider(value)}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="stripe" id="stripe" />
-                  <Label htmlFor="stripe" className="flex items-center gap-2 text-gray-900 dark:text-white">
-                    <CreditCard className="w-4 h-4" />
-                    Cards, Apple Pay, Google Pay (Stripe)
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="paypal" id="paypal" />
-                  <Label htmlFor="paypal" className="flex items-center gap-2 text-gray-900 dark:text-white">
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.93 4.778-4.005 7.201-9.138 7.201h-2.19a.696.696 0 0 0-.682.816l-.73 4.607a.384.384 0 0 0 .38.44h2.287a.56.56 0 0 0 .556-.48l.23-1.458.024-.127a.56.56 0 0 1 .555-.48h.35c3.581 0 6.389-1.455 7.208-5.662.343-1.762.166-3.238-.65-4.394a3.27 3.27 0 0 0-.552-.576z"/>
-                    </svg>
-                    PayPal
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
-            
-            {paymentProvider === 'stripe' ? (
-              <Elements stripe={stripePromise}>
-                <StripePaymentForm 
-                  testId={currentTest.id}
-                  onSuccess={() => {
-                    setShowPayment(false);
-                    setCurrentTest(null);
-                    queryClient.invalidateQueries({ queryKey: ['/api/ranking-tests/history'] });
-                  }}
-                  onCancel={() => {
-                    setShowPayment(false);
-                    setCurrentTest(null);
-                  }}
-                />
-              </Elements>
-            ) : (
-              <PayPalPaymentForm
-                testId={currentTest.id}
-                onSuccess={() => {
-                  setShowPayment(false);
-                  setCurrentTest(null);
-                  queryClient.invalidateQueries({ queryKey: ['/api/ranking-tests/history'] });
-                }}
-                onCancel={() => {
-                  setShowPayment(false);
-                  setCurrentTest(null);
-                }}
-              />
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function StripePaymentForm({ testId, onSuccess, onCancel }: { testId: number; onSuccess: () => void; onCancel: () => void }) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [processing, setProcessing] = useState(false);
-  const { toast } = useToast();
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-
-    if (!stripe || !elements) return;
-
-    setProcessing(true);
-
-    try {
-      // Create payment intent
-      const response = await apiRequest('POST', `/api/ranking-tests/${testId}/payment`, {
-        paymentProvider: 'stripe'
-      });
-      const { clientSecret } = await response.json();
-
-      // Confirm payment
-      const { error } = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: elements.getElement(CardElement)!,
-        }
-      });
-
-      if (error) {
-        toast({
-          title: "Payment Failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Payment Successful",
-          description: "You can now start your ranking test!",
-        });
-        onSuccess();
-      }
-    } catch (error: any) {
-      toast({
-        title: "Payment Error",
-        description: error.message || "Failed to process payment",
-        variant: "destructive",
-      });
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-700">
-        <CardElement 
-          options={{
-            style: {
-              base: {
-                fontSize: '16px',
-                color: '#424770',
-                '::placeholder': {
-                  color: '#aab7c4',
-                },
-              },
-              invalid: {
-                color: '#9e2146',
-              },
-            },
-          }}
-        />
-      </div>
-      <div className="text-xs text-gray-500 dark:text-gray-400">
-        Supports all major credit cards, Apple Pay, Google Pay, Stripe Link, and bank accounts
-      </div>
-      <div className="flex gap-2">
-        <Button 
-          type="submit" 
-          disabled={!stripe || processing}
-          className="flex-1"
-        >
-          {processing ? 'Processing...' : 'Pay $1'}
-        </Button>
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={onCancel}
-          disabled={processing}
-        >
-          Cancel
-        </Button>
-      </div>
-    </form>
-  );
-}
-
-function PayPalPaymentForm({ testId, onSuccess, onCancel }: { testId: number; onSuccess: () => void; onCancel: () => void }) {
-  const [processing, setProcessing] = useState(false);
-  const { toast } = useToast();
-
-  const handlePayPalPayment = async () => {
-    setProcessing(true);
-
-    try {
-      // Create PayPal order
-      const response = await apiRequest('POST', `/api/ranking-tests/${testId}/payment`, {
-        paymentProvider: 'paypal'
-      });
-      const { approvalUrl } = await response.json();
-
-      // Redirect to PayPal for approval
-      window.location.href = approvalUrl;
-    } catch (error: any) {
-      let errorMessage = "Failed to create PayPal order";
-      
-      if (error.message && error.message.includes('not configured')) {
-        errorMessage = "PayPal is not configured yet. Please use Stripe or contact support.";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      toast({
-        title: "Payment Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      setProcessing(false);
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="text-center">
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          You will be redirected to PayPal to complete your payment securely
-        </p>
-      </div>
-      <div className="flex gap-2">
-        <Button 
-          onClick={handlePayPalPayment}
-          disabled={processing}
-          className="flex-1 bg-blue-600 hover:bg-blue-700"
-        >
-          {processing ? 'Redirecting...' : 'Pay with PayPal'}
-        </Button>
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={onCancel}
-          disabled={processing}
-        >
-          Cancel
-        </Button>
       </div>
     </div>
   );
