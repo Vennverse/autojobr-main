@@ -172,7 +172,7 @@ export class ResumePdfGenerator {
 
     doc.moveDown(spacing.headerName);
 
-    // Contact Information - Single line
+    // Contact Information - Single line (phone | email | location)
     const contactInfo: string[] = [];
     if (data.phone) contactInfo.push(data.phone);
     if (data.email) contactInfo.push(data.email);
@@ -182,9 +182,10 @@ export class ResumePdfGenerator {
       doc.fontSize(spacing.fontSize)
          .font('Times-Roman')
          .text(contactInfo.join(' | '), { align: 'center' });
+      doc.moveDown(0.1); // Small gap before LinkedIn
     }
 
-    // Add LinkedIn URL on separate line below contact info
+    // LinkedIn URL on separate line below contact info
     if (data.linkedinUrl) {
       const linkedinHandle = data.linkedinUrl.replace(/https?:\/\/(www\.)?linkedin\.com\/in\//, '');
       doc.fontSize(spacing.fontSize)
@@ -194,10 +195,9 @@ export class ResumePdfGenerator {
 
     doc.moveDown(spacing.afterContact);
 
-    // Professional Summary - 2-3 line concise summary below LinkedIn
+    // PROFESSIONAL SUMMARY (NOT Career Objective) - 2-3 lines below LinkedIn
     if (data.summary) {
       this.addSectionHeader(doc, 'PROFESSIONAL SUMMARY');
-      // Ensure summary is complete and well-formatted as 2-3 lines
       const summaryText = data.summary.trim();
       doc.fontSize(spacing.fontSize)
          .font('Times-Roman')
