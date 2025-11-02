@@ -359,40 +359,7 @@ export default function EnhancedDashboard() {
               </Card>
             </motion.div>
 
-            {/* Daily Challenges */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <Card className="border-2 border-blue-100 dark:border-blue-900 shadow-lg">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center">
-                      <Trophy className="w-5 h-5 mr-2 text-yellow-500" />
-                      Daily Challenges ({completedChallenges}/{dailyChallenges.length})
-                    </CardTitle>
-                    <Badge variant="outline">{completedChallenges === dailyChallenges.length ? '✅ Complete!' : 'In Progress'}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {dailyChallenges.map((challenge) => (
-                    <div key={challenge.id} className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer" onClick={challenge.action}>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-medium">{challenge.title}</span>
-                          <Badge className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">{challenge.reward}</Badge>
-                        </div>
-                        <Progress value={(challenge.progress / challenge.total) * 100} className="h-2" />
-                      </div>
-                      <div className="text-sm text-slate-500">
-                        {challenge.progress}/{challenge.total}
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </motion.div>
+            
 
             {/* Quick Actions Grid */}
             <motion.div
