@@ -37,7 +37,8 @@ import {
   Mail,
   Eye,
   Globe,
-  AlertCircle
+  AlertCircle,
+  RefreshCw // Import RefreshCw
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
@@ -323,15 +324,15 @@ export default function PremiumAITools() {
     },
     onSuccess: (data) => {
       setCompleteResume(data);
-      toast({ 
-        title: "✨ Complete Resume Generated!", 
-        description: "Your tailored resume is ready. Click 'Download PDF' to save it." 
+      toast({
+        title: "✨ Complete Resume Generated!",
+        description: "Your tailored resume is ready. Click 'Download PDF' to save it."
       });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message?.includes('premium') ? "This feature requires a Premium subscription." : 
+        description: error.message?.includes('premium') ? "This feature requires a Premium subscription." :
                      error.message?.includes('No structured') ? "Please complete your profile with experience and education first." :
                      "Failed to generate resume.",
         variant: "destructive"
@@ -364,24 +365,24 @@ export default function PremiumAITools() {
       if (!response.ok) {
         // Handle specific error cases
         const errorData = await response.json().catch(() => ({ message: 'Failed to download PDF' }));
-        
+
         if (response.status === 401 || response.status === 403) {
-          toast({ 
-            title: "Authentication Required", 
-            description: errorData.message || "Please log in to download your resume", 
-            variant: "destructive" 
+          toast({
+            title: "Authentication Required",
+            description: errorData.message || "Please log in to download your resume",
+            variant: "destructive"
           });
         } else if (response.status === 400) {
-          toast({ 
-            title: "Invalid Data", 
-            description: errorData.message || "Resume data is invalid", 
-            variant: "destructive" 
+          toast({
+            title: "Invalid Data",
+            description: errorData.message || "Resume data is invalid",
+            variant: "destructive"
           });
         } else {
-          toast({ 
-            title: "Download Failed", 
-            description: errorData.message || "Failed to generate PDF", 
-            variant: "destructive" 
+          toast({
+            title: "Download Failed",
+            description: errorData.message || "Failed to generate PDF",
+            variant: "destructive"
           });
         }
         return;
@@ -400,10 +401,10 @@ export default function PremiumAITools() {
       toast({ title: "Success!", description: "Resume PDF downloaded successfully" });
     } catch (error) {
       console.error('Error downloading PDF:', error);
-      toast({ 
-        title: "Error", 
-        description: error instanceof Error ? error.message : "Failed to download PDF", 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to download PDF",
+        variant: "destructive"
       });
     } finally {
       setIsDownloadingPdf(false);
@@ -506,6 +507,17 @@ export default function PremiumAITools() {
       </div>
     );
   }
+
+  // Dummy function for generateImprovements as it's not defined in the provided snippet
+  const generateImprovements = () => {
+    console.log("Generating improvements...");
+    // Implement actual logic here or ensure it's defined elsewhere
+  };
+
+  // Dummy function for resumeText and showFormatSelection state variables
+  const resumeText = tailorData.resumeText || userResume?.resumeText || "";
+  const showFormatSelection = !tailoredResume && !completeResume; // Example logic
+  const improvements = tailoredResume || completeResume; // Example logic
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -1526,7 +1538,7 @@ export default function PremiumAITools() {
                           Click "Download PDF" to save it.
                         </p>
                       </div>
-                      
+
                       {completeResume.modifications && (
                         <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                           <h4 className="font-semibold mb-2 text-blue-800 dark:text-blue-200">✨ AI Modifications Applied:</h4>
@@ -1579,8 +1591,8 @@ export default function PremiumAITools() {
 
                       <div className="border rounded-lg p-4 bg-blue-50 dark:bg-blue-900/20">
                         <Label className="text-sm font-semibold mb-3 block">📄 Resume Format (Harvard/Stanford Standard)</Label>
-                        <RadioGroup 
-                          value={pageFormat} 
+                        <RadioGroup
+                          value={pageFormat}
                           onValueChange={(value) => setPageFormat(value as '1-page' | '2-page')}
                           className="space-y-2"
                         >

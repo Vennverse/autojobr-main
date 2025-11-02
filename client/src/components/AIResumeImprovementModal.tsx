@@ -47,12 +47,6 @@ export default function AIResumeImprovementModal({
       return;
     }
 
-    // Show format selection first
-    if (!showFormatSelection) {
-      setShowFormatSelection(true);
-      return;
-    }
-
     setIsGenerating(true);
     try {
       const response = await fetch('/api/ai/resume-improvements', {

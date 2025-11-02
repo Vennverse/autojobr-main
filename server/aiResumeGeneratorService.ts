@@ -99,8 +99,11 @@ export class OptimizedAIResumeService {
     userProfile: UserProfile,
     existingResumeText: string,
     targetJobDescription?: string,
+    pageFormat: '1-page' | '2-page' = '2-page'
   ): Promise<{ pdfBuffer: Buffer; resumeData: ResumeData }> {
     try {
+      console.log(`📄 Generating resume with format: ${pageFormat}`);
+      
       // Step 1: Use NLP to extract only what needs AI enhancement
       const extractedContent = this.extractContentWithNLP(existingResumeText);
 
@@ -113,8 +116,8 @@ export class OptimizedAIResumeService {
       // Step 3: Combine DB data with AI-enhanced content
       const resumeData = this.combineDataSources(userProfile, enhancedContent);
 
-      // Step 4: Generate PDF
-      const pdfBuffer = await this.generatePDF(resumeData, "professional");
+      // Step 4: Generate PDF with selected page format
+      const pdfBuffer = await this.generatePDF(resumeData, "professional", pageFormat);
 
       return { pdfBuffer, resumeData };
     } catch (error) {
@@ -844,55 +847,64 @@ Example: "5+ years Petroleum Engineer with expertise in reservoir simulation, pr
     return techKeywords.filter((tech) => lowerText.includes(tech));
   }
 
-  // PDF generation method (same as before but using launchBrowser)
+  // PDF generation method with page format support
   private async generatePDF(
     resumeData: ResumeData,
     templateType: "professional" | "modern" = "professional",
+    pageFormat: '1-page' | '2-page' = '2-page'
   ): Promise<Buffer> {
     let browser: any = null;
     try {
-      const templateHtml = await fs.readFile(this.templatePath, "utf-8");
-      const populatedHtml = this.populateTemplate(
-        templateHtml,
-        resumeData,
-        templateType,
-      );
+      console.log(`📄 Generating PDF - Template: ${templateType}, Format: ${pageFormat}`);
+      
+      // Use resumePdfGenerator directly instead of HTML template
+      const { resumePdfGenerator } = await import('./resumePdfGenerator.js');
+      
+      // Convert ResumeData to the format expected by resumePdfGenerator
+      const pdfData = {
+        fullName: resumeData.personalInfo.fullName,
+        email: resumeData.personalInfo.email,
+        phone: resumeData.personalInfo.phone,
+        location: resumeData.personalInfo.location,
+        linkedinUrl: resumeData.personalInfo.linkedin,
+        summary: resumeData.professionalSummary,
+        experience: resumeData.experience.map(exp => ({
+          company: exp.company,
+          position: exp.jobTitle,
+          location: exp.location,
+          startDate: exp.startDate,
+          endDate: exp.endDate,
+          bulletPoints: exp.achievements || []
+        })),
+        education: resumeData.education.map(edu => ({
+          institution: edu.university,
+          degree: edu.degree,
+          fieldOfStudy: edu.major,
+          graduationYear: parseInt(edu.graduationDate) || undefined,
+          gpa: edu.gpa,
+          achievements: edu.honors ? [edu.honors] : []
+        })),
+        skills: [
+          ...(resumeData.skills.programming || []),
+          ...(resumeData.skills.frameworks || []),
+          ...(resumeData.skills.databases || []),
+          ...(resumeData.skills.tools || []),
+          ...(resumeData.skills.cloudPlatforms || [])
+        ].filter(Boolean),
+        projects: resumeData.projects?.map(proj => ({
+          name: proj.name,
+          description: proj.description.join(' '),
+          technologies: proj.technologies
+        })) || [],
+        certifications: resumeData.certifications?.map(cert => cert.name) || []
+      };
 
-      browser = await this.launchBrowser();
-      const page = await browser.newPage();
-      await page.setContent(populatedHtml, { waitUntil: "networkidle0" });
-
-      await page.addStyleTag({
-        content: `
-          .template-selector { display: none !important; }
-          .resume-container { display: none !important; }
-          .resume-container.${templateType === "professional" ? "template1" : "template2"} { display: block !important; }
-          .data-field::before { display: none !important; }
-          body { background: white !important; }
-        `,
-      });
-
-      const pdfBuffer = await page.pdf({
-        format: "A4",
-        printBackground: true,
-        margin: {
-          top: "0.5in",
-          right: "0.5in",
-          bottom: "0.5in",
-          left: "0.5in",
-        },
-      });
-
-      await browser.close();
-      return Buffer.from(pdfBuffer);
+      const pdfBuffer = await resumePdfGenerator.generatePdf(pdfData, 'harvard', pageFormat);
+      console.log(`✅ PDF generated successfully, size: ${pdfBuffer.length} bytes`);
+      
+      return pdfBuffer;
     } catch (error) {
-      if (browser) {
-        try {
-          await browser.close();
-        } catch (closeError) {
-          console.error('Error closing browser:', closeError);
-        }
-      }
+      console.error('❌ PDF generation error:', error);
       throw new Error(`PDF generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }

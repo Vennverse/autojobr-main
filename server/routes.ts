@@ -866,7 +866,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Download generated resume as PDF
   app.post('/api/resumes/download-generated', isAuthenticated, asyncHandler(async (req: any, res: any) => {
     try {
-      const { resumeData, templateType = 'harvard' } = req.body;
+      const { resumeData, templateType = 'harvard', pageFormat = '2-page' } = req.body;
 
       if (!resumeData) {
         return res.status(400).json({ error: 'Resume data is required' });
@@ -874,12 +874,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('📄 Generating PDF for download...', {
         name: resumeData.fullName,
-        template: templateType
+        template: templateType,
+        format: pageFormat
       });
 
       // Generate PDF using ResumePdfGenerator
       const { resumePdfGenerator } = await import('./resumePdfGenerator.js');
-      const pdfBuffer = await resumePdfGenerator.generatePdf(resumeData, templateType);
+      const pdfBuffer = await resumePdfGenerator.generatePdf(resumeData, templateType, pageFormat);
 
       // Set headers for download
       const fileName = `${resumeData.fullName.replace(/\s+/g, '_')}_Resume_${Date.now()}.pdf`;
