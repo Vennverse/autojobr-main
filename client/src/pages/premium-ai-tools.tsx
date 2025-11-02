@@ -443,6 +443,34 @@ export default function PremiumAITools() {
     toast({ title: "Copied!", description: "Content copied to clipboard" });
   };
 
+  // Preview overlay component for non-premium users
+  const PreviewOverlay = ({ featureName }: { featureName: string }) => (
+    <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-lg">
+      <Card className="max-w-md mx-4 border-2 border-yellow-500 shadow-2xl">
+        <CardContent className="p-6 text-center">
+          <Crown className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+          <h3 className="text-xl font-bold mb-2">Unlock {featureName}</h3>
+          <p className="text-gray-600 dark:text-gray-300 mb-4">
+            You're viewing a preview. Upgrade to Premium to use this powerful AI tool.
+          </p>
+          <Button 
+            size="lg" 
+            className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
+            asChild
+          >
+            <a href="/subscription">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Upgrade to Premium - $13/month
+            </a>
+          </Button>
+          <p className="text-xs text-gray-500 mt-3">
+            Join 10,000+ professionals using our AI tools
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
   // Show loading state while checking user data
   if (!user) {
     return (
@@ -455,58 +483,8 @@ export default function PremiumAITools() {
     );
   }
 
-  if (!isPremium) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Navbar />
-        <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-          <Crown className="w-16 h-16 text-yellow-500 mx-auto mb-6" />
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Premium AI Tools</h1>
-          <p className="text-gray-600 dark:text-gray-300 mb-8">
-            Unlock powerful AI-powered career tools to accelerate your job search
-          </p>
-          <Card className="max-w-2xl mx-auto">
-            <CardContent className="p-8">
-              <h3 className="text-xl font-bold mb-4">Premium Features Include:</h3>
-              <ul className="text-left space-y-3 mb-8">
-                <li className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-blue-500" />
-                  <span>AI Cover Letter Generator</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-green-500" />
-                  <span>Salary Negotiation Coach</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-purple-500" />
-                  <span>Interview Answer Generator (STAR Method)</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-orange-500" />
-                  <span>Personalized Career Path Planner</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-yellow-500" />
-                  <span>Resume Bullet Point Enhancer</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-pink-500" />
-                  <span>Job-Specific Resume Optimizer</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-indigo-500" />
-                  <span>Career Gap Strategy Builder</span>
-                </li>
-              </ul>
-              <Button size="lg" className="w-full" asChild data-testid="button-upgrade-premium">
-                <a href="/subscription">Upgrade to Premium - $10/month</a>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
+  // Non-premium users see preview mode (don't return early)
+  const isPreviewMode = !isPremium;
 
   // Dummy function for generateImprovements as it's not defined in the provided snippet
   const generateImprovements = () => {
@@ -540,17 +518,48 @@ export default function PremiumAITools() {
       <Navbar />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Preview Mode Banner */}
+        {isPreviewMode && (
+          <Card className="mb-6 border-2 border-yellow-500 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-3">
+                  <Eye className="w-6 h-6 text-yellow-600" />
+                  <div>
+                    <h3 className="font-semibold text-lg">Preview Mode - Explore Our AI Tools</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                      You're viewing what premium members get. Upgrade to unlock all features!
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
+                  asChild
+                >
+                  <a href="/subscription">
+                    <Crown className="w-4 h-4 mr-2" />
+                    Upgrade Now - $13/mo
+                  </a>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <Sparkles className="w-8 h-8 text-purple-500" />
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Premium AI Tools</h1>
             <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white">
               <Crown className="w-3 h-3 mr-1" />
-              Premium
+              {isPreviewMode ? 'Preview' : 'Premium'}
             </Badge>
           </div>
           <p className="text-gray-600 dark:text-gray-300">
-            AI-powered career tools to help you land your dream job faster
+            {isPreviewMode 
+              ? 'Explore our AI-powered career tools (upgrade to unlock full access)'
+              : 'AI-powered career tools to help you land your dream job faster'
+            }
           </p>
         </div>
 
@@ -601,7 +610,8 @@ export default function PremiumAITools() {
           {/* Cover Letter Generator */}
           <TabsContent value="cover-letter">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
+              <Card className="relative">
+                {isPreviewMode && <PreviewOverlay featureName="AI Cover Letter Generator" />}
                 <CardHeader>
                   <CardTitle>Generate Cover Letter</CardTitle>
                   <CardDescription>Create a personalized cover letter tailored to the job</CardDescription>
@@ -851,7 +861,8 @@ export default function PremiumAITools() {
           {/* Salary Negotiation */}
           <TabsContent value="salary">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
+              <Card className="relative">
+                {isPreviewMode && <PreviewOverlay featureName="Salary Negotiation Coach" />}
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
@@ -1004,7 +1015,8 @@ export default function PremiumAITools() {
           {/* Interview Answer Generator */}
           <TabsContent value="interview">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
+              <Card className="relative">
+                {isPreviewMode && <PreviewOverlay featureName="Interview Answer Generator" />}
                 <CardHeader>
                   <CardTitle>Interview Answer Generator</CardTitle>
                   <CardDescription>Get STAR method answers for any interview question</CardDescription>
@@ -1118,7 +1130,8 @@ export default function PremiumAITools() {
           {/* Career Path Planner */}
           <TabsContent value="career">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
+              <Card className="relative">
+                {isPreviewMode && <PreviewOverlay featureName="Career Path Planner" />}
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
@@ -1269,7 +1282,8 @@ export default function PremiumAITools() {
 
           {/* Resume Bullet Point Enhancer */}
           <TabsContent value="bullets">
-            <Card>
+            <Card className="relative">
+              {isPreviewMode && <PreviewOverlay featureName="Resume Bullet Enhancer" />}
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
@@ -1403,7 +1417,8 @@ export default function PremiumAITools() {
           {/* Job-Specific Resume Tailor */}
           <TabsContent value="tailor">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
+              <Card className="relative">
+                {isPreviewMode && <PreviewOverlay featureName="Resume Optimizer" />}
                 <CardHeader>
                   <CardTitle>Tailor Resume to Job</CardTitle>
                   <CardDescription>Optimize your resume for a specific job posting with ATS keywords</CardDescription>
@@ -1733,7 +1748,8 @@ export default function PremiumAITools() {
           {/* Resume Gap Filler */}
           <TabsContent value="gaps">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
+              <Card className="relative">
+                {isPreviewMode && <PreviewOverlay featureName="Career Gap Strategy" />}
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
