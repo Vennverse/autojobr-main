@@ -2,10 +2,19 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Copy, RefreshCw, CheckCircle, FileText, Download } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Sparkles,
+  RefreshCw,
+  CheckCircle,
+  Copy,
+  FileText,
+  Download
+} from "lucide-react";
 
 interface AIResumeImprovementModalProps {
   isOpen: boolean;
@@ -25,6 +34,8 @@ export default function AIResumeImprovementModal({
   const [improvements, setImprovements] = useState<any>(null);
   const [resumeText, setResumeText] = useState(userResume);
   const [jobDescription, setJobDescription] = useState(targetJob);
+  const [pageFormat, setPageFormat] = useState<'1-page' | '2-page'>('2-page');
+  const [showFormatSelection, setShowFormatSelection] = useState(false);
 
   const generateImprovements = async () => {
     if (!resumeText.trim()) {
@@ -36,6 +47,12 @@ export default function AIResumeImprovementModal({
       return;
     }
 
+    // Show format selection first
+    if (!showFormatSelection) {
+      setShowFormatSelection(true);
+      return;
+    }
+
     setIsGenerating(true);
     try {
       const response = await fetch('/api/ai/resume-improvements', {
@@ -44,7 +61,8 @@ export default function AIResumeImprovementModal({
         credentials: 'include',
         body: JSON.stringify({
           resumeText: resumeText.trim(),
-          jobDescription: jobDescription.trim() || undefined
+          jobDescription: jobDescription.trim() || undefined,
+          pageFormat: pageFormat // Include page format in the request
         })
       });
 
@@ -54,7 +72,7 @@ export default function AIResumeImprovementModal({
 
       const result = await response.json();
       setImprovements(result);
-      
+
       toast({
         title: "AI Analysis Complete!",
         description: "Your resume improvements are ready to copy and use.",
@@ -83,6 +101,7 @@ export default function AIResumeImprovementModal({
     setImprovements(null);
     setResumeText(userResume);
     setJobDescription(targetJob);
+    setShowFormatSelection(false); // Reset format selection state
     onClose();
   };
 
@@ -104,10 +123,10 @@ export default function AIResumeImprovementModal({
                   Your Resume Content *
                 </label>
                 <Textarea
-                  placeholder="Paste your resume content here..."
+                  placeholder="Paste your current resume text here..."
+                  className="min-h-[200px] font-mono text-sm"
                   value={resumeText}
                   onChange={(e) => setResumeText(e.target.value)}
-                  className="min-h-32"
                 />
               </div>
 
@@ -123,23 +142,73 @@ export default function AIResumeImprovementModal({
                 />
               </div>
 
-              <Button 
-                onClick={generateImprovements}
-                disabled={isGenerating || !resumeText.trim()}
-                className="w-full"
-              >
-                {isGenerating ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Analyzing Your Resume...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Generate AI Improvements
-                  </>
+              <div className="space-y-4">
+                {showFormatSelection && !improvements && (
+                  <div className="border rounded-lg p-4 bg-blue-50 dark:bg-blue-900/20">
+                    <Label className="text-sm font-semibold mb-3 block flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      📄 Resume Format (Harvard/Stanford Standard)
+                    </Label>
+                    <RadioGroup
+                      value={pageFormat}
+                      onValueChange={(value) => setPageFormat(value as '1-page' | '2-page')}
+                      className="space-y-2"
+                    >
+                      <div className="flex items-start space-x-3 p-3 rounded-lg border bg-white dark:bg-gray-800 hover:border-blue-500 transition-colors">
+                        <RadioGroupItem value="1-page" id="format-1page" className="mt-0.5" />
+                        <Label htmlFor="format-1page" className="cursor-pointer flex-1">
+                          <div className="font-semibold text-sm">1-Page Resume (Compact)</div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            ✓ McKinsey/Goldman Sachs standard • Optimized spacing • Best for MBA/entry-level
+                          </div>
+                        </Label>
+                      </div>
+                      <div className="flex items-start space-x-3 p-3 rounded-lg border bg-white dark:bg-gray-800 hover:border-blue-500 transition-colors">
+                        <RadioGroupItem value="2-page" id="format-2page" className="mt-0.5" />
+                        <Label htmlFor="format-2page" className="cursor-pointer flex-1">
+                          <div className="font-semibold text-sm">2-Page Resume (Professional)</div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            ✓ Recommended for 5+ years experience • Better readability • More white space
+                          </div>
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
                 )}
-              </Button>
+
+                <Button
+                  onClick={generateImprovements}
+                  disabled={isGenerating || !resumeText.trim()}
+                  className="w-full"
+                >
+                  {isGenerating ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Analyzing Your Resume...
+                    </>
+                  ) : showFormatSelection && !improvements ? (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Continue with {pageFormat === '1-page' ? '1-Page' : '2-Page'} Format
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Generate AI Improvements
+                    </>
+                  )}
+                </Button>
+
+                {showFormatSelection && !improvements && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowFormatSelection(false)}
+                    className="w-full"
+                  >
+                    Back to Resume Input
+                  </Button>
+                )}
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
@@ -173,8 +242,8 @@ export default function AIResumeImprovementModal({
                     <div className="flex items-center gap-3">
                       <div className="text-3xl font-bold text-blue-600">{improvements.atsScore}%</div>
                       <div className="text-sm text-gray-600">
-                        {improvements.atsScore >= 80 ? "Excellent! Your resume is well-optimized for ATS systems." : 
-                         improvements.atsScore >= 60 ? "Good, but there's room for improvement." : 
+                        {improvements.atsScore >= 80 ? "Excellent! Your resume is well-optimized for ATS systems." :
+                         improvements.atsScore >= 60 ? "Good, but there's room for improvement." :
                          "Needs work to pass ATS screening."}
                       </div>
                     </div>
@@ -268,7 +337,7 @@ export default function AIResumeImprovementModal({
                 <Button variant="outline" onClick={() => setImprovements(null)}>
                   Start Over
                 </Button>
-                <Button 
+                <Button
                   variant="outline"
                   onClick={async () => {
                     try {
@@ -289,7 +358,7 @@ export default function AIResumeImprovementModal({
                             projects: [],
                             certifications: []
                           },
-                          templateType: 'harvard'
+                          templateType: pageFormat === '1-page' ? 'harvard' : 'stanford' // Use selected page format for template
                         })
                       });
 
