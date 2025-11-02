@@ -7977,7 +7977,7 @@ Return ONLY the JSON object, no additional text.`;
   // Generate PDF from tailored resume data
   app.post('/api/premium/ai/download-tailored-resume-pdf', isAuthenticated, asyncHandler(async (req: any, res) => {
     try {
-      const { resumeData, templateStyle } = req.body;
+      const { resumeData, templateStyle, pageFormat } = req.body;
 
       if (!resumeData) {
         return res.status(400).json({ message: 'Resume data is required' });
@@ -7988,7 +7988,8 @@ Return ONLY the JSON object, no additional text.`;
         experienceCount: resumeData.experience?.length || 0,
         educationCount: resumeData.education?.length || 0,
         skillsCount: resumeData.skills?.length || 0,
-        template: templateStyle || 'harvard'
+        template: templateStyle || 'harvard',
+        pageFormat: pageFormat || '2-page'
       });
 
       // Validate resume data structure
@@ -7999,8 +8000,8 @@ Return ONLY the JSON object, no additional text.`;
       // Import PDF generator
       const { resumePdfGenerator } = await import('./resumePdfGenerator');
       
-      // Generate PDF
-      const pdfBuffer = await resumePdfGenerator.generatePdf(resumeData, templateStyle || 'harvard');
+      // Generate PDF with page format
+      const pdfBuffer = await resumePdfGenerator.generatePdf(resumeData, templateStyle || 'harvard', pageFormat || '2-page');
 
       console.log('✅ PDF generated successfully, size:', pdfBuffer.length, 'bytes');
 

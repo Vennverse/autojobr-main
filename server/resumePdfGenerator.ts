@@ -58,12 +58,17 @@ export class ResumePdfGenerator {
   /**
    * Generate a professional ATS-friendly resume PDF using PDFKit
    */
-  async generatePdf(resumeData: ResumeData, templateStyle: 'modern' | 'classic' | 'harvard' = 'harvard'): Promise<Buffer> {
+  async generatePdf(resumeData: ResumeData, templateStyle: 'modern' | 'classic' | 'harvard' = 'harvard', pageFormat: '1-page' | '2-page' = '2-page'): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       try {
+        // Adjust margins based on page format
+        const margins = pageFormat === '1-page' 
+          ? { top: 32, bottom: 32, left: 40, right: 40 }  // Tighter for 1-page
+          : { top: 40, bottom: 40, left: 50, right: 50 }; // Comfortable for 2-page
+
         const doc = new PDFDocument({
           size: 'LETTER',
-          margins: { top: 36, bottom: 36, left: 45, right: 45 }
+          margins
         });
 
         const chunks: Buffer[] = [];
@@ -78,14 +83,15 @@ export class ResumePdfGenerator {
           location: resumeData.location || 'N/A',
           experience: resumeData.experience?.length || 0,
           education: resumeData.education?.length || 0,
-          skills: resumeData.skills?.length || 0
+          skills: resumeData.skills?.length || 0,
+          pageFormat: pageFormat
         });
 
         // Sanitize data to prevent [object Object] errors
         const sanitizedData = this.sanitizeResumeData(resumeData);
 
-        // Generate content based on template
-        this.generateHarvardTemplate(doc, sanitizedData);
+        // Generate content based on template and page format
+        this.generateHarvardTemplate(doc, sanitizedData, pageFormat);
 
         doc.end();
       } catch (error) {
@@ -129,62 +135,72 @@ export class ResumePdfGenerator {
 
   /**
    * Harvard/MIT/Stanford Style Resume Template
-   * Professional, ATS-friendly, single-column layout with Times Roman font
+   * Professional, ATS-friendly layout with 1-page or 2-page optimization
    */
-  private generateHarvardTemplate(doc: PDFKit.PDFDocument, data: ResumeData) {
+  private generateHarvardTemplate(doc: PDFKit.PDFDocument, data: ResumeData, pageFormat: '1-page' | '2-page' = '2-page') {
     const pageWidth = doc.page.width;
     const margins = doc.page.margins;
     const contentWidth = pageWidth - margins.left - margins.right;
 
-    // Header - Name and Contact Info (Professional, clean header)
-    doc.fontSize(20)
+    // Spacing configuration based on page format
+    const spacing = pageFormat === '1-page' ? {
+      headerName: 0.1,
+      afterContact: 0.35,
+      sectionGap: 0.3,
+      beforeBullets: 0.15,
+      betweenBullets: 0.15,
+      betweenJobs: 0.25,
+      fontSize: 9.5,
+      titleSize: 10,
+      nameSize: 17
+    } : {
+      headerName: 0.2,
+      afterContact: 0.5,
+      sectionGap: 0.5,
+      beforeBullets: 0.2,
+      betweenBullets: 0.2,
+      betweenJobs: 0.3,
+      fontSize: 10,
+      titleSize: 10.5,
+      nameSize: 18
+    };
+
+    // Header - Name and Contact Info
+    doc.fontSize(spacing.nameSize)
        .font('Times-Bold')
        .text(data.fullName.toUpperCase(), { align: 'center' });
 
-    doc.moveDown(0.2);
+    doc.moveDown(spacing.headerName);
 
-    // Contact Information - Single line, professional format
+    // Contact Information - Single line
     const contactInfo: string[] = [];
     if (data.phone) contactInfo.push(data.phone);
     if (data.email) contactInfo.push(data.email);
     if (data.location) contactInfo.push(data.location);
     
+    // Add LinkedIn to contact line if present
+    if (data.linkedinUrl) {
+      const linkedinHandle = data.linkedinUrl.replace(/https?:\/\/(www\.)?linkedin\.com\/in\//, '');
+      contactInfo.push(`LinkedIn: https://www.linkedin.com/in/${linkedinHandle}`);
+    }
+    
     if (contactInfo.length > 0) {
-      doc.fontSize(10)
+      doc.fontSize(spacing.fontSize)
          .font('Times-Roman')
          .text(contactInfo.join(' | '), { align: 'center' });
     }
 
-    // Links (LinkedIn, GitHub, Portfolio) - Professional format
-    const links: string[] = [];
-    if (data.linkedinUrl) {
-      const linkedinHandle = data.linkedinUrl.replace(/https?:\/\/(www\.)?linkedin\.com\/in\//, '');
-      links.push(`LinkedIn: ${linkedinHandle}`);
-    }
-    if (data.githubUrl) {
-      const githubHandle = data.githubUrl.replace(/https?:\/\/(www\.)?github\.com\//, '');
-      links.push(`GitHub: ${githubHandle}`);
-    }
-    if (data.portfolioUrl) {
-      links.push(`Portfolio: ${data.portfolioUrl.replace(/https?:\/\/(www\.)?/, '')}`);
-    }
-    
-    if (links.length > 0) {
-      doc.moveDown(0.15);
-      doc.fontSize(9)
-         .font('Times-Roman')
-         .text(links.join(' | '), { align: 'center' });
-    }
+    doc.moveDown(spacing.afterContact);
 
-    doc.moveDown(0.6);
-
-    // Career Objective (simplified summary)
+    // Professional Summary - Complete and concise
     if (data.summary) {
-      this.addSectionHeader(doc, 'CAREER OBJECTIVE');
-      doc.fontSize(10)
+      this.addSectionHeader(doc, 'PROFESSIONAL SUMMARY');
+      // Ensure summary is complete and well-formatted
+      const summaryText = data.summary.trim();
+      doc.fontSize(spacing.fontSize)
          .font('Times-Roman')
-         .text(data.summary, { align: 'left', lineGap: 1.5 });
-      doc.moveDown(0.7);
+         .text(summaryText, { align: 'justify', lineGap: pageFormat === '1-page' ? 1 : 1.5 });
+      doc.moveDown(spacing.sectionGap);
     }
 
     // Work Experience
@@ -192,129 +208,123 @@ export class ResumePdfGenerator {
       this.addSectionHeader(doc, 'PROFESSIONAL EXPERIENCE');
       
       data.experience.forEach((exp, index) => {
-        // Position and Company
-        doc.fontSize(11)
+        // Position - Company on one line
+        doc.fontSize(spacing.titleSize)
            .font('Times-Bold')
            .text(exp.position + ' - ' + exp.company);
 
-        // Location and Dates on same line
+        // Location and Dates
         const dateText = `${exp.startDate} - ${exp.isCurrent ? 'Present' : (exp.endDate || '')}`;
         const locationDate = exp.location ? `${exp.location} | ${dateText}` : dateText;
         
-        doc.fontSize(10)
+        doc.fontSize(spacing.fontSize)
            .font('Times-Italic')
            .text(locationDate);
 
         // Bullet Points
         if (exp.bulletPoints && exp.bulletPoints.length > 0) {
-          doc.moveDown(0.25);
+          doc.moveDown(spacing.beforeBullets);
           exp.bulletPoints.forEach(bullet => {
             const bulletX = doc.x;
             const bulletY = doc.y;
             
-            doc.fontSize(10)
+            doc.fontSize(spacing.fontSize)
                .font('Times-Roman')
                .text('•', bulletX, bulletY, { continued: false })
                .text('   ' + bullet, bulletX, bulletY, { 
                  width: contentWidth,
-                 lineGap: 1.2,
+                 lineGap: pageFormat === '1-page' ? 0.8 : 1,
                  indent: 15
                });
             
-            doc.moveDown(0.25);
+            doc.moveDown(spacing.betweenBullets);
           });
         }
 
         if (index < data.experience.length - 1) {
-          doc.moveDown(0.4);
+          doc.moveDown(spacing.betweenJobs);
         }
       });
-      doc.moveDown(0.7);
+      doc.moveDown(spacing.sectionGap);
     }
 
-    // Education
+    // Education - Clean, no repetition
     if (data.education && data.education.length > 0) {
       this.addSectionHeader(doc, 'EDUCATION');
       
       data.education.forEach((edu, index) => {
-        // Degree - Field of Study
+        // Degree - Field of Study (BOLD)
         const degreeText = edu.fieldOfStudy 
           ? `${edu.degree} – ${edu.fieldOfStudy}` 
           : edu.degree;
         
-        doc.fontSize(11)
+        doc.fontSize(spacing.titleSize)
            .font('Times-Bold')
            .text(degreeText);
 
-        // University name
-        doc.fontSize(10)
+        // Institution name - Remove "University" repetition if needed
+        const institutionLine = edu.institution + 
+          (edu.graduationYear ? ` | ${edu.graduationYear}` : '') +
+          (edu.gpa ? ` | GPA: ${edu.gpa}` : '');
+        
+        doc.fontSize(spacing.fontSize)
            .font('Times-Roman')
-           .text(edu.institution);
+           .text(institutionLine);
 
-        // Graduation year and GPA on same line
-        if (edu.graduationYear || edu.gpa) {
-          const eduDetails: string[] = [];
-          if (edu.graduationYear) eduDetails.push(edu.graduationYear.toString());
-          if (edu.gpa) eduDetails.push(`GPA: ${edu.gpa}`);
-          
-          doc.fontSize(10)
-             .font('Times-Italic')
-             .text(eduDetails.join(' | '));
-        }
-
-        // Academic performance/achievements
+        // Academic achievements on same line
         if (edu.achievements && edu.achievements.length > 0) {
-          doc.moveDown(0.2);
           const achievementsText = 'Academic Performance: ' + edu.achievements.join(', ');
-          doc.fontSize(10)
+          doc.fontSize(spacing.fontSize)
              .font('Times-Roman')
              .text(achievementsText);
         }
 
         if (index < data.education.length - 1) {
-          doc.moveDown(0.4);
+          doc.moveDown(spacing.betweenJobs);
         }
       });
-      doc.moveDown(0.7);
+      doc.moveDown(spacing.sectionGap);
     }
 
-    // Skills
+    // Technical Skills
     if (data.skills && data.skills.length > 0) {
       this.addSectionHeader(doc, 'TECHNICAL SKILLS');
       
       const skillsText = data.skills.join(' • ');
-      doc.fontSize(10)
+      doc.fontSize(spacing.fontSize)
          .font('Times-Roman')
-         .text(skillsText, { align: 'left', lineGap: 1.5 });
+         .text(skillsText, { align: 'left', lineGap: pageFormat === '1-page' ? 0.8 : 1.5 });
       
-      doc.moveDown(0.7);
+      doc.moveDown(spacing.sectionGap);
     }
 
-    // Projects
+    // Projects - One compact paragraph per project
     if (data.projects && data.projects.length > 0) {
       this.addSectionHeader(doc, 'KEY PROJECTS');
       
       data.projects.forEach((project, index) => {
-        doc.fontSize(11)
+        // Project name
+        doc.fontSize(spacing.titleSize)
            .font('Times-Bold')
            .text(project.name);
 
+        // Technologies on next line
         if (project.technologies && project.technologies.length > 0) {
-          doc.fontSize(10)
+          doc.fontSize(spacing.fontSize)
              .font('Times-Italic')
              .text(`Technologies: ${project.technologies.join(', ')}`);
         }
 
-        doc.moveDown(0.15);
-        doc.fontSize(10)
+        // Description as paragraph
+        doc.fontSize(spacing.fontSize)
            .font('Times-Roman')
-           .text(project.description, { lineGap: 1.5 });
+           .text(project.description, { lineGap: pageFormat === '1-page' ? 0.8 : 1.5 });
 
         if (index < data.projects.length - 1) {
-          doc.moveDown(0.4);
+          doc.moveDown(spacing.betweenJobs);
         }
       });
-      doc.moveDown(0.7);
+      doc.moveDown(spacing.sectionGap);
     }
 
     // Certifications
@@ -325,36 +335,16 @@ export class ResumePdfGenerator {
         const bulletX = doc.x;
         const bulletY = doc.y;
         
-        doc.fontSize(10)
+        doc.fontSize(spacing.fontSize)
            .font('Times-Roman')
            .text('•', bulletX, bulletY)
            .text('   ' + cert, bulletX, bulletY, { 
              width: contentWidth,
+             lineGap: pageFormat === '1-page' ? 0.5 : 1,
              indent: 15
            });
         
-        doc.moveDown(0.25);
-      });
-      doc.moveDown(0.4);
-    }
-
-    // Additional Information (if any awards exist)
-    if (data.awards && data.awards.length > 0) {
-      this.addSectionHeader(doc, 'ADDITIONAL INFORMATION');
-      
-      data.awards.forEach(award => {
-        const bulletX = doc.x;
-        const bulletY = doc.y;
-        
-        doc.fontSize(10)
-           .font('Times-Roman')
-           .text('•', bulletX, bulletY)
-           .text('   ' + award, bulletX, bulletY, { 
-             width: contentWidth,
-             indent: 15
-           });
-        
-        doc.moveDown(0.25);
+        doc.moveDown(spacing.betweenBullets);
       });
     }
   }
@@ -372,7 +362,7 @@ export class ResumePdfGenerator {
     // Thin underline for professional look
     this.drawLine(doc, doc.page.margins.left, endY + 1, doc.page.width - doc.page.margins.right, endY + 1);
     
-    doc.moveDown(0.4);
+    doc.moveDown(0.3);
   }
 
   /**

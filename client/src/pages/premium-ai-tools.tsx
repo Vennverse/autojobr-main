@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Navbar } from "@/components/navbar";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -120,6 +121,7 @@ export default function PremiumAITools() {
   const [tailoredResume, setTailoredResume] = useState<any>(null);
   const [completeResume, setCompleteResume] = useState<any>(null);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [pageFormat, setPageFormat] = useState<'1-page' | '2-page'>('2-page');
 
   // Resume Gap State
   const [gapData, setGapData] = useState({
@@ -354,7 +356,8 @@ export default function PremiumAITools() {
         credentials: 'include', // CRITICAL: Include session cookie for authentication
         body: JSON.stringify({
           resumeData: completeResume.tailoredResume,
-          templateStyle: 'harvard'
+          templateStyle: 'harvard',
+          pageFormat: pageFormat
         }),
       });
 
@@ -1574,6 +1577,34 @@ export default function PremiumAITools() {
                         </div>
                       </div>
 
+                      <div className="border rounded-lg p-4 bg-blue-50 dark:bg-blue-900/20">
+                        <Label className="text-sm font-semibold mb-3 block">📄 Resume Format (Harvard/Stanford Standard)</Label>
+                        <RadioGroup 
+                          value={pageFormat} 
+                          onValueChange={(value) => setPageFormat(value as '1-page' | '2-page')}
+                          className="space-y-2"
+                        >
+                          <div className="flex items-start space-x-3 p-3 rounded-lg border bg-white dark:bg-gray-800 hover:border-blue-500 transition-colors">
+                            <RadioGroupItem value="1-page" id="format-1page" className="mt-0.5" />
+                            <Label htmlFor="format-1page" className="cursor-pointer flex-1">
+                              <div className="font-semibold text-sm">1-Page Resume (Compact)</div>
+                              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                ✓ McKinsey/Goldman Sachs standard • Optimized spacing for single page • Best for MBA/entry-level
+                              </div>
+                            </Label>
+                          </div>
+                          <div className="flex items-start space-x-3 p-3 rounded-lg border bg-white dark:bg-gray-800 hover:border-blue-500 transition-colors">
+                            <RadioGroupItem value="2-page" id="format-2page" className="mt-0.5" />
+                            <Label htmlFor="format-2page" className="cursor-pointer flex-1">
+                              <div className="font-semibold text-sm">2-Page Resume (Professional)</div>
+                              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                ✓ Recommended for 5+ years experience • Better readability • More white space
+                              </div>
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+
                       <div className="flex gap-2">
                         <Button
                           onClick={downloadResumePdf}
@@ -1584,7 +1615,7 @@ export default function PremiumAITools() {
                           {isDownloadingPdf ? (
                             <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Downloading...</>
                           ) : (
-                            <><FileText className="w-4 h-4 mr-2" /> Download PDF</>
+                            <><FileText className="w-4 h-4 mr-2" /> Download {pageFormat === '1-page' ? '1-Page' : '2-Page'} PDF</>
                           )}
                         </Button>
                       </div>
