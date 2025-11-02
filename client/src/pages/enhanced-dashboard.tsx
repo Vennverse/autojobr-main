@@ -316,45 +316,112 @@ export default function EnhancedDashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
             >
-              <Card className="border-2 border-purple-100 dark:border-purple-900 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center">
-                      <Zap className="w-5 h-5 mr-2 text-purple-500" />
-                      Daily Career Habits
-                    </span>
-                    <Badge variant="outline">
-                      {Object.values(dailyChecklist).filter(Boolean).length}/4 Complete
-                    </Badge>
-                  </CardTitle>
+              <Card className="border-2 border-green-200 dark:border-green-900 shadow-xl bg-gradient-to-br from-green-50 via-emerald-50 to-green-100 dark:from-green-950 dark:via-emerald-950 dark:to-green-900">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <CardTitle className="flex items-center gap-3">
+                      <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl">
+                        <Zap className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">Daily Career Habits</h3>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Build momentum with consistent actions</p>
+                      </div>
+                    </CardTitle>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0 text-base px-4 py-1.5">
+                        {Object.values(dailyChecklist).filter(Boolean).length}/4
+                      </Badge>
+                      <span className="text-xs text-green-700 dark:text-green-300 font-medium">
+                        {Math.round((Object.values(dailyChecklist).filter(Boolean).length / 4) * 100)}% Complete
+                      </span>
+                    </div>
+                  </div>
+                  <Progress 
+                    value={(Object.values(dailyChecklist).filter(Boolean).length / 4) * 100} 
+                    className="h-3 bg-green-200 dark:bg-green-800"
+                  />
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {[
-                    { key: 'resumeReviewed', label: 'Review & update resume', icon: FileText },
-                    { key: 'threeApplications', label: 'Apply to 3+ jobs', icon: Send },
-                    { key: 'networked', label: 'Connect with 2 professionals', icon: Users },
-                    { key: 'skillLearned', label: 'Learn something new (15 min)', icon: BookOpen }
-                  ].map(({ key, label, icon: Icon }) => (
-                    <div 
-                      key={key}
-                      className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                      onClick={() => setDailyChecklist(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))}
-                    >
-                      <div className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
-                        dailyChecklist[key as keyof typeof dailyChecklist] 
-                          ? 'bg-purple-500 border-purple-500' 
-                          : 'border-slate-300 dark:border-slate-600'
-                      }`}>
-                        {dailyChecklist[key as keyof typeof dailyChecklist] && (
-                          <CheckCircle className="w-4 h-4 text-white" />
+                    { key: 'resumeReviewed', label: 'Review & update resume', icon: FileText, tip: 'Keep it fresh and ATS-optimized' },
+                    { key: 'threeApplications', label: 'Apply to 3+ jobs', icon: Send, tip: 'Quality over quantity matters' },
+                    { key: 'networked', label: 'Connect with 2 professionals', icon: Users, tip: '70% of jobs come from networking' },
+                    { key: 'skillLearned', label: 'Learn something new (15 min)', icon: BookOpen, tip: 'Continuous learning = growth' }
+                  ].map(({ key, label, icon: Icon, tip }) => {
+                    const isCompleted = dailyChecklist[key as keyof typeof dailyChecklist];
+                    return (
+                      <motion.div 
+                        key={key}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-300 cursor-pointer group ${
+                          isCompleted 
+                            ? 'bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900 border-2 border-green-400 dark:border-green-600' 
+                            : 'bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-green-300 dark:hover:border-green-700 hover:shadow-md'
+                        }`}
+                        onClick={() => setDailyChecklist(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))}
+                      >
+                        <div className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
+                          isCompleted 
+                            ? 'bg-gradient-to-br from-green-500 to-emerald-600 border-green-500 shadow-md' 
+                            : 'border-slate-300 dark:border-slate-600 group-hover:border-green-400'
+                        }`}>
+                          {isCompleted && (
+                            <CheckCircle className="w-5 h-5 text-white" />
+                          )}
+                        </div>
+                        <div className={`p-2 rounded-lg ${
+                          isCompleted 
+                            ? 'bg-green-200 dark:bg-green-800' 
+                            : 'bg-slate-100 dark:bg-slate-700 group-hover:bg-green-100 dark:group-hover:bg-green-900'
+                        } transition-all`}>
+                          <Icon className={`w-5 h-5 ${
+                            isCompleted 
+                              ? 'text-green-700 dark:text-green-300' 
+                              : 'text-slate-600 dark:text-slate-400'
+                          }`} />
+                        </div>
+                        <div className="flex-1">
+                          <span className={`font-semibold text-base block ${
+                            isCompleted 
+                              ? 'line-through text-green-700 dark:text-green-300' 
+                              : 'text-slate-900 dark:text-white'
+                          }`}>
+                            {label}
+                          </span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 italic">
+                            {tip}
+                          </span>
+                        </div>
+                        {isCompleted && (
+                          <Badge className="bg-green-500 text-white border-0 text-xs">
+                            ✓ Done
+                          </Badge>
                         )}
-                      </div>
-                      <Icon className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                      <span className={dailyChecklist[key as keyof typeof dailyChecklist] ? 'line-through text-slate-500' : ''}>
-                        {label}
-                      </span>
+                      </motion.div>
+                    );
+                  })}
+                  
+                  {/* Motivational message based on completion */}
+                  {Object.values(dailyChecklist).filter(Boolean).length === 4 ? (
+                    <div className="mt-4 p-4 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl text-center">
+                      <p className="text-white font-bold text-lg mb-1">🎉 Amazing! All habits completed!</p>
+                      <p className="text-green-100 text-sm">You're on fire today! Keep this momentum going.</p>
                     </div>
-                  ))}
+                  ) : Object.values(dailyChecklist).filter(Boolean).length >= 2 ? (
+                    <div className="mt-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg text-center">
+                      <p className="text-yellow-800 dark:text-yellow-200 text-sm font-medium">
+                        💪 Great progress! {4 - Object.values(dailyChecklist).filter(Boolean).length} more to go!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="mt-4 p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-center">
+                      <p className="text-blue-800 dark:text-blue-200 text-sm font-medium">
+                        🚀 Let's build momentum! Start with one habit today.
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
