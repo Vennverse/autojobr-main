@@ -58,13 +58,17 @@ router.post("/posts", isAuthenticated, upload.array("media", 10), async (req, re
       hasContent: !!content,
       contentLength: content?.length,
       postType,
-      filesCount: req.files?.length || 0
+      visibility,
+      filesCount: req.files?.length || 0,
+      body: req.body
     });
 
     if (!content || content.trim() === "") {
       console.log('[COMMUNITY POST] Error: Content is empty');
       return res.status(400).json({ error: "Content is required" });
     }
+
+    console.log('[COMMUNITY POST] Validation passed, preparing data...');
 
     const files = req.files as Express.Multer.File[];
     const mediaUrls: string[] = [];
@@ -81,18 +85,29 @@ router.post("/posts", isAuthenticated, upload.array("media", 10), async (req, re
       });
     }
 
-    const validatedData = insertCommunityPostSchema.parse({
-      userId,
-      content,
-      postType: postType || "general",
-      visibility: visibility || "public",
-      mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
-      mediaTypes: mediaTypes.length > 0 ? mediaTypes : undefined,
-      taggedUserIds: taggedUserIds ? JSON.parse(taggedUserIds) : undefined,
-      taggedCompanies: taggedCompanies ? JSON.parse(taggedCompanies) : undefined,
-      hashtags: hashtags ? JSON.parse(hashtags) : undefined,
-    });
+    let validatedData;
+    try {
+      validatedData = insertCommunityPostSchema.parse({
+        userId,
+        content,
+        postType: postType || "general",
+        visibility: visibility || "public",
+        mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
+        mediaTypes: mediaTypes.length > 0 ? mediaTypes : undefined,
+        taggedUserIds: taggedUserIds ? JSON.parse(taggedUserIds) : undefined,
+        taggedCompanies: taggedCompanies ? JSON.parse(taggedCompanies) : undefined,
+        hashtags: hashtags ? JSON.parse(hashtags) : undefined,
+      });
+      console.log('[COMMUNITY POST] Data validated successfully');
+    } catch (validationError) {
+      console.error('[COMMUNITY POST] Validation error:', validationError);
+      return res.status(400).json({ 
+        error: "Invalid post data", 
+        details: validationError instanceof Error ? validationError.message : "Validation failed" 
+      });
+    }
 
+    console.log('[COMMUNITY POST] Inserting post into database...');
     const [newPost] = await db.insert(communityPosts).values(validatedData).returning();
 
     const postWithUser = await db
@@ -131,8 +146,12 @@ router.post("/posts", isAuthenticated, upload.array("media", 10), async (req, re
     res.json(postWithUser[0]);
   } catch (error) {
     console.error("[COMMUNITY POST] Error creating post:", error);
+    console.error("[COMMUNITY POST] Error stack:", error instanceof Error ? error.stack : "No stack trace");
     const errorMessage = error instanceof Error ? error.message : "Failed to create post";
-    res.status(500).json({ error: errorMessage });
+    res.status(500).json({ 
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : String(error)) : undefined
+    });
   }
 });
 

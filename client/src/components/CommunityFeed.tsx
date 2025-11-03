@@ -129,7 +129,23 @@ export function CommunityFeed() {
     },
     onError: (error: any) => {
       console.error('Failed to create post:', error);
-      const errorMessage = error?.message || error?.error || "Failed to create post. Please try again.";
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      
+      // Extract error message from various possible formats
+      let errorMessage = "Failed to create post. Please try again.";
+      if (error?.error) {
+        errorMessage = error.error;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      // Add details if available
+      if (error?.details) {
+        console.error('Backend error details:', error.details);
+      }
+      
       toast({
         title: "Error",
         description: errorMessage,
