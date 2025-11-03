@@ -164,11 +164,7 @@ export function CommunityFeed() {
   // React to post mutation
   const reactToPostMutation = useMutation({
     mutationFn: async ({ postId, reactionType }: { postId: number; reactionType: string | null }) => {
-      return apiRequest(`/api/community/posts/${postId}/react`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reactionType }),
-      });
+      return apiRequest(`/api/community/posts/${postId}/react`, "POST", { reactionType });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/community/posts"] });
@@ -178,9 +174,7 @@ export function CommunityFeed() {
   // Follow user mutation
   const followUserMutation = useMutation({
     mutationFn: async (targetUserId: string) => {
-      return apiRequest(`/api/community/connections/follow/${targetUserId}`, {
-        method: "POST",
-      });
+      return apiRequest(`/api/community/connections/follow/${targetUserId}`, "POST");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/community/posts"] });
@@ -220,24 +214,68 @@ export function CommunityFeed() {
     createPostMutation.mutate(formData);
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const validFiles = files.filter((file) => {
-      const isImage = file.type.startsWith("image/");
-      const isVideo = file.type.startsWith("video/");
-      const isValidSize = file.size <= 50 * 1024 * 1024; // 50MB
-      return (isImage || isVideo) && isValidSize;
-    });
+  const compressImage = async (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxWidth = 1920;
+          const maxHeight = 1080;
+          let width = img.width;
+          let height = img.height;
 
-    if (validFiles.length !== files.length) {
+          if (width > maxWidth || height > maxHeight) {
+            if (width > height) {
+              height = (height / width) * maxWidth;
+              width = maxWidth;
+            } else {
+              width = (width / height) * maxHeight;
+              height = maxHeight;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d')!;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            } else {
+              resolve(file);
+            }
+          }, 'image/jpeg', 0.8);
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+
+    if (imageFiles.length !== files.length) {
       toast({
         title: "Invalid files",
-        description: "Some files were skipped. Only images and videos under 50MB are allowed.",
+        description: "Only images and GIFs are allowed.",
         variant: "destructive",
       });
     }
 
-    setSelectedFiles([...selectedFiles, ...validFiles]);
+    const compressedFiles = await Promise.all(
+      imageFiles.map(file => file.type === 'image/gif' ? file : compressImage(file))
+    );
+
+    setSelectedFiles([...selectedFiles, ...compressedFiles]);
   };
 
   const removeFile = (index: number) => {
@@ -342,7 +380,7 @@ export function CommunityFeed() {
                       id="file-upload"
                       type="file"
                       multiple
-                      accept="image/*,video/*"
+                      accept="image/*"
                       className="hidden"
                       onChange={handleFileSelect}
                     />
@@ -445,11 +483,7 @@ function PostCard({
 
   const addCommentMutation = useMutation({
     mutationFn: async (content: string) => {
-      return apiRequest(`/api/community/posts/${post.id}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
-      });
+      return apiRequest(`/api/community/posts/${post.id}/comments`, "POST", { content });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/community/posts", post.id, "comments"] });
