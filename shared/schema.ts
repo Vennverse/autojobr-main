@@ -4542,3 +4542,320 @@ export type InsertEmailCampaignLog = z.infer<typeof insertEmailCampaignLogSchema
 
 export type PremiumValueMetrics = typeof premiumValueMetrics.$inferSelect;
 export type InsertPremiumValueMetrics = z.infer<typeof insertPremiumValueMetricsSchema>;
+
+// ========================================
+// COMMUNITY & SOCIAL NETWORKING FEATURES
+// ========================================
+
+// Community Posts - LinkedIn-style success wall posts
+export const communityPosts = pgTable("community_posts", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  
+  // Post content
+  content: text("content").notNull(),
+  postType: varchar("post_type").default("general"), // success, achievement, tip, question, milestone, job_offer
+  
+  // Rich media support
+  mediaUrls: text("media_urls").array(), // Array of uploaded media URLs
+  mediaTypes: text("media_types").array(), // photo, video for each URL
+  
+  // Engagement metrics
+  reactionsCount: integer("reactions_count").default(0),
+  commentsCount: integer("comments_count").default(0),
+  sharesCount: integer("shares_count").default(0),
+  viewsCount: integer("views_count").default(0),
+  
+  // Visibility and features
+  visibility: varchar("visibility").default("public"), // public, connections, pods, private
+  isPinned: boolean("is_pinned").default(false),
+  isEdited: boolean("is_edited").default(false),
+  
+  // Tagged entities
+  taggedUserIds: text("tagged_user_ids").array(), // Users mentioned/tagged in post
+  taggedCompanies: text("tagged_companies").array(), // Companies mentioned
+  hashtags: text("hashtags").array(), // Hashtags for discovery
+  
+  // Related content
+  relatedJobId: integer("related_job_id"), // Link to job application
+  relatedPodId: integer("related_pod_id"), // Link to pod
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("community_posts_user_idx").on(table.userId),
+  index("community_posts_type_idx").on(table.postType),
+  index("community_posts_created_idx").on(table.createdAt),
+]);
+
+// Post Reactions - Emoji/reaction support for posts
+export const postReactions = pgTable("post_reactions", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").references(() => communityPosts.id, { onDelete: "cascade" }).notNull(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  
+  reactionType: varchar("reaction_type").notNull(), // like, celebrate, support, love, insightful, curious
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("post_reactions_post_idx").on(table.postId),
+  index("post_reactions_user_idx").on(table.userId),
+  unique("unique_post_user_reaction").on(table.postId, table.userId),
+]);
+
+// Post Comments - Comments and replies on posts
+export const postComments = pgTable("post_comments", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").references(() => communityPosts.id, { onDelete: "cascade" }).notNull(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  
+  content: text("content").notNull(),
+  
+  // Reply support
+  parentCommentId: integer("parent_comment_id"), // For threaded replies
+  
+  // Engagement
+  likesCount: integer("likes_count").default(0),
+  
+  // Metadata
+  isEdited: boolean("is_edited").default(false),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("post_comments_post_idx").on(table.postId),
+  index("post_comments_user_idx").on(table.userId),
+  index("post_comments_created_idx").on(table.createdAt),
+]);
+
+// User Connections - Follow/connect with other users
+export const userConnections = pgTable("user_connections", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  connectedUserId: varchar("connected_user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  
+  connectionType: varchar("connection_type").default("follow"), // follow, mutual (both follow each other)
+  status: varchar("status").default("accepted"), // pending, accepted, blocked
+  
+  // Metadata
+  note: text("note"), // Private note about connection
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("user_connections_user_idx").on(table.userId),
+  index("user_connections_connected_idx").on(table.connectedUserId),
+  index("user_connections_status_idx").on(table.status),
+  unique("unique_user_connection").on(table.userId, table.connectedUserId),
+]);
+
+// Application Pods - Small groups for accountability and support
+export const applicationPods = pgTable("application_pods", {
+  id: serial("id").primaryKey(),
+  
+  // Pod details
+  name: varchar("name").notNull(),
+  description: text("description"),
+  category: varchar("category").default("general"), // job_search, interview_prep, networking, skill_building, industry_specific
+  
+  // Pod settings
+  maxMembers: integer("max_members").default(10),
+  isPrivate: boolean("is_private").default(false),
+  requiresApproval: boolean("requires_approval").default(false),
+  
+  // Creator and moderation
+  creatorId: varchar("creator_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  
+  // Engagement metrics
+  membersCount: integer("members_count").default(1),
+  activitiesCount: integer("activities_count").default(0),
+  
+  // Pod goals and focus
+  targetRoles: text("target_roles").array(), // Target job roles
+  targetCompanies: text("target_companies").array(), // Target companies
+  skillLevel: varchar("skill_level"), // entry, mid, senior
+  
+  // Status
+  isActive: boolean("is_active").default(true),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("application_pods_category_idx").on(table.category),
+  index("application_pods_active_idx").on(table.isActive),
+  index("application_pods_created_idx").on(table.createdAt),
+]);
+
+// Pod Members - Membership in application pods
+export const podMembers = pgTable("pod_members", {
+  id: serial("id").primaryKey(),
+  podId: integer("pod_id").references(() => applicationPods.id, { onDelete: "cascade" }).notNull(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  
+  role: varchar("role").default("member"), // member, admin, moderator
+  status: varchar("status").default("active"), // active, pending, left
+  
+  // Engagement tracking
+  lastActiveAt: timestamp("last_active_at").defaultNow(),
+  activitiesCount: integer("activities_count").default(0),
+  
+  joinedAt: timestamp("joined_at").defaultNow(),
+}, (table) => [
+  index("pod_members_pod_idx").on(table.podId),
+  index("pod_members_user_idx").on(table.userId),
+  unique("unique_pod_member").on(table.podId, table.userId),
+]);
+
+// Pod Activities - Activity feed within pods
+export const podActivities = pgTable("pod_activities", {
+  id: serial("id").primaryKey(),
+  podId: integer("pod_id").references(() => applicationPods.id, { onDelete: "cascade" }).notNull(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  
+  activityType: varchar("activity_type").notNull(), // goal_set, application_sent, interview_scheduled, offer_received, milestone, update, question
+  
+  content: text("content").notNull(),
+  
+  // Activity metadata
+  relatedData: jsonb("related_data"), // Additional structured data
+  
+  // Engagement
+  reactionsCount: integer("reactions_count").default(0),
+  commentsCount: integer("comments_count").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("pod_activities_pod_idx").on(table.podId),
+  index("pod_activities_user_idx").on(table.userId),
+  index("pod_activities_created_idx").on(table.createdAt),
+]);
+
+// Marketplace Missions - Enhanced referral marketplace with mission system
+export const marketplaceMissions = pgTable("marketplace_missions", {
+  id: serial("id").primaryKey(),
+  
+  // Mission creator (job seeker)
+  seekerId: varchar("seeker_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  
+  // Mission details
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  
+  // Target details
+  targetCompany: varchar("target_company").notNull(),
+  targetRole: varchar("target_role").notNull(),
+  targetLocation: varchar("target_location"),
+  
+  // Mission requirements
+  requiredSkills: text("required_skills").array(),
+  experienceLevel: varchar("experience_level"), // entry, mid, senior
+  
+  // Reward and incentives
+  rewardAmount: integer("reward_amount"), // In credits or currency
+  rewardType: varchar("reward_type").default("credits"), // credits, cash, reciprocal
+  
+  // Mission status
+  status: varchar("status").default("open"), // open, accepted, in_progress, completed, expired
+  
+  // Referrer assignment
+  referrerId: varchar("referrer_id").references(() => users.id, { onDelete: "set null" }),
+  acceptedAt: timestamp("accepted_at"),
+  completedAt: timestamp("completed_at"),
+  
+  // Mission expiry
+  expiresAt: timestamp("expires_at"),
+  
+  // Success tracking
+  applicationSubmitted: boolean("application_submitted").default(false),
+  interviewScheduled: boolean("interview_scheduled").default(false),
+  offerReceived: boolean("offer_received").default(false),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("marketplace_missions_seeker_idx").on(table.seekerId),
+  index("marketplace_missions_referrer_idx").on(table.referrerId),
+  index("marketplace_missions_status_idx").on(table.status),
+  index("marketplace_missions_company_idx").on(table.targetCompany),
+]);
+
+// Insert schemas and types for community features
+export const insertCommunityPostSchema = createInsertSchema(communityPosts).omit({
+  id: true,
+  reactionsCount: true,
+  commentsCount: true,
+  sharesCount: true,
+  viewsCount: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPostReactionSchema = createInsertSchema(postReactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPostCommentSchema = createInsertSchema(postComments).omit({
+  id: true,
+  likesCount: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertUserConnectionSchema = createInsertSchema(userConnections).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertApplicationPodSchema = createInsertSchema(applicationPods).omit({
+  id: true,
+  membersCount: true,
+  activitiesCount: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPodMemberSchema = createInsertSchema(podMembers).omit({
+  id: true,
+  activitiesCount: true,
+  joinedAt: true,
+});
+
+export const insertPodActivitySchema = createInsertSchema(podActivities).omit({
+  id: true,
+  reactionsCount: true,
+  commentsCount: true,
+  createdAt: true,
+});
+
+export const insertMarketplaceMissionSchema = createInsertSchema(marketplaceMissions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Types
+export type CommunityPost = typeof communityPosts.$inferSelect;
+export type InsertCommunityPost = z.infer<typeof insertCommunityPostSchema>;
+
+export type PostReaction = typeof postReactions.$inferSelect;
+export type InsertPostReaction = z.infer<typeof insertPostReactionSchema>;
+
+export type PostComment = typeof postComments.$inferSelect;
+export type InsertPostComment = z.infer<typeof insertPostCommentSchema>;
+
+export type UserConnection = typeof userConnections.$inferSelect;
+export type InsertUserConnection = z.infer<typeof insertUserConnectionSchema>;
+
+export type ApplicationPod = typeof applicationPods.$inferSelect;
+export type InsertApplicationPod = z.infer<typeof insertApplicationPodSchema>;
+
+export type PodMember = typeof podMembers.$inferSelect;
+export type InsertPodMember = z.infer<typeof insertPodMemberSchema>;
+
+export type PodActivity = typeof podActivities.$inferSelect;
+export type InsertPodActivity = z.infer<typeof insertPodActivitySchema>;
+
+export type MarketplaceMission = typeof marketplaceMissions.$inferSelect;
+export type InsertMarketplaceMission = z.infer<typeof insertMarketplaceMissionSchema>;
