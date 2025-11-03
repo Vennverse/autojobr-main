@@ -486,16 +486,18 @@ export default function PremiumAITools() {
   // Non-premium users see preview mode (don't return early)
   const isPreviewMode = !isPremium;
 
-  // Dummy function for generateImprovements as it's not defined in the provided snippet
-  const generateImprovements = () => {
-    console.log("Generating improvements...");
-    // Implement actual logic here or ensure it's defined elsewhere
+  // Block all mutations for free users
+  const handleBlockedAction = (featureName: string) => {
+    if (isPreviewMode) {
+      toast({
+        title: "Premium Feature Required",
+        description: `${featureName} is a premium feature. Upgrade to unlock full access!`,
+        variant: "destructive",
+      });
+      return true;
+    }
+    return false;
   };
-
-  // Dummy function for resumeText and showFormatSelection state variables
-  const resumeText = tailorData.resumeText || userResume?.resumeText || "";
-  const showFormatSelection = !tailoredResume && !completeResume; // Example logic
-  const improvements = tailoredResume || completeResume; // Example logic
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -667,12 +669,18 @@ export default function PremiumAITools() {
                   </div>
                   <Button
                     className="w-full"
-                    onClick={() => coverLetterMutation.mutate()}
-                    disabled={coverLetterMutation.isPending}
+                    onClick={() => {
+                      if (!handleBlockedAction('Cover Letter Generator')) {
+                        coverLetterMutation.mutate();
+                      }
+                    }}
+                    disabled={coverLetterMutation.isPending || isPreviewMode}
                     data-testid="button-generate-cover-letter"
                   >
                     {coverLetterMutation.isPending ? (
                       <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
+                    ) : isPreviewMode ? (
+                      <><Crown className="w-4 h-4 mr-2" /> Upgrade to Generate</>
                     ) : (
                       <><Sparkles className="w-4 h-4 mr-2" /> Generate Cover Letter</>
                     )}
@@ -954,12 +962,18 @@ export default function PremiumAITools() {
                   </div>
                   <Button
                     className="w-full"
-                    onClick={() => salaryMutation.mutate()}
-                    disabled={salaryMutation.isPending}
+                    onClick={() => {
+                      if (!handleBlockedAction('Salary Negotiation Coach')) {
+                        salaryMutation.mutate();
+                      }
+                    }}
+                    disabled={salaryMutation.isPending || isPreviewMode}
                     data-testid="button-get-salary-advice"
                   >
                     {salaryMutation.isPending ? (
                       <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Analyzing...</>
+                    ) : isPreviewMode ? (
+                      <><Crown className="w-4 h-4 mr-2" /> Upgrade to Analyze</>
                     ) : (
                       <><DollarSign className="w-4 h-4 mr-2" /> Get Negotiation Strategy</>
                     )}
@@ -1052,12 +1066,18 @@ export default function PremiumAITools() {
                   </div>
                   <Button
                     className="w-full"
-                    onClick={() => interviewMutation.mutate()}
-                    disabled={interviewMutation.isPending}
+                    onClick={() => {
+                      if (!handleBlockedAction('Interview Answer Generator')) {
+                        interviewMutation.mutate();
+                      }
+                    }}
+                    disabled={interviewMutation.isPending || isPreviewMode}
                     data-testid="button-generate-answer"
                   >
                     {interviewMutation.isPending ? (
                       <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
+                    ) : isPreviewMode ? (
+                      <><Crown className="w-4 h-4 mr-2" /> Upgrade to Generate</>
                     ) : (
                       <><MessageSquare className="w-4 h-4 mr-2" /> Generate Answer</>
                     )}
@@ -1221,12 +1241,18 @@ export default function PremiumAITools() {
                   </div>
                   <Button
                     className="w-full"
-                    onClick={() => careerPathMutation.mutate()}
-                    disabled={careerPathMutation.isPending}
+                    onClick={() => {
+                      if (!handleBlockedAction('Career Path Planner')) {
+                        careerPathMutation.mutate();
+                      }
+                    }}
+                    disabled={careerPathMutation.isPending || isPreviewMode}
                     data-testid="button-generate-career-path"
                   >
                     {careerPathMutation.isPending ? (
                       <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating Roadmap...</>
+                    ) : isPreviewMode ? (
+                      <><Crown className="w-4 h-4 mr-2" /> Upgrade to Generate</>
                     ) : (
                       <><TrendingUp className="w-4 h-4 mr-2" /> Generate Career Path</>
                     )}
@@ -1371,12 +1397,21 @@ export default function PremiumAITools() {
                     </Button>
                   </div>
                   <Button
-                    onClick={() => bulletMutation.mutate()}
-                    disabled={bulletMutation.isPending || !bulletData.jobTitle || !bulletData.currentBulletPoints.some(bp => bp.trim())}
+                    onClick={() => {
+                      if (!handleBlockedAction('Resume Bullet Enhancer')) {
+                        bulletMutation.mutate();
+                      }
+                    }}
+                    disabled={bulletMutation.isPending || !bulletData.jobTitle || !bulletData.currentBulletPoints.some(bp => bp.trim()) || isPreviewMode}
                     className="w-full"
                   >
-                    {bulletMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Enhance Bullet Points
+                    {bulletMutation.isPending ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enhancing...</>
+                    ) : isPreviewMode ? (
+                      <><Crown className="w-4 h-4 mr-2" /> Upgrade to Enhance</>
+                    ) : (
+                      <>Enhance Bullet Points</>
+                    )}
                   </Button>
                 </div>
 
@@ -1488,12 +1523,18 @@ export default function PremiumAITools() {
                   <div className="space-y-2">
                     <Button
                       className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                      onClick={() => completeResumeMutation.mutate()}
-                      disabled={completeResumeMutation.isPending || !tailorData.jobDescription?.trim() || !tailorData.jobTitle?.trim()}
+                      onClick={() => {
+                        if (!handleBlockedAction('Complete Resume Generator')) {
+                          completeResumeMutation.mutate();
+                        }
+                      }}
+                      disabled={completeResumeMutation.isPending || !tailorData.jobDescription?.trim() || !tailorData.jobTitle?.trim() || isPreviewMode}
                       data-testid="button-generate-complete-resume"
                     >
                       {completeResumeMutation.isPending ? (
                         <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating Complete Resume...</>
+                      ) : isPreviewMode ? (
+                        <><Crown className="w-4 h-4 mr-2" /> Upgrade to Generate Resume</>
                       ) : (
                         <><FileText className="w-4 h-4 mr-2" /> Generate Complete Resume & PDF</>
                       )}
@@ -1501,12 +1542,18 @@ export default function PremiumAITools() {
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => tailorMutation.mutate()}
-                      disabled={tailorMutation.isPending || (!userResume?.resumeText && !tailorData.resumeText) || !tailorData.jobDescription?.trim() || !tailorData.jobTitle?.trim()}
+                      onClick={() => {
+                        if (!handleBlockedAction('Resume Optimizer')) {
+                          tailorMutation.mutate();
+                        }
+                      }}
+                      disabled={tailorMutation.isPending || (!userResume?.resumeText && !tailorData.resumeText) || !tailorData.jobDescription?.trim() || !tailorData.jobTitle?.trim() || isPreviewMode}
                       data-testid="button-tailor-resume"
                     >
                       {tailorMutation.isPending ? (
                         <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Analyzing...</>
+                      ) : isPreviewMode ? (
+                        <><Crown className="w-4 h-4 mr-2" /> Upgrade for Recommendations</>
                       ) : (
                         <><Target className="w-4 h-4 mr-2" /> Get Recommendations Only</>
                       )}
@@ -1829,12 +1876,21 @@ export default function PremiumAITools() {
                     />
                   </div>
                   <Button
-                    onClick={() => gapMutation.mutate()}
-                    disabled={gapMutation.isPending || !gapData.gapPeriod}
+                    onClick={() => {
+                      if (!handleBlockedAction('Career Gap Strategy')) {
+                        gapMutation.mutate();
+                      }
+                    }}
+                    disabled={gapMutation.isPending || !gapData.gapPeriod || isPreviewMode}
                     className="w-full"
                   >
-                    {gapMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Generate Gap Strategy
+                    {gapMutation.isPending ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</>
+                    ) : isPreviewMode ? (
+                      <><Crown className="w-4 h-4 mr-2" /> Upgrade to Generate</>
+                    ) : (
+                      <>Generate Gap Strategy</>
+                    )}
                   </Button>
                 </CardContent>
               </Card>
