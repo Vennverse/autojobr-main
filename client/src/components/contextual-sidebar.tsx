@@ -527,7 +527,7 @@ export function ContextualSidebar() {
             label: "Recruiter Premium",
             items: [
               { name: "Recruiter Premium", href: "/recruiter-premium", icon: Crown, current: location === "/recruiter-premium" },
-              { name: "Recruiter Features", href: "/recruiter-features", icon: Star, current: location === "/recruiter-features" },
+              { name: "Recruiter Features", href: "/employer-features", icon: Star, current: location === "/employer-features" },
               { name: "Subscription Manager", href: "/recruiter-subscription", icon: CreditCard, current: location === "/recruiter-subscription" },
             ]
           }

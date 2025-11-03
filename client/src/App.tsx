@@ -44,7 +44,7 @@ import JobSeekerTests from "@/pages/job-seeker-tests";
 import TestRetakePayment from "@/pages/test-retake-payment";
 import PremiumTargetingPayment from "@/pages/premium-targeting-payment";
 import QuestionBuilder from "@/pages/question-builder";
-import RecruiterFeatures from "@/pages/recruiter-features";
+import EmployerFeatures from "@/pages/employer-features";
 import QuestionBank from "@/pages/question-bank";
 import QuestionBankAdmin from "@/pages/admin/question-bank";
 import AdminJobSpyPage from "@/pages/admin-jobspy";
@@ -81,7 +81,7 @@ import SubscriptionCancel from "@/pages/subscription/Cancel";
 import RecruiterSettings from "@/pages/recruiter/settings";
 import RecruiterBilling from "@/pages/recruiter/billing";
 import RecruiterProfile from "@/pages/recruiter/profile";
-import RecruiterFeaturesPage from "@/pages/recruiter-features";
+import EmployerFeaturesPage from "@/pages/employer-features";
 import BidderDashboard from "@/pages/bidder-dashboard";
 import BidderLanding from "@/pages/bidder-landing";
 import BidderProfile from "@/pages/bidder-profile";
@@ -260,9 +260,9 @@ function Router() {
       <Route path="/blog/remote-job-search-2025" component={RemoteJobSearch2025} />
       <Route path="/chrome-extension" component={ChromeExtension} />
       <Route path="/ats-optimizer" component={ATSOptimizer} />
-      <Route path="/recruiter-features" component={RecruiterFeaturesPage} />
-      <Route path="/for-recruiters" component={RecruiterFeaturesPage} />
-      <Route path="/recruiters" component={RecruiterFeaturesPage} />
+      <Route path="/employer-features" component={EmployerFeaturesPage} />
+      <Route path="/for-recruiters" component={EmployerFeaturesPage} />
+      <Route path="/recruiters" component={EmployerFeaturesPage} />
 
       {/* SEO-optimized referral landing page */}
       <Route path="/employee-referral-services" component={EmployeeReferralServices} />
