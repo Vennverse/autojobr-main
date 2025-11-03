@@ -211,8 +211,31 @@ router.post("/posts/:postId/react", isAuthenticated, async (req, res) => {
     const { postId } = req.params;
     const { reactionType } = req.body;
 
-    if (!reactionType) {
-      return res.status(400).json({ error: "Reaction type is required" });
+    if (reactionType === "") {
+      return res.status(400).json({ error: "Reaction type cannot be empty" });
+    }
+
+    if (reactionType === null || reactionType === undefined) {
+      const existingReaction = await db
+        .select()
+        .from(postReactions)
+        .where(and(eq(postReactions.postId, Number(postId)), eq(postReactions.userId, userId)))
+        .limit(1);
+
+      if (existingReaction.length > 0) {
+        await db
+          .delete(postReactions)
+          .where(and(eq(postReactions.postId, Number(postId)), eq(postReactions.userId, userId)));
+
+        await db
+          .update(communityPosts)
+          .set({ reactionsCount: sql`${communityPosts.reactionsCount} - 1` })
+          .where(eq(communityPosts.id, Number(postId)));
+
+        return res.json({ message: "Reaction removed", reactionType: null });
+      } else {
+        return res.json({ message: "No reaction to remove", reactionType: null });
+      }
     }
 
     const existingReaction = await db

@@ -42,6 +42,7 @@ import {
   Send
 } from "lucide-react";
 import CareerInsightsWidget from "@/components/CareerInsightsWidget";
+import { CommunityFeed } from "@/components/CommunityFeed";
 
 export default function EnhancedDashboard() {
   const { toast } = useToast();
@@ -707,6 +708,24 @@ export default function EnhancedDashboard() {
                   </div>
                 </CardContent>
               </Card>
+            </motion.div>
+
+            {/* Community Success Wall */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
+            >
+              <div className="mb-4">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                  <Users className="w-6 h-6 text-blue-500" />
+                  Community Success Wall
+                </h2>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Connect with fellow job seekers, share wins, and celebrate successes together
+                </p>
+              </div>
+              <CommunityFeed />
             </motion.div>
 
           </div>
