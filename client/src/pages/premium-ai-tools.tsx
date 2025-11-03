@@ -652,62 +652,35 @@ export default function PremiumAITools() {
       <Navbar />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Hero Section with Social Proof */}
-        <div className="text-center mb-12 space-y-6">
+        {/* Hero Section - Simplified */}
+        <div className="text-center mb-8 space-y-4">
           <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 text-sm">
             <Crown className="w-4 h-4 mr-2 inline" />
-            {isPreviewMode ? 'Free Preview Mode - See What You Get' : 'Premium Active'}
+            {isPreviewMode ? 'Preview Mode' : 'Premium Active'}
           </Badge>
 
-          <div className="space-y-4">
-            <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              AI-Powered Career Tools
+          <div className="space-y-2">
+            <h1 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Premium Career Tools
             </h1>
-            <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              {isPreviewMode 
-                ? 'Explore 8 AI tools used by 10,000+ professionals to land their dream jobs'
-                : 'Your AI career coach - helping you succeed at every step'
-              }
+            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+              Generate cover letters, optimize your resume, and prepare for interviews
             </p>
           </div>
 
-          {/* Stats Bar */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-md">
-              <div className="text-3xl font-bold text-blue-600">10K+</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Active Users</div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-md">
-              <div className="text-3xl font-bold text-green-600">3x</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">More Interviews</div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-md">
-              <div className="text-3xl font-bold text-purple-600">95%</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">ATS Pass Rate</div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-md">
-              <div className="text-3xl font-bold text-orange-600">$12K</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Avg. Salary Boost</div>
-            </div>
-          </div>
-
           {isPreviewMode && (
-            <Card className="max-w-3xl mx-auto border-2 border-yellow-500 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20">
-              <CardContent className="p-6">
+            <Card className="max-w-2xl mx-auto border-2 border-yellow-500">
+              <CardContent className="p-4">
                 <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div className="flex items-center gap-3">
-                    <Eye className="w-6 h-6 text-yellow-600" />
-                    <div className="text-left">
-                      <h3 className="font-semibold text-lg">You're in Preview Mode</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">
-                        See how premium works, but you'll need to upgrade to generate real results
-                      </p>
-                    </div>
+                  <div className="text-left">
+                    <h3 className="font-semibold">Preview Mode Active</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                      Upgrade to use these tools
+                    </p>
                   </div>
                   <Button 
                     className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
                     asChild
-                    size="lg"
                   >
                     <a href="/subscription">
                       <Crown className="w-4 h-4 mr-2" />
@@ -777,13 +750,13 @@ export default function PremiumAITools() {
           <TabsContent value="cover-letter">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="relative border-2 border-blue-200 dark:border-blue-800">
-                {isPreviewMode && <PreviewOverlay featureName="AI Cover Letter Generator" />}
+                {isPreviewMode && <PreviewOverlay featureName="Cover Letter Generator" />}
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Brain className="w-6 h-6 text-blue-600" />
+                    <FileText className="w-6 h-6 text-blue-600" />
                     Generate Cover Letter
                   </CardTitle>
-                  <CardDescription>Create a personalized cover letter tailored to the job</CardDescription>
+                  <CardDescription>Create a personalized cover letter for any job posting</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
@@ -815,16 +788,16 @@ export default function PremiumAITools() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="cl-resume">Your Resume/Experience</Label>
+                    <Label htmlFor="cl-resume">Your Resume (Optional)</Label>
                     {userResume?.resumeText && (
                       <div className="mb-2 text-sm text-green-600 flex items-center gap-1">
                         <CheckCircle className="h-4 w-4" />
-                        Using your stored resume automatically
+                        We'll use your uploaded resume from the Resumes page
                       </div>
                     )}
                     <Textarea
                       id="cl-resume"
-                      placeholder={userResume?.resumeText ? "Using your stored resume (you can override by typing here)" : "Paste your resume or key achievements..."}
+                      placeholder={userResume?.resumeText ? "Leave blank to use your uploaded resume, or paste different text here" : "Paste your resume text or upload one on the Resumes page"}
                       value={coverLetterData.resume}
                       onChange={(e) => setCoverLetterData({...coverLetterData, resume: e.target.value})}
                       rows={4}
@@ -843,9 +816,9 @@ export default function PremiumAITools() {
                     {coverLetterMutation.isPending ? (
                       <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
                     ) : isPreviewMode ? (
-                      <><Crown className="w-4 h-4 mr-2" /> Upgrade to Generate</>
+                      <><Crown className="w-4 h-4 mr-2" /> Upgrade to Use</>
                     ) : (
-                      <><Sparkles className="w-4 h-4 mr-2" /> Generate Cover Letter</>
+                      <>Generate Cover Letter</>
                     )}
                   </Button>
                 </CardContent>
@@ -876,11 +849,11 @@ export default function PremiumAITools() {
                         <Card className="border-2 border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950">
                           <CardHeader>
                             <CardTitle className="text-sm flex items-center gap-2">
-                              <Sparkles className="h-5 w-5 text-green-600 animate-pulse" />
-                              🎯 AI-Powered Smart Matching Analysis
+                              <Target className="h-5 w-5 text-green-600" />
+                              How Your Experience Matches This Job
                             </CardTitle>
                             <p className="text-xs text-gray-600 dark:text-gray-400">
-                              How your experience aligns with job requirements
+                              We found these connections between your resume and the job posting
                             </p>
                           </CardHeader>
                           <CardContent className="space-y-3">
