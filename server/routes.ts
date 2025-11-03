@@ -78,6 +78,7 @@ import { questionBankService } from "./questionBankService";
 import seo from './routes/seo';
 import { CrmService } from './crmService';
 import linkedinOptimizerRoutes from './linkedinOptimizer/routes';
+import communityRoutes from './communityRoutes';
 
 // Import services
 import { db as dbImport } from "./db"; // Aliased to avoid conflict with global db
@@ -9624,8 +9625,10 @@ Return ONLY the JSON object, no additional text.`;
   app.use('/api/proctoring', proctoring);
   app.use('/api/seo', seo); // Mount SEO routes
   app.use('/api/linkedin-optimizer', linkedinOptimizerRoutes);
+  app.use('/api/community', communityRoutes);
 
-
+  // Serve community uploads as static files
+  app.use('/uploads/community', express.static(path.join(process.cwd(), 'uploads', 'community')));
 
   // Catch-all route for undefined API routes
   app.all('/api/*', (req, res) => {
