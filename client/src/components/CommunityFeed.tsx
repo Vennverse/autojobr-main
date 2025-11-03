@@ -111,11 +111,18 @@ export function CommunityFeed() {
   // Create post mutation
   const createPostMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      return apiRequest("/api/community/posts", {
+      const res = await fetch("/api/community/posts", {
         method: "POST",
         body: formData,
-        headers: {}, // Let browser set Content-Type for multipart/form-data
+        credentials: "include",
       });
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || res.statusText);
+      }
+      
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/community/posts"] });
