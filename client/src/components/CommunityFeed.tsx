@@ -127,10 +127,12 @@ export function CommunityFeed() {
         description: "Your post has been shared with the community.",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('Failed to create post:', error);
+      const errorMessage = error?.message || error?.error || "Failed to create post. Please try again.";
       toast({
         title: "Error",
-        description: "Failed to create post. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -177,12 +179,19 @@ export function CommunityFeed() {
     }
 
     const formData = new FormData();
-    formData.append("content", postContent);
+    formData.append("content", postContent.trim());
     formData.append("postType", postType);
     formData.append("visibility", "public");
     
+    // Backend expects field name "media" (matches upload.array("media", 10))
     selectedFiles.forEach((file) => {
       formData.append("media", file);
+    });
+
+    console.log('Creating post with:', {
+      content: postContent.trim(),
+      postType,
+      filesCount: selectedFiles.length
     });
 
     createPostMutation.mutate(formData);

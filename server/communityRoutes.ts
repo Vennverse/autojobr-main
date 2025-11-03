@@ -54,7 +54,15 @@ router.post("/posts", isAuthenticated, upload.array("media", 10), async (req, re
     const userId = req.user!.id;
     const { content, postType, visibility, taggedUserIds, taggedCompanies, hashtags } = req.body;
 
+    console.log('[COMMUNITY POST] Request from user:', userId, {
+      hasContent: !!content,
+      contentLength: content?.length,
+      postType,
+      filesCount: req.files?.length || 0
+    });
+
     if (!content || content.trim() === "") {
+      console.log('[COMMUNITY POST] Error: Content is empty');
       return res.status(400).json({ error: "Content is required" });
     }
 
@@ -119,10 +127,12 @@ router.post("/posts", isAuthenticated, upload.array("media", 10), async (req, re
       .where(eq(communityPosts.id, newPost.id))
       .limit(1);
 
+    console.log('[COMMUNITY POST] Post created successfully:', postWithUser[0].id);
     res.json(postWithUser[0]);
   } catch (error) {
-    console.error("Error creating post:", error);
-    res.status(500).json({ error: "Failed to create post" });
+    console.error("[COMMUNITY POST] Error creating post:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to create post";
+    res.status(500).json({ error: errorMessage });
   }
 });
 
