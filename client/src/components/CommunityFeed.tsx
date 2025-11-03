@@ -166,7 +166,44 @@ export function CommunityFeed() {
     mutationFn: async ({ postId, reactionType }: { postId: number; reactionType: string | null }) => {
       return apiRequest(`/api/community/posts/${postId}/react`, "POST", { reactionType });
     },
-    onSuccess: () => {
+    onMutate: async ({ postId, reactionType }) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/community/posts"] });
+      const previousPosts = queryClient.getQueryData<Post[]>(["/api/community/posts"]);
+      
+      queryClient.setQueryData<Post[]>(["/api/community/posts"], (old) => {
+        if (!old) return old;
+        return old.map(post => {
+          if (post.id === postId) {
+            const wasReacted = post.userReaction !== null;
+            const newReactionsCount = reactionType === null 
+              ? post.reactionsCount - 1
+              : wasReacted 
+                ? post.reactionsCount 
+                : post.reactionsCount + 1;
+            
+            return {
+              ...post,
+              userReaction: reactionType,
+              reactionsCount: Math.max(0, newReactionsCount),
+            };
+          }
+          return post;
+        });
+      });
+      
+      return { previousPosts };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousPosts) {
+        queryClient.setQueryData(["/api/community/posts"], context.previousPosts);
+      }
+      toast({
+        title: "Error",
+        description: "Failed to update reaction",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/community/posts"] });
     },
   });
@@ -485,12 +522,31 @@ function PostCard({
     mutationFn: async (content: string) => {
       return apiRequest(`/api/community/posts/${post.id}/comments`, "POST", { content });
     },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["/api/community/posts"] });
+      const previousPosts = queryClient.getQueryData<Post[]>(["/api/community/posts"]);
+      
+      queryClient.setQueryData<Post[]>(["/api/community/posts"], (old) => {
+        if (!old) return old;
+        return old.map(p => {
+          if (p.id === post.id) {
+            return { ...p, commentsCount: p.commentsCount + 1 };
+          }
+          return p;
+        });
+      });
+      
+      return { previousPosts };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/community/posts", post.id, "comments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/community/posts"] });
       setCommentText("");
     },
-    onError: () => {
+    onError: (err, variables, context) => {
+      if (context?.previousPosts) {
+        queryClient.setQueryData(["/api/community/posts"], context.previousPosts);
+      }
       toast({
         title: "Error",
         description: "Failed to add comment.",

@@ -26,10 +26,10 @@ export function useAuth() {
   } = useQuery<User | undefined, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
-    staleTime: 0, // Always fetch fresh for security
-    refetchOnWindowFocus: true, // Revalidate on focus
-    refetchOnMount: true, // Always revalidate on mount
-    retry: 1, // Retry once on failure
+    staleTime: 60000, // 1 minute
+    refetchOnWindowFocus: false,
+    refetchOnMount: "always",
+    retry: false,
   });
 
   // CRITICAL: Validate session integrity
