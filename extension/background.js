@@ -547,6 +547,64 @@ class AutoJobrBackground {
           if (this.applicationOrchestrator) {
             const result = await this.applicationOrchestrator.scheduleApplication(message.jobData, message.userProfile);
             sendResponse({ success: true, ...result });
+
+
+  formatFollowUpContacts(hiringTeam) {
+    if (!hiringTeam) return null;
+
+    const contacts = [];
+
+    // Prioritize recruiters first (primary contact)
+    if (hiringTeam.recruiters && hiringTeam.recruiters.length > 0) {
+      hiringTeam.recruiters.forEach(recruiter => {
+        if (recruiter.profileUrl) {
+          contacts.push({
+            name: recruiter.name,
+            title: recruiter.title,
+            profileUrl: recruiter.profileUrl,
+            contactType: 'recruiter',
+            priority: 'high',
+            followUpMessage: `Hi ${recruiter.name.split(' ')[0]}, I recently applied for the position and wanted to express my strong interest...`
+          });
+        }
+      });
+    }
+
+    // Then hiring managers (secondary contact)
+    if (hiringTeam.hiringManagers && hiringTeam.hiringManagers.length > 0) {
+      hiringTeam.hiringManagers.forEach(manager => {
+        if (manager.profileUrl) {
+          contacts.push({
+            name: manager.name,
+            title: manager.title,
+            profileUrl: manager.profileUrl,
+            contactType: 'hiring_manager',
+            priority: 'medium',
+            followUpMessage: `Hi ${manager.name.split(' ')[0]}, I'm excited about the opportunity to join your team...`
+          });
+        }
+      });
+    }
+
+    // Finally team members (tertiary contact)
+    if (hiringTeam.teamMembers && hiringTeam.teamMembers.length > 0) {
+      hiringTeam.teamMembers.forEach(member => {
+        if (member.profileUrl) {
+          contacts.push({
+            name: member.name,
+            title: member.title,
+            profileUrl: member.profileUrl,
+            contactType: 'team_member',
+            priority: 'low',
+            followUpMessage: `Hi ${member.name.split(' ')[0]}, I'd love to learn more about the team culture...`
+          });
+        }
+      });
+    }
+
+    return contacts.length > 0 ? contacts : null;
+  }
+
           }
           break;
 
@@ -829,21 +887,26 @@ class AutoJobrBackground {
         'Content-Type': 'application/json'
       };
 
+      // Prepare application data with hiring team information
+      const applicationData = {
+        jobTitle: data.jobTitle,
+        company: data.company,
+        location: data.location || '',
+        jobUrl: data.jobUrl || '',
+        status: 'applied',
+        source: 'extension',
+        notes: `Applied via ${data.platform || 'extension'} on ${new Date().toLocaleDateString()}`,
+        hiringTeam: data.hiringTeam || null, // NEW: Include hiring team data
+        followUpContacts: this.formatFollowUpContacts(data.hiringTeam) // NEW: Format contacts for easy follow-up
+      };
+
       // Use the main applications endpoint that updates job_applications table
       const response = await fetch(`${this.apiUrl}/api/applications`, {
         method: 'POST',
         headers,
         credentials: 'include', // Send session cookies
         mode: 'cors',
-        body: JSON.stringify({
-          jobTitle: data.jobTitle,
-          company: data.company,
-          location: data.location || '',
-          jobUrl: data.jobUrl || '',
-          status: 'applied',
-          source: 'extension',
-          notes: `Applied via ${data.platform || 'extension'} on ${new Date().toLocaleDateString()}`
-        })
+        body: JSON.stringify(applicationData)
       });
 
       if (!response.ok) {

@@ -123,8 +123,13 @@
     "*://*/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
+  "background_scripts": [
+    "background.js",
+    "followup-automation.js"
+  ],
   "content_scripts": [
     {
       "matches": [

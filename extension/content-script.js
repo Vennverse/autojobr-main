@@ -447,6 +447,127 @@ class AutoJobrContentScript {
     // Site-specific smart selectors for better accuracy
     const siteSelectors = {
       linkedin: {
+
+
+  extractHiringTeam() {
+    const hiringTeam = {
+      recruiters: [],
+      hiringManagers: [],
+      teamMembers: []
+    };
+
+    try {
+      // LinkedIn-specific hiring team extraction
+      if (this.currentSite === 'linkedin') {
+        // Extract from "Meet the hiring team" section
+        const hiringSection = document.querySelector('.jobs-company__hiring-team, [data-test-hiring-team], .hiring-team');
+        
+        if (hiringSection) {
+          // Extract individual team members
+          const teamCards = hiringSection.querySelectorAll('.jobs-company__hiring-team-member, .hiring-team-member, [data-test-hiring-team-member]');
+          
+          teamCards.forEach(card => {
+            const nameEl = card.querySelector('.hiring-team-member__name, [data-test-hiring-team-member-name], h3, .t-16');
+            const titleEl = card.querySelector('.hiring-team-member__title, [data-test-hiring-team-member-title], .t-14, .jobs-unified-top-card__subtitle-primary-grouping');
+            const profileLink = card.querySelector('a[href*="/in/"]');
+            
+            const member = {
+              name: nameEl ? nameEl.textContent.trim() : '',
+              title: titleEl ? titleEl.textContent.trim() : '',
+              profileUrl: profileLink ? profileLink.href : '',
+              role: this.categorizeTeamMember(titleEl ? titleEl.textContent.trim() : '')
+            };
+
+            if (member.name) {
+              if (member.role === 'recruiter') {
+                hiringTeam.recruiters.push(member);
+              } else if (member.role === 'hiring_manager') {
+                hiringTeam.hiringManagers.push(member);
+              } else {
+                hiringTeam.teamMembers.push(member);
+              }
+            }
+          });
+        }
+
+        // Alternative: Extract from job poster information
+        const jobPosterSection = document.querySelector('.jobs-poster__name, [data-test-job-poster]');
+        if (jobPosterSection && hiringTeam.recruiters.length === 0) {
+          const posterName = jobPosterSection.textContent.trim();
+          const posterTitle = document.querySelector('.jobs-poster__job-title, .jobs-poster__secondary-grouping');
+          const posterLink = document.querySelector('a.jobs-poster__name');
+
+          if (posterName) {
+            hiringTeam.recruiters.push({
+              name: posterName,
+              title: posterTitle ? posterTitle.textContent.trim() : 'Job Poster',
+              profileUrl: posterLink ? posterLink.href : '',
+              role: 'recruiter'
+            });
+          }
+        }
+      }
+
+      // Generic hiring team extraction for other sites
+      else {
+        // Look for common hiring manager patterns
+        const hiringManagerSelectors = [
+          '.hiring-manager',
+          '.recruiter-info',
+          '.contact-person',
+          '[class*="hiring"]',
+          '[class*="recruiter"]'
+        ];
+
+        hiringManagerSelectors.forEach(selector => {
+          const elements = document.querySelectorAll(selector);
+          elements.forEach(el => {
+            const text = el.textContent.trim();
+            if (text && text.length > 0 && text.length < 200) {
+              hiringTeam.teamMembers.push({
+                name: text,
+                title: 'Team Member',
+                profileUrl: '',
+                role: 'team_member'
+              });
+            }
+          });
+        });
+      }
+
+      console.log('🎯 Extracted hiring team:', hiringTeam);
+      
+    } catch (error) {
+      console.error('Hiring team extraction error:', error);
+    }
+
+    return hiringTeam;
+  }
+
+  categorizeTeamMember(title) {
+    const titleLower = title.toLowerCase();
+    
+    // Recruiter patterns
+    if (titleLower.includes('recruiter') || 
+        titleLower.includes('talent acquisition') || 
+        titleLower.includes('hr') ||
+        titleLower.includes('human resources')) {
+      return 'recruiter';
+    }
+    
+    // Hiring manager patterns
+    if (titleLower.includes('manager') || 
+        titleLower.includes('director') || 
+        titleLower.includes('head of') ||
+        titleLower.includes('lead') ||
+        titleLower.includes('vp') ||
+        titleLower.includes('vice president')) {
+      return 'hiring_manager';
+    }
+    
+    return 'team_member';
+  }
+
         forms: ['.jobs-apply-form', '.application-outlet', '.jobs-easy-apply-modal'],
         skipButtons: ['.artdeco-button--secondary', '[data-test-modal-close-btn]'],
         nextButtons: ['.artdeco-button--primary', '[aria-label*="Continue"]'],
@@ -1050,7 +1171,8 @@ class AutoJobrContentScript {
         type: this.extractText(selectors.type),
         url: window.location.href,
         site: this.currentSite,
-        extractedAt: new Date().toISOString()
+        extractedAt: new Date().toISOString(),
+        hiringTeam: this.extractHiringTeam() // NEW: Extract hiring team information
       };
 
       // Enhanced data cleaning
