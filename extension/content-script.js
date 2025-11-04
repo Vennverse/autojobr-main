@@ -1975,8 +1975,46 @@ class AutoJobrContentScript {
   formatExperience(years, fieldInfo) {
     if (!years) return null;
 
-    // Just return the number of years - simple and clean
+    // Check if the question is asking about specific skill/technology experience
+    const fieldText = fieldInfo.combined.toLowerCase();
+    
+    // For skill-specific questions, try to extract from user's work experience
+    // Common patterns: "experience with X", "years of X experience", etc.
+    const skillMatch = fieldText.match(/(?:experience with|years of experience with|years.*?with)\s+([a-z\s]+)/i);
+    
+    if (skillMatch && this.cachedProfile?.workExperience) {
+      const skill = skillMatch[1].trim();
+      // Calculate years based on work experience mentioning this skill
+      const relevantYears = this.calculateSkillYears(skill, this.cachedProfile.workExperience);
+      if (relevantYears > 0) {
+        return relevantYears.toString();
+      }
+    }
+
+    // Default: return total years of experience
     return years.toString();
+  }
+
+  calculateSkillYears(skill, workExperience) {
+    let totalMonths = 0;
+    const skillLower = skill.toLowerCase();
+    
+    for (const exp of workExperience) {
+      // Check if this job mentions the skill
+      const description = (exp.description || '').toLowerCase();
+      const position = (exp.position || '').toLowerCase();
+      
+      if (description.includes(skillLower) || position.includes(skillLower)) {
+        // Calculate duration of this job
+        const start = new Date(exp.startDate);
+        const end = exp.endDate ? new Date(exp.endDate) : new Date();
+        const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+        totalMonths += months;
+      }
+    }
+    
+    // Convert months to years (round down)
+    return Math.floor(totalMonths / 12);
   }
 
   formatWorkAuth(workAuth, fieldInfo) {
