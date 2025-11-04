@@ -10,12 +10,12 @@ let isAuthenticated = false;
 let currentUser = null;
 
 // Daily engagement notifications
-chrome.alarms.create('morningReminder', { 
+chrome.alarms.create('morningReminder', {
   when: Date.now() + 1000,
   periodInMinutes: 1440 // Daily
 });
 
-chrome.alarms.create('eveningReminder', { 
+chrome.alarms.create('eveningReminder', {
   when: Date.now() + 1000,
   periodInMinutes: 1440
 });
@@ -79,8 +79,8 @@ class AutoJobrBackground {
   async detectApiUrl() {
     // Try multiple URLs in order: development (localhost/Replit) first, then production
     const urlsToTry = [
-      'http://localhost:5000',  // Local development
-      'https://autojobr.com'     // Production
+      'http://localhost:5000', // Local development
+      'https://autojobr.com' // Production
     ];
 
     // Check if we're on a Replit domain and add it to the list
@@ -104,7 +104,7 @@ class AutoJobrBackground {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-        const response = await fetch(`${url}/api/health`, { 
+        const response = await fetch(`${url}/api/health`, {
           method: 'GET',
           mode: 'cors',
           credentials: 'include',
@@ -547,7 +547,17 @@ class AutoJobrBackground {
           if (this.applicationOrchestrator) {
             const result = await this.applicationOrchestrator.scheduleApplication(message.jobData, message.userProfile);
             sendResponse({ success: true, ...result });
+          }
+          break;
 
+        default:
+          sendResponse({ success: false, error: 'Unknown action' });
+      }
+    } catch (error) {
+      console.error('Background message handler error:', error);
+      sendResponse({ success: false, error: error.message });
+    }
+  }
 
   formatFollowUpContacts(hiringTeam) {
     if (!hiringTeam) return [];
@@ -603,18 +613,6 @@ class AutoJobrBackground {
     }
 
     return contacts;
-  }
-
-          }
-          break;
-
-        default:
-          sendResponse({ success: false, error: 'Unknown action' });
-      }
-    } catch (error) {
-      console.error('Background message handler error:', error);
-      sendResponse({ success: false, error: error.message });
-    }
   }
 
   async getSalaryInsights(jobData) {
@@ -940,7 +938,7 @@ class AutoJobrBackground {
       const contactCount = applicationData.followUpContacts?.length || 0;
       await this.showAdvancedNotification(
         'Application Tracked! 📊',
-        `Tracked: ${data.jobTitle} at ${data.company}${contactCount > 0 ? `\n✅ ${contactCount} follow-up contacts saved!` : ''}`,
+        `Tracked: ${data.jobTitle} at ${data.company}${contactCount > 0 ? '\n✅ ' + contactCount + ' follow-up contacts saved!' : ''}`,
         'success'
       );
 
@@ -1145,8 +1143,8 @@ class AutoJobrBackground {
         factors: analysis.factors?.length || 0
       });
 
-      const matchLevel = analysis.matchScore >= 80 ? 'Excellent' : 
-                        analysis.matchScore >= 60 ? 'Good' : 
+      const matchLevel = analysis.matchScore >= 80 ? 'Excellent' :
+                        analysis.matchScore >= 60 ? 'Good' :
                         analysis.matchScore >= 40 ? 'Fair' : 'Poor';
 
       // Only show notification for manual analysis, not automatic ones, and throttle duplicates
@@ -1491,7 +1489,7 @@ class ApplicationOrchestrator {
     // If before 9 AM, schedule for 10 AM today
     if (hour < 9) {
       next.setHours(10, 0, 0, 0);
-    } 
+    }
     // If between 9-11 AM, schedule for 2 PM today
     else if (hour >= 9 && hour < 11) {
       next.setHours(14, 0, 0, 0);
