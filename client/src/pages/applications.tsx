@@ -261,9 +261,12 @@ export default function Applications() {
       });
       const prep = await response.json();
       
+      const totalQuestions = prep.questions ? 
+        Object.values(prep.questions).reduce((acc: number, arr: any) => acc + (Array.isArray(arr) ? arr.length : 0), 0) : 0;
+      
       toast({
         title: "Interview Prep Ready",
-        description: `${prep.questions?.length || 0} questions prepared`,
+        description: `${totalQuestions} questions prepared`,
       });
     } catch (error) {
       toast({

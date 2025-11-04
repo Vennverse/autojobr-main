@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   Wrench,
   Target,
@@ -70,12 +70,21 @@ interface Tool {
 
 export default function AdvancedToolsPage() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("all");
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const [resumeText, setResumeText] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [atsScore, setAtsScore] = useState<number | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const handleToolClick = (toolId: string) => {
+    if (toolId === "linkedin-optimizer") {
+      setLocation("/linkedin-optimizer");
+    } else {
+      setSelectedTool(toolId);
+    }
+  };
 
   const tools: Tool[] = [
     // Resume & Profile Tools
@@ -107,6 +116,14 @@ export default function AdvancedToolsPage() {
       description: "Get a detailed analysis of your profile completeness with actionable improvement suggestions.",
       icon: Star,
       category: "resume",
+    },
+    {
+      id: "linkedin-optimizer",
+      name: "LinkedIn Profile Optimizer",
+      description: "AI-powered LinkedIn profile optimization with headline, about section, and keyword recommendations.",
+      icon: TrendingUp,
+      category: "resume",
+      isPopular: true,
     },
 
     // Job Search Tools
@@ -515,7 +532,7 @@ export default function AdvancedToolsPage() {
                               <Button 
                                 size="sm" 
                                 className="flex-1"
-                                onClick={() => setSelectedTool(tool.id)}
+                                onClick={() => handleToolClick(tool.id)}
                                 data-testid={`button-use-${tool.id}`}
                               >
                                 Use Tool
