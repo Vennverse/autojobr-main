@@ -1360,7 +1360,7 @@ class AutoJobrPopup {
 
     tasksList.innerHTML = tasks.map(task => `
       <div class="task-item" data-task-id="${task.id}">
-        <div class="task-checkbox ${task.status === 'completed' ? 'checked' : ''}" 
+        <div class="task-checkbox ${task.status === 'completed' ? 'checked' : ''}"
              onclick="autojobr.toggleTaskStatus(${task.id}, '${task.status === 'completed' ? 'pending' : 'completed'}')">
           ${task.status === 'completed' ? '✓' : ''}
         </div>
@@ -1790,8 +1790,78 @@ class AutoJobrPopup {
     }, 3000);
   }
 
-  showError(message) {
-    this.showNotification(`❌ ${message}`, 'error');
+  showError(message, actionButton = null) {
+    const notification = document.createElement('div');
+    notification.className = 'notification error';
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      max-width: 320px;
+      box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+      z-index: 10001;
+      border-left: 4px solid #ef4444;
+      transform: translateX(400px);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    `;
+
+    let content = `
+      <div style="display: flex; align-items: start; gap: 12px;">
+        <span style="font-size: 20px;">⚠️</span>
+        <div style="flex: 1;">
+          <div style="font-weight: 600; margin-bottom: 4px;">Error</div>
+          <div style="font-size: 13px; color: #7f1d1d;">${message}</div>
+    `;
+
+    if (actionButton) {
+      content += `
+          <button onclick="${actionButton.action}" style="
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 500;
+          ">${actionButton.text}</button>
+      `;
+    }
+
+    content += `
+        </div>
+        <button onclick="this.parentElement.parentElement.remove()" style="
+          background: none;
+          border: none;
+          color: #991b1b;
+          font-size: 18px;
+          cursor: pointer;
+          padding: 0;
+          line-height: 1;
+        ">×</button>
+      </div>
+    `;
+
+    notification.innerHTML = content;
+    document.body.appendChild(notification);
+
+    // Animate in
+    setTimeout(() => {
+      notification.style.transform = 'translateX(0)';
+    }, 10);
+
+    // Auto-dismiss after 7 seconds
+    setTimeout(() => {
+      notification.style.transform = 'translateX(400px)';
+      setTimeout(() => notification.remove(), 300);
+    }, 7000);
   }
 
   openDashboard() {
