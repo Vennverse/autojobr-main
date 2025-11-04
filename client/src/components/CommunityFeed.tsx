@@ -320,9 +320,11 @@ export function CommunityFeed() {
   };
 
   const handleReaction = (postId: number, reactionType: string, currentReaction: string | null) => {
+    const newReactionType = currentReaction === reactionType ? null : reactionType;
+    console.log('Handling reaction:', { postId, reactionType, currentReaction, newReactionType });
     reactToPostMutation.mutate({
       postId,
-      reactionType: currentReaction === reactionType ? null : reactionType,
+      reactionType: newReactionType,
     });
   };
 

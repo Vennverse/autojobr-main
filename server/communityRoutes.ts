@@ -240,17 +240,23 @@ router.post("/posts/:postId/react", isAuthenticated, async (req, res) => {
     const { postId } = req.params;
     const { reactionType } = req.body;
 
+    console.log('[REACTION] Request:', { userId, postId, reactionType });
+
     if (reactionType === "") {
       return res.status(400).json({ error: "Reaction type cannot be empty" });
     }
 
-    if (reactionType === null || reactionType === undefined) {
-      const existingReaction = await db
-        .select()
-        .from(postReactions)
-        .where(and(eq(postReactions.postId, Number(postId)), eq(postReactions.userId, userId)))
-        .limit(1);
+    // Check for existing reaction
+    const existingReaction = await db
+      .select()
+      .from(postReactions)
+      .where(and(eq(postReactions.postId, Number(postId)), eq(postReactions.userId, userId)))
+      .limit(1);
 
+    console.log('[REACTION] Existing reaction:', existingReaction);
+
+    // If reactionType is null, remove the reaction
+    if (reactionType === null || reactionType === undefined) {
       if (existingReaction.length > 0) {
         await db
           .delete(postReactions)
@@ -258,21 +264,18 @@ router.post("/posts/:postId/react", isAuthenticated, async (req, res) => {
 
         await db
           .update(communityPosts)
-          .set({ reactionsCount: sql`${communityPosts.reactionsCount} - 1` })
+          .set({ reactionsCount: sql`GREATEST(${communityPosts.reactionsCount} - 1, 0)` })
           .where(eq(communityPosts.id, Number(postId)));
 
+        console.log('[REACTION] Removed');
         return res.json({ message: "Reaction removed", reactionType: null });
       } else {
+        console.log('[REACTION] No reaction to remove');
         return res.json({ message: "No reaction to remove", reactionType: null });
       }
     }
 
-    const existingReaction = await db
-      .select()
-      .from(postReactions)
-      .where(and(eq(postReactions.postId, Number(postId)), eq(postReactions.userId, userId)))
-      .limit(1);
-
+    // If reaction exists and is the same, remove it (toggle off)
     if (existingReaction.length > 0) {
       if (existingReaction[0].reactionType === reactionType) {
         await db
@@ -281,20 +284,24 @@ router.post("/posts/:postId/react", isAuthenticated, async (req, res) => {
 
         await db
           .update(communityPosts)
-          .set({ reactionsCount: sql`${communityPosts.reactionsCount} - 1` })
+          .set({ reactionsCount: sql`GREATEST(${communityPosts.reactionsCount} - 1, 0)` })
           .where(eq(communityPosts.id, Number(postId)));
 
+        console.log('[REACTION] Toggled off');
         return res.json({ message: "Reaction removed", reactionType: null });
       } else {
+        // Update to new reaction type (no count change)
         await db
           .update(postReactions)
           .set({ reactionType })
           .where(and(eq(postReactions.postId, Number(postId)), eq(postReactions.userId, userId)));
 
+        console.log('[REACTION] Updated to new type');
         return res.json({ message: "Reaction updated", reactionType });
       }
     }
 
+    // Add new reaction
     const validatedData = insertPostReactionSchema.parse({
       postId: Number(postId),
       userId,
@@ -308,9 +315,10 @@ router.post("/posts/:postId/react", isAuthenticated, async (req, res) => {
       .set({ reactionsCount: sql`${communityPosts.reactionsCount} + 1` })
       .where(eq(communityPosts.id, Number(postId)));
 
+    console.log('[REACTION] Added');
     res.json({ message: "Reaction added", reactionType });
   } catch (error) {
-    console.error("Error reacting to post:", error);
+    console.error("[REACTION] Error:", error);
     res.status(500).json({ error: "Failed to react to post" });
   }
 });
