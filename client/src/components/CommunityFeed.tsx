@@ -636,19 +636,19 @@ function PostCard({
               {post.mediaUrls.map((url, index) => {
                 const mediaType = post.mediaTypes?.[index] || "photo";
                 return (
-                  <div key={index} className="rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800">
+                  <div key={index} className="rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                     {mediaType === "photo" ? (
                       <img
                         src={url}
                         alt="Post media"
-                        className="w-full h-auto max-h-96 object-cover"
+                        className="w-full h-auto object-contain max-h-96"
                         data-testid={`img-media-${post.id}-${index}`}
                       />
                     ) : (
                       <video
                         src={url}
                         controls
-                        className="w-full h-auto max-h-96"
+                        className="w-full h-auto object-contain max-h-96"
                         data-testid={`video-media-${post.id}-${index}`}
                       />
                     )}
