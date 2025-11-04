@@ -758,36 +758,32 @@ class AutoJobrContentScript {
       document.getElementById('autojobr-stop-automation').style.display = 'none';
     });
 
-    // Widget controls
-    // Enhanced close button with better event handling
+    // Widget controls - Enhanced close and minimize buttons
     const closeBtn = document.querySelector('.autojobr-close');
     const minimizeBtn = document.querySelector('.autojobr-minimize');
 
     if (closeBtn) {
-      closeBtn.addEventListener('click', (e) => {
+      const handleClose = (e) => {
         e.preventDefault();
         e.stopPropagation();
         this.hideWidget();
-      });
-      // Add touch event for mobile
-      closeBtn.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.hideWidget();
-      });
+      };
+      closeBtn.addEventListener('click', handleClose);
+      closeBtn.addEventListener('touchend', handleClose);
+    } else {
+      console.warn('AutoJobr: Close button not found in DOM');
     }
 
     if (minimizeBtn) {
-      minimizeBtn.addEventListener('click', (e) => {
+      const handleMinimize = (e) => {
         e.preventDefault();
         e.stopPropagation();
         this.minimizeWidget();
-      });
-      minimizeBtn.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.minimizeWidget();
-      });
+      };
+      minimizeBtn.addEventListener('click', handleMinimize);
+      minimizeBtn.addEventListener('touchend', handleMinimize);
+    } else {
+      console.warn('AutoJobr: Minimize button not found in DOM');
     }
 
     // Feature toggles
