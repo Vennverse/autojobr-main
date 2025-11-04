@@ -13,13 +13,18 @@ if (!DATABASE_URL) {
 
 const pool = new Pool({ connectionString: DATABASE_URL });
 
-// List of random castes to assign
+// List of random color-based castes to assign
 const castes = [
-  'General',
-  'OBC',
-  'SC',
-  'ST',
-  'EWS'
+  'Green',
+  'Blue',
+  'Red',
+  'Yellow',
+  'Purple',
+  'Orange',
+  'Pink',
+  'Brown',
+  'Gray',
+  'Violet'
 ];
 
 // Users to update
