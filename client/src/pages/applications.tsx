@@ -39,7 +39,10 @@ import {
   Trophy,
   CheckSquare,
   PlusCircle,
-  ChevronRight
+  ChevronRight,
+  Upload,
+  UserPlus,
+  Chrome
 } from "lucide-react";
 
 // Helper functions
@@ -185,6 +188,117 @@ export default function Applications() {
 
     return matchesSearch;
   }) : [];
+
+  // Extension feature handlers
+  const handleAutoFill = async (jobId: number) => {
+    toast({
+      title: "Auto-fill",
+      description: "This feature is available in the Chrome Extension. Install to use auto-fill on job boards.",
+    });
+  };
+
+  const handleAnalyzeJob = async (job: any) => {
+    try {
+      const response = await fetch('/api/analyze-job-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          jobData: job,
+          userProfile: user 
+        }),
+      });
+      const analysis = await response.json();
+      
+      toast({
+        title: "Job Analysis Complete",
+        description: `Match Score: ${analysis.matchScore}% - ${analysis.recommendation}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to analyze job",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleGenerateCoverLetter = async (job: any) => {
+    try {
+      const response = await fetch('/api/generate-cover-letter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          jobData: job,
+          userProfile: user 
+        }),
+      });
+      const result = await response.json();
+      
+      await navigator.clipboard.writeText(result.coverLetter);
+      toast({
+        title: "Cover Letter Generated",
+        description: "Cover letter copied to clipboard!",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate cover letter",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleInterviewPrep = async (job: any) => {
+    try {
+      const response = await fetch('/api/interview-prep', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          jobTitle: job.jobTitle || job.title,
+          company: job.company,
+          jobDescription: job.description 
+        }),
+      });
+      const prep = await response.json();
+      
+      toast({
+        title: "Interview Prep Ready",
+        description: `${prep.questions?.length || 0} questions prepared`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to get interview prep",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSalaryInsights = async (job: any) => {
+    try {
+      const response = await fetch('/api/salary-insights', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          jobTitle: job.jobTitle || job.title,
+          company: job.company,
+          location: job.location 
+        }),
+      });
+      const insights = await response.json();
+      
+      toast({
+        title: "Salary Insights",
+        description: `Average: ${insights.averageSalary || 'N/A'}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to get salary insights",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -369,10 +483,13 @@ export default function Applications() {
               </CardContent>
             </Card>
 
-            {/* Quick Actions */}
+            {/* Quick Actions - Extension Features */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-yellow-500" />
+                  Quick Actions
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button 
@@ -381,6 +498,14 @@ export default function Applications() {
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Apply to New Job
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => window.location.href = '/resumes'}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Resume
                 </Button>
                 <Button 
                   variant="outline" 
@@ -397,6 +522,22 @@ export default function Applications() {
                 >
                   <Users className="h-4 w-4 mr-2" />
                   Practice Interview
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => window.location.href = '/referral-marketplace'}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Find Referrals
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => window.open('https://chrome.google.com/webstore', '_blank')}
+                >
+                  <Chrome className="h-4 w-4 mr-2" />
+                  Install Extension
                 </Button>
               </CardContent>
             </Card>
@@ -831,13 +972,51 @@ export default function Applications() {
                           </div>
                         </div>
 
-                        {/* Action buttons */}
-                        <div className="flex gap-2 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button size="sm" variant="outline" className="text-xs h-7">
-                            Follow Up
+                        {/* Extension Feature Action buttons */}
+                        <div className="flex flex-wrap gap-2 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="text-xs h-7"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAnalyzeJob(app);
+                            }}
+                          >
+                            📊 Analyze
                           </Button>
-                          <Button size="sm" variant="outline" className="text-xs h-7">
-                            View Details
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="text-xs h-7"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleGenerateCoverLetter(app);
+                            }}
+                          >
+                            📝 Cover Letter
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="text-xs h-7"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleInterviewPrep(app);
+                            }}
+                          >
+                            🎯 Interview Prep
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="text-xs h-7"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSalaryInsights(app);
+                            }}
+                          >
+                            💰 Salary
                           </Button>
                         </div>
                       </div>
