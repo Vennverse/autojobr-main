@@ -1975,15 +1975,7 @@ class AutoJobrContentScript {
   formatExperience(years, fieldInfo) {
     if (!years) return null;
 
-    if (fieldInfo.type === 'select-one') {
-      // Return appropriate range for select fields
-      if (years < 1) return '0-1 years';
-      if (years < 3) return '1-3 years';
-      if (years < 5) return '3-5 years';
-      if (years < 10) return '5-10 years';
-      return '10+ years';
-    }
-
+    // Just return the number of years - simple and clean
     return years.toString();
   }
 
