@@ -3235,14 +3235,14 @@ class AutoJobrContentScript {
 
       // Check if this is a job page
       if (this.isJobPage()) {
-        console.log('📍 Job page detected - showing widget immediately:', currentUrl);
-        // Show widget immediately on job pages
-        this.showWidget();
-
-        // Then start job detection and analysis
+        console.log('📍 Job page detected:', currentUrl);
+        
+        // Don't auto-show widget - let user click the floating button instead
+        
+        // Start job detection and analysis silently
         this.detectJobPosting().then((result) => {
           if (result && result.success) {
-            console.log('✅ Job detected successfully, updating widget with job info');
+            console.log('✅ Job detected successfully, updating match score silently');
             this.updateJobInfo(result.jobData);
             // Perform auto-analysis after successful detection
             setTimeout(() => {
@@ -3251,12 +3251,11 @@ class AutoJobrContentScript {
               });
             }, 1000);
           } else {
-            console.log('⚠️ Job detection failed, but keeping widget visible');
-            // Keep widget visible even if job detection fails
+            console.log('⚠️ Job detection failed');
             this.analysisInProgress = false;
           }
         }).catch((error) => {
-          console.log('❌ Job detection error, but keeping widget visible:', error);
+          console.log('❌ Job detection error:', error);
           this.analysisInProgress = false;
         });
       } else {
@@ -3333,9 +3332,9 @@ class AutoJobrContentScript {
       if (analysis) {
         console.log('✅ Fresh analysis completed - match score:', analysis.matchScore);
 
-        // Update floating button with fresh analysis results
-        this.updateFloatingButtonWithAnalysis(analysis);
-        console.log('Updated automatic popup with fresh analysis:', analysis.matchScore);
+        // Update widget silently - don't show popup automatically
+        this.updateJobMatch(analysis);
+        console.log('Updated match score silently:', analysis.matchScore);
       }
     } catch (error) {
       console.error('Auto-analysis failed:', error);
@@ -3424,75 +3423,62 @@ class AutoJobrContentScript {
   }
 
   updateFloatingButtonWithAnalysis(analysis) {
-    const button = document.getElementById('autojobr-floating-button');
-    if (!button) return;
-
     const score = analysis.matchScore || analysis.analysis?.matchScore || 0;
     const scoreText = `${Math.round(score)}%`;
 
-    // Update button with score and click handler to open extension popup
-    button.innerHTML = `
-      <div style="
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        width: 60px;
-        height: 60px;
-        background: linear-gradient(135deg, ${this.getScoreColor(score)} 0%, ${this.getScoreColor(score)}dd 100%);
-        border-radius: 50%;
-        box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
-        cursor: pointer;
-        display: flex;
+    // Find the Save button on LinkedIn
+    const saveButton = document.querySelector('[aria-label*="Save"]') || 
+                      document.querySelector('button.jobs-save-button') ||
+                      document.querySelector('[data-control-name*="save"]');
+
+    if (saveButton) {
+      // Remove existing badge if present
+      const existingBadge = document.getElementById('autojobr-match-badge');
+      if (existingBadge) existingBadge.remove();
+
+      // Create match score badge next to Save button
+      const badge = document.createElement('div');
+      badge.id = 'autojobr-match-badge';
+      badge.style.cssText = `
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        z-index: 10000;
-        transition: all 0.3s ease;
-        animation: pulse 2s infinite;
-      " title="Job Match: ${scoreText} - Click to open AutoJobr extension">
-        <span style="color: white; font-weight: bold; font-size: 12px; text-align: center;">
-          ${scoreText}
-        </span>
-      </div>
-      <style>
-        @keyframes pulse {
-          0% { box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4); }
-          50% { box-shadow: 0 4px 20px rgba(102, 126, 234, 0.8); }
-          100% { box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4); }
-        }
-        #autojobr-floating-button:hover > div {
-          transform: scale(1.1);
-          box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
-        }
-      </style>
-    `;
+        background: linear-gradient(135deg, ${this.getScoreColor(score)} 0%, ${this.getScoreColor(score)}dd 100%);
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        margin-left: 8px;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        transition: all 0.2s ease;
+        z-index: 999;
+      `;
+      badge.textContent = scoreText;
+      badge.title = `Job Match Score: ${scoreText} - Click to view details`;
 
-    // Add click handler to open extension popup
-    button.onclick = () => {
-      // Try to open popup, fallback to notification
-      chrome.runtime.sendMessage({ action: 'openPopup' }, (response) => {
-        if (!response?.success) {
-          // Show notification if popup couldn't be opened
-          const notification = document.createElement('div');
-          notification.style.cssText = `
-            position: fixed;
-            bottom: 90px;
-            right: 20px;
-            background: rgba(0,0,0,0.9);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            z-index: 10001;
-            animation: fadeInUp 0.3s ease;
-          `;
-          notification.textContent = 'Click the AutoJobr extension icon in your toolbar to view details';
-          document.body.appendChild(notification);
+      // Add hover effect
+      badge.onmouseenter = () => {
+        badge.style.transform = 'scale(1.1)';
+        badge.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+      };
+      badge.onmouseleave = () => {
+        badge.style.transform = 'scale(1)';
+        badge.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+      };
 
-          // Remove notification after 3 seconds
-          setTimeout(() => notification.remove(), 3000);
-        }
-      });
-    };
+      // Add click handler to show widget
+      badge.onclick = () => {
+        this.showWidget();
+        this.updateJobMatch(analysis);
+      };
+
+      // Insert badge after Save button
+      saveButton.parentElement.style.display = 'flex';
+      saveButton.parentElement.style.alignItems = 'center';
+      saveButton.parentElement.appendChild(badge);
+    }
 
     // Store analysis data for popup use
     this.currentAnalysis = analysis;

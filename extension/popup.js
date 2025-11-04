@@ -106,6 +106,7 @@ class AutoJobrPopup {
     document.getElementById('interviewPrepBtn')?.addEventListener('click', () => this.handleInterviewPrep());
     document.getElementById('salaryInsightsBtn')?.addEventListener('click', () => this.handleSalaryInsights());
     document.getElementById('referralFinderBtn')?.addEventListener('click', () => this.handleReferralFinder());
+    document.getElementById('linkedinAutoApplyBtn')?.addEventListener('click', () => this.handleLinkedInAutoApply());
 
     // Quick action buttons
     document.getElementById('resumeBtn').addEventListener('click', () => this.handleResumeAction());
@@ -1158,6 +1159,32 @@ class AutoJobrPopup {
     } catch (error) {
       console.error('Referral finder error:', error);
       this.showError('Failed to open referral marketplace. Please try again.');
+    }
+  }
+
+  async handleLinkedInAutoApply() {
+    try {
+      // Check if we're on LinkedIn
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      
+      if (!tab.url.includes('linkedin.com')) {
+        this.showNotification('Please navigate to LinkedIn jobs page first', 'error');
+        return;
+      }
+
+      // Send message to content script to start automation
+      chrome.tabs.sendMessage(tab.id, { 
+        action: 'startLinkedInAutomation' 
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          this.showNotification('Please refresh the LinkedIn page and try again', 'error');
+        } else if (response && response.success) {
+          this.showNotification('LinkedIn Auto-Apply started!', 'success');
+        }
+      });
+    } catch (error) {
+      console.error('LinkedIn Auto-Apply error:', error);
+      this.showError('Failed to start LinkedIn Auto-Apply. Please try again.');
     }
   }
 

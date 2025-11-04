@@ -466,10 +466,14 @@ Skills: ${userProfile.skills?.map((s: any) => s.skillName).join(', ') || 'None l
 
 {
   "matchScore": number,
-  "strengths": ["matching qualifications"],
-  "gaps": ["missing requirements"],
-  "recommendations": ["how to improve match"],
-  "salaryEstimate": "range based on role",
+  "matchingSkills": ["matching qualifications"],
+  "missingSkills": ["missing requirements"],
+  "skillGaps": {
+    "critical": ["critical gaps"],
+    "important": ["important gaps"],
+    "nice_to_have": ["nice to have gaps"]
+  },
+  "seniorityLevel": "seniority level",
   "workMode": "remote/hybrid/onsite preference",
   "jobType": "contract/fulltime/parttime",
   "roleComplexity": "entry/mid/senior level",
@@ -519,8 +523,32 @@ Skills: ${userProfile.skills?.map((s: any) => s.skillName).join(', ') || 'None l
 
       try {
         const analysis = JSON.parse(cleanContent);
+
+        // Extract skills for score calculation
+        const matchingSkills = analysis.matchingSkills || [];
+        const skillsScore = (matchingSkills.length / (userProfile.skills?.length || 1)) * 100; // Simple skill match percentage
+        const experienceScore = Math.min(100, (userProfile.yearsExperience || 0) * 10); // Assume 10% per year up to 10 years
+        const educationScore = userProfile.education?.length ? 80 : 0; // Basic score for having education
+        const titleScore = userProfile.professionalTitle && analysis.seniorityLevel && userProfile.professionalTitle.toLowerCase().includes(analysis.seniorityLevel.toLowerCase()) ? 70 : 40; // Basic title match score
+
+        // Calculate match score with detailed breakdown - ensure minimum threshold
+        let rawScore =
+          (skillsScore * 0.4) +
+          (experienceScore * 0.25) +
+          (educationScore * 0.15) +
+          (titleScore * 0.2);
+
+        // Apply minimum threshold to prevent artificially low scores
+        // If user has ANY matching skills, score should be at least 30%
+        if (matchingSkills.length > 0 && rawScore < 30) {
+          rawScore = 30 + (matchingSkills.length * 5); // 5% per matching skill
+        }
+
+        const matchScore = Math.min(100, Math.round(rawScore));
+
         return {
           ...analysis,
+          matchScore: matchScore, // Use the calculated matchScore
           aiTier: accessInfo.tier,
           upgradeMessage: accessInfo.message
         } as JobMatchAnalysis & { aiTier?: string, upgradeMessage?: string };
@@ -1077,8 +1105,8 @@ ${customPrompt || ''}
     const isPremium = user?.planType === 'premium' || user?.planType === 'enterprise';
 
     // Convert jobDescription to string if it's an object
-    const jobDescString = typeof jobDescription === 'string' 
-      ? jobDescription 
+    const jobDescString = typeof jobDescription === 'string'
+      ? jobDescription
       : (jobDescription?.description || jobDescription?.jobDescription || JSON.stringify(jobDescription));
 
     // Extract only key info to reduce tokens
@@ -1167,7 +1195,7 @@ Please revise the cover letter according to the instruction. Return ONLY the rev
 
       const content = completion?.choices?.[0]?.message?.content || completion?.content || completion;
       const refinedLetter = typeof content === 'string' ? content.trim() : currentLetter;
-      
+
       return {
         refinedLetter,
         modelUsed
@@ -1691,7 +1719,7 @@ Generate ONLY these modifications in JSON:
       const content = completion.choices[0]?.message?.content;
       const jsonMatch = content?.match(/\{[\s\S]*\}/);
       const modifications = jsonMatch ? JSON.parse(jsonMatch[0]) : this.generateFallbackCompleteResume(data);
-      
+
       // Apply modifications to the resume data
       return this.applyResumeModifications(data.resumeData, modifications);
     } catch (error) {
@@ -1717,12 +1745,12 @@ Generate ONLY these modifications in JSON:
 
   private applyResumeModifications(originalData: any, modifications: any): any {
     const tailoredResume = JSON.parse(JSON.stringify(originalData)); // Deep clone
-    
+
     // Apply summary
     if (modifications.summary) {
       tailoredResume.summary = modifications.summary;
     }
-    
+
     // Apply experience bullet modifications
     if (modifications.experienceBulletModifications && tailoredResume.experience) {
       modifications.experienceBulletModifications.forEach((mod: any) => {
@@ -1731,12 +1759,12 @@ Generate ONLY these modifications in JSON:
         }
       });
     }
-    
+
     // Apply skill reordering
     if (modifications.reorderedSkills) {
       tailoredResume.skills = modifications.reorderedSkills;
     }
-    
+
     return {
       tailoredResumeData: tailoredResume,
       modifications: {
