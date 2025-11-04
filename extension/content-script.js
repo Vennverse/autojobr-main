@@ -3292,6 +3292,8 @@ class AutoJobrContentScript {
   }
 
   extractLinkedInJobDetails() {
+    const hiringTeam = this.extractHiringTeam();
+    
     return {
       title: document.querySelector('.job-details-jobs-unified-top-card__job-title')?.textContent?.trim() || 
              document.querySelector('.jobs-unified-top-card__job-title')?.textContent?.trim() || 'Job',
@@ -3299,13 +3301,14 @@ class AutoJobrContentScript {
                document.querySelector('.jobs-unified-top-card__company-name')?.textContent?.trim() || 'Company',
       location: document.querySelector('.job-details-jobs-unified-top-card__bullet')?.textContent?.trim() || '',
       url: window.location.href,
-      platform: 'LinkedIn'
+      platform: 'LinkedIn',
+      hiringTeam: hiringTeam
     };
   }
 
   async trackLinkedInApplication(jobData) {
     try {
-      await chrome.runtime.sendMessage({
+      const response = await chrome.runtime.sendMessage({
         action: 'trackApplication',
         data: {
           jobTitle: jobData.title,
@@ -3314,9 +3317,13 @@ class AutoJobrContentScript {
           jobUrl: jobData.url,
           status: 'applied',
           source: 'linkedin_automation',
-          platform: 'LinkedIn'
+          platform: 'LinkedIn',
+          hiringTeam: jobData.hiringTeam,
+          appliedAt: new Date().toISOString()
         }
       });
+      
+      console.log('✅ Application tracked with hiring team data:', response);
     } catch (error) {
       console.warn('Failed to track application:', error);
     }

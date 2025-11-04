@@ -2,7 +2,7 @@
 console.log('🚀 AutoJobr Autopilot v3.0 loading...');
 
 // Import helper modules
-importScripts('autopilot-engine.js', 'resume-optimizer.js', 'referral-finder.js');
+importScripts('autopilot-engine.js', 'resume-optimizer.js', 'referral-finder.js', 'followup-automation.js');
 
 // Background service worker for AutoJobr Chrome Extension
 
@@ -550,14 +550,14 @@ class AutoJobrBackground {
 
 
   formatFollowUpContacts(hiringTeam) {
-    if (!hiringTeam) return null;
+    if (!hiringTeam) return [];
 
     const contacts = [];
 
     // Prioritize recruiters first (primary contact)
     if (hiringTeam.recruiters && hiringTeam.recruiters.length > 0) {
       hiringTeam.recruiters.forEach(recruiter => {
-        if (recruiter.profileUrl) {
+        if (recruiter.profileUrl && recruiter.name) {
           contacts.push({
             name: recruiter.name,
             title: recruiter.title,
@@ -573,7 +573,7 @@ class AutoJobrBackground {
     // Then hiring managers (secondary contact)
     if (hiringTeam.hiringManagers && hiringTeam.hiringManagers.length > 0) {
       hiringTeam.hiringManagers.forEach(manager => {
-        if (manager.profileUrl) {
+        if (manager.profileUrl && manager.name) {
           contacts.push({
             name: manager.name,
             title: manager.title,
@@ -589,7 +589,7 @@ class AutoJobrBackground {
     // Finally team members (tertiary contact)
     if (hiringTeam.teamMembers && hiringTeam.teamMembers.length > 0) {
       hiringTeam.teamMembers.forEach(member => {
-        if (member.profileUrl) {
+        if (member.profileUrl && member.name) {
           contacts.push({
             name: member.name,
             title: member.title,
@@ -602,7 +602,7 @@ class AutoJobrBackground {
       });
     }
 
-    return contacts.length > 0 ? contacts : null;
+    return contacts;
   }
 
           }
@@ -920,9 +920,27 @@ class AutoJobrBackground {
 
       const application = await response.json();
 
+      // Schedule follow-up if hiring team data is available
+      if (data.hiringTeam) {
+        try {
+          await followUpAutomation.scheduleFollowUp({
+            id: application.id || Date.now().toString(),
+            jobTitle: data.jobTitle,
+            company: data.company,
+            hiringTeam: data.hiringTeam,
+            appliedAt: data.appliedAt || new Date().toISOString()
+          });
+          const contactCount = applicationData.followUpContacts?.length || 0;
+          console.log(`✅ Follow-up scheduled for ${data.jobTitle} at ${data.company} with ${contactCount} contacts`);
+        } catch (error) {
+          console.warn('Failed to schedule follow-up:', error);
+        }
+      }
+
+      const contactCount = applicationData.followUpContacts?.length || 0;
       await this.showAdvancedNotification(
         'Application Tracked! 📊',
-        `Tracked: ${data.jobTitle} at ${data.company}`,
+        `Tracked: ${data.jobTitle} at ${data.company}${contactCount > 0 ? `\n✅ ${contactCount} follow-up contacts saved!` : ''}`,
         'success'
       );
 

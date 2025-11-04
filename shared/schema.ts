@@ -348,6 +348,8 @@ export const jobApplications = pgTable("job_applications", {
   rejectionReason: text("rejection_reason"),
   nextFollowUpDate: timestamp("next_follow_up_date"),
   lastContactedAt: timestamp("last_contacted_at"),
+  hiringTeam: jsonb("hiring_team"), // Hiring team data extracted from job posting (recruiters, managers, team members with profile links)
+  followUpContacts: jsonb("follow_up_contacts"), // Formatted contacts for follow-up messaging
   createdAt: timestamp("created_at").defaultNow(),
 },
 (table) => [

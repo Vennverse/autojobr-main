@@ -23,7 +23,15 @@ class FollowUpAutomation {
   async scheduleFollowUp(applicationData) {
     const { jobTitle, company, hiringTeam, appliedAt } = applicationData;
     
-    if (!hiringTeam || !hiringTeam.followUpContacts) {
+    if (!hiringTeam) {
+      console.log('No hiring team data available for follow-up');
+      return;
+    }
+
+    // Extract follow-up contacts from hiring team
+    const followUpContacts = this.extractFollowUpContacts(hiringTeam);
+    
+    if (!followUpContacts || followUpContacts.length === 0) {
       console.log('No hiring team contacts available for follow-up');
       return;
     }
@@ -32,18 +40,69 @@ class FollowUpAutomation {
     const followUpSchedule = {
       week1: { // 7 days after application
         scheduledFor: new Date(new Date(appliedAt).getTime() + 7 * 24 * 60 * 60 * 1000),
-        contacts: hiringTeam.followUpContacts.filter(c => c.priority === 'high'),
+        contacts: followUpContacts.filter(c => c.priority === 'high'),
         message: this.generateFollowUpMessage(jobTitle, company, 'initial')
       },
       week2: { // 14 days if no response
         scheduledFor: new Date(new Date(appliedAt).getTime() + 14 * 24 * 60 * 60 * 1000),
-        contacts: hiringTeam.followUpContacts.filter(c => c.priority === 'medium'),
+        contacts: followUpContacts.filter(c => c.priority === 'medium' || c.priority === 'low'),
         message: this.generateFollowUpMessage(jobTitle, company, 'secondary')
       }
     };
 
     await this.saveFollowUpSchedule(applicationData.id, followUpSchedule);
-    console.log(`📅 Follow-up scheduled for ${jobTitle} at ${company}`);
+    console.log(`📅 Follow-up scheduled for ${jobTitle} at ${company} with ${followUpContacts.length} contacts`);
+  }
+
+  extractFollowUpContacts(hiringTeam) {
+    const contacts = [];
+
+    // Prioritize recruiters first (primary contact)
+    if (hiringTeam.recruiters && hiringTeam.recruiters.length > 0) {
+      hiringTeam.recruiters.forEach(recruiter => {
+        if (recruiter.profileUrl) {
+          contacts.push({
+            name: recruiter.name,
+            title: recruiter.title,
+            profileUrl: recruiter.profileUrl,
+            contactType: 'recruiter',
+            priority: 'high'
+          });
+        }
+      });
+    }
+
+    // Then hiring managers (secondary contact)
+    if (hiringTeam.hiringManagers && hiringTeam.hiringManagers.length > 0) {
+      hiringTeam.hiringManagers.forEach(manager => {
+        if (manager.profileUrl) {
+          contacts.push({
+            name: manager.name,
+            title: manager.title,
+            profileUrl: manager.profileUrl,
+            contactType: 'hiring_manager',
+            priority: 'medium'
+          });
+        }
+      });
+    }
+
+    // Finally team members (tertiary contact)
+    if (hiringTeam.teamMembers && hiringTeam.teamMembers.length > 0) {
+      hiringTeam.teamMembers.forEach(member => {
+        if (member.profileUrl) {
+          contacts.push({
+            name: member.name,
+            title: member.title,
+            profileUrl: member.profileUrl,
+            contactType: 'team_member',
+            priority: 'low'
+          });
+        }
+      });
+    }
+
+    return contacts;
   }
 
   generateFollowUpMessage(jobTitle, company, stage) {
