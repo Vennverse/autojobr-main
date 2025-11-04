@@ -16,6 +16,7 @@ class AutoJobrContentScript {
     this.analysisDebounceTimer = null; // Debounce analysis calls
     this.cachedProfile = null; // Cache profile to prevent excessive requests
     this.lastAuthCheck = 0; // Track last authentication check
+    this.currentAnalysis = null; // Store the latest job analysis result
 
     // LinkedIn Automation specific states
     this.automationRunning = false;
@@ -711,7 +712,7 @@ class AutoJobrContentScript {
       // Prevent shortcuts when widget is focused or when typing in input fields
       const activeElement = document.activeElement;
       const isInputFocused = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.isContentEditable);
-      
+
       if (isInputFocused || this.widgetHasFocus()) {
         return;
       }
@@ -740,7 +741,7 @@ class AutoJobrContentScript {
       }
     });
   }
-  
+
   widgetHasFocus() {
     const widget = document.querySelector('.autojobr-widget');
     return widget && widget.contains(document.activeElement);
@@ -2515,7 +2516,7 @@ class AutoJobrContentScript {
 
   isSubmitButton(button) {
     const text = (button.textContent || button.value || '').toLowerCase();
-    const submitKeywords = ['submit', 'apply', 'send application', 'complete application', 'finish application', 'send my application'];
+    const submitKeywords = ['submit application', 'apply now', 'submit', 'apply', 'send application', 'continue to apply', 'review and submit', 'complete application'];
 
     return submitKeywords.some(keyword => text.includes(keyword)) && !button.disabled;
   }
@@ -3968,38 +3969,27 @@ class AutoJobrContentScript {
       return;
     }
 
-    // Check if user is premium
-    const isPremium = userProfile.planType === 'premium' ||
-                     userProfile.planType === 'enterprise' ||
-                     userProfile.planType === 'ultra_premium';
-
-    if (!isPremium) {
-      this.showUpgradePrompt({
-        message: 'LinkedIn Easy Apply automation is a Premium feature',
-        upgradeUrl: '/jobseeker-premium'
-      });
-      return;
-    }
+    // Determine max pages based on subscription
+    this.maxPages = userProfile.subscriptionTier === 'premium' ? 5 : 1;
 
     this.automationRunning = true;
     this.applicationsSubmitted = 0;
     this.applicationsSkipped = 0;
     this.currentPage = 1;
-    this.maxPages = isPremium ? 5 : 1; // Premium users can auto-apply up to page 5
 
     // Update UI to show automation is running
     const statusDiv = document.getElementById('autojobr-automation-status');
     if (statusDiv) {
-      statusDiv.style.display = 'block'; // Make sure it's visible
+      statusDiv.style.display = 'block';
       statusDiv.innerHTML = `
         <div class="automation-progress">
-          <div class="progress-text">🤖 Automation Running...</div>
+          <div class="progress-text">🤖 LinkedIn Auto-Apply Running...</div>
           <div class="progress-stats">
-            Page: <span id="current-page">1</span>/${this.maxPages} |
-            Applied: <span id="applied-count">0</span> |
-            Skipped: <span id="skipped-count">0</span>
+            Applications: <span id="apps-count">0</span> | 
+            Skipped: <span id="skip-count">0</span> | 
+            Page: <span id="page-count">1</span>/${this.maxPages}
           </div>
-          <button id="stop-automation" class="btn-danger">Stop Automation</button>
+          <button class="btn-danger" id="stop-automation">Stop Automation</button>
         </div>
       `;
 
@@ -4009,162 +3999,116 @@ class AutoJobrContentScript {
     }
 
     // Start processing jobs
-    await this.processLinkedInJobsPage(userProfile);
-  }
-
-  async processLinkedInJobsPage(userProfile) {
     try {
-      // Find all Easy Apply job cards on current page
-      const jobCards = this.findLinkedInJobCards();
+      for (this.currentPage = 1; this.currentPage <= this.maxPages && this.automationRunning; this.currentPage++) {
+        await this.processJobsOnCurrentPage(userProfile);
 
-      console.log(`📋 Found ${jobCards.length} job cards on page ${this.currentPage}`);
-
-      for (const jobCard of jobCards) {
-        if (!this.automationRunning) {
-          console.log('⏸️ Automation stopped by user');
-          break;
+        // Navigate to next page if not last
+        if (this.currentPage < this.maxPages && this.automationRunning) {
+          await this.navigateToNextPage();
+          await this.delay(3000); // Wait for page load
         }
-
-        await this.processLinkedInJobCard(jobCard, userProfile);
-
-        // Update UI stats
-        document.getElementById('applied-count').textContent = this.applicationsSubmitted;
-        document.getElementById('skipped-count').textContent = this.applicationsSkipped;
-
-        // Random delay between applications (3-8 seconds)
-        await this.delay(3000 + Math.random() * 5000);
       }
 
-      // Move to next page if premium and within limit
-      if (this.automationRunning && this.currentPage < this.maxPages) {
-        const nextPageButton = this.findLinkedInNextPageButton();
-        if (nextPageButton) {
-          this.currentPage++;
-          document.getElementById('current-page').textContent = this.currentPage;
+      // Show completion message
+      if (statusDiv) {
+        statusDiv.innerHTML = `
+          <div class="automation-complete">
+            <h3>✅ Automation Complete!</h3>
+            <div class="final-stats">
+              <p>Applications Submitted: ${this.applicationsSubmitted}</p>
+              <p>Jobs Skipped: ${this.applicationsSkipped}</p>
+              <p>Pages Processed: ${this.currentPage - 1}</p>
+            </div>
+          </div>
+        `;
+      }
 
-          nextPageButton.click();
+      this.showNotification(`✅ Applied to ${this.applicationsSubmitted} jobs!`, 'success');
+    } catch (error) {
+      console.error('LinkedIn automation error:', error);
+      this.showNotification('❌ Automation failed: ' + error.message, 'error');
+    } finally {
+      this.automationRunning = false;
+    }
+  }
 
-          // Wait for page to load
-          await this.delay(3000);
+  stopLinkedInAutomation() {
+    this.automationRunning = false;
+    this.showNotification('⏸️ Automation stopped', 'info');
+  }
 
-          // Continue processing next page
-          await this.processLinkedInJobsPage(userProfile);
+  async processJobsOnCurrentPage(userProfile) {
+    // Find all job cards on current page
+    const jobCards = document.querySelectorAll('.job-card-container, .jobs-search-results__list-item');
+
+    if (jobCards.length === 0) {
+      console.log('No job cards found on page');
+      return;
+    }
+
+    this.showNotification(`📋 Page ${this.currentPage}: Found ${jobCards.length} jobs to process`, 'info');
+
+    for (let i = 0; i < jobCards.length && this.automationRunning; i++) {
+      const jobCard = jobCards[i];
+
+      try {
+        // Click on job card to view details
+        jobCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        await this.delay(1000);
+        jobCard.click();
+        await this.delay(2000);
+
+        // Check if Easy Apply button exists
+        const easyApplyButton = this.findEasyApplyButton();
+
+        if (!easyApplyButton) {
+          console.log(`Job ${i + 1}: No Easy Apply - Skipping`);
+          this.applicationsSkipped++;
+          this.updateAutomationStats();
+          continue;
+        }
+
+        // Extract job details
+        const jobData = this.extractLinkedInJobDetails();
+        console.log(`Job ${i + 1}: Processing ${jobData.title} at ${jobData.company}`);
+
+        // Click Easy Apply button
+        easyApplyButton.click();
+        await this.delay(2000);
+
+        // Fill and submit the application
+        const applied = await this.fillAndSubmitLinkedInApplication(userProfile, jobData);
+
+        if (applied) {
+          this.applicationsSubmitted++;
+          this.showNotification(
+            `✅ Applied to ${jobData.title} (${this.applicationsSubmitted} total)`,
+            'success'
+          );
+
+          // Track application in backend
+          await this.trackLinkedInApplication(jobData);
         } else {
-          console.log('✅ No more pages available');
-          this.stopLinkedInAutomation();
+          this.applicationsSkipped++;
         }
-      } else {
-        this.stopLinkedInAutomation();
-      }
 
-    } catch (error) {
-      console.error('❌ LinkedIn automation error:', error);
-      this.stopLinkedInAutomation();
-    }
-  }
-
-  findLinkedInJobCards() {
-    // Updated selectors for 2025 LinkedIn UI
-    const selectors = [
-      '.jobs-search-results__list-item',
-      '.scaffold-layout__list-item',
-      '[data-job-id]',
-      '.job-card-container'
-    ];
-
-    let jobCards = [];
-    for (const selector of selectors) {
-      const cards = document.querySelectorAll(selector);
-      if (cards.length > 0) {
-        jobCards = Array.from(cards);
-        break;
-      }
-    }
-
-    return jobCards;
-  }
-
-  findLinkedInNextPageButton() {
-    const selectors = [
-      'button[aria-label*="next" i]',
-      'button[aria-label*="Next"]',
-      '.artdeco-pagination__button--next',
-      'button.jobs-search-pagination__button--next'
-    ];
-
-    for (const selector of selectors) {
-      const button = document.querySelector(selector);
-      if (button && !button.disabled) {
-        return button;
-      }
-    }
-
-    return null;
-  }
-
-  async processLinkedInJobCard(jobCard, userProfile) {
-    try {
-      // Click job card to view details
-      jobCard.click();
-      await this.delay(2000);
-
-      // Extract job details
-      const jobData = this.extractLinkedInJobDetails();
-
-      if (!jobData.title) {
-        console.log('⏭️ Skipping - no job title found');
+        this.updateAutomationStats();
+        await this.delay(2000); // Delay between applications
+      } catch (error) {
+        console.error(`Error processing job ${i + 1}:`, error);
         this.applicationsSkipped++;
-        return;
+        this.updateAutomationStats();
       }
-
-      // Check if Easy Apply button exists
-      const easyApplyButton = this.findLinkedInEasyApplyButton();
-
-      if (!easyApplyButton) {
-        console.log(`⏭️ Skipping "${jobData.title}" - no Easy Apply button`);
-        this.applicationsSkipped++;
-        return;
-      }
-
-      // Extract hiring team details
-      const hiringTeam = await this.extractLinkedInHiringTeam();
-
-      // Click Easy Apply button
-      easyApplyButton.click();
-      await this.delay(2000);
-
-      // Fill application form
-      const applicationResult = await this.fillLinkedInEasyApplyForm(userProfile);
-
-      if (applicationResult.success) {
-        console.log(`✅ Successfully applied to "${jobData.title}"`);
-        this.applicationsSubmitted++;
-
-        // Track application with hiring team
-        await this.trackLinkedInApplication({
-          ...jobData,
-          hiringTeam,
-          followUpContacts: this.formatFollowUpContacts(hiringTeam)
-        });
-
-        this.showNotification(`✅ Applied to ${jobData.title}`, 'success');
-      } else {
-        console.log(`❌ Failed to apply to "${jobData.title}": ${applicationResult.error}`);
-        this.applicationsSkipped++;
-      }
-
-    } catch (error) {
-      console.error('Error processing job card:', error);
-      this.applicationsSkipped++;
     }
   }
 
-  findLinkedInEasyApplyButton() {
+  findEasyApplyButton() {
     const selectors = [
-      'button.jobs-apply-button',
       'button[aria-label*="Easy Apply"]',
-      'button:has-text("Easy Apply")',
-      '.jobs-apply-button--top-card'
+      'button.jobs-apply-button',
+      'button:contains("Easy Apply")',
+      '.jobs-apply-button--top-card button'
     ];
 
     for (const selector of selectors) {
@@ -4177,292 +4121,156 @@ class AutoJobrContentScript {
     return null;
   }
 
-  async extractLinkedInHiringTeam() {
-    const hiringTeam = {
-      recruiter: null,
-      hiringManager: null,
-      teamMembers: []
+  extractLinkedInJobDetails() {
+    return {
+      title: this.extractText([
+        '.job-details-jobs-unified-top-card__job-title',
+        '.jobs-unified-top-card__job-title',
+        'h1.t-24'
+      ]),
+      company: this.extractText([
+        '.job-details-jobs-unified-top-card__company-name',
+        '.jobs-unified-top-card__company-name'
+      ]),
+      location: this.extractText([
+        '.job-details-jobs-unified-top-card__bullet',
+        '.jobs-unified-top-card__bullet'
+      ]),
+      url: window.location.href
     };
-
-    try {
-      // Look for "Meet the hiring team" section
-      const hiringTeamSection = document.querySelector('[data-section="hiring-team"]') ||
-                                 document.querySelector('.hiring-team') ||
-                                 document.querySelector('[class*="hiring-team"]');
-
-      if (hiringTeamSection) {
-        // Extract recruiter info
-        const recruiterCard = hiringTeamSection.querySelector('[data-member-type="recruiter"]') ||
-                              hiringTeamSection.querySelector('.recruiter-card');
-
-        if (recruiterCard) {
-          hiringTeam.recruiter = {
-            name: recruiterCard.querySelector('.member-name')?.textContent?.trim() || '',
-            title: recruiterCard.querySelector('.member-title')?.textContent?.trim() || '',
-            profileUrl: recruiterCard.querySelector('a')?.href || '',
-            extractedAt: new Date().toISOString()
-          };
-        }
-
-        // Extract hiring manager info
-        const managerCard = hiringTeamSection.querySelector('[data-member-type="hiring-manager"]') ||
-                           hiringTeamSection.querySelector('.hiring-manager-card');
-
-        if (managerCard) {
-          hiringTeam.hiringManager = {
-            name: managerCard.querySelector('.member-name')?.textContent?.trim() || '',
-            title: managerCard.querySelector('.member-title')?.textContent?.trim() || '',
-            profileUrl: managerCard.querySelector('a')?.href || '',
-            extractedAt: new Date().toISOString()
-          };
-        }
-
-        // Extract other team members
-        const memberCards = hiringTeamSection.querySelectorAll('.team-member-card');
-        memberCards.forEach(card => {
-          const member = {
-            name: card.querySelector('.member-name')?.textContent?.trim() || '',
-            title: card.querySelector('.member-title')?.textContent?.trim() || '',
-            profileUrl: card.querySelector('a')?.href || ''
-          };
-
-          if (member.name) {
-            hiringTeam.teamMembers.push(member);
-          }
-        });
-      }
-
-      console.log('👥 Extracted hiring team:', hiringTeam);
-    } catch (error) {
-      console.error('Error extracting hiring team:', error);
-    }
-
-    return hiringTeam;
   }
 
-  formatFollowUpContacts(hiringTeam) {
-    const contacts = [];
-
-    if (hiringTeam.recruiter) {
-      contacts.push({
-        role: 'Recruiter',
-        name: hiringTeam.recruiter.name,
-        title: hiringTeam.recruiter.title,
-        profileUrl: hiringTeam.recruiter.profileUrl,
-        priority: 'high',
-        followUpDate: this.calculateFollowUpDate(3) // 3 days for recruiter
-      });
-    }
-
-    if (hiringTeam.hiringManager) {
-      contacts.push({
-        role: 'Hiring Manager',
-        name: hiringTeam.hiringManager.name,
-        title: hiringTeam.hiringManager.title,
-        profileUrl: hiringTeam.hiringManager.profileUrl,
-        priority: 'high',
-        followUpDate: this.calculateFollowUpDate(7) // 7 days for hiring manager
-      });
-    }
-
-    hiringTeam.teamMembers.forEach(member => {
-      contacts.push({
-        role: 'Team Member',
-        name: member.name,
-        title: member.title,
-        profileUrl: member.profileUrl,
-        priority: 'medium',
-        followUpDate: this.calculateFollowUpDate(14) // 14 days for team members
-      });
-    });
-
-    return contacts;
-  }
-
-  calculateFollowUpDate(daysFromNow) {
-    const date = new Date();
-    date.setDate(date.getDate() + daysFromNow);
-    return date.toISOString();
-  }
-
-  async fillLinkedInEasyApplyForm(userProfile) {
+  async fillAndSubmitLinkedInApplication(userProfile, jobData) {
     try {
       // Wait for modal to appear
-      await this.delay(1500);
-
-      // Find the Easy Apply modal
-      const modal = document.querySelector('[data-test-modal-id="easy-apply-modal"]') ||
-                    document.querySelector('.jobs-easy-apply-modal') ||
-                    document.querySelector('[role="dialog"]');
-
-      if (!modal) {
-        return { success: false, error: 'Modal not found' };
-      }
-
-      // Check for multi-page form
-      const hasMultiplePages = modal.querySelector('.jobs-easy-apply-modal__progress-bar') !== null;
-
-      if (hasMultiplePages) {
-        // Handle multi-page form
-        return await this.handleLinkedInMultiPageForm(modal, userProfile);
-      } else {
-        // Handle single-page form
-        return await this.handleLinkedInSinglePageForm(modal, userProfile);
-      }
-
-    } catch (error) {
-      console.error('LinkedIn form fill error:', error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  async handleLinkedInMultiPageForm(modal, userProfile) {
-    let currentStep = 1;
-    const maxSteps = 10; // Safety limit
-
-    while (currentStep <= maxSteps) {
-      // Fill current page
-      await this.fillFormFields(modal, userProfile);
       await this.delay(1000);
 
-      // Look for Next button
-      const nextButton = modal.querySelector('button[aria-label*="Continue"]') ||
-                        modal.querySelector('button.artdeco-button--primary:not([aria-label*="Review"])');
+      // Fill application form
+      const result = await this.startSmartAutofill(userProfile);
 
-      // Look for Submit/Review button
-      const submitButton = modal.querySelector('button[aria-label*="Submit"]') ||
-                          modal.querySelector('button[aria-label*="Review"]');
+      if (!result || !result.success) {
+        console.log('Failed to fill application form');
+        this.closeLinkedInModal();
+        return false;
+      }
 
-      if (submitButton && !submitButton.disabled) {
-        // Final page - submit application
-        submitButton.click();
-        await this.delay(2000);
+      await this.delay(1000);
 
-        // Check for success
-        const successMessage = document.querySelector('.artdeco-inline-feedback--success') ||
-                              document.querySelector('[data-test-modal-close-btn]');
+      // Look for and click Next/Submit buttons
+      let currentStep = 1;
+      while (currentStep <= 5 && this.automationRunning) {
+        const nextButton = this.findLinkedInNextButton();
+        const submitButton = this.findLinkedInSubmitButton();
 
-        if (successMessage) {
-          // Close modal
-          const closeButton = document.querySelector('[data-test-modal-close-btn]') ||
-                             modal.querySelector('button[aria-label*="Dismiss"]');
-          closeButton?.click();
+        if (submitButton && !submitButton.disabled) {
+          // Submit the application
+          submitButton.click();
+          await this.delay(2000);
+          return true;
+        } else if (nextButton && !nextButton.disabled) {
+          // Move to next step
+          nextButton.click();
+          await this.delay(1500);
 
-          return { success: true };
+          // Fill new fields on next page
+          await this.startSmartAutofill(userProfile);
+          await this.delay(1000);
+          currentStep++;
+        } else {
+          // No more actions possible
+          break;
         }
+      }
 
-        return { success: false, error: 'Submit confirmation not found' };
-      } else if (nextButton && !nextButton.disabled) {
-        // More pages to go - click Next
-        nextButton.click();
-        await this.delay(1500);
-        currentStep++;
-      } else {
-        // No next or submit button found
-        return { success: false, error: 'Navigation buttons not found' };
+      this.closeLinkedInModal();
+      return false;
+    } catch (error) {
+      console.error('Error filling LinkedIn application:', error);
+      this.closeLinkedInModal();
+      return false;
+    }
+  }
+
+  findLinkedInNextButton() {
+    const selectors = [
+      'button[aria-label*="Continue"]',
+      'button[aria-label*="Next"]',
+      'button.artdeco-button--primary:not([aria-label*="Submit"])'
+    ];
+
+    for (const selector of selectors) {
+      const button = document.querySelector(selector);
+      if (button) return button;
+    }
+
+    return null;
+  }
+
+  findLinkedInSubmitButton() {
+    const selectors = [
+      'button[aria-label*="Submit application"]',
+      'button[aria-label*="Submit"]',
+      'button.jobs-apply-button'
+    ];
+
+    for (const selector of selectors) {
+      const button = document.querySelector(selector);
+      if (button && button.textContent.toLowerCase().includes('submit')) {
+        return button;
       }
     }
 
-    return { success: false, error: 'Max steps exceeded' };
+    return null;
   }
 
-  async handleLinkedInSinglePageForm(modal, userProfile) {
-    // Fill all fields
-    await this.fillFormFields(modal, userProfile);
-    await this.delay(1000);
+  closeLinkedInModal() {
+    const closeButton = document.querySelector('[data-test-modal-close-btn], .artdeco-modal__dismiss');
+    if (closeButton) {
+      closeButton.click();
+    }
+  }
 
-    // Find submit button
-    const submitButton = modal.querySelector('button[aria-label*="Submit"]') ||
-                        modal.querySelector('button.artdeco-button--primary');
+  async navigateToNextPage() {
+    const nextPageButton = document.querySelector('button[aria-label*="Page"][aria-label*="' + (this.currentPage + 1) + '"]');
 
-    if (submitButton && !submitButton.disabled) {
-      submitButton.click();
-      await this.delay(2000);
-
-      return { success: true };
+    if (nextPageButton) {
+      nextPageButton.click();
+      return true;
     }
 
-    return { success: false, error: 'Submit button not found or disabled' };
+    return false;
+  }
+
+  updateAutomationStats() {
+    const appsCount = document.getElementById('apps-count');
+    const skipCount = document.getElementById('skip-count');
+    const pageCount = document.getElementById('page-count');
+
+    if (appsCount) appsCount.textContent = this.applicationsSubmitted;
+    if (skipCount) skipCount.textContent = this.applicationsSkipped;
+    if (pageCount) pageCount.textContent = this.currentPage;
   }
 
   async trackLinkedInApplication(jobData) {
     try {
-      const response = await chrome.runtime.sendMessage({
-        action: 'trackApplication',
-        data: {
+      const apiUrl = await this.getApiUrl();
+      await fetch(`${apiUrl}/api/applications`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           jobTitle: jobData.title,
           company: jobData.company,
           location: jobData.location,
-          jobUrl: window.location.href,
+          jobUrl: jobData.url,
           status: 'applied',
-          source: 'linkedin_automation',
-          platform: 'LinkedIn',
-          hiringTeam: jobData.hiringTeam,
-          followUpContacts: jobData.followUpContacts,
-          appliedDate: new Date().toISOString()
-        }
+          appliedDate: new Date().toISOString(),
+          source: 'linkedin_automation'
+        })
       });
-
-      console.log('✅ Application tracked with hiring team:', response);
     } catch (error) {
       console.error('Failed to track application:', error);
     }
-  }
-
-  stopLinkedInAutomation() {
-    this.automationRunning = false;
-
-    const statusDiv = document.getElementById('autojobr-automation-status');
-    if (statusDiv) {
-      statusDiv.innerHTML = `
-        <div class="automation-complete">
-          <h3>✅ Automation Complete</h3>
-          <div class="final-stats">
-            <p>Applications Submitted: ${this.applicationsSubmitted}</p>
-            <p>Jobs Skipped: ${this.applicationsSkipped}</p>
-            <p>Pages Processed: ${this.currentPage}</p>
-          </div>
-          <button id="restart-automation" class="btn-primary">Start New Automation</button>
-        </div>
-      `;
-
-      document.getElementById('restart-automation')?.addEventListener('click', () => {
-        this.startLinkedInAutomation();
-      });
-    }
-
-    this.showNotification(
-      `🎉 Automation complete! Applied to ${this.applicationsSubmitted} jobs`,
-      'success'
-    );
-  }
-
-  showUpgradePrompt(details) {
-    const modal = document.createElement('div');
-    modal.className = 'autojobr-upgrade-modal';
-    modal.innerHTML = `
-      <div class="upgrade-modal-content">
-        <h2>🔒 Premium Feature</h2>
-        <p>${details.message}</p>
-        <div class="upgrade-benefits">
-          <h3>Premium Benefits:</h3>
-          <ul>
-            <li>✅ Auto-apply to up to 5 pages of jobs</li>
-            <li>✅ Extract hiring team details for follow-up</li>
-            <li>✅ Unlimited applications per day</li>
-            <li>✅ Advanced job matching</li>
-          </ul>
-        </div>
-        <button class="btn-primary" onclick="window.open('${details.upgradeUrl || '/jobseeker-premium'}', '_blank')">
-          Upgrade to Premium
-        </button>
-        <button class="btn-secondary" onclick="this.closest('.autojobr-upgrade-modal').remove()">
-          Maybe Later
-        </button>
-      </div>
-    `;
-
-    document.body.appendChild(modal);
   }
 }
 
