@@ -327,7 +327,7 @@
 
 .autojobr-btn.secondary {
   background: var(--bg-secondary);
-  border-color: var(--border-color);
+  color: var(--text-primary);
 }
 
 .autojobr-btn.secondary:hover {
@@ -987,4 +987,105 @@
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/* LinkedIn Automation and Premium Styles */
+.autojobr-btn.premium {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  position: relative;
+}
+
+.autojobr-btn.premium:hover {
+  background: linear-gradient(135deg, #5568d3 0%, #653a8a 100%);
+}
+
+.badge-premium {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #fbbf24;
+  color: #78350f;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-weight: bold;
+}
+
+.automation-progress {
+  text-align: center;
+  padding: 16px;
+}
+
+.progress-text {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.progress-stats {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 16px;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+.automation-complete {
+  text-align: center;
+  padding: 20px;
+}
+
+.final-stats {
+  margin: 16px 0;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.autojobr-upgrade-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.upgrade-modal-content {
+  background: white;
+  padding: 32px;
+  border-radius: 12px;
+  max-width: 500px;
+  text-align: center;
+}
+
+.upgrade-benefits {
+  text-align: left;
+  margin: 20px 0;
+}
+
+.upgrade-benefits ul {
+  list-style: none;
+  padding: 0;
+}
+
+.upgrade-benefits li {
+  padding: 8px 0;
+  font-size: 14px;
 }
