@@ -2,55 +2,7 @@
 console.log('🚀 AutoJobr Autopilot v3.0 loading...');
 
 // Import helper modules
-importScripts('autopilot-engine.js', 'resume-optimizer.js', 'referral-finder.js', 'followup-automation.js');
-
-// Background service worker for AutoJobr Chrome Extension
-
-let isAuthenticated = false;
-let currentUser = null;
-
-// Daily engagement notifications
-chrome.alarms.create('morningReminder', {
-  when: Date.now() + 1000,
-  periodInMinutes: 1440 // Daily
-});
-
-chrome.alarms.create('eveningReminder', {
-  when: Date.now() + 1000,
-  periodInMinutes: 1440
-});
-
-chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name === 'morningReminder') {
-    const hour = new Date().getHours();
-    if (hour === 8) { // 8 AM
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icons/icon128.png',
-        title: '🌅 Good Morning! Time to Job Hunt',
-        message: 'Check your new job matches and today\'s tasks',
-        buttons: [{ title: 'Open Dashboard' }]
-      });
-    }
-  }
-
-  if (alarm.name === 'eveningReminder') {
-    const hour = new Date().getHours();
-    if (hour === 18) { // 6 PM
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icons/icon128.png',
-        title: '📊 Daily Progress Update',
-        message: 'Review today\'s achievements and plan tomorrow',
-        buttons: [{ title: 'View Summary' }]
-      });
-    }
-  }
-});
-
-chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
-  chrome.tabs.create({ url: 'https://autojobr.com/dashboard' });
-});
+importScripts('autopilot-engine.js', 'resume-optimizer.js', 'referral-finder.js');
 
 class AutoJobrBackground {
   constructor() {
@@ -79,8 +31,8 @@ class AutoJobrBackground {
   async detectApiUrl() {
     // Try multiple URLs in order: development (localhost/Replit) first, then production
     const urlsToTry = [
-      'http://localhost:5000', // Local development
-      'https://autojobr.com' // Production
+      'http://localhost:5000',  // Local development
+      'https://autojobr.com'     // Production
     ];
 
     // Check if we're on a Replit domain and add it to the list
@@ -104,7 +56,7 @@ class AutoJobrBackground {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-        const response = await fetch(`${url}/api/health`, {
+        const response = await fetch(`${url}/api/health`, { 
           method: 'GET',
           mode: 'cors',
           credentials: 'include',
@@ -559,62 +511,6 @@ class AutoJobrBackground {
     }
   }
 
-  formatFollowUpContacts(hiringTeam) {
-    if (!hiringTeam) return [];
-
-    const contacts = [];
-
-    // Prioritize recruiters first (primary contact)
-    if (hiringTeam.recruiters && hiringTeam.recruiters.length > 0) {
-      hiringTeam.recruiters.forEach(recruiter => {
-        if (recruiter.profileUrl && recruiter.name) {
-          contacts.push({
-            name: recruiter.name,
-            title: recruiter.title,
-            profileUrl: recruiter.profileUrl,
-            contactType: 'recruiter',
-            priority: 'high',
-            followUpMessage: `Hi ${recruiter.name.split(' ')[0]}, I recently applied for the position and wanted to express my strong interest...`
-          });
-        }
-      });
-    }
-
-    // Then hiring managers (secondary contact)
-    if (hiringTeam.hiringManagers && hiringTeam.hiringManagers.length > 0) {
-      hiringTeam.hiringManagers.forEach(manager => {
-        if (manager.profileUrl && manager.name) {
-          contacts.push({
-            name: manager.name,
-            title: manager.title,
-            profileUrl: manager.profileUrl,
-            contactType: 'hiring_manager',
-            priority: 'medium',
-            followUpMessage: `Hi ${manager.name.split(' ')[0]}, I'm excited about the opportunity to join your team...`
-          });
-        }
-      });
-    }
-
-    // Finally team members (tertiary contact)
-    if (hiringTeam.teamMembers && hiringTeam.teamMembers.length > 0) {
-      hiringTeam.teamMembers.forEach(member => {
-        if (member.profileUrl && member.name) {
-          contacts.push({
-            name: member.name,
-            title: member.title,
-            profileUrl: member.profileUrl,
-            contactType: 'team_member',
-            priority: 'low',
-            followUpMessage: `Hi ${member.name.split(' ')[0]}, I'd love to learn more about the team culture...`
-          });
-        }
-      });
-    }
-
-    return contacts;
-  }
-
   async getSalaryInsights(jobData) {
     try {
       const headers = {
@@ -885,26 +781,21 @@ class AutoJobrBackground {
         'Content-Type': 'application/json'
       };
 
-      // Prepare application data with hiring team information
-      const applicationData = {
-        jobTitle: data.jobTitle,
-        company: data.company,
-        location: data.location || '',
-        jobUrl: data.jobUrl || '',
-        status: 'applied',
-        source: 'extension',
-        notes: `Applied via ${data.platform || 'extension'} on ${new Date().toLocaleDateString()}`,
-        hiringTeam: data.hiringTeam || null, // NEW: Include hiring team data
-        followUpContacts: this.formatFollowUpContacts(data.hiringTeam) // NEW: Format contacts for easy follow-up
-      };
-
       // Use the main applications endpoint that updates job_applications table
       const response = await fetch(`${this.apiUrl}/api/applications`, {
         method: 'POST',
         headers,
         credentials: 'include', // Send session cookies
         mode: 'cors',
-        body: JSON.stringify(applicationData)
+        body: JSON.stringify({
+          jobTitle: data.jobTitle,
+          company: data.company,
+          location: data.location || '',
+          jobUrl: data.jobUrl || '',
+          status: 'applied',
+          source: 'extension',
+          notes: `Applied via ${data.platform || 'extension'} on ${new Date().toLocaleDateString()}`
+        })
       });
 
       if (!response.ok) {
@@ -918,27 +809,9 @@ class AutoJobrBackground {
 
       const application = await response.json();
 
-      // Schedule follow-up if hiring team data is available
-      if (data.hiringTeam) {
-        try {
-          await followUpAutomation.scheduleFollowUp({
-            id: application.id || Date.now().toString(),
-            jobTitle: data.jobTitle,
-            company: data.company,
-            hiringTeam: data.hiringTeam,
-            appliedAt: data.appliedAt || new Date().toISOString()
-          });
-          const contactCount = applicationData.followUpContacts?.length || 0;
-          console.log(`✅ Follow-up scheduled for ${data.jobTitle} at ${data.company} with ${contactCount} contacts`);
-        } catch (error) {
-          console.warn('Failed to schedule follow-up:', error);
-        }
-      }
-
-      const contactCount = applicationData.followUpContacts?.length || 0;
       await this.showAdvancedNotification(
         'Application Tracked! 📊',
-        `Tracked: ${data.jobTitle} at ${data.company}${contactCount > 0 ? '\n✅ ' + contactCount + ' follow-up contacts saved!' : ''}`,
+        `Tracked: ${data.jobTitle} at ${data.company}`,
         'success'
       );
 
@@ -1143,8 +1016,8 @@ class AutoJobrBackground {
         factors: analysis.factors?.length || 0
       });
 
-      const matchLevel = analysis.matchScore >= 80 ? 'Excellent' :
-                        analysis.matchScore >= 60 ? 'Good' :
+      const matchLevel = analysis.matchScore >= 80 ? 'Excellent' : 
+                        analysis.matchScore >= 60 ? 'Good' : 
                         analysis.matchScore >= 40 ? 'Fair' : 'Poor';
 
       // Only show notification for manual analysis, not automatic ones, and throttle duplicates
@@ -1489,7 +1362,7 @@ class ApplicationOrchestrator {
     // If before 9 AM, schedule for 10 AM today
     if (hour < 9) {
       next.setHours(10, 0, 0, 0);
-    }
+    } 
     // If between 9-11 AM, schedule for 2 PM today
     else if (hour >= 9 && hour < 11) {
       next.setHours(14, 0, 0, 0);

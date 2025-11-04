@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "AutoJobr Autopilot",
   "version": "2.1.1",
-  "description": "🚀 Auto-apply to 1000+ jobs daily on LinkedIn, Indeed & 50+ job boards. Free AI resume optimizer & ATS bypass. 100K+ users!",
+  "description": "AI-powered job autopilot: auto-apply in bulk, optimize resumes, and find referrals across 100+ job boards.",
   "permissions": [
     "storage",
     "activeTab",
@@ -128,6 +128,15 @@
   "content_scripts": [
     {
       "matches": [
+        "http://localhost:5000/*",
+        "http://localhost/*",
+        "https://*.replit.dev/*",
+        "https://*.replit.app/*",
+        "*://*.autojobr.com/*",
+        "*://*.autojobr.com/jobs/*",
+        "*://*.autojobr.com/job/*",
+        "*://*.autojobr.com/apply/*",
+        "*://*.autojobr.com/applications/*",
         "*://*.linkedin.com/jobs/*",
         "*://*.indeed.com/viewjob*",
         "*://*.indeed.com/jobs/*",

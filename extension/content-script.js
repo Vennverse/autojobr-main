@@ -16,21 +16,11 @@ class AutoJobrContentScript {
     this.analysisDebounceTimer = null; // Debounce analysis calls
     this.cachedProfile = null; // Cache profile to prevent excessive requests
     this.lastAuthCheck = 0; // Track last authentication check
-    this.automationRunning = false; // LinkedIn automation state
-    this.applicationsSubmitted = 0; // Track successful applications
-    this.applicationsSkipped = 0; // Track skipped jobs
     this.init();
   }
 
   init() {
     if (this.isInitialized) return;
-
-    // Don't run on AutoJobr platform pages
-    const hostname = window.location.hostname.toLowerCase();
-    if (hostname.includes('autojobr.com') || hostname.includes('localhost') || hostname.includes('replit')) {
-      console.log('AutoJobr extension: Skipping initialization on platform page');
-      return;
-    }
 
     try {
       this.injectEnhancedUI();
@@ -81,6 +71,7 @@ class AutoJobrContentScript {
       'microsoft.com': 'microsoft',
       'apple.com': 'apple',
       'meta.com': 'meta',
+      'autojobr.com': 'autojobr',
       'naukri.com': 'naukri',
       'shine.com': 'shine',
       'timesjobs.com': 'timesjobs',
@@ -447,127 +438,6 @@ class AutoJobrContentScript {
     // Site-specific smart selectors for better accuracy
     const siteSelectors = {
       linkedin: {
-
-
-  extractHiringTeam() {
-    const hiringTeam = {
-      recruiters: [],
-      hiringManagers: [],
-      teamMembers: []
-    };
-
-    try {
-      // LinkedIn-specific hiring team extraction
-      if (this.currentSite === 'linkedin') {
-        // Extract from "Meet the hiring team" section
-        const hiringSection = document.querySelector('.jobs-company__hiring-team, [data-test-hiring-team], .hiring-team');
-        
-        if (hiringSection) {
-          // Extract individual team members
-          const teamCards = hiringSection.querySelectorAll('.jobs-company__hiring-team-member, .hiring-team-member, [data-test-hiring-team-member]');
-          
-          teamCards.forEach(card => {
-            const nameEl = card.querySelector('.hiring-team-member__name, [data-test-hiring-team-member-name], h3, .t-16');
-            const titleEl = card.querySelector('.hiring-team-member__title, [data-test-hiring-team-member-title], .t-14, .jobs-unified-top-card__subtitle-primary-grouping');
-            const profileLink = card.querySelector('a[href*="/in/"]');
-            
-            const member = {
-              name: nameEl ? nameEl.textContent.trim() : '',
-              title: titleEl ? titleEl.textContent.trim() : '',
-              profileUrl: profileLink ? profileLink.href : '',
-              role: this.categorizeTeamMember(titleEl ? titleEl.textContent.trim() : '')
-            };
-
-            if (member.name) {
-              if (member.role === 'recruiter') {
-                hiringTeam.recruiters.push(member);
-              } else if (member.role === 'hiring_manager') {
-                hiringTeam.hiringManagers.push(member);
-              } else {
-                hiringTeam.teamMembers.push(member);
-              }
-            }
-          });
-        }
-
-        // Alternative: Extract from job poster information
-        const jobPosterSection = document.querySelector('.jobs-poster__name, [data-test-job-poster]');
-        if (jobPosterSection && hiringTeam.recruiters.length === 0) {
-          const posterName = jobPosterSection.textContent.trim();
-          const posterTitle = document.querySelector('.jobs-poster__job-title, .jobs-poster__secondary-grouping');
-          const posterLink = document.querySelector('a.jobs-poster__name');
-
-          if (posterName) {
-            hiringTeam.recruiters.push({
-              name: posterName,
-              title: posterTitle ? posterTitle.textContent.trim() : 'Job Poster',
-              profileUrl: posterLink ? posterLink.href : '',
-              role: 'recruiter'
-            });
-          }
-        }
-      }
-
-      // Generic hiring team extraction for other sites
-      else {
-        // Look for common hiring manager patterns
-        const hiringManagerSelectors = [
-          '.hiring-manager',
-          '.recruiter-info',
-          '.contact-person',
-          '[class*="hiring"]',
-          '[class*="recruiter"]'
-        ];
-
-        hiringManagerSelectors.forEach(selector => {
-          const elements = document.querySelectorAll(selector);
-          elements.forEach(el => {
-            const text = el.textContent.trim();
-            if (text && text.length > 0 && text.length < 200) {
-              hiringTeam.teamMembers.push({
-                name: text,
-                title: 'Team Member',
-                profileUrl: '',
-                role: 'team_member'
-              });
-            }
-          });
-        });
-      }
-
-      console.log('🎯 Extracted hiring team:', hiringTeam);
-      
-    } catch (error) {
-      console.error('Hiring team extraction error:', error);
-    }
-
-    return hiringTeam;
-  }
-
-  categorizeTeamMember(title) {
-    const titleLower = title.toLowerCase();
-    
-    // Recruiter patterns
-    if (titleLower.includes('recruiter') || 
-        titleLower.includes('talent acquisition') || 
-        titleLower.includes('hr') ||
-        titleLower.includes('human resources')) {
-      return 'recruiter';
-    }
-    
-    // Hiring manager patterns
-    if (titleLower.includes('manager') || 
-        titleLower.includes('director') || 
-        titleLower.includes('head of') ||
-        titleLower.includes('lead') ||
-        titleLower.includes('vp') ||
-        titleLower.includes('vice president')) {
-      return 'hiring_manager';
-    }
-    
-    return 'team_member';
-  }
-
         forms: ['.jobs-apply-form', '.application-outlet', '.jobs-easy-apply-modal'],
         skipButtons: ['.artdeco-button--secondary', '[data-test-modal-close-btn]'],
         nextButtons: ['.artdeco-button--primary', '[aria-label*="Continue"]'],
@@ -662,25 +532,6 @@ class AutoJobrContentScript {
                 <span class="btn-icon">🤝</span>
                 <span>Find Referrals</span>
               </button>
-              <button class="autojobr-btn secondary" id="autojobr-linkedin-connect">
-                <span class="btn-icon">🔗</span>
-                <span>LinkedIn Connect</span>
-              </button>
-            </div>
-
-            <div class="autojobr-automation" id="autojobr-automation" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
-              <div style="text-align: center; margin-bottom: 10px;">
-                <strong style="font-size: 14px;">🤖 LinkedIn Auto-Apply</strong>
-              </div>
-              <button class="autojobr-btn primary" id="autojobr-start-automation" style="width: 100%;">
-                <span class="btn-icon">🚀</span>
-                <span class="btn-text">Start Auto-Apply</span>
-              </button>
-              <button class="autojobr-btn secondary" id="autojobr-stop-automation" style="width: 100%; margin-top: 8px; display: none;">
-                <span class="btn-icon">⏸️</span>
-                <span class="btn-text">Stop Automation</span>
-              </button>
-              <div id="autojobr-automation-status" style="font-size: 12px; text-align: center; margin-top: 8px; color: #6b7280;"></div>
             </div>
           </div>
 
@@ -743,47 +594,37 @@ class AutoJobrContentScript {
     document.getElementById('autojobr-interview-prep')?.addEventListener('click', () => this.handleInterviewPrep());
     document.getElementById('autojobr-salary-insights')?.addEventListener('click', () => this.handleSalaryInsights());
     document.getElementById('autojobr-referral-finder')?.addEventListener('click', () => this.handleReferralFinder());
-    document.getElementById('autojobr-linkedin-connect')?.addEventListener('click', () => this.handleLinkedInConnect());
 
-    // LinkedIn automation buttons
-    document.getElementById('autojobr-start-automation')?.addEventListener('click', () => {
-      this.startLinkedInAutomation();
-      document.getElementById('autojobr-start-automation').style.display = 'none';
-      document.getElementById('autojobr-stop-automation').style.display = 'block';
-    });
-
-    document.getElementById('autojobr-stop-automation')?.addEventListener('click', () => {
-      this.stopLinkedInAutomation();
-      document.getElementById('autojobr-start-automation').style.display = 'block';
-      document.getElementById('autojobr-stop-automation').style.display = 'none';
-    });
-
-    // Widget controls - Enhanced close and minimize buttons
+    // Widget controls
+    // Enhanced close button with better event handling
     const closeBtn = document.querySelector('.autojobr-close');
     const minimizeBtn = document.querySelector('.autojobr-minimize');
 
     if (closeBtn) {
-      const handleClose = (e) => {
+      closeBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         this.hideWidget();
-      };
-      closeBtn.addEventListener('click', handleClose);
-      closeBtn.addEventListener('touchend', handleClose);
-    } else {
-      console.warn('AutoJobr: Close button not found in DOM');
+      });
+      // Add touch event for mobile
+      closeBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.hideWidget();
+      });
     }
 
     if (minimizeBtn) {
-      const handleMinimize = (e) => {
+      minimizeBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         this.minimizeWidget();
-      };
-      minimizeBtn.addEventListener('click', handleMinimize);
-      minimizeBtn.addEventListener('touchend', handleMinimize);
-    } else {
-      console.warn('AutoJobr: Minimize button not found in DOM');
+      });
+      minimizeBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.minimizeWidget();
+      });
     }
 
     // Feature toggles
@@ -992,7 +833,7 @@ class AutoJobrContentScript {
       'greenhouse.io': ['/job/', '/jobs/', '/job_app/'],
       'lever.co': ['/jobs/', '/job/', '/postings/'],
       'workday.com': ['/job/', '/jobs/', '/en-us/job/', '/job_', '/job-', '/jobs/', '/job_app', '/apply', '/careers/job/', '/en/job/', '/job_detail'],
-      'myworkdayjobs.com': ['/job/', '/jobs/', '/job_', '/job-', '/apply', '/job_app', '/job_detail'],
+      'myworkdayjobs.com': ['/job/', '/jobs/', '/job_', '/job-', '/apply', '/job_detail', '/job_app'],
       'icims.com': ['/job/', '/jobs/', '/job_', '/apply'],
       'smartrecruiters.com': ['/job/', '/jobs/', '/postings/'],
       'bamboohr.com': ['/job/', '/jobs/', '/careers/'],
@@ -1167,8 +1008,7 @@ class AutoJobrContentScript {
         type: this.extractText(selectors.type),
         url: window.location.href,
         site: this.currentSite,
-        extractedAt: new Date().toISOString(),
-        hiringTeam: this.extractHiringTeam() // NEW: Extract hiring team information
+        extractedAt: new Date().toISOString()
       };
 
       // Enhanced data cleaning
@@ -2805,723 +2645,6 @@ class AutoJobrContentScript {
     }
   }
 
-  // LinkedIn Easy Apply Automation
-  async async startLinkedInAutomation() {
-    if (!window.location.hostname.includes('linkedin.com')) {
-      this.showNotification('❌ Please navigate to LinkedIn jobs page first', 'error');
-      return;
-    }
-
-    // Check user's subscription tier and usage
-    const userProfile = await this.getUserProfile();
-    if (!userProfile) {
-      this.showNotification('❌ Please sign in to use automation', 'error');
-      return;
-    }
-
-    // Get usage limits based on tier
-    const tierLimits = await this.getAutomationLimits(userProfile);
-    
-    // Check if user has exceeded their usage
-    if (!tierLimits.canUse) {
-      this.showUpgradePrompt(tierLimits);
-      return;
-    }
-
-    this.automationRunning = true;
-    this.applicationsSubmitted = 0;
-    this.applicationsSkipped = 0;
-
-    // Update UI to show automation is running
-    const statusDiv = document.getElementById('autojobr-automation-status');
-    if (statusDiv) {
-      statusDiv.innerHTML = `🔄 Processing jobs... Page 1/${tierLimits.maxPages}`;
-    }
-
-    this.showNotification(`🚀 LinkedIn automation started! Will process up to ${tierLimits.maxPages} page(s).`, 'success');
-    
-    try {
-      await this.processLinkedInJobs(tierLimits.maxPages);
-      
-      // Track usage after successful run
-      await this.trackAutomationUsage();
-    } catch (error) {
-      console.error('Automation error:', error);
-      this.showNotification(`❌ Automation stopped: ${error.message}`, 'error');
-    } finally {
-      this.automationRunning = false;
-      
-      // Update UI to show automation completed
-      if (statusDiv) {
-        const remaining = tierLimits.usesRemaining - 1;
-        statusDiv.innerHTML = `✅ Completed: ${this.applicationsSubmitted} applied, ${this.applicationsSkipped} skipped. ${remaining} uses remaining this month.`;
-      }
-    }
-  }
-
-  async processLinkedInJobs(maxPages = 1) {
-    const userProfile = await this.getUserProfile();
-    if (!userProfile) {
-      throw new Error('Please sign in to AutoJobr first');
-    }
-
-    let currentPage = 1;
-    let hasMorePages = true;
-
-    while (hasMorePages && this.automationRunning && currentPage <= maxPages) {
-      // Find all job cards on the current page
-      const jobCards = this.findLinkedInJobCards();
-      
-      if (jobCards.length === 0) {
-        this.showNotification('❌ No jobs found on this page.', 'error');
-        break;
-      }
-
-      this.showNotification(`📋 Page ${currentPage}: Found ${jobCards.length} jobs to process`, 'info');
-
-      for (let i = 0; i < jobCards.length && this.automationRunning; i++) {
-        const jobCard = jobCards[i];
-        
-        try {
-          // Click on job card to view details
-          jobCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          await this.delay(1000);
-          jobCard.click();
-          await this.delay(2000);
-
-          // Check if Easy Apply button exists
-          const easyApplyButton = this.findEasyApplyButton();
-          
-          if (!easyApplyButton) {
-            console.log(`Job ${i + 1}: No Easy Apply - Skipping`);
-            this.applicationsSkipped++;
-            continue;
-          }
-
-          // Extract job details
-          const jobData = this.extractLinkedInJobDetails();
-          console.log(`Job ${i + 1}: Processing ${jobData.title} at ${jobData.company}`);
-
-          // Click Easy Apply button
-          easyApplyButton.click();
-          await this.delay(2000);
-
-          // Fill and submit the application
-          const applied = await this.fillAndSubmitLinkedInApplication(userProfile, jobData);
-          
-          if (applied) {
-            this.applicationsSubmitted++;
-            this.showNotification(
-              `✅ Applied to ${jobData.title} (${this.applicationsSubmitted} total)`,
-              'success'
-            );
-
-            // Track application
-            await this.trackLinkedInApplication(jobData);
-          } else {
-            this.applicationsSkipped++;
-          }
-
-          // Wait before moving to next job
-          await this.delay(3000 + Math.random() * 2000);
-
-        } catch (error) {
-          console.error(`Error processing job ${i + 1}:`, error);
-          this.applicationsSkipped++;
-          
-          // Close any open modals
-          this.closeLinkedInModal();
-          await this.delay(1000);
-        }
-      }
-
-      // Check if there's a next page button and click it
-      if (this.automationRunning) {
-        const nextPageButton = this.findLinkedInNextPageButton();
-        
-        if (nextPageButton && !nextPageButton.disabled) {
-          console.log(`📄 Moving to page ${currentPage + 1}...`);
-          this.showNotification(`📄 Moving to page ${currentPage + 1}...`, 'info');
-          
-          // Scroll to pagination area
-          nextPageButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          await this.delay(1000);
-          
-          // Click next page button
-          nextPageButton.click();
-          await this.delay(3000); // Wait for page to load
-          
-          currentPage++;
-        } else {
-          console.log('✅ No more pages available');
-          this.showNotification('✅ Processed all available pages', 'success');
-          hasMorePages = false;
-        }
-      } else {
-        hasMorePages = false;
-      }
-    }
-
-    // Show final summary
-    this.showNotification(
-      `🎉 Automation complete! Applied: ${this.applicationsSubmitted}, Skipped: ${this.applicationsSkipped} across ${currentPage} pages`,
-      'success'
-    );
-  }
-
-  findLinkedInJobCards() {
-    const selectors = [
-      '.job-card-container',
-      '.jobs-search-results__list-item',
-      '.scaffold-layout__list-item',
-      '[data-job-id]',
-      '.job-card-list__entity-lockup'
-    ];
-
-    let jobCards = [];
-    for (const selector of selectors) {
-      jobCards = Array.from(document.querySelectorAll(selector));
-      if (jobCards.length > 0) break;
-    }
-
-    return jobCards;
-  }
-
-  findLinkedInNextPageButton() {
-    // Multiple selectors for LinkedIn pagination
-    const selectors = [
-      'button[aria-label*="Page"][aria-label*="next"]',
-      'button[aria-label="Next"]',
-      '.artdeco-pagination__button--next',
-      'button.artdeco-pagination__button[aria-label*="next"]',
-      'li[data-test-pagination-page-btn].selected + li button',
-      '.jobs-search-pagination__next-button',
-      'button[type="button"]:has(> li-icon[type="chevron-right"])'
-    ];
-
-    for (const selector of selectors) {
-      try {
-        const button = document.querySelector(selector);
-        if (button && !button.disabled && button.getAttribute('aria-disabled') !== 'true') {
-          return button;
-        }
-      } catch (e) {
-        // Continue to next selector
-      }
-    }
-
-    // Fallback: look for pagination buttons and find the one after the active page
-    const paginationButtons = document.querySelectorAll('button[aria-label*="Page"]');
-    for (let i = 0; i < paginationButtons.length; i++) {
-      const button = paginationButtons[i];
-      const ariaLabel = button.getAttribute('aria-label') || '';
-      const ariaCurrent = button.getAttribute('aria-current');
-      
-      // If this is the current page, check if there's a next button
-      if (ariaCurrent === 'true' && i + 1 < paginationButtons.length) {
-        const nextButton = paginationButtons[i + 1];
-        if (!nextButton.disabled && nextButton.getAttribute('aria-disabled') !== 'true') {
-          return nextButton;
-        }
-      }
-    }
-
-    // Alternative: Look for chevron-right icon in pagination area
-    const chevronButtons = document.querySelectorAll('.artdeco-pagination button');
-    for (const button of chevronButtons) {
-      const icon = button.querySelector('li-icon[type="chevron-right"]');
-      if (icon && !button.disabled && button.getAttribute('aria-disabled') !== 'true') {
-        return button;
-      }
-    }
-
-    return null;
-  }
-
-  findEasyApplyButton() {
-    const selectors = [
-      'button.jobs-apply-button',
-      'button[aria-label*="Easy Apply"]',
-      '.jobs-apply-button--top-card',
-      'button:has(.jobs-apply-button__text)',
-      'button:contains("Easy Apply")'
-    ];
-
-    for (const selector of selectors) {
-      try {
-        const button = document.querySelector(selector);
-        if (button && button.textContent.includes('Easy Apply')) {
-          return button;
-        }
-      } catch (e) {
-        // Skip invalid selectors
-      }
-    }
-
-    // Fallback: find by text content
-    const allButtons = document.querySelectorAll('button');
-    for (const button of allButtons) {
-      if (button.textContent.trim().includes('Easy Apply')) {
-        return button;
-      }
-    }
-
-    return null;
-  }
-
-  async fillAndSubmitLinkedInApplication(userProfile, jobData) {
-    try {
-      // Wait for modal to appear
-      await this.delay(1500);
-
-      let currentStep = 1;
-      const maxSteps = 5;
-
-      while (currentStep <= maxSteps) {
-        // Fill current page fields
-        await this.fillLinkedInApplicationPage(userProfile);
-        await this.delay(1000);
-
-        // Look for Next or Submit button
-        const nextButton = this.findLinkedInNextButton();
-        const submitButton = this.findLinkedInSubmitButton();
-
-        if (submitButton) {
-          // Final submission
-          console.log('Submitting application...');
-          submitButton.click();
-          await this.delay(2000);
-          
-          // Check for success confirmation
-          if (this.checkLinkedInSubmissionSuccess()) {
-            return true;
-          }
-          return false;
-        } else if (nextButton) {
-          // Go to next page
-          console.log(`Moving to step ${currentStep + 1}...`);
-          nextButton.click();
-          await this.delay(2000);
-          currentStep++;
-        } else {
-          // No buttons found - might be single page application
-          console.log('No next/submit button found, checking for auto-submit...');
-          await this.delay(1000);
-          
-          const autoSubmit = this.findLinkedInSubmitButton();
-          if (autoSubmit) {
-            autoSubmit.click();
-            await this.delay(2000);
-            return this.checkLinkedInSubmissionSuccess();
-          }
-          
-          break;
-        }
-      }
-
-      return false;
-    } catch (error) {
-      console.error('Application submission error:', error);
-      return false;
-    }
-  }
-
-  async fillLinkedInApplicationPage(userProfile) {
-    // Find the application modal/form
-    const modal = document.querySelector('.jobs-easy-apply-modal') || 
-                   document.querySelector('[data-test-modal-id="easy-apply-modal"]') ||
-                   document.querySelector('.artdeco-modal');
-
-    if (!modal) return;
-
-    // Fill form fields within modal
-    const fields = modal.querySelectorAll('input, select, textarea');
-    
-    for (const field of fields) {
-      if (this.shouldSkipField(field)) continue;
-
-      try {
-        const fieldInfo = this.analyzeFieldAdvanced(field);
-        const value = this.getValueForFieldSmart(fieldInfo, userProfile, true);
-
-        if (value) {
-          await this.fillFieldSmart(field, userProfile, true);
-          await this.delay(300);
-        }
-      } catch (error) {
-        console.warn('Field fill error:', error);
-      }
-    }
-
-    // Handle file upload (resume)
-    await this.handleLinkedInResumeUpload(modal, userProfile);
-
-    // Handle additional questions
-    await this.handleLinkedInAdditionalQuestions(modal, userProfile);
-  }
-
-  async handleLinkedInResumeUpload(modal, userProfile) {
-    const fileInput = modal.querySelector('input[type="file"]');
-    if (!fileInput) return;
-
-    try {
-      // Get user's active resume from server
-      const apiUrl = await this.getApiUrl();
-      const response = await fetch(`${apiUrl}/api/resumes/active`, {
-        credentials: 'include',
-        headers: { 'Accept': 'application/octet-stream' }
-      });
-
-      if (response.ok) {
-        const resumeBlob = await response.blob();
-        const fileName = response.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || 'resume.pdf';
-        const resumeFile = new File([resumeBlob], fileName, { type: resumeBlob.type });
-
-        const dataTransfer = new DataTransfer();
-        dataTransfer.items.add(resumeFile);
-        fileInput.files = dataTransfer.files;
-        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-
-        console.log('✅ Resume uploaded');
-        await this.delay(1000);
-      }
-    } catch (error) {
-      console.warn('Resume upload failed:', error);
-    }
-  }
-
-  async handleLinkedInAdditionalQuestions(modal, userProfile) {
-    // Handle common LinkedIn additional questions
-    const questionContainers = modal.querySelectorAll('[data-test-form-element]');
-    
-    for (const container of questionContainers) {
-      const label = container.querySelector('label')?.textContent?.toLowerCase() || '';
-      
-      // Handle "How much book size have you run" type questions
-      if (label.includes('book size') || label.includes('book') || label.includes('size')) {
-        const input = container.querySelector('input[type="text"], input[type="number"]');
-        if (input && !input.value) {
-          input.value = userProfile.bookSize || '3'; // Default answer
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-          input.dispatchEvent(new Event('change', { bubbles: true }));
-          await this.delay(200);
-        }
-      }
-
-      // Handle experience questions
-      if (label.includes('years') && label.includes('experience')) {
-        const input = container.querySelector('input[type="text"], input[type="number"]');
-        if (input && !input.value) {
-          input.value = userProfile.yearsExperience?.toString() || '3';
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-          input.dispatchEvent(new Event('change', { bubbles: true }));
-          await this.delay(200);
-        }
-      }
-
-      // Handle checkboxes (follow company, etc.)
-      const checkbox = container.querySelector('input[type="checkbox"]');
-      if (checkbox && label.includes('follow')) {
-        checkbox.checked = true;
-        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-        await this.delay(200);
-      }
-    }
-  }
-
-  findLinkedInNextButton() {
-    const selectors = [
-      'button[aria-label*="Continue"]',
-      'button[aria-label*="Next"]',
-      '.artdeco-button--primary:contains("Next")',
-      'button:contains("Next")',
-      'button:contains("Continue")'
-    ];
-
-    for (const selector of selectors) {
-      try {
-        const buttons = document.querySelectorAll('button');
-        for (const button of buttons) {
-          const text = button.textContent.trim();
-          if ((text === 'Next' || text === 'Continue') && !button.disabled) {
-            return button;
-          }
-        }
-      } catch (e) {
-        // Continue to next selector
-      }
-    }
-
-    return null;
-  }
-
-  findLinkedInSubmitButton() {
-    const buttons = document.querySelectorAll('button');
-    for (const button of buttons) {
-      const text = button.textContent.trim();
-      if ((text === 'Submit application' || text === 'Submit') && !button.disabled) {
-        return button;
-      }
-    }
-    return null;
-  }
-
-  checkLinkedInSubmissionSuccess() {
-    const successSelectors = [
-      '.artdeco-modal__header:contains("Application sent")',
-      '.artdeco-inline-feedback--success',
-      '[data-test-modal-id="post-apply-modal"]'
-    ];
-
-    for (const selector of successSelectors) {
-      try {
-        const element = document.querySelector(selector);
-        if (element) return true;
-      } catch (e) {
-        // Continue checking
-      }
-    }
-
-    // Check for success text
-    const modalContent = document.querySelector('.artdeco-modal__content');
-    if (modalContent && modalContent.textContent.includes('Your application was sent')) {
-      return true;
-    }
-
-    return false;
-  }
-
-  extractLinkedInJobDetails() {
-    const hiringTeam = this.extractHiringTeam();
-    
-    return {
-      title: document.querySelector('.job-details-jobs-unified-top-card__job-title')?.textContent?.trim() || 
-             document.querySelector('.jobs-unified-top-card__job-title')?.textContent?.trim() || 'Job',
-      company: document.querySelector('.job-details-jobs-unified-top-card__company-name')?.textContent?.trim() ||
-               document.querySelector('.jobs-unified-top-card__company-name')?.textContent?.trim() || 'Company',
-      location: document.querySelector('.job-details-jobs-unified-top-card__bullet')?.textContent?.trim() || '',
-      url: window.location.href,
-      platform: 'LinkedIn',
-      hiringTeam: hiringTeam
-    };
-  }
-
-  async trackLinkedInApplication(jobData) {
-    try {
-      const response = await chrome.runtime.sendMessage({
-        action: 'trackApplication',
-        data: {
-          jobTitle: jobData.title,
-          company: jobData.company,
-          location: jobData.location,
-          jobUrl: jobData.url,
-          status: 'applied',
-          source: 'linkedin_automation',
-          platform: 'LinkedIn',
-          hiringTeam: jobData.hiringTeam,
-          appliedAt: new Date().toISOString()
-        }
-      });
-      
-      console.log('✅ Application tracked with hiring team data:', response);
-    } catch (error) {
-      console.warn('Failed to track application:', error);
-    }
-  }
-
-  closeLinkedInModal() {
-    const closeButtons = document.querySelectorAll('[data-test-modal-close-btn], .artdeco-modal__dismiss');
-    for (const button of closeButtons) {
-      try {
-        button.click();
-      } catch (e) {
-        // Continue
-      }
-    }
-  }
-
-  stopLinkedInAutomation() {
-    this.automationRunning = false;
-    this.showNotification('⏸️ Automation stopped', 'info');
-  }
-
-  async getAutomationLimits(userProfile) {
-    try {
-      const apiUrl = await this.getApiUrl();
-      const response = await fetch(`${apiUrl}/api/extension/automation-limits`, {
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        console.error('Failed to get automation limits');
-        // Default to free tier limits
-        return {
-          tier: 'free',
-          maxPages: 1,
-          monthlyUses: 2,
-          usesRemaining: 0,
-          canUse: false
-        };
-      }
-
-      const limits = await response.json();
-      return limits;
-    } catch (error) {
-      console.error('Error getting automation limits:', error);
-      return {
-        tier: 'free',
-        maxPages: 1,
-        monthlyUses: 2,
-        usesRemaining: 0,
-        canUse: false
-      };
-    }
-  }
-
-  async trackAutomationUsage() {
-    try {
-      const apiUrl = await this.getApiUrl();
-      await fetch(`${apiUrl}/api/extension/track-automation`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          applicationsSubmitted: this.applicationsSubmitted,
-          applicationsSkipped: this.applicationsSkipped
-        })
-      });
-    } catch (error) {
-      console.error('Failed to track automation usage:', error);
-    }
-  }
-
-  showUpgradePrompt(tierLimits) {
-    const upgradeMessages = {
-      free: {
-        title: '🚀 Upgrade to Premium',
-        message: `You've used all ${tierLimits.monthlyUses} free automation runs this month!`,
-        benefits: [
-          '✨ Premium: 5 pages per run, unlimited uses',
-          '🔥 Ultra Premium: 15 pages per run, unlimited uses'
-        ]
-      },
-      premium: {
-        title: '🔥 Upgrade to Ultra Premium',
-        message: 'Get 15 pages per automation run instead of 5!',
-        benefits: [
-          '🚀 15 pages per run (vs 5)',
-          '⚡ Faster application processing',
-          '🎯 Advanced targeting features'
-        ]
-      }
-    };
-
-    const promptConfig = upgradeMessages[tierLimits.tier] || upgradeMessages.free;
-
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.8);
-      z-index: 10001;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    `;
-
-    modal.innerHTML = `
-      <div style="
-        background: white;
-        border-radius: 16px;
-        padding: 32px;
-        max-width: 500px;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      ">
-        <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600;">
-          ${promptConfig.title}
-        </h2>
-        <p style="margin: 0 0 24px 0; font-size: 16px; color: #666;">
-          ${promptConfig.message}
-        </p>
-        <div style="margin-bottom: 24px;">
-          ${promptConfig.benefits.map(benefit => `
-            <div style="padding: 8px 0; font-size: 14px;">
-              ${benefit}
-            </div>
-          `).join('')}
-        </div>
-        <div style="display: flex; gap: 12px;">
-          <button id="upgrade-now-btn" style="
-            flex: 1;
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 16px;
-          ">
-            Upgrade Now
-          </button>
-          <button id="maybe-later-btn" style="
-            flex: 1;
-            padding: 12px 24px;
-            background: #f3f4f6;
-            color: #374151;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 16px;
-          ">
-            Maybe Later
-          </button>
-        </div>
-        ${tierLimits.tier === 'free' ? `
-          <div style="
-            margin-top: 16px;
-            padding: 12px;
-            background: #fef3c7;
-            border-radius: 8px;
-            font-size: 13px;
-            text-align: center;
-          ">
-            ⏰ Your usage resets on the 1st of next month
-          </div>
-        ` : ''}
-      </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    document.getElementById('upgrade-now-btn').addEventListener('click', async () => {
-      const apiUrl = await this.getApiUrl();
-      window.open(`${apiUrl}/job-seeker-premium`, '_blank');
-      modal.remove();
-    });
-
-    document.getElementById('maybe-later-btn').addEventListener('click', () => {
-      modal.remove();
-    });
-
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        modal.remove();
-      }
-    });
-  }
-
   async handleAnalyze() {
     const result = await this.analyzeCurrentJob();
     if (result.success) {
@@ -4380,292 +3503,105 @@ class AutoJobrContentScript {
 
   // Handle Referral Finder
   async handleReferralFinder() {
-    try {
-      this.showNotification('🤝 Opening Referral Finder...', 'info');
-
-      // Get current job details
-      const jobData = await this.extractJobDetails();
-
-      if (!jobData.success || !jobData.jobData.company) {
-        this.showNotification('Please navigate to a job posting first', 'error');
-        return;
-      }
-
-      // Open referral finder with company info
-      // Assuming API_BASE_URL is defined elsewhere or globally accessible
-      const referralUrl = `${API_BASE_URL}/referral-marketplace?company=${encodeURIComponent(jobData.jobData.company)}`;
-      window.open(referralUrl, '_blank');
-
-    } catch (error) {
-      console.error('Referral finder error:', error);
-      this.showError('Failed to open referral finder');
+    if (!this.currentJobData) {
+      this.showNotification('No job data found on this page', 'error');
+      return;
     }
-  }
 
-  // Handle LinkedIn Connect Message Generation
-  async handleLinkedInConnect() {
     try {
-      // Check if we're on LinkedIn
-      if (!window.location.hostname.includes('linkedin.com')) {
-        this.showNotification('Navigate to a LinkedIn profile to use this feature', 'error');
-        return;
-      }
+      this.updateStatus('🔄 Finding referrals...', 'loading');
 
-      // Get user's subscription tier
-      const result = await chrome.storage.local.get(['sessionToken', 'userId']);
-      if (!result.sessionToken) {
-        this.showNotification('Please log in to use this feature', 'error');
-        return;
-      }
-
-      // Fetch user profile to check tier
-      const userResponse = await fetch(`${API_BASE_URL}/api/user`, {
-        headers: {
-          'Authorization': `Bearer ${result.sessionToken}`,
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
+      const userProfile = await this.getUserProfile();
+      const result = await chrome.runtime.sendMessage({
+        action: 'findReferrals',
+        data: {
+          jobData: this.currentJobData,
+          userProfile: userProfile
+        }
       });
 
-      if (!userResponse.ok) {
-        throw new Error('Failed to fetch user profile');
+      if (result && result.success) {
+        this.showReferralFinderModal(result);
+        this.updateStatus('✅ Referrals found!', 'success');
+      } else {
+        throw new Error('Failed to find referrals');
       }
-
-      const userData = await userResponse.json();
-      const userTier = userData.planType || 'free';
-
-      // Determine character limit and generation count based on tier
-      let charLimit = 300; // LinkedIn's standard limit
-      let generationsAllowed = 2; // Free tier
-
-      if (userTier === 'premium') {
-        generationsAllowed = 30;
-      } else if (userTier === 'ultra_premium') {
-        generationsAllowed = -1; // Unlimited
-      }
-
-      // Show connection message generator modal
-      this.showLinkedInConnectModal(charLimit, generationsAllowed, userTier);
-
     } catch (error) {
-      console.error('LinkedIn connect error:', error);
-      this.showError('Failed to generate connection message');
+      console.error('Referral finder error:', error);
+      this.showNotification('❌ Failed to find referrals', 'error');
+      this.updateStatus('❌ Referral search failed', 'error');
     }
   }
 
-  showLinkedInConnectModal(charLimit, generationsAllowed, userTier) {
-    // Create modal overlay
+  // Show Interview Prep Modal
+  showInterviewPrepModal(prep) {
     const modal = document.createElement('div');
-    modal.id = 'autojobr-linkedin-connect-modal';
-    modal.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.7);
-      z-index: 10000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    `;
-
+    modal.className = 'autojobr-modal-overlay';
     modal.innerHTML = `
-      <div style="
-        background: white;
-        border-radius: 12px;
-        padding: 24px;
-        max-width: 500px;
-        width: 90%;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      ">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-          <h3 style="margin: 0; font-size: 18px; font-weight: 600;">LinkedIn Connection Message</h3>
-          <button id="close-linkedin-modal" style="
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #666;
-          ">×</button>
+      <div class="autojobr-modal">
+        <div class="autojobr-modal-header">
+          <h3>🎯 Interview Preparation</h3>
+          <button class="autojobr-modal-close">×</button>
         </div>
-
-        <div style="margin-bottom: 16px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <label style="font-weight: 500; font-size: 14px;">Personal Touch (Optional)</label>
-            <span style="font-size: 12px; color: #666;">${userTier === 'ultra_premium' ? 'Unlimited' : `${generationsAllowed} left`}</span>
+        <div class="autojobr-modal-content">
+          <div class="prep-section">
+            <h4>Company Insights</h4>
+            <p>${prep.companyInsights || 'Research the company culture and recent news'}</p>
           </div>
-          <textarea 
-            id="personal-note"
-            placeholder="Add a personal detail (e.g., 'Saw your work on the XYZ project')"
-            style="
-              width: 100%;
-              padding: 10px;
-              border: 2px solid #e5e7eb;
-              border-radius: 8px;
-              font-size: 14px;
-              min-height: 60px;
-              resize: vertical;
-              box-sizing: border-box;
-            "
-          ></textarea>
-        </div>
-
-        <div style="margin-bottom: 16px;">
-          <label style="font-weight: 500; font-size: 14px; display: block; margin-bottom: 8px;">Generated Message</label>
-          <div style="position: relative;">
-            <textarea 
-              id="generated-message"
-              readonly
-              placeholder="Click 'Generate' to create your connection message..."
-              style="
-                width: 100%;
-                padding: 10px;
-                border: 2px solid #e5e7eb;
-                border-radius: 8px;
-                font-size: 14px;
-                min-height: 120px;
-                resize: vertical;
-                background: #f9fafb;
-                box-sizing: border-box;
-              "
-            ></textarea>
-            <div style="
-              position: absolute;
-              bottom: 8px;
-              right: 8px;
-              font-size: 12px;
-              color: #666;
-              background: white;
-              padding: 4px 8px;
-              border-radius: 4px;
-            ">
-              <span id="char-count">0</span> / ${charLimit}
-            </div>
+          <div class="prep-section">
+            <h4>Common Interview Questions</h4>
+            <ul>
+              ${(prep.questions || []).map(q => `<li>${q}</li>`).join('')}
+            </ul>
+          </div>
+          <div class="prep-section">
+            <h4>Preparation Tips</h4>
+            <p>${prep.tips || 'Practice STAR method for behavioral questions'}</p>
           </div>
         </div>
-
-        <div style="display: flex; gap: 12px;">
-          <button id="generate-message-btn" style="
-            flex: 1;
-            padding: 12px;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 500;
-            cursor: pointer;
-            font-size: 14px;
-          ">
-            🤖 Generate Message
-          </button>
-          <button id="copy-message-btn" style="
-            flex: 1;
-            padding: 12px;
-            background: linear-gradient(135deg, #22c55e, #16a34a);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 500;
-            cursor: pointer;
-            font-size: 14px;
-          " disabled>
-            📋 Copy Message
-          </button>
-        </div>
-
-        ${userTier === 'free' ? `
-          <div style="
-            margin-top: 16px;
-            padding: 12px;
-            background: #fef3c7;
-            border: 1px solid #f59e0b;
-            border-radius: 8px;
-            font-size: 13px;
-            text-align: center;
-          ">
-            ⚡ Upgrade to Premium for 30 generations/day or Ultra Premium for unlimited!
-          </div>
-        ` : ''}
       </div>
     `;
-
     document.body.appendChild(modal);
 
-    // Event listeners
-    document.getElementById('close-linkedin-modal').addEventListener('click', () => {
-      modal.remove();
-    });
+    modal.querySelector('.autojobr-modal-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => e.target === modal && modal.remove());
+  }
 
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        modal.remove();
-      }
-    });
+  // Show Salary Insights Modal
+  showSalaryInsightsModal(insights) {
+    const modal = document.createElement('div');
+    modal.className = 'autojobr-modal-overlay';
+    modal.innerHTML = `
+      <div class="autojobr-modal">
+        <div class="autojobr-modal-header">
+          <h3>💰 Salary Insights</h3>
+          <button class="autojobr-modal-close">×</button>
+        </div>
+        <div class="autojobr-modal-content">
+          <div class="salary-highlight">
+            <div class="salary-amount">$${insights.estimatedSalary?.toLocaleString() || 'N/A'}</div>
+            <div class="salary-label">Estimated Annual Salary</div>
+          </div>
+          <div class="prep-section">
+            <h4>Salary Range</h4>
+            <div class="salary-range">
+              <span>Min: $${insights.salaryRange?.min?.toLocaleString() || 'N/A'}</span>
+              <span>Max: $${insights.salaryRange?.max?.toLocaleString() || 'N/A'}</span>
+            </div>
+          </div>
+          <div class="prep-section">
+            <h4>Negotiation Tips</h4>
+            <ul>
+              ${(insights.negotiationTips || []).map(tip => `<li>${tip}</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
 
-    let generatedMessage = '';
-
-    document.getElementById('generate-message-btn').addEventListener('click', async () => {
-      const personalNote = document.getElementById('personal-note').value;
-      const generateBtn = document.getElementById('generate-message-btn');
-
-      generateBtn.disabled = true;
-      generateBtn.textContent = '⏳ Generating...';
-
-      try {
-        // Get profile name from LinkedIn page
-        const profileName = document.querySelector('.text-heading-xlarge')?.textContent?.trim() || 'this professional';
-        const profileTitle = document.querySelector('.text-body-medium')?.textContent?.trim() || '';
-
-        const result = await chrome.storage.local.get(['sessionToken']);
-        const response = await fetch(`${API_BASE_URL}/api/crm/linkedin/generate-follow-up`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${result.sessionToken}`,
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            contactId: 0, // Not saving to CRM yet
-            purpose: 'connection',
-            context: `Connecting with ${profileName}${profileTitle ? `, ${profileTitle}` : ''}. ${personalNote || ''}`
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to generate message');
-        }
-
-        const data = await response.json();
-        generatedMessage = data.message;
-
-        document.getElementById('generated-message').value = generatedMessage;
-        document.getElementById('char-count').textContent = generatedMessage.length;
-        document.getElementById('copy-message-btn').disabled = false;
-
-        this.showNotification('✨ Message generated successfully!', 'success');
-
-      } catch (error) {
-        console.error('Generate message error:', error);
-        this.showNotification('Failed to generate message', 'error');
-      } finally {
-        generateBtn.disabled = false;
-        generateBtn.textContent = '🤖 Generate Message';
-      }
-    });
-
-    document.getElementById('copy-message-btn').addEventListener('click', () => {
-      const messageTextarea = document.getElementById('generated-message');
-      messageTextarea.select();
-      document.execCommand('copy');
-
-      this.showNotification('✅ Message copied to clipboard!', 'success');
-
-      // Close modal after short delay
-      setTimeout(() => {
-        modal.remove();
-      }, 1000);
-    });
+    modal.querySelector('.autojobr-modal-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => e.target === modal && modal.remove());
   }
 
   // Show Referral Finder Modal
