@@ -868,6 +868,17 @@ class AutoJobrPopup {
       return;
     }
 
+    // Check if LinkedIn automation is running
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const automationStatus = await chrome.tabs.sendMessage(tab.id, {
+      action: 'getAutomationStatus'
+    }).catch(() => ({ running: false }));
+
+    if (automationStatus?.running) {
+      this.showError('LinkedIn automation is running. Auto-fill is handled automatically.');
+      return;
+    }
+
     this.showLoading(true);
 
     try {

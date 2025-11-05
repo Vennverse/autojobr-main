@@ -758,6 +758,10 @@ class AutoJobrContentScript {
           this.detectJobPosting().then(sendResponse);
           return true;
 
+        case 'getAutomationStatus':
+          sendResponse({ running: this.automationRunning || false });
+          return true;
+
         case 'startAutofill':
           this.startSmartAutofill(message.userProfile).then(sendResponse);
           return true;
@@ -2794,6 +2798,12 @@ class AutoJobrContentScript {
 
   // Enhanced UI event handlers
   async handleSmartAutofill() {
+    // Prevent manual auto-fill during LinkedIn automation
+    if (this.automationRunning) {
+      this.showNotification('⚠️ LinkedIn automation is running. Auto-fill is handled automatically.', 'warning');
+      return;
+    }
+
     const userProfile = await this.getUserProfile();
     if (!userProfile) {
       this.showNotification('Please sign in to use auto-fill', 'error');
