@@ -339,8 +339,8 @@ export default function Onboarding() {
         break;
         
       case "preferences":
-        if (!formData.desiredSalaryMin || formData.desiredSalaryMin <= 0) errors.push("Minimum Salary is required");
-        if (!formData.desiredSalaryMax || formData.desiredSalaryMax <= 0) errors.push("Maximum Salary is required");
+        if (!formData.desiredSalaryMin || formData.desiredSalaryMin <= 0) errors.push("Current CTC is required");
+        if (!formData.desiredSalaryMax || formData.desiredSalaryMax <= 0) errors.push("Expected CTC is required");
         if (!formData.noticePeriod) errors.push("Notice Period is required");
         if (!formData.highestDegree) errors.push("Highest Degree is required");
         break;
@@ -707,7 +707,7 @@ export default function Onboarding() {
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="desiredSalaryMin">Minimum Salary (USD)</Label>
+              <Label htmlFor="desiredSalaryMin">Current CTC</Label>
               <Input
                 id="desiredSalaryMin"
                 type="number"
@@ -717,7 +717,7 @@ export default function Onboarding() {
               />
             </div>
             <div>
-              <Label htmlFor="desiredSalaryMax">Maximum Salary (USD)</Label>
+              <Label htmlFor="desiredSalaryMax">Expected CTC</Label>
               <Input
                 id="desiredSalaryMax"
                 type="number"
