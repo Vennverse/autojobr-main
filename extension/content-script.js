@@ -1896,6 +1896,60 @@ class AutoJobrContentScript {
       this.experienceCache = Math.round(profile.yearsExperience || 3).toString();
     }
 
+    // Calculate default salary based on job title and experience if not available
+    const getDefaultSalary = () => {
+      const yearsExp = profile.yearsExperience || 3;
+      const jobTitle = (profile.professionalTitle || this.currentJobData?.title || '').toLowerCase();
+      
+      // Base salaries by experience level
+      const baseSalaries = {
+        entry: 50000,
+        mid: 75000,
+        senior: 110000,
+        lead: 140000
+      };
+      
+      // Multipliers by job category
+      const categoryMultipliers = {
+        'software': 1.3,
+        'engineer': 1.3,
+        'developer': 1.3,
+        'data scientist': 1.4,
+        'product manager': 1.25,
+        'designer': 1.1,
+        'marketing': 1.0,
+        'sales': 1.2,
+        'hr': 0.95,
+        'analyst': 1.15,
+        'manager': 1.2
+      };
+      
+      // Determine experience level
+      let experienceLevel = 'entry';
+      if (yearsExp >= 7) experienceLevel = 'lead';
+      else if (yearsExp >= 4) experienceLevel = 'senior';
+      else if (yearsExp >= 2) experienceLevel = 'mid';
+      
+      // Find category multiplier
+      let multiplier = 1.0;
+      for (const [category, mult] of Object.entries(categoryMultipliers)) {
+        if (jobTitle.includes(category)) {
+          multiplier = mult;
+          break;
+        }
+      }
+      
+      const baseSalary = baseSalaries[experienceLevel];
+      const estimatedSalary = Math.round(baseSalary * multiplier);
+      
+      return {
+        min: Math.round(estimatedSalary * 0.9),
+        max: Math.round(estimatedSalary * 1.1)
+      };
+    };
+
+    const defaultSalary = getDefaultSalary();
+
     const valueMap = {
       firstName: profile.firstName || profile.user?.firstName || (profile.fullName || '').split(' ')[0] || '',
       lastName: profile.lastName || profile.user?.lastName || (profile.fullName || '').split(' ').slice(1).join(' ') || '',
@@ -1920,12 +1974,12 @@ class AutoJobrContentScript {
       visa: this.formatVisa(profile.visaStatus || profile.workAuthorization, fieldInfo),
       coverLetter: profile.defaultCoverLetter || '',
       skills: Array.isArray(profile.skills) ? profile.skills.join(', ') : (profile.skills || ''),
-      salary: profile.desiredSalaryMin ? `${profile.desiredSalaryMin}-${profile.desiredSalaryMax || profile.desiredSalaryMin}` : '',
-      currentCTC: profile.desiredSalaryMin || '',
-      expectedCTC: profile.desiredSalaryMax || '',
-      minimumSalary: profile.desiredSalaryMin || '',
-      maximumSalary: profile.desiredSalaryMax || '',
-      desiredSalary: profile.desiredSalaryMax || '',
+      salary: profile.desiredSalaryMin ? `${profile.desiredSalaryMin}-${profile.desiredSalaryMax || profile.desiredSalaryMin}` : `${defaultSalary.min}-${defaultSalary.max}`,
+      currentCTC: profile.desiredSalaryMin || defaultSalary.min,
+      expectedCTC: profile.desiredSalaryMax || defaultSalary.max,
+      minimumSalary: profile.desiredSalaryMin || defaultSalary.min,
+      maximumSalary: profile.desiredSalaryMax || defaultSalary.max,
+      desiredSalary: profile.desiredSalaryMax || defaultSalary.max,
       description: profile.summary || '',
 
       // New Personal Details Fields
