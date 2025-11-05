@@ -18,6 +18,10 @@ class AutoJobrContentScript {
     this.lastAuthCheck = 0; // Track last authentication check
     this.currentAnalysis = null; // Store the latest job analysis result
 
+    // Experience calculation cache
+    this.experienceCache = null; // Cache for general years of experience
+    this.skillExpCache = {}; // Cache for skill-specific experience calculations
+
     // LinkedIn Automation specific states
     this.automationRunning = false;
     this.applicationsSubmitted = 0;
@@ -1837,6 +1841,11 @@ class AutoJobrContentScript {
   }
 
   getProfileValueSmart(key, profile, fieldInfo) {
+    // Initialize experience cache on first call
+    if (!this.experienceCache && profile.yearsExperience) {
+      this.experienceCache = Math.round(profile.yearsExperience || 3).toString();
+    }
+
     const valueMap = {
       firstName: profile.firstName || profile.user?.firstName || (profile.fullName || '').split(' ')[0] || '',
       lastName: profile.lastName || profile.user?.lastName || (profile.fullName || '').split(' ').slice(1).join(' ') || '',
@@ -1850,7 +1859,7 @@ class AutoJobrContentScript {
       country: profile.country || 'United States',
       currentTitle: profile.professionalTitle || profile.workExperience?.[0]?.position || '',
       company: profile.currentCompany || profile.workExperience?.[0]?.company || '',
-      experience: this.formatExperience(profile.yearsExperience, fieldInfo),
+      experience: this.experienceCache || this.formatExperience(profile.yearsExperience, fieldInfo),
       university: profile.education?.[0]?.institution || '',
       degree: profile.education?.[0]?.degree || '',
       major: profile.education?.[0]?.fieldOfStudy || profile.education?.[0]?.field_of_study || '',
@@ -1977,34 +1986,43 @@ class AutoJobrContentScript {
   }
 
   formatExperience(years, fieldInfo) {
+    // Check cache first
+    if (this.experienceCache) {
+      return this.experienceCache;
+    }
+
     // ALWAYS return user's general years of experience as a valid number
     // Normalize to ensure we have a valid integer (default to 3 if nothing provided)
     const normalizedYears = Math.round(years || 3);
     
+    // Cache the result to avoid recalculations
+    this.experienceCache = normalizedYears.toString();
+    
     // Simply return the user's total years of experience (e.g., 2, 3, 4, etc.)
-    return normalizedYears.toString();
+    return this.experienceCache;
   }
 
   calculateSkillYears(skill, workExperience) {
-    let totalMonths = 0;
-    const skillLower = skill.toLowerCase();
+    // For ANY skill-related experience question, use the user's general experience
+    // This is much more reliable than trying to calculate per-skill experience
     
-    for (const exp of workExperience) {
-      // Check if this job mentions the skill
-      const description = (exp.description || '').toLowerCase();
-      const position = (exp.position || '').toLowerCase();
-      
-      if (description.includes(skillLower) || position.includes(skillLower)) {
-        // Calculate duration of this job
-        const start = new Date(exp.startDate);
-        const end = exp.endDate ? new Date(exp.endDate) : new Date();
-        const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-        totalMonths += months;
-      }
+    // Check cache first
+    const cacheKey = `skill_exp_${skill}`;
+    if (this.skillExpCache && this.skillExpCache[cacheKey]) {
+      return this.skillExpCache[cacheKey];
     }
+
+    // Use general years of experience as default
+    // This assumes the user has been using their core skills throughout their career
+    const generalExp = this.experienceCache ? parseInt(this.experienceCache) : 3;
     
-    // Convert months to years (round down)
-    return Math.floor(totalMonths / 12);
+    // Cache the result
+    if (!this.skillExpCache) {
+      this.skillExpCache = {};
+    }
+    this.skillExpCache[cacheKey] = generalExp;
+    
+    return generalExp;
   }
 
   formatWorkAuth(workAuth, fieldInfo) {
