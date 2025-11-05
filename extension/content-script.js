@@ -1789,6 +1789,26 @@ class AutoJobrContentScript {
   getValueForFieldSmart(fieldInfo, userProfile, smartMode) {
     if (!userProfile) return null;
 
+    // PRIORITY 1: Check for experience-related questions (LinkedIn specific)
+    const combinedLower = fieldInfo.combined.toLowerCase();
+    const experienceKeywords = ['experience', 'exp', 'years', 'year', 'month', 'months'];
+    const noticePeriodKeywords = ['notice period', 'notice', 'availability', 'when can you start', 'join', 'joining'];
+    
+    // Notice period questions - always fill with "1"
+    const hasNoticePeriod = noticePeriodKeywords.some(keyword => combinedLower.includes(keyword));
+    if (hasNoticePeriod) {
+      console.log('✅ Notice period question detected - filling with "1"');
+      return '1';
+    }
+    
+    // Experience questions - fill with user's years of experience as number only
+    const hasExperience = experienceKeywords.some(keyword => combinedLower.includes(keyword));
+    if (hasExperience && (fieldInfo.type === 'text' || fieldInfo.type === 'number')) {
+      const yearsExp = Math.round(userProfile.yearsExperience || 3);
+      console.log(`✅ Experience question detected - filling with number: ${yearsExp}`);
+      return yearsExp.toString();
+    }
+
     // Enhanced field matching with priority scoring
     let bestMatch = null;
     let bestScore = 0;
