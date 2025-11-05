@@ -4261,35 +4261,42 @@ class AutoJobrContentScript {
 
       await this.delay(1000);
 
-      // Look for and click Next/Submit buttons
+      // Look for and click Next/Review/Submit buttons
       let currentStep = 1;
       while (currentStep <= 5 && this.automationRunning) {
         const nextButton = this.findLinkedInNextButton();
         const submitButton = this.findLinkedInSubmitButton();
 
         if (submitButton && !submitButton.disabled) {
+          console.log('✅ Found Submit button - preparing to submit application');
+          
           // Check for validation errors before submitting
           const hasErrors = this.checkLinkedInValidationErrors();
           if (hasErrors) {
-            console.log('Validation errors detected - skipping application');
+            console.log('❌ Validation errors detected - skipping application');
             this.closeLinkedInModal();
             return false;
           }
           
           // Submit the application
+          console.log('📤 Submitting application...');
           submitButton.click();
           await this.delay(2000);
           return true;
         } else if (nextButton && !nextButton.disabled) {
+          const buttonText = nextButton.textContent.trim();
+          console.log(`➡️ Found "${buttonText}" button on step ${currentStep}`);
+          
           // Check for validation errors before proceeding
           const hasErrors = this.checkLinkedInValidationErrors();
           if (hasErrors) {
-            console.log('Validation errors detected on step', currentStep, '- skipping application');
+            console.log(`❌ Validation errors detected on step ${currentStep} - skipping application`);
             this.closeLinkedInModal();
             return false;
           }
           
-          // Move to next step
+          // Move to next step (could be Next, Continue, or Review)
+          console.log(`🔄 Clicking "${buttonText}" button...`);
           nextButton.click();
           await this.delay(1500);
 
@@ -4298,7 +4305,7 @@ class AutoJobrContentScript {
           await this.delay(1000);
           currentStep++;
         } else {
-          // No more actions possible
+          console.log('⚠️ No more buttons found - stopping');
           break;
         }
       }
@@ -4335,13 +4342,24 @@ class AutoJobrContentScript {
   findLinkedInNextButton() {
     const selectors = [
       'button[aria-label*="Continue"]',
+      'button[aria-label*="Review"]',
       'button[aria-label*="Next"]',
       'button.artdeco-button--primary:not([aria-label*="Submit"])'
     ];
 
     for (const selector of selectors) {
       const button = document.querySelector(selector);
-      if (button) return button;
+      if (button && !button.disabled) return button;
+    }
+
+    // Also check button text content for Review
+    const allButtons = document.querySelectorAll('button.artdeco-button--primary');
+    for (const button of allButtons) {
+      const text = button.textContent.toLowerCase().trim();
+      if ((text.includes('review') || text.includes('continue') || text.includes('next')) && 
+          !text.includes('submit') && !button.disabled) {
+        return button;
+      }
     }
 
     return null;
