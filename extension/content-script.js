@@ -1973,26 +1973,12 @@ class AutoJobrContentScript {
   }
 
   formatExperience(years, fieldInfo) {
-    if (!years) return null;
-
-    // Check if the question is asking about specific skill/technology experience
-    const fieldText = fieldInfo.combined.toLowerCase();
+    // ALWAYS return user's general years of experience as a valid number
+    // Normalize to ensure we have a valid integer (default to 3 if nothing provided)
+    const normalizedYears = Math.round(years || 3);
     
-    // For skill-specific questions, try to extract from user's work experience
-    // Common patterns: "experience with X", "years of X experience", etc.
-    const skillMatch = fieldText.match(/(?:experience with|years of experience with|years.*?with)\s+([a-z\s]+)/i);
-    
-    if (skillMatch && this.cachedProfile?.workExperience) {
-      const skill = skillMatch[1].trim();
-      // Calculate years based on work experience mentioning this skill
-      const relevantYears = this.calculateSkillYears(skill, this.cachedProfile.workExperience);
-      if (relevantYears > 0) {
-        return relevantYears.toString();
-      }
-    }
-
-    // Default: return total years of experience
-    return years.toString();
+    // Simply return the user's total years of experience (e.g., 2, 3, 4, etc.)
+    return normalizedYears.toString();
   }
 
   calculateSkillYears(skill, workExperience) {
@@ -2222,52 +2208,28 @@ class AutoJobrContentScript {
 
   async fillChoiceFieldSmart(field, value) {
     try {
-      const shouldCheck = this.interpretBooleanValue(value);
-
       if (field.type === 'radio') {
-        // For radio buttons, find the appropriate option
+        // SIMPLIFIED LINKEDIN LOGIC: Always select first radio option for reliable submission
         const radioGroup = document.querySelectorAll(`input[name="${field.name}"]`);
-        let selectedRadio = null;
-        let yesRadio = null;
-        let firstRadio = null;
-
-        for (const radio of radioGroup) {
-          if (!firstRadio) firstRadio = radio; // Track first option
-          
-          const radioInfo = this.analyzeFieldAdvanced(radio);
-          
-          // Try to match with user data
-          if (value && this.shouldSelectRadio(radioInfo, value)) {
-            selectedRadio = radio;
-            break;
-          }
-          
-          // Track "Yes" option as fallback
-          if (!yesRadio && this.isYesOption(radioInfo)) {
-            yesRadio = radio;
-          }
-        }
-
-        // Selection priority: matched value > Yes option > first option
-        const radioToSelect = selectedRadio || yesRadio || firstRadio;
         
-        if (radioToSelect) {
-          radioToSelect.checked = true;
-          radioToSelect.dispatchEvent(new Event('change', { bubbles: true }));
-          radioToSelect.dispatchEvent(new Event('click', { bubbles: true }));
+        if (radioGroup.length > 0) {
+          const firstRadio = radioGroup[0];
           
-          console.log('✅ Radio button selected:', {
-            strategy: selectedRadio ? 'matched' : (yesRadio ? 'yes-fallback' : 'first-option'),
-            name: field.name
-          });
+          // Click and trigger all necessary events for LinkedIn
+          firstRadio.click();
+          firstRadio.checked = true;
+          firstRadio.dispatchEvent(new Event('change', { bubbles: true }));
+          firstRadio.dispatchEvent(new Event('input', { bubbles: true }));
+          
+          console.log('✅ Radio button (first option) selected:', field.name);
           return true;
         }
-      } else {
-        // Checkbox
-        if (field.checked !== shouldCheck) {
-          field.checked = shouldCheck;
-          field.dispatchEvent(new Event('change', { bubbles: true }));
-        }
+      } else if (field.type === 'checkbox') {
+        // Checkbox: check it if value is truthy
+        const shouldCheck = this.interpretBooleanValue(value);
+        field.checked = shouldCheck;
+        field.dispatchEvent(new Event('change', { bubbles: true }));
+        field.dispatchEvent(new Event('input', { bubbles: true }));
         return true;
       }
 
@@ -4306,11 +4268,27 @@ class AutoJobrContentScript {
         const submitButton = this.findLinkedInSubmitButton();
 
         if (submitButton && !submitButton.disabled) {
+          // Check for validation errors before submitting
+          const hasErrors = this.checkLinkedInValidationErrors();
+          if (hasErrors) {
+            console.log('Validation errors detected - skipping application');
+            this.closeLinkedInModal();
+            return false;
+          }
+          
           // Submit the application
           submitButton.click();
           await this.delay(2000);
           return true;
         } else if (nextButton && !nextButton.disabled) {
+          // Check for validation errors before proceeding
+          const hasErrors = this.checkLinkedInValidationErrors();
+          if (hasErrors) {
+            console.log('Validation errors detected on step', currentStep, '- skipping application');
+            this.closeLinkedInModal();
+            return false;
+          }
+          
           // Move to next step
           nextButton.click();
           await this.delay(1500);
@@ -4332,6 +4310,26 @@ class AutoJobrContentScript {
       this.closeLinkedInModal();
       return false;
     }
+  }
+
+  checkLinkedInValidationErrors() {
+    // Check for LinkedIn's inline validation errors
+    const errorSelectors = [
+      '.artdeco-inline-feedback--error',
+      '[aria-invalid="true"]',
+      '.fb-dash-form-element--error',
+      '.jobs-easy-apply-form-element--error'
+    ];
+    
+    for (const selector of errorSelectors) {
+      const errors = document.querySelectorAll(selector);
+      if (errors.length > 0) {
+        console.log('Found', errors.length, 'validation errors');
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   findLinkedInNextButton() {
