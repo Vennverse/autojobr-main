@@ -3325,6 +3325,13 @@ class AutoJobrContentScript {
       if (this.isJobPage()) {
         console.log('📍 Job page detected:', currentUrl);
         
+        // Inject LinkedIn buttons immediately (Auto Apply button shows up right away)
+        if (window.location.hostname.includes('linkedin.com')) {
+          setTimeout(() => {
+            this.injectLinkedInButtons(null); // Inject Auto Apply button without score first
+          }, 500);
+        }
+        
         // Don't auto-show widget - let user click the floating button instead
         
         // Start job detection and analysis silently
@@ -3339,7 +3346,7 @@ class AutoJobrContentScript {
               });
             }, 1000);
           } else {
-            console.log('⚠️ Job detection failed');
+            console.log('⚠️ Job detection failed but Auto Apply button still available');
             this.analysisInProgress = false;
           }
         }).catch((error) => {
@@ -3511,45 +3518,64 @@ class AutoJobrContentScript {
     }
   }
 
-  updateFloatingButtonWithAnalysis(analysis) {
-    const score = analysis.matchScore || analysis.analysis?.matchScore || 0;
-    const scoreText = `${Math.round(score)}%`;
+  injectLinkedInButtons(analysis) {
+    // Only inject on LinkedIn job pages
+    if (!window.location.hostname.includes('linkedin.com') || !this.isJobPage()) {
+      return;
+    }
+
+    const score = analysis ? (analysis.matchScore || analysis.analysis?.matchScore || 0) : 0;
+    const scoreText = `${Math.round(score)}% Match`;
 
     // Find the Save button on LinkedIn
     const saveButton = document.querySelector('[aria-label*="Save"]') || 
                       document.querySelector('button.jobs-save-button') ||
                       document.querySelector('[data-control-name*="save"]');
 
-    if (saveButton) {
-      // Remove existing badge if present
-      const existingBadge = document.getElementById('autojobr-match-badge');
-      if (existingBadge) existingBadge.remove();
+    if (!saveButton) {
+      console.log('⚠️ Save button not found - cannot inject AutoJobr buttons');
+      return;
+    }
 
-      // Create match score badge next to Save button
-      const badge = document.createElement('div');
+    // Remove existing buttons if present
+    const existingBadge = document.getElementById('autojobr-match-badge');
+    const existingAutoApply = document.getElementById('autojobr-auto-apply-btn');
+    if (existingBadge) existingBadge.remove();
+    if (existingAutoApply) existingAutoApply.remove();
+
+    // Ensure parent container can hold flex items
+    const buttonContainer = saveButton.parentElement;
+    buttonContainer.style.display = 'flex';
+    buttonContainer.style.alignItems = 'center';
+    buttonContainer.style.gap = '8px';
+
+    // 1. Create Match Score Badge
+    if (analysis && score > 0) {
+      const badge = document.createElement('button');
       badge.id = 'autojobr-match-badge';
+      badge.className = 'artdeco-button artdeco-button--secondary';
       badge.style.cssText = `
         display: inline-flex;
         align-items: center;
         justify-content: center;
         background: linear-gradient(135deg, ${this.getScoreColor(score)} 0%, ${this.getScoreColor(score)}dd 100%);
-        color: white;
-        font-weight: bold;
+        color: white !important;
+        font-weight: 600;
         font-size: 14px;
-        padding: 6px 12px;
+        padding: 8px 16px;
         border-radius: 20px;
         margin-left: 8px;
         cursor: pointer;
         box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         transition: all 0.2s ease;
         z-index: 999;
+        border: none;
       `;
       badge.textContent = scoreText;
       badge.title = `Job Match Score: ${scoreText} - Click to view details`;
 
-      // Add hover effect
       badge.onmouseenter = () => {
-        badge.style.transform = 'scale(1.1)';
+        badge.style.transform = 'scale(1.05)';
         badge.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
       };
       badge.onmouseleave = () => {
@@ -3557,20 +3583,64 @@ class AutoJobrContentScript {
         badge.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
       };
 
-      // Add click handler to show widget
       badge.onclick = () => {
         this.showWidget();
         this.updateJobMatch(analysis);
       };
 
-      // Insert badge after Save button
-      saveButton.parentElement.style.display = 'flex';
-      saveButton.parentElement.style.alignItems = 'center';
-      saveButton.parentElement.appendChild(badge);
+      buttonContainer.appendChild(badge);
     }
 
+    // 2. Create LinkedIn Auto Apply Button
+    const autoApplyBtn = document.createElement('button');
+    autoApplyBtn.id = 'autojobr-auto-apply-btn';
+    autoApplyBtn.className = 'artdeco-button artdeco-button--primary';
+    autoApplyBtn.style.cssText = `
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0a66c2 0%, #004182 100%);
+      color: white !important;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      margin-left: 8px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      transition: all 0.2s ease;
+      z-index: 999;
+      border: none;
+    `;
+    autoApplyBtn.innerHTML = '⚡ LinkedIn Auto Apply';
+    autoApplyBtn.title = 'Start LinkedIn Auto Apply automation on this jobs page';
+
+    autoApplyBtn.onmouseenter = () => {
+      autoApplyBtn.style.transform = 'scale(1.05)';
+      autoApplyBtn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+    };
+    autoApplyBtn.onmouseleave = () => {
+      autoApplyBtn.style.transform = 'scale(1)';
+      autoApplyBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+    };
+
+    autoApplyBtn.onclick = () => {
+      this.startLinkedInAutomation();
+    };
+
+    buttonContainer.appendChild(autoApplyBtn);
+
     // Store analysis data for popup use
-    this.currentAnalysis = analysis;
+    if (analysis) {
+      this.currentAnalysis = analysis;
+    }
+
+    console.log('✅ LinkedIn Auto Apply and Match Score buttons injected');
+  }
+
+  updateFloatingButtonWithAnalysis(analysis) {
+    // Call the new unified injection function
+    this.injectLinkedInButtons(analysis);
   }
 
   getScoreColor(score) {
