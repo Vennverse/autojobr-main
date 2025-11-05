@@ -2227,13 +2227,40 @@ class AutoJobrContentScript {
       if (field.type === 'radio') {
         // For radio buttons, find the appropriate option
         const radioGroup = document.querySelectorAll(`input[name="${field.name}"]`);
+        let selectedRadio = null;
+        let yesRadio = null;
+        let firstRadio = null;
+
         for (const radio of radioGroup) {
+          if (!firstRadio) firstRadio = radio; // Track first option
+          
           const radioInfo = this.analyzeFieldAdvanced(radio);
-          if (this.shouldSelectRadio(radioInfo, value)) {
-            radio.checked = true;
-            radio.dispatchEvent(new Event('change', { bubbles: true }));
-            return true;
+          
+          // Try to match with user data
+          if (value && this.shouldSelectRadio(radioInfo, value)) {
+            selectedRadio = radio;
+            break;
           }
+          
+          // Track "Yes" option as fallback
+          if (!yesRadio && this.isYesOption(radioInfo)) {
+            yesRadio = radio;
+          }
+        }
+
+        // Selection priority: matched value > Yes option > first option
+        const radioToSelect = selectedRadio || yesRadio || firstRadio;
+        
+        if (radioToSelect) {
+          radioToSelect.checked = true;
+          radioToSelect.dispatchEvent(new Event('change', { bubbles: true }));
+          radioToSelect.dispatchEvent(new Event('click', { bubbles: true }));
+          
+          console.log('✅ Radio button selected:', {
+            strategy: selectedRadio ? 'matched' : (yesRadio ? 'yes-fallback' : 'first-option'),
+            name: field.name
+          });
+          return true;
         }
       } else {
         // Checkbox
@@ -2260,19 +2287,105 @@ class AutoJobrContentScript {
     return false;
   }
 
+  isYesOption(radioInfo) {
+    const radio = radioInfo.element;
+    const radioValue = (radio.value || '').toLowerCase().trim();
+    const radioId = (radio.id || '').toLowerCase().trim();
+    
+    // Get the option's specific label text
+    let optionText = '';
+    const label = radio.closest('label') || document.querySelector(`label[for="${radio.id}"]`);
+    if (label) {
+      optionText = (label.textContent || '').toLowerCase().trim();
+    }
+    if (!optionText && radio.nextSibling) {
+      optionText = (radio.nextSibling.textContent || '').toLowerCase().trim();
+    }
+    
+    const thisOptionText = ` ${radioValue} ${radioId} ${optionText} `.toLowerCase();
+    
+    // Use word boundary matching to avoid false positives
+    // "\\byes\\b" matches "yes" but not "eyes"
+    const affirmativePatterns = [
+      /\byes\b/,
+      /\btrue\b/,
+      /\bauthorized\b/,
+      /\beligible\b/,
+      /\bqualified\b/
+    ];
+    
+    const negativePatterns = [
+      /\bno\b/,
+      /\bfalse\b/,
+      /\bnot\b/,
+      /\bunable\b/,
+      /\bcannot\b/,
+      /\bineligible\b/,
+      /\bdecline\b/,
+      /\bdisabled\b/,
+      /\bunavailable\b/,
+      /\bnever\b/
+    ];
+    
+    // Check exact value matches first (most reliable)
+    if (radioValue === 'yes' || radioValue === 'true' || radioValue === '1') {
+      return true;
+    }
+    if (radioValue === 'no' || radioValue === 'false' || radioValue === '0') {
+      return false;
+    }
+    
+    // Check for negative indicators first (higher priority)
+    const hasNegative = negativePatterns.some(pattern => pattern.test(thisOptionText));
+    if (hasNegative) {
+      return false;
+    }
+    
+    // Then check for affirmative indicators
+    const hasAffirmative = affirmativePatterns.some(pattern => pattern.test(thisOptionText));
+    return hasAffirmative;
+  }
+
   shouldSelectRadio(radioInfo, value) {
-    const combined = radioInfo.combined;
-    const valueLower = value.toLowerCase();
+    if (!value) return false;
+    
+    const radio = radioInfo.element;
+    const valueLower = value.toString().toLowerCase().trim();
 
-    // Match based on value content
-    if (valueLower === 'yes' && (combined.includes('yes') || combined.includes('authorized'))) {
-      return true;
+    // Get the specific option's value and adjacent text (not the question)
+    const radioValue = (radio.value || '').toLowerCase().trim();
+    const radioId = (radio.id || '').toLowerCase().trim();
+    
+    // Find the option's specific label text (adjacent to this radio, not the question)
+    let optionText = '';
+    const label = radio.closest('label') || document.querySelector(`label[for="${radio.id}"]`);
+    if (label) {
+      optionText = (label.textContent || '').toLowerCase().trim();
     }
-    if (valueLower === 'no' && (combined.includes('no') || combined.includes('not authorized'))) {
-      return true;
+    if (!optionText && radio.nextSibling) {
+      optionText = (radio.nextSibling.textContent || '').toLowerCase().trim();
     }
+    
+    // Combine this option's specific identifiers with word boundaries
+    const thisOptionText = ` ${radioValue} ${radioId} ${optionText} `.toLowerCase();
+    
+    // Exact value match (most reliable)
+    if (radioValue === valueLower) return true;
+    
+    // Check if this specific option matches the value with word boundaries
+    const affirmativePatterns = [/\byes\b/, /\btrue\b/, /\bauthorized\b/, /\beligible\b/, /\bqualified\b/];
+    const negativePatterns = [/\bno\b/, /\bfalse\b/, /\bnot\b/, /\bunable\b/, /\bcannot\b/, /\bineligible\b/, /\bdecline\b/];
+    
+    const hasNegative = negativePatterns.some(pattern => pattern.test(thisOptionText));
+    const hasAffirmative = affirmativePatterns.some(pattern => pattern.test(thisOptionText));
 
-    return combined.includes(valueLower);
+    // Match based on value
+    if (valueLower === 'yes' && hasAffirmative && !hasNegative) return true;
+    if (valueLower === 'no' && hasNegative) return true;
+    
+    // Try to match the option text with the value using word boundary
+    const valuePattern = new RegExp(`\\b${valueLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+    return valuePattern.test(thisOptionText);
   }
 
   async fillFileFieldSmart(field, value, userProfile) {
@@ -2538,17 +2651,30 @@ class AutoJobrContentScript {
     const nextKeywords = ['next', 'continue', 'proceed', 'forward', 'step', '→', '»'];
     const submitKeywords = ['submit', 'apply', 'send', 'complete', 'finish'];
 
-    // Must contain next keywords but not submit keywords
-    return nextKeywords.some(keyword => text.includes(keyword)) &&
-           !submitKeywords.some(keyword => text.includes(keyword)) &&
-           !button.disabled;
+    // "Review" buttons are treated as NEXT unless they explicitly say "submit"
+    if (text.includes('review')) {
+      // If it says "review and submit" or similar, it's NOT a next button
+      const hasExplicitSubmit = submitKeywords.some(keyword => text.includes(keyword));
+      return !hasExplicitSubmit && !button.disabled;
+    }
+
+    const hasNextKeyword = nextKeywords.some(keyword => text.includes(keyword));
+    const hasSubmitKeyword = submitKeywords.some(keyword => text.includes(keyword));
+
+    return hasNextKeyword && !hasSubmitKeyword && !button.disabled;
   }
 
   isSubmitButton(button) {
     const text = (button.textContent || button.value || '').toLowerCase();
-    const submitKeywords = ['submit application', 'apply now', 'submit', 'apply', 'send application', 'continue to apply', 'review and submit', 'complete application'];
+    const submitKeywords = ['submit application', 'apply now', 'submit', 'apply', 'send application', 'continue to apply', 'complete application', 'finish'];
 
-    return submitKeywords.some(keyword => text.includes(keyword)) && !button.disabled;
+    // "Review and submit" or similar should be treated as submit button
+    if (text.includes('review') && text.includes('submit')) {
+      return !button.disabled;
+    }
+
+    const hasSubmitKeyword = submitKeywords.some(keyword => text.includes(keyword));
+    return hasSubmitKeyword && !button.disabled;
   }
 
   updateNavigationUI(nextButtons, submitButtons) {
@@ -3332,9 +3458,10 @@ class AutoJobrContentScript {
       if (analysis) {
         console.log('✅ Fresh analysis completed - match score:', analysis.matchScore);
 
-        // Update widget silently - don't show popup automatically
+        // Update widget and show it automatically on job pages
         this.updateJobMatch(analysis);
-        console.log('Updated match score silently:', analysis.matchScore);
+        this.showWidget(); // Auto-show widget on job pages
+        console.log('✅ Widget auto-opened with match score:', analysis.matchScore);
       }
     } catch (error) {
       console.error('Auto-analysis failed:', error);
