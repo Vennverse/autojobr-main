@@ -21,6 +21,8 @@ interface Application {
   jobUrl?: string;
   source?: 'internal' | 'extension';
   jobPostingId?: number;
+  notes?: string; // Added for extension notes
+  appliedAt?: string; // Added for extension applied date
 }
 
 interface ApplicationsTableProps {
@@ -147,11 +149,11 @@ export function ApplicationsTable({ applications, isLoading, showActions = false
                         </a>
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onEdit?.(application)}>
                       <Edit className="mr-2 h-4 w-4" />
                       Edit
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
+                    <DropdownMenuItem className="text-destructive" onClick={() => onDelete?.(application)}>
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete
                     </DropdownMenuItem>
@@ -159,26 +161,86 @@ export function ApplicationsTable({ applications, isLoading, showActions = false
                 </DropdownMenu>
               )}
             </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2 flex-wrap">
-                {getStatusBadge(application.status)}
-                {getSourceBadge(application.source)}
-                {application.matchScore && (
-                  <div className="flex items-center space-x-1">
-                    <div className="w-12 bg-muted rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full ${getMatchScoreColor(application.matchScore)}`}
-                        style={{ width: `${application.matchScore}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-muted-foreground">{application.matchScore}%</span>
-                  </div>
-                )}
-              </div>
-              <span className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(application.appliedDate), { addSuffix: true })}
-              </span>
+
+            {/* This is where the new detailed fields for extension applications will be displayed */}
+            <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
+                          <Badge className={getStatusColor(application.status)}>
+                            {getStatusIcon(application.status)}
+                            <span className="ml-1 capitalize">{application.status?.replace('_', ' ')}</span>
+                          </Badge>
+                        </div>
+
+                        {application.location && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Location</span>
+                            <span className="text-sm font-medium">{application.location}</span>
+                          </div>
+                        )}
+
+                        {application.jobType && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Job Type</span>
+                            <span className="text-sm font-medium">{application.jobType}</span>
+                          </div>
+                        )}
+
+                        {application.workMode && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Work Mode</span>
+                            <span className="text-sm font-medium">{application.workMode}</span>
+                          </div>
+                        )}
+
+                        {application.matchScore && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Match</span>
+                            <div className="flex items-center gap-2">
+                              <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-300"
+                                  style={{ width: `${application.matchScore}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-sm font-medium text-green-600">{application.matchScore}%</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {application.jobUrl && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Job Link</span>
+                            <a 
+                              href={application.jobUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                            >
+                              View <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
+                        )}
+
+                        {application.notes && (
+                          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                            <span className="text-xs text-gray-600 dark:text-gray-400">Notes:</span>
+                            <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 line-clamp-2">{application.notes}</p>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                          <span>Applied {new Date(application.appliedDate || application.appliedAt).toLocaleDateString()}</span>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {application.source || 'platform'}
+                            </Badge>
+                            {/* Days since application */}
+                            <span className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 px-2 py-1 rounded">
+                              {Math.floor((Date.now() - new Date(application.appliedDate || application.appliedAt).getTime()) / (1000 * 60 * 60 * 24))}d ago
+                            </span>
+                          </div>
+                        </div>
             </div>
           </div>
         ))}
@@ -206,6 +268,15 @@ export function ApplicationsTable({ applications, isLoading, showActions = false
               </th>
               <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider py-3 px-6">
                 Applied
+              </th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider py-3 px-6">
+                Job Type
+              </th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider py-3 px-6">
+                Work Mode
+              </th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider py-3 px-6">
+                Salary
               </th>
               {showActions && (
                 <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider py-3 px-6">
@@ -268,7 +339,16 @@ export function ApplicationsTable({ applications, isLoading, showActions = false
                 {getSourceBadge(application.source)}
               </td>
               <td className="py-4 px-6 whitespace-nowrap text-sm text-muted-foreground">
-                {formatDistanceToNow(new Date(application.appliedDate), { addSuffix: true })}
+                {formatDistanceToNow(new Date(application.appliedDate || application.appliedAt), { addSuffix: true })}
+              </td>
+              <td className="py-4 px-6 whitespace-nowrap text-sm text-foreground">
+                {application.jobType || "-"}
+              </td>
+              <td className="py-4 px-6 whitespace-nowrap text-sm text-foreground">
+                {application.workMode || "-"}
+              </td>
+              <td className="py-4 px-6 whitespace-nowrap text-sm text-foreground">
+                {application.salaryRange || "-"}
               </td>
               {showActions && (
                 <td className="py-4 px-6 whitespace-nowrap">
@@ -307,4 +387,28 @@ export function ApplicationsTable({ applications, isLoading, showActions = false
       </div>
     </>
   );
+}
+
+// Helper functions for mobile view (if not already defined elsewhere)
+function getStatusColor(status: string): string {
+  switch (status) {
+    case "applied": return "bg-blue-100 text-blue-800 border-blue-300";
+    case "under_review": return "bg-yellow-100 text-yellow-800 border-yellow-300";
+    case "interview": return "bg-purple-100 text-purple-800 border-purple-300";
+    case "offer": return "bg-green-100 text-green-800 border-green-300";
+    case "rejected": return "bg-red-100 text-red-800 border-red-300";
+    default: return "bg-gray-100 text-gray-800 border-gray-300";
+  }
+}
+
+function getStatusIcon(status: string) {
+  // You can replace these with actual icons if needed
+  switch (status) {
+    case "applied": return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6a2 2 0 0 0-2 2z"/><path d="M13.5 3.5l-5.5 5.5 5.5 5.5 5.5-5.5-5.5-5.5z"/></svg>;
+    case "under_review": return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M9 18l3 3 3-3M9 3l3-3 3 3"/></svg>;
+    case "interview": return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-6 8-10V5l-8-3-8 3v7c0 4 8 10 8 10z"/><path d="m9 10 3 3 3-3"/></svg>;
+    case "offer": return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L4 7l8 5 8-5-8-5z"/><path d="M6 12l-4 4m0 0l4 4m-4-4h16M4 16l4-4m-4 0l4-4"/></svg>;
+    case "rejected": return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>;
+    default: return null;
+  }
 }

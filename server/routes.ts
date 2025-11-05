@@ -753,7 +753,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get user's applications with job details
+  // Get user's applications with job details - COMBINED from platform AND extension
   app.get('/api/applications', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -764,8 +764,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(cached);
       }
 
-      // OPTIMIZATION: Optimized query with limit
-      const applications = await db
+      // OPTIMIZATION: Fetch from BOTH tables - platform applications AND extension-tracked applications
+      
+      // 1. Get platform applications (Easy Apply on AutoJobr)
+      const platformApplications = await db
         .select({
           id: schema.jobPostingApplications.id,
           jobPostingId: schema.jobPostingApplications.jobPostingId,
@@ -776,38 +778,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
           location: schema.jobPostings.location,
           jobType: schema.jobPostings.jobType,
           workMode: schema.jobPostings.workMode,
+          source: sql<string>`'platform'`,
+          jobUrl: schema.jobPostings.sourceUrl,
+          notes: schema.jobPostingApplications.coverLetter,
         })
         .from(schema.jobPostingApplications)
         .leftJoin(schema.jobPostings, eq(schema.jobPostingApplications.jobPostingId, schema.jobPostings.id))
         .where(eq(schema.jobPostingApplications.applicantId, userId))
         .orderBy(desc(schema.jobPostingApplications.appliedAt))
-        .limit(100); // Reasonable limit
+        .limit(100);
 
-      setCache(cacheKey, applications, 300000, userId); // 5 min cache
-      res.json(applications);
+      // 2. Get extension-tracked applications (external job boards)
+      const extensionApplications = await db
+        .select({
+          id: schema.jobApplications.id,
+          jobPostingId: sql<number | null>`NULL`,
+          status: schema.jobApplications.status,
+          appliedAt: schema.jobApplications.appliedAt,
+          jobTitle: schema.jobApplications.jobTitle,
+          companyName: schema.jobApplications.company,
+          location: schema.jobApplications.location,
+          jobType: sql<string | null>`NULL`,
+          workMode: sql<string | null>`NULL`,
+          source: sql<string>`'extension'`,
+          jobUrl: schema.jobApplications.jobUrl,
+          notes: schema.jobApplications.notes,
+        })
+        .from(schema.jobApplications)
+        .where(eq(schema.jobApplications.userId, userId))
+        .orderBy(desc(schema.jobApplications.appliedAt))
+        .limit(100);
+
+      // 3. Combine and sort by date
+      const allApplications = [...platformApplications, ...extensionApplications]
+        .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime())
+        .slice(0, 100);
+
+      setCache(cacheKey, allApplications, 300000, userId); // 5 min cache
+      res.json(allApplications);
     } catch (error) {
       console.error('[APPLICATIONS ERROR]:', error);
       handleError(res, error, "Failed to fetch applications");
     }
   });
 
-  // Get applications stats
+  // Get applications stats - COMBINED from platform AND extension
   app.get('/api/applications/stats', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
 
-      const applications = await db
+      // Get both platform and extension applications
+      const platformApplications = await db
         .select()
         .from(schema.jobPostingApplications)
         .where(eq(schema.jobPostingApplications.applicantId, userId));
 
+      const extensionApplications = await db
+        .select()
+        .from(schema.jobApplications)
+        .where(eq(schema.jobApplications.userId, userId));
+
+      // Combine both
+      const allApplications = [
+        ...platformApplications.map(a => ({ status: a.status })),
+        ...extensionApplications.map(a => ({ status: a.status }))
+      ];
+
       const stats = {
-        total: applications.length,
-        applied: applications.filter(a => a.status === 'applied').length,
-        reviewing: applications.filter(a => a.status === 'reviewing').length,
-        interview: applications.filter(a => a.status === 'interview').length,
-        offered: applications.filter(a => a.status === 'offered').length,
-        rejected: applications.filter(a => a.status === 'rejected').length,
+        total: allApplications.length,
+        applied: allApplications.filter(a => a.status === 'applied').length,
+        reviewing: allApplications.filter(a => a.status === 'reviewing' || a.status === 'under_review').length,
+        interview: allApplications.filter(a => a.status === 'interview').length,
+        offered: allApplications.filter(a => a.status === 'offered').length,
+        rejected: allApplications.filter(a => a.status === 'rejected').length,
+        platform: platformApplications.length,
+        extension: extensionApplications.length,
       };
 
       res.json(stats);

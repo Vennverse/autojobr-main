@@ -910,7 +910,7 @@ export default function Applications() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredApplications.map((app: any) => (
                 <motion.div
-                  key={app.id}
+                  key={`${app.source}-${app.id}`}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="group"
@@ -925,7 +925,7 @@ export default function Applications() {
                           <div className="flex items-center gap-2 mb-3">
                             <Building className="h-4 w-4 text-gray-500" />
                             <span className="text-gray-600 dark:text-gray-300">
-                              {app.company}
+                              {app.companyName || app.company}
                             </span>
                           </div>
                         </div>
@@ -963,14 +963,14 @@ export default function Applications() {
                         )}
 
                         <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>Applied {new Date(app.appliedDate).toLocaleDateString()}</span>
+                          <span>Applied {new Date(app.appliedAt || app.appliedDate).toLocaleDateString()}</span>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="text-xs">
                               {app.source || 'platform'}
                             </Badge>
                             {/* Days since application */}
                             <span className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 px-2 py-1 rounded">
-                              {Math.floor((Date.now() - new Date(app.appliedDate).getTime()) / (1000 * 60 * 60 * 24))}d ago
+                              {Math.floor((Date.now() - new Date(app.appliedAt || app.appliedDate).getTime()) / (1000 * 60 * 60 * 24))}d ago
                             </span>
                           </div>
                         </div>
@@ -1044,12 +1044,25 @@ export default function Applications() {
                     </thead>
                     <tbody>
                       {filteredApplications.map((app: any) => (
-                        <tr key={app.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                        <tr key={`${app.source}-${app.id}`} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
                           <td className="py-4 px-6">
                             <div className="font-medium text-gray-900 dark:text-white">{app.jobTitle}</div>
                             {app.location && <div className="text-sm text-gray-500">{app.location}</div>}
+                            {app.jobType && <div className="text-xs text-gray-400">{app.jobType}</div>}
                           </td>
-                          <td className="py-4 px-6 text-gray-900 dark:text-white">{app.company}</td>
+                          <td className="py-4 px-6">
+                            <div className="text-gray-900 dark:text-white">{app.companyName || app.company}</div>
+                            {app.jobUrl && (
+                              <a 
+                                href={app.jobUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1"
+                              >
+                                View Job <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </td>
                           <td className="py-4 px-6">
                             <Badge className={getStatusColor(app.status)}>
                               {getStatusIcon(app.status)}
@@ -1057,7 +1070,7 @@ export default function Applications() {
                             </Badge>
                           </td>
                           <td className="py-4 px-6 text-gray-600 dark:text-gray-400">
-                            {new Date(app.appliedDate).toLocaleDateString()}
+                            {new Date(app.appliedAt || app.appliedDate).toLocaleDateString()}
                           </td>
                           <td className="py-4 px-6">
                             <Badge variant="outline">{app.source || 'platform'}</Badge>
