@@ -688,30 +688,8 @@ class AutoJobrBackground {
   }
 
   async showJobDetectedNotification(jobData) {
-    // Throttle duplicate notifications for the same job
-    const jobKey = `${jobData?.title}_${jobData?.company}`.replace(/\s/g, '');
-    const now = Date.now();
-
-    // Initialize notifications tracker if it doesn't exist
-    if (!this.lastDetectionNotifications) this.lastDetectionNotifications = {};
-    const lastNotificationTime = this.lastDetectionNotifications[jobKey];
-
-    // Don't show notification if same job was detected in last 60 seconds
-    if (!lastNotificationTime || (now - lastNotificationTime) > 60000) { // 60 seconds throttle
-      this.lastDetectionNotifications[jobKey] = now;
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icons/icon48.png',
-        title: '🎯 Job Detected!',
-        message: `${jobData.title} at ${jobData.company}`,
-        buttons: [
-          { title: 'Analyze Match' },
-          { title: 'Auto-fill' }
-        ]
-      });
-    } else {
-      console.log('Skipping duplicate job detection notification for same job');
-    }
+    // REMOVED - No auto-notifications to prevent Chrome message spam
+    console.log('Job detected silently:', jobData.title, 'at', jobData.company);
   }
 
   async testConnection() {

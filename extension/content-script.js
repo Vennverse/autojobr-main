@@ -626,12 +626,16 @@ class AutoJobrContentScript {
         e.preventDefault();
         e.stopPropagation();
         this.hideWidget();
+        // Set session storage to remember widget is closed
+        sessionStorage.setItem('autojobr_widget_closed', 'true');
       });
       // Add touch event for mobile
       closeBtn.addEventListener('touchend', (e) => {
         e.preventDefault();
         e.stopPropagation();
         this.hideWidget();
+        // Set session storage to remember widget is closed
+        sessionStorage.setItem('autojobr_widget_closed', 'true');
       });
     }
 
@@ -841,6 +845,12 @@ class AutoJobrContentScript {
         return { success: false, reason: 'Not a job page' };
       }
 
+      // Check if widget was manually closed in this session
+      if (sessionStorage.getItem('autojobr_widget_closed') === 'true') {
+        console.log('Widget was manually closed - staying hidden');
+        return { success: false, reason: 'Widget manually closed' };
+      }
+
       const jobData = await this.extractJobDetails();
 
       if (jobData.success && jobData.jobData.title) {
@@ -850,7 +860,7 @@ class AutoJobrContentScript {
 
         return { success: true, jobData: jobData.jobData };
       } else {
-        // Don't hide widget if job extraction fails - keep it visible
+        // Don't hide widget if job extraction fails - keep it visible for manual use
         console.log('Job extraction failed, but keeping widget visible for manual use');
         return { success: false, reason: 'Job extraction failed' };
       }
@@ -1793,14 +1803,14 @@ class AutoJobrContentScript {
     const combinedLower = fieldInfo.combined.toLowerCase();
     const experienceKeywords = ['experience', 'exp', 'years', 'year', 'month', 'months'];
     const noticePeriodKeywords = ['notice period', 'notice', 'availability', 'when can you start', 'join', 'joining'];
-    
+
     // Notice period questions - always fill with "1"
     const hasNoticePeriod = noticePeriodKeywords.some(keyword => combinedLower.includes(keyword));
     if (hasNoticePeriod) {
       console.log('✅ Notice period question detected - filling with "1"');
       return '1';
     }
-    
+
     // Experience questions - fill with user's years of experience as number only
     const hasExperience = experienceKeywords.some(keyword => combinedLower.includes(keyword));
     if (hasExperience && (fieldInfo.type === 'text' || fieldInfo.type === 'number')) {
@@ -2014,10 +2024,10 @@ class AutoJobrContentScript {
     // ALWAYS return user's general years of experience as a valid number
     // Normalize to ensure we have a valid integer (default to 3 if nothing provided)
     const normalizedYears = Math.round(years || 3);
-    
+
     // Cache the result to avoid recalculations
     this.experienceCache = normalizedYears.toString();
-    
+
     // Simply return the user's total years of experience (e.g., 2, 3, 4, etc.)
     return this.experienceCache;
   }
@@ -2025,7 +2035,7 @@ class AutoJobrContentScript {
   calculateSkillYears(skill, workExperience) {
     // For ANY skill-related experience question, use the user's general experience
     // This is much more reliable than trying to calculate per-skill experience
-    
+
     // Check cache first
     const cacheKey = `skill_exp_${skill}`;
     if (this.skillExpCache && this.skillExpCache[cacheKey]) {
@@ -2035,13 +2045,13 @@ class AutoJobrContentScript {
     // Use general years of experience as default
     // This assumes the user has been using their core skills throughout their career
     const generalExp = this.experienceCache ? parseInt(this.experienceCache) : 3;
-    
+
     // Cache the result
     if (!this.skillExpCache) {
       this.skillExpCache = {};
     }
     this.skillExpCache[cacheKey] = generalExp;
-    
+
     return generalExp;
   }
 
@@ -2253,16 +2263,16 @@ class AutoJobrContentScript {
       if (field.type === 'radio') {
         // SIMPLIFIED LINKEDIN LOGIC: Always select first radio option for reliable submission
         const radioGroup = document.querySelectorAll(`input[name="${field.name}"]`);
-        
+
         if (radioGroup.length > 0) {
           const firstRadio = radioGroup[0];
-          
+
           // Click and trigger all necessary events for LinkedIn
           firstRadio.click();
           firstRadio.checked = true;
           firstRadio.dispatchEvent(new Event('change', { bubbles: true }));
           firstRadio.dispatchEvent(new Event('input', { bubbles: true }));
-          
+
           console.log('✅ Radio button (first option) selected:', field.name);
           return true;
         }
@@ -2295,7 +2305,7 @@ class AutoJobrContentScript {
     const radio = radioInfo.element;
     const radioValue = (radio.value || '').toLowerCase().trim();
     const radioId = (radio.id || '').toLowerCase().trim();
-    
+
     // Get the option's specific label text
     let optionText = '';
     const label = radio.closest('label') || document.querySelector(`label[for="${radio.id}"]`);
@@ -2305,9 +2315,9 @@ class AutoJobrContentScript {
     if (!optionText && radio.nextSibling) {
       optionText = (radio.nextSibling.textContent || '').toLowerCase().trim();
     }
-    
+
     const thisOptionText = ` ${radioValue} ${radioId} ${optionText} `.toLowerCase();
-    
+
     // Use word boundary matching to avoid false positives
     // "\\byes\\b" matches "yes" but not "eyes"
     const affirmativePatterns = [
@@ -2317,7 +2327,7 @@ class AutoJobrContentScript {
       /\beligible\b/,
       /\bqualified\b/
     ];
-    
+
     const negativePatterns = [
       /\bno\b/,
       /\bfalse\b/,
@@ -2330,7 +2340,7 @@ class AutoJobrContentScript {
       /\bunavailable\b/,
       /\bnever\b/
     ];
-    
+
     // Check exact value matches first (most reliable)
     if (radioValue === 'yes' || radioValue === 'true' || radioValue === '1') {
       return true;
@@ -2338,13 +2348,13 @@ class AutoJobrContentScript {
     if (radioValue === 'no' || radioValue === 'false' || radioValue === '0') {
       return false;
     }
-    
+
     // Check for negative indicators first (higher priority)
     const hasNegative = negativePatterns.some(pattern => pattern.test(thisOptionText));
     if (hasNegative) {
       return false;
     }
-    
+
     // Then check for affirmative indicators
     const hasAffirmative = affirmativePatterns.some(pattern => pattern.test(thisOptionText));
     return hasAffirmative;
@@ -2352,14 +2362,14 @@ class AutoJobrContentScript {
 
   shouldSelectRadio(radioInfo, value) {
     if (!value) return false;
-    
+
     const radio = radioInfo.element;
     const valueLower = value.toString().toLowerCase().trim();
 
     // Get the specific option's value and adjacent text (not the question)
     const radioValue = (radio.value || '').toLowerCase().trim();
     const radioId = (radio.id || '').toLowerCase().trim();
-    
+
     // Find the option's specific label text (adjacent to this radio, not the question)
     let optionText = '';
     const label = radio.closest('label') || document.querySelector(`label[for="${radio.id}"]`);
@@ -2369,24 +2379,24 @@ class AutoJobrContentScript {
     if (!optionText && radio.nextSibling) {
       optionText = (radio.nextSibling.textContent || '').toLowerCase().trim();
     }
-    
+
     // Combine this option's specific identifiers with word boundaries
     const thisOptionText = ` ${radioValue} ${radioId} ${optionText} `.toLowerCase();
-    
+
     // Exact value match (most reliable)
     if (radioValue === valueLower) return true;
-    
+
     // Check if this specific option matches the value with word boundaries
     const affirmativePatterns = [/\byes\b/, /\btrue\b/, /\bauthorized\b/, /\beligible\b/, /\bqualified\b/];
     const negativePatterns = [/\bno\b/, /\bfalse\b/, /\bnot\b/, /\bunable\b/, /\bcannot\b/, /\bineligible\b/, /\bdecline\b/];
-    
+
     const hasNegative = negativePatterns.some(pattern => pattern.test(thisOptionText));
     const hasAffirmative = affirmativePatterns.some(pattern => pattern.test(thisOptionText));
 
     // Match based on value
     if (valueLower === 'yes' && hasAffirmative && !hasNegative) return true;
     if (valueLower === 'no' && hasNegative) return true;
-    
+
     // Try to match the option text with the value using word boundary
     const valuePattern = new RegExp(`\\b${valueLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
     return valuePattern.test(thisOptionText);
@@ -3372,16 +3382,16 @@ class AutoJobrContentScript {
       // Check if this is a job page
       if (this.isJobPage()) {
         console.log('📍 Job page detected:', currentUrl);
-        
+
         // Inject LinkedIn buttons immediately (Auto Apply button shows up right away)
         if (window.location.hostname.includes('linkedin.com')) {
           setTimeout(() => {
             this.injectLinkedInButtons(null); // Inject Auto Apply button without score first
           }, 500);
         }
-        
+
         // Don't auto-show widget - let user click the floating button instead
-        
+
         // Start job detection and analysis silently
         this.detectJobPosting().then((result) => {
           if (result && result.success) {
@@ -3576,7 +3586,7 @@ class AutoJobrContentScript {
     const scoreText = `${Math.round(score)}% Match`;
 
     // Find the Save button on LinkedIn
-    const saveButton = document.querySelector('[aria-label*="Save"]') || 
+    const saveButton = document.querySelector('[aria-label*="Save"]') ||
                       document.querySelector('button.jobs-save-button') ||
                       document.querySelector('[data-control-name*="save"]');
 
@@ -4208,8 +4218,8 @@ class AutoJobrContentScript {
         <div class="automation-progress">
           <div class="progress-text">🤖 LinkedIn Auto-Apply Running...</div>
           <div class="progress-stats">
-            Applications: <span id="apps-count">0</span> | 
-            Skipped: <span id="skip-count">0</span> | 
+            Applications: <span id="apps-count">0</span> |
+            Skipped: <span id="skip-count">0</span> |
             Page: <span id="page-count">1</span>/${this.maxPages}
           </div>
           <button class="btn-danger" id="stop-automation">Stop Automation</button>
@@ -4387,7 +4397,7 @@ class AutoJobrContentScript {
 
         if (submitButton && !submitButton.disabled) {
           console.log('✅ Found Submit button - preparing to submit application');
-          
+
           // Check for validation errors before submitting
           const hasErrors = this.checkLinkedInValidationErrors();
           if (hasErrors) {
@@ -4395,7 +4405,7 @@ class AutoJobrContentScript {
             this.closeLinkedInModal();
             return false;
           }
-          
+
           // Submit the application
           console.log('📤 Submitting application...');
           submitButton.click();
@@ -4404,7 +4414,7 @@ class AutoJobrContentScript {
         } else if (nextButton && !nextButton.disabled) {
           const buttonText = nextButton.textContent.trim();
           console.log(`➡️ Found "${buttonText}" button on step ${currentStep}`);
-          
+
           // Check for validation errors before proceeding
           const hasErrors = this.checkLinkedInValidationErrors();
           if (hasErrors) {
@@ -4412,7 +4422,7 @@ class AutoJobrContentScript {
             this.closeLinkedInModal();
             return false;
           }
-          
+
           // Move to next step (could be Next, Continue, or Review)
           console.log(`🔄 Clicking "${buttonText}" button...`);
           nextButton.click();
@@ -4445,7 +4455,7 @@ class AutoJobrContentScript {
       '.fb-dash-form-element--error',
       '.jobs-easy-apply-form-element--error'
     ];
-    
+
     for (const selector of errorSelectors) {
       const errors = document.querySelectorAll(selector);
       if (errors.length > 0) {
@@ -4453,7 +4463,7 @@ class AutoJobrContentScript {
         return true;
       }
     }
-    
+
     return false;
   }
 
@@ -4478,7 +4488,7 @@ class AutoJobrContentScript {
     for (const button of allButtons) {
       const text = button.textContent.toLowerCase().trim();
       const ariaLabel = (button.getAttribute('aria-label') || '').toLowerCase();
-      
+
       // Review button is a navigation button (not submit)
       if (text === 'review' || ariaLabel.includes('review')) {
         if (!text.includes('submit') && !ariaLabel.includes('submit') && !button.disabled) {
@@ -4486,9 +4496,9 @@ class AutoJobrContentScript {
           return button;
         }
       }
-      
+
       // Continue or Next buttons
-      if ((text.includes('continue') || text.includes('next')) && 
+      if ((text.includes('continue') || text.includes('next')) &&
           !text.includes('submit') && !button.disabled) {
         console.log('✅ Found Continue/Next button:', text);
         return button;
