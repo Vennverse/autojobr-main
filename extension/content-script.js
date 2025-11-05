@@ -4467,19 +4467,35 @@ class AutoJobrContentScript {
 
     for (const selector of selectors) {
       const button = document.querySelector(selector);
-      if (button && !button.disabled) return button;
-    }
-
-    // Also check button text content for Review
-    const allButtons = document.querySelectorAll('button.artdeco-button--primary');
-    for (const button of allButtons) {
-      const text = button.textContent.toLowerCase().trim();
-      if ((text.includes('review') || text.includes('continue') || text.includes('next')) && 
-          !text.includes('submit') && !button.disabled) {
+      if (button && !button.disabled) {
+        console.log('✅ Found Next button via selector:', selector, 'Text:', button.textContent.trim());
         return button;
       }
     }
 
+    // Also check button text content for Review, Continue, or Next
+    const allButtons = document.querySelectorAll('button.artdeco-button--primary, button.artdeco-button--secondary');
+    for (const button of allButtons) {
+      const text = button.textContent.toLowerCase().trim();
+      const ariaLabel = (button.getAttribute('aria-label') || '').toLowerCase();
+      
+      // Review button is a navigation button (not submit)
+      if (text === 'review' || ariaLabel.includes('review')) {
+        if (!text.includes('submit') && !ariaLabel.includes('submit') && !button.disabled) {
+          console.log('✅ Found Review button:', text);
+          return button;
+        }
+      }
+      
+      // Continue or Next buttons
+      if ((text.includes('continue') || text.includes('next')) && 
+          !text.includes('submit') && !button.disabled) {
+        console.log('✅ Found Continue/Next button:', text);
+        return button;
+      }
+    }
+
+    console.log('⚠️ No Next/Review/Continue button found');
     return null;
   }
 
