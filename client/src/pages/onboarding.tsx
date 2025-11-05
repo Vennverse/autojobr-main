@@ -707,23 +707,25 @@ export default function Onboarding() {
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="desiredSalaryMin">Current CTC</Label>
+              <Label htmlFor="desiredSalaryMin">Current CTC *</Label>
               <Input
                 id="desiredSalaryMin"
                 type="number"
                 value={formData.desiredSalaryMin || ""}
                 onChange={(e) => handleInputChange("desiredSalaryMin", parseInt(e.target.value) || 0)}
                 placeholder="80000"
+                required
               />
             </div>
             <div>
-              <Label htmlFor="desiredSalaryMax">Expected CTC</Label>
+              <Label htmlFor="desiredSalaryMax">Expected CTC *</Label>
               <Input
                 id="desiredSalaryMax"
                 type="number"
                 value={formData.desiredSalaryMax || ""}
                 onChange={(e) => handleInputChange("desiredSalaryMax", parseInt(e.target.value) || 0)}
                 placeholder="120000"
+                required
               />
             </div>
           </div>

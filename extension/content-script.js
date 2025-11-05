@@ -250,6 +250,26 @@ class AutoJobrContentScript {
         types: ['text', 'number'],
         priority: 6
       },
+      currentCTC: {
+        patterns: ['current ctc', 'current_ctc', 'currentctc', 'current compensation', 'current_salary', 'present ctc', 'existing ctc'],
+        types: ['text', 'number'],
+        priority: 8
+      },
+      expectedCTC: {
+        patterns: ['expected ctc', 'expected_ctc', 'expectedctc', 'expected compensation', 'expected_salary', 'desired ctc', 'target ctc'],
+        types: ['text', 'number'],
+        priority: 8
+      },
+      minimumSalary: {
+        patterns: ['minimum salary', 'min_salary', 'minsalary', 'salary minimum', 'lowest salary'],
+        types: ['text', 'number'],
+        priority: 7
+      },
+      maximumSalary: {
+        patterns: ['maximum salary', 'max_salary', 'maxsalary', 'salary maximum', 'highest salary'],
+        types: ['text', 'number'],
+        priority: 7
+      },
 
       // Additional fields
       description: {
@@ -1901,6 +1921,11 @@ class AutoJobrContentScript {
       coverLetter: profile.defaultCoverLetter || '',
       skills: Array.isArray(profile.skills) ? profile.skills.join(', ') : (profile.skills || ''),
       salary: profile.desiredSalaryMin ? `${profile.desiredSalaryMin}-${profile.desiredSalaryMax || profile.desiredSalaryMin}` : '',
+      currentCTC: profile.desiredSalaryMin || '',
+      expectedCTC: profile.desiredSalaryMax || '',
+      minimumSalary: profile.desiredSalaryMin || '',
+      maximumSalary: profile.desiredSalaryMax || '',
+      desiredSalary: profile.desiredSalaryMax || '',
       description: profile.summary || '',
 
       // New Personal Details Fields
@@ -2156,6 +2181,20 @@ class AutoJobrContentScript {
 
   async fillSelectFieldSmart(field, value) {
     try {
+      // CRITICAL: Skip if field already has a value selected (especially for country codes)
+      const currentValue = field.value;
+      const fieldInfo = this.analyzeFieldAdvanced(field);
+      const isCountryCode = fieldInfo.combined.includes('country') || 
+                           fieldInfo.combined.includes('code') ||
+                           fieldInfo.combined.includes('dial') ||
+                           fieldInfo.combined.includes('phone code');
+
+      // If it's a country code field and already has a selection, skip it
+      if (isCountryCode && currentValue && currentValue !== '' && currentValue !== '0') {
+        console.log('✅ Country code already selected, skipping:', currentValue);
+        return true; // Return success without changing
+      }
+
       const options = Array.from(field.options);
 
       // Try exact match first
