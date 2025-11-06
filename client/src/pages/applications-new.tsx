@@ -114,7 +114,7 @@ const FollowUpEmailModal = ({
 
   const generateEmailMutation = useMutation({
     mutationFn: async (appId: number) => {
-      return await apiRequest('POST', `/api/applications/${appId}/follow-up-email`);
+      return await apiRequest(`/api/applications/${appId}/follow-up-email`, 'POST');
     },
     onSuccess: (data) => {
       setEmailContent(data.email);
@@ -267,7 +267,7 @@ const QualityCheckModal = ({
 
   const qualityCheckMutation = useMutation({
     mutationFn: async (appId: number) => {
-      return await apiRequest('POST', `/api/applications/${appId}/quality-check`);
+      return await apiRequest(`/api/applications/${appId}/quality-check`, 'POST');
     },
     onSuccess: (data) => {
       setQualityData(data.quality);

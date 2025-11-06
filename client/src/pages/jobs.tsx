@@ -381,7 +381,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
   const [showPromoAlert, setShowPromoAlert] = useState(true);
   const [currentPromo, setCurrentPromo] = useState(0);
   const [savedJobs, setSavedJobs] = useState<Set<number>>(new Set());
-  const [applyingJobId, setApplyingJobId] = useState<number | null>(null); // State to track applying job
+  const [applyingJobId, setApplyingJobId] = useState<number | null>(null);
 
   // Update URL when filters change
   const updateFilters = useCallback((newFilters: Partial<FilterState>) => {
@@ -654,12 +654,6 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     updateFilters(newFilters);
   }, [filters, updateFilters]);
 
-  // Check applied jobs
-  const { data: applications = [] } = useQuery({
-    queryKey: ["/api/applications"],
-    enabled: isAuthenticated
-  });
-
   // Save job mutation
   const saveJobMutation = useMutation({
     mutationFn: async (jobId: number) => {
@@ -763,9 +757,6 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       setApplyingJobId(null); // Reset loading state
     }
   };
-
-  // Helper functions
-  const appliedJobIds = Array.isArray(applications) ? applications.map((app: any) => app.jobPostingId) : [];
 
   // Handle job click
   const handleJobClick = (job: JobPosting) => {
@@ -1728,10 +1719,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                   value={searchInput}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   className="pl-8 h-9 text-sm border-gray-200 dark:border-gray-700"
+                  data-testid="input-job-search"
                 />
               </div>
               <Select value={filters.sort} onValueChange={(v) => updateFilters({ sort: v })}>
-                <SelectTrigger className="w-28 h-9 text-sm">
+                <SelectTrigger className="w-28 h-9 text-sm" data-testid="select-sort">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1780,7 +1772,6 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
               allJobs.map((job: any, index: number) => {
                 const compatibility = calculateCompatibility(job);
                 const isSelected = selectedJob?.id === job?.id;
-                const isApplied = Array.isArray(appliedJobIds) && appliedJobIds.includes(job.id);
 
                 if (!job || !job.id) {
                   console.error('Invalid job in list:', job);
