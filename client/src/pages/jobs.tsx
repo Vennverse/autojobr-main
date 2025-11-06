@@ -134,6 +134,9 @@ interface JobPosting {
   created_at?: string;
   postedAt?: string;
   posted_at?: string;
+  isNew?: boolean;
+  lastViewed?: string;
+  viewCount?: number;
   jobType?: string;
   job_type?: string;
   workMode?: string;
@@ -159,7 +162,6 @@ interface JobPosting {
   source?: string;
   requirements?: string;
   responsibilities?: string;
-  isNewJob?: boolean; // Added for new badge
 }
 
 interface JobFacets {
@@ -382,22 +384,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
   const [showPromoAlert, setShowPromoAlert] = useState(true);
   const [currentPromo, setCurrentPromo] = useState(0);
   const [savedJobs, setSavedJobs] = useState<Set<number>>(new Set());
-  const [applyingJobId, setApplyingJobId] = useState<number | null>(null);
-  const [seenScrapedJobIds, setSeenScrapedJobIds] = useState<Set<number>>(() => {
-    // Load seen jobs from localStorage
-    if (typeof window !== 'undefined' && isAuthenticated) {
-      const stored = localStorage.getItem(`seenJobs_${user?.id}`);
-      return stored ? new Set(JSON.parse(stored)) : new Set();
-    }
-    return new Set();
-  });
-
-  // Save seen jobs to localStorage whenever it changes
-  useEffect(() => {
-    if (isAuthenticated && user?.id) {
-      localStorage.setItem(`seenJobs_${user.id}`, JSON.stringify(Array.from(seenScrapedJobIds)));
-    }
-  }, [seenScrapedJobIds, isAuthenticated, user?.id]);
+  const [applyingJobId, setApplyingJobId] = useState<number | null>(null); // State to track applying job
 
   // Update URL when filters change
   const updateFilters = useCallback((newFilters: Partial<FilterState>) => {
@@ -456,7 +443,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
 
     // Always include facets
     params.set('include_facets', 'true');
-
+    
     // Ensure page and size are always set
     if (!params.has('page')) {
       params.set('page', '1');
@@ -486,18 +473,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         throw new Error(`Failed to fetch jobs: ${response.status}`);
       }
 
-      const data = await response.json();
-
-      // Mark jobs as 'new' if they haven't been seen before
-      if (isAuthenticated && user?.id) {
-        const seenJobs = new Set(JSON.parse(localStorage.getItem(`seenJobs_${user.id}`) || '[]'));
-        data.jobs = data.jobs.map((job: JobPosting) => ({
-          ...job,
-          isNewJob: !seenJobs.has(job.id)
-        }));
-      }
-
-      return data;
+      return response.json();
     },
     staleTime: 0, // Don't cache - always refetch on filter changes
     gcTime: 0, // Don't keep garbage collection cache
@@ -507,8 +483,24 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     cacheTime: 0, // Force no caching
   });
 
-  // Extract data from response
-  const jobs: JobPosting[] = jobsResponse?.jobs || [];
+  // Track viewed jobs in localStorage
+  const trackJobView = useCallback((jobId: number) => {
+    const viewedJobs = JSON.parse(localStorage.getItem('viewedJobs') || '{}');
+    viewedJobs[jobId] = new Date().toISOString();
+    localStorage.setItem('viewedJobs', JSON.stringify(viewedJobs));
+  }, []);
+
+  // Get viewed jobs from localStorage
+  const viewedJobs = useMemo(() => {
+    return JSON.parse(localStorage.getItem('viewedJobs') || '{}');
+  }, []);
+
+  // Extract data from response and mark new jobs
+  const jobs: JobPosting[] = (jobsResponse?.jobs || []).map(job => ({
+    ...job,
+    isNew: !viewedJobs[job.id],
+    lastViewed: viewedJobs[job.id]
+  }));
   const facets: JobFacets | undefined = jobsResponse?.facets;
   const pagination = jobsResponse?.pagination || { total: 0, page: 1, size: 25, totalPages: 0 };
 
@@ -518,7 +510,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     queryFn: async () => {
       // Only fetch if on page 1
       if (filters.page !== 1) return [];
-
+      
       const params = new URLSearchParams();
       if (filters.q) params.set('search', filters.q);
       if (filters.category) params.set('category', filters.category);
@@ -568,7 +560,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         priority: 1,
         source: 'platform'
       }));
-
+      
       return [...platformJobsWithMeta, ...scrapedJobsWithMeta];
     }
 
@@ -681,6 +673,12 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     updateFilters(newFilters);
   }, [filters, updateFilters]);
 
+  // Check applied jobs
+  const { data: applications = [] } = useQuery({
+    queryKey: ["/api/applications"],
+    enabled: isAuthenticated
+  });
+
   // Save job mutation
   const saveJobMutation = useMutation({
     mutationFn: async (jobId: number) => {
@@ -785,12 +783,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     }
   };
 
+  // Helper functions
+  const appliedJobIds = Array.isArray(applications) ? applications.map((app: any) => app.jobPostingId) : [];
+
   // Handle job click
   const handleJobClick = (job: JobPosting) => {
-    // Mark job as seen when clicked
-    if (job.source === 'scraped' && isAuthenticated) {
-      setSeenScrapedJobIds(prev => new Set(prev).add(job.id));
-    }
     setSelectedJob(job);
   };
 
@@ -809,10 +806,6 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
           title: "Redirected to External Site",
           description: "Complete your application on the company's website."
         });
-        // Mark as seen when redirected
-        if (isAuthenticated) {
-          setSeenScrapedJobIds(prev => new Set(prev).add(job.id));
-        }
         return;
       } else {
         toast({
@@ -1667,14 +1660,6 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     return [baseStructuredData, breadcrumbList, itemList];
   }, [structuredData, seoMetadata.breadcrumbs, allJobs, pagination.total]);
 
-  // Determine if a job has been applied for by the current user
-  const appliedJobIds = useMemo(() => {
-    // This would ideally come from a query fetching user's applications
-    // For now, we'll use an empty set as a placeholder
-    return new Set<number>();
-  }, []);
-
-
   return jobsLoading ? <LoadingSkeleton /> : (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <SEOHead
@@ -1762,11 +1747,10 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                   value={searchInput}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   className="pl-8 h-9 text-sm border-gray-200 dark:border-gray-700"
-                  data-testid="input-job-search"
                 />
               </div>
               <Select value={filters.sort} onValueChange={(v) => updateFilters({ sort: v })}>
-                <SelectTrigger className="w-28 h-9 text-sm" data-testid="select-sort">
+                <SelectTrigger className="w-28 h-9 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1815,8 +1799,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
               allJobs.map((job: any, index: number) => {
                 const compatibility = calculateCompatibility(job);
                 const isSelected = selectedJob?.id === job?.id;
-                const isApplied = appliedJobIds.has(job.id);
-                const isNewJob = job.source === 'scraped' && job.isNewJob;
+                const isApplied = Array.isArray(appliedJobIds) && appliedJobIds.includes(job.id);
 
                 if (!job || !job.id) {
                   console.error('Invalid job in list:', job);
@@ -2020,23 +2003,14 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                           )}
                         </div>
                       </div>
-                      {isNewJob && (
-                        <Badge 
-                          className={`flex-shrink-0 text-xs bg-green-100 text-green-800 animate-pulse`}
-                        >
-                          ✨ NEW
-                        </Badge>
-                      )}
-                      {!isNewJob && selectedJob.source === 'platform' && (
-                        <Badge 
-                          className={`flex-shrink-0 text-xs bg-blue-100 text-blue-800`}
-                        >
-                          Platform
-                        </Badge>
-                      )}
+                      <Badge 
+                        className={`flex-shrink-0 text-xs bg-blue-100 text-blue-800`}
+                      >
+                        New
+                      </Badge>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-1.5 mt-3">
+                    <div className="flex flex-wrap items-center gap-2 mb-4">
                       {appliedJobIds.includes(selectedJob.id) ? (
                         <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">
                           <CheckCircle className="w-4 h-4 mr-1" />

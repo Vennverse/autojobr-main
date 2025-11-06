@@ -25,7 +25,10 @@ interface JobCardProps {
     jobDescription?: string;
     isBookmarked?: boolean;
     isApplied?: boolean;
+    isNew?: boolean;
+    lastViewed?: string;
   };
+  onView?: (jobId: number) => void;
 }
 
 // Utility function to format job types professionally
@@ -61,10 +64,16 @@ const formatWorkMode = (workMode?: string) => {
   return modeMap[workMode.toLowerCase()] || workMode;
 };
 
-export function JobCard({ job }: JobCardProps) {
+export function JobCard({ job, onView }: JobCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isBookmarked, setIsBookmarked] = useState(job.isBookmarked || false);
+  
+  const handleCardClick = () => {
+    if (onView) {
+      onView(job.id);
+    }
+  };
 
   const bookmarkMutation = useMutation({
     mutationFn: async () => {
