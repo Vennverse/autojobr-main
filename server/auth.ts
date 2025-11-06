@@ -242,7 +242,9 @@ export async function setupAuth(app: Express) {
           lastName: user.lastName || '',
           userType: user.userType || 'job_seeker',
           currentRole: user.currentRole || user.userType || 'job_seeker',
-          name: `${user.firstName || ''} ${user.lastName || ''}`.trim()
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+          planType: user.planType || 'free',
+          subscriptionStatus: user.subscriptionStatus || 'free'
         };
         console.log(`✅ User deserialized successfully: ${userData.email}`);
         done(null, userData);
