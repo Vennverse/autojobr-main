@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Search, Send, Users, MessageCircle, ArrowLeft } from 'lucide-react';
@@ -420,6 +420,12 @@ export default function SimpleChatPage() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
   };
 
+  const getAvatarUrl = (userId: string, name: string) => {
+    // Use DiceBear API for consistent, low-compute avatars
+    // Using 'initials' style which is lightweight
+    return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=3b82f6,8b5cf6,ec4899,10b981,f59e0b`;
+  };
+
   if (!user) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -488,6 +494,7 @@ export default function SimpleChatPage() {
                     >
                       <div className="flex items-center space-x-3">
                         <Avatar>
+                          <AvatarImage src={getAvatarUrl(conversation.otherUserId, conversation.otherUserName)} />
                           <AvatarFallback className="bg-blue-600 text-white">
                             {getInitials(conversation.otherUserName)}
                           </AvatarFallback>
@@ -534,16 +541,17 @@ export default function SimpleChatPage() {
                     >
                       <div className="flex items-center space-x-3">
                         <Avatar>
+                          <AvatarImage src={getAvatarUrl(chatUser.id, chatUser.name)} />
                           <AvatarFallback className="bg-green-600 text-white">
                             {getInitials(chatUser.name)}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <p className="font-medium text-sm text-gray-900">{chatUser.name}</p>
-                          <p className="text-xs text-gray-500">{chatUser.email}</p>
                           {chatUser.companyName && (
-                            <p className="text-xs text-gray-400">{chatUser.companyName}</p>
+                            <p className="text-xs text-gray-500">{chatUser.companyName}</p>
                           )}
+                          <p className="text-xs text-gray-400">{chatUser.userType}</p>
                         </div>
                       </div>
                     </div>
@@ -565,6 +573,14 @@ export default function SimpleChatPage() {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <Avatar>
+                <AvatarImage src={
+                  selectedUser 
+                    ? getAvatarUrl(selectedUser.id, selectedUser.name)
+                    : getAvatarUrl(
+                        conversations.find(c => c.id === selectedConversation)?.otherUserId || '',
+                        conversations.find(c => c.id === selectedConversation)?.otherUserName || ''
+                      )
+                } />
                 <AvatarFallback className="bg-blue-600 text-white">
                   {selectedUser 
                     ? getInitials(selectedUser.name)

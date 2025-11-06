@@ -354,7 +354,7 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
                   <Button variant="ghost" className="relative h-10 w-auto px-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">
                     <div className="flex items-center space-x-2">
                       <Avatar className="h-8 w-8 ring-2 ring-gray-200 dark:ring-gray-600">
-                        <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${user?.firstName} ${user?.lastName}`} />
+                        <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user?.firstName + ' ' + user?.lastName)}&backgroundColor=3b82f6,8b5cf6,ec4899,10b981,f59e0b`} />
                         <AvatarFallback className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold">
                           {user?.firstName?.[0]}{user?.lastName?.[0]}
                         </AvatarFallback>
@@ -480,7 +480,7 @@ export function RecruiterNavbar({ user }: RecruiterNavbarProps) {
               <div className="mt-6 px-3 py-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-center space-x-3 mb-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${user?.firstName} ${user?.lastName}`} />
+                    <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user?.firstName + ' ' + user?.lastName)}&backgroundColor=3b82f6,8b5cf6,ec4899,10b981,f59e0b`} />
                     <AvatarFallback className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
                       {user?.firstName?.[0]}{user?.lastName?.[0]}
                     </AvatarFallback>
