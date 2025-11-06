@@ -1477,14 +1477,6 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     return () => clearInterval(interval);
   }, []);
 
-  // Track viewed jobs in localStorage
-  const trackJobView = useCallback((jobId: number) => {
-    const viewedJobs = JSON.parse(localStorage.getItem('viewedJobs') || '{}');
-    viewedJobs[jobId] = new Date().toISOString();
-    localStorage.setItem('viewedJobs', JSON.stringify(viewedJobs));
-    // Invalidate the query to refresh the UI
-    queryClient.invalidateQueries({ queryKey: ['scraped-jobs'] });
-  }, [queryClient]);
 
   // Set first job as selected by default
   useEffect(() => {
