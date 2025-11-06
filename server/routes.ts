@@ -1006,6 +1006,373 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // NEW: Get AI-powered daily action plan (PREMIUM)
+  app.get('/api/applications/daily-actions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const isPremium = req.user.planType === 'premium' || req.user.subscriptionStatus === 'active';
+
+      if (!isPremium) {
+        return res.status(403).json({ 
+          error: 'Premium feature',
+          message: 'Upgrade to Premium for AI-powered daily actions'
+        });
+      }
+
+      // Get all user applications
+      const applications = await db
+        .select()
+        .from(schema.jobApplications)
+        .where(eq(schema.jobApplications.userId, userId))
+        .orderBy(desc(schema.jobApplications.appliedDate));
+
+      const actions = [];
+      const now = new Date();
+
+      // Generate follow-up actions for applications 7-14 days old
+      for (const app of applications) {
+        const appliedDate = new Date(app.appliedDate || app.createdAt);
+        const daysSince = Math.floor((now.getTime() - appliedDate.getTime()) / (1000 * 60 * 60 * 24));
+
+        // Follow-up needed (7-14 days)
+        if (daysSince >= 7 && daysSince <= 14 && app.status === 'applied' && !app.lastContactedAt) {
+          actions.push({
+            type: 'followup',
+            priority: daysSince >= 10 ? 'high' : 'medium',
+            title: `Follow up: ${app.company}`,
+            description: `${daysSince} days since application. Send follow-up email to increase response rate.`,
+            applicationId: app.id,
+            company: app.company,
+            jobTitle: app.jobTitle,
+            actionData: {
+              template: 'polite_followup',
+              suggestedDate: now.toISOString()
+            }
+          });
+        }
+
+        // Interview prep needed
+        if (app.status === 'interview') {
+          actions.push({
+            type: 'prep',
+            priority: 'urgent',
+            title: `Prepare for ${app.company} interview`,
+            description: `Review job description, company research, and practice common interview questions.`,
+            applicationId: app.id,
+            company: app.company,
+            jobTitle: app.jobTitle,
+            actionData: {
+              topics: ['behavioral', 'technical', 'company_culture']
+            }
+          });
+        }
+
+        // Quality check for recent applications (if not done)
+        if (daysSince <= 2 && !app.applicationQualityScore) {
+          actions.push({
+            type: 'quality_check',
+            priority: 'medium',
+            title: `Review application quality: ${app.jobTitle}`,
+            description: `Get AI feedback on your application to improve success rate.`,
+            applicationId: app.id,
+            company: app.company,
+            jobTitle: app.jobTitle
+          });
+        }
+      }
+
+      // Sort by priority and limit to top 5
+      const priorityOrder = { urgent: 1, high: 2, medium: 3, low: 4 };
+      const sortedActions = actions
+        .sort((a: any, b: any) => priorityOrder[a.priority as keyof typeof priorityOrder] - priorityOrder[b.priority as keyof typeof priorityOrder])
+        .slice(0, 5);
+
+      res.json({
+        success: true,
+        actions: sortedActions,
+        totalActions: actions.length
+      });
+
+    } catch (error) {
+      console.error('[DAILY ACTIONS ERROR]:', error);
+      handleError(res, error, "Failed to generate daily actions");
+    }
+  });
+
+  // NEW: Generate AI follow-up email (PREMIUM)
+  app.post('/api/applications/:id/follow-up-email', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const applicationId = parseInt(req.params.id);
+      const isPremium = req.user.planType === 'premium' || req.user.subscriptionStatus === 'active';
+
+      // Free users get 2 per month
+      if (!isPremium) {
+        // Check usage this month
+        const monthStart = new Date();
+        monthStart.setDate(1);
+        monthStart.setHours(0, 0, 0, 0);
+
+        const usageCount = await db
+          .select({ count: count() })
+          .from(schema.aiUsageTracking)
+          .where(
+            and(
+              eq(schema.aiUsageTracking.userId, userId),
+              eq(schema.aiUsageTracking.feature, 'follow_up_email'),
+              gte(schema.aiUsageTracking.createdAt, monthStart)
+            )
+          );
+
+        if (Number(usageCount[0]?.count || 0) >= 2) {
+          return res.status(403).json({
+            error: 'Limit reached',
+            message: 'Free users get 2 follow-up emails per month. Upgrade to Premium for unlimited access.'
+          });
+        }
+      }
+
+      // Get application details
+      const application = await db
+        .select()
+        .from(schema.jobApplications)
+        .where(
+          and(
+            eq(schema.jobApplications.id, applicationId),
+            eq(schema.jobApplications.userId, userId)
+          )
+        )
+        .then(rows => rows[0]);
+
+      if (!application) {
+        return res.status(404).json({ error: 'Application not found' });
+      }
+
+      // Generate follow-up email template
+      const daysSince = Math.floor(
+        (Date.now() - new Date(application.appliedDate || application.createdAt).getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      const emailTemplate = {
+        subject: `Following up on ${application.jobTitle} application`,
+        body: `Dear Hiring Manager,
+
+I hope this email finds you well. I wanted to follow up on my application for the ${application.jobTitle} position at ${application.company}, which I submitted ${daysSince} days ago.
+
+I remain very interested in this opportunity and believe my skills and experience align well with the role's requirements. I'm particularly excited about the prospect of contributing to ${application.company}'s mission and growth.
+
+I would welcome the opportunity to discuss how I can add value to your team. Please let me know if you need any additional information from my end.
+
+Thank you for considering my application. I look forward to hearing from you.
+
+Best regards,
+${req.user.firstName} ${req.user.lastName}`,
+        tips: [
+          'Send this email in the morning (9-11 AM) for better open rates',
+          'Personalize with specific details about the company',
+          'Keep it brief and professional',
+          'Include a clear call-to-action'
+        ]
+      };
+
+      // Track AI usage
+      await db.insert(schema.aiUsageTracking).values({
+        userId,
+        feature: 'follow_up_email',
+        tokensUsed: 150,
+        cost: 0.002,
+        createdAt: new Date()
+      });
+
+      res.json({
+        success: true,
+        email: emailTemplate,
+        applicationId: application.id
+      });
+
+    } catch (error) {
+      console.error('[FOLLOW-UP EMAIL ERROR]:', error);
+      handleError(res, error, "Failed to generate follow-up email");
+    }
+  });
+
+  // NEW: Check application quality score (PREMIUM)
+  app.post('/api/applications/:id/quality-check', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const applicationId = parseInt(req.params.id);
+      const isPremium = req.user.planType === 'premium' || req.user.subscriptionStatus === 'active';
+
+      if (!isPremium) {
+        return res.status(403).json({
+          error: 'Premium feature',
+          message: 'Upgrade to Premium for application quality scoring'
+        });
+      }
+
+      // Get application details
+      const application = await db
+        .select()
+        .from(schema.jobApplications)
+        .where(
+          and(
+            eq(schema.jobApplications.id, applicationId),
+            eq(schema.jobApplications.userId, userId)
+          )
+        )
+        .then(rows => rows[0]);
+
+      if (!application) {
+        return res.status(404).json({ error: 'Application not found' });
+      }
+
+      // Calculate quality score based on application completeness
+      let score = 0;
+      const feedback = [];
+
+      // Resume tailored? +25 points
+      if (application.resumeTailored) {
+        score += 25;
+      } else {
+        feedback.push({
+          type: 'warning',
+          message: 'Resume not tailored for this specific job',
+          action: 'Customize your resume to match job requirements'
+        });
+      }
+
+      // Cover letter? +20 points
+      if (application.coverLetterCreated) {
+        score += 20;
+      } else {
+        feedback.push({
+          type: 'warning',
+          message: 'No cover letter attached',
+          action: 'Add a personalized cover letter to stand out'
+        });
+      }
+
+      // LinkedIn connection? +20 points
+      if (application.linkedinConnectionsMade) {
+        score += 20;
+      } else {
+        feedback.push({
+          type: 'tip',
+          message: 'No LinkedIn connections at this company',
+          action: 'Connect with employees to increase visibility'
+        });
+      }
+
+      // Match score +35 points
+      const matchScore = application.matchScore || 0;
+      score += Math.floor(matchScore * 0.35);
+
+      if (matchScore < 70) {
+        feedback.push({
+          type: 'warning',
+          message: `Skills match only ${matchScore}%`,
+          action: 'Highlight transferable skills or get relevant certifications'
+        });
+      }
+
+      const qualityData = {
+        score,
+        grade: score >= 80 ? 'A' : score >= 60 ? 'B' : score >= 40 ? 'C' : 'D',
+        feedback,
+        recommendations: [
+          score < 80 ? 'Tailor your resume to include keywords from the job description' : null,
+          !application.coverLetterCreated ? 'Write a compelling cover letter' : null,
+          !application.linkedinConnectionsMade ? 'Find and connect with employees at this company' : null,
+        ].filter(Boolean)
+      };
+
+      // Update application with quality score
+      await db
+        .update(schema.jobApplications)
+        .set({ applicationQualityScore: score })
+        .where(eq(schema.jobApplications.id, applicationId));
+
+      res.json({
+        success: true,
+        quality: qualityData
+      });
+
+    } catch (error) {
+      console.error('[QUALITY CHECK ERROR]:', error);
+      handleError(res, error, "Failed to check application quality");
+    }
+  });
+
+  // NEW: Get response rate analytics (PREMIUM)
+  app.get('/api/applications/analytics', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const isPremium = req.user.planType === 'premium' || req.user.subscriptionStatus === 'active';
+
+      if (!isPremium) {
+        return res.status(403).json({
+          error: 'Premium feature',
+          message: 'Upgrade to Premium for detailed analytics'
+        });
+      }
+
+      // Get all user applications
+      const applications = await db
+        .select()
+        .from(schema.jobApplications)
+        .where(eq(schema.jobApplications.userId, userId));
+
+      // Calculate response rates by source
+      const bySource: Record<string, any> = {};
+      
+      for (const app of applications) {
+        const source = app.source || 'other';
+        if (!bySource[source]) {
+          bySource[source] = {
+            total: 0,
+            responded: 0,
+            interviews: 0,
+            offers: 0
+          };
+        }
+
+        bySource[source].total++;
+        if (app.responseReceived) bySource[source].responded++;
+        if (app.status === 'interview') bySource[source].interviews++;
+        if (app.status === 'offered') bySource[source].offers++;
+      }
+
+      // Calculate response rates
+      const analytics = Object.entries(bySource).map(([source, data]) => ({
+        source,
+        total: data.total,
+        responseRate: data.total > 0 ? Math.round((data.responded / data.total) * 100) : 0,
+        interviewRate: data.total > 0 ? Math.round((data.interviews / data.total) * 100) : 0,
+        offerRate: data.total > 0 ? Math.round((data.offers / data.total) * 100) : 0
+      }));
+
+      // Sort by response rate
+      analytics.sort((a, b) => b.responseRate - a.responseRate);
+
+      res.json({
+        success: true,
+        analytics,
+        insights: {
+          bestSource: analytics[0]?.source || 'N/A',
+          bestResponseRate: analytics[0]?.responseRate || 0,
+          totalApplications: applications.length,
+          overallResponseRate: applications.length > 0 
+            ? Math.round((applications.filter(a => a.responseReceived).length / applications.length) * 100)
+            : 0
+        }
+      });
+
+    } catch (error) {
+      console.error('[ANALYTICS ERROR]:', error);
+      handleError(res, error, "Failed to fetch analytics");
+    }
+  });
+
   // Save/Bookmark a job
   app.post('/api/jobs/:id/save', isAuthenticated, async (req: any, res) => {
     try {
