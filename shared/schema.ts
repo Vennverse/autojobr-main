@@ -17,7 +17,19 @@ import { relations, sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Session storage table.
+// Session storage table (legacy - used by express-session)
+// (IMPORTANT) This table exists in the database, don't drop it.
+export const session = pgTable(
+  "session",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: json("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire_legacy").on(table.expire)],
+);
+
+// Sessions storage table (new - used by Replit Auth)
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const sessions = pgTable(
   "sessions",
