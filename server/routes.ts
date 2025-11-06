@@ -794,19 +794,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: schema.jobApplications.id,
           jobPostingId: sql<number | null>`NULL`,
           status: schema.jobApplications.status,
-          appliedAt: schema.jobApplications.appliedAt,
+          appliedAt: sql<Date>`COALESCE(${schema.jobApplications.appliedDate}, ${schema.jobApplications.lastUpdated}, NOW())`,
           jobTitle: schema.jobApplications.jobTitle,
           companyName: schema.jobApplications.company,
           location: schema.jobApplications.location,
-          jobType: sql<string | null>`NULL`,
-          workMode: sql<string | null>`NULL`,
+          jobType: schema.jobApplications.jobType,
+          workMode: schema.jobApplications.workMode,
           source: sql<string>`'extension'`,
           jobUrl: schema.jobApplications.jobUrl,
           notes: schema.jobApplications.notes,
         })
         .from(schema.jobApplications)
         .where(eq(schema.jobApplications.userId, userId))
-        .orderBy(desc(schema.jobApplications.appliedAt))
+        .orderBy(desc(sql`COALESCE(${schema.jobApplications.appliedDate}, ${schema.jobApplications.lastUpdated}, NOW())`))
         .limit(100);
 
       // 3. Combine and sort by date
