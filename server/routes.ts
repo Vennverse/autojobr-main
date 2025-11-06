@@ -764,55 +764,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(cached);
       }
 
+      console.log(`[APPLICATIONS] Fetching applications for user: ${userId}`);
+
       // OPTIMIZATION: Fetch from BOTH tables - platform applications AND extension-tracked applications
       
       // 1. Get platform applications (Easy Apply on AutoJobr)
       const platformApplications = await db
-        .select({
-          id: schema.jobPostingApplications.id,
-          jobPostingId: schema.jobPostingApplications.jobPostingId,
-          status: schema.jobPostingApplications.status,
-          appliedAt: schema.jobPostingApplications.appliedAt,
-          jobTitle: schema.jobPostings.title,
-          companyName: schema.jobPostings.companyName,
-          location: schema.jobPostings.location,
-          jobType: schema.jobPostings.jobType,
-          workMode: schema.jobPostings.workMode,
-          source: sql<string>`'platform'`,
-          jobUrl: schema.jobPostings.sourceUrl,
-          notes: schema.jobPostingApplications.coverLetter,
-        })
+        .select()
         .from(schema.jobPostingApplications)
         .leftJoin(schema.jobPostings, eq(schema.jobPostingApplications.jobPostingId, schema.jobPostings.id))
         .where(eq(schema.jobPostingApplications.applicantId, userId))
         .orderBy(desc(schema.jobPostingApplications.appliedAt))
-        .limit(100);
+        .limit(100)
+        .then(rows => rows.map(row => ({
+          id: row.job_posting_applications.id,
+          jobPostingId: row.job_posting_applications.jobPostingId,
+          status: row.job_posting_applications.status || 'applied',
+          appliedAt: row.job_posting_applications.appliedAt,
+          appliedDate: row.job_posting_applications.appliedAt,
+          jobTitle: row.job_postings?.title || 'Unknown Position',
+          company: row.job_postings?.companyName || 'Unknown Company',
+          companyName: row.job_postings?.companyName || 'Unknown Company',
+          location: row.job_postings?.location,
+          jobType: row.job_postings?.jobType,
+          workMode: row.job_postings?.workMode,
+          source: 'platform' as const,
+          jobUrl: row.job_postings?.sourceUrl,
+          notes: row.job_posting_applications.coverLetter,
+        })));
+
+      console.log(`[APPLICATIONS] Platform applications: ${platformApplications.length}`);
 
       // 2. Get extension-tracked applications (external job boards)
       const extensionApplications = await db
-        .select({
-          id: schema.jobApplications.id,
-          jobPostingId: sql<number | null>`NULL`,
-          status: schema.jobApplications.status,
-          appliedAt: sql<Date>`COALESCE(${schema.jobApplications.appliedDate}, ${schema.jobApplications.lastUpdated}, NOW())`,
-          jobTitle: schema.jobApplications.jobTitle,
-          companyName: schema.jobApplications.company,
-          location: schema.jobApplications.location,
-          jobType: schema.jobApplications.jobType,
-          workMode: schema.jobApplications.workMode,
-          source: sql<string>`'extension'`,
-          jobUrl: schema.jobApplications.jobUrl,
-          notes: schema.jobApplications.notes,
-        })
+        .select()
         .from(schema.jobApplications)
         .where(eq(schema.jobApplications.userId, userId))
-        .orderBy(desc(sql`COALESCE(${schema.jobApplications.appliedDate}, ${schema.jobApplications.lastUpdated}, NOW())`))
-        .limit(100);
+        .orderBy(desc(schema.jobApplications.lastUpdated))
+        .limit(100)
+        .then(rows => rows.map(row => ({
+          id: row.id,
+          jobPostingId: null,
+          status: row.status || 'applied',
+          appliedAt: row.appliedDate || row.lastUpdated || new Date(),
+          appliedDate: row.appliedDate || row.lastUpdated || new Date(),
+          jobTitle: row.jobTitle || 'Unknown Position',
+          company: row.company || 'Unknown Company',
+          companyName: row.company || 'Unknown Company',
+          location: row.location,
+          jobType: row.jobType,
+          workMode: row.workMode,
+          source: 'extension' as const,
+          jobUrl: row.jobUrl,
+          notes: row.notes,
+        })));
+
+      console.log(`[APPLICATIONS] Extension applications: ${extensionApplications.length}`);
 
       // 3. Combine and sort by date
       const allApplications = [...platformApplications, ...extensionApplications]
         .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime())
         .slice(0, 100);
+
+      console.log(`[APPLICATIONS] Total applications: ${allApplications.length}`);
 
       setCache(cacheKey, allApplications, 300000, userId); // 5 min cache
       res.json(allApplications);
