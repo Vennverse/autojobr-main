@@ -4491,6 +4491,70 @@ export const aiInteractionLog = pgTable("ai_interaction_log", {
   index("ai_log_date_idx").on(table.createdAt),
 ]);
 
+// AI Usage Tracking - Track monthly AI usage limits for free/premium users
+export const aiUsageTracking = pgTable("ai_usage_tracking", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  featureType: varchar("feature_type").notNull(), // resume_optimization, cover_letter, interview_practice, etc.
+  monthYear: varchar("month_year").notNull(), // YYYY-MM format
+  usageCount: integer("usage_count").default(0).notNull(),
+  limit: integer("limit").notNull(), // monthly limit for this feature
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("ai_usage_user_month_idx").on(table.userId, table.monthYear),
+  index("ai_usage_feature_idx").on(table.featureType),
+  unique("ai_usage_unique_user_month_feature").on(table.userId, table.monthYear, table.featureType),
+]);
+
+// Recruiter Task Management - Dedicated task management for recruiters
+export const recruiterTasks = pgTable("recruiter_tasks", {
+  id: serial("id").primaryKey(),
+  assignedById: varchar("assigned_by_id").references(() => users.id).notNull(), // Recruiter who created task
+  assignedBy: varchar("assigned_by"), // Recruiter name
+  owner: varchar("owner"), // Person responsible for completing the task
+  ownerId: varchar("owner_id").references(() => users.id), // Task assignee user ID
+  
+  // Task Details
+  title: varchar("title").notNull(),
+  description: text("description"),
+  taskType: varchar("task_type").notNull(), // interview_schedule, send_offer, follow_up, document_review, etc.
+  priority: varchar("priority").notNull().default("medium"), // low, medium, high, urgent
+  status: varchar("status").notNull().default("pending"), // pending, in_progress, completed, cancelled
+  
+  // Candidate Information
+  jobTitle: varchar("job_title"),
+  candidateName: varchar("candidate_name"),
+  candidateEmail: varchar("candidate_email"),
+  
+  // Communication
+  meetingLink: varchar("meeting_link"), // Zoom, Teams, Google Meet link
+  calendlyLink: varchar("calendly_link"), // For scheduling
+  emailSent: boolean("email_sent").default(false),
+  emailTemplate: varchar("email_template"), // Template used for email
+  
+  // Scheduling
+  dueDateTime: timestamp("due_date_time"),
+  completedAt: timestamp("completed_at"),
+  
+  // Related Entities
+  relatedTo: varchar("related_to"), // candidate, job_posting, application
+  relatedId: integer("related_id"), // ID of related entity
+  
+  // Metadata
+  notes: text("notes"),
+  tags: text("tags").array(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("recruiter_tasks_assigned_by_idx").on(table.assignedById),
+  index("recruiter_tasks_owner_idx").on(table.ownerId),
+  index("recruiter_tasks_status_idx").on(table.status),
+  index("recruiter_tasks_due_date_idx").on(table.dueDateTime),
+  index("recruiter_tasks_created_at_idx").on(table.createdAt),
+]);
+
 // User Engagement Tracking - For daily motivation emails and engagement analytics
 export const userEngagementLog = pgTable("user_engagement_log", {
   id: serial("id").primaryKey(),
@@ -4898,3 +4962,23 @@ export type InsertPodActivity = z.infer<typeof insertPodActivitySchema>;
 
 export type MarketplaceMission = typeof marketplaceMissions.$inferSelect;
 export type InsertMarketplaceMission = z.infer<typeof insertMarketplaceMissionSchema>;
+
+// AI Usage Tracking schemas and types
+export const insertAiUsageTrackingSchema = createInsertSchema(aiUsageTracking).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type AiUsageTracking = typeof aiUsageTracking.$inferSelect;
+export type InsertAiUsageTracking = z.infer<typeof insertAiUsageTrackingSchema>;
+
+// Recruiter Tasks schemas and types
+export const insertRecruiterTaskSchema = createInsertSchema(recruiterTasks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type RecruiterTask = typeof recruiterTasks.$inferSelect;
+export type InsertRecruiterTask = z.infer<typeof insertRecruiterTaskSchema>;
