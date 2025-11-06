@@ -754,13 +754,15 @@ class AutoJobrBackground {
 
   async trackApplication(data) {
     try {
+      console.log('[TRACK APP] Starting application tracking:', data);
+
       // Use session-based authentication instead of Bearer tokens
       const headers = {
         'Content-Type': 'application/json'
       };
 
-      // Use the main applications endpoint that updates job_applications table
-      const response = await fetch(`${this.apiUrl}/api/applications`, {
+      // Use the correct endpoint that saves to job_applications table
+      const response = await fetch(`${this.apiUrl}/api/track-application`, {
         method: 'POST',
         headers,
         credentials: 'include', // Send session cookies
@@ -769,23 +771,26 @@ class AutoJobrBackground {
           jobTitle: data.jobTitle,
           company: data.company,
           location: data.location || '',
-          jobUrl: data.jobUrl || '',
-          status: 'applied',
+          jobUrl: data.jobUrl || window.location.href,
+          status: data.status || 'applied',
           source: 'extension',
-          notes: `Applied via ${data.platform || 'extension'} on ${new Date().toLocaleDateString()}`
+          platform: data.platform || 'extension',
+          appliedDate: data.appliedDate || new Date().toISOString()
         })
       });
 
       if (!response.ok) {
         if (response.status === 401) {
-          console.log('User not authenticated - cannot track application');
+          console.log('[TRACK APP] User not authenticated');
           throw new Error('Please log in to AutoJobr to track applications');
         }
         const errorText = await response.text();
+        console.error('[TRACK APP] Failed:', errorText);
         throw new Error(`Failed to track application: ${errorText}`);
       }
 
-      const application = await response.json();
+      const result = await response.json();
+      console.log('[TRACK APP] Success:', result);
 
       await this.showAdvancedNotification(
         'Application Tracked! 📊',
@@ -793,10 +798,10 @@ class AutoJobrBackground {
         'success'
       );
 
-      return { success: true, application };
+      return { success: true, application: result };
 
     } catch (error) {
-      console.error('Track application error:', error);
+      console.error('[TRACK APP] Error:', error);
       throw error;
     }
   }

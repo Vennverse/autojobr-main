@@ -3264,22 +3264,25 @@ class AutoJobrContentScript {
 
   async trackApplicationSubmission() {
     try {
+      console.log('[TRACK] Starting application tracking...');
+
       // Double-check this is actually a job application submission
       if (!this.isJobApplicationPage()) {
-        console.log('Not a job application page - skipping tracking');
+        console.log('[TRACK] Not a job application page - skipping');
         return;
       }
 
       const jobData = await this.extractJobDetails();
+      console.log('[TRACK] Extracted job data:', jobData);
 
       if (jobData.success && jobData.jobData && jobData.jobData.title) {
-        console.log('Tracking confirmed application submission:', jobData.jobData);
+        console.log('[TRACK] Sending to background script:', jobData.jobData);
 
         const response = await chrome.runtime.sendMessage({
           action: 'trackApplication',
           data: {
             jobTitle: jobData.jobData.title,
-            company: jobData.jobData.company,
+            company: jobData.jobData.company || 'Unknown Company',
             location: jobData.jobData.location || '',
             jobUrl: window.location.href,
             status: 'applied',
@@ -3289,11 +3292,17 @@ class AutoJobrContentScript {
           }
         });
 
+        console.log('[TRACK] Background response:', response);
+
         if (response && response.success) {
-          this.showNotification('✅ Application submitted & tracked!', 'success');
+          this.showNotification('✅ Application tracked successfully!', 'success');
+          console.log('[TRACK] ✅ Application saved to database');
         } else {
-          console.log('Application tracking failed:', response);
+          console.error('[TRACK] ❌ Tracking failed:', response);
+          this.showNotification('⚠️ Failed to track application', 'error');
         }
+      } else {
+        console.log('[TRACK] Invalid job data - cannot track');
       } else {
         console.log('No valid job data found - skipping tracking');
       }
