@@ -190,13 +190,6 @@ export function Navbar() {
           current: location === "/enhanced-crm" || location.startsWith("/enhanced-crm") || location === "/crm"
         },
         {
-          name: "Premium",
-          href: "/job-seeker-premium",
-          icon: Crown,
-          current: location === "/job-seeker-premium",
-          premium: true
-        },
-        {
           name: "Premium AI Tools",
           href: "/premium-ai-tools",
           icon: Zap,
@@ -212,11 +205,28 @@ export function Navbar() {
           badge: "AI"
         },
         {
-          name: "AI-powered Mock Interviews",
+          name: "AI Interviewer",
           href: "/virtual-interview/new",
           icon: Video,
-          current: location === "/virtual-interview/new" || location.startsWith("/virtual-interview") || location.startsWith("/mock-interview"),
-          badge: "New"
+          current: location === "/virtual-interview/new" || location.startsWith("/virtual-interview") || location.startsWith("/mock-interview") || location === "/video-practice",
+          badge: "New",
+          dropdown: [
+            {
+              name: "Virtual AI Interview",
+              href: "/virtual-interview/new",
+              description: "Text-based conversational AI interview"
+            },
+            {
+              name: "Video Interview Practice",
+              href: "/video-practice",
+              description: "Record yourself with video feedback"
+            },
+            {
+              name: "Mock Interview",
+              href: "/mock-interview",
+              description: "Practice with AI interviewer"
+            }
+          ]
         },
       ];
     }
@@ -252,6 +262,47 @@ export function Navbar() {
                     const Icon = item.icon;
                     const canAccess = canAccessFeature(item.premium || false);
 
+                    // Render dropdown menu if item has dropdown
+                    if (item.dropdown && item.dropdown.length > 0) {
+                      return (
+                        <DropdownMenu key={item.name}>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className={`${
+                                item.current
+                                  ? "bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 border-blue-500"
+                                  : "text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-transparent"
+                              } inline-flex items-center px-2.5 py-2 border-b-2 text-sm font-medium transition-all duration-200 rounded-t-lg relative ${
+                                !canAccess ? "opacity-50" : ""
+                              }`}
+                            >
+                              <Icon className="w-4 h-4 mr-1.5 flex-shrink-0" />
+                              <span className="whitespace-nowrap">{item.name}</span>
+                              {item.badge && typeof item.badge === 'string' && (
+                                <Badge className="ml-1.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                                  {item.badge}
+                                </Badge>
+                              )}
+                              <ChevronDown className="w-3 h-3 ml-1" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="w-64">
+                            {item.dropdown.map((dropdownItem) => (
+                              <DropdownMenuItem key={dropdownItem.name} asChild>
+                                <Link href={dropdownItem.href} className="cursor-pointer">
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">{dropdownItem.name}</span>
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">{dropdownItem.description}</span>
+                                  </div>
+                                </Link>
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      );
+                    }
+
+                    // Regular link without dropdown
                     return (
                       <Link
                         key={item.name}
@@ -434,6 +485,41 @@ export function Navbar() {
                 const Icon = item.icon;
                 const canAccess = canAccessFeature(item.premium || false);
 
+                // Render dropdown items if present
+                if (item.dropdown && item.dropdown.length > 0) {
+                  return (
+                    <div key={item.name} className="space-y-1">
+                      <div className={`${
+                        item.current
+                          ? "bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300"
+                          : "text-gray-600 dark:text-gray-300"
+                      } group flex items-center px-4 py-3 text-base font-medium rounded-xl`}>
+                        <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
+                        <span className="flex-1">{item.name}</span>
+                        {item.badge && typeof item.badge === 'string' && (
+                          <Badge className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                            {item.badge}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="ml-8 space-y-1">
+                        {item.dropdown.map((dropdownItem) => (
+                          <Link
+                            key={dropdownItem.name}
+                            href={dropdownItem.href}
+                            className="block px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            <div className="font-medium">{dropdownItem.name}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">{dropdownItem.description}</div>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Regular link without dropdown
                 return (
                   <Link
                     key={item.name}
