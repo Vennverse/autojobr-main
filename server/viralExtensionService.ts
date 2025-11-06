@@ -218,17 +218,24 @@ export class ViralExtensionService {
     // Extract company from URL
     const company = this.extractCompanyFromUrl(jobUrl);
     
+    // Extract job title from application data or set default
+    const jobTitle = applicationData?.jobTitle || applicationData?.title || `${company} Position`;
+    
     // Store application with viral tracking data
     await db.insert(jobApplications).values({
       userId,
-      jobUrl,
+      jobTitle,
       company,
-      appliedAt: new Date(),
+      jobUrl,
+      appliedDate: new Date(),
       source: 'chrome_extension',
-      viralData: {
+      location: applicationData?.location || null,
+      jobType: applicationData?.jobType || null,
+      workMode: applicationData?.workMode || null,
+      analysisData: {
         applicationMethod: 'auto_fill',
-        timeToComplete: applicationData.timeToComplete,
-        fieldsAutoFilled: applicationData.fieldsAutoFilled
+        timeToComplete: applicationData?.timeToComplete,
+        fieldsAutoFilled: applicationData?.fieldsAutoFilled
       }
     }).onConflictDoNothing();
   }
