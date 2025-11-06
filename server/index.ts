@@ -8,7 +8,7 @@ import { aiService } from "./aiService.js";
 import { applyPerformanceOptimizations, createHighPerformanceRateLimiter } from "./performanceOptimizations.js";
 import { dailySyncService } from "./dailySyncService.js";
 import seoRoutes from "./routes/seo.js";
-import { communityRoutes } from './communityRoutes';
+import communityRoutes from './communityRoutes';
 import { db } from './db';
 import linkedinOptimizerRoutes from './linkedinOptimizer/routes';
 
