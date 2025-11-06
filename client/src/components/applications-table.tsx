@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Building, MapPin, MoreHorizontal, ExternalLink, Edit, Trash2, Zap, Globe } from "lucide-react";
+import { Building, MapPin, MoreHorizontal, ExternalLink, Edit, Trash2, Zap, Globe, Users } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -286,102 +286,144 @@ export function ApplicationsTable({ applications, isLoading, showActions = false
             </tr>
           </thead>
         <tbody className="divide-y divide-border">
-          {applications.map((application) => (
-            <tr key={application.id} className="hover:bg-muted/50 transition-colors">
-              <td className="py-4 px-6 whitespace-nowrap">
-                <div className="flex items-center">
-                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mr-3">
-                    <Building className="w-4 h-4 text-primary" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-foreground">
-                      {application.company}
+          {applications.map((application) => {
+            const daysSinceApplied = Math.floor((Date.now() - new Date(application.appliedDate || application.appliedAt).getTime()) / (1000 * 60 * 60 * 24));
+            const needsFollowUp = daysSinceApplied >= 7 && daysSinceApplied <= 14 && application.status === 'applied';
+            
+            return (
+              <tr key={application.id} className="hover:bg-muted/50 transition-colors">
+                <td className="py-4 px-6 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mr-3">
+                      <Building className="w-4 h-4 text-primary" />
                     </div>
-                    {application.location && (
-                      <div className="text-sm text-muted-foreground flex items-center">
-                        <MapPin className="w-3 h-3 mr-1" />
-                        {application.location}
+                    <div>
+                      <div className="text-sm font-medium text-foreground">
+                        {application.company}
                       </div>
+                      {application.location && (
+                        <div className="text-sm text-muted-foreground flex items-center">
+                          <MapPin className="w-3 h-3 mr-1" />
+                          {application.location}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </td>
+                <td className="py-4 px-6 whitespace-nowrap">
+                  <div className="text-sm font-medium text-foreground">
+                    {application.jobTitle}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {application.jobType && `${application.jobType} • `}
+                    {application.workMode}
+                  </div>
+                </td>
+                <td className="py-4 px-6 whitespace-nowrap">
+                  {application.matchScore ? (
+                    <div className="flex items-center">
+                      <div className="w-16 bg-muted rounded-full h-2 mr-2">
+                        <div 
+                          className={`h-2 rounded-full ${getMatchScoreColor(application.matchScore)}`}
+                          style={{ width: `${application.matchScore}%` }}
+                        />
+                      </div>
+                      <span className="text-sm font-medium text-foreground">
+                        {application.matchScore}%
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">-</span>
+                  )}
+                </td>
+                <td className="py-4 px-6 whitespace-nowrap">
+                  <div className="space-y-1">
+                    {getStatusBadge(application.status)}
+                    {needsFollowUp && (
+                      <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">
+                        Follow-up Due
+                      </Badge>
                     )}
                   </div>
-                </div>
-              </td>
-              <td className="py-4 px-6 whitespace-nowrap">
-                <div className="text-sm font-medium text-foreground">
-                  {application.jobTitle}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {application.jobType && `${application.jobType} • `}
-                  {application.workMode}
-                </div>
-              </td>
-              <td className="py-4 px-6 whitespace-nowrap">
-                {application.matchScore ? (
-                  <div className="flex items-center">
-                    <div className="w-16 bg-muted rounded-full h-2 mr-2">
-                      <div 
-                        className={`h-2 rounded-full ${getMatchScoreColor(application.matchScore)}`}
-                        style={{ width: `${application.matchScore}%` }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium text-foreground">
-                      {application.matchScore}%
-                    </span>
-                  </div>
-                ) : (
-                  <span className="text-sm text-muted-foreground">-</span>
-                )}
-              </td>
-              <td className="py-4 px-6 whitespace-nowrap">
-                {getStatusBadge(application.status)}
-              </td>
-              <td className="py-4 px-6 whitespace-nowrap">
-                {getSourceBadge(application.source)}
-              </td>
-              <td className="py-4 px-6 whitespace-nowrap text-sm text-muted-foreground">
-                {formatDistanceToNow(new Date(application.appliedDate || application.appliedAt), { addSuffix: true })}
-              </td>
-              <td className="py-4 px-6 whitespace-nowrap text-sm text-foreground">
-                {application.jobType || "-"}
-              </td>
-              <td className="py-4 px-6 whitespace-nowrap text-sm text-foreground">
-                {application.workMode || "-"}
-              </td>
-              <td className="py-4 px-6 whitespace-nowrap text-sm text-foreground">
-                {application.salaryRange || "-"}
-              </td>
-              {showActions && (
-                <td className="py-4 px-6 whitespace-nowrap">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {application.jobUrl && (
-                        <DropdownMenuItem>
-                          <ExternalLink className="w-4 h-4 mr-2" />
-                          View Job
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem onClick={() => onEdit?.(application)}>
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        className="text-destructive"
-                        onClick={() => onDelete?.(application)}
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </td>
-              )}
-            </tr>
-          ))}
+                <td className="py-4 px-6 whitespace-nowrap">
+                  {getSourceBadge(application.source)}
+                </td>
+                <td className="py-4 px-6 whitespace-nowrap text-sm text-muted-foreground">
+                  <div>{formatDistanceToNow(new Date(application.appliedDate || application.appliedAt), { addSuffix: true })}</div>
+                  <div className="text-xs text-muted-foreground">{daysSinceApplied} days ago</div>
+                </td>
+                <td className="py-4 px-6 whitespace-nowrap text-sm text-foreground">
+                  {application.jobType || "-"}
+                </td>
+                <td className="py-4 px-6 whitespace-nowrap text-sm text-foreground">
+                  {application.workMode || "-"}
+                </td>
+                <td className="py-4 px-6 whitespace-nowrap text-sm text-foreground">
+                  {application.salaryRange || "-"}
+                </td>
+                <td className="py-4 px-6 whitespace-nowrap">
+                  <div className="flex gap-1">
+                    {needsFollowUp && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="h-8 text-xs bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border-yellow-200"
+                        onClick={() => {
+                          window.open(`mailto:hr@${application.company.toLowerCase().replace(/\s+/g, '')}.com?subject=Follow-up on ${application.jobTitle} Application`, '_blank');
+                        }}
+                      >
+                        📧 Follow Up
+                      </Button>
+                    )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {application.jobUrl && (
+                          <DropdownMenuItem asChild>
+                            <a href={application.jobUrl} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              View Job
+                            </a>
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => onEdit?.(application)}>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit Status
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          const subject = `Interview preparation for ${application.jobTitle}`;
+                          window.open(`/interview-prep-tools?job=${encodeURIComponent(application.jobTitle)}&company=${encodeURIComponent(application.company)}`, '_blank');
+                        }}>
+                          <Users className="w-4 h-4 mr-2" />
+                          Interview Prep
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          navigator.clipboard.writeText(`${application.jobTitle} at ${application.company}`);
+                        }}>
+                          <Building className="w-4 h-4 mr-2" />
+                          Copy Details
+                        </DropdownMenuItem>
+                        {showActions && (
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => onDelete?.(application)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
         </table>
       </div>
