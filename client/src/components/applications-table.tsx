@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Building, MapPin, MoreHorizontal, ExternalLink, Edit, Trash2, Zap, Globe, Users } from "lucide-react";
+import { Building, MapPin, MoreHorizontal, ExternalLink, Edit, Trash2, Zap, Globe, Users, Calendar, Bell, CheckCircle2, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface Application {
   id: string;
@@ -34,6 +35,61 @@ interface ApplicationsTableProps {
 }
 
 export function ApplicationsTable({ applications, isLoading, showActions = false, onEdit, onDelete }: ApplicationsTableProps) {
+  const { toast } = useToast();
+
+  const createFollowUpTask = async (application: Application) => {
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: `Follow up on ${application.jobTitle} at ${application.company}`,
+          description: `Send a follow-up email to check on application status for ${application.jobTitle} position.`,
+          taskType: 'followup',
+          priority: 'medium',
+          category: 'job_application',
+          dueDateTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+          relatedUrl: application.jobUrl,
+          companyName: application.company,
+          notes: `Applied on ${new Date(application.appliedDate).toLocaleDateString()}`
+        })
+      });
+
+      if (response.ok) {
+        toast({
+          title: "✅ Follow-up task created",
+          description: "Task has been added to your task list",
+        });
+      } else {
+        throw new Error('Failed to create task');
+      }
+    } catch (error) {
+      toast({
+        title: "❌ Failed to create task",
+        description: "Please try again later",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const markAsInterviewed = async (application: Application) => {
+    try {
+      if (onEdit) {
+        onEdit({ ...application, status: 'interview' });
+      }
+      toast({
+        title: "✅ Status updated",
+        description: "Application marked as interview stage",
+      });
+    } catch (error) {
+      toast({
+        title: "❌ Update failed",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    }
+  };
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -114,58 +170,33 @@ export function ApplicationsTable({ applications, isLoading, showActions = false
 
   return (
     <>
-      {/* Mobile Card Layout */}
-      <div className="block md:hidden space-y-4">
+      {/* Mobile Card Layout - Apple-level UI */}
+      <div className="block md:hidden space-y-3">
         {applications.map((application) => (
-          <div key={application.id} className="bg-card border border-border rounded-lg p-4 space-y-3">
+          <div key={application.id} className="bg-card border border-border rounded-2xl p-5 space-y-4 shadow-sm hover:shadow-md transition-all">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <h3 className="font-medium text-foreground text-sm">{application.jobTitle}</h3>
-                <div className="flex items-center text-muted-foreground text-xs mt-1">
-                  <Building className="w-3 h-3 mr-1" />
-                  <span>{application.company}</span>
-                  {application.location && (
-                    <>
-                      <span className="mx-1">•</span>
-                      <MapPin className="w-3 h-3 mr-1" />
-                      <span>{application.location}</span>
-                    </>
-                  )}
+                <h3 className="font-semibold text-foreground text-base leading-tight">{application.jobTitle}</h3>
+                <div className="flex items-center text-muted-foreground text-sm mt-1.5">
+                  <Building className="w-3.5 h-3.5 mr-1.5" />
+                  <span className="font-medium">{application.company}</span>
                 </div>
+                {application.location && (
+                  <div className="flex items-center text-muted-foreground text-xs mt-1">
+                    <MapPin className="w-3 h-3 mr-1" />
+                    <span>{application.location}</span>
+                  </div>
+                )}
               </div>
-              {showActions && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {application.jobUrl && (
-                      <DropdownMenuItem asChild>
-                        <a href={application.jobUrl} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="mr-2 h-4 w-4" />
-                          View Job
-                        </a>
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem onClick={() => onEdit?.(application)}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive" onClick={() => onDelete?.(application)}>
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+              <div className="flex items-center gap-2">
+                {getSourceBadge(application.source)}
+              </div>
             </div>
 
-            {/* This is where the new detailed fields for extension applications will be displayed */}
+            {/* Streamlined status and quick actions */}
             <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Status</span>
                           <Badge className={getStatusColor(application.status)}>
                             {getStatusIcon(application.status)}
                             <span className="ml-1 capitalize">{application.status?.replace('_', ' ')}</span>
@@ -230,16 +261,47 @@ export function ApplicationsTable({ applications, isLoading, showActions = false
                         )}
 
                         <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>Applied {new Date(application.appliedDate || application.appliedAt).toLocaleDateString()}</span>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
-                              {application.source || 'platform'}
-                            </Badge>
-                            {/* Days since application */}
-                            <span className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 px-2 py-1 rounded">
-                              {Math.floor((Date.now() - new Date(application.appliedDate || application.appliedAt).getTime()) / (1000 * 60 * 60 * 24))}d ago
-                            </span>
-                          </div>
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {new Date(application.appliedDate || application.appliedAt).toLocaleDateString()}
+                          </span>
+                          <span className="text-xs font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-600 px-2 py-1 rounded-full">
+                            {Math.floor((Date.now() - new Date(application.appliedDate || application.appliedAt).getTime()) / (1000 * 60 * 60 * 24))}d ago
+                          </span>
+                        </div>
+
+                        {/* Quick Actions - Competitor differentiator */}
+                        <div className="flex items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 text-xs h-8"
+                            onClick={() => createFollowUpTask(application)}
+                          >
+                            <Calendar className="w-3 h-3 mr-1" />
+                            Follow Up
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 text-xs h-8"
+                            onClick={() => markAsInterviewed(application)}
+                          >
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            Interview
+                          </Button>
+                          {application.jobUrl && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              asChild
+                            >
+                              <a href={application.jobUrl} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            </Button>
+                          )}
                         </div>
             </div>
           </div>
@@ -363,50 +425,58 @@ export function ApplicationsTable({ applications, isLoading, showActions = false
                   {application.salaryRange || "-"}
                 </td>
                 <td className="py-4 px-6 whitespace-nowrap">
-                  <div className="flex gap-1">
-                    {needsFollowUp && (
+                  <div className="flex items-center gap-2">
+                    {/* Smart action based on days since application */}
+                    {needsFollowUp ? (
                       <Button 
                         variant="outline" 
                         size="sm"
-                        className="h-8 text-xs bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border-yellow-200"
-                        onClick={() => {
-                          window.open(`mailto:hr@${application.company.toLowerCase().replace(/\s+/g, '')}.com?subject=Follow-up on ${application.jobTitle} Application`, '_blank');
-                        }}
+                        className="h-8 text-xs font-medium"
+                        onClick={() => createFollowUpTask(application)}
                       >
-                        📧 Follow Up
+                        <Calendar className="w-3.5 h-3.5 mr-1.5" />
+                        Create Follow-up
+                      </Button>
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="h-8 text-xs font-medium"
+                        onClick={() => markAsInterviewed(application)}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                        Mark Interview
                       </Button>
                     )}
+                    
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="w-48">
                         {application.jobUrl && (
                           <DropdownMenuItem asChild>
                             <a href={application.jobUrl} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
                               <ExternalLink className="w-4 h-4 mr-2" />
-                              View Job
+                              Open Job Posting
                             </a>
                           </DropdownMenuItem>
                         )}
+                        <DropdownMenuItem onClick={() => createFollowUpTask(application)}>
+                          <Calendar className="w-4 h-4 mr-2" />
+                          Add Follow-up Task
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onEdit?.(application)}>
                           <Edit className="w-4 h-4 mr-2" />
-                          Edit Status
+                          Update Status
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => {
-                          const subject = `Interview preparation for ${application.jobTitle}`;
                           window.open(`/interview-prep-tools?job=${encodeURIComponent(application.jobTitle)}&company=${encodeURIComponent(application.company)}`, '_blank');
                         }}>
                           <Users className="w-4 h-4 mr-2" />
                           Interview Prep
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => {
-                          navigator.clipboard.writeText(`${application.jobTitle} at ${application.company}`);
-                        }}>
-                          <Building className="w-4 h-4 mr-2" />
-                          Copy Details
                         </DropdownMenuItem>
                         {showActions && (
                           <DropdownMenuItem 

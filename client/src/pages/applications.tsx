@@ -42,7 +42,8 @@ import {
   ChevronRight,
   Upload,
   UserPlus,
-  Chrome
+  Chrome,
+  ExternalLink // Import ExternalLink
 } from "lucide-react";
 
 // Helper functions
@@ -208,7 +209,7 @@ export default function Applications() {
         }),
       });
       const analysis = await response.json();
-      
+
       toast({
         title: "Job Analysis Complete",
         description: `Match Score: ${analysis.matchScore}% - ${analysis.recommendation}`,
@@ -233,7 +234,7 @@ export default function Applications() {
         }),
       });
       const result = await response.json();
-      
+
       await navigator.clipboard.writeText(result.coverLetter);
       toast({
         title: "Cover Letter Generated",
@@ -260,10 +261,10 @@ export default function Applications() {
         }),
       });
       const prep = await response.json();
-      
+
       const totalQuestions = prep.questions ? 
         Object.values(prep.questions).reduce((acc: number, arr: any) => acc + (Array.isArray(arr) ? arr.length : 0), 0) : 0;
-      
+
       toast({
         title: "Interview Prep Ready",
         description: `${totalQuestions} questions prepared`,
@@ -289,7 +290,7 @@ export default function Applications() {
         }),
       });
       const insights = await response.json();
-      
+
       toast({
         title: "Salary Insights",
         description: `Average: ${insights.averageSalary || 'N/A'}`,
@@ -322,42 +323,50 @@ export default function Applications() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-8">
-          {/* Header */}
-          <motion.div 
-            className="flex items-center justify-between mb-8"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
+      <div className="container mx-auto px-4 py-6 md:py-8 max-w-7xl">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+              Applications
+            </h1>
+            <p className="text-sm md:text-base text-gray-500 dark:text-gray-400 mt-1">
+              {applications.length} {applications.length === 1 ? 'application' : 'applications'} tracked
+            </p>
+          </div>
+          <Button
+            onClick={() => window.location.href = '/job-seeker-tasks'}
+            variant="default"
+            className="shadow-sm"
           >
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Job Applications & Saved Jobs
-              </h1>
-              <p className="text-gray-600 dark:text-gray-300 mt-2">
-                Track applications and manage your saved jobs
-              </p>
-            </div>
+            <Calendar className="w-4 h-4 mr-2" />
+            View Tasks
+          </Button>
+        </div>
 
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  queryClient.invalidateQueries({ queryKey: ["/api/applications"] });
-                  queryClient.invalidateQueries({ queryKey: ["/api/saved-jobs"] });
-                  toast({
-                    title: "Synced",
-                    description: "Application and saved jobs data refreshed.",
-                  });
-                }}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Sync
-              </Button>
-            </div>
-          </motion.div>
+        {/* Smart Insights - Competitive advantage */}
+        {applications.length > 0 && (
+          <Card className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-800">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                  <Bell className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-sm text-gray-900 dark:text-white mb-1">Smart Follow-up Suggestions</h3>
+                  <p className="text-xs text-gray-600 dark:text-gray-300">
+                    {applications.filter(app => {
+                      const daysSince = Math.floor((Date.now() - new Date(app.appliedDate || app.appliedAt).getTime()) / (1000 * 60 * 60 * 24));
+                      return daysSince >= 7 && daysSince <= 14 && app.status === 'applied';
+                    }).length} applications need follow-up this week. Click "Create Follow-up" on any card to add a task.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-          {/* Enhanced Stats Cards with Gamification */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <Card className="relative overflow-hidden">
               <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-400/20 to-blue-600/20 rounded-full -mr-8 -mt-8"></div>
               <CardContent className="p-6">
@@ -1020,6 +1029,19 @@ export default function Applications() {
                             }}
                           >
                             💰 Salary
+                          </Button>
+                          {/* Add task creation button for follow-up */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-7"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setQuickTaskTitle(`Follow up on ${app.jobTitle || app.company}`);
+                              // Optionally, pre-fill due date or other details
+                            }}
+                          >
+                            ➕ Follow-up Task
                           </Button>
                         </div>
                       </div>
