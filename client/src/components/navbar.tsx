@@ -190,6 +190,13 @@ export function Navbar() {
           current: location === "/enhanced-crm" || location.startsWith("/enhanced-crm") || location === "/crm"
         },
         {
+          name: "Get Referred",
+          href: "/referral-marketplace",
+          icon: Handshake,
+          current: location === "/referral-marketplace" || location.startsWith("/referral-marketplace"),
+          badge: "New"
+        },
+        {
           name: "Premium AI Tools",
           href: "/premium-ai-tools",
           icon: Zap,

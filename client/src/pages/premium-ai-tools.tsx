@@ -145,7 +145,7 @@ export default function PremiumAITools() {
   // Tutorial content
   const tutorials = {
     "cover-letter": {
-      title: "AI Cover Letter Generator",
+      title: "AI Cover Letter Writer - Personalized Job Applications",
       steps: [
         "Paste the job description you're applying for",
         "AI analyzes the job requirements and company culture",
@@ -157,7 +157,7 @@ export default function PremiumAITools() {
       stats: { success: "95%", time: "2 min", interviews: "3x more" }
     },
     "salary": {
-      title: "Salary Negotiation Coach",
+      title: "Salary Negotiation Coach - Get Higher Offers",
       steps: [
         "Enter your current offer and desired salary",
         "AI analyzes market data for your role and location",
@@ -169,7 +169,7 @@ export default function PremiumAITools() {
       stats: { avgIncrease: "$12,000", confidence: "92%", successRate: "78%" }
     },
     "interview": {
-      title: "STAR Method Interview Answers",
+      title: "STAR Interview Answer Generator - Ace Behavioral Questions",
       steps: [
         "Enter any behavioral interview question",
         "AI analyzes your resume for relevant experiences",
@@ -181,7 +181,7 @@ export default function PremiumAITools() {
       stats: { questions: "50+", passRate: "89%", avgTime: "3 min" }
     },
     "career": {
-      title: "Career Path Planner",
+      title: "Career Growth Planner - 3-5 Year Roadmap Builder",
       steps: [
         "Tell us your current role and experience level",
         "AI maps out your 3-5 year career roadmap",
@@ -193,7 +193,7 @@ export default function PremiumAITools() {
       stats: { pathways: "500+", accuracy: "94%", timeframe: "3-5 years" }
     },
     "bullets": {
-      title: "Resume Bullet Enhancer",
+      title: "Resume Bullet Point Enhancer - Achievement Statements",
       steps: [
         "Paste your weak resume bullet points",
         "AI transforms them into achievement statements",
@@ -205,7 +205,7 @@ export default function PremiumAITools() {
       stats: { improvement: "87%", atsScore: "+45", recruiters: "2x views" }
     },
     "tailor": {
-      title: "Resume Optimizer & PDF Generator",
+      title: "Resume Optimizer - ATS-Friendly PDF Generator",
       steps: [
         "Upload your resume or use stored version",
         "Paste the target job description",
@@ -217,7 +217,7 @@ export default function PremiumAITools() {
       stats: { atsScore: "85+", timesSaved: "30 min", applications: "100s" }
     },
     "gaps": {
-      title: "Career Gap Strategy",
+      title: "Career Gap Explainer - Turn Gaps Into Strengths",
       steps: [
         "Enter your employment gap period and reason",
         "AI creates positive framing strategies",
@@ -229,7 +229,7 @@ export default function PremiumAITools() {
       stats: { strategies: "5+", confidence: "94%", hirability: "+67%" }
     },
     "linkedin-optimizer": {
-      title: "LinkedIn Profile Optimizer",
+      title: "LinkedIn Profile Optimizer - 5x More Recruiter Views",
       steps: [
         "Connect your LinkedIn profile",
         "AI analyzes profile strength and visibility",
@@ -712,7 +712,16 @@ export default function PremiumAITools() {
                   {key === 'gaps' && <Calendar className="w-5 h-5" />}
                   {key === 'linkedin-optimizer' && <Globe className="w-5 h-5" />}
                 </div>
-                <span className="text-xs hidden sm:inline">{tutorial.title.split(' ')[0]}</span>
+                <span className="text-xs hidden sm:inline text-center leading-tight">
+                  {key === 'cover-letter' && 'Cover Letter'}
+                  {key === 'salary' && 'Salary Coach'}
+                  {key === 'interview' && 'Interview Prep'}
+                  {key === 'career' && 'Career Path'}
+                  {key === 'bullets' && 'Resume Bullets'}
+                  {key === 'tailor' && 'Resume Optimizer'}
+                  {key === 'gaps' && 'Gap Explainer'}
+                  {key === 'linkedin-optimizer' && 'LinkedIn'}
+                </span>
               </TabsTrigger>
             ))}
           </TabsList>
