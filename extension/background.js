@@ -754,12 +754,33 @@ class AutoJobrBackground {
 
   async trackApplication(data) {
     try {
-      console.log('[TRACK APP] Starting application tracking:', data);
+      console.log('[TRACK APP] Starting application tracking:', {
+        jobTitle: data.jobTitle,
+        company: data.company,
+        location: data.location,
+        jobUrl: data.jobUrl,
+        platform: data.platform
+      });
 
       // Use session-based authentication instead of Bearer tokens
       const headers = {
         'Content-Type': 'application/json'
       };
+
+      const requestBody = {
+        jobTitle: data.jobTitle,
+        company: data.company,
+        location: data.location || '',
+        jobUrl: data.jobUrl || window.location?.href || '',
+        status: data.status || 'applied',
+        source: 'extension',
+        platform: data.platform || 'extension',
+        appliedDate: data.appliedDate || new Date().toISOString(),
+        jobType: data.jobType || null,
+        workMode: data.workMode || null
+      };
+
+      console.log('[TRACK APP] Request body:', requestBody);
 
       // Use the correct endpoint that saves to job_applications table
       const response = await fetch(`${this.apiUrl}/api/track-application`, {
@@ -767,41 +788,52 @@ class AutoJobrBackground {
         headers,
         credentials: 'include', // Send session cookies
         mode: 'cors',
-        body: JSON.stringify({
-          jobTitle: data.jobTitle,
-          company: data.company,
-          location: data.location || '',
-          jobUrl: data.jobUrl || window.location.href,
-          status: data.status || 'applied',
-          source: 'extension',
-          platform: data.platform || 'extension',
-          appliedDate: data.appliedDate || new Date().toISOString()
-        })
+        body: JSON.stringify(requestBody)
       });
+
+      console.log('[TRACK APP] Response status:', response.status);
 
       if (!response.ok) {
         if (response.status === 401) {
-          console.log('[TRACK APP] User not authenticated');
+          console.error('[TRACK APP] User not authenticated');
           throw new Error('Please log in to AutoJobr to track applications');
         }
         const errorText = await response.text();
-        console.error('[TRACK APP] Failed:', errorText);
+        console.error('[TRACK APP] Server error:', errorText);
         throw new Error(`Failed to track application: ${errorText}`);
       }
 
       const result = await response.json();
-      console.log('[TRACK APP] Success:', result);
+      console.log('[TRACK APP] ✅ Success - Application tracked:', {
+        success: result.success,
+        applicationId: result.applicationId || result.application?.id,
+        duplicate: result.duplicate
+      });
 
-      await this.showAdvancedNotification(
-        'Application Tracked! 📊',
-        `Tracked: ${data.jobTitle} at ${data.company}`,
-        'success'
-      );
+      if (result.success) {
+        await this.showAdvancedNotification(
+          result.duplicate ? 'Already Tracked! 📋' : 'Application Tracked! 📊',
+          `${data.jobTitle} at ${data.company}`,
+          'success'
+        );
+      }
 
-      return { success: true, application: result };
+      return { success: true, application: result.application || result };
 
     } catch (error) {
-      console.error('[TRACK APP] Error:', error);
+      console.error('[TRACK APP] ❌ Error:', error);
+      console.error('[TRACK APP] Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
+      
+      // Show error notification
+      await this.showAdvancedNotification(
+        'Tracking Failed ❌',
+        error.message || 'Failed to track application',
+        'error'
+      );
+      
       throw error;
     }
   }

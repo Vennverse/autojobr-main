@@ -178,7 +178,7 @@
         }
 
         // Handle application submission
-        document.getElementById('apply-button').addEventListener('click', function() {
+        document.getElementById('apply-button').addEventListener('click', async function() {
             const button = this;
             button.disabled = true;
             button.textContent = 'Submitting...';
@@ -186,26 +186,73 @@
             // Log to console for extension to detect
             console.log('[TEST PAGE] Application submitted:', window.jobData);
             
-            // Simulate API call
-            setTimeout(() => {
-                button.textContent = 'Application Submitted!';
-                button.style.background = '#22c55e';
+            // Trigger extension tracking via Chrome runtime messaging
+            try {
+                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                    console.log('[TEST PAGE] Sending message to extension...');
+                    
+                    const response = await chrome.runtime.sendMessage({
+                        action: 'trackApplication',
+                        data: {
+                            jobTitle: window.jobData.title,
+                            company: window.jobData.company,
+                            location: window.jobData.location,
+                            jobUrl: window.jobData.url,
+                            status: 'applied',
+                            source: 'extension',
+                            platform: 'test_page',
+                            jobType: window.jobData.jobType,
+                            workMode: window.jobData.workMode
+                        }
+                    });
+                    
+                    console.log('[TEST PAGE] Extension response:', response);
+                    
+                    button.textContent = response?.success ? 'Tracked Successfully! ✅' : 'Application Submitted!';
+                    button.style.background = response?.success ? '#22c55e' : '#0073b1';
+                    
+                    // Update results
+                    document.getElementById('results-content').innerHTML = `
+                        <span class="status-dot ${response?.success ? 'success' : 'loading'}"></span>
+                        <strong>${response?.success ? '✅ Application Tracked!' : 'Application Submitted'}</strong>
+                        <ul style="margin-top: 10px; margin-left: 20px;">
+                            <li><strong>Job Title:</strong> ${window.jobData.title}</li>
+                            <li><strong>Company:</strong> ${window.jobData.company}</li>
+                            <li><strong>Location:</strong> ${window.jobData.location}</li>
+                            <li><strong>Status:</strong> ${response?.success ? 'Successfully tracked in AutoJobr' : 'Submitted'}</li>
+                            <li><strong>Application ID:</strong> ${response?.applicationId || 'Pending'}</li>
+                        </ul>
+                        <p style="margin-top: 10px;">
+                            <em>Check your <a href="/applications" target="_blank">Applications page</a> to see the tracked job!</em>
+                        </p>
+                    `;
+                } else {
+                    throw new Error('Extension not available');
+                }
+            } catch (error) {
+                console.error('[TEST PAGE] Extension tracking failed:', error);
                 
-                // Update results
+                button.textContent = 'Extension Not Found ❌';
+                button.style.background = '#ef4444';
+                
                 document.getElementById('results-content').innerHTML = `
-                    <span class="status-dot success"></span>
-                    <strong>Application Submitted!</strong>
-                    <ul style="margin-top: 10px; margin-left: 20px;">
-                        <li><strong>Job Title:</strong> ${window.jobData.title}</li>
-                        <li><strong>Company:</strong> ${window.jobData.company}</li>
-                        <li><strong>Location:</strong> ${window.jobData.location}</li>
-                        <li><strong>URL:</strong> ${window.jobData.url}</li>
-                    </ul>
+                    <span class="status-dot error"></span>
+                    <strong>❌ Extension tracking failed</strong>
                     <p style="margin-top: 10px;">
-                        <em>Check the browser console (F12 → Console) for tracking logs from the extension.</em>
+                        Error: ${error.message}
                     </p>
+                    <p style="margin-top: 10px;">
+                        Please ensure:
+                    </p>
+                    <ul style="margin-left: 20px;">
+                        <li>The AutoJobr extension is installed and enabled</li>
+                        <li>You're logged in to AutoJobr</li>
+                        <li>The extension has permission to access this page</li>
+                    </ul>
                 `;
-            }, 1000);
+                
+                button.disabled = false;
+            }
         });
 
         // Start checking for extension

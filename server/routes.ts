@@ -809,30 +809,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[APPLICATIONS] Platform applications: ${platformApplications.length}`);
 
       // 2. Get extension-tracked applications (external job boards)
+      console.log(`[APPLICATIONS] Fetching extension applications for user: ${userId}`);
+      
       const extensionApplications = await db
         .select()
         .from(schema.jobApplications)
         .where(eq(schema.jobApplications.userId, userId))
         .orderBy(desc(schema.jobApplications.lastUpdated))
         .limit(100)
-        .then(rows => rows.map(row => ({
-          id: row.id,
-          jobPostingId: null,
-          status: row.status || 'applied',
-          appliedAt: row.appliedDate || row.lastUpdated || new Date(),
-          appliedDate: row.appliedDate || row.lastUpdated || new Date(),
-          jobTitle: row.jobTitle || 'Unknown Position',
-          company: row.company || 'Unknown Company',
-          companyName: row.company || 'Unknown Company',
-          location: row.location,
-          jobType: row.jobType,
-          workMode: row.workMode,
-          source: 'extension' as const,
-          jobUrl: row.jobUrl,
-          notes: row.notes,
-        })));
+        .then(rows => {
+          console.log(`[APPLICATIONS] Raw extension apps from DB: ${rows.length}`);
+          if (rows.length > 0) {
+            console.log('[APPLICATIONS] Sample extension app:', {
+              id: rows[0].id,
+              jobTitle: rows[0].jobTitle,
+              company: rows[0].company,
+              source: rows[0].source,
+              appliedDate: rows[0].appliedDate
+            });
+          }
+          return rows.map(row => ({
+            id: row.id,
+            jobPostingId: null,
+            status: row.status || 'applied',
+            appliedAt: row.appliedDate || row.lastUpdated || new Date(),
+            appliedDate: row.appliedDate || row.lastUpdated || new Date(),
+            jobTitle: row.jobTitle || 'Unknown Position',
+            company: row.company || 'Unknown Company',
+            companyName: row.company || 'Unknown Company',
+            location: row.location,
+            jobType: row.jobType,
+            workMode: row.workMode,
+            source: 'extension' as const,
+            jobUrl: row.jobUrl,
+            notes: row.notes,
+          }));
+        });
 
-      console.log(`[APPLICATIONS] Extension applications: ${extensionApplications.length}`);
+      console.log(`[APPLICATIONS] Extension applications mapped: ${extensionApplications.length}`);
 
       // 3. Combine and sort by date
       const allApplications = [...platformApplications, ...extensionApplications]
@@ -860,11 +874,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         jobTitle,
         company,
         jobUrl,
-        source
+        source,
+        platform
       });
 
       // Validate required fields
       if (!jobTitle || !company) {
+        console.error('[EXTENSION TRACKING] Missing required fields:', { jobTitle, company });
         return res.status(400).json({ 
           success: false, 
           error: 'Job title and company are required' 
@@ -879,7 +895,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           and(
             eq(schema.jobApplications.userId, userId),
             or(
-              eq(schema.jobApplications.jobUrl, jobUrl),
+              jobUrl ? eq(schema.jobApplications.jobUrl, jobUrl) : sql`false`,
               and(
                 eq(schema.jobApplications.jobTitle, jobTitle),
                 eq(schema.jobApplications.company, company)
@@ -890,44 +906,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .limit(1);
 
       if (existingApp.length > 0) {
-        console.log('[EXTENSION TRACKING] Duplicate application detected, skipping');
+        console.log('[EXTENSION TRACKING] Duplicate application detected, returning existing:', existingApp[0].id);
         return res.json({ 
           success: true, 
           message: 'Application already tracked',
-          duplicate: true 
+          duplicate: true,
+          application: existingApp[0]
         });
       }
 
-      // Insert new application
+      // Insert new application with proper date handling
+      const applicationDate = appliedDate ? new Date(appliedDate) : new Date();
+      
       const [newApplication] = await db
         .insert(schema.jobApplications)
         .values({
           userId,
-          jobTitle,
-          company,
-          location: location || null,
-          jobUrl: jobUrl || null,
+          jobTitle: jobTitle.trim(),
+          company: company.trim(),
+          location: location?.trim() || null,
+          jobUrl: jobUrl?.trim() || null,
           status: status || 'applied',
           source: 'extension', // Always mark as extension source
-          appliedDate: appliedDate ? new Date(appliedDate) : new Date(),
+          appliedDate: applicationDate,
           lastUpdated: new Date(),
-          notes: platform ? `Applied via ${platform}` : null
+          notes: platform ? `Applied via ${platform}` : 'Applied via Chrome Extension',
+          jobType: req.body.jobType || null,
+          workMode: req.body.workMode || null
         })
         .returning();
 
-      console.log('[EXTENSION TRACKING] Application saved successfully:', newApplication.id);
+      console.log('[EXTENSION TRACKING] ✅ Application saved successfully:', {
+        id: newApplication.id,
+        jobTitle: newApplication.jobTitle,
+        company: newApplication.company,
+        source: newApplication.source,
+        appliedDate: newApplication.appliedDate
+      });
 
-      // Invalidate cache
+      // Invalidate cache to force refresh on frontend
       invalidateUserCache(userId);
 
+      // Return full application data
       res.json({ 
         success: true, 
         message: 'Application tracked successfully',
+        application: newApplication,
         applicationId: newApplication.id
       });
 
     } catch (error) {
       console.error('[EXTENSION TRACKING ERROR]:', error);
+      console.error('[EXTENSION TRACKING ERROR STACK]:', error instanceof Error ? error.stack : 'No stack trace');
       res.status(500).json({ 
         success: false, 
         error: 'Failed to track application',
