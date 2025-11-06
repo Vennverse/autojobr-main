@@ -25,10 +25,7 @@ interface JobCardProps {
     jobDescription?: string;
     isBookmarked?: boolean;
     isApplied?: boolean;
-    isNew?: boolean;
-    lastViewed?: string;
   };
-  onView?: (jobId: number) => void;
 }
 
 // Utility function to format job types professionally
@@ -64,16 +61,10 @@ const formatWorkMode = (workMode?: string) => {
   return modeMap[workMode.toLowerCase()] || workMode;
 };
 
-export function JobCard({ job, onView }: JobCardProps) {
+export function JobCard({ job }: JobCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isBookmarked, setIsBookmarked] = useState(job.isBookmarked || false);
-  
-  const handleCardClick = () => {
-    if (onView) {
-      onView(job.id);
-    }
-  };
 
   const bookmarkMutation = useMutation({
     mutationFn: async () => {
@@ -127,7 +118,7 @@ export function JobCard({ job, onView }: JobCardProps) {
   };
 
   return (
-    <Card className="hover:shadow-md transition-shadow" onClick={handleCardClick}>
+    <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-4 sm:p-6">
         <div className="flex items-start justify-between mb-3 sm:mb-4">
           <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
@@ -135,14 +126,7 @@ export function JobCard({ job, onView }: JobCardProps) {
               <Building className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-foreground text-sm sm:text-base truncate">{job.company}</h3>
-                {job.isNew && (
-                  <Badge className="bg-green-500/10 text-green-500 hover:bg-green-500/20" variant="secondary">
-                    New
-                  </Badge>
-                )}
-              </div>
+              <h3 className="font-semibold text-foreground text-sm sm:text-base truncate">{job.company}</h3>
               <p className="text-xs sm:text-sm text-muted-foreground flex items-center">
                 {job.location && (
                   <>
