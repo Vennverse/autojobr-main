@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Navbar } from "@/components/navbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Search, 
@@ -47,7 +50,9 @@ import {
   Brain,
   Lightbulb,
   CheckSquare,
-  XCircle
+  XCircle,
+  Copy,
+  Info
 } from "lucide-react";
 
 // Premium Feature Gate Component
@@ -91,36 +96,327 @@ const PremiumFeature = ({
   return <>{children}</>;
 };
 
+// Follow-up Email Modal Component
+const FollowUpEmailModal = ({ 
+  isOpen, 
+  onClose, 
+  application,
+  isPremium
+}: { 
+  isOpen: boolean;
+  onClose: () => void;
+  application: any;
+  isPremium: boolean;
+}) => {
+  const { toast } = useToast();
+  const [emailContent, setEmailContent] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
+
+  const generateEmailMutation = useMutation({
+    mutationFn: async (appId: number) => {
+      return await apiRequest('POST', `/api/applications/${appId}/follow-up-email`);
+    },
+    onSuccess: (data) => {
+      setEmailContent(data.email);
+      toast({
+        title: "✨ Email generated!",
+        description: "Your follow-up email is ready to send.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
+    },
+    onError: (error: any) => {
+      const errorMessage = error.message || "Failed to generate email";
+      if (errorMessage.includes("Limit reached")) {
+        toast({
+          title: "❌ Limit reached",
+          description: "Free users get 2 follow-up emails per month. Upgrade to Premium for unlimited access.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    }
+  });
+
+  const handleCopyEmail = () => {
+    if (emailContent) {
+      navigator.clipboard.writeText(`Subject: ${emailContent.subject}\n\n${emailContent.body}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast({
+        title: "📋 Copied!",
+        description: "Email copied to clipboard",
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && application && !emailContent) {
+      generateEmailMutation.mutate(application.id);
+    }
+  }, [isOpen, application]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setEmailContent(null);
+    }
+  }, [isOpen]);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Mail className="w-5 h-5" />
+            Follow-up Email for {application?.company}
+          </DialogTitle>
+          <DialogDescription>
+            AI-generated professional follow-up email template
+          </DialogDescription>
+        </DialogHeader>
+
+        {generateEmailMutation.isPending ? (
+          <div className="py-12 text-center">
+            <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+            <p className="text-gray-600">Generating your personalized email...</p>
+          </div>
+        ) : emailContent ? (
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Subject</label>
+              <Input 
+                value={emailContent.subject}
+                onChange={(e) => setEmailContent({ ...emailContent, subject: e.target.value })}
+                className="mt-1"
+                data-testid="input-email-subject"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Email Body</label>
+              <Textarea 
+                value={emailContent.body}
+                onChange={(e) => setEmailContent({ ...emailContent, body: e.target.value })}
+                rows={12}
+                className="mt-1 font-mono text-sm"
+                data-testid="textarea-email-body"
+              />
+            </div>
+
+            <Alert>
+              <Lightbulb className="w-4 h-4" />
+              <AlertDescription>
+                <p className="font-semibold mb-2">💡 Pro Tips:</p>
+                <ul className="text-sm space-y-1 list-disc list-inside">
+                  {emailContent.tips?.map((tip: string, i: number) => (
+                    <li key={i}>{tip}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          </div>
+        ) : null}
+
+        <DialogFooter className="gap-2">
+          <Button 
+            variant="outline" 
+            onClick={onClose}
+            data-testid="button-close-email-modal"
+          >
+            Close
+          </Button>
+          <Button 
+            onClick={handleCopyEmail}
+            disabled={!emailContent}
+            data-testid="button-copy-email"
+          >
+            {copied ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+                Copied!
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4 mr-2" />
+                Copy Email
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Quality Check Modal Component
+const QualityCheckModal = ({ 
+  isOpen, 
+  onClose, 
+  application
+}: { 
+  isOpen: boolean;
+  onClose: () => void;
+  application: any;
+}) => {
+  const { toast } = useToast();
+  const [qualityData, setQualityData] = useState<any>(null);
+
+  const qualityCheckMutation = useMutation({
+    mutationFn: async (appId: number) => {
+      return await apiRequest('POST', `/api/applications/${appId}/quality-check`);
+    },
+    onSuccess: (data) => {
+      setQualityData(data.quality);
+      queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to check quality",
+        variant: "destructive",
+      });
+    }
+  });
+
+  useEffect(() => {
+    if (isOpen && application && !qualityData) {
+      qualityCheckMutation.mutate(application.id);
+    }
+  }, [isOpen, application]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setQualityData(null);
+    }
+  }, [isOpen]);
+
+  const getGradeColor = (grade: string) => {
+    switch (grade) {
+      case 'A': return 'text-green-600';
+      case 'B': return 'text-blue-600';
+      case 'C': return 'text-orange-600';
+      default: return 'text-red-600';
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Award className="w-5 h-5" />
+            Application Quality Report
+          </DialogTitle>
+          <DialogDescription>
+            AI analysis of your application to {application?.company}
+          </DialogDescription>
+        </DialogHeader>
+
+        {qualityCheckMutation.isPending ? (
+          <div className="py-12 text-center">
+            <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+            <p className="text-gray-600">Analyzing your application...</p>
+          </div>
+        ) : qualityData ? (
+          <div className="space-y-4">
+            <div className="text-center py-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg">
+              <div className={`text-6xl font-bold ${getGradeColor(qualityData.grade)} mb-2`}>
+                {qualityData.grade}
+              </div>
+              <div className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">
+                {qualityData.score}/100
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Overall Quality Score
+              </p>
+            </div>
+
+            {qualityData.feedback && qualityData.feedback.length > 0 && (
+              <div>
+                <h4 className="font-semibold mb-3">Feedback:</h4>
+                <div className="space-y-2">
+                  {qualityData.feedback.map((item: any, i: number) => (
+                    <Alert key={i} variant={item.type === 'warning' ? 'destructive' : 'default'}>
+                      <AlertCircle className="w-4 h-4" />
+                      <AlertDescription>
+                        <p className="font-semibold">{item.message}</p>
+                        <p className="text-sm mt-1">{item.action}</p>
+                      </AlertDescription>
+                    </Alert>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {qualityData.recommendations && qualityData.recommendations.length > 0 && (
+              <div>
+                <h4 className="font-semibold mb-3">💡 Recommendations:</h4>
+                <ul className="space-y-2">
+                  {qualityData.recommendations.map((rec: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <Lightbulb className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                      <span>{rec}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        ) : null}
+
+        <DialogFooter>
+          <Button onClick={onClose} data-testid="button-close-quality-modal">
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export default function ApplicationsNew() {
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
-  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
+  const [emailModalApp, setEmailModalApp] = useState<any>(null);
+  const [qualityModalApp, setQualityModalApp] = useState<any>(null);
 
   const isPremium = user?.planType === "premium" || user?.subscriptionStatus === "active";
 
-  // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       window.location.href = "/";
     }
   }, [isAuthenticated, authLoading]);
 
-  // Fetch applications
   const { data: applications = [], isLoading: appsLoading } = useQuery({
     queryKey: ["/api/applications"],
     enabled: isAuthenticated,
   });
 
-  // Fetch tasks
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ["/api/tasks"],
     enabled: isAuthenticated,
   });
 
-  // Calculate analytics
+  const { data: dailyActionsData, isLoading: actionsLoading } = useQuery({
+    queryKey: ["/api/applications/daily-actions"],
+    enabled: isAuthenticated && isPremium,
+    retry: false,
+  });
+
+  const { data: analyticsData, isLoading: analyticsLoading } = useQuery({
+    queryKey: ["/api/applications/analytics"],
+    enabled: isAuthenticated && isPremium,
+    retry: false,
+  });
+
   const analytics = {
     total: applications.length,
     thisWeek: applications.filter((app: any) => {
@@ -139,43 +435,21 @@ export default function ApplicationsNew() {
     responseRate: applications.length > 0 
       ? Math.round((applications.filter((app: any) => app.status !== 'applied').length / applications.length) * 100)
       : 0,
-    avgResponseTime: 5.2, // Mock for now, can calculate from actual data
+    avgResponseTime: 5.2,
   };
 
-  // Get today's priority actions (AI-powered for premium)
-  const todayActions = [
-    ...(applications
-      .filter((app: any) => {
-        const daysSince = Math.floor(
-          (Date.now() - new Date(app.appliedDate || app.createdAt).getTime()) / (1000 * 60 * 60 * 24)
-        );
-        return daysSince === 7 && app.status === 'applied';
-      })
-      .slice(0, 3)
-      .map((app: any) => ({
-        type: 'followup',
-        priority: 'high',
-        title: `Follow up: ${app.company}`,
-        description: `7 days since application. Send follow-up email.`,
-        applicationId: app.id,
-        company: app.company,
-        jobTitle: app.jobTitle,
-      }))),
-    ...(applications
-      .filter((app: any) => app.status === 'interview')
-      .slice(0, 2)
-      .map((app: any) => ({
-        type: 'prep',
-        priority: 'urgent',
-        title: `Prep for ${app.company} interview`,
-        description: `Review job description and practice questions.`,
-        applicationId: app.id,
-        company: app.company,
-        jobTitle: app.jobTitle,
-      }))),
-  ].slice(0, 5);
+  const todayActions = isPremium && dailyActionsData?.actions 
+    ? dailyActionsData.actions 
+    : [];
 
-  // Loading state
+  const handleGenerateEmail = (app: any) => {
+    setEmailModalApp(app);
+  };
+
+  const handleQualityCheck = (app: any) => {
+    setQualityModalApp(app);
+  };
+
   if (authLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -192,7 +466,6 @@ export default function ApplicationsNew() {
       <Navbar />
 
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -218,7 +491,6 @@ export default function ApplicationsNew() {
           </div>
         </motion.div>
 
-        {/* Quick Stats */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -287,9 +559,7 @@ export default function ApplicationsNew() {
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content - 2/3 width */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Daily Action Plan - PREMIUM */}
             <PremiumFeature requiresPremium={true} featureName="Daily Action Plan">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -307,18 +577,23 @@ export default function ApplicationsNew() {
                       </Badge>
                     </CardTitle>
                     <CardDescription className="text-indigo-100">
-                      {todayActions.length} actions to move closer to your next interview
+                      {actionsLoading ? 'Loading...' : `${todayActions.length} actions to move closer to your next interview`}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {todayActions.length === 0 ? (
+                    {actionsLoading ? (
+                      <div className="py-8 text-center">
+                        <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3 text-white/80" />
+                        <p className="text-white/90">Loading your actions...</p>
+                      </div>
+                    ) : todayActions.length === 0 ? (
                       <div className="text-center py-8">
                         <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-white/80" />
                         <p className="text-white/90">You're all caught up! 🎉</p>
                         <p className="text-indigo-200 text-sm mt-1">Check back tomorrow for new actions</p>
                       </div>
                     ) : (
-                      todayActions.map((action, index) => (
+                      todayActions.map((action: any, index: number) => (
                         <motion.div
                           key={index}
                           initial={{ opacity: 0, x: -20 }}
@@ -333,7 +608,9 @@ export default function ApplicationsNew() {
                               action.priority === 'high' ? 'bg-orange-500' : 
                               'bg-blue-500'
                             }`}>
-                              {action.type === 'followup' ? <Mail className="w-4 h-4" /> : <Brain className="w-4 h-4" />}
+                              {action.type === 'followup' ? <Mail className="w-4 h-4" /> : 
+                               action.type === 'quality_check' ? <Award className="w-4 h-4" /> :
+                               <Brain className="w-4 h-4" />}
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
@@ -347,17 +624,20 @@ export default function ApplicationsNew() {
                                 <Button 
                                   size="sm" 
                                   className="bg-white text-indigo-600 hover:bg-white/90"
+                                  onClick={() => {
+                                    const app = applications.find((a: any) => a.id === action.applicationId);
+                                    if (action.type === 'followup') {
+                                      handleGenerateEmail(app);
+                                    } else if (action.type === 'quality_check') {
+                                      handleQualityCheck(app);
+                                    }
+                                  }}
                                   data-testid={`button-take-action-${index}`}
                                 >
-                                  {action.type === 'followup' ? 'Send Email' : 'Start Prep'}
+                                  {action.type === 'followup' ? 'Generate Email' : 
+                                   action.type === 'quality_check' ? 'Check Quality' : 
+                                   'Start Prep'}
                                   <ArrowRight className="w-3 h-3 ml-1" />
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  className="border-white/30 text-white hover:bg-white/10"
-                                >
-                                  Later
                                 </Button>
                               </div>
                             </div>
@@ -370,7 +650,6 @@ export default function ApplicationsNew() {
               </motion.div>
             </PremiumFeature>
 
-            {/* Applications List */}
             <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -459,12 +738,11 @@ export default function ApplicationsNew() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.05 }}
-                            className={`p-4 rounded-lg border-2 transition-all hover:shadow-md cursor-pointer ${
+                            className={`p-4 rounded-lg border-2 transition-all hover:shadow-md ${
                               needsFollowUp 
                                 ? 'border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/10' 
                                 : 'border-gray-100 bg-white dark:border-gray-700 dark:bg-gray-800'
                             }`}
-                            onClick={() => setSelectedApplication(app)}
                             data-testid={`application-card-${app.id}`}
                           >
                             <div className="flex items-start justify-between">
@@ -477,6 +755,12 @@ export default function ApplicationsNew() {
                                     <Badge variant="outline" className="border-orange-500 text-orange-600">
                                       <AlertCircle className="w-3 h-3 mr-1" />
                                       Follow-up
+                                    </Badge>
+                                  )}
+                                  {app.applicationQualityScore && (
+                                    <Badge variant="secondary">
+                                      <Award className="w-3 h-3 mr-1" />
+                                      {app.applicationQualityScore}/100
                                     </Badge>
                                   )}
                                 </div>
@@ -498,42 +782,33 @@ export default function ApplicationsNew() {
                                   )}
                                 </div>
                               </div>
-                              <Button 
-                                size="sm" 
-                                variant="ghost"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // Open quick actions menu
-                                }}
-                                data-testid={`button-actions-${app.id}`}
-                              >
-                                <ChevronDown className="w-4 h-4" />
-                              </Button>
                             </div>
 
-                            {/* Quick Actions - Show on hover */}
-                            <div className="flex gap-2 mt-3 opacity-0 hover:opacity-100 transition-opacity">
+                            <div className="flex gap-2 mt-3">
                               {needsFollowUp && (
-                                <Button size="sm" variant="outline" className="text-xs">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="text-xs"
+                                  onClick={() => handleGenerateEmail(app)}
+                                  data-testid={`button-generate-email-${app.id}`}
+                                >
                                   <Mail className="w-3 h-3 mr-1" />
-                                  Send Follow-up
+                                  Generate Follow-up
+                                  {!isPremium && <Lock className="w-3 h-3 ml-1" />}
                                 </Button>
                               )}
-                              <Button size="sm" variant="outline" className="text-xs">
-                                <Linkedin className="w-3 h-3 mr-1" />
-                                Find Contact
-                              </Button>
-                              {isPremium && (
-                                <>
-                                  <Button size="sm" variant="outline" className="text-xs">
-                                    <FileText className="w-3 h-3 mr-1" />
-                                    Cover Letter
-                                  </Button>
-                                  <Button size="sm" variant="outline" className="text-xs">
-                                    <Brain className="w-3 h-3 mr-1" />
-                                    Interview Prep
-                                  </Button>
-                                </>
+                              {isPremium && !app.applicationQualityScore && (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="text-xs"
+                                  onClick={() => handleQualityCheck(app)}
+                                  data-testid={`button-quality-check-${app.id}`}
+                                >
+                                  <Award className="w-3 h-3 mr-1" />
+                                  Check Quality
+                                </Button>
                               )}
                             </div>
                           </motion.div>
@@ -545,9 +820,7 @@ export default function ApplicationsNew() {
             </Card>
           </div>
 
-          {/* Sidebar - 1/3 width */}
           <div className="space-y-6">
-            {/* Premium Upgrade CTA - Show for free users */}
             {!isPremium && (
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
@@ -572,7 +845,7 @@ export default function ApplicationsNew() {
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4" />
-                        <span>Auto follow-up system</span>
+                        <span>Unlimited follow-up emails</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4" />
@@ -580,11 +853,21 @@ export default function ApplicationsNew() {
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4" />
-                        <span>Unlimited AI cover letters</span>
+                        <span>Detailed analytics</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4" />
                         <span>Gmail & Calendar integration</span>
+                      </div>
+                    </div>
+                    <div className="bg-black/10 rounded-lg p-3 text-sm">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-semibold">Free Plan Quota:</span>
+                        <span className="text-xs">Resets monthly</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Follow-up emails:</span>
+                        <span className="font-bold">2/month</span>
                       </div>
                     </div>
                     <Button 
@@ -600,7 +883,6 @@ export default function ApplicationsNew() {
               </motion.div>
             )}
 
-            {/* Success Insights - PREMIUM */}
             <PremiumFeature requiresPremium={true} featureName="Success Insights">
               <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-lg">
                 <CardHeader>
@@ -610,51 +892,71 @@ export default function ApplicationsNew() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Response Rate</span>
-                      <span className="text-sm font-semibold text-green-600">
-                        {analytics.responseRate}%
-                      </span>
+                  {analyticsLoading ? (
+                    <div className="text-center py-4">
+                      <RefreshCw className="w-6 h-6 animate-spin mx-auto text-gray-400" />
                     </div>
-                    <Progress value={analytics.responseRate} className="h-2" />
-                    <p className="text-xs text-gray-500 mt-1">
-                      {analytics.responseRate > 15 ? '🎉 Above' : '📈 Below'} industry average
-                    </p>
-                  </div>
+                  ) : analyticsData ? (
+                    <>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Response Rate</span>
+                          <span className="text-sm font-semibold text-green-600">
+                            {analyticsData.insights.overallResponseRate}%
+                          </span>
+                        </div>
+                        <Progress value={analyticsData.insights.overallResponseRate} className="h-2" />
+                        <p className="text-xs text-gray-500 mt-1">
+                          {analyticsData.insights.overallResponseRate > 15 ? '🎉 Above' : '📈 Below'} industry average
+                        </p>
+                      </div>
 
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <p className="text-sm font-semibold mb-2">Best performing sources:</p>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">Referrals</span>
-                        <span className="font-semibold text-green-600">60%</span>
+                      <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <p className="text-sm font-semibold mb-2">Best performing sources:</p>
+                        <div className="space-y-2">
+                          {analyticsData.analytics.slice(0, 3).map((item: any) => (
+                            <div key={item.source} className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600 dark:text-gray-400 capitalize">{item.source}</span>
+                              <span className={`font-semibold ${
+                                item.responseRate > 30 ? 'text-green-600' : 
+                                item.responseRate > 15 ? 'text-blue-600' : 
+                                'text-gray-600'
+                              }`}>
+                                {item.responseRate}%
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">LinkedIn</span>
-                        <span className="font-semibold text-blue-600">25%</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">Indeed</span>
-                        <span className="font-semibold text-gray-600">8%</span>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                      <Lightbulb className="w-4 h-4 text-blue-600 mt-0.5" />
-                      <div className="text-xs text-blue-900 dark:text-blue-300">
-                        <p className="font-semibold mb-1">AI Recommendation:</p>
-                        <p>Focus on referrals - they have 7x higher success rate!</p>
+                      <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                          <Lightbulb className="w-4 h-4 text-blue-600 mt-0.5" />
+                          <div className="text-xs text-blue-900 dark:text-blue-300">
+                            <p className="font-semibold mb-1">AI Recommendation:</p>
+                            <p>Focus on {analyticsData.insights.bestSource} - {analyticsData.insights.bestResponseRate}% response rate!</p>
+                          </div>
+                        </div>
                       </div>
+                    </>
+                  ) : (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Response Rate</span>
+                        <span className="text-sm font-semibold text-green-600">
+                          {analytics.responseRate}%
+                        </span>
+                      </div>
+                      <Progress value={analytics.responseRate} className="h-2" />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {analytics.responseRate > 15 ? '🎉 Above' : '📈 Below'} industry average
+                      </p>
                     </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             </PremiumFeature>
 
-            {/* Quick Tools */}
             <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader>
                 <CardTitle className="text-sm">Quick Tools</CardTitle>
@@ -700,7 +1002,6 @@ export default function ApplicationsNew() {
               </CardContent>
             </Card>
 
-            {/* Task Reminders */}
             <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader>
                 <CardTitle className="text-sm flex items-center justify-between">
@@ -754,6 +1055,19 @@ export default function ApplicationsNew() {
           </div>
         </div>
       </div>
+
+      <FollowUpEmailModal 
+        isOpen={!!emailModalApp}
+        onClose={() => setEmailModalApp(null)}
+        application={emailModalApp}
+        isPremium={isPremium}
+      />
+
+      <QualityCheckModal 
+        isOpen={!!qualityModalApp}
+        onClose={() => setQualityModalApp(null)}
+        application={qualityModalApp}
+      />
     </div>
   );
 }

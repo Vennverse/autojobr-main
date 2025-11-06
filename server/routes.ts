@@ -6,7 +6,7 @@ import fs from "fs";
 import multer from "multer";
 import { fileURLToPath } from "url";
 import { db } from "./db";
-import { eq, desc, and, or, like, isNotNull, count, asc, isNull, sql, inArray } from "drizzle-orm";
+import { eq, desc, and, or, like, isNotNull, count, asc, isNull, sql, inArray, gte } from "drizzle-orm";
 import * as schema from "@shared/schema";
 import { resumes, userResumes, insertInternshipApplicationSchema, companyEmailVerifications, virtualInterviews, mockInterviews, jobPostingApplications, invitationUses, insertUserProfileSchema, insertUserSkillSchema, scrapedJobs, crmContacts, contactInteractions, pipelineStages, jobPostings } from "@shared/schema";
 import { z } from "zod";
