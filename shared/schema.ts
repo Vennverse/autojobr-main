@@ -318,7 +318,7 @@ export const linkedinProfiles = pgTable("linkedin_profiles", {
   index("idx_linkedin_profiles_user_id").on(table.userId),
 ]);
 
-// Job applications
+// Job applications - Enhanced for interview success
 export const jobApplications = pgTable("job_applications", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
@@ -350,6 +350,42 @@ export const jobApplications = pgTable("job_applications", {
   lastContactedAt: timestamp("last_contacted_at"),
   hiringTeam: jsonb("hiring_team"), // Hiring team data extracted from job posting (recruiters, managers, team members with profile links)
   followUpContacts: jsonb("follow_up_contacts"), // Formatted contacts for follow-up messaging
+  
+  // NEW: Application Quality & Readiness
+  applicationQualityScore: integer("application_quality_score"), // 0-100 how well application matches job
+  resumeTailored: boolean("resume_tailored").default(false), // Did user tailor resume?
+  coverLetterCreated: boolean("cover_letter_created").default(false),
+  linkedinConnectionsMade: boolean("linkedin_connections_made").default(false),
+  profileOptimized: boolean("profile_optimized").default(false),
+  
+  // NEW: Follow-up Tracking
+  followUpCount: integer("follow_up_count").default(0), // Number of follow-ups sent
+  followUpScheduled: boolean("follow_up_scheduled").default(false),
+  autoFollowUpEnabled: boolean("auto_follow_up_enabled").default(true),
+  lastFollowUpSent: timestamp("last_follow_up_sent"),
+  followUpHistory: jsonb("follow_up_history"), // Array of follow-up actions
+  recommendedFollowUpDate: timestamp("recommended_follow_up_date"), // AI-suggested date
+  
+  // NEW: LinkedIn & Networking
+  linkedinContactName: varchar("linkedin_contact_name"), // Contact at company
+  linkedinContactUrl: varchar("linkedin_contact_url"),
+  referralRequested: boolean("referral_requested").default(false),
+  referralReceived: boolean("referral_received").default(false),
+  referralSource: varchar("referral_source"),
+  
+  // NEW: Response & Success Tracking
+  companyResponseTime: integer("company_response_time"), // Days to respond
+  expectedResponseDate: timestamp("expected_response_date"), // Based on company avg
+  responseReceived: boolean("response_received").default(false),
+  responseType: varchar("response_type"), // positive, negative, neutral, no_response
+  
+  // NEW: Smart Insights
+  aiRecommendation: varchar("ai_recommendation"), // apply, highly_recommended, skip
+  keyMissingSkills: text("key_missing_skills").array(),
+  strengthAreas: text("strength_areas").array(),
+  interviewPrepGenerated: boolean("interview_prep_generated").default(false),
+  coverLetterGenerated: boolean("cover_letter_generated").default(false),
+  
   createdAt: timestamp("created_at").defaultNow(),
 },
 (table) => [
@@ -358,6 +394,7 @@ export const jobApplications = pgTable("job_applications", {
   index("idx_job_applications_applied_date").on(table.appliedDate),
   index("idx_job_applications_match_score").on(table.matchScore),
   index("idx_job_applications_user_status").on(table.userId, table.status),
+  index("idx_job_applications_next_followup").on(table.nextFollowUpDate),
 ]);
 
 // Job recommendations
