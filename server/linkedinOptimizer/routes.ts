@@ -9,6 +9,11 @@ import { isAuthenticated } from '../auth';
 
 const router = Router();
 
+// Health check endpoint
+router.get('/health', (req, res) => {
+  res.json({ status: 'ok', message: 'LinkedIn Optimizer API is running' });
+});
+
 // Helper to check premium status
 const isPremiumUser = (user: any): boolean => {
   return user?.planType === 'premium' || user?.planType === 'enterprise' || user?.planType === 'ultra_premium';
@@ -18,6 +23,7 @@ const isPremiumUser = (user: any): boolean => {
 router.get('/', isAuthenticated, async (req, res) => {
   try {
     const userId = req.user!.id;
+    console.log(`📊 [LINKEDIN] Fetching profile for user ${userId}`);
 
     // Check cache first - 5 minute cache for better UX
     const cacheKey = `linkedin_profile_${userId}`;
@@ -74,15 +80,17 @@ router.get('/', isAuthenticated, async (req, res) => {
 
     res.json(result);
   } catch (error: any) {
-    console.error('❌ Error fetching LinkedIn profile:', error);
+    console.error('❌ [LINKEDIN] Error fetching profile:', error);
     console.error('Error details:', {
       message: error.message,
       stack: error.stack,
-      userId: req.user?.id
+      userId: req.user?.id,
+      url: req.url
     });
     res.status(500).json({ 
       error: 'Failed to fetch profile',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: error.message || 'Unknown error',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });

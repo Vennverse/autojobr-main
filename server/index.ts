@@ -8,6 +8,9 @@ import { aiService } from "./aiService.js";
 import { applyPerformanceOptimizations, createHighPerformanceRateLimiter } from "./performanceOptimizations.js";
 import { dailySyncService } from "./dailySyncService.js";
 import seoRoutes from "./routes/seo.js";
+import { communityRoutes } from './communityRoutes';
+import { db } from './db';
+import linkedinOptimizerRoutes from './linkedinOptimizer/routes';
 
 // Database URL should be provided via environment variables
 if (!process.env.DATABASE_URL) {
@@ -159,7 +162,13 @@ app.use(seoRoutes);
 
   const server = await registerRoutes(app);
 
-  // Initialize WebSocket service for real-time chat
+  app.use('/api/community', communityRoutes);
+
+  // LinkedIn Optimizer routes
+  app.use('/api/linkedin-optimizer', linkedinOptimizerRoutes);
+  console.log('✅ LinkedIn Optimizer routes registered at /api/linkedin-optimizer');
+
+  // WebSocket setup for real-time chat
   simpleWebSocketService.initialize(server);
 
   // Initialize unified AI service (this will show available providers in console)

@@ -78,13 +78,16 @@ export default function LinkedInOptimizer() {
   const [aiAnalysisDepth, setAiAnalysisDepth] = useState([75]);
 
   // Use React Query for smart caching - reduces API calls by 80%
-  const { data: profile, isLoading: loading } = useQuery({
+  const { data: profile, isLoading: loading, error: profileError } = useQuery({
     queryKey: ['/api/linkedin-optimizer'],
     queryFn: async () => {
+      console.log('🔄 Fetching LinkedIn profile data...');
       const res = await fetch('/api/linkedin-optimizer', { 
         credentials: 'include',
         headers: { 'Accept': 'application/json' }
       });
+      
+      console.log('📡 LinkedIn API response status:', res.status);
       
       if (res.status === 401) {
         toast({
@@ -97,14 +100,48 @@ export default function LinkedInOptimizer() {
       }
       
       if (!res.ok) {
-        throw new Error('Failed to fetch profile');
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('❌ LinkedIn API error:', errorData);
+        throw new Error(errorData.message || 'Failed to fetch profile');
       }
       
-      return res.json();
+      const data = await res.json();
+      console.log('✅ LinkedIn profile data loaded successfully');
+      return data;
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    enabled: !!user
+    enabled: !!user,
+    retry: 2,
+    retryDelay: 1000
   });
+
+  // Show error state
+  if (profileError && user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <div className="container max-w-4xl mx-auto px-4 py-16">
+          <Card className="border-2 border-red-200 shadow-2xl">
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <AlertCircle className="h-16 w-16 mx-auto mb-4 text-red-600" />
+                <h2 className="text-2xl font-bold mb-3">Error Loading Profile</h2>
+                <p className="text-muted-foreground mb-4">
+                  {profileError.message || 'Failed to load LinkedIn optimizer'}
+                </p>
+                <Button 
+                  onClick={() => window.location.reload()}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Retry
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   // Update edited fields when profile data changes
   useEffect(() => {
@@ -223,7 +260,8 @@ export default function LinkedInOptimizer() {
     toast({ title: '📥 Coming Soon', description: 'PDF export will be available shortly' });
   };
 
-  if (authLoading || loading) {
+  // Show loading state
+  if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="text-center">
@@ -232,6 +270,21 @@ export default function LinkedInOptimizer() {
             <Sparkles className="h-6 w-6 absolute top-0 left-1/2 -translate-x-1/2 text-yellow-500 animate-pulse" />
           </div>
           <p className="text-lg font-semibold">Loading your AI-powered profile optimizer...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state for profile data
+  if (loading && user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <div className="text-center">
+          <div className="relative">
+            <RefreshCw className="h-12 w-12 animate-spin mx-auto mb-4 text-blue-600" />
+            <Sparkles className="h-6 w-6 absolute top-0 left-1/2 -translate-x-1/2 text-yellow-500 animate-pulse" />
+          </div>
+          <p className="text-lg font-semibold">Loading your profile data...</p>
         </div>
       </div>
     );
