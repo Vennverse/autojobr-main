@@ -83,8 +83,8 @@ export const queryClient = new QueryClient({
         }
         return failureCount < 3;
       },
-      staleTime: 0, // Always fetch fresh data for auth-related queries
-      cacheTime: 0, // Don't cache auth data
+      staleTime: 60 * 1000, // Cache data for 1 minute by default
+      gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
     },
     mutations: {
       onError: (error: any) => {
