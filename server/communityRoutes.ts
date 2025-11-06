@@ -288,7 +288,12 @@ router.post("/posts/:postId/react", isAuthenticated, async (req, res) => {
           .where(eq(communityPosts.id, Number(postId)));
 
         console.log('[REACTION] Toggled off');
-        return res.json({ message: "Reaction removed", reactionType: null });
+        return res.json({ 
+          success: true,
+          message: "Reaction removed", 
+          reactionType: null,
+          action: 'removed'
+        });
       } else {
         // Update to new reaction type (no count change)
         await db
@@ -297,7 +302,12 @@ router.post("/posts/:postId/react", isAuthenticated, async (req, res) => {
           .where(and(eq(postReactions.postId, Number(postId)), eq(postReactions.userId, userId)));
 
         console.log('[REACTION] Updated to new type');
-        return res.json({ message: "Reaction updated", reactionType });
+        return res.json({ 
+          success: true,
+          message: "Reaction updated", 
+          reactionType,
+          action: 'updated'
+        });
       }
     }
 
@@ -316,7 +326,12 @@ router.post("/posts/:postId/react", isAuthenticated, async (req, res) => {
       .where(eq(communityPosts.id, Number(postId)));
 
     console.log('[REACTION] Added');
-    res.json({ message: "Reaction added", reactionType });
+    res.json({ 
+      success: true,
+      message: "Reaction added", 
+      reactionType,
+      action: 'added'
+    });
   } catch (error) {
     console.error("[REACTION] Error:", error);
     res.status(500).json({ error: "Failed to react to post" });

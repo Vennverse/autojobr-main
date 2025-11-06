@@ -174,18 +174,37 @@ export function CommunityFeed() {
         if (!old) return old;
         return old.map(post => {
           if (post.id === postId) {
-            const wasReacted = post.userReaction !== null;
-            const newReactionsCount = reactionType === null 
-              ? post.reactionsCount - 1
-              : wasReacted 
-                ? post.reactionsCount 
-                : post.reactionsCount + 1;
+            const currentReaction = post.userReaction;
+            const currentCount = post.reactionsCount;
             
-            return {
-              ...post,
-              userReaction: reactionType,
-              reactionsCount: Math.max(0, newReactionsCount),
-            };
+            // If removing reaction (clicking same reaction again)
+            if (currentReaction === reactionType) {
+              return {
+                ...post,
+                userReaction: null,
+                reactionsCount: Math.max(0, currentCount - 1),
+              };
+            }
+            
+            // If changing from one reaction to another
+            if (currentReaction !== null && reactionType !== null) {
+              return {
+                ...post,
+                userReaction: reactionType,
+                reactionsCount: currentCount, // Count stays same
+              };
+            }
+            
+            // If adding new reaction
+            if (currentReaction === null && reactionType !== null) {
+              return {
+                ...post,
+                userReaction: reactionType,
+                reactionsCount: currentCount + 1,
+              };
+            }
+            
+            return post;
           }
           return post;
         });
@@ -203,8 +222,11 @@ export function CommunityFeed() {
         variant: "destructive",
       });
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/community/posts"] });
+    onSuccess: () => {
+      // Don't invalidate immediately to prevent flashing
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/community/posts"] });
+      }, 500);
     },
   });
 
