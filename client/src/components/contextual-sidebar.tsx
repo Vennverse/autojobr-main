@@ -407,7 +407,7 @@ export function ContextualSidebar() {
           {
             label: "Premium AI Tools",
             items: [
-              { name: "Premium AI Tools Hub", href: "/premium-ai-tools", icon: Zap, current: location === "/premium-ai-tools", description: "Access all premium AI-powered career tools" },
+              { name: "Premium AI Tools Hub", href: "/premium-ai-tools", icon: Zap, current: location === "/premium-ai-tools" || location.startsWith("/premium-ai-tools"), description: "Access all premium AI-powered career tools" },
               { name: "AI Cover Letter Generator", href: "/premium-ai-tools?tab=cover-letter", icon: FileText, current: location.includes("tab=cover-letter"), description: "Generate premium AI-powered cover letters" },
               { name: "Salary Negotiation Coach", href: "/premium-ai-tools?tab=salary", icon: DollarSign, current: location.includes("tab=salary"), description: "Get AI-driven advice for salary negotiation" },
               { name: "Interview Answer Generator", href: "/premium-ai-tools?tab=interview", icon: MessageCircle, current: location.includes("tab=interview"), description: "Generate AI-powered answers for interview questions" },

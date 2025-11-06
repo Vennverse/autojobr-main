@@ -629,6 +629,7 @@ export default function PremiumAITools() {
     );
   }
 
+  // Allow free users to see the page in preview mode
   const isPreviewMode = !isPremium;
 
   const handleBlockedAction = (featureName: string) => {
