@@ -1025,32 +1025,6 @@ Skills: ${userProfile.skills?.map((s: any) => s.skillName).join(', ') || 'None l
     return accessInfo;
   }
 
-  // PREMIUM-ONLY: AI Cover Letter Generator
-  async refineCoverLetter(currentLetter: string, instruction: string, userId: string): Promise<string> {
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, userId)
-    });
-
-    const isPremium = user?.planType === 'premium';
-
-    const prompt = `${instruction}
-${currentLetter.substring(0, isPremium ? 800 : 500)}
-Refine.`;
-
-    try {
-      const completion = await this.createChatCompletion([
-        { role: 'system', content: 'You are an expert cover letter writer. Refine cover letters based on user instructions while maintaining professionalism.' },
-        { role: 'user', content: prompt }
-      ], { max_tokens: isPremium ? 600 : 400, user });
-
-      const content = completion?.choices?.[0]?.message?.content || completion?.content || completion;
-      return typeof content === 'string' ? content.trim() : currentLetter;
-    } catch (error) {
-      console.error('Cover letter refinement error:', error);
-      throw new Error('Failed to refine cover letter');
-    }
-  }
-
   async generateCoverLetterEnhanced(resumeData: string, jobDescription: string, userId: string, customPrompt?: string): Promise<{
     coverLetter: string;
     matchAnalysis: Array<{resume: string, job: string, reason: string}>;
