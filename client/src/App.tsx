@@ -12,6 +12,7 @@ import AuthPage from "@/pages/auth-page";
 import EnhancedDashboard from "@/pages/enhanced-dashboard";
 import Profile from "@/pages/profile";
 import Applications from "@/pages/applications";
+import ApplicationsNew from "@/pages/applications-new";
 import Jobs from "@/pages/jobs";
 import Internships from "@/pages/internships";
 import Subscription from "@/pages/subscription";
@@ -463,7 +464,8 @@ function Router() {
                   <Route path="/onboarding" component={Onboarding} />
                   <Route path="/profile" component={Profile} />
                   <Route path="/resumes" component={ResumesPage} />
-                  <Route path="/applications" component={Applications} />
+                  <Route path="/applications" component={ApplicationsNew} />
+                  <Route path="/applications-old" component={Applications} />
                   <Route path="/jobs" component={Jobs} />
 
                   <Route path="/discover" component={JobDiscoveryPage} />
@@ -521,7 +523,8 @@ function Router() {
               <Route path="/enhanced-crm" component={EnhancedCrmDashboard} />
               <Route path="/onboarding" component={Onboarding} />
               <Route path="/profile" component={Profile} />
-              <Route path="/applications" component={Applications} />
+              <Route path="/applications" component={ApplicationsNew} />
+              <Route path="/applications-old" component={Applications} />
               <Route path="/jobs" component={Jobs} />
               <Route path="/jobs/:id" component={ViewJob} />
               <Route path="/mock-interview" component={MockInterview} />
