@@ -4116,12 +4116,6 @@ Return only the improved job description text, no additional formatting or expla
   });
 
   // ===== RECRUITER TASK MANAGEMENT ROUTES =====
-  // TODO: These routes require a recruiterTasks table to be created in shared/schema.ts
-  // The table needs fields: id, assignedById, assignedBy, owner, ownerId, jobTitle, 
-  // candidateEmail, candidateName, meetingLink, calendlyLink, emailSent, etc.
-  // For now, these routes are commented out to fix the build.
-
-  /* COMMENTED OUT - recruiterTasks table doesn't exist
   // Get all recruiter tasks
   app.get('/api/recruiter/tasks', isAuthenticated, async (req: any, res) => {
     try {
@@ -4289,7 +4283,6 @@ Return only the improved job description text, no additional formatting or expla
       res.status(500).json({ message: 'Failed to perform bulk action' });
     }
   });
-  END OF COMMENTED OUT SECTION */
 
   // Add missing PATCH endpoint for updating application status
   app.patch('/api/internships/applications/:id', isAuthenticated, rateLimitMiddleware(10, 60), async (req: any, res) => {
