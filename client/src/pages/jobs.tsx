@@ -1475,6 +1475,15 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     return () => clearInterval(interval);
   }, []);
 
+  // Track viewed jobs in localStorage
+  const trackJobView = useCallback((jobId: number) => {
+    const viewedJobs = JSON.parse(localStorage.getItem('viewedJobs') || '{}');
+    viewedJobs[jobId] = new Date().toISOString();
+    localStorage.setItem('viewedJobs', JSON.stringify(viewedJobs));
+    // Invalidate the query to refresh the UI
+    queryClient.invalidateQueries({ queryKey: ['scraped-jobs'] });
+  }, [queryClient]);
+
   // Set first job as selected by default
   useEffect(() => {
     if (jobs.length > 0 && !selectedJob) {
@@ -1807,50 +1816,19 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                 }
 
                 return (
-                  <Card 
+                  <JobCard 
                     key={`${job.id}-${filters.page}-${index}`}
-                    className={`border-0 shadow-sm hover:shadow-md transition-all cursor-pointer touch-manipulation mb-2 ${
-                      isSelected ? 'ring-1 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-gray-800'
-                    }`}
-                    onClick={() => handleJobClick(job)}
-                  >
-                    <CardContent className="p-2">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1 min-w-0 pr-2">
-                          <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1 line-clamp-1">
-                            {job.title}
-                          </h3>
-                          <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300 mb-1">
-                            <span className="font-medium truncate">{job.companyName}</span>
-                            {job.location && (
-                              <>
-                                <span>•</span>
-                                <span className="truncate">{job.location}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <Badge 
-                          className={`text-xs px-1.5 py-0.5 ${
-                            compatibility >= 90 ? 'bg-green-100 text-green-800' :
-                            compatibility >= 80 ? 'bg-blue-100 text-blue-800' :
-                            compatibility >= 70 ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {compatibility}%
-                        </Badge>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-1 mb-2">
-                        {job.workMode && (
-                          <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
-                            {formatWorkMode(job.workMode)}
-                          </Badge>
-                        )}
-                        {job.jobType && (
-                          <Badge variant="outline" className="text-xs px-1.5 py-0.5">
-                            {formatJobType(job.jobType)}
+                    job={{
+                      ...job,
+                      isNew: !viewedJobs[job.id],
+                      lastViewed: viewedJobs[job.id],
+                      isApplied,
+                      matchScore: compatibility,
+                      jobTitle: job.title || job.jobTitle,
+                      company: job.companyName || job.company
+                    }}
+                    onView={trackJobView}
+                  />
                           </Badge>
                         )}
                         {job.experienceLevel && (

@@ -127,7 +127,7 @@ export function JobCard({ job, onView }: JobCardProps) {
   };
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="hover:shadow-md transition-shadow" onClick={handleCardClick}>
       <CardContent className="p-4 sm:p-6">
         <div className="flex items-start justify-between mb-3 sm:mb-4">
           <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
@@ -135,7 +135,14 @@ export function JobCard({ job, onView }: JobCardProps) {
               <Building className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="font-semibold text-foreground text-sm sm:text-base truncate">{job.company}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-foreground text-sm sm:text-base truncate">{job.company}</h3>
+                {job.isNew && (
+                  <Badge className="bg-green-500/10 text-green-500 hover:bg-green-500/20" variant="secondary">
+                    New
+                  </Badge>
+                )}
+              </div>
               <p className="text-xs sm:text-sm text-muted-foreground flex items-center">
                 {job.location && (
                   <>
