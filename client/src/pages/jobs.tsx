@@ -159,6 +159,7 @@ interface JobPosting {
   source?: string;
   requirements?: string;
   responsibilities?: string;
+  isNewJob?: boolean; // Added for new badge
 }
 
 interface JobFacets {
@@ -382,6 +383,21 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
   const [currentPromo, setCurrentPromo] = useState(0);
   const [savedJobs, setSavedJobs] = useState<Set<number>>(new Set());
   const [applyingJobId, setApplyingJobId] = useState<number | null>(null);
+  const [seenScrapedJobIds, setSeenScrapedJobIds] = useState<Set<number>>(() => {
+    // Load seen jobs from localStorage
+    if (typeof window !== 'undefined' && isAuthenticated) {
+      const stored = localStorage.getItem(`seenJobs_${user?.id}`);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    }
+    return new Set();
+  });
+
+  // Save seen jobs to localStorage whenever it changes
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      localStorage.setItem(`seenJobs_${user.id}`, JSON.stringify(Array.from(seenScrapedJobIds)));
+    }
+  }, [seenScrapedJobIds, isAuthenticated, user?.id]);
 
   // Update URL when filters change
   const updateFilters = useCallback((newFilters: Partial<FilterState>) => {
@@ -440,7 +456,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
 
     // Always include facets
     params.set('include_facets', 'true');
-    
+
     // Ensure page and size are always set
     if (!params.has('page')) {
       params.set('page', '1');
@@ -470,7 +486,18 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         throw new Error(`Failed to fetch jobs: ${response.status}`);
       }
 
-      return response.json();
+      const data = await response.json();
+
+      // Mark jobs as 'new' if they haven't been seen before
+      if (isAuthenticated && user?.id) {
+        const seenJobs = new Set(JSON.parse(localStorage.getItem(`seenJobs_${user.id}`) || '[]'));
+        data.jobs = data.jobs.map((job: JobPosting) => ({
+          ...job,
+          isNewJob: !seenJobs.has(job.id)
+        }));
+      }
+
+      return data;
     },
     staleTime: 0, // Don't cache - always refetch on filter changes
     gcTime: 0, // Don't keep garbage collection cache
@@ -491,7 +518,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     queryFn: async () => {
       // Only fetch if on page 1
       if (filters.page !== 1) return [];
-      
+
       const params = new URLSearchParams();
       if (filters.q) params.set('search', filters.q);
       if (filters.category) params.set('category', filters.category);
@@ -541,7 +568,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
         priority: 1,
         source: 'platform'
       }));
-      
+
       return [...platformJobsWithMeta, ...scrapedJobsWithMeta];
     }
 
@@ -760,6 +787,10 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
 
   // Handle job click
   const handleJobClick = (job: JobPosting) => {
+    // Mark job as seen when clicked
+    if (job.source === 'scraped' && isAuthenticated) {
+      setSeenScrapedJobIds(prev => new Set(prev).add(job.id));
+    }
     setSelectedJob(job);
   };
 
@@ -778,6 +809,10 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
           title: "Redirected to External Site",
           description: "Complete your application on the company's website."
         });
+        // Mark as seen when redirected
+        if (isAuthenticated) {
+          setSeenScrapedJobIds(prev => new Set(prev).add(job.id));
+        }
         return;
       } else {
         toast({
@@ -1632,6 +1667,14 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     return [baseStructuredData, breadcrumbList, itemList];
   }, [structuredData, seoMetadata.breadcrumbs, allJobs, pagination.total]);
 
+  // Determine if a job has been applied for by the current user
+  const appliedJobIds = useMemo(() => {
+    // This would ideally come from a query fetching user's applications
+    // For now, we'll use an empty set as a placeholder
+    return new Set<number>();
+  }, []);
+
+
   return jobsLoading ? <LoadingSkeleton /> : (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <SEOHead
@@ -1772,6 +1815,8 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
               allJobs.map((job: any, index: number) => {
                 const compatibility = calculateCompatibility(job);
                 const isSelected = selectedJob?.id === job?.id;
+                const isApplied = appliedJobIds.has(job.id);
+                const isNewJob = job.source === 'scraped' && job.isNewJob;
 
                 if (!job || !job.id) {
                   console.error('Invalid job in list:', job);
@@ -1975,14 +2020,23 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                           )}
                         </div>
                       </div>
-                      <Badge 
-                        className={`flex-shrink-0 text-xs bg-blue-100 text-blue-800`}
-                      >
-                        New
-                      </Badge>
+                      {isNewJob && (
+                        <Badge 
+                          className={`flex-shrink-0 text-xs bg-green-100 text-green-800 animate-pulse`}
+                        >
+                          ✨ NEW
+                        </Badge>
+                      )}
+                      {!isNewJob && selectedJob.source === 'platform' && (
+                        <Badge 
+                          className={`flex-shrink-0 text-xs bg-blue-100 text-blue-800`}
+                        >
+                          Platform
+                        </Badge>
+                      )}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <div className="flex flex-wrap items-center gap-1.5 mt-3">
                       {appliedJobIds.includes(selectedJob.id) ? (
                         <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">
                           <CheckCircle className="w-4 h-4 mr-1" />
