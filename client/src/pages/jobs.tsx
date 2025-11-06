@@ -5,6 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { Navbar } from "@/components/navbar";
+import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 import SEOHead from "@/components/seo-head";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,7 +24,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { motion, AnimatePresence } from "framer-motion";
 import { 
   Search, 
   MapPin, 
@@ -483,12 +484,13 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
     cacheTime: 0, // Force no caching
   });
 
-  // Track viewed jobs in localStorage
+  // Track viewed jobs in localStorage and update UI
   const trackJobView = useCallback((jobId: number) => {
     const viewedJobs = JSON.parse(localStorage.getItem('viewedJobs') || '{}');
     viewedJobs[jobId] = new Date().toISOString();
     localStorage.setItem('viewedJobs', JSON.stringify(viewedJobs));
-  }, []);
+    queryClient.invalidateQueries({ queryKey: ['scraped-jobs'] });
+  }, [queryClient]);
 
   // Get viewed jobs from localStorage
   const viewedJobs = useMemo(() => {
@@ -1816,75 +1818,27 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                 }
 
                 return (
-                  <JobCard 
+                  <motion.div
                     key={`${job.id}-${filters.page}-${index}`}
-                    job={{
-                      ...job,
-                      isNew: !viewedJobs[job.id],
-                      lastViewed: viewedJobs[job.id],
-                      isApplied,
-                      matchScore: compatibility,
-                      jobTitle: job.title || job.jobTitle,
-                      company: job.companyName || job.company
-                    }}
-                    onView={trackJobView}
-                  />
-                          </Badge>
-                        )}
-                        {job.experienceLevel && (
-                          <Badge variant="outline" className="text-xs px-1.5 py-0.5">
-                            {job.experienceLevel}
-                          </Badge>
-                        )}
-                      </div>
-
-                      <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-1 mb-2">
-                        {job.description}
-                      </p>
-
-                      <div className="flex items-center justify-between gap-2">
-                        <span>
-                          {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'Recently'}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSaveJob(job.id);
-                            }}
-                            className="text-gray-600 hover:text-yellow-600 text-xs h-7 px-2"
-                          >
-                            <Bookmark className="w-3 h-3" />
-                          </Button>
-                          {isApplied ? (
-                            <Badge className="bg-green-100 text-green-800 text-xs px-1.5 py-0.5">
-                              Applied
-                            </Badge>
-                          ) : (
-                            <Button
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleApply(job);
-                              }}
-                              className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-7 px-2"
-                              data-testid={`button-apply-${job.id}`}
-                            >
-                              {!isAuthenticated ? (
-                                'Sign in'
-                              ) : job.source === 'scraped' || job.applyType === 'external' ? (
-                                <><ExternalLink className="w-3 h-3 mr-1" />Apply</>
-                              ) : (
-                                'Easy Apply'
-                              )}
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2, delay: index * 0.05 }}
+                    className={cn("mb-3", isSelected && "ring-2 ring-primary rounded-lg")}
+                  >
+                    <JobCard
+                      job={{
+                        ...job,
+                        isNew: !viewedJobs[job.id],
+                        lastViewed: viewedJobs[job.id],
+                        isApplied,
+                        matchScore: compatibility,
+                        jobTitle: job.title || job.jobTitle,
+                        company: job.companyName || job.company
+                      }}
+                      onView={trackJobView}
+                    />
+                  </motion.div>
                 );
               })
             )}
@@ -1969,7 +1923,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1 leading-tight">
                           {selectedJob.title}
                         </h2>
-                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 mb-2">
+                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-2">
                           <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
                           <span className="font-medium">{selectedJob.company || selectedJob.companyName}</span>
                           {selectedJob.location && (
