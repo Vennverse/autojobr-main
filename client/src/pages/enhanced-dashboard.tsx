@@ -98,7 +98,7 @@ export default function EnhancedDashboard() {
       const newStreak = storedStreak + 1;
       setDailyStreak(newStreak);
       localStorage.setItem(streakKey, newStreak.toString());
-      
+
       if (newStreak === 7) {
         toast({
           title: "🔥 7-Day Streak!",
@@ -229,12 +229,12 @@ export default function EnhancedDashboard() {
     const today = new Date().toDateString();
     const saved = localStorage.getItem('dailyChecklist');
     const savedData = saved ? JSON.parse(saved) : null;
-    
+
     // Reset checklist if it's a new day
     if (savedData && savedData.date === today) {
       return savedData.checklist;
     }
-    
+
     return {
       resumeReviewed: false,
       threeApplications: false,
@@ -267,7 +267,7 @@ export default function EnhancedDashboard() {
 
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-6">
           <div className="max-w-7xl mx-auto space-y-6">
-            
+
             {/* Welcome Header with Streak */}
             <motion.div 
               initial={{ opacity: 0, y: -20 }}
@@ -276,10 +276,53 @@ export default function EnhancedDashboard() {
             >
               <div>
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-                  Welcome back, {userName}! 👋
+                  {(() => {
+                    const hour = new Date().getHours();
+                    const greetingEmoji = hour < 12 ? '🌅' : hour < 17 ? '☀️' : hour < 21 ? '🌆' : '🌙';
+                    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : hour < 21 ? 'Good evening' : 'Good night';
+
+                    const motivationalMessages = [
+                      `${greeting}, ${userName}! ${greetingEmoji}`,
+                      `Hey there, ${userName}! ${greetingEmoji} Ready to shine?`,
+                      `Welcome back, ${userName}! ${greetingEmoji}`,
+                      `${greeting} superstar, ${userName}! ${greetingEmoji}`,
+                    ];
+
+                    // Use day of week to pick a consistent message per day
+                    const dayIndex = new Date().getDay();
+                    return motivationalMessages[dayIndex % motivationalMessages.length];
+                  })()}
                 </h1>
-                <p className="text-slate-600 dark:text-slate-300 mt-1">
-                  Let's land that dream job today
+                <p className="text-slate-600 dark:text-slate-300 mt-1 flex items-center gap-2">
+                  {(() => {
+                    const motivationalSubtexts = [
+                      { text: "Your dream job is just one application away", emoji: "🚀" },
+                      { text: "Every application brings you closer to success", emoji: "⭐" },
+                      { text: "Today's effort is tomorrow's achievement", emoji: "💪" },
+                      { text: "You've got this! Let's make it happen", emoji: "🎯" },
+                      { text: "Consistency is your superpower", emoji: "🔥" },
+                      { text: "Small steps lead to big opportunities", emoji: "🌟" },
+                      { text: "Your next career breakthrough starts now", emoji: "✨" },
+                    ];
+
+                    // Show different message based on user activity
+                    let messageIndex;
+                    if (totalApplications === 0) {
+                      messageIndex = 0; // First-time message
+                    } else if (dailyStreak > 0) {
+                      messageIndex = 4; // Consistency message
+                    } else {
+                      messageIndex = new Date().getDay() % motivationalSubtexts.length;
+                    }
+
+                    const selected = motivationalSubtexts[messageIndex];
+                    return (
+                      <>
+                        <span>{selected.emoji}</span>
+                        <span>{selected.text}</span>
+                      </>
+                    );
+                  })()}
                 </p>
               </div>
               <div className="flex items-center gap-4">
@@ -403,7 +446,7 @@ export default function EnhancedDashboard() {
                       </motion.div>
                     );
                   })}
-                  
+
                   {/* Motivational message based on completion */}
                   {Object.values(dailyChecklist).filter(Boolean).length === 4 ? (
                     <div className="mt-4 p-4 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl text-center">
@@ -427,7 +470,7 @@ export default function EnhancedDashboard() {
               </Card>
             </motion.div>
 
-            
+
 
             {/* Quick Actions Grid */}
             <motion.div
@@ -496,21 +539,21 @@ export default function EnhancedDashboard() {
                                       app.job?.title || 
                                       app.title ||
                                       'Position Not Specified';
-                      
+
                       const company = app.companyName || 
                                      app.company || 
                                      app.jobPostingCompany || 
                                      app.job?.company ||
                                      app.job?.companyName ||
                                      'Company Not Specified';
-                      
+
                       const appliedDate = app.appliedAt || 
                                          app.appliedDate || 
                                          app.createdAt ||
                                          app.dateApplied;
-                      
+
                       const status = app.status || 'applied';
-                      
+
                       // Debug log to see what data we're getting
                       console.log('[DASHBOARD] Application data:', {
                         id: app.id,
@@ -520,7 +563,7 @@ export default function EnhancedDashboard() {
                         status,
                         rawApp: app
                       });
-                      
+
                       return (
                         <div key={app.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer" onClick={() => setLocation('/applications')}>
                           <div className="flex-1">
