@@ -3266,34 +3266,48 @@ class AutoJobrContentScript {
     try {
       // Double-check this is actually a job application submission
       if (!this.isJobApplicationPage()) {
-        console.log('Not a job application page - skipping tracking');
+        console.log('❌ Not a job application page - skipping tracking');
         return;
       }
 
       const jobData = await this.extractJobDetails();
+      console.log('📊 Extracted job data:', jobData);
 
       if (jobData.success && jobData.jobData && jobData.jobData.title) {
-        console.log('Tracking confirmed application submission:', jobData.jobData);
+        console.log('✅ Valid job data found, tracking application:', jobData.jobData);
+
+        const trackingData = {
+          jobTitle: jobData.jobData.title,
+          company: jobData.jobData.company || 'Unknown Company',
+          location: jobData.jobData.location || '',
+          jobUrl: window.location.href,
+          status: 'applied',
+          source: 'extension',
+          platform: this.detectPlatform(window.location.hostname),
+          appliedDate: new Date().toISOString()
+        };
+
+        console.log('📤 Sending tracking data:', trackingData);
 
         const response = await chrome.runtime.sendMessage({
           action: 'trackApplication',
-          data: {
-            jobTitle: jobData.jobData.title,
-            company: jobData.jobData.company,
-            location: jobData.jobData.location || '',
-            jobUrl: window.location.href,
-            status: 'applied',
-            source: 'extension',
-            platform: this.detectPlatform(window.location.hostname),
-            appliedDate: new Date().toISOString()
-          }
+          data: trackingData
         });
 
+        console.log('📥 Tracking response:', response);
+
         if (response && response.success) {
-          this.showNotification('✅ Application submitted & tracked!', 'success');
+          if (response.duplicate) {
+            this.showNotification('ℹ️ Application already tracked', 'info');
+          } else {
+            this.showNotification('✅ Application tracked successfully!', 'success');
+          }
         } else {
-          console.log('Application tracking failed:', response);
+          console.error('❌ Application tracking failed:', response);
+          this.showNotification('⚠️ Failed to track application', 'warning');
         }
+      } else {
+        console.warn('⚠️ Could not extract job details from page');
       } else {
         console.log('No valid job data found - skipping tracking');
       }

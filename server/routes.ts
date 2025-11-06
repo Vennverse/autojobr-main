@@ -768,6 +768,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // OPTIMIZATION: Fetch from BOTH tables - platform applications AND extension-tracked applications
       
+      // Debug: Count total records in each table for this user
+      const platformCount = await db
+        .select({ count: count() })
+        .from(schema.jobPostingApplications)
+        .where(eq(schema.jobPostingApplications.applicantId, userId));
+      
+      const extensionCount = await db
+        .select({ count: count() })
+        .from(schema.jobApplications)
+        .where(eq(schema.jobApplications.userId, userId));
+
+      console.log(`[APPLICATIONS DEBUG] Platform count: ${platformCount[0]?.count || 0}, Extension count: ${extensionCount[0]?.count || 0}`);
+      
       // 1. Get platform applications (Easy Apply on AutoJobr)
       const platformApplications = await db
         .select()
@@ -833,6 +846,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('[APPLICATIONS ERROR]:', error);
       handleError(res, error, "Failed to fetch applications");
+    }
+  });
+
+  // EXTENSION: Track application from Chrome extension
+  app.post('/api/track-application', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { jobTitle, company, location, jobUrl, status, source, platform, appliedDate } = req.body;
+
+      console.log('[EXTENSION TRACKING] Received application:', {
+        userId,
+        jobTitle,
+        company,
+        jobUrl,
+        source
+      });
+
+      // Validate required fields
+      if (!jobTitle || !company) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Job title and company are required' 
+        });
+      }
+
+      // Check for duplicate applications (same job URL or title+company combination)
+      const existingApp = await db
+        .select()
+        .from(schema.jobApplications)
+        .where(
+          and(
+            eq(schema.jobApplications.userId, userId),
+            or(
+              eq(schema.jobApplications.jobUrl, jobUrl),
+              and(
+                eq(schema.jobApplications.jobTitle, jobTitle),
+                eq(schema.jobApplications.company, company)
+              )
+            )
+          )
+        )
+        .limit(1);
+
+      if (existingApp.length > 0) {
+        console.log('[EXTENSION TRACKING] Duplicate application detected, skipping');
+        return res.json({ 
+          success: true, 
+          message: 'Application already tracked',
+          duplicate: true 
+        });
+      }
+
+      // Insert new application
+      const [newApplication] = await db
+        .insert(schema.jobApplications)
+        .values({
+          userId,
+          jobTitle,
+          company,
+          location: location || null,
+          jobUrl: jobUrl || null,
+          status: status || 'applied',
+          source: 'extension', // Always mark as extension source
+          appliedDate: appliedDate ? new Date(appliedDate) : new Date(),
+          lastUpdated: new Date(),
+          notes: platform ? `Applied via ${platform}` : null
+        })
+        .returning();
+
+      console.log('[EXTENSION TRACKING] Application saved successfully:', newApplication.id);
+
+      // Invalidate cache
+      invalidateUserCache(userId);
+
+      res.json({ 
+        success: true, 
+        message: 'Application tracked successfully',
+        applicationId: newApplication.id
+      });
+
+    } catch (error) {
+      console.error('[EXTENSION TRACKING ERROR]:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to track application',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
