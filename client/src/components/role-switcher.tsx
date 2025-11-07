@@ -37,18 +37,9 @@ export function RoleSwitcher() {
       }, 500);
     },
     onError: (error: any) => {
-      // Handle verification required error
+      // Handle verification required error - redirect to post-job for verification
       if (error.error === 'VERIFICATION_REQUIRED' || error.requiresVerification) {
-        toast({
-          title: "Company Email Verification Required",
-          description: "Redirecting you to verify your company email...",
-          variant: "default",
-        });
-        
-        // Redirect to post-job page where verification form is shown
-        setTimeout(() => {
-          setLocation('/post-job');
-        }, 1000);
+        setLocation('/post-job');
       } else {
         toast({
           title: "Failed to switch role",
