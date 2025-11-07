@@ -104,17 +104,9 @@ export default function PostJob() {
           }
         } catch (error) {
           console.error('Error checking verification:', error);
-          // Fallback to user type check
-          if ((user as any)?.userType === 'recruiter' && (user as any)?.emailVerified) {
-            setCurrentStep('post');
-            // Set company name from email domain for security
-            const domainCompanyName = getCompanyNameFromEmail(user.email || '');
-            if (domainCompanyName && !formData.companyName) {
-              setFormData(prev => ({ ...prev, companyName: domainCompanyName }));
-            }
-          } else {
-            setCurrentStep('verify');
-          }
+          // If recruiter role, always require company verification
+          // Job seekers switching to recruiter must verify company email
+          setCurrentStep('verify');
         }
       } else if (!isAuthenticated) {
         setCurrentStep('auth');

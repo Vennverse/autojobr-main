@@ -9046,54 +9046,40 @@ Return ONLY the JSON object, no additional text.`;
     try {
       const { userId } = req.params;
 
-      // Get user and check if they should be upgraded to recruiter
+      // Get user
       const user = await storage.getUser(userId);
 
       if (!user) {
-        return res.json({ isVerified: false });
+        return res.json({ 
+          isVerified: false,
+          message: 'User not found'
+        });
       }
 
-      // Auto-upgrade verified users with company domains to recruiter status
-      if (user.emailVerified && user.userType === 'job_seeker' && user.email) {
-        const emailDomain = user.email.split('@')[1];
-        const companyDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com'];
+      // Check if user has a verified company email verification record
+      const verificationRecords = await db.select()
+        .from(companyEmailVerifications)
+        .where(eq(companyEmailVerifications.userId, userId))
+        .orderBy(desc(companyEmailVerifications.createdAt))
+        .limit(1);
 
-        // If it's not a common personal email domain, consider it a company email
-        if (!companyDomains.includes(emailDomain.toLowerCase())) {
-          // Auto-upgrade to recruiter
-          const companyName = emailDomain.split('.')[0].charAt(0).toUpperCase() + emailDomain.split('.')[0].slice(1);
-
-          await storage.upsertUser({
-            ...user,
-            userType: 'recruiter', // Database trigger will automatically set currentRole to match userType
-            companyName: `${companyName} Company`,
-            availableRoles: "job_seeker,recruiter" // Allow both roles
-          });
-
-          // Create company verification record
-          try {
-            await db.insert(companyEmailVerifications).values({
-              userId: user.id,
-              email: user.email,
-              companyName: `${companyName} Company`,
-              companyWebsite: `https://${emailDomain}`,
-              verificationToken: `auto-upgrade-${Date.now()}`,
-              isVerified: true,
-              verifiedAt: new Date(),
-              expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-            });
-          } catch (insertError) {
-            // Company verification record might already exist, that's okay
-            console.log('Company verification record creation skipped - may already exist');
-          }
-
-          // Update user object for response
-          user.userType = 'recruiter';
-          user.companyName = `${companyName} Company`;
-        }
+      // If we have a verified company email record, user is verified
+      if (verificationRecords.length > 0 && verificationRecords[0].isVerified) {
+        return res.json({ 
+          isVerified: true,
+          companyName: verificationRecords[0].companyName,
+          companyWebsite: verificationRecords[0].companyWebsite,
+          verifiedEmail: verificationRecords[0].email
+        });
       }
 
-      res.json({ isVerified: true, isRecruiter: user.userType === 'recruiter' });
+      // No verified company email - user needs to complete verification
+      return res.json({ 
+        isVerified: false,
+        message: 'Company email verification required to access recruiter features',
+        currentRole: user.currentRole,
+        userEmail: user.email
+      });
     } catch (error) {
       console.error('Error checking company verification:', error);
       res.status(500).json({ message: 'Failed to check verification status' });
