@@ -2270,8 +2270,9 @@ class AutoJobrContentScript {
         option = this.findFuzzyMatch(options, value);
       }
 
-      // If no match found and this appears to be a Yes/No question, default to "Yes"
+      // If no match found, use smart defaults to ensure form completion
       if (!option) {
+        // Check if this is a Yes/No question - prefer "Yes"
         const isYesNoQuestion = options.some(opt => 
           opt.text.toLowerCase().trim() === 'yes' || 
           opt.text.toLowerCase().trim() === 'no'
@@ -2286,20 +2287,29 @@ class AutoJobrContentScript {
             console.log('✅ Auto-selecting "Yes" for yes/no question:', fieldInfo.label || fieldInfo.name);
           }
         }
-      }
-
-      // If still no option found, skip "Select an option" and choose first real option for LinkedIn
-      if (!option && options.length > 1) {
-        const firstRealOption = options.find(opt => 
-          opt.text.toLowerCase().trim() !== 'select an option' &&
-          opt.text.toLowerCase().trim() !== 'select' &&
-          opt.value !== '' &&
-          opt.value !== '0'
-        );
         
-        if (firstRealOption) {
-          option = firstRealOption;
-          console.log('✅ Auto-selecting first valid option:', firstRealOption.text);
+        // For ANY other dropdown, select the first valid option to complete the form
+        if (!option && options.length > 1) {
+          const firstRealOption = options.find(opt => {
+            const text = opt.text.toLowerCase().trim();
+            const value = opt.value.trim();
+            
+            // Skip placeholder options
+            return text !== 'select an option' &&
+                   text !== 'select' &&
+                   text !== 'choose' &&
+                   text !== 'please select' &&
+                   text !== '--' &&
+                   text !== '---' &&
+                   value !== '' &&
+                   value !== '0' &&
+                   value !== '-1';
+          });
+          
+          if (firstRealOption) {
+            option = firstRealOption;
+            console.log('✅ Auto-selecting first valid option to complete form:', firstRealOption.text, 'for field:', fieldInfo.label || fieldInfo.name);
+          }
         }
       }
 
