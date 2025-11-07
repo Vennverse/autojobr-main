@@ -1142,7 +1142,8 @@ Examples:
                         <LineChart data={careerPath.steps.slice(0, 5).map((step, index) => {
                           // Enhanced salary parsing to handle various formats
                           // Base salary increases with each step (career progression)
-                          let salary = 60 + (index * 25); // Progressive increase: 60k, 85k, 110k, 135k, 160k
+                          // Ensure salary ALWAYS increases: junior → senior progression
+                          let baseSalary = 60 + (index * 30); // Progressive increase: 60k, 90k, 120k, 150k, 180k
 
                           if (step.averageSalary) {
                             const salaryStr = step.averageSalary.toString();
@@ -1151,14 +1152,17 @@ Examples:
                             if (salaryMatch && salaryMatch.length > 0) {
                               const parsedSalary = parseInt(salaryMatch[0]);
                               // If salary seems to be in full format (e.g., 80000), convert to k
-                              const baseSalary = parsedSalary > 1000 ? Math.floor(parsedSalary / 1000) : parsedSalary;
-                              // Ensure salary increases with progression
-                              salary = Math.max(baseSalary, 60 + (index * 25));
+                              const aiSalary = parsedSalary > 1000 ? Math.floor(parsedSalary / 1000) : parsedSalary;
+                              
+                              // Use AI salary if it makes sense AND increases with progression
+                              if (aiSalary >= baseSalary && aiSalary <= 300) {
+                                baseSalary = aiSalary;
+                              }
                             }
                           }
 
                           // Determine market demand score - increases with seniority
-                          let demandScore = 65 + (index * 5); // Progressive: 65, 70, 75, 80, 85
+                          let demandScore = 70 + (index * 4); // Progressive: 70, 74, 78, 82, 86
                           if (step.marketDemand) {
                             const demand = step.marketDemand.toLowerCase();
                             if (demand.includes('high') || demand.includes('strong')) demandScore = Math.max(demandScore, 85 + index * 2);
