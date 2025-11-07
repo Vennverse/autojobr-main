@@ -2449,18 +2449,36 @@ class AutoJobrContentScript {
         if (radioGroup.length === 0) return false;
 
         // Simple strategy: Try to find "Yes", otherwise pick first option
-        let selectedRadio = radioGroup[0]; // Default to first
+        let selectedRadio = null;
         
+        // First pass: Look for explicit "yes" values
         for (const radio of radioGroup) {
-          const val = (radio.value || '').toLowerCase();
-          const label = radio.closest('label') || document.querySelector(`label[for="${radio.id}"]`);
-          const text = label ? label.textContent.toLowerCase() : '';
+          const val = (radio.value || '').toLowerCase().trim();
+          const id = (radio.id || '').toLowerCase();
           
-          // If we find "yes", use it
-          if (val === 'yes' || val === 'true' || text.includes('yes')) {
+          if (val === 'yes' || val === 'true' || val === '1' || id.includes('yes')) {
             selectedRadio = radio;
             break;
           }
+        }
+        
+        // Second pass: Check labels if no explicit yes found
+        if (!selectedRadio) {
+          for (const radio of radioGroup) {
+            const label = radio.closest('label') || document.querySelector(`label[for="${radio.id}"]`);
+            if (label) {
+              const text = label.textContent.toLowerCase().trim();
+              if (text === 'yes' || text.startsWith('yes ') || text === 'true') {
+                selectedRadio = radio;
+                break;
+              }
+            }
+          }
+        }
+        
+        // Fallback: Use first option if no "yes" found
+        if (!selectedRadio) {
+          selectedRadio = radioGroup[0];
         }
 
         // Select and trigger events
@@ -2469,7 +2487,7 @@ class AutoJobrContentScript {
         selectedRadio.dispatchEvent(new Event('change', { bubbles: true }));
         selectedRadio.dispatchEvent(new Event('input', { bubbles: true }));
 
-        console.log(`✅ Radio selected: ${selectedRadio.value || 'first'}`);
+        console.log(`✅ Radio selected: ${selectedRadio.value || 'first'} for ${field.name}`);
         return true;
       }
 
