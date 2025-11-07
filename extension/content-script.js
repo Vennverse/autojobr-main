@@ -2444,27 +2444,61 @@ class AutoJobrContentScript {
   async fillChoiceFieldSmart(field, value) {
     try {
       if (field.type === 'radio') {
-        // SIMPLIFIED LINKEDIN LOGIC: Always select first radio option for reliable submission
+        // Find all radio buttons in the group
         const radioGroup = document.querySelectorAll(`input[name="${field.name}"]`);
 
-        if (radioGroup.length > 0) {
-          const firstRadio = radioGroup[0];
+        if (radioGroup.length === 0) return false;
 
-          // Click and trigger all necessary events for LinkedIn
-          firstRadio.click();
-          firstRadio.checked = true;
-          firstRadio.dispatchEvent(new Event('change', { bubbles: true }));
-          firstRadio.dispatchEvent(new Event('input', { bubbles: true }));
-
-          console.log('✅ Radio button (first option) selected:', field.name);
-          return true;
+        // PRIORITY: Always select "Yes" option for maximum success rate
+        let yesRadio = null;
+        
+        // Search for "Yes" option using multiple strategies
+        for (const radio of radioGroup) {
+          const radioValue = (radio.value || '').toLowerCase().trim();
+          const radioId = (radio.id || '').toLowerCase().trim();
+          
+          // Get associated label text
+          let labelText = '';
+          const label = radio.closest('label') || document.querySelector(`label[for="${radio.id}"]`);
+          if (label) {
+            labelText = (label.textContent || '').toLowerCase().trim();
+          }
+          
+          // Check if this is a "Yes" option
+          if (radioValue === 'yes' || 
+              radioValue === 'true' || 
+              radioValue === '1' ||
+              radioId.includes('yes') ||
+              labelText === 'yes' ||
+              labelText.startsWith('yes ')) {
+            yesRadio = radio;
+            break;
+          }
         }
+
+        // Select the Yes option if found, otherwise select first option
+        const targetRadio = yesRadio || radioGroup[0];
+        
+        // Scroll into view
+        targetRadio.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        await this.delay(100);
+
+        // Click and trigger all necessary events for LinkedIn
+        targetRadio.click();
+        targetRadio.checked = true;
+        targetRadio.dispatchEvent(new Event('change', { bubbles: true }));
+        targetRadio.dispatchEvent(new Event('input', { bubbles: true }));
+        targetRadio.dispatchEvent(new Event('blur', { bubbles: true }));
+
+        console.log(`✅ Radio button selected: ${targetRadio.value || 'first option'} for ${field.name}`);
+        return true;
       } else if (field.type === 'checkbox') {
-        // Checkbox: check it if value is truthy
-        const shouldCheck = this.interpretBooleanValue(value);
-        field.checked = shouldCheck;
+        // Checkbox: always check it for maximum progression
+        field.checked = true;
         field.dispatchEvent(new Event('change', { bubbles: true }));
         field.dispatchEvent(new Event('input', { bubbles: true }));
+        field.dispatchEvent(new Event('blur', { bubbles: true }));
+        console.log('✅ Checkbox selected:', field.name);
         return true;
       }
 
