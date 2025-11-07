@@ -71,6 +71,7 @@ import EnhancedPipelineManagement from "@/pages/enhanced-pipeline-management";
 import TaskManagement from "@/pages/task-management";
 import JobSeekerTasks from "@/pages/job-seeker-tasks";
 import ReferralMarketplace from "@/pages/referral-marketplace";
+import ReferralMarketplacePayment from "@/pages/referral-marketplace-payment";
 import BecomeReferrer from "@/pages/become-referrer";
 import EmployeeReferralServices from "@/pages/employee-referral-services";
 import MyBookings from "@/pages/my-bookings";
@@ -379,10 +380,10 @@ function Router() {
       <Route path="/internships" component={Internships} />
 
       {/* Referral Marketplace - Public pages accessible to everyone */}
+      <Route path="/referral-marketplace/payment" component={ReferralMarketplacePayment} />
       <Route path="/referral-marketplace" component={ReferralMarketplace} />
       <Route path="/become-referrer" component={BecomeReferrer} />
       <Route path="/my-bookings" component={MyBookings} />
-      <Route path="/referral-marketplace/payment" component={lazy(() => import("./pages/referral-marketplace-payment"))} />
 
       {isAuthenticated ? (
         <>
