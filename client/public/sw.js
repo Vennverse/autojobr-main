@@ -1,4 +1,3 @@
-
 const CACHE_NAME = 'autojobr-v2.0';
 const RUNTIME_CACHE = 'autojobr-runtime-v2.0';
 
@@ -50,16 +49,16 @@ self.addEventListener('fetch', (event) => {
   // API requests - network first, cache fallback
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.status === 200) {
-            const responseClone = response.clone();
-            caches.open(RUNTIME_CACHE).then((cache) => {
-              cache.put(request, responseClone);
-            });
-          }
-          return response;
-        })
+      fetch(request).then((response) => {
+        // Only cache GET requests - don't cache POST, PUT, DELETE, etc.
+        if (response && response.status === 200 && event.request.method === 'GET') {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return response;
+      })
         .catch(() => {
           return caches.match(request).then((cachedResponse) => {
             return cachedResponse || caches.match('/offline.html');
@@ -94,7 +93,7 @@ self.addEventListener('fetch', (event) => {
 // Push notification support
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};
-  
+
   const options = {
     body: data.body || 'New update from AutoJobr',
     icon: '/favicon.png',
@@ -108,7 +107,7 @@ self.addEventListener('push', (event) => {
     tag: data.tag || 'autojobr-notification',
     requireInteraction: false
   };
-  
+
   event.waitUntil(
     self.registration.showNotification(data.title || 'AutoJobr', options)
   );
@@ -117,7 +116,7 @@ self.addEventListener('push', (event) => {
 // Notification click handler
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  
+
   if (event.action === 'view') {
     const urlToOpen = event.notification.data.url || '/';
     event.waitUntil(

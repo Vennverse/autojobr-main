@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -18,22 +18,29 @@ declare global {
   }
 }
 
-export default function ReferralMarketplacePayment() {
+function ReferralMarketplacePaymentContent() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [bookingId, setBookingId] = useState<number | null>(null);
   const [amount, setAmount] = useState<number | null>(null);
   const [selectedGateway, setSelectedGateway] = useState<'paypal' | 'razorpay' | null>(null);
   const [paymentData, setPaymentData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get('bookingId');
-    const amt = params.get('amount');
-    
-    if (id && amt) {
-      setBookingId(parseInt(id));
-      setAmount(parseFloat(amt));
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('bookingId');
+      const amt = params.get('amount');
+      
+      if (id && amt) {
+        setBookingId(parseInt(id));
+        setAmount(parseFloat(amt));
+      }
+    } catch (error) {
+      console.error('Error parsing URL parameters:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -140,6 +147,14 @@ export default function ReferralMarketplacePayment() {
       variant: "destructive"
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="container max-w-2xl mx-auto py-8 flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   if (!bookingId || !amount) {
     return (
@@ -313,5 +328,17 @@ export default function ReferralMarketplacePayment() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function ReferralMarketplacePayment() {
+  return (
+    <Suspense fallback={
+      <div className="container max-w-2xl mx-auto py-8 flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    }>
+      <ReferralMarketplacePaymentContent />
+    </Suspense>
   );
 }
