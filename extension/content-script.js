@@ -3303,8 +3303,6 @@ class AutoJobrContentScript {
         }
       } else {
         console.log('[TRACK] Invalid job data - cannot track');
-      } else {
-        console.log('No valid job data found - skipping tracking');
       }
     } catch (error) {
       console.error('Failed to track application:', error);
