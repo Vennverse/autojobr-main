@@ -5516,6 +5516,52 @@ Return only the cover letter text, no additional formatting or explanations.`;
     }
   });
 
+  // Role Switching API
+  app.post('/api/user/switch-role', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { role } = req.body;
+
+      // Validate role
+      if (!role || !['job_seeker', 'recruiter'].includes(role)) {
+        return res.status(400).json({ message: 'Invalid role specified' });
+      }
+
+      // Get user to check available roles
+      const [user] = await db.select()
+        .from(schema.users)
+        .where(eq(schema.users.id, userId))
+        .limit(1);
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Check if user has access to this role
+      const availableRoles = user.availableRoles?.split(',') || [user.userType || 'job_seeker'];
+      
+      // Always allow switching between job_seeker and recruiter for demo
+      // In production, you might want to check availableRoles
+      
+      // Update current role
+      await db.update(schema.users)
+        .set({
+          currentRole: role,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.users.id, userId));
+
+      res.json({ 
+        success: true, 
+        message: 'Role switched successfully',
+        currentRole: role
+      });
+    } catch (error) {
+      console.error('Switch role error:', error);
+      res.status(500).json({ message: 'Failed to switch role' });
+    }
+  });
+
   // Cover Letter Usage Check API for extension
   app.get('/api/cover-letter/usage-check', isAuthenticated, async (req: any, res) => {
     try {

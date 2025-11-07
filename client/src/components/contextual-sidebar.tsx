@@ -13,6 +13,7 @@ import {
   SidebarTrigger,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { RoleSwitcher } from "@/components/role-switcher";
 import {
   Search,
   Bookmark,
@@ -671,6 +672,8 @@ export function ContextualSidebar() {
           </SidebarGroup>
         ))}
       </SidebarContent>
+
+      <RoleSwitcher />
 
       <SidebarRail />
     </Sidebar>
