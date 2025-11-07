@@ -1672,8 +1672,35 @@ class AutoJobrContentScript {
     }
 
     // Skip certain input types
-    const skipTypes = ['submit', 'button', 'reset', 'image'];
+    const skipTypes = ['submit', 'button', 'reset', 'image', 'search'];
     if (skipTypes.includes(field.type)) {
+      return true;
+    }
+
+    // CRITICAL: Skip search bars and search inputs by checking name, id, placeholder, aria-label
+    const fieldIdentifiers = [
+      field.name?.toLowerCase() || '',
+      field.id?.toLowerCase() || '',
+      field.placeholder?.toLowerCase() || '',
+      field.getAttribute('aria-label')?.toLowerCase() || '',
+      field.className?.toLowerCase() || '',
+      field.getAttribute('data-test-id')?.toLowerCase() || ''
+    ].join(' ');
+
+    const searchIndicators = [
+      'search',
+      'query',
+      'keyword',
+      'search-global',
+      'global-nav',
+      'search-box',
+      'searchbox',
+      'job-search',
+      'jobs-search'
+    ];
+
+    if (searchIndicators.some(indicator => fieldIdentifiers.includes(indicator))) {
+      console.log('⏭️ Skipping search field:', field.name || field.id || field.placeholder);
       return true;
     }
 
@@ -4435,11 +4462,22 @@ class AutoJobrContentScript {
   }
 
   async processJobsOnCurrentPage(userProfile) {
-    // Find all job cards on current page
-    const jobCards = document.querySelectorAll('.job-card-container, .jobs-search-results__list-item');
+    // Find all job cards on current page - Updated selectors for current LinkedIn DOM
+    const jobCards = document.querySelectorAll(`
+      .job-card-container,
+      .jobs-search-results__list-item,
+      .job-card-container--clickable,
+      .jobs-search-two-pane__results-list .scaffold-layout__list-item,
+      .jobs-search-results-list__list-item,
+      .jobs-search-results__list .jobs-search-results__list-item,
+      [data-job-id]
+    `.trim().split(/\s*,\s*/));
+
+    console.log(`🔍 LinkedIn Auto Apply: Checking for jobs on page (found ${jobCards.length} job cards)`);
 
     if (jobCards.length === 0) {
-      console.log('No job cards found on page');
+      console.log('❌ No job cards found on page - Current LinkedIn selectors may have changed');
+      this.showNotification('❌ No jobs found on this page. Make sure you\'re on a LinkedIn jobs search page.', 'error');
       return;
     }
 
