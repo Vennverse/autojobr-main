@@ -383,6 +383,7 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
   const [currentPromo, setCurrentPromo] = useState(0);
   const [savedJobs, setSavedJobs] = useState<Set<number>>(new Set());
   const [applyingJobId, setApplyingJobId] = useState<number | null>(null); // State to track applying job
+  const [searchInputFocused, setSearchInputFocused] = useState(false); // Track search input focus
 
   // Update URL when filters change
   const updateFilters = useCallback((newFilters: Partial<FilterState>) => {
@@ -1744,10 +1745,12 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                   placeholder="Search by title, company, skills..."
                   value={searchInput}
                   onChange={(e) => handleSearchChange(e.target.value)}
+                  onFocus={() => setSearchInputFocused(true)}
+                  onBlur={() => setTimeout(() => setSearchInputFocused(false), 200)}
                   className="pl-8 h-9 text-sm border-gray-200 dark:border-gray-700"
                 />
-                {!searchInput && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 z-10">
+                {!searchInput && searchInputFocused && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 z-50">
                     <p className="text-xs text-gray-500 mb-2">Popular searches:</p>
                     <div className="flex flex-wrap gap-1">
                       {['Remote Jobs', 'Software Engineer', 'Data Scientist', 'Product Manager', 'Frontend Developer'].map((term) => (
@@ -1755,7 +1758,10 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                           key={term}
                           variant="secondary" 
                           className="text-xs cursor-pointer hover:bg-blue-100"
-                          onClick={() => handleSearchChange(term)}
+                          onClick={() => {
+                            handleSearchChange(term);
+                            setSearchInputFocused(false);
+                          }}
                         >
                           {term}
                         </Badge>
