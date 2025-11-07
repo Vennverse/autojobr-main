@@ -5537,11 +5537,28 @@ Return only the cover letter text, no additional formatting or explanations.`;
         return res.status(404).json({ message: 'User not found' });
       }
 
-      // Check if user has access to this role
-      const availableRoles = user.availableRoles?.split(',') || [user.userType || 'job_seeker'];
-      
-      // Always allow switching between job_seeker and recruiter for demo
-      // In production, you might want to check availableRoles
+      // SECURITY: If switching TO recruiter mode, require company verification
+      if (role === 'recruiter') {
+        // Check if user has verified company email
+        const verificationRecords = await db.select()
+          .from(companyEmailVerifications)
+          .where(eq(companyEmailVerifications.userId, userId))
+          .orderBy(desc(companyEmailVerifications.createdAt))
+          .limit(1);
+
+        const isVerified = verificationRecords.length > 0 && verificationRecords[0].isVerified;
+
+        // Exception: Allow existing recruiters (userType='recruiter') to switch without new verification
+        const isExistingRecruiter = user.userType === 'recruiter';
+
+        if (!isVerified && !isExistingRecruiter) {
+          return res.status(403).json({ 
+            message: 'Company email verification required to access recruiter mode',
+            requiresVerification: true,
+            error: 'VERIFICATION_REQUIRED'
+          });
+        }
+      }
       
       // Update current role
       await db.update(schema.users)
@@ -8860,17 +8877,22 @@ Return ONLY the JSON object, no additional text.`;
 
 
 
-  // Email verification for recruiters
-  app.post('/api/auth/send-verification', async (req, res) => {
+  // Company email verification for recruiters - REQUIRES AUTHENTICATION
+  app.post('/api/auth/send-verification', isAuthenticated, async (req: any, res) => {
     try {
       const { email, companyName, companyWebsite } = req.body;
+      const userId = req.user.id; // Get authenticated user ID
 
       if (!email || !companyName) {
         return res.status(400).json({ message: "Email and company name are required" });
       }
 
       // Validate company email (no Gmail, Yahoo, student .edu, etc.)
-      const emailDomain = email.split('@')[1].toLowerCase();
+      const emailDomain = email.split('@')[1]?.toLowerCase();
+      if (!emailDomain) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+
       const localPart = email.split('@')[0].toLowerCase();
       const blockedDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com'];
 
@@ -8902,36 +8924,47 @@ Return ONLY the JSON object, no additional text.`;
 
       // Generate verification token
       const token = crypto.randomUUID();
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
       try {
-        // Save verification token with timeout handling
-        await storage.createEmailVerificationToken({
+        // Delete any existing pending verifications for this user
+        await db.delete(companyEmailVerifications)
+          .where(
+            and(
+              eq(companyEmailVerifications.userId, userId),
+              eq(companyEmailVerifications.isVerified, false)
+            )
+          );
+
+        // Create company verification record tied to authenticated user
+        await db.insert(companyEmailVerifications).values({
+          userId: userId, // Use REAL authenticated user ID
           email,
           companyName,
-          companyWebsite,
-          token,
+          companyWebsite: companyWebsite || `https://${emailDomain}`,
+          verificationToken: token,
+          isVerified: false,
           expiresAt,
-          userId: `pending-${Date.now()}-${Math.random().toString(36).substring(2)}`, // Temporary ID for pending verification
-          userType: "recruiter",
         });
 
-        // Send actual email with Resend
-        const emailHtml = generateVerificationEmail(token, companyName, "recruiter");
+        // Send verification email
+        const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/api/auth/verify-company-email?token=${token}`;
+        
+        const emailHtml = companyVerificationService.generateCompanyVerificationEmail(verificationUrl, companyName);
         const emailSent = await sendEmail({
           to: email,
-          subject: `Verify your company email - ${companyName}`,
+          subject: `Verify your company email for ${companyName} - AutoJobr Recruiter Access`,
           html: emailHtml,
         });
 
         if (!emailSent) {
           // In development, still allow the process to continue
           if (process.env.NODE_ENV === 'development') {
-            // Email simulation mode
+            console.log('📧 [DEV MODE] Company verification link:', verificationUrl);
             return res.json({ 
-              message: "Development mode: Verification process initiated. Check server logs for the verification link.",
+              message: "Development mode: Verification link generated. Check server logs.",
               developmentMode: true,
-              token: token // Only expose token in development
+              verificationUrl: verificationUrl // Only expose in development
             });
           }
           return res.status(500).json({ message: 'Failed to send verification email' });
@@ -9041,16 +9074,24 @@ Return ONLY the JSON object, no additional text.`;
     }
   });
 
-  // Check company email verification status
-  app.get('/api/auth/company-verification/:userId', async (req, res) => {
+  // Check company email verification status - PROTECTED
+  app.get('/api/auth/company-verification/:userId', isAuthenticated, async (req: any, res) => {
     try {
       const { userId } = req.params;
+      const requestingUserId = req.user.id;
+
+      // SECURITY: Users can only check their own verification status
+      if (userId !== requestingUserId) {
+        return res.status(403).json({ 
+          message: 'Forbidden: You can only check your own verification status'
+        });
+      }
 
       // Get user
       const user = await storage.getUser(userId);
 
       if (!user) {
-        return res.json({ 
+        return res.status(404).json({ 
           isVerified: false,
           message: 'User not found'
         });
@@ -9070,6 +9111,17 @@ Return ONLY the JSON object, no additional text.`;
           companyName: verificationRecords[0].companyName,
           companyWebsite: verificationRecords[0].companyWebsite,
           verifiedEmail: verificationRecords[0].email
+        });
+      }
+
+      // EXCEPTION: Existing recruiters with userType='recruiter' are considered verified
+      if (user.userType === 'recruiter') {
+        return res.json({
+          isVerified: true,
+          companyName: user.companyName || 'Your Company',
+          companyWebsite: user.companyWebsite || '',
+          verifiedEmail: user.email || '',
+          legacy: true // Flag that this is a legacy recruiter
         });
       }
 

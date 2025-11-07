@@ -37,11 +37,24 @@ export function RoleSwitcher() {
       }, 500);
     },
     onError: (error: any) => {
-      toast({
-        title: "Failed to switch role",
-        description: error.message || "An error occurred",
-        variant: "destructive",
-      });
+      // Handle verification required error
+      if (error.error === 'VERIFICATION_REQUIRED' || error.requiresVerification) {
+        toast({
+          title: "Company Email Verification Required",
+          description: "You need to verify your company email before accessing recruiter features.",
+        });
+        
+        // Redirect to post-job page where verification form is shown
+        setTimeout(() => {
+          setLocation('/post-job');
+        }, 1000);
+      } else {
+        toast({
+          title: "Failed to switch role",
+          description: error.message || "An error occurred",
+          variant: "destructive",
+        });
+      }
     },
   });
 

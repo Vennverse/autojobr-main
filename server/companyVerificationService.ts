@@ -42,7 +42,7 @@ export class CompanyVerificationService {
   }
 
   // Generate company-specific verification email template
-  private generateCompanyVerificationEmail(verificationUrl: string, companyName: string): string {
+  public generateCompanyVerificationEmail(verificationUrl: string, companyName: string): string {
     return `
       <!DOCTYPE html>
       <html>
