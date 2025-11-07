@@ -671,9 +671,19 @@ export function ContextualSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
-      </SidebarContent>
 
-      <RoleSwitcher />
+        {/* Post Jobs Link - for recruiters */}
+        {user && (
+          <div className="p-4 border-t dark:border-gray-800">
+            <Link href="/post-job">
+              <a className="flex items-center gap-2 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <PlusCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Post Jobs</span>
+              </a>
+            </Link>
+          </div>
+        )}
+      </SidebarContent>
 
       <SidebarRail />
     </Sidebar>
