@@ -4,11 +4,11 @@ import { eq, and } from 'drizzle-orm';
 
 export interface PaymentVerificationRequest {
   userId: string;
-  serviceType: 'mock_interview' | 'virtual_interview' | 'ranking_test' | 'test_retake' | 'video_practice';
+  serviceType: 'mock_interview' | 'virtual_interview' | 'ranking_test' | 'test_retake' | 'video_practice' | 'referral_marketplace';
   amount: number;
   transactionId?: string;
   paypalOrderId?: string;
-  serviceId?: string; // CRITICAL: For test_retake, this is the assignment ID
+  serviceId?: string; // CRITICAL: For test_retake, this is the assignment ID; for referral_marketplace, this is the booking ID
 }
 
 export class PaymentVerificationService {
@@ -85,6 +85,58 @@ export class PaymentVerificationService {
   async grantServiceAccess(userId: string, serviceType: string, serviceId?: string): Promise<boolean> {
     try {
       switch (serviceType) {
+        case 'referral_marketplace':
+          if (!serviceId) {
+            console.error('❌ Referral marketplace payment missing booking ID');
+            return false;
+          }
+
+          const { referralBookings } = await import('../shared/schema.js');
+
+          // CRITICAL: First verify the booking exists and belongs to this user
+          const existingBooking = await db.select()
+            .from(referralBookings)
+            .where(
+              and(
+                eq(referralBookings.id, parseInt(serviceId)),
+                eq(referralBookings.jobSeekerId, userId)
+              )
+            )
+            .then(rows => rows[0]);
+
+          if (!existingBooking) {
+            console.error(`❌ Booking ${serviceId} not found or doesn't belong to user ${userId}`);
+            return false;
+          }
+
+          // Verify booking is in a valid state for payment
+          if (existingBooking.paymentStatus === 'escrowed') {
+            console.warn(`⚠️ Booking ${serviceId} already has payment escrowed`);
+            return true; // Already paid, no need to update
+          }
+
+          const bookingResult = await db.update(referralBookings)
+            .set({
+              paymentStatus: 'escrowed',
+              escrowStatus: 'held',
+              status: 'confirmed'
+            })
+            .where(
+              and(
+                eq(referralBookings.id, parseInt(serviceId)),
+                eq(referralBookings.jobSeekerId, userId)
+              )
+            )
+            .returning();
+
+          if (!bookingResult || bookingResult.length === 0) {
+            console.error(`❌ Failed to update booking ${serviceId} for user ${userId}`);
+            return false;
+          }
+
+          console.log(`✅ Referral marketplace booking ${serviceId} confirmed and payment escrowed for user ${userId}`);
+          return true;
+
         case 'test_retake':
           // CRITICAL FIX: Enable test retake for the specific assignment
           if (!serviceId) {
@@ -93,7 +145,6 @@ export class PaymentVerificationService {
           }
 
           const { testAssignments } = await import('../shared/schema.js');
-          const { eq, and } = await import('drizzle-orm');
 
           // CRITICAL: First verify the assignment exists and belongs to this user
           const assignment = await db.select()

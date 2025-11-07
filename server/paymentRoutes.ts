@@ -27,7 +27,7 @@ router.post('/verify-paypal', isAuthenticated, async (req: any, res) => {
     }
 
     // Validate service type
-    const validServices = ['mock_interview', 'virtual_interview', 'ranking_test', 'test_retake'];
+    const validServices = ['mock_interview', 'virtual_interview', 'ranking_test', 'test_retake', 'referral_marketplace'];
     if (!validServices.includes(serviceType)) {
       return res.status(400).json({ message: 'Invalid service type' });
     }

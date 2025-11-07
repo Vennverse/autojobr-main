@@ -4,10 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { CreditCard, CheckCircle } from "lucide-react";
 
 interface PayPalHostedButtonProps {
-  purpose: 'mock_interview' | 'virtual_interview' | 'ranking_test' | 'test_retake';
+  purpose: 'mock_interview' | 'virtual_interview' | 'ranking_test' | 'test_retake' | 'referral_marketplace';
   amount: number;
   itemName: string;
-  serviceId?: string; // CRITICAL: For test_retake, this is the assignment ID
+  serviceId?: string; // CRITICAL: For test_retake, this is the assignment ID; for referral_marketplace, this is the booking ID
   onPaymentSuccess?: (data: any) => void;
   onPaymentError?: (error: any) => void;
   description?: string;
@@ -35,6 +35,7 @@ export default function PayPalHostedButton({
       case 'mock_interview': return 'Mock Interview Session';
       case 'virtual_interview': return 'Virtual Interview Access';
       case 'ranking_test': return 'Ranking Test';
+      case 'referral_marketplace': return 'Referral Marketplace Booking';
       default: return 'Payment';
     }
   };
@@ -117,6 +118,19 @@ export default function PayPalHostedButton({
 
   const recordPaymentAndGrantAccess = async (paymentData: any) => {
     try {
+      // Extract PayPal order/transaction ID from the payment data
+      const orderId = paymentData.orderID || paymentData.order_id || paymentData.transactionID || paymentData.transaction_id;
+      
+      if (!orderId) {
+        console.error('❌ No order ID found in PayPal payment data:', paymentData);
+        onPaymentError?.({ 
+          message: 'Payment completed but order ID missing. Please contact support with your transaction details.' 
+        });
+        return;
+      }
+
+      console.log(`🔍 Verifying PayPal order ${orderId} for ${purpose}`);
+
       // Call our server to record the payment and verify access
       const response = await fetch('/api/payments/verify-paypal', {
         method: 'POST',
@@ -125,8 +139,9 @@ export default function PayPalHostedButton({
         },
         credentials: 'include',
         body: JSON.stringify({
+          orderId: orderId,
           serviceType: purpose,
-          serviceId: serviceId, // CRITICAL: Pass assignment ID for test retakes
+          serviceId: serviceId, // CRITICAL: Pass booking ID for referral marketplace
           amount: amount,
           paymentData: paymentData,
           itemName: itemName
@@ -146,8 +161,19 @@ export default function PayPalHostedButton({
       } else {
         const error = await response.json();
         console.error('❌ Payment verification failed:', error);
+        
+        // Provide more specific error messages
+        let errorMessage = error.message || 'Payment verification failed';
+        if (error.error === 'SERVICE_ACCESS_FAILED') {
+          errorMessage = `Payment received but service access failed. Order ID: ${orderId}. Please contact support.`;
+        } else if (response.status === 400) {
+          errorMessage = error.message || 'Invalid payment information. Please try again or contact support.';
+        } else if (response.status === 401) {
+          errorMessage = 'You must be logged in to complete this payment. Please sign in and try again.';
+        }
+        
         onPaymentError?.({ 
-          message: error.message || 'Payment verification failed' 
+          message: errorMessage 
         });
       }
     } catch (error) {

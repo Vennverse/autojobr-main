@@ -242,7 +242,7 @@ export default function ReferralMarketplacePayment() {
 
               {selectedGateway === 'paypal' && (
                 <PayPalHostedButton
-                  purpose="mock_interview"
+                  purpose="referral_marketplace"
                   amount={amount}
                   itemName={`Referral Booking #${bookingId}`}
                   serviceId={bookingId.toString()}
