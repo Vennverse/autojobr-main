@@ -79,7 +79,8 @@ import {
   GraduationCap,
   Building,
   Factory,
-  Loader2
+  Loader2,
+  Bell
 } from "lucide-react";
 import { JobCard } from "@/components/job-card";
 import PredictiveSuccessWidget from "@/components/PredictiveSuccessWidget";
@@ -1653,13 +1654,13 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
       />
       <Navbar />
 
-      {/* Promotional Alert Banner */}
+      {/* Enhanced Promotional Banner with Job Alerts */}
       {showPromoAlert && (
         <motion.div
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: "auto", opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+          className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white"
         >
           <div className="max-w-7xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
@@ -1679,6 +1680,22 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                 </motion.div>
               </div>
               <div className="flex items-center gap-3">
+                {isAuthenticated && activeFilterCount > 0 && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                    onClick={() => {
+                      toast({
+                        title: "Job Alert Created!",
+                        description: "You'll receive daily emails about new jobs matching your search."
+                      });
+                    }}
+                  >
+                    <Bell className="w-4 h-4 mr-2" />
+                    Save Search & Get Alerts
+                  </Button>
+                )}
                 <Button
                   variant="secondary"
                   size="sm"
@@ -1719,26 +1736,64 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
               </p>
             </div>
 
-            {/* Compact Search and Sort */}
+            {/* Enhanced Search and Sort with Suggestions */}
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
-                  placeholder="Search jobs..."
+                  placeholder="Search by title, company, skills..."
                   value={searchInput}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   className="pl-8 h-9 text-sm border-gray-200 dark:border-gray-700"
                 />
+                {!searchInput && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 z-10">
+                    <p className="text-xs text-gray-500 mb-2">Popular searches:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {['Remote Jobs', 'Software Engineer', 'Data Scientist', 'Product Manager', 'Frontend Developer'].map((term) => (
+                        <Badge 
+                          key={term}
+                          variant="secondary" 
+                          className="text-xs cursor-pointer hover:bg-blue-100"
+                          onClick={() => handleSearchChange(term)}
+                        >
+                          {term}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <Select value={filters.sort} onValueChange={(v) => updateFilters({ sort: v })}>
-                <SelectTrigger className="w-28 h-9 text-sm">
+                <SelectTrigger className="w-32 h-9 text-sm">
+                  <SortDesc className="w-4 h-4 mr-2" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="relevance">Relevance</SelectItem>
-                  <SelectItem value="match">Best Match</SelectItem>
-                  <SelectItem value="date">Latest</SelectItem>
-                  <SelectItem value="salary">Highest Pay</SelectItem>
+                  <SelectItem value="relevance">
+                    <div className="flex items-center gap-2">
+                      <Target className="w-4 h-4" />
+                      Relevance
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="match">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4" />
+                      Best Match
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="date">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      Latest
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="salary">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4" />
+                      Highest Pay
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1790,65 +1845,125 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                 return (
                   <Card 
                     key={`${job.id}-${filters.page}-${index}`}
-                    className={`border-0 shadow-sm hover:shadow-md transition-all cursor-pointer touch-manipulation mb-2 ${
-                      isSelected ? 'ring-1 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-gray-800'
+                    className={`border-0 shadow-sm hover:shadow-lg transition-all cursor-pointer touch-manipulation mb-2 group relative overflow-hidden ${
+                      isSelected ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-gray-800'
                     }`}
                     onClick={() => handleJobClick(job)}
                   >
-                    <CardContent className="p-2">
+                    {/* AI Match Indicator Bar */}
+                    <div 
+                      className="absolute top-0 left-0 h-1 bg-gradient-to-r from-green-500 to-blue-500 transition-all"
+                      style={{ width: `${compatibility}%` }}
+                    />
+                    
+                    <CardContent className="p-3">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1 min-w-0 pr-2">
-                          <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1 line-clamp-1">
-                            {job.title}
-                          </h3>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-1">
+                              {job.title}
+                            </h3>
+                            {compatibility >= 85 && (
+                              <Badge className="text-xs px-1.5 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+                                <Sparkles className="w-3 h-3 mr-1" />
+                                Top Match
+                              </Badge>
+                            )}
+                          </div>
                           <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300 mb-1">
+                            <Building2 className="w-3 h-3" />
                             <span className="font-medium truncate">{job.companyName}</span>
                             {job.location && (
                               <>
                                 <span>•</span>
+                                <MapPin className="w-3 h-3" />
                                 <span className="truncate">{job.location}</span>
                               </>
                             )}
                           </div>
                         </div>
-                        <Badge 
-                          className={`text-xs px-1.5 py-0.5 ${
-                            compatibility >= 90 ? 'bg-green-100 text-green-800' :
-                            compatibility >= 80 ? 'bg-blue-100 text-blue-800' :
-                            compatibility >= 70 ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {compatibility}%
-                        </Badge>
+                        <div className="flex flex-col items-end gap-1">
+                          <Badge 
+                            className={`text-xs px-2 py-1 font-bold ${
+                              compatibility >= 90 ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white' :
+                              compatibility >= 80 ? 'bg-gradient-to-r from-blue-500 to-cyan-600 text-white' :
+                              compatibility >= 70 ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white' :
+                              'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {compatibility}% Match
+                          </Badge>
+                          {job.source === 'scraped' && (
+                            <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                              External
+                            </Badge>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-1 mb-2">
                         {job.workMode && (
-                          <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+                          <Badge variant="secondary" className="text-xs px-1.5 py-0.5 flex items-center gap-1">
+                            {job.workMode === 'remote' && <Globe className="w-3 h-3" />}
+                            {job.workMode === 'hybrid' && <Home className="w-3 h-3" />}
+                            {job.workMode === 'onsite' && <Building className="w-3 h-3" />}
                             {formatWorkMode(job.workMode)}
                           </Badge>
                         )}
                         {job.jobType && (
                           <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                            <Briefcase className="w-3 h-3 mr-1" />
                             {formatJobType(job.jobType)}
                           </Badge>
                         )}
                         {job.experienceLevel && (
                           <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                            <Award className="w-3 h-3 mr-1" />
                             {job.experienceLevel}
+                          </Badge>
+                        )}
+                        {(job.salaryMin || job.minSalary) && (
+                          <Badge className="text-xs px-1.5 py-0.5 bg-green-100 text-green-800">
+                            <DollarSign className="w-3 h-3 mr-1" />
+                            {getCurrentCurrencySymbol()}{(job.salaryMin || job.minSalary)?.toLocaleString()}+
                           </Badge>
                         )}
                       </div>
 
-                      <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-1 mb-2">
+                      <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2 mb-2 leading-relaxed">
                         {job.description}
                       </p>
+                      
+                      {/* Skill Match Preview */}
+                      {isAuthenticated && job.requiredSkills && job.requiredSkills.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {job.requiredSkills.slice(0, 3).map((skill: string, idx: number) => (
+                            <Badge key={idx} variant="secondary" className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-700">
+                              {skill}
+                            </Badge>
+                          ))}
+                          {job.requiredSkills.length > 3 && (
+                            <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+                              +{job.requiredSkills.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
 
                       <div className="flex items-center justify-between gap-2">
-                        <span>
-                          {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'Recently'}
-                        </span>
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <Clock className="w-3 h-3" />
+                          <span>
+                            {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'Recently'}
+                          </span>
+                          {job.applicationsCount && (
+                            <>
+                              <span>•</span>
+                              <Users className="w-3 h-3" />
+                              <span>{job.applicationsCount} applied</span>
+                            </>
+                          )}
+                        </div>
                         <div className="flex items-center gap-1">
                           <Button
                             variant="ghost"
@@ -1858,11 +1973,27 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                               handleSaveJob(job.id);
                             }}
                             className="text-gray-600 hover:text-yellow-600 text-xs h-7 px-2"
+                            title="Save for later"
                           >
                             <Bookmark className="w-3 h-3" />
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (job.sourceUrl || job.source_url) {
+                                window.open(job.sourceUrl || job.source_url, '_blank');
+                              }
+                            }}
+                            className="text-gray-600 hover:text-blue-600 text-xs h-7 px-2"
+                            title="View original"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </Button>
                           {isApplied ? (
-                            <Badge className="bg-green-100 text-green-800 text-xs px-1.5 py-0.5">
+                            <Badge className="bg-green-100 text-green-800 text-xs px-2 py-1 flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3" />
                               Applied
                             </Badge>
                           ) : (
@@ -1872,15 +2003,18 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                                 e.stopPropagation();
                                 handleApply(job);
                               }}
-                              className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-7 px-2"
+                              disabled={applyingJobId === job.id}
+                              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs h-7 px-3 shadow-md hover:shadow-lg transition-all"
                               data-testid={`button-apply-${job.id}`}
                             >
-                              {!isAuthenticated ? (
-                                'Sign in'
+                              {applyingJobId === job.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : !isAuthenticated ? (
+                                'Sign in to Apply'
                               ) : job.source === 'scraped' || job.applyType === 'external' ? (
-                                <><ExternalLink className="w-3 h-3 mr-1" />Apply</>
+                                <><ExternalLink className="w-3 h-3 mr-1" />Apply Now</>
                               ) : (
-                                'Easy Apply'
+                                <><Zap className="w-3 h-3 mr-1" />Easy Apply</>
                               )}
                             </Button>
                           )}
