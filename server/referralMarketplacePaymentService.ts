@@ -51,11 +51,11 @@ export class ReferralMarketplacePaymentService {
       // Use a free geolocation API
       const response = await fetch(`http://ip-api.com/json/${ipAddress}`);
       const data = await response.json();
-      
+
       if (data.status === 'success') {
         return data.countryCode || 'US';
       }
-      
+
       return 'US'; // Default to US if detection fails
     } catch (error) {
       console.error('Error detecting country from IP:', error);
@@ -64,28 +64,26 @@ export class ReferralMarketplacePaymentService {
   }
 
   /**
-   * Calculate pricing based on user's country
+   * Calculate pricing with country-specific adjustments
    */
-  calculatePricing(baseUsdPrice: number, country: string): {
+  private calculatePricing(baseAmount: number, country: string): {
     amount: number;
     currency: 'USD' | 'INR';
     discount: number;
   } {
     if (country === 'IN') {
-      // Indian pricing - convert to INR with discount
-      const discountPercent = 30; // 30% discount for Indian users
-      const discountedUsdPrice = baseUsdPrice * (1 - discountPercent / 100);
-      const inrAmount = Math.round(discountedUsdPrice * this.INR_TO_USD_RATE);
-      
+      // Convert USD to INR without discount
+      const inrAmount = Math.round(baseAmount * this.INR_TO_USD_RATE);
+
       return {
         amount: inrAmount,
         currency: 'INR',
-        discount: discountPercent
+        discount: 0
       };
     } else {
-      // International pricing - USD
+      // International users pay in USD without discount
       return {
-        amount: baseUsdPrice,
+        amount: baseAmount,
         currency: 'USD',
         discount: 0
       };
@@ -116,7 +114,7 @@ export class ReferralMarketplacePaymentService {
 
       const order = await this.razorpay.orders.create(options);
       console.log(`✅ Razorpay order created: ${order.id} for booking ${bookingId}`);
-      
+
       return {
         id: order.id,
         amount: order.amount / 100, // Convert back to rupees
@@ -150,7 +148,7 @@ export class ReferralMarketplacePaymentService {
 
       const isValid = expectedSignature === signature;
       console.log(`🔐 Razorpay payment verification: ${isValid ? 'SUCCESS' : 'FAILED'}`);
-      
+
       return isValid;
     } catch (error) {
       console.error('Error verifying Razorpay payment:', error);
@@ -233,7 +231,7 @@ export class ReferralMarketplacePaymentService {
     if (country === 'IN' && this.razorpay) {
       // Use Razorpay for Indian users
       const order = await this.createRazorpayOrder(bookingId, pricing.amount);
-      
+
       return {
         provider: 'razorpay',
         orderId: order.id,

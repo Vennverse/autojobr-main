@@ -208,7 +208,7 @@ export default function ReferralMarketplacePayment() {
                     <span className="font-medium">Razorpay</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    For Indian users (30% discount)
+                    For Indian users
                   </p>
                 </div>
               </div>
@@ -292,11 +292,6 @@ export default function ReferralMarketplacePayment() {
                     </div>
                     <p className="text-sm text-muted-foreground mb-4">
                       Amount: ₹{paymentData.amount.toLocaleString('en-IN')}
-                      {paymentData.discount > 0 && (
-                        <Badge className="ml-2 bg-green-100 text-green-800">
-                          {paymentData.discount}% off
-                        </Badge>
-                      )}
                     </p>
                     <Button
                       className="w-full"
