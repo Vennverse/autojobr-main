@@ -2446,65 +2446,44 @@ class AutoJobrContentScript {
       if (field.type === 'radio') {
         // Find all radio buttons in the group
         const radioGroup = document.querySelectorAll(`input[name="${field.name}"]`);
-
         if (radioGroup.length === 0) return false;
 
-        // PRIORITY: Always select "Yes" option for maximum success rate
-        let yesRadio = null;
+        // Simple strategy: Try to find "Yes", otherwise pick first option
+        let selectedRadio = radioGroup[0]; // Default to first
         
-        // Search for "Yes" option using multiple strategies
         for (const radio of radioGroup) {
-          const radioValue = (radio.value || '').toLowerCase().trim();
-          const radioId = (radio.id || '').toLowerCase().trim();
-          
-          // Get associated label text
-          let labelText = '';
+          const val = (radio.value || '').toLowerCase();
           const label = radio.closest('label') || document.querySelector(`label[for="${radio.id}"]`);
-          if (label) {
-            labelText = (label.textContent || '').toLowerCase().trim();
-          }
+          const text = label ? label.textContent.toLowerCase() : '';
           
-          // Check if this is a "Yes" option
-          if (radioValue === 'yes' || 
-              radioValue === 'true' || 
-              radioValue === '1' ||
-              radioId.includes('yes') ||
-              labelText === 'yes' ||
-              labelText.startsWith('yes ')) {
-            yesRadio = radio;
+          // If we find "yes", use it
+          if (val === 'yes' || val === 'true' || text.includes('yes')) {
+            selectedRadio = radio;
             break;
           }
         }
 
-        // Select the Yes option if found, otherwise select first option
-        const targetRadio = yesRadio || radioGroup[0];
-        
-        // Scroll into view
-        targetRadio.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        await this.delay(100);
+        // Select and trigger events
+        selectedRadio.click();
+        selectedRadio.checked = true;
+        selectedRadio.dispatchEvent(new Event('change', { bubbles: true }));
+        selectedRadio.dispatchEvent(new Event('input', { bubbles: true }));
 
-        // Click and trigger all necessary events for LinkedIn
-        targetRadio.click();
-        targetRadio.checked = true;
-        targetRadio.dispatchEvent(new Event('change', { bubbles: true }));
-        targetRadio.dispatchEvent(new Event('input', { bubbles: true }));
-        targetRadio.dispatchEvent(new Event('blur', { bubbles: true }));
-
-        console.log(`✅ Radio button selected: ${targetRadio.value || 'first option'} for ${field.name}`);
+        console.log(`✅ Radio selected: ${selectedRadio.value || 'first'}`);
         return true;
-      } else if (field.type === 'checkbox') {
-        // Checkbox: always check it for maximum progression
+      }
+
+      if (field.type === 'checkbox') {
+        // Always check checkboxes
         field.checked = true;
         field.dispatchEvent(new Event('change', { bubbles: true }));
         field.dispatchEvent(new Event('input', { bubbles: true }));
-        field.dispatchEvent(new Event('blur', { bubbles: true }));
-        console.log('✅ Checkbox selected:', field.name);
         return true;
       }
 
       return false;
     } catch (error) {
-      console.error('Choice field fill error:', error);
+      console.error('Choice field error:', error);
       return false;
     }
   }
