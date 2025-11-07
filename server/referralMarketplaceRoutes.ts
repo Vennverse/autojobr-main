@@ -414,6 +414,15 @@ router.post("/payment/create-order", async (req: Request, res: Response) => {
           })
           .where(eq(referralBookings.id, bookingIdNum));
 
+        // Update booking with PayPal order ID
+        await db.update(referralBookings)
+          .set({
+            paymentId: paypalResponse.id,
+            escrowStatus: 'authorized',
+            paymentStatus: 'authorized'
+          })
+          .where(eq(referralBookings.id, bookingIdNum));
+
         const approvalUrl = `https://www.paypal.com/checkoutnow?token=${paypalResponse.id}`;
 
         return res.json({
@@ -443,6 +452,69 @@ router.post("/payment/create-order", async (req: Request, res: Response) => {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create payment order'
     });
+  }
+});
+
+/**
+ * GET /api/referral-marketplace/payment/paypal-return
+ * Handle PayPal return after payment approval
+ */
+router.get("/payment/paypal-return", async (req: Request, res: Response) => {
+  try {
+    const { token, PayerID } = req.query;
+
+    if (!token || !PayerID) {
+      return res.redirect('/referral-marketplace?payment=cancelled');
+    }
+
+    // Capture the payment
+    const mockReq = {
+      params: { orderID: token },
+      body: {}
+    } as Request;
+
+    let captureResponse: any = null;
+    const mockRes = {
+      json: (data: any) => { captureResponse = data; },
+      status: () => mockRes
+    } as any;
+
+    await capturePaypalOrder(mockReq, mockRes);
+
+    if (captureResponse && captureResponse.status === 'COMPLETED') {
+      // Update booking
+      const booking = await db.select()
+        .from(referralBookings)
+        .where(eq(referralBookings.paymentId, token as string))
+        .limit(1);
+
+      if (booking && booking.length > 0) {
+        await db.update(referralBookings)
+          .set({
+            escrowStatus: 'held',
+            paymentStatus: 'completed',
+            status: 'confirmed'
+          })
+          .where(eq(referralBookings.id, booking[0].id));
+
+        // Send confirmation emails
+        await referralMarketplaceService.sendBookingConfirmationEmail(
+          booking[0].id,
+          'job_seeker'
+        );
+        await referralMarketplaceService.sendBookingConfirmationEmail(
+          booking[0].id,
+          'referrer'
+        );
+
+        return res.redirect(`/my-bookings?payment=success&bookingId=${booking[0].id}`);
+      }
+    }
+
+    return res.redirect('/referral-marketplace?payment=failed');
+  } catch (error) {
+    console.error('PayPal return error:', error);
+    return res.redirect('/referral-marketplace?payment=error');
   }
 });
 

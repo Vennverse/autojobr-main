@@ -241,15 +241,46 @@ export default function ReferralMarketplacePayment() {
               />
 
               {selectedGateway === 'paypal' && (
-                <PayPalHostedButton
-                  purpose="referral_marketplace"
-                  amount={amount}
-                  itemName={`Referral Booking #${bookingId}`}
-                  serviceId={bookingId.toString()}
-                  onPaymentSuccess={handlePayPalSuccess}
-                  onPaymentError={handlePayPalError}
-                  description="Complete your referral booking payment"
-                />
+                <div className="space-y-4">
+                  <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <DollarSign className="h-5 w-5 text-blue-600" />
+                      <span className="font-medium">PayPal Payment</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Amount: ${amount.toFixed(2)} USD
+                    </p>
+                    <Button
+                      className="w-full"
+                      onClick={async () => {
+                        try {
+                          // Create PayPal order with actual booking amount
+                          const orderResponse = await apiRequest<any>(
+                            '/api/referral-marketplace/payment/create-order',
+                            'POST',
+                            { bookingId, amount }
+                          );
+
+                          if (orderResponse.success && orderResponse.approvalUrl) {
+                            // Redirect to PayPal for payment
+                            window.location.href = orderResponse.approvalUrl;
+                          } else {
+                            throw new Error('Failed to create PayPal order');
+                          }
+                        } catch (error: any) {
+                          toast({
+                            title: "Payment Failed",
+                            description: error.message || "Failed to initialize PayPal payment",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
+                    >
+                      <DollarSign className="mr-2 h-4 w-4" />
+                      Pay ${amount.toFixed(2)} with PayPal
+                    </Button>
+                  </div>
+                </div>
               )}
 
               {selectedGateway === 'razorpay' && paymentData.provider === 'razorpay' && (
