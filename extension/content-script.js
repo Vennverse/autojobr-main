@@ -2270,6 +2270,39 @@ class AutoJobrContentScript {
         option = this.findFuzzyMatch(options, value);
       }
 
+      // If no match found and this appears to be a Yes/No question, default to "Yes"
+      if (!option) {
+        const isYesNoQuestion = options.some(opt => 
+          opt.text.toLowerCase().trim() === 'yes' || 
+          opt.text.toLowerCase().trim() === 'no'
+        );
+        
+        if (isYesNoQuestion) {
+          option = options.find(opt => 
+            opt.text.toLowerCase().trim() === 'yes' ||
+            opt.value.toLowerCase().trim() === 'yes'
+          );
+          if (option) {
+            console.log('✅ Auto-selecting "Yes" for yes/no question:', fieldInfo.label || fieldInfo.name);
+          }
+        }
+      }
+
+      // If still no option found, skip "Select an option" and choose first real option for LinkedIn
+      if (!option && options.length > 1) {
+        const firstRealOption = options.find(opt => 
+          opt.text.toLowerCase().trim() !== 'select an option' &&
+          opt.text.toLowerCase().trim() !== 'select' &&
+          opt.value !== '' &&
+          opt.value !== '0'
+        );
+        
+        if (firstRealOption) {
+          option = firstRealOption;
+          console.log('✅ Auto-selecting first valid option:', firstRealOption.text);
+        }
+      }
+
       if (option) {
         field.value = option.value;
         field.dispatchEvent(new Event('change', { bubbles: true }));
