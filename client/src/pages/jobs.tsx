@@ -2391,25 +2391,27 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                     </div>
 
                     {/* About the job */}
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                        About the job
-                      </h3>
-                      <div className="prose dark:prose-invert max-w-none text-xs">
-                        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
-                          {selectedJob.description}
-                        </p>
+                    {selectedJob.description && (
+                      <div>
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
+                          About the job
+                        </h3>
+                        <div className="prose dark:prose-invert max-w-none">
+                          <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                            {selectedJob.description}
+                          </p>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Requirements */}
                     {selectedJob.requirements && (
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
                           Requirements
                         </h3>
                         <div className="prose dark:prose-invert max-w-none">
-                          <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                          <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                             {selectedJob.requirements}
                           </p>
                         </div>
@@ -2419,11 +2421,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                     {/* Responsibilities */}
                     {selectedJob.responsibilities && (
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
                           Responsibilities
                         </h3>
                         <div className="prose dark:prose-invert max-w-none">
-                          <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                          <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                             {selectedJob.responsibilities}
                           </p>
                         </div>
@@ -2433,11 +2435,11 @@ export default function Jobs({ category, location, country, workMode }: JobsProp
                     {/* Benefits */}
                     {selectedJob.benefits && (
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
                           Benefits & Perks
                         </h3>
                         <div className="prose dark:prose-invert max-w-none">
-                          <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                          <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                             {selectedJob.benefits}
                           </p>
                         </div>
