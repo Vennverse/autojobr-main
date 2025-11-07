@@ -41,13 +41,11 @@ export function RoleSwitcher() {
       if (error.error === 'VERIFICATION_REQUIRED' || error.requiresVerification) {
         toast({
           title: "Company Email Verification Required",
-          description: "You need to verify your company email before accessing recruiter features.",
+          description: "Redirecting you to verify your company email...",
         });
         
         // Redirect to post-job page where verification form is shown
-        setTimeout(() => {
-          setLocation('/post-job');
-        }, 1000);
+        setLocation('/post-job');
       } else {
         toast({
           title: "Failed to switch role",
