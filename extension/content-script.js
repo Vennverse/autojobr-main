@@ -2288,27 +2288,47 @@ class AutoJobrContentScript {
           }
         }
         
-        // For ANY other dropdown, select the first valid option to complete the form
+        // For ANY other dropdown, select the first REAL option (skip placeholders)
         if (!option && options.length > 1) {
+          // Skip all placeholder/empty options and find first real option
           const firstRealOption = options.find(opt => {
             const text = opt.text.toLowerCase().trim();
             const value = opt.value.trim();
             
-            // Skip placeholder options
-            return text !== 'select an option' &&
-                   text !== 'select' &&
-                   text !== 'choose' &&
-                   text !== 'please select' &&
-                   text !== '--' &&
-                   text !== '---' &&
-                   value !== '' &&
-                   value !== '0' &&
-                   value !== '-1';
+            // List of common placeholder texts to skip
+            const placeholders = [
+              'select an option',
+              'select',
+              'choose',
+              'please select',
+              'select one',
+              'choose one',
+              'pick one',
+              '--',
+              '---',
+              '-- select --',
+              '-- none --',
+              'none',
+              ''
+            ];
+            
+            // Skip if text matches any placeholder
+            if (placeholders.includes(text)) {
+              return false;
+            }
+            
+            // Skip if value is empty or placeholder-like
+            if (value === '' || value === '0' || value === '-1' || value === 'null') {
+              return false;
+            }
+            
+            // This is a valid option!
+            return true;
           });
           
           if (firstRealOption) {
             option = firstRealOption;
-            console.log('✅ Auto-selecting first valid option to complete form:', firstRealOption.text, 'for field:', fieldInfo.label || fieldInfo.name);
+            console.log('✅ Auto-selecting first REAL option (skipped placeholders):', firstRealOption.text, 'for field:', fieldInfo.label || fieldInfo.name);
           }
         }
       }
