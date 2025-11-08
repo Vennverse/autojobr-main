@@ -117,7 +117,9 @@
     "*://*.newton.newtonsoftware.com/career/*/Apply*",
     "*://*.app.jobvite.com/*/apply/*",
     "*://*.silkroad.com/*/apply/*",
-    "*://*.icims.com/jobs/*/apply*"
+    "*://*.icims.com/jobs/*/apply*",
+    "*://*.ashbyhq.com/*",
+    "*://jobs.ashbyhq.com/*"
   ],
   "optional_host_permissions": [
     "*://*/*"
@@ -232,7 +234,9 @@
         "*://*.newton.newtonsoftware.com/career/*/Apply*",
         "*://*.app.jobvite.com/*/apply/*",
         "*://*.silkroad.com/*/apply/*",
-        "*://*.icims.com/jobs/*/apply*"
+        "*://*.icims.com/jobs/*/apply*",
+        "*://*.ashbyhq.com/*",
+        "*://jobs.ashbyhq.com/*"
       ],
       "js": ["content-script.js"],
       "css": ["popup-styles.css"],
