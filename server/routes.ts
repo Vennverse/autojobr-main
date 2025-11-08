@@ -1714,7 +1714,7 @@ ${req.user.firstName} ${req.user.lastName}`,
         return res.status(403).json({ message: "Access denied - recruiter role required" });
       }
 
-      const { firstName, lastName, companyName, companyWebsite, profileImageUrl, companyLogoUrl } = req.body;
+      const { firstName, lastName, companyName, companyWebsite, profileImageUrl, companyLogoUrl, industry, companySize, companyDescription } = req.body;
 
       const updatedUser = await db
         .update(schema.users)
@@ -1742,6 +1742,7 @@ ${req.user.firstName} ${req.user.lastName}`,
           companyName: updatedUser[0].companyName || '',
           companyWebsite: updatedUser[0].companyWebsite || '',
           profileImageUrl: updatedUser[0].profileImageUrl || '',
+          companyLogoUrl: updatedUser[0].companyLogoUrl || '',
           planType: updatedUser[0].planType || 'free',
           subscriptionStatus: updatedUser[0].subscriptionStatus || 'free',
           createdAt: updatedUser[0].createdAt,

@@ -40,6 +40,7 @@ interface UserProfile {
   companySize?: string;
   industry?: string;
   createdAt: string;
+  companyLogoUrl?: string; // Added companyLogoUrl field
 }
 
 export default function RecruiterProfile() {
@@ -352,17 +353,30 @@ export default function RecruiterProfile() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="companyDescription">Company Description</Label>
-              <Textarea
-                id="companyDescription"
-                value={formData.companyDescription || ''}
-                onChange={(e) => handleInputChange('companyDescription', e.target.value)}
-                disabled={!isEditing}
-                placeholder="Describe your company, its mission, and what makes it unique..."
-                rows={4}
-                data-testid="textarea-company-description"
-              />
+            <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="companyDescription">Company Description</Label>
+                <Textarea
+                  id="companyDescription"
+                  value={formData.companyDescription || ''}
+                  onChange={(e) => handleInputChange('companyDescription', e.target.value)}
+                  disabled={!isEditing}
+                  placeholder="Describe your company, its mission, and what makes it unique..."
+                  rows={4}
+                  data-testid="textarea-company-description"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="companyLogoUrl">Company Logo URL (Optional)</Label>
+                <Input
+                  id="companyLogoUrl"
+                  value={formData.companyLogoUrl || ''}
+                  onChange={(e) => handleInputChange('companyLogoUrl', e.target.value)}
+                  disabled={!isEditing}
+                  placeholder="https://example.com/logo.png"
+                  data-testid="input-company-logo"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
