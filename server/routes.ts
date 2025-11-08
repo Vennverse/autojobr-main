@@ -1689,6 +1689,7 @@ ${req.user.firstName} ${req.user.lastName}`,
         companyName: user.companyName || '',
         companyWebsite: user.companyWebsite || '',
         profileImageUrl: user.profileImageUrl || '',
+        companyLogoUrl: user.companyLogoUrl || '',
         planType: user.planType || 'free',
         subscriptionStatus: user.subscriptionStatus || 'free',
         createdAt: user.createdAt,
@@ -1713,19 +1714,20 @@ ${req.user.firstName} ${req.user.lastName}`,
         return res.status(403).json({ message: "Access denied - recruiter role required" });
       }
 
-      const { firstName, lastName, companyName, companyWebsite, profileImageUrl } = req.body;
+      const { firstName, lastName, companyName, companyWebsite, profileImageUrl, companyLogoUrl } = req.body;
 
       const updatedUser = await db
-        .update(users)
+        .update(schema.users)
         .set({
           firstName: firstName || user.firstName,
           lastName: lastName || user.lastName,
           companyName: companyName || user.companyName,
           companyWebsite: companyWebsite || user.companyWebsite,
           profileImageUrl: profileImageUrl || user.profileImageUrl,
+          companyLogoUrl: companyLogoUrl || user.companyLogoUrl,
           updatedAt: new Date(),
         })
-        .where(eq(users.id, userId))
+        .where(eq(schema.users.id, userId))
         .returning();
 
       console.log(`[RECRUITER PROFILE] Updated profile for recruiter ${userId}`);
